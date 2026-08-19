@@ -111,6 +111,15 @@ export type VariantVerdict = {
   // One word for the row's disposition, with THIN carrying its count —
   // stated on the verdict rather than reconstructed by every printer.
   reason?: string;
+  // TRUE when the gate could not resolve this variant at all — an
+  // unresolvable pairing or an absent group baseline — as a FIELD, not
+  // a message prefix (#364 round 42, finding 2): the printer had
+  // re-derived this boolean by prefix-matching the reason's wording,
+  // so a reworded reason silently reopened round 39's bare-"fails"
+  // defect with every test green. The printer keys on this field and
+  // reuses the reason verbatim; the pin refuses any prefix
+  // discriminator.
+  noVerdict: boolean;
   fitFilled?: number;
   accepted: boolean;
   // Days the variant traded that the baseline never did — reported apart
@@ -620,9 +629,12 @@ function groupVerdicts(
         // VERDICT with the pairing named — the round-31 rule at the
         // sibling starvation gate — never the same "fails" as a
         // measured loss. The reasons carry their full specifics so
-        // every printer reuses them verbatim, and an absent baseline
+        // every printer reuses them verbatim, an absent baseline
         // is named before the pairing it empties (#364 round 41,
-        // smaller).
+        // smaller), and the noVerdict FIELD carries the disposition
+        // so no printer parses the message (#364 round 42, finding 2).
+        noVerdict: !thin &&
+          (baselineAbsentInGroup || effectivePairs < MIN_EFFECTIVE_PAIRS),
         reason: thin
           ? `THIN (${selectStats.filled} filled)`
           : baselineAbsentInGroup
@@ -871,7 +883,13 @@ export async function gradeCorpus(
   // the corpus's one acknowledged read on a run that produced no confirm
   // number, and the corrected re-run then demanded the escape hatch the
   // discipline exists to make expensive. The log records READS, never
-  // attempts.
+  // attempts. Stated plainly (#364 round 42, smaller): the two halves
+  // are no longer adjacent — the check-to-append window now spans the
+  // whole grading pass, so two --confirm-final runs racing over one
+  // corpus would each pass this check and each append (two recorded
+  // reads, no refusal). LA-6 disciplines the analyst's re-reads, not
+  // concurrency, and one-shot confirm reads are not a parallel
+  // workload — do not assume the old adjacency.
   const confirmLogPath = options.confirmLogPath ??
     `${paths[0]}.confirm-log.jsonl`;
   if (options.confirmFinal) {
@@ -925,12 +943,23 @@ export async function gradeCorpus(
       { ...options, foldNames },
     );
   // The burn lands only once a confirm figure actually exists (#364
-  // round 41, finding 1): after the verdicts are computed, and only
-  // when the corpus HAS a confirm fold — --confirm-final against a
-  // legacy two-split corpus reads nothing (confirmTotalDelta is null
-  // for every variant, the folds line says so) and therefore burns
-  // nothing.
-  if (options.confirmFinal && foldNames.confirm) {
+  // round 41, finding 1; round 42, finding 1 finished the criterion):
+  // after the verdicts are computed, and only when a confirm number
+  // was actually PRODUCED — the fold merely existing is not a read.
+  // The confirm figure is computed for accepted variants only (the
+  // folds line says so), so a --confirm-final run that accepts nothing
+  // reads nothing and burns nothing, by the same evidence that exempts
+  // a legacy two-split corpus; rounds 38–40 tightened acceptance three
+  // times, so the zero-accept confirm run is a transition this change
+  // set itself creates.
+  const confirmRead = options.confirmFinal &&
+    foldNames.confirm !== undefined &&
+    [...verdicts.values()].some((byVariant) =>
+      [...byVariant.values()].some(
+        (verdict) => verdict.confirmTotalDelta !== null,
+      )
+    );
+  if (confirmRead) {
     appendFileSync(
       confirmLogPath,
       JSON.stringify({
@@ -1084,19 +1113,20 @@ async function main(): Promise<void> {
   for (const [assetClass, classMap] of verdicts) {
     console.log(`\n=== ${assetClass.toUpperCase()} ===`);
     console.log(
-      `${"variant".padEnd(28)}${"ΔR fit".padStart(10)}${"ΔR sel".padStart(9)}${"pairedP".padStart(9)}${"pairs".padStart(10)}${"ΔE sel".padStart(9)}${"comp".padStart(7)}${"drop".padStart(7)}${"expry".padStart(7)}${"worstDay".padStart(10)}  verdict`,
+      `${"variant".padEnd(28)}${"ΔR fit".padStart(10)}${"ΔR sel".padStart(9)}${"pairedP".padStart(9)}${"pairs".padStart(10)}${"ΔE sel".padStart(9)}${"comp".padStart(10)}${"drop".padStart(10)}${"expry".padStart(7)}${"worstDay".padStart(10)}  verdict`,
     );
     for (const [variant, verdict] of classMap) {
       // #364 round 39, finding 2: the pairing prints beside the p it
       // sizes (nonzero/shared), and a NO VERDICT refusal names itself
       // — the reason field carries the full wording (stated on the
-      // verdict, its own rule), so the printer reuses it verbatim
-      // rather than reconstructing it (#364 round 41).
+      // verdict, its own rule), so the printer reuses it verbatim, and
+      // the DISPOSITION is the noVerdict field, never a prefix match
+      // on the message (#364 round 42, finding 2 — a reworded reason
+      // had silently restored the bare-"fails" defect).
       const label = verdict.thin
         ? `THIN (${verdict.selectFilled} filled) — refuse`
-        : verdict.reason !== undefined &&
-            verdict.reason.startsWith("NO VERDICT")
-        ? verdict.reason
+        : verdict.noVerdict
+        ? verdict.reason ?? "NO VERDICT"
         : verdict.accepted
         ? "ACCEPT — fit+select, paired p, expectancy holds"
         : "fails";
@@ -1110,8 +1140,8 @@ async function main(): Promise<void> {
           `${verdict.effectivePairs}/${verdict.sharedDays}`.padStart(10)
         }${
           verdict.selectExpectancyDelta.toFixed(3).padStart(9)
-        }${(verdict.compositionR ?? 0).toFixed(1).padStart(7)}${
-          (verdict.droppedR ?? 0).toFixed(1).padStart(7)
+        }${(verdict.compositionR ?? 0).toFixed(1).padStart(10)}${
+          (verdict.droppedR ?? 0).toFixed(1).padStart(10)
         }${
           (verdict.selectExpiryShare ?? 0).toFixed(2).padStart(7)
         }${(verdict.worstDayR ?? 0).toFixed(1).padStart(10)}  ${label}${confirmNote}`,

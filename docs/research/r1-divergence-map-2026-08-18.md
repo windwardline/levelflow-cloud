@@ -612,7 +612,17 @@ layer.
   exact identity selectTotalDelta = Σ(shared deltas) + compositionR −
   droppedR; and a group whose baseline carries no select-fold days is
   diagnosed BY NAME at the market grain rather than blamed on the
-  pairing it empties. One denominator note beside the unfilled
+  pairing it empties. Round 42 finished both: the burn fires only when
+  a confirm figure was actually PRODUCED — the figure is computed for
+  accepted variants only, so a run that accepts nothing reads nothing
+  and burns nothing, by the same evidence that already exempted a
+  legacy corpus (rounds 38–40 tightened acceptance three times, so
+  the zero-accept confirm run is a transition this change set itself
+  creates) — and the row's disposition rides a `noVerdict` FIELD
+  rather than a prefix match on the reason's wording, which had left
+  round 39's bare-"fails" defect one rewording away with every test
+  green, since `main()` has no executed coverage; a source pin now
+  refuses any prefix discriminator. One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly

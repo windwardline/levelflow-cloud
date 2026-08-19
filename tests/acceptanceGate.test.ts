@@ -285,7 +285,9 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     assert.equal(verdict.effectivePairs, 4);
     assert.equal(verdict.accepted, false);
     // #364 round 39, finding 2: a floor refusal names itself — never
-    // the same "fails" as a measured loss.
+    // the same "fails" as a measured loss; round 42: the disposition
+    // rides the field, not the wording.
+    assert.equal(verdict.noVerdict, true);
     assert.equal(
       verdict.reason,
       "NO VERDICT — pairing 4 nonzero of 4 shared days is below the " +
@@ -317,6 +319,7 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     assert.equal(verdict.sharedDays, 40);
     assert.equal(verdict.effectivePairs, 4);
     assert.equal(verdict.accepted, false);
+    assert.equal(verdict.noVerdict, true);
     assert.equal(
       verdict.reason,
       "NO VERDICT — pairing 4 nonzero of 40 shared days is below the " +
@@ -352,6 +355,7 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
       verdict.pairedP > 0.02 && verdict.pairedP <= 0.05,
       `pairedP ${verdict.pairedP} should sit at the derived ~0.031`,
     );
+    assert.equal(verdict.noVerdict, false);
     assert.equal(verdict.accepted, true);
   });
 
@@ -414,10 +418,12 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     const a = family.get("A")!;
     assert.equal(a.effectivePairs, 6);
     assert.ok(a.pairedP < 0.05, `A's own null gives ~1/64, got ${a.pairedP}`);
+    assert.equal(a.noVerdict, false);
     assert.equal(a.accepted, true);
     const b = family.get("B")!;
     assert.equal(b.effectivePairs, 2);
     assert.equal(b.pairedP, 1);
+    assert.equal(b.noVerdict, true);
     assert.equal(b.accepted, false);
     assert.equal(
       b.reason,
@@ -501,6 +507,7 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
       seed: 5,
     }).get("GBPUSD")!.get("wide")!;
     assert.equal(gbp.accepted, false);
+    assert.equal(gbp.noVerdict, true);
     assert.equal(
       gbp.reason,
       'NO VERDICT — baseline "baseline" has no test-fold days in this ' +
@@ -526,6 +533,20 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     assert.ok(
       calls.length >= 3,
       "supportOf must be declared and consumed by familyPairedP and groupVerdicts",
+    );
+    // #364 round 42, finding 2: the printer keys on the noVerdict
+    // FIELD, never a prefix match on the reason's wording — a reworded
+    // reason had silently restored round 39's bare-"fails" defect with
+    // every test green, since main() has no executed coverage.
+    assert.doesNotMatch(
+      source,
+      /reason\.startsWith/,
+      "no printer may re-derive the disposition from the reason string",
+    );
+    assert.match(
+      source,
+      /: verdict\.noVerdict\s*\n\s*\? verdict\.reason/,
+      "the printed label keys on the noVerdict field and reuses the reason",
     );
   });
 
@@ -1166,6 +1187,29 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       null,
     );
     assert.equal(readFileSync(logPath, "utf8").trim().split("\n").length, 2);
+  });
+
+  // #364 round 42, finding 1: the fold merely existing is not a READ —
+  // the confirm figure is produced for accepted variants only, so a
+  // --confirm-final run that accepts nothing reads nothing and burns
+  // nothing (the criterion that already exempts a legacy corpus).
+  // Grading this corpus against "good" as the baseline makes the one
+  // compared variant ("baseline", deltas −0.3 on every shared day)
+  // fail both folds, so zero variants accept.
+  it("does not burn the log when a confirm-final run accepts nothing", async () => {
+    const emitPath = foldedCorpus();
+    const logPath = `${emitPath}.confirm-log.jsonl`;
+    const graded = await gradeCorpus(emitPath, {
+      baselineVariant: "good",
+      confirmFinal: true,
+      confirmLogPath: logPath,
+      permutations: 100,
+      seed: 4,
+    });
+    const verdict = graded.verdicts.get("forex")!.get("baseline")!;
+    assert.equal(verdict.accepted, false);
+    assert.equal(verdict.confirmTotalDelta, null);
+    assert.equal(existsSync(logPath), false);
   });
 });
 
