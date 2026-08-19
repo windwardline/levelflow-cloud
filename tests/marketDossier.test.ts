@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -169,5 +170,74 @@ describe("market-dossier — the shipped cell is ONE grid cell, not two summed",
     assert.equal(market.get("SHIPPED (baseline at class threshold)"), undefined);
     assert.ok(market.get(BASELINE), "the pinned cell keeps its own name");
     assert.ok(market.get("baseline"), "the bare cell keeps its own name");
+  });
+});
+
+// #364 round 49, finding 3: the re-gate undoes confidenceThreshold=0 and
+// nothing else, while BASELINE also pins runnerProtection,
+// maxStopAtrMultiplier and sizingHoursFactor. `metals` deliberately HOLDS
+// maxStopAtrMultiplier at 1.6, so a metals market falling back to this
+// cell would publish a 1.0-stop-cap reconstruction under the name of the
+// 1.6 configuration it actually runs.
+describe("market-dossier — the SHIPPED label is checked, not asserted", () => {
+  it("does not build the shipped cell when the grid's pins differ from the market's calibration", () => {
+    const days = 80;
+    const corpus = twoCellCorpus(days);
+    // Same corpus, same threshold — the only change is a market whose
+    // stop cap diverges from the pin.
+    const honest = collect([corpus], spansFor(days), () => 40, () => []);
+    assert.ok(
+      honest.get(SYMBOL)!.get("SHIPPED (baseline at class threshold)"),
+      "with pins matching, the reconstruction is built",
+    );
+
+    const diverging = collect(
+      [corpus],
+      spansFor(days),
+      () => 40,
+      () => ["maxStopAtrMultiplier=1.6 (pin 1)"],
+    );
+    const market = diverging.get(SYMBOL)!;
+    assert.equal(
+      market.get("SHIPPED (baseline at class threshold)"),
+      undefined,
+      "a reconstruction the market does not run must not wear the SHIPPED name",
+    );
+    // The rows are not lost — the pinned cell keeps its own name, so the
+    // evidence stays readable as what it actually is.
+    assert.ok(market.get(BASELINE), "the pinned cell keeps its own name");
+  });
+});
+
+// #364 round 49, finding 2: the seventh reader had a bare argv.indexOf
+// with no refusal in either direction, so a mistyped --out silently wrote
+// to the default path and a missing --net produced a complete-looking
+// 97-market artifact with every measurement null, exiting 0.
+describe("market-dossier — refuses rather than measuring nothing", () => {
+  const run = (args: string[]): { status: number; stderr: string } => {
+    try {
+      execFileSync("npx", ["--no-install", "tsx", "scripts/market-dossier.ts", ...args], {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        stdio: "pipe",
+        timeout: 120_000,
+      });
+      return { status: 0, stderr: "" };
+    } catch (error) {
+      const e = error as { status?: number; stderr?: string };
+      return { status: e.status ?? 1, stderr: String(e.stderr ?? "") };
+    }
+  };
+
+  it("refuses an empty --net rather than emitting an all-null dossier", () => {
+    const { status, stderr } = run([]);
+    assert.notEqual(status, 0, "a run that measures nothing must not exit 0");
+    assert.match(stderr, /--net names the corpus this review rests on/);
+  });
+
+  it("refuses a value flag typed without its value instead of falling back", () => {
+    const { status, stderr } = run(["--out", "--net", "x.jsonl"]);
+    assert.notEqual(status, 0);
+    assert.match(stderr, /--out owns the token after it and got "--net"/);
   });
 });

@@ -42,6 +42,7 @@ import {
   assertManifestedCorpusStreaming,
   emptyStats,
   expectancy,
+  readLinesSync,
   rStdDev,
   type SweepEmitRow,
   type SweepStats,
@@ -59,7 +60,6 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
-  readFileSync,
 } from "node:fs";
 
 // LA-6's burned log lives with the REPOSITORY, not with the corpus's
@@ -319,6 +319,29 @@ export function supportOf(deltas: Map<number, number>): number {
     if (delta !== 0) nonzero += 1;
   }
   return nonzero;
+}
+
+/**
+ * Which top-level terms of two recorded corpus identities disagree.
+ * conditionsOf is a stableStringify'd object, so a recorded identity and
+ * the current one can be compared key by key — which is what makes a
+ * changed definition legible instead of two hashes that do not match
+ * (#364 round 49, smaller).
+ */
+function identityKeysDiffering(recorded: string, current: string): string[] {
+  let a: Record<string, unknown>;
+  let b: Record<string, unknown>;
+  try {
+    a = JSON.parse(recorded) as Record<string, unknown>;
+    b = JSON.parse(current) as Record<string, unknown>;
+  } catch {
+    return ["(recorded identity is not readable as JSON)"];
+  }
+  const keys = [...new Set([...Object.keys(a), ...Object.keys(b)])].sort();
+  const differing = keys.filter((key) =>
+    JSON.stringify(a[key]) !== JSON.stringify(b[key])
+  );
+  return differing.length > 0 ? differing : ["(same terms, different order)"];
 }
 
 function familyPairedP(
@@ -1061,10 +1084,18 @@ export async function gradeCorpus(
   // every site that needs it — the prior-read scan, the redirect
   // warning, and the commit reminder each asked the same question and
   // must not be able to answer it differently.
-  const defaultLedgerPath = join(DEFAULT_CONFIRM_LOG_DIR, `${corpusId}.jsonl`);
+  // The ledger's own filename carries a confirm-log- prefix (#364 round
+  // 49, finding 1). The prior-read scan globs whole directories now, and
+  // an operator may legitimately point --confirm-log-dir at the sweeps
+  // directory — that is exactly what the retired round-44 form did — so
+  // without a prefix the glob admitted every corpus EMIT as a candidate
+  // ledger. A prefix the ledger writes and the glob requires is what
+  // makes "every .jsonl in this directory" safe.
+  const ledgerName = `confirm-log-${corpusId}.jsonl`;
+  const defaultLedgerPath = join(DEFAULT_CONFIRM_LOG_DIR, ledgerName);
   const canonicalLedgerPath = options.confirmLogPath ??
     (options.confirmLogDir
-      ? join(options.confirmLogDir, `${corpusId}.jsonl`)
+      ? join(options.confirmLogDir, ledgerName)
       : defaultLedgerPath);
   if (options.confirmFinal) {
     // Prior reads are sought in the canonical ledger AND in both
@@ -1107,7 +1138,9 @@ export async function gradeCorpus(
     // identity-independent by construction. Exposure today is nil —
     // the directory holds only its README and the PR is unmerged — so
     // this is the one moment it can be fixed for free.
-    const jsonlIn = (dir: string, prefix = ""): string[] => {
+    // prefix is REQUIRED: a directory glob must never admit a file the
+    // ledger did not write (#364 round 49, finding 1).
+    const jsonlIn = (dir: string, prefix: string): string[] => {
       if (!existsSync(dir)) return [];
       return readdirSync(dir)
         .filter((name) => name.startsWith(prefix) && name.endsWith(".jsonl"))
@@ -1119,8 +1152,8 @@ export async function gradeCorpus(
       // Every ledger file in whichever directory this read files into,
       // and in the repository's own — not just the one name today's
       // identity computes, which is the whole point of the widening.
-      ...jsonlIn(dirname(canonicalLedgerPath)),
-      ...jsonlIn(DEFAULT_CONFIRM_LOG_DIR),
+      ...jsonlIn(dirname(canonicalLedgerPath), "confirm-log-"),
+      ...jsonlIn(DEFAULT_CONFIRM_LOG_DIR, "confirm-log-"),
       ...(options.confirmLogPath ? [] : [
         ...[...new Set(paths.map((path) => dirname(path)))].sort().flatMap((
           dir,
@@ -1147,8 +1180,14 @@ export async function gradeCorpus(
     const priorEvidence: string[] = [];
     for (const logPath of priorLogPaths) {
       if (!existsSync(logPath)) continue;
-      for (const line of readFileSync(logPath, "utf8").trim().split("\n")) {
-        if (!line) continue;
+      // Line-wise, never readFileSync-as-one-string (#364 round 49,
+      // finding 1). The prefix above is what keeps a corpus emit out of
+      // this loop; reading in chunks is the second line of defence, and
+      // it costs nothing — readLinesSync is the reader sweepStats
+      // exports precisely because the baseline emit is 1.2GB, past
+      // Node's maximum string length, so slurping one can never work.
+      readLinesSync(logPath, (line) => {
+        if (!line) return;
         const entry = JSON.parse(line) as {
           corpusHash: string;
           identity?: string;
@@ -1170,11 +1209,11 @@ export async function gradeCorpus(
         // …and the retired key form: the first version keyed each entry
         // on a shard's own manifestHash.
         const byRetiredKey = shardHashes.has(entry.corpusHash);
-        if (!byIdentity && !byRetiredKey && !byShardOverlap) continue;
+        if (!byIdentity && !byRetiredKey && !byShardOverlap) return;
         // One read is one entry; a readId repeated across the retired
         // per-directory ledgers is that read seen twice, not two reads.
         if (entry.readId) {
-          if (seenReadIds.has(entry.readId)) continue;
+          if (seenReadIds.has(entry.readId)) return;
           seenReadIds.add(entry.readId);
         }
         const recorded = new Set(entry.shardHashes ?? []);
@@ -1188,6 +1227,28 @@ export async function gradeCorpus(
           : [...recorded].every((hash) => shardHashes.has(hash))
           ? `narrower shard population (${recorded.size} shards, this read has ${shardHashes.size})`
           : "overlapping but different shard population";
+        // The recorded identity is READ, not merely written (#364 round
+        // 49, smaller). Round 48 added the payload so a reader would not
+        // face an unreproducible hash, and then the refusal — including
+        // the one branch written for exactly that case — never printed
+        // it. Naming the keys that differ is what turns "the definition
+        // has changed" into something an operator can act on.
+        // The overlap branch's wording is DERIVED from the recorded
+        // payload rather than asserting what happened: "the definition
+        // changed" is a claim, and the entry carries what is needed to
+        // check it. Identical terms under a different hash is a
+        // different fact from different terms, and points at a
+        // different cause.
+        const overlapNote = entry.identity === undefined
+          ? "under a DIFFERENT corpus hash, and no identity payload was " +
+            "recorded to say why"
+          : entry.identity === firstConditions
+          ? "under a DIFFERENT corpus hash whose identity terms are " +
+            "IDENTICAL to this read's — the hashing changed, not the " +
+            "definition"
+          : `under a DIFFERENT corpus identity, which differs on: ${
+            identityKeysDiffering(entry.identity, firstConditions).join(", ")
+          }`;
         priorEvidence.push(
           `${entry.readAt ?? "no timestamp"} in ${logPath} ` +
             `(matched by ${
@@ -1195,12 +1256,10 @@ export async function gradeCorpus(
                 ? "corpus identity"
                 : byRetiredKey
                 ? "a retired per-shard key"
-                : "a shard this read also covers, under a DIFFERENT corpus " +
-                  "identity — the identity's definition has changed since " +
-                  "that read"
+                : `a shard this read also covers, ${overlapNote}`
             }; ${population})`,
         );
-      }
+      });
     }
     if (priorEvidence.length > 0 && !options.acknowledgePriorReads) {
       throw new Error(

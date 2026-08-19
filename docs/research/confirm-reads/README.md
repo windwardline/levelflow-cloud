@@ -10,8 +10,12 @@ again without `--acknowledge-prior-reads`, and the refusal names what it
 found: where, when, which key matched, and how the read's shard population
 compares to the recorded one.
 
-One file per corpus, named for the corpus's identity: a hash of the
-conditions every shard of one measurement shares — `conditionsOf`, which is
+One file per corpus, named `confirm-log-<identity>.jsonl` — the prefix
+is load-bearing, since the prior-read scan globs whole directories and an
+operator may point `--confirm-log-dir` at the sweeps directory, where an
+unprefixed glob would admit every corpus emit as a candidate ledger. The
+identity is a hash of the conditions every shard of one measurement
+shares — `conditionsOf`, which is
 analyzer version, clock, conditions block, **sweep depth in days**, fold
 spec, grid, step size, and the day-stable curve facts. It is exactly the
 predicate the shard loop refuses a mismatched shard over, which is what
@@ -65,9 +69,9 @@ The search is widened across **identities** as well as locations, which
 matters because `conditionsOf` grows: it has been amended several times, and
 each amendment changes every corpus id. Since the id is both the filename
 and the entry key, a read recorded under a previous definition would
-otherwise go unreachable on both halves at once. So every `.jsonl` in this
-directory is read rather than the one name today's identity computes, the
-retired per-directory form is globbed rather than named, and an entry
+otherwise go unreachable on both halves at once. So every `confirm-log-*.jsonl`
+in this directory is read rather than the one name today's identity computes,
+the retired per-directory form is globbed rather than named, and an entry
 matches if it shares **any shard hash** with the read being attempted —
 a fact about the shard files themselves, which no amendment can move. Each
 entry also records the identity's payload, not just its hash, so a later

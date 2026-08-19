@@ -1040,6 +1040,12 @@ describe("the driver writes the manifest beside the emit", () => {
         // the same bidirectional law.
         "scripts/confirm-4d.ts",
         "scripts/derive-4d.ts",
+        // #364 round 49, finding 2: the seventh reader. market-dossier
+        // carried a bare argv.indexOf for --net/--gross/--out — first
+        // occurrence only, no refusal either way — and the list that
+        // enforces the law had never grown to meet it, so a mistyped
+        // --out silently wrote the artifact to the default path.
+        "scripts/market-dossier.ts",
       ]
     ) {
       const source = readFileSync(file, "utf8");
@@ -1073,12 +1079,19 @@ describe("the driver writes the manifest beside the emit", () => {
         `${file}: num() must refuse a flag outside VALUE_FLAGS`,
       );
       // #364 round 35, finding 1 (widened round 36): a present but
-      // unparseable token refuses — never a silent fallback.
-      assert.match(
-        source,
-        /if \(!Number\.isFinite\(parsed\)\) \{\s*\n\s*throw new Error\(/,
-        `${file}: num() must refuse a token it cannot parse`,
-      );
+      // unparseable token refuses — never a silent fallback. Scoped to
+      // readers that actually HAVE a numeric dial (#364 round 49,
+      // finding 2): the law is that every dial refuses, not that every
+      // reader must own one. market-dossier takes three string flags
+      // and no number, and demanding a num() guard of it would be a
+      // remedy that cannot be satisfied.
+      if (/\bnum\(/.test(source)) {
+        assert.match(
+          source,
+          /if \(!Number\.isFinite\(parsed\)\) \{\s*\n\s*throw new Error\(/,
+          `${file}: num() must refuse a token it cannot parse`,
+        );
+      }
       // #364 round 45, smaller: everything above pins the ACCESSORS. A
       // file could satisfy all of it while its path walker still
       // consumed the token after every --flag — the inverted shape round
@@ -1086,10 +1099,15 @@ describe("the driver writes the manifest beside the emit", () => {
       // boolean flag eats the shard path following it and the run grades
       // (and under confirm-4d, BURNS) a corpus one shard short of the
       // one the operator named. The walker's consume decision is a
-      // POSITIVE membership test or it is the defect. sweep-analysis is
-      // exempt by construction: it collects no positional arguments, so
-      // it has no walker to invert.
-      if (file !== "scripts/sweep-analysis.ts") {
+      // POSITIVE membership test or it is the defect. Two readers are
+      // exempt by construction — they collect no positional arguments,
+      // so they have no walker to invert: sweep-analysis, and
+      // market-dossier, which takes its corpora through --net/--gross.
+      const NO_POSITIONALS = new Set([
+        "scripts/sweep-analysis.ts",
+        "scripts/market-dossier.ts",
+      ]);
+      if (!NO_POSITIONALS.has(file)) {
         assert.match(
           source,
           /if \(VALUE_FLAGS\.has\(\w+\[\w+\]\)\)/,

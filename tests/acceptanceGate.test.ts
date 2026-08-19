@@ -1557,6 +1557,55 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.deepEqual(readdirSync(confirmLogDir).length, 1);
   });
 
+  // #364 round 49, finding 1: the widened scan globs whole directories,
+  // and --confirm-log-dir is operator-controlled. Pointing it at the
+  // sweeps directory is the layout the retired round-44 form taught, and
+  // without a filename prefix every corpus EMIT joined the candidate
+  // ledger list — then got slurped whole by a reader sweepStats
+  // documents as unable to read a full-depth corpus at all (1.2GB, past
+  // Node's maximum string length). The ledger writes a confirm-log-
+  // prefix and the glob requires it.
+  it("does not treat the corpus emits as ledgers when the ledger dir IS the shard dir", async () => {
+    const corpus = foldedShard("EURUSD");
+    const shardDir = dirname(corpus);
+    const before = readdirSync(shardDir).sort();
+    assert.ok(
+      before.some((name) => name.endsWith(".jsonl")),
+      "the fixture must put an emit in the directory being used as the ledger dir",
+    );
+
+    const first = await gradeCorpus([corpus], {
+      confirmFinal: true,
+      confirmLogDir: shardDir,
+      permutations: 100,
+      seed: 4,
+    });
+    assert.equal(first.confirmRead, true);
+
+    // The ledger it wrote is distinguishable from the emit by name, which
+    // is the whole mechanism.
+    const written = readdirSync(shardDir).filter((name) =>
+      !before.includes(name)
+    );
+    assert.deepEqual(written.length, 1);
+    assert.ok(
+      written[0].startsWith("confirm-log-"),
+      `the ledger must be named apart from the emits; got ${written[0]}`,
+    );
+
+    // …and the emit sitting beside it is never mistaken for a record:
+    // a second read still refuses, on the ledger alone.
+    await assert.rejects(
+      gradeCorpus([corpus], {
+        confirmFinal: true,
+        confirmLogDir: shardDir,
+        permutations: 100,
+        seed: 4,
+      }),
+      /has already been read 1 time\(s\)/,
+    );
+  });
+
   // #364 round 48, finding 2: corpusId is sha256Hex(conditionsOf(...)),
   // and conditionsOf is a GROWING statement of what one measurement is —
   // this PR amended it three times. The id was both the filename and the
@@ -1589,7 +1638,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.notEqual(recorded.corpusHash, stale);
     rmSync(join(confirmLogDir, ledgerName));
     writeFileSync(
-      join(confirmLogDir, `${stale}.jsonl`),
+      join(confirmLogDir, `confirm-log-${stale}.jsonl`),
       JSON.stringify({ ...recorded, corpusHash: stale }) + "\n",
     );
 
@@ -1604,7 +1653,15 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
         assert.match(error.message, /has already been read 1 time\(s\)/);
         // …and it says WHY it still matched, so the operator is not left
         // wondering how a hash that does not reproduce was found.
-        assert.match(error.message, /identity's definition has changed/);
+        // …and it READS the recorded identity payload rather than
+        // asserting what happened (#364 round 49, smaller). This
+        // fixture rewrote the hash alone, so the honest statement is
+        // that the terms are identical and the hashing moved — a
+        // different fact, and a different cause, from terms that
+        // differ.
+        assert.match(error.message, /a shard this read also covers/);
+        assert.match(error.message, /identity terms are\s+IDENTICAL/);
+        assert.doesNotMatch(error.message, /which differs on/);
         return true;
       },
     );

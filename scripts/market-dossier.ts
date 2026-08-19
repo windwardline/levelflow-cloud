@@ -92,6 +92,13 @@ export function collect(
   paths: string[],
   spans: Map<string, { first: number; last: number }>,
   thresholdOf: (symbol: string) => number,
+  // Which of the pinned cell's OTHER parameters this market does not
+  // actually ship (#364 round 49, finding 3). Empty means the
+  // reconstruction is honest; anything else means it is not, and the
+  // cell must not wear the SHIPPED name. Defaults to "no divergence" so
+  // existing callers keep their behaviour explicitly rather than by
+  // omission.
+  pinDivergence: (symbol: string) => string[] = () => [],
 ) {
   const byMarket = new Map<string, Map<string, { confirm: Acc; select: Acc }>>();
   for (const path of paths) {
@@ -137,9 +144,22 @@ export function collect(
       // docs/research/market-review-2026-08-11/dossiers-net.json is
       // conclusive: all 48 non-zero n on this pseudo-cell are EVEN,
       // against 82 even / 62 odd across every other variant.
+      //
+      // The re-gate undoes confidenceThreshold=0 and NOTHING ELSE. The
+      // pin also fixes runnerProtection, maxStopAtrMultiplier and
+      // sizingHoursFactor, which were asserted rather than checked
+      // (#364 round 49, finding 3) — and `metals` deliberately HOLDS
+      // maxStopAtrMultiplier at 1.6, so a metals market falling back to
+      // this cell would publish a 1.0-stop-cap reconstruction under the
+      // name of the 1.6 configuration it actually runs. Where the pins
+      // diverge the cell keeps its own name: round 25's rule, no
+      // verdict rather than a mislabelled one.
       if (variant === BASELINE) {
         const score = Number(row.confidenceScore);
-        if (Number.isFinite(score) && score >= thresholdOf(symbol)) {
+        if (
+          Number.isFinite(score) && score >= thresholdOf(symbol) &&
+          pinDivergence(symbol).length === 0
+        ) {
           variant = "SHIPPED (baseline at class threshold)";
         }
       }
@@ -167,16 +187,54 @@ export function collect(
   return byMarket;
 }
 
+// The ONE declaration of which flags own the token after them — the
+// form rounds 33-38 installed in the dialed readers, at the seventh
+// (#364 round 49, finding 2). This file had a bare argv.indexOf: first
+// occurrence only, no refusal for an undeclared flag, and no refusal for
+// a missing or flag-shaped value.
+const VALUE_FLAGS = new Set(["--net", "--gross", "--out"]);
+
 function main() {
   const argv = process.argv.slice(2);
-  const flag = (name: string) => {
-    const index = argv.indexOf(`--${name}`);
-    return index >= 0 ? argv[index + 1] : undefined;
+  const str = (arg: string): string | undefined => {
+    if (!VALUE_FLAGS.has(arg)) {
+      throw new Error(
+        `str("${arg}") reads a value outside VALUE_FLAGS — declare it ` +
+          `there, or its value is read as something else`,
+      );
+    }
+    const index = argv.indexOf(arg);
+    if (index === -1) return undefined;
+    const token = argv[index + 1];
+    if (token === undefined || token.startsWith("--")) {
+      throw new Error(
+        `${arg} owns the token after it and got ${
+          token === undefined ? "no value" : `"${token}"`
+        } — a value, never a flag; pass ${arg} <value>. Silently falling ` +
+          `back here wrote the artifact to the DEFAULT path, or graded an ` +
+          `empty corpus, under a confident success line`,
+      );
+    }
+    return token;
   };
-  const netPaths = (flag("net") ?? "").split(",").filter(Boolean);
-  const grossPaths = (flag("gross") ?? "").split(",").filter(Boolean);
-  const outPath = flag("out") ??
+  const netPaths = (str("--net") ?? "").split(",").filter(Boolean);
+  const grossPaths = (str("--gross") ?? "").split(",").filter(Boolean);
+  const outPath = str("--out") ??
     "docs/research/market-review-2026-08-11/dossiers.json";
+  // A run that measures nothing must not report a complete-looking
+  // dossier (#364 round 49, finding 2) — the measured-nothing false
+  // green rounds 20 and 33 closed in starvation-audit. With no net
+  // corpus every market's measurement is null and the file still looked
+  // like 97 reviewed markets, from the reader whose own header calls
+  // itself the per-market review's factual spine.
+  if (netPaths.length === 0) {
+    throw new Error(
+      "market-dossier: --net names the corpus this review rests on and " +
+        "no shard was given, so every measurement would be null while " +
+        "the artifact still listed every market. Pass --net " +
+        "<shard.jsonl[,shard.jsonl...]>",
+    );
+  }
   const picksDir = "docs/research/baseline-2026-08-10";
 
   const derived = new Map<string, { variant: string; tranche: string }>();
@@ -213,10 +271,33 @@ function main() {
 
   const thresholdOf = (symbol: string) =>
     getCategoryCalibration(symbol).confidenceThreshold;
+  // The pinned cell fixes four parameters and the re-gate undoes only
+  // the threshold (#364 round 49, finding 3). These are the other three,
+  // compared against what the market actually ships.
+  const pinDivergence = (symbol: string): string[] => {
+    const shipped = getCategoryCalibration(symbol);
+    const differing: string[] = [];
+    if ((shipped.maxStopAtrMultiplier ?? 1) !== 1) {
+      differing.push(
+        `maxStopAtrMultiplier=${shipped.maxStopAtrMultiplier} (pin 1)`,
+      );
+    }
+    if ((shipped.runnerProtection ?? "breakeven") !== "breakeven") {
+      differing.push(
+        `runnerProtection=${shipped.runnerProtection} (pin breakeven)`,
+      );
+    }
+    if ((shipped.sizingHoursFactor ?? 1) !== 1) {
+      differing.push(
+        `sizingHoursFactor=${shipped.sizingHoursFactor} (pin 1)`,
+      );
+    }
+    return differing;
+  };
   const netSpans = spansFrom(netPaths);
-  const net = collect(netPaths, netSpans, thresholdOf);
+  const net = collect(netPaths, netSpans, thresholdOf, pinDivergence);
   const gross = grossPaths.length > 0
-    ? collect(grossPaths, spansFrom(grossPaths), thresholdOf)
+    ? collect(grossPaths, spansFrom(grossPaths), thresholdOf, pinDivergence)
     : new Map();
 
   const menuBySymbol = new Map(SECURITY_OPTIONS.map((o) => [o.symbol, o]));
@@ -240,8 +321,17 @@ function main() {
         : "set for THIS market (derived cell or legacy override)";
     }
     const cell = derived.get(symbol);
+    // A market with no derived pick falls back to the reconstructed
+    // shipped cell — but only where that reconstruction is honest. Where
+    // the grid's pins differ from what this market runs, the cell was
+    // never built, and naming it here would publish a measurement of a
+    // configuration the market does not use (#364 round 49, finding 3).
+    const diverging = pinDivergence(symbol);
     const effectiveVariant = cell?.variant ??
-      "SHIPPED (baseline at class threshold)";
+      (diverging.length === 0
+        ? "SHIPPED (baseline at class threshold)"
+        : `NO SHIPPED CELL — the grid's pinned baseline differs from this ` +
+          `market's calibration on ${diverging.join(", ")}`);
     const netCells = net.get(symbol);
     const grossCells = gross.get(symbol);
     const readCell = (
@@ -296,6 +386,8 @@ function main() {
       tickSpec: spec ?? null,
       trancheHistory: trancheHistory.get(symbol) ?? [],
       effectiveVariant,
+      // Stated per market rather than inferred from the variant name.
+      shippedCellPinDivergence: diverging.length > 0 ? diverging : null,
     };
   }
 

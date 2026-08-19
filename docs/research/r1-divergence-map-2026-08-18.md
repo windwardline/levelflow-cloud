@@ -757,6 +757,51 @@ layer.
   which is exactly why it was worth fixing before a read existed to
   lose.
 
+  Round 49 closed the round-48 widening's own edge and took the walker
+  law to a seventh reader. Globbing whole directories made the ledger's
+  FILENAME load-bearing: `--confirm-log-dir` is operator-controlled, and
+  pointing it at the sweeps directory — exactly the layout the retired
+  round-44 form taught — put every corpus emit into the candidate ledger
+  list, to be read by `readFileSync`-as-one-string, which `sweepStats`
+  documents as unable to read a full-depth corpus at all (1.2GB, past
+  Node's maximum string length). The ledger now writes a `confirm-log-`
+  prefix, the glob requires it at every call site, and the scan reads
+  line-wise through `readLinesSync` as a second line of defence. The
+  `identity` payload round 48 recorded so a reader would not face an
+  unreproducible hash is now READ by the refusal — and the wording is
+  DERIVED from it rather than asserted, because identical terms under a
+  changed hash is a different fact, with a different cause, from terms
+  that differ.
+
+  `market-dossier` was the seventh reader with value-taking flags and
+  the first outside the walker law: a bare `argv.indexOf` with no
+  refusal in either direction, so a mistyped `--out` silently wrote the
+  artifact to the default path, and a missing `--net` produced a
+  complete-looking 97-market dossier with every measurement null,
+  exiting 0 — the measured-nothing false green rounds 20 and 33 closed
+  in `starvation-audit`, in the reader whose own header calls itself the
+  per-market review's factual spine. It now carries the same VALUE_FLAGS
+  declaration and guarded accessor as its six siblings, refuses an empty
+  corpus outright, and has joined the scan that enforces the law. Two
+  scan assertions were scoped in the process: the `num()` unparseable-
+  token refusal applies to readers that actually have a numeric dial,
+  and the walker pin to readers that collect positional paths — the law
+  is that every dial and every walker is guarded, not that every reader
+  must own one.
+
+  Finally, the `SHIPPED (baseline at class threshold)` cell is now
+  checked rather than asserted. The pin fixes four parameters and the
+  re-gate undoes only `confidenceThreshold`; `metals` deliberately HOLDS
+  `maxStopAtrMultiplier` at 1.6, so a metals market falling back to that
+  cell would have published a 1.0-stop-cap reconstruction under the name
+  of the 1.6 configuration it actually runs, with provenance truthfully
+  reporting `inherited from class 'metals'` on the same row. No
+  published figure was wrong — every market currently on the pseudo-cell
+  matches the pins — which is why this was a missing guard rather than a
+  wrong number. Where the pins diverge the cell is not built, the market
+  reports NO SHIPPED CELL naming the differing parameters, and the
+  divergence rides the dossier as its own field.
+
   Two records were corrected rather than extended. The ledger README
   still described the retired anchor-and-days identity, including the
   claim that a re-sweep does not collide with the corpus it replaces —
