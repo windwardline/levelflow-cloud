@@ -527,7 +527,18 @@ layer.
   parse instead of falling back over a file the walker just consumed
   (`--min-reached shard-a.log shard-b.log` had silently judged
   shard-b alone at the default floor, beyond the reach of the
-  per-file refusals). One denominator note beside the unfilled
+  per-file refusals). Round 36 pushed both laws to the readers they
+  had not reached: sweep-analysis's `--min-n` refuses an unparseable
+  token (a bare Number() had made a mistyped dial NaN, and x < NaN is
+  false — every `!` thin marker vanished in the reader whose header
+  says a thin cell can never read as a finding), grid-totalr's value
+  flags consolidated into the same single declaration with the same
+  two refusals (a NaN dial had silently refused every variant), the
+  E8 report's per-category rollup — amendment 24's own decision
+  grain — carries the THIN floor and states a missing clustered s.e.
+  (a single-filled-market category printed a bare unqualified E), and
+  the gate's PASSING summary names the two no-verdict shapes apart,
+  not only the refusal's remedies. One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly

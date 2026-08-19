@@ -437,11 +437,32 @@ async function main(): Promise<void> {
       // a category heavy in provider absence must be distinguishable
       // from one whose markets never traded — those are the sparse
       // futures/agriculture markets an E8 inclusion decision turns on.
+      // #364 round 36, finding 2: the rollup is amendment 24's own
+      // decision grain — the report cuts inclusion/exclusion per
+      // account type BY CATEGORY — so the floor that marks and
+      // withholds per market marks the category line too, and a
+      // missing clustered s.e. is STATED (fewer than two filled
+      // markets; energies has a single sweepable member, so the shape
+      // is structural, not hypothetical) rather than silently
+      // omitted. Without both, a bounded pilot printed an unqualified
+      // category expectancy above market rows every one of which was
+      // stamped THIN.
       console.log(
         `\n  ${category}  (${members.length} markets, ${rollup.filled} filled, ` +
           `${rollup.dataAbsent} dataAbs, ` +
           `E=${rollupValue === null ? "—" : rollupValue.toFixed(3)}` +
-          `${rollupSe === null ? "" : ` ±${rollupSe.toFixed(3)} clustered`})`,
+          `${
+            rollupSe !== null
+              ? ` ±${rollupSe.toFixed(3)} clustered`
+              : rollupValue !== null
+              ? " ±— (fewer than two filled markets — no clustered s.e.)"
+              : ""
+          }` +
+          `${
+            rollupValue !== null && rollup.filled < minFilled
+              ? ` THIN (${rollup.filled} < ${minFilled} filled)`
+              : ""
+          })`,
       );
       console.log(
         `      ${"market".padEnd(10)} ${"filled".padStart(6)} ${"win".padStart(4)} ` +

@@ -147,8 +147,41 @@ function table(title: string, header: string[], rows: string[][]): void {
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const emitPath = args[args.indexOf("--emit") + 1];
-  const minNIndex = args.indexOf("--min-n");
-  const minN = minNIndex === -1 ? 30 : Number(args[minNIndex + 1]);
+  // The numeric-dial flags read through num(), which REFUSES a token it
+  // cannot parse (#364 round 36, finding 1 — the refusal rounds 33–35
+  // built into both sibling readers, at the one they never reached): a
+  // bare Number() here made a mistyped --min-n into NaN, and every thin
+  // guard in this file is a `stats.n < minN` comparison — x < NaN is
+  // false for every x, so not one "!" marker printed, in the reader
+  // whose header says a thin cell can never read as a finding. --emit
+  // owns a token too, but its value is a STRING read above, and this
+  // file collects no positional paths, so there is no walker for
+  // VALUE_FLAGS to feed — the Set exists for num()'s refusal and the
+  // cross-file source scan alone. The dial is read BEFORE the usage
+  // check so the specific refusal wins over the generic error.
+  const VALUE_FLAGS = new Set(["--min-n"]);
+  function num(arg: string, fallback: number): number {
+    if (!VALUE_FLAGS.has(arg)) {
+      throw new Error(
+        `num("${arg}") reads a value outside VALUE_FLAGS — declare it there`,
+      );
+    }
+    const index = args.indexOf(arg);
+    if (index === -1) return fallback;
+    const token = args[index + 1];
+    const parsed = Number(token);
+    if (!Number.isFinite(parsed)) {
+      throw new Error(
+        `${arg} owns the token after it and cannot read ${
+          token === undefined ? "a missing value" : `"${token}"`
+        } as a number — NaN would disable every thin marker in tables a ` +
+          `calibration ruling is made from (x < NaN is false for every ` +
+          `x); pass ${arg} <number>`,
+      );
+    }
+    return parsed;
+  }
+  const minN = num("--min-n", 30);
   if (!emitPath || emitPath.startsWith("--")) {
     console.error("Usage: npx tsx scripts/sweep-analysis.ts --emit path.jsonl");
     process.exit(1);

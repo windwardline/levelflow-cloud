@@ -434,6 +434,13 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
       // directions, so below the floor it gets no verdict either way.
       { outcome: "stop_loss", realizedR: -0.1, symbol: "GBPJPY" },
       { outcome: "take_profit", realizedR: 0.05, symbol: "GBPJPY" },
+      // #364 round 36, finding 2: a SINGLE-member category (only
+      // XAUUSD carries rows in metals) — clusteredStandardError needs
+      // two filled markets, so the rollup line must STATE the missing
+      // clustered s.e. and carry the THIN floor marker rather than
+      // print a bare, unqualified category expectancy.
+      { outcome: "take_profit", realizedR: 1.0, symbol: "XAUUSD" },
+      { outcome: "stop_loss", realizedR: -1.0, symbol: "XAUUSD" },
     ];
     writeFileSync(
       emitPath,
@@ -490,6 +497,12 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
           series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
           symbol: "GBPJPY",
         },
+        {
+          calibration: {},
+          providerSymbol: "XAUUSD",
+          series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
+          symbol: "XAUUSD",
+        },
       ],
       trainShare: 0.6,
       treasuryCurve: {
@@ -509,7 +522,7 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
       ["--no-install", "tsx", "scripts/account-type-report.ts", emitPath],
       { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
     );
-    assert.match(out, /corpus: 7 market-evidence rows/);
+    assert.match(out, /corpus: 9 market-evidence rows/);
     assert.match(out, /data-absence rows held out of every denominator: 3/);
     // The all-marked market's line: filled 0, dataAbs 3, E "—", ±"—".
     assert.match(out, / 3\s+— ±—/);
@@ -542,6 +555,16 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
     // it must not receive the reassuring "within noise" label.
     assert.match(out, /negative on a thin sample — no verdict either way/);
     assert.doesNotMatch(out, /negative but within noise/);
+    // #364 round 36, finding 2: the category rollup carries the same
+    // floor as its market rows — the currency category's 7 filled
+    // (EURUSD 2 + USDCAD 3 + GBPJPY 2) are under 300 — and the
+    // single-member metals category STATES its missing clustered s.e.
+    // instead of printing a bare unqualified E.
+    assert.match(out, /THIN \(7 < 300 filled\)/);
+    assert.match(
+      out,
+      /±— \(fewer than two filled markets — no clustered s\.e\.\).*THIN \(2 < 300 filled\)/,
+    );
     // #364 round 27, finding 2: the held-out market prints as policy,
     // with its volume stated — never as a coverage gap. Round 29,
     // finding 2: the volume is BASELINE-only (the fixture's wide-variant

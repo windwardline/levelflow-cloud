@@ -773,18 +773,51 @@ export async function gradeCorpus(
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
+  // The ONE declaration of which flags own the token after them (#364
+  // round 36, smaller — the round-34 VALUE_FLAGS form, at its third
+  // file; the name list and the accessors were two places for one
+  // fact). The path filter consumes it, and num() REFUSES a token it
+  // cannot parse instead of falling back: a mistyped --permutations
+  // made every p-value NaN and pairedP <= 0.05 false, silently
+  // refusing every variant — conservative, but with no hint the dial
+  // was the cause. --baseline's value is a STRING (a variant name),
+  // read by name below; it rides the Set for the path filter only.
+  // The dials are read BEFORE the usage check so the specific refusal
+  // wins when a flag typed without its number eats the only shard
+  // path.
+  const VALUE_FLAGS = new Set(["--baseline", "--permutations", "--seed"]);
   const flagValueIndexes = new Set<number>();
-  for (const name of ["baseline", "permutations", "seed"]) {
-    const index = args.indexOf(`--${name}`);
+  for (const name of VALUE_FLAGS) {
+    const index = args.indexOf(name);
     if (index >= 0) flagValueIndexes.add(index + 1);
   }
   const paths = args.filter((arg, index) =>
     !arg.startsWith("--") && !flagValueIndexes.has(index)
   );
-  const flag = (name: string, fallback: number) => {
-    const index = args.indexOf(`--${name}`);
-    return index >= 0 ? Number(args[index + 1]) : fallback;
+  const num = (arg: string, fallback: number): number => {
+    if (!VALUE_FLAGS.has(arg)) {
+      throw new Error(
+        `num("${arg}") reads a value outside VALUE_FLAGS — declare it ` +
+          `there, or its value stays in the shard paths`,
+      );
+    }
+    const index = args.indexOf(arg);
+    if (index === -1) return fallback;
+    const token = args[index + 1];
+    const parsed = Number(token);
+    if (!Number.isFinite(parsed)) {
+      throw new Error(
+        `${arg} owns the token after it and cannot read ${
+          token === undefined ? "a missing value" : `"${token}"`
+        } as a number — the filter already kept that token out of the ` +
+          `shard paths, and a NaN dial silently refuses every variant; ` +
+          `pass ${arg} <number>`,
+      );
+    }
+    return parsed;
   };
+  const permutations = num("--permutations", 1_000);
+  const seed = num("--seed", 7);
   if (paths.length === 0) {
     console.error(
       "Usage: npx tsx scripts/grid-totalr.ts <emit.jsonl> [more-shards.jsonl ...] [--baseline <variant>] [--permutations 1000] [--seed 7]",
@@ -797,8 +830,8 @@ async function main(): Promise<void> {
     baselineVariant: baselineIndex >= 0 ? args[baselineIndex + 1] : undefined,
     confirmFinal: args.includes("--confirm-final"),
     includeHoldout: args.includes("--include-holdout"),
-    permutations: flag("permutations", 1_000),
-    seed: flag("seed", 7),
+    permutations,
+    seed,
   });
   // The holdout clause reports what THIS read excluded (#364 round 29,
   // finding 1): the old form printed shardManifests[0]'s STAMPED list —

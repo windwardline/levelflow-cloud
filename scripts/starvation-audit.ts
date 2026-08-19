@@ -114,7 +114,11 @@
  * floor in effect prints above the table on EVERY run, so a clean
  * run and a --min-reached 0 run are distinguishable (#364 round 33,
  * smaller). The summary partitions the roster by cause —
- * flagged-eligible, thin-sample, no-verdict — so an excluded market
+ * flagged-eligible, thin-sample, and the two no-verdict shapes,
+ * all-marked vs nothing-reached (#364 round 36, finding 3: round 35
+ * split the refusal's remedies on that discriminator and this line,
+ * the one a passing run is quoted from, still absorbed both into one
+ * bucket) — so an excluded market
  * is named, never absorbed (#364 round 32, finding 2: the old "N of
  * M flagged" counted no-verdict markets in M, understating the
  * flagged share of what was actually judged).
@@ -460,14 +464,24 @@ for (const r of out) {
 }
 // The flagged denominator holds only markets that received a verdict;
 // excluded markets are named by cause, never absorbed (#364 round 32,
-// finding 2).
+// finding 2) — and the two no-verdict shapes are causes with opposite
+// diagnoses, so the PASSING summary names them apart too (#364 round
+// 36, finding 3: round 35 split the refusal's remedies but left this
+// line, which is the path that runs whenever any market yields a
+// verdict — the line the amendment-25 decision is quoted from).
 const judged = out.length - thinSample - noVerdict;
 const excluded = [
   ...(thinSample > 0
     ? [`${thinSample} thin sample below ${minReached} reached`]
     : []),
-  ...(noVerdict > 0
-    ? [`${noVerdict} no verdict — zero geometry denominator`]
+  ...(noVerdictMarked > 0
+    ? [`${noVerdictMarked} no verdict — all emitted setups data-absent`]
+    : []),
+  ...(noVerdictPreGeometry > 0
+    ? [
+      `${noVerdictPreGeometry} no verdict — nothing reached the ` +
+      `geometry stage`,
+    ]
     : []),
 ];
 // A roster judged NOWHERE is a refusal, never a pass (#364 round 33,

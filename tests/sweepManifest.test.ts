@@ -757,6 +757,12 @@ describe("the driver writes the manifest beside the emit", () => {
         // setups = 20 − 14 = 6 with dataAbsent 6 ⊆ 6, and reached =
         // planRejected 1 + belowConf 0 + belowPayoff 1 + (6 − 6) = 2.
         "XCUSD baseline test 20 3 3 0 2 2 1 2 0 1 6 6",
+        // #364 round 36, finding 3: the second no-verdict SHAPE —
+        // every decision dying at the pre-geometry gates (setups 0,
+        // dataAbsent 0; identity: 20 − (10+5+0+3+2) = 0) — so the
+        // passing summary must name both no-verdict causes apart,
+        // beside a judged market.
+        "NZDUSD baseline test 20 10 5 0 3 2 0 0 0 0 0 0",
         "",
       ].join("\n"),
     );
@@ -782,10 +788,16 @@ describe("the driver writes the manifest beside the emit", () => {
       /XCUSD\s+20\s+2\s+1\s+1\s+0%\s+thin sample — 2 reached geometry \(< 30\); flag withheld/,
     );
     // …and the summary's denominator holds only judged markets, with
-    // every exclusion named by cause (#364 round 32, finding 2).
+    // every exclusion named by cause (#364 round 32, finding 2) — the
+    // two no-verdict shapes named apart on the PASSING line (#364
+    // round 36, finding 3).
     assert.match(
       out,
-      /1 of 1 markets flagged \(1 thin sample below 30 reached; 1 no verdict — zero geometry denominator\)/,
+      /NZDUSD\s+20\s+0\s+0\s+0\s+—\s+no verdict — nothing reached the geometry stage/,
+    );
+    assert.match(
+      out,
+      /1 of 1 markets flagged \(1 thin sample below 30 reached; 1 no verdict — all emitted setups data-absent; 1 no verdict — nothing reached the geometry stage\)/,
     );
     // Same table under --min-reached 1: the floor is an argv value the
     // path filter must NOT read as a log path (readFileSync("1") would
@@ -807,7 +819,7 @@ describe("the driver writes the manifest beside the emit", () => {
     assert.match(floored, /XCUSD\s+20\s+2\s+1\s+1\s+0%\s+STARVED/);
     assert.match(
       floored,
-      /2 of 2 markets flagged \(1 no verdict — zero geometry denominator\)/,
+      /2 of 2 markets flagged \(1 no verdict — all emitted setups data-absent; 1 no verdict — nothing reached the geometry stage\)/,
     );
     // The floor in effect prints on EVERY run (#364 round 33, smaller):
     // the floored run has zero thin-sample rows, so this line is the
@@ -849,15 +861,17 @@ describe("the driver writes the manifest beside the emit", () => {
         const stderr = String(failed.stderr ?? "");
         return (
           /every market fell outside the judged denominator/.test(stderr) &&
-          /2 thin sample below 100 reached; 1 no verdict — zero geometry denominator/
+          /2 thin sample below 100 reached; 1 no verdict — all emitted setups data-absent; 1 no verdict — nothing reached the geometry stage/
             .test(stderr) &&
-          // #364 round 34, finding 1: both causes are present here, so
-          // BOTH routed remedies print — the dial for the thin share,
-          // the data remedy for the no-verdict share.
+          // #364 rounds 34–35: all three causes are present here, so
+          // all three routed remedies print — the dial for the thin
+          // share, the feed for the all-marked share, the gates for
+          // the nothing-reached share.
           /lower --min-reached with the per-row evidence in hand/
             .test(stderr) &&
           /no --min-reached value recovers a zero geometry denominator/
             .test(stderr) &&
+          /review windows were never consulted/.test(stderr) &&
           !/no such file/i.test(stderr) &&
           !/markets flagged/.test(String(failed.stdout ?? ""))
         );
@@ -926,7 +940,7 @@ describe("the driver writes the manifest beside the emit", () => {
       (error: unknown) => {
         const stderr = String((error as { stderr?: string }).stderr ?? "");
         return (
-          /every market fell outside the judged denominator \(1 no verdict — zero geometry denominator\)/
+          /every market fell outside the judged denominator \(1 no verdict — all emitted setups data-absent\)/
             .test(stderr) &&
           /no --min-reached value recovers a zero geometry denominator/
             .test(stderr) &&
@@ -976,7 +990,7 @@ describe("the driver writes the manifest beside the emit", () => {
         const failed = error as { stderr?: string; stdout?: string };
         const stderr = String(failed.stderr ?? "");
         return (
-          /every market fell outside the judged denominator \(1 no verdict — zero geometry denominator\)/
+          /every market fell outside the judged denominator \(1 no verdict — nothing reached the geometry stage\)/
             .test(stderr) &&
           /nothing reached the geometry stage: the review windows were never consulted/
             .test(stderr) &&
@@ -999,11 +1013,20 @@ describe("the driver writes the manifest beside the emit", () => {
   // same law at source, the round-28 vocabulary-scan shape, for both
   // files that carry the walker — a num() call site added without joining
   // VALUE_FLAGS fails here even if the runtime guard is ever removed.
-  it("every num() flag is declared in VALUE_FLAGS, and num() refuses undeclared flags — both walker files", () => {
+  it("every num() flag is declared in VALUE_FLAGS, and num() refuses undeclared flags — every reader with a numeric dial", () => {
+    // #364 round 36 widened the law past the two walker files: any
+    // reader with a numeric dial declares its value-taking flags ONCE
+    // and refuses both an undeclared flag and an unparseable token —
+    // sweep-analysis's bare Number() had made a mistyped --min-n into
+    // NaN and silently disabled every thin marker (x < NaN is false),
+    // and grid-totalr kept the name list and the accessors as two
+    // places for one fact.
     for (
       const file of [
         "scripts/starvation-audit.ts",
         "scripts/account-type-report.ts",
+        "scripts/sweep-analysis.ts",
+        "scripts/grid-totalr.ts",
       ]
     ) {
       const source = readFileSync(file, "utf8");
@@ -1024,7 +1047,52 @@ describe("the driver writes the manifest beside the emit", () => {
         /if \(!VALUE_FLAGS\.has\(arg\)\) \{\s*\n\s*throw new Error\(/,
         `${file}: num() must refuse a flag outside VALUE_FLAGS`,
       );
+      // #364 round 35, finding 1 (widened round 36): a present but
+      // unparseable token refuses — never a silent fallback.
+      assert.match(
+        source,
+        /if \(!Number\.isFinite\(parsed\)\) \{\s*\n\s*throw new Error\(/,
+        `${file}: num() must refuse a token it cannot parse`,
+      );
     }
+  });
+
+  // #364 round 36, finding 1 + smaller: the token refusal executed in
+  // the two readers rounds 33–35 never reached. Neither run needs a
+  // corpus — both files read the dial BEFORE their usage checks, so
+  // the specific refusal wins, and grid-totalr's shard path is never
+  // opened.
+  it("sweep-analysis and grid-totalr refuse a dial typed without its number — executed", () => {
+    assert.throws(
+      () =>
+        execFileSync(
+          "npx",
+          ["--no-install", "tsx", "scripts/sweep-analysis.ts", "--min-n"],
+          { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+        ),
+      (error: unknown) =>
+        /--min-n owns the token after it and cannot read a missing value as a number/
+          .test(String((error as { stderr?: string }).stderr ?? "")),
+      "sweep-analysis must refuse — NaN would disable every thin marker",
+    );
+    assert.throws(
+      () =>
+        execFileSync(
+          "npx",
+          [
+            "--no-install",
+            "tsx",
+            "scripts/grid-totalr.ts",
+            "never-opened.jsonl",
+            "--permutations",
+          ],
+          { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+        ),
+      (error: unknown) =>
+        /--permutations owns the token after it and cannot read a missing value as a number/
+          .test(String((error as { stderr?: string }).stderr ?? "")),
+      "grid-totalr must refuse — a NaN dial silently refuses every variant",
+    );
   });
 
   // #364 round 33, finding 1: a table that PARSES cleanly but leaves
@@ -1062,7 +1130,7 @@ describe("the driver writes the manifest beside the emit", () => {
         const failed = error as { stderr?: string; stdout?: string };
         const stdout = String(failed.stdout ?? "");
         return (
-          /every market fell outside the judged denominator \(1 thin sample below 30 reached; 1 no verdict — zero geometry denominator\)/
+          /every market fell outside the judged denominator \(1 thin sample below 30 reached; 1 no verdict — all emitted setups data-absent\)/
             .test(String(failed.stderr ?? "")) &&
           // The per-market table still prints — the causes are the
           // evidence — but the false-green summary never does.
