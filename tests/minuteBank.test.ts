@@ -153,6 +153,20 @@ describe("minute bank — --limit truncates the fetch, never the roster", () => 
     assert.throws(() => planRun(["--limit", "0"]), /--limit/);
     assert.throws(() => planRun(["--limit", "-3"]), /--limit/);
   });
+
+  // #364 round 37, smaller: --concurrency had the same shape one flag
+  // over — Number of a missing value is NaN, Math.max(1, NaN) is NaN,
+  // and Array.from with a NaN length is an EMPTY worker pool, so
+  // nothing was fetched and the zero-fetch escalation blamed the
+  // provider window for a mistyped flag no request was made under.
+  it("refuses a --concurrency it cannot read rather than spawning zero workers", () => {
+    assert.throws(() => planRun(["--concurrency"]), /--concurrency/);
+    assert.throws(
+      () => planRun(["--concurrency", "--dir", "/tmp/x"]),
+      /--concurrency/,
+    );
+    assert.throws(() => planRun(["--concurrency", "0"]), /--concurrency/);
+  });
 });
 
 describe("minute bank — a bar is banked only if it is whole", () => {

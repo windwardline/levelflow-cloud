@@ -177,6 +177,19 @@ export function planRun(argv: string[]) {
   // `--limit`, or one followed by the next flag, used to fetch nothing at all
   // and exit 0 — a run that examined nothing wearing the result of one that
   // ran and passed. Infinity is the unflagged default and passes.
+  // The same law for --concurrency (#364 round 37, smaller): Number of
+  // a missing value is NaN, Math.max(1, NaN) is NaN, and Array.from
+  // with a NaN length is EMPTY — zero workers, nothing fetched — and
+  // the zero-fetch escalation then blames the provider window for a
+  // mistyped flag no request was ever made under. The unflagged
+  // default (4) passes.
+  if (!(concurrency > 0)) {
+    throw new Error(
+      `--concurrency must be a positive number; got ${JSON.stringify(
+        argv[argv.indexOf("--concurrency") + 1] ?? null,
+      )}.`,
+    );
+  }
   if (!(limit > 0)) {
     throw new Error(
       `--limit must be a positive number; got ${JSON.stringify(

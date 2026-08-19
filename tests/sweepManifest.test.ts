@@ -1033,13 +1033,25 @@ describe("the driver writes the manifest beside the emit", () => {
       const declared = source.match(/const VALUE_FLAGS = new Set\(\[([^\]]*)\]\)/);
       assert.ok(declared, `${file} must declare VALUE_FLAGS literally`);
       const flags = [...declared![1].matchAll(/"(--[\w-]+)"/g)].map((m) => m[1]);
-      const reads = [...source.matchAll(/num\("(--[\w-]+)"/g)].map((m) => m[1]);
-      assert.ok(reads.length > 0, `${file} must read at least one num() flag`);
+      const reads = [...source.matchAll(/(?:num|str)\("(--[\w-]+)"/g)]
+        .map((m) => m[1]);
+      assert.ok(reads.length > 0, `${file} must read at least one guarded flag`);
       for (const flag of reads) {
         assert.ok(
           flags.includes(flag),
-          `${file}: num("${flag}") reads a value VALUE_FLAGS does not declare — ` +
-            `its value would be walked into the path list`,
+          `${file}: a guarded accessor reads "${flag}" which VALUE_FLAGS does ` +
+            `not declare — its value would be walked into the path list`,
+        );
+      }
+      // #364 round 37, finding 2: the law is BIDIRECTIONAL — every
+      // declared value flag must be read through a guarded accessor
+      // (num() or str()), or it sits in the Set eating tokens with
+      // neither refusal, which was exactly --baseline's gap.
+      for (const flag of flags) {
+        assert.ok(
+          new RegExp(`(?:num|str)\\("${flag}"`).test(source),
+          `${file}: VALUE_FLAGS declares ${flag} with no guarded accessor ` +
+            `reading it`,
         );
       }
       assert.match(

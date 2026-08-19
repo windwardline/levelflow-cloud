@@ -287,7 +287,11 @@ async function main(): Promise<void> {
   }
   console.log(
     `precision: per-market s.e. measured from that market's own R deviation; ` +
-      `rollup s.e. clustered by market; thin = under ${minFilled} filled\n`,
+      `rollup s.e. clustered by market (its sample is the category's ` +
+      `FILLED markets, printed per rollup line); thin = under ` +
+      `${minFilled} filled — one floor applied at BOTH grains, so a ` +
+      `category can clear it on pooled outcomes while every member ` +
+      `is thin\n`,
   );
 
   const views = symbolsByClassification();
@@ -446,14 +450,23 @@ async function main(): Promise<void> {
       // is structural, not hypothetical) rather than silently
       // omitted. Without both, a bounded pilot printed an unqualified
       // category expectancy above market rows every one of which was
-      // stamped THIN.
+      // stamped THIN. The clustered s.e. also states its OWN sample
+      // (#364 round 37, finding 3): the leading markets count is
+      // roster membership, while held-out, all-gated, absent and
+      // all-marked markets never reach the estimator — k, not the
+      // outcome count, bounds the estimate (one degree of freedom at
+      // k=2), so k prints beside the term instead of leaving the
+      // reader to guess it from a roster figure.
+      const filledClusterCount =
+        memberStats.filter((s) => s.filled > 0).length;
       console.log(
         `\n  ${category}  (${members.length} markets, ${rollup.filled} filled, ` +
           `${rollup.dataAbsent} dataAbs, ` +
           `E=${rollupValue === null ? "—" : rollupValue.toFixed(3)}` +
           `${
             rollupSe !== null
-              ? ` ±${rollupSe.toFixed(3)} clustered`
+              ? ` ±${rollupSe.toFixed(3)} clustered over ` +
+                `${filledClusterCount} filled markets`
               : rollupValue !== null
               ? " ±— (fewer than two filled markets — no clustered s.e.)"
               : ""

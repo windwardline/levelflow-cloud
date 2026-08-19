@@ -565,6 +565,12 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
       out,
       /±— \(fewer than two filled markets — no clustered s\.e\.\).*THIN \(2 < 300 filled\)/,
     );
+    // #364 round 37, finding 3: the clustered s.e. states its OWN
+    // sample — the currency category's roster membership far exceeds
+    // its three filled clusters (EURUSD, USDCAD, GBPJPY; GBPUSD is
+    // all-marked at filled 0 and USDJPY held out), and k is what
+    // bounds the estimate, so it prints beside the term.
+    assert.match(out, /clustered over 3 filled markets/);
     // #364 round 27, finding 2: the held-out market prints as policy,
     // with its volume stated — never as a coverage gap. Round 29,
     // finding 2: the volume is BASELINE-only (the fixture's wide-variant

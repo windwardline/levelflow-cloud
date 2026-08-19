@@ -234,9 +234,21 @@ function familyPairedP(
       }
     }
   }
+  // #364 round 37, finding 1: a variant with NO pairs — an empty delta
+  // map, or all-zero deltas (norm 0 either way) — reads p = 1, never
+  // the minimum attainable value. When every variant in the family was
+  // degenerate, the permutation loop continued past all of them, maxT
+  // stayed -Infinity, "-Infinity >= observed(0)" was false on every
+  // iteration, exceed stayed 0, and the gate printed
+  // p = 1/(permutations+1) ≈ 0.001 EXACTLY (no RNG involved) from zero
+  // pairs — while the sibling permutationPValue guards its own
+  // degenerate case (baselineCount 0 → 1) and is descriptive only. A
+  // paired test with no pairs supports no verdict.
   return new Map(variants.map((variant) => [
     variant,
-    (1 + exceed.get(variant)!) / (permutations + 1),
+    scale.get(variant)! === 0
+      ? 1
+      : (1 + exceed.get(variant)!) / (permutations + 1),
   ]));
 }
 
@@ -341,6 +353,20 @@ function groupVerdicts(
     for (const variant of byVariant.keys()) {
       variants.add(variant);
     }
+  }
+  // #364 round 37, finding 2: a baseline that matches NO cell makes
+  // every class degenerate at once — empty baseline days, deltas
+  // against nothing, fit/select "deltas" that are the variant's own
+  // totals — and with finding 1's floor it would quietly fail every
+  // variant while the real defect is a typo'd name (before the floor
+  // it ACCEPTED every profitable variant at the minimum p). Refuse,
+  // naming what the corpus actually carries.
+  if (!variants.has(baselineVariant)) {
+    throw new Error(
+      `baseline variant "${baselineVariant}" carries no cell in this ` +
+        `corpus — every class would grade against nothing; variants ` +
+        `present: ${[...variants].sort().join(", ")}`,
+    );
   }
 
   for (const [assetClass, symbols] of symbolsByClass) {
@@ -457,11 +483,17 @@ function groupVerdicts(
       );
 
       const pairedP = pairedPs.get(variant) ?? 1;
+      const sharedDays = deltasByVariant.get(variant)?.size ?? 0;
       // The rule (round-8 batch 1): both folds positive, the PAIRED
-      // family-wise p enforced at 0.05, expectancy holds, not thin.
-      // Sigma and the pooled p remain printed, descriptive only.
+      // family-wise p enforced at 0.05, expectancy holds, not thin —
+      // and at least one shared day (#364 round 37, finding 1): the
+      // paired p is defined by the pairing, so zero pairs cannot clear
+      // it. familyPairedP floors the degenerate variant at p = 1 too;
+      // this term keeps the law visible at the verdict, where
+      // sharedDays had been recorded and never read. Sigma and the
+      // pooled p remain printed, descriptive only.
       const accepted = !thin && fitTotalDelta > 0 && selectTotalDelta > 0 &&
-        pairedP <= 0.05 && selectExpectancyDelta >= 0;
+        sharedDays > 0 && pairedP <= 0.05 && selectExpectancyDelta >= 0;
       const selectStats = aggregate.variant.select;
       const expiries = selectStats.filled - selectStats.wins -
         selectStats.stops - selectStats.ambiguous;
@@ -498,7 +530,7 @@ function groupVerdicts(
         selectFilled: selectStats.filled,
         selectSigma,
         selectTotalDelta,
-        sharedDays: deltasByVariant.get(variant)?.size ?? 0,
+        sharedDays,
         thin,
         worstDayR,
       });
@@ -781,10 +813,14 @@ async function main(): Promise<void> {
   // made every p-value NaN and pairedP <= 0.05 false, silently
   // refusing every variant — conservative, but with no hint the dial
   // was the cause. --baseline's value is a STRING (a variant name),
-  // read by name below; it rides the Set for the path filter only.
-  // The dials are read BEFORE the usage check so the specific refusal
-  // wins when a flag typed without its number eats the only shard
-  // path.
+  // read through the guarded str() below (#364 round 37, finding 2:
+  // it had ridden the Set for the path filter only, with NEITHER
+  // refusal — and its failure is anti-conservative: a baseline that
+  // matches nothing had made every class degenerate and accepted
+  // every profitable variant; groupVerdicts now also refuses a
+  // baseline that carries no cell in the cube). The dials are read
+  // BEFORE the usage check so the specific refusal wins when a flag
+  // typed without its value eats the only shard path.
   const VALUE_FLAGS = new Set(["--baseline", "--permutations", "--seed"]);
   const flagValueIndexes = new Set<number>();
   for (const name of VALUE_FLAGS) {
@@ -816,18 +852,38 @@ async function main(): Promise<void> {
     }
     return parsed;
   };
+  const str = (arg: string): string | undefined => {
+    if (!VALUE_FLAGS.has(arg)) {
+      throw new Error(
+        `str("${arg}") reads a value outside VALUE_FLAGS — declare it ` +
+          `there, or its value stays in the shard paths`,
+      );
+    }
+    const index = args.indexOf(arg);
+    if (index === -1) return undefined;
+    const token = args[index + 1];
+    if (token === undefined || token.startsWith("--")) {
+      throw new Error(
+        `${arg} owns the token after it and got ${
+          token === undefined ? "no value" : `"${token}"`
+        } — a variant name, never a flag; pass ${arg} <variant> (an ` +
+          `eaten shard path lands at the cube's baseline-exists refusal)`,
+      );
+    }
+    return token;
+  };
   const permutations = num("--permutations", 1_000);
   const seed = num("--seed", 7);
+  const baselineVariant = str("--baseline");
   if (paths.length === 0) {
     console.error(
       "Usage: npx tsx scripts/grid-totalr.ts <emit.jsonl> [more-shards.jsonl ...] [--baseline <variant>] [--permutations 1000] [--seed 7]",
     );
     process.exit(1);
   }
-  const baselineIndex = args.indexOf("--baseline");
   const { dataAbsentRows, foldNames, heldOutMarkets, manifest, verdicts } = await gradeCorpus(paths, {
     acknowledgePriorReads: args.includes("--acknowledge-prior-reads"),
-    baselineVariant: baselineIndex >= 0 ? args[baselineIndex + 1] : undefined,
+    baselineVariant,
     confirmFinal: args.includes("--confirm-final"),
     includeHoldout: args.includes("--include-holdout"),
     permutations,

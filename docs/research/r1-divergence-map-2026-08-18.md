@@ -532,13 +532,31 @@ layer.
   token (a bare Number() had made a mistyped dial NaN, and x < NaN is
   false — every `!` thin marker vanished in the reader whose header
   says a thin cell can never read as a finding), grid-totalr's value
-  flags consolidated into the same single declaration with the same
-  two refusals (a NaN dial had silently refused every variant), the
+  flags consolidated into the same single declaration, its numeric
+  dials carrying both refusals (a NaN dial had silently refused every
+  variant), the
   E8 report's per-category rollup — amendment 24's own decision
   grain — carries the THIN floor and states a missing clustered s.e.
   (a single-filled-market category printed a bare unqualified E), and
   the gate's PASSING summary names the two no-verdict shapes apart,
-  not only the refusal's remedies. One denominator note beside the unfilled
+  not only the refusal's remedies. Round 37 closed the 4c gate's own
+  degenerate seam: `familyPairedP` had returned the MINIMUM attainable
+  p — 1/(permutations+1), exactly, since a no-pairs variant
+  contributes nothing to the permutation null — for a variant with
+  zero shared days, and `accepted` never read the `sharedDays` it
+  recorded, so a typo'd `--baseline` (unvalidated, and the one
+  VALUE_FLAGS entry with neither refusal) made every class degenerate
+  and ACCEPTED every profitable variant. Now a no-pairs variant
+  floors at p = 1, acceptance requires a nonzero pairing,
+  `--baseline` reads through a guarded string accessor, a baseline
+  carrying no cell refuses naming the variants present, and the
+  cross-file scan is bidirectional (every declared flag must be read
+  guarded). The E8 rollup's clustered s.e. states its own sample — k
+  filled markets, since roster membership is not the cluster count —
+  the precision line states that one `--min-filled` floor applies at
+  both grains, and bank-minute-bars' `--concurrency` gained
+  `--limit`'s guard (a NaN worker pool fetched nothing and blamed the
+  provider window). One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly

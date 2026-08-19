@@ -217,6 +217,62 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     assert.equal(verdict.thin, true);
   });
 
+  // #364 round 37, finding 1: a variant sharing NO select day with the
+  // baseline had scored the MINIMUM attainable p — with every family
+  // member degenerate, the permutation loop contributed nothing, maxT
+  // stayed -Infinity, and pairedP = 1/(permutations+1) ≈ 0.001 from
+  // zero pairs, exactly (no RNG involved) — and `accepted` never read
+  // the sharedDays it recorded, so a profitable-both-folds disjoint
+  // variant was ACCEPTED. A paired test with no pairs supports no
+  // verdict: p floors at 1 and acceptance requires a nonzero pairing.
+  it("refuses a variant with zero shared select days — a paired test with no pairs supports no verdict", () => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 12; day += 1) {
+      rows.push(trainRow("baseline", day, 0.4));
+      rows.push(outcomeRow("baseline", day, 0.4));
+      rows.push(trainRow("disjoint", day, 0.9));
+    }
+    // The variant's select-fold days never overlap the baseline's.
+    for (let day = 12; day < 24; day += 1) {
+      rows.push(outcomeRow("disjoint", day, 0.9));
+    }
+    const options = {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 100,
+      seed: 5,
+    };
+    const verdict = classVerdicts(readGridCube(rows), options)
+      .get("forex")!.get("disjoint")!;
+    assert.equal(verdict.sharedDays, 0);
+    assert.equal(verdict.pairedP, 1);
+    assert.equal(verdict.accepted, false);
+    // Same law in the per-market singleton families the incidental
+    // route runs through.
+    const market = marketVerdicts(readGridCube(rows), options)
+      .get("EURUSD")!.get("disjoint")!;
+    assert.equal(market.sharedDays, 0);
+    assert.equal(market.pairedP, 1);
+    assert.equal(market.accepted, false);
+  });
+
+  // #364 round 37, finding 2: a baseline variant that carries no cell
+  // made every class degenerate at once — deltas against nothing, the
+  // variants' own totals wearing delta names — and (before finding 1's
+  // floor) accepted every profitable variant at the minimum p. A typo
+  // refuses, naming what the corpus actually carries.
+  it("refuses a baseline variant that carries no cell, naming the variants present", () => {
+    assert.throws(
+      () =>
+        classVerdicts(readGridCube(better()), {
+          baselineVariant: "tp1Atr=0.5",
+          foldNames: { fit: "train", select: "test" },
+          permutations: 50,
+          seed: 2,
+        }),
+      /baseline variant "tp1Atr=0\.5" carries no cell in this corpus[\s\S]*variants present: baseline, tp1=0\.9/,
+    );
+  });
+
   it("3g: rejects volume bought with per-trade quality — total R up, expectancy down", () => {
     const rows: SweepEmitRow[] = [];
     for (let day = 0; day < 24; day += 1) {
