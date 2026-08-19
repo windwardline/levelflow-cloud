@@ -78,6 +78,11 @@ describe("fetchFmpWithRetry — the 429 survives, the run does not die (OP-6)", 
   });
 
   it("paces every request when a pace is set", async () => {
+    // Both sides measure performance.now() — the pacer runs on the same
+    // monotonic clock (#364 round-9 CI: on Date.now(), an NTP step on
+    // the runner cut the wait below even this 5ms cushion), and its
+    // re-check loop makes the floor strict, so ≥ pace-minus-cushion
+    // cannot flake on scheduling delay, which only lands late.
     const stamps: number[] = [];
     await fetchFmpWithRetry(
       () => {
