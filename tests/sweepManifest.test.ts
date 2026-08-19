@@ -865,6 +865,35 @@ describe("the driver writes the manifest beside the emit", () => {
       "floor 100 excludes every market — the gate must refuse, with the " +
         "flag value consumed as a value rather than opened as a path",
     );
+    // #364 round 35, finding 1: the walker gives --min-reached
+    // ownership of the next token unconditionally, so num() must
+    // REFUSE a token it cannot parse. The silent fallback that stood
+    // for one round used the default floor AND dropped the eaten log
+    // from the path list — "--min-reached shard-a.log shard-b.log"
+    // judged shard-b alone, with none of the per-file refusals able to
+    // fire on the vanished shard (the pattern-match the walker
+    // replaced could not eat a filename, so the hole was the walker's
+    // own).
+    assert.throws(
+      () =>
+        execFileSync(
+          "npx",
+          [
+            "--no-install",
+            "tsx",
+            "scripts/starvation-audit.ts",
+            "--min-reached",
+            log,
+            log,
+            "--report",
+          ],
+          { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+        ),
+      (error: unknown) =>
+        /--min-reached owns the token after it and cannot read ".*sweep\.log" as a number/
+          .test(String((error as { stderr?: string }).stderr ?? "")),
+      "a flag typed without its number must refuse, never eat a log path",
+    );
   });
 
   // #364 round 34, finding 1: the refusal's remedies route by CAUSE. On
@@ -901,10 +930,66 @@ describe("the driver writes the manifest beside the emit", () => {
             .test(stderr) &&
           /no --min-reached value recovers a zero geometry denominator/
             .test(stderr) &&
+          // #364 round 35, finding 3: this roster is the ALL-MARKED
+          // shape, so the feed remedy prints and the pre-geometry
+          // remedy (like the dial) does not.
+          /data-absence marker: deepen the sweep window or restore the feed's gradeable-bar coverage/
+            .test(stderr) &&
+          !/review windows were never consulted/.test(stderr) &&
           !/lower --min-reached/.test(stderr)
         );
       },
       "an all-no-verdict roster must not be offered the floor dial",
+    );
+  });
+
+  // #364 round 35, finding 3: the no-verdict bucket is two shapes with
+  // opposite remedies, and the per-row flag already discriminates them.
+  // Every decision here dies at the pre-geometry gates (session 10,
+  // news 5, regime 3, consensus 2 of 20 decisions; zero setups, zero
+  // dataAbsent), so the review windows were never consulted and the
+  // feed-coverage advice is inert — the refusal must name the gates and
+  // the window placement instead, and still never the floor dial.
+  it("the all-pre-geometry refusal names the gates, never the feed or the dial — executed", () => {
+    const dir = mkdtempSync(join(tmpdir(), "starv-pregeo-"));
+    const log = join(dir, "sweep.log");
+    writeFileSync(
+      log,
+      [
+        "symbol variant split decisions sessionBlk newsBlk notWarm " +
+        "regimeBlk noConsensus planRejected unresolv belowConf " +
+        "belowPayoff dataAbsent setups",
+        // Identity holds: setups = 20 − (10+5+0+3+2+0+0+0) = 0, and
+        // reached = 20−10−5−0−3−2−0−0 = 0 with dataAbsent 0.
+        "NZDUSD baseline test 20 10 5 0 3 2 0 0 0 0 0 0",
+        "",
+      ].join("\n"),
+    );
+    assert.throws(
+      () =>
+        execFileSync(
+          "npx",
+          ["--no-install", "tsx", "scripts/starvation-audit.ts", log, "--report"],
+          { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+        ),
+      (error: unknown) => {
+        const failed = error as { stderr?: string; stdout?: string };
+        const stderr = String(failed.stderr ?? "");
+        return (
+          /every market fell outside the judged denominator \(1 no verdict — zero geometry denominator\)/
+            .test(stderr) &&
+          /nothing reached the geometry stage: the review windows were never consulted/
+            .test(stderr) &&
+          /pre-geometry gates \(session, news, warm-up, regime, consensus\) or the window placement/
+            .test(stderr) &&
+          !/gradeable-bar coverage/.test(stderr) &&
+          !/lower --min-reached/.test(stderr) &&
+          /no verdict — nothing reached the geometry stage/
+            .test(String(failed.stdout ?? ""))
+        );
+      },
+      "a pre-geometry no-verdict roster must be routed to the gates, " +
+        "not the feed",
     );
   });
 

@@ -428,6 +428,12 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
       { outcome: "stop_loss", realizedR: -1.0, symbol: "USDCAD" },
       { outcome: "stop_loss", realizedR: -1.1, symbol: "USDCAD" },
       { outcome: "stop_loss", realizedR: -0.9, symbol: "USDCAD" },
+      // #364 round 35, smaller: a thin negative market whose σ is BELOW
+      // 2 (mean −0.025, se ≈ 0.075, σ ≈ 0.33) must not read "within
+      // noise" — an untrustworthy σ is untrustworthy in both
+      // directions, so below the floor it gets no verdict either way.
+      { outcome: "stop_loss", realizedR: -0.1, symbol: "GBPJPY" },
+      { outcome: "take_profit", realizedR: 0.05, symbol: "GBPJPY" },
     ];
     writeFileSync(
       emitPath,
@@ -478,6 +484,12 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
           series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
           symbol: "USDCAD",
         },
+        {
+          calibration: {},
+          providerSymbol: "GBPJPY",
+          series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
+          symbol: "GBPJPY",
+        },
       ],
       trainShare: 0.6,
       treasuryCurve: {
@@ -497,21 +509,39 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
       ["--no-install", "tsx", "scripts/account-type-report.ts", emitPath],
       { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
     );
-    assert.match(out, /corpus: 5 market-evidence rows/);
+    assert.match(out, /corpus: 7 market-evidence rows/);
     assert.match(out, /data-absence rows held out of every denominator: 3/);
     // The all-marked market's line: filled 0, dataAbs 3, E "—", ±"—".
     assert.match(out, / 3\s+— ±—/);
     // #364 round 34, finding 3: USDCAD's three low-dispersion losses
     // clear σ≥2, but below --min-filled (default 300) the EXCLUDE
-    // verdict is withheld — the flag names the withhold and the
-    // candidates block stays empty (the "none —" line below is now
-    // load-bearing: it proves the thin negative market never reached
-    // the block the E8 decisions read).
+    // verdict is withheld — the flag names the withhold and nothing
+    // joins the candidates list.
     assert.match(
       out,
       /THIN <- exclude withheld \(thin sample below --min-filled\)/,
     );
-    assert.match(out, /none — no market is negative beyond noise/);
+    // #364 round 35, finding 2: the decision block states its own
+    // terms — the "none" line names the floor it judged at, and the
+    // withheld share prints beside it with its markets, so a clean
+    // block over a corpus holding a withheld negative market can no
+    // longer read "no market is negative beyond noise".
+    assert.match(
+      out,
+      /none — no market is negative at 2\+ s\.e\. with 300\+ filled/,
+    );
+    assert.match(
+      out,
+      /withheld below --min-filled \(\d+ negative at 2\+ s\.e\. on thin samples — no verdict either way\):/,
+    );
+    assert.match(
+      out,
+      /USDCAD: E=-1\.000 ±0\.058 over 3 filled \(< 300\) — withheld/,
+    );
+    // #364 round 35, smaller: GBPJPY is negative with σ < 2 AND thin —
+    // it must not receive the reassuring "within noise" label.
+    assert.match(out, /negative on a thin sample — no verdict either way/);
+    assert.doesNotMatch(out, /negative but within noise/);
     // #364 round 27, finding 2: the held-out market prints as policy,
     // with its volume stated — never as a coverage gap. Round 29,
     // finding 2: the volume is BASELINE-only (the fixture's wide-variant
@@ -541,7 +571,10 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
       { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
     );
     assert.match(floored, /over 3 filled — exclude/);
-    assert.doesNotMatch(floored, /none — no market is negative beyond noise/);
+    assert.doesNotMatch(floored, /none — no market is negative/);
+    // Nothing is withheld at a floor the sample clears, so the block
+    // carries no withheld section either.
+    assert.doesNotMatch(floored, /withheld below --min-filled \(/);
     // "--min-filled 1e2" is the walker's proving case: Number("1e2") is
     // 100 but the old bare-number regex rejected it, so it reached the
     // streaming door as a corpus path and the report died on ENOENT.
@@ -563,7 +596,34 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
       scientific,
       /THIN <- exclude withheld \(thin sample below --min-filled\)/,
     );
-    assert.match(scientific, /none — no market is negative beyond noise/);
+    assert.match(
+      scientific,
+      /none — no market is negative at 2\+ s\.e\. with 100\+ filled/,
+    );
+    // #364 round 35, finding 1: the walker gives --min-filled ownership
+    // of the next token unconditionally, so num() must REFUSE a token
+    // it cannot parse — the silent fallback used the default floor AND
+    // dropped the eaten corpus file from the report, a partial corpus
+    // with no diagnosis (the pattern-match the walker replaced could
+    // not eat a filename, so the hole was the walker's own).
+    assert.throws(
+      () =>
+        execFileSync(
+          "npx",
+          [
+            "--no-install",
+            "tsx",
+            "scripts/account-type-report.ts",
+            "--min-filled",
+            emitPath,
+          ],
+          { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+        ),
+      (error: unknown) =>
+        /--min-filled owns the token after it and cannot read ".*run\.jsonl" as a number/
+          .test(String((error as { stderr?: string }).stderr ?? "")),
+      "a flag typed without its number must refuse, never eat a corpus path",
+    );
   });
 
   it("excludes holdout markets — the report informs inclusion decisions (3e)", () => {

@@ -152,8 +152,24 @@ function num(arg: string, fallback: number): number {
   }
   const index = process.argv.indexOf(arg);
   if (index === -1) return fallback;
-  const parsed = Number(process.argv[index + 1]);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  const token = process.argv[index + 1];
+  const parsed = Number(token);
+  // A flag that OWNS a token must refuse one it cannot parse (#364
+  // round 35, finding 1): the walker in main() has already kept that
+  // token out of the file list, so falling back here would silently
+  // use the default floor AND silently drop a corpus file —
+  // "--min-filled a.jsonl b.jsonl" reported over b.jsonl alone at the
+  // default 300. A missing value is a refusal, never a zero.
+  if (!Number.isFinite(parsed)) {
+    throw new Error(
+      `${arg} owns the token after it and cannot read ${
+        token === undefined ? "a missing value" : `"${token}"`
+      } as a number — the walker already kept that token out of the ` +
+        `corpus paths, so falling back would report over a partial ` +
+        `corpus; pass ${arg} <number>`,
+    );
+  }
+  return parsed;
 }
 
 async function main(): Promise<void> {
@@ -166,11 +182,15 @@ async function main(): Promise<void> {
     }
     files.push(argv[i]);
   }
+  // Flags are read BEFORE the empty-file-list check (#364 round 35,
+  // finding 1): "--min-filled <emit.jsonl>" eats the corpus path as the
+  // flag's value, and the specific refusal — naming the flag and the
+  // eaten token — must win over the generic usage error it causes.
+  const minFilled = num("--min-filled", 300);
   if (files.length === 0) {
     console.error("usage: account-type-report.ts <emit.jsonl> [more.jsonl ...]");
     process.exit(1);
   }
-  const minFilled = num("--min-filled", 300);
 
   /** symbol -> stats, accumulated once; account views are projections of it. */
   const bySymbol = new Map<string, SweepStats>();
@@ -272,6 +292,10 @@ async function main(): Promise<void> {
 
   const views = symbolsByClassification();
   const verdicts: string[] = [];
+  // The withheld share travels to the decision block too (#364 round
+  // 35, finding 2): a per-row suffix in a category table far above the
+  // EXCLUSION CANDIDATES block is not where a ruling is read from.
+  const withheldVerdicts: string[] = [];
 
   for (const classification of CLASSIFICATIONS) {
     const rows = views.get(classification)!;
@@ -368,9 +392,12 @@ async function main(): Promise<void> {
         // decisions read. (Rounds 32–33 built starvation-audit's
         // --min-reached withhold on the recorded understanding that
         // this floor already behaved this way; as of this round it
-        // does.) "Negative but within noise" stays reserved for
-        // sigma < 2 — a thin market is not "within noise", its sigma
-        // is untrustworthy, which is a different statement.
+        // does.) An untrustworthy sigma is untrustworthy in BOTH
+        // directions (#364 round 35, smaller): "negative but within
+        // noise" — the label an operator reads as "this market is
+        // fine" — is reserved for sigma < 2 AT the floor; a thin
+        // negative market below it gets no verdict either way, never
+        // the reassuring half of a test the sample cannot support.
         const excludeEligible = value !== null && value < 0 &&
           sigma !== null && sigma >= 2;
         const flag = excludeEligible
@@ -378,7 +405,9 @@ async function main(): Promise<void> {
             ? " <- EXCLUDE (negative, 2+ s.e.)"
             : " <- exclude withheld (thin sample below --min-filled)")
           : value !== null && value < 0
-            ? " <- negative but within noise"
+            ? (stats.filled >= minFilled
+              ? " <- negative but within noise"
+              : " <- negative on a thin sample — no verdict either way")
             : "";
         lines.push(
           `      ${member.brokerName.padEnd(10)} ${String(stats.filled).padStart(6)} ` +
@@ -387,11 +416,19 @@ async function main(): Promise<void> {
             `${(value === null ? "—" : value.toFixed(3)).padStart(7)} ` +
             `±${se === null ? "—" : se.toFixed(3)}${thin}${flag}`,
         );
-        if (excludeEligible && stats.filled >= minFilled) {
-          verdicts.push(
-            `${classification}/${member.brokerName}: E=${value!.toFixed(3)} ` +
-              `±${se!.toFixed(3)} over ${stats.filled} filled — exclude`,
-          );
+        if (excludeEligible) {
+          if (stats.filled >= minFilled) {
+            verdicts.push(
+              `${classification}/${member.brokerName}: E=${value!.toFixed(3)} ` +
+                `±${se!.toFixed(3)} over ${stats.filled} filled — exclude`,
+            );
+          } else {
+            withheldVerdicts.push(
+              `${classification}/${member.brokerName}: E=${value!.toFixed(3)} ` +
+                `±${se!.toFixed(3)} over ${stats.filled} filled ` +
+                `(< ${minFilled}) — withheld`,
+            );
+          }
         }
       }
       const rollupValue = expectancy(rollup);
@@ -431,12 +468,31 @@ async function main(): Promise<void> {
   }
 
   console.log(`\n${"=".repeat(78)}`);
-  console.log(`EXCLUSION CANDIDATES (negative expectancy at 2+ s.e.)`);
+  // The block states its OWN terms (#364 round 35, finding 2): since
+  // round 34 the rule is negative at 2+ s.e. AND at least --min-filled
+  // filled, and with the default floor at 300 a bounded or early
+  // corpus withholds every negative market — so the unqualified "none
+  // — no market is negative beyond noise" that stood here was false
+  // exactly on the pilot corpora this report exists for. The withheld
+  // share prints here, beside the verdicts a ruling is read from.
+  console.log(
+    `EXCLUSION CANDIDATES (negative expectancy at 2+ s.e. over at ` +
+      `least ${minFilled} filled — --min-filled)`,
+  );
   console.log(`${"=".repeat(78)}`);
   if (verdicts.length === 0) {
-    console.log("  none — no market is negative beyond noise");
+    console.log(
+      `  none — no market is negative at 2+ s.e. with ${minFilled}+ filled`,
+    );
   } else {
     for (const verdict of verdicts) console.log(`  ${verdict}`);
+  }
+  if (withheldVerdicts.length > 0) {
+    console.log(
+      `  withheld below --min-filled (${withheldVerdicts.length} negative ` +
+        `at 2+ s.e. on thin samples — no verdict either way):`,
+    );
+    for (const line of withheldVerdicts) console.log(`    ${line}`);
   }
 }
 

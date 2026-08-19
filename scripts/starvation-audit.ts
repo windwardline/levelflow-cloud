@@ -132,8 +132,12 @@
  * round 34, finding 1): the floor dial is offered only for the
  * thin-sample share, because the null-survival branch fires before
  * the floor is consulted and no --min-reached value recovers a zero
- * geometry denominator — that share's remedy is the window or the
- * feed's gradeable-bar coverage. Like every refusal above, --report
+ * geometry denominator. The no-verdict share routes one level
+ * further (#364 round 35, finding 3): the all-marked shape names the
+ * window or the feed's gradeable-bar coverage, while the
+ * nothing-reached shape names the pre-geometry gates or the window
+ * placement — review windows that were never consulted say nothing
+ * about the feed. Like every refusal above, --report
  * cannot suppress it.
  *
  * dataAbsent leaves both sides by the same rule (#364 round 18): those
@@ -316,8 +320,27 @@ function num(arg: string, fallback: number): number {
   }
   const index = process.argv.indexOf(arg);
   if (index === -1) return fallback;
-  const parsed = Number(process.argv[index + 1]);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  const token = process.argv[index + 1];
+  const parsed = Number(token);
+  // A flag that OWNS a token must refuse one it cannot parse (#364
+  // round 35, finding 1): the walker above has already kept that token
+  // out of the path list, so falling back here would silently use the
+  // default floor AND silently drop a log file — "--min-reached
+  // shard-a.log shard-b.log" judged shard-b alone at floor 30, with
+  // none of the per-file refusals (rounds 20–21) able to fire on the
+  // eaten shard. A missing value is a refusal, never a zero — the
+  // pattern-match this walker replaced could not eat a filename, so
+  // the silent fallback was the walker's own new hole.
+  if (!Number.isFinite(parsed)) {
+    throw new Error(
+      `${arg} owns the token after it and cannot read ${
+        token === undefined ? "a missing value" : `"${token}"`
+      } as a number — the walker already kept that token out of the ` +
+        `log paths, so falling back would judge a partial roster; ` +
+        `pass ${arg} <number>`,
+    );
+  }
+  return parsed;
 }
 const minReached = num("--min-reached", 30);
 // Zero paths is the one invocation-level refusal; zero ROWS refuses per
@@ -390,6 +413,14 @@ console.log(`${"market".padEnd(9)}${"decisions".padStart(10)}${"reached".padStar
 let starved = 0;
 let thinSample = 0;
 let noVerdict = 0;
+// The no-verdict bucket is itself two shapes with opposite remedies
+// (#364 round 35, finding 3), and the per-row flag below already tells
+// them apart: all-marked (the feed's gradeable-bar coverage is the
+// lever) vs nothing-reached (every decision died at the pre-geometry
+// gates — the review windows were never consulted, so the feed says
+// nothing; the gates or the window placement are the lever).
+let noVerdictMarked = 0;
+let noVerdictPreGeometry = 0;
 for (const r of out) {
   const pct = (v: number) => `${(v * 100).toFixed(0)}%`;
   // Under a third surviving the geometry gates means the geometry, not the
@@ -401,10 +432,14 @@ for (const r of out) {
   // flag (#364 round 32) — 0-of-2 is not evidence of starvation.
   let flag = "";
   if (r.survival === null) {
-    flag = r.dataAbsent > 0
-      ? `no verdict — geometry killed 0; all ${r.dataAbsent} emitted ` +
-        `setups carry the data-absence marker`
-      : "no verdict — nothing reached the geometry stage";
+    if (r.dataAbsent > 0) {
+      flag = `no verdict — geometry killed 0; all ${r.dataAbsent} emitted ` +
+        `setups carry the data-absence marker`;
+      noVerdictMarked += 1;
+    } else {
+      flag = "no verdict — nothing reached the geometry stage";
+      noVerdictPreGeometry += 1;
+    }
     noVerdict += 1;
   } else if (r.reachedGeometry < minReached) {
     flag = `thin sample — ${r.reachedGeometry} reached geometry ` +
@@ -450,7 +485,12 @@ const excluded = [
 // pilot), so the fixed remedy pair that stood here for one round sent
 // that operator to a dial that changes nothing (the
 // remedy-that-cannot-clear class rounds 14, 19, 20 and 25 closed at
-// other sites).
+// other sites). The no-verdict share routes one level further (#364
+// round 35, finding 3), on the discriminator the per-row flag already
+// computes: the feed's gradeable-bar coverage is a lever only for the
+// all-marked shape — a market whose decisions all died pre-geometry
+// never consulted a review window, so its levers are the gates or the
+// window placement.
 if (judged === 0) {
   const remedies = [
     ...(thinSample > 0
@@ -459,11 +499,22 @@ if (judged === 0) {
         `--min-reached with the per-row evidence in hand`,
       ]
       : []),
-    ...(noVerdict > 0
+    ...(noVerdictMarked > 0
       ? [
-        `for the no-verdict share: deepen the sweep window or restore ` +
-        `the feed's gradeable-bar coverage — no --min-reached value ` +
-        `recovers a zero geometry denominator`,
+        `for the ${noVerdictMarked} no-verdict market(s) whose emitted ` +
+        `setups all carry the data-absence marker: deepen the sweep ` +
+        `window or restore the feed's gradeable-bar coverage — no ` +
+        `--min-reached value recovers a zero geometry denominator`,
+      ]
+      : []),
+    ...(noVerdictPreGeometry > 0
+      ? [
+        `for the ${noVerdictPreGeometry} no-verdict market(s) where ` +
+        `nothing reached the geometry stage: the review windows were ` +
+        `never consulted, so the feed is not the lever — the ` +
+        `pre-geometry gates (session, news, warm-up, regime, ` +
+        `consensus) or the window placement are, and no --min-reached ` +
+        `value recovers a zero geometry denominator either`,
       ]
       : []),
   ];
