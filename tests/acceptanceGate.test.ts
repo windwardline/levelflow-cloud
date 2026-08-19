@@ -7,6 +7,7 @@ import {
   buildSweepManifest,
   seriesFacts,
   type SweepConditions,
+  type TreasuryCurveFacts,
 } from "../scripts/sweepManifest.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
@@ -340,6 +341,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     gridOverride?: unknown[],
     clockOverride?: { calendar: string; normalizer: string },
     conditionsOverride?: Record<string, string>,
+    treasuryCurveOverride?: TreasuryCurveFacts,
   ): string => {
     const dir = mkdtempSync(join(tmpdir(), "gate-shard-"));
     const emitPath = join(dir, "shard.jsonl");
@@ -369,7 +371,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
         symbol: rows[0]?.symbol ?? "EURUSD",
       }],
       trainShare: 0.6,
-      treasuryCurve: TEST_TREASURY_CURVE,
+      treasuryCurve: treasuryCurveOverride ?? TEST_TREASURY_CURVE,
       warmupBars: 240,
     });
     writeFileSync(
@@ -464,6 +466,65 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
             providerWarningCount: "zero-by-construction",
             weightAdjustment: "raw-engine-zero",
           }),
+        ]),
+        /shards of one measurement/,
+      );
+    } finally {
+      console.warn = warned;
+      delete process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK;
+    }
+  });
+
+  it("pools shards whose curves differ only in the day-variant facts — count and lastTime (#364 round 8)", async () => {
+    // The rolling store tops up per anchor day, so two shards of one
+    // logical sweep run either side of midnight legitimately carry
+    // different count/lastTime. Identity keeps only firstTime and
+    // largestGapMs; a tail top-up must POOL, not refuse.
+    const toppedUp: TreasuryCurveFacts = {
+      ...TEST_TREASURY_CURVE,
+      count: 3_022,
+      lastTime: Date.UTC(2027, 1, 1),
+    };
+    const graded = await gradeCorpus(
+      [
+        shardWith(shardRows("EURUSD")),
+        shardWith(shardRows("GBPUSD"), undefined, undefined, undefined, toppedUp),
+      ],
+      { permutations: 50, seed: 6 },
+    );
+    const verdict = graded.verdicts.get("forex")!.get("wide")!;
+    assert.equal(verdict.selectFilled, 24);
+  });
+
+  it("still refuses shards whose curve DEPTH differs, on the historical-read path (#364 round 8)", async () => {
+    // firstTime is day-invariant — the floor is fixed at 2013 — so a
+    // shallow-store shard against a full-depth shard is two
+    // measurements. With the current clock the door's leading-edge
+    // check refuses the shallow shard first; the identity comparison is
+    // the second layer for the superseded-clock override, where the
+    // door skips the curve checks.
+    const shallow: TreasuryCurveFacts = {
+      ...TEST_TREASURY_CURVE,
+      firstTime: Date.UTC(2020, 0, 6),
+    };
+    const supersededClock = {
+      calendar: CALENDAR_CLOCK,
+      normalizer: "some-other-clock",
+    };
+    const warned = console.warn;
+    console.warn = () => {};
+    process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK = "1";
+    try {
+      await assert.rejects(
+        gradeCorpus([
+          shardWith(shardRows("EURUSD"), undefined, supersededClock),
+          shardWith(
+            shardRows("GBPUSD"),
+            undefined,
+            supersededClock,
+            undefined,
+            shallow,
+          ),
         ]),
         /shards of one measurement/,
       );

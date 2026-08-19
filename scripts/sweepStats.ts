@@ -26,6 +26,7 @@ import {
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { CALENDAR_CLOCK } from "./clockWitness.ts";
 import {
+  type SeriesFacts,
   sha256Hex,
   stableStringify,
   type SweepConditions,
@@ -540,9 +541,9 @@ const FIVE_MIN_CLASS_FLOORS: Partial<
 // historical reads. A historical corpus this refuses was measuring
 // against data the door can now prove defective; there is nothing
 // honest to read from it.
-function assertFiveMinuteDensity(
+export function assertFiveMinuteDensity(
   emitPath: string,
-  entry: SweepManifest["symbols"][number],
+  entry: { series?: Record<string, SeriesFacts>; symbol: string },
 ): void {
   const five = entry.series?.["5min"];
   const fifteen = entry.series?.["15min"];

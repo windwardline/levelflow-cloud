@@ -121,6 +121,31 @@ describe("parseTreasuryRow — the provider's own field names", () => {
     assert.equal(parseTreasuryRow([1]), null);
   });
 
+  it("never coerces an absent-shaped tenor to 0.0%, and bounds the rest to plausible yields (#364 round 8, finding 3)", () => {
+    // Number(null) and Number("") are both 0 — one such row would swing
+    // tenYearChangeBps by hundreds of bps in both directions, pass every
+    // continuity guard, and pin into the rolling store permanently.
+    const date = "2026-08-11";
+    assert.equal(parseTreasuryRow({ date, year2: 1.87, year10: null }), null);
+    assert.equal(parseTreasuryRow({ date, year2: 1.87, year10: "" }), null);
+    // A LITERAL zero is indistinguishable from the coercion signature and
+    // no US tenor has printed 0.00 — refused, raising I11 live instead.
+    assert.equal(parseTreasuryRow({ date, year2: 1.87, year10: 0 }), null);
+    // Corruption bound: the 1981 all-time peak was 15.8%.
+    assert.equal(parseTreasuryRow({ date, year2: 1.87, year10: 30 }), null);
+    // The 2020 trough — genuinely tiny but positive — must still parse.
+    const trough = parseTreasuryRow({
+      date: "2020-08-04",
+      year2: 0.11,
+      year10: 0.52,
+    });
+    assert.deepEqual(trough, {
+      dateMs: Date.parse("2020-08-04"),
+      tenYear: 0.52,
+      twoYear: 0.11,
+    });
+  });
+
   it("takes the label as its date part at UTC midnight — never local-time parsed (#364 round 1, finding 6)", () => {
     // V8 parses a space-separated datetime as LOCAL time, which would
     // make dateMs — and through +24h day-naming, the whole visibility

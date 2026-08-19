@@ -583,7 +583,20 @@ export async function gradeCorpus(
       foldsByClass: candidate.foldsByClass ?? null,
       grid: candidate.grid,
       stepBars: candidate.stepBars,
-      treasuryCurve: candidate.treasuryCurve ?? null,
+      // Only the DAY-INVARIANT curve facts join identity (#364 round 8,
+      // finding 1): count and lastTime move with the run day — the
+      // rolling store pins per anchor, so a cross-midnight shard pair or
+      // a re-run dead shard would refuse as different measurements, the
+      // exact per-shard top-up hazard the fold spec exists to remove
+      // (replay-sweep.ts, 3c-across-shards). conditions alone separates
+      // pre/post-R1b (null vs the block); firstTime/largestGapMs carry
+      // the shallow- or holed-store case on the historical-read path.
+      treasuryCurve: candidate.treasuryCurve
+        ? {
+          firstTime: candidate.treasuryCurve.firstTime,
+          largestGapMs: candidate.treasuryCurve.largestGapMs,
+        }
+        : null,
       warmupBars: candidate.warmupBars,
     });
   const unionSymbols = new Set<string>();

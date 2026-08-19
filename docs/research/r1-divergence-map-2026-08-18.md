@@ -567,7 +567,16 @@ layer.
   not beginning `YYYY-MM-DD` is now refused (raising the I11 outage
   event, never passing silently) and `latestDate`/`previousDate`
   normalize to bare ISO; identical on FMP's actual shape, recorded here
-  because it rides the same unbumped version.
+  because it rides the same unbumped version. Third rider on the same
+  clause (#364 round 8, finding 3): the parser no longer coerces an
+  absent-shaped tenor — `Number(null)` and `Number("")` are both 0, so
+  a provider row with a null field minted a 0.0% yield that passed
+  every continuity guard and swung the adjustment through its ±4/±8
+  thresholds in both directions — and it bounds parsed tenors to the
+  open interval (0, 25)% (2013-floor yields sit in (0, ~6]; the 1981
+  all-time peak was 15.8%). Live inherits both through the shared
+  module: a refused row raises the I11 outage path rather than scoring,
+  identical on every well-formed FMP row, so it rides unbumped too.
 
 ## Sequencing — three PRs, engine first
 

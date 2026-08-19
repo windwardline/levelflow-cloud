@@ -203,6 +203,14 @@ export function parseTreasuryRow(value: unknown): DatedTreasuryRow | null {
   if (!Number.isFinite(dateMs) || tenYear === null || twoYear === null) {
     return null;
   }
+  // Plausibility, not just shape (#364 round 8, finding 3): US Treasury
+  // tenor yields since the 2013 floor sit in (0, ~6]; the 1981 all-time
+  // peak was 15.8%. A value at or below 0 (the null-coercion signature)
+  // or at 25+ is provider corruption, and a refused row raises the I11
+  // outage path live rather than minting a signal.
+  if (tenYear <= 0 || tenYear >= 25 || twoYear <= 0 || twoYear >= 25) {
+    return null;
+  }
   return { dateMs, tenYear, twoYear };
 }
 
@@ -272,7 +280,18 @@ function buildRateDetail(
 
 function numberFromKeys(row: Record<string, unknown>, keys: string[]) {
   for (const key of keys) {
-    const value = Number(row[key]);
+    const raw = row[key];
+    // #364 round 8, finding 3: Number(null) and Number("") are both 0 —
+    // a null tenor would otherwise parse as a 0.0% yield, and one such
+    // row swings tenYearChangeBps by hundreds of bps in both directions
+    // while passing every continuity check (the chunk guard, the
+    // driver's pre-flight, the curve-evidence door) and being pinned
+    // into the rolling store permanently. Absent-shaped values are
+    // skipped, never coerced.
+    if (raw === null || raw === undefined || raw === "") {
+      continue;
+    }
+    const value = Number(raw);
     if (Number.isFinite(value)) {
       return value;
     }

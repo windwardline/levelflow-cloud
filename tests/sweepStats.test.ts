@@ -189,7 +189,12 @@ describe("the partition reaches every reader (#364 round 5, finding 1)", () => {
   // one must be in VOCABULARY_ROW_KEYS — so a new partition fact wired
   // into addOutcome without joining the projection list breaks here,
   // instead of arriving as undefined on every projected row with the
-  // marker-specific executed test above still green.
+  // marker-specific executed test above still green. Boundary (#364
+  // round 8, smaller): the scan sees DOT ACCESS only — a destructured or
+  // row["field"]-indexed read would slip past it. That is acceptable
+  // because addOutcome is uniformly dot-access today (the size floor
+  // below fails if that ever drops toward zero) and the executed
+  // marked-row test above still catches a dropped field's behaviour.
   it("every field addOutcome reads survives vocabularyRow — self-updating on the input side", () => {
     const source = readFileSync("scripts/sweepStats.ts", "utf8");
     const bodyStart = source.indexOf("export function addOutcome");

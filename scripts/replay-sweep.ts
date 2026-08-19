@@ -42,6 +42,7 @@ import {
   type DatedTreasuryRow,
   parseTreasuryRow,
 } from "../supabase/functions/trade-analyzer/macroRates.ts";
+import { assertFiveMinuteDensity } from "./sweepStats.ts";
 import {
   CALENDAR_CLOCK,
   type CrossSeriesClock,
@@ -431,6 +432,28 @@ async function main() {
           `docs/cache-rebuild-r0.md`,
       );
     }
+    // #364 round 8, finding 2: the density law fails FAST, beside the
+    // clock witnesses, where a violation costs minutes — not at read
+    // time after a multi-hour sweep has already written a corpus its own
+    // door refuses (the Treasury pre-flight above works the same way).
+    // The read-time door stays as the backstop. The per-symbol line
+    // shows density AT CORPUS DEPTH: the floors were measured over one
+    // recent week (2026-08-11..17), and this print is how the first real
+    // deep run tells "clipped store" from "the provider's early history
+    // is thinner than its 2026 history" before anything is committed.
+    if (series["5min"].count > 0 && series["5min"].spanDays >= 1) {
+      console.log(
+        `${symbol}	density 5min ${
+          (series["5min"].count / series["5min"].spanDays).toFixed(1)
+        }/day over ${series["5min"].spanDays}d` +
+          (series["15min"].spanDays >= 1
+            ? ` (15min ${
+              (series["15min"].count / series["15min"].spanDays).toFixed(1)
+            }/day)`
+            : ""),
+      );
+    }
+    assertFiveMinuteDensity(`preflight:${symbol}`, { series, symbol });
 
     if (primaryBars.length < WARMUP_BARS * 2) {
       console.warn(
