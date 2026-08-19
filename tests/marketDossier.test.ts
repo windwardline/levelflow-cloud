@@ -9,6 +9,7 @@ import {
   pinDivergence,
   RECONSTRUCTED,
 } from "../scripts/market-dossier.ts";
+import { getClassCalibration } from "../supabase/functions/trade-analyzer/calibration.ts";
 import {
   buildSweepManifest,
   seriesFacts,
@@ -241,42 +242,56 @@ describe("market-dossier — refuses rather than measuring nothing", () => {
   });
 });
 
-// #364 round 50, smaller: the round-49 tests pinned the GUARD by
-// injecting the predicate, so the real closure had no executed coverage —
-// and running it is what showed the round-49 design was wrong. It is
-// kept, exported and executed here as the caveat it now is.
+// #364 round 50 smaller / round-50-verdict smaller: the predicate takes
+// a CALIBRATION now, not a symbol, so the empty result is demonstrable
+// rather than asserted. The previous version of this test asserted
+// `Array.isArray(...)` — true of every possible return — under a title
+// and comment claiming it showed the empty case reachable. That is the
+// claim-vs-evidence class, in the test written to close it.
 describe("market-dossier — the pin comparison, executed", () => {
-  it("names the parameters a market's CURRENT calibration differs from the pin on", () => {
-    // The pin is confidenceThreshold=0, runnerProtection=breakeven,
-    // maxStopAtrMultiplier=1, sizingHoursFactor=1. Post-4d the shipped
-    // calibration carries derived overrides broadly, so divergence is
-    // the norm rather than the exception — which is exactly why round
-    // 49's suppress-on-divergence would have blanked the roster, and
-    // why this is reported as a caveat instead.
-    for (const symbol of ["XAUUSD", "EURUSD"]) {
-      const differing = pinDivergence(symbol);
-      assert.ok(
-        differing.every((entry) => /^\w+=.+ \(pin .+\)$/.test(entry)),
-        `each entry must name the parameter, its shipped value and the ` +
-          `pin; got ${JSON.stringify(differing)}`,
-      );
-    }
-    // A market carrying its own derived stop cap is named on that axis.
-    assert.ok(
-      pinDivergence("XAUUSD").some((entry) =>
-        entry.startsWith("maxStopAtrMultiplier=")
-      ),
+  const PIN = {
+    maxStopAtrMultiplier: 1,
+    runnerProtection: "breakeven",
+    sizingHoursFactor: 1,
+  };
+
+  it("reports nothing for a calibration that matches the pin exactly", () => {
+    assert.deepEqual(pinDivergence(PIN), []);
+    // …and the defaults stand in for absent fields, so an inherited
+    // calibration that omits them is not reported as diverging.
+    assert.deepEqual(pinDivergence({}), []);
+  });
+
+  it("names each parameter that differs, with its value and the pin", () => {
+    assert.deepEqual(
+      pinDivergence({ ...PIN, maxStopAtrMultiplier: 1.6 }),
+      ["maxStopAtrMultiplier=1.6 (pin 1)"],
+    );
+    assert.deepEqual(
+      pinDivergence({
+        maxStopAtrMultiplier: 4,
+        runnerProtection: "trail_tp1",
+        sizingHoursFactor: 3,
+      }),
+      [
+        "maxStopAtrMultiplier=4 (pin 1)",
+        "runnerProtection=trail_tp1 (pin breakeven)",
+        "sizingHoursFactor=3 (pin 1)",
+      ],
     );
   });
 
-  it("reports no divergence for a calibration that matches the pin exactly", () => {
-    // Rather than asserting a live market matches — none reliably does,
-    // which was the round-49 mistake — this pins the predicate itself:
-    // the empty result is reachable, so a non-empty one carries meaning.
-    const differing = pinDivergence("EURUSD");
+  // The motivating case, against the engine's own numbers rather than a
+  // fixture: metals HOLDS a wider stop, so a metals market falling back
+  // to the reconstruction is measuring a configuration it does not run.
+  it("names metals' held stop cap from the real class calibration", () => {
     assert.ok(
-      Array.isArray(differing),
-      "the closure must return a list, empty when nothing differs",
+      pinDivergence(getClassCalibration("metals")).some((entry) =>
+        entry.startsWith("maxStopAtrMultiplier=1.6")
+      ),
+      `metals holds maxStopAtrMultiplier at 1.6; got ${
+        JSON.stringify(pinDivergence(getClassCalibration("metals")))
+      }`,
     );
   });
 });

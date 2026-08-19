@@ -887,10 +887,20 @@ layer.
   review sweep nor a hand grep had: six more readers using the template
   form `` indexOf(`--${name}`) ``, invisible to a `"--` search, plus
   three unconditional walkers that ate the shard path after any flag.
-  All of them now route through ONE guarded reader,
-  `scripts/flagReader.ts`, whose two refusals are pinned by executed
-  tests rather than by matching source against itself — the "declare it
-  once" move this PR has made six times before. The law also caught an
+  They route through ONE guarded reader,
+  `scripts/flagReader.ts`, whose refusals are pinned by executed tests
+  rather than by matching source against itself — the "declare it once"
+  move this PR has made six times before. Stated precisely, because the
+  first version of this sentence said "all of them" and that was false:
+  eleven scripts carried their own copy of the accessor after round 50,
+  five of them written by rounds 49-50 — the commit closing "the fix
+  reached whichever file someone happened to open" closed it per file,
+  five more times. Those five now delegate. The six that predate the
+  shared module keep their own accessors, whose specific error messages
+  executed tests already assert, and the scan pins the refusal those
+  copies were missing: a value flag must refuse a missing or
+  flag-shaped token, never fall back — scoped to readers with a STRING
+  flag, since for a numeric dial `Number.isFinite` subsumes both cases. The law also caught an
   error in its own migration: `--from` and `--to` had been added to
   `replay-sweep`'s declaration from what turned out to be
   `URLSearchParams` keys, and the bidirectional half refused them.

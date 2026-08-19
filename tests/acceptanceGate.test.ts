@@ -1726,6 +1726,17 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     process.on("exit", cleanup);
     process.on("SIGINT", onSignal);
     process.on("SIGTERM", onSignal);
+    // The retired UNPREFIXED form, in the canonical directory (#364
+    // round 50 verdict, finding 2). Round 50 restored honouring it by
+    // globbing this directory with an empty prefix, and the README
+    // promises a ledger written by any earlier version keeps refusing —
+    // but every fixture wrote the NEW prefixed name, so re-tightening
+    // that glob "for symmetry" would orphan the form again, silently,
+    // with the suite green. That is the defect round 50 just found.
+    const retired = join(dirname(canonical), ledgerName.replace(/^confirm-log-/, ""));
+    assert.notEqual(retired, canonical, "the retired form must differ by name");
+    const cleanupRetired = () => rmSync(retired, { force: true });
+    process.on("exit", cleanupRetired);
     try {
       // The entry a default run would have filed, placed where a
       // default run files it.
@@ -1739,13 +1750,30 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
         }),
         /has already been read 1 time\(s\)/,
       );
+      // …and the same entry under the retired unprefixed name, with the
+      // prefixed one removed, must refuse on its own.
+      rmSync(canonical, { force: true });
+      writeFileSync(retired, readFileSync(join(redirect, ledgerName)));
+      await assert.rejects(
+        gradeCorpus([corpus], {
+          confirmFinal: true,
+          confirmLogDir: mkdtempSync(join(tmpdir(), "gate-redirect3-")),
+          permutations: 100,
+          seed: 4,
+        }),
+        /has already been read 1 time\(s\)/,
+        "the unprefixed form the prefix rename retired must still refuse",
+      );
     } finally {
       cleanup();
+      cleanupRetired();
       process.off("exit", cleanup);
+      process.off("exit", cleanupRetired);
       process.off("SIGINT", onSignal);
       process.off("SIGTERM", onSignal);
     }
     assert.equal(existsSync(canonical), false);
+    assert.equal(existsSync(retired), false);
   });
 
   // #364 round 46, smaller: "commit any line that appears here" was a

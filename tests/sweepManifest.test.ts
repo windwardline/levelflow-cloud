@@ -1132,6 +1132,25 @@ describe("the driver writes the manifest beside the emit", () => {
       // reader must own one. market-dossier takes three string flags
       // and no number, and demanding a num() guard of it would be a
       // remedy that cannot be satisfied.
+      // Scoped to readers with a STRING flag: for a numeric dial the
+      // Number.isFinite check below subsumes both cases, since neither a
+      // missing token nor "--something" parses. A string flag accepts
+      // anything, so it needs the refusal spelled out.
+      if (!usesSharedReader && /\bstr\(/.test(source)) {
+        // The missing-or-flag-shaped-token refusal — the one that closes
+        // round 38's `--dir --concurrency 4` phantom store and round
+        // 49's silent `--out` default (#364 round 50 verdict, finding
+        // 1). The scan had pinned the undeclared-flag throw and the
+        // unparseable-number throw and said nothing about this one, so
+        // an inline reader could drop it with every test green. Files
+        // delegating to flagReader are covered by its executed tests.
+        assert.match(
+          source,
+          /token === undefined \|\| token\.startsWith\("--"\)/,
+          `${file}: a value flag must refuse a missing or flag-shaped ` +
+            `token, never fall back to a default`,
+        );
+      }
       if (/\bnum\(/.test(source) && !usesSharedReader) {
         assert.match(
           source,

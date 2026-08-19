@@ -49,6 +49,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
+import { flagReader } from "./flagReader.ts";
 
 const BASE = "https://financialmodelingprep.com/stable";
 const KEY = process.env.FMP_API_KEY;
@@ -118,55 +119,12 @@ type SidecarState = {
 // found by a review round.
 const VALUE_FLAGS = new Set(["--dir", "--concurrency", "--limit"]);
 
-function flagValue(argv: string[], arg: string): string | undefined {
-  if (!VALUE_FLAGS.has(arg)) {
-    throw new Error(
-      `str("${arg}") reads a value outside VALUE_FLAGS — declare it there, ` +
-        `or its value is read as something else`,
-    );
-  }
-  const index = argv.indexOf(arg);
-  if (index === -1) return undefined;
-  const token = argv[index + 1];
-  if (token === undefined || token.startsWith("--")) {
-    throw new Error(
-      `${arg} owns the token after it and got ${
-        token === undefined ? "no value" : `"${token}"`
-      } — a value, never a flag; pass ${arg} <value>`,
-    );
-  }
-  return token;
-}
-
-function str(argv: string[], arg: string): string | undefined {
-  return flagValue(argv, arg);
-}
-
-function num(argv: string[], arg: string, fallback: number): number {
-  if (!VALUE_FLAGS.has(arg)) {
-    throw new Error(
-      `num("${arg}") reads a value outside VALUE_FLAGS — declare it there, ` +
-        `or its value is read as something else`,
-    );
-  }
-  const token = flagValue(argv, arg);
-  if (token === undefined) return fallback;
-  const parsed = Number(token);
-  if (!Number.isFinite(parsed)) {
-    throw new Error(
-      `${arg} owns the token after it and cannot read "${token}" as a ` +
-        `number — a NaN dial disables the comparison it feeds silently; ` +
-        `pass ${arg} <number>`,
-    );
-  }
-  return parsed;
-}
-
 function parseArgs(argv: string[]) {
+  const { num, str } = flagReader(argv, VALUE_FLAGS);
   return {
-    dir: str(argv, "--dir") ?? ".minute-bank",
-    concurrency: num(argv, "--concurrency", 4),
-    limit: num(argv, "--limit", Infinity),
+    dir: str("--dir") ?? ".minute-bank",
+    concurrency: num("--concurrency", 4),
+    limit: num("--limit", Infinity),
   };
 }
 

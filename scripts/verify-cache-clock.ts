@@ -46,6 +46,7 @@ import {
   sessionAnchorWitness,
   storeKindForKey,
 } from "./clockWitness.ts";
+import { flagReader } from "./flagReader.ts";
 
 type StoredBar = { high: number; low: number; time: number };
 type SlimSeries = {
@@ -429,32 +430,9 @@ export function auditCacheClock(input: {
 // found by a review round.
 const VALUE_FLAGS = new Set(["--cache-dir"]);
 
-function flagValue(argv: string[], arg: string): string | undefined {
-  if (!VALUE_FLAGS.has(arg)) {
-    throw new Error(
-      `str("${arg}") reads a value outside VALUE_FLAGS — declare it there, ` +
-        `or its value is read as something else`,
-    );
-  }
-  const index = argv.indexOf(arg);
-  if (index === -1) return undefined;
-  const token = argv[index + 1];
-  if (token === undefined || token.startsWith("--")) {
-    throw new Error(
-      `${arg} owns the token after it and got ${
-        token === undefined ? "no value" : `"${token}"`
-      } — a value, never a flag; pass ${arg} <value>`,
-    );
-  }
-  return token;
-}
-
-function str(argv: string[], arg: string): string | undefined {
-  return flagValue(argv, arg);
-}
-
 function main(): void {
-  const cacheDir = str(process.argv, "--cache-dir") ?? ".calibration-cache";
+  const { str } = flagReader(process.argv, VALUE_FLAGS);
+  const cacheDir = str("--cache-dir") ?? ".calibration-cache";
   const roster = defaultScanSymbols
     .map((symbol) => resolveProviderSymbols(symbol)[0])
     .filter((provider): provider is string => Boolean(provider));

@@ -19,6 +19,7 @@
  *   FMP_API_KEY=... npx tsx scripts/probe-minute-bars.ts [--json out.json]
  */
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
+import { flagReader } from "./flagReader.ts";
 
 const BASE = "https://financialmodelingprep.com/stable";
 const KEY = process.env.FMP_API_KEY;
@@ -81,26 +82,6 @@ async function probe(fmpSymbol: string, markets: string[]): Promise<Probe> {
 // a value-taking flag is inside the law rather than on a curated list).
 const VALUE_FLAGS = new Set(["--json"]);
 
-function str(argv: readonly string[], arg: string): string | undefined {
-  if (!VALUE_FLAGS.has(arg)) {
-    throw new Error(
-      `str("${arg}") reads a value outside VALUE_FLAGS — declare it there, ` +
-        `or its value is read as something else`,
-    );
-  }
-  const index = argv.indexOf(arg);
-  if (index === -1) return undefined;
-  const token = argv[index + 1];
-  if (token === undefined || token.startsWith("--")) {
-    throw new Error(
-      `${arg} owns the token after it and got ${
-        token === undefined ? "no value" : `"${token}"`
-      } — a path, never a flag; pass ${arg} <path> (the old form wrote a ` +
-        `file literally named after the next flag)`,
-    );
-  }
-  return token;
-}
 
 async function main(): Promise<void> {
   if (!KEY) {
@@ -150,7 +131,8 @@ async function main(): Promise<void> {
     console.log(`\nno 1-minute series (${none.length}):`);
     for (const r of none) console.log(`  ${r.fmpSymbol.padEnd(10)} ${r.note} — ${r.markets.join(" ")}`);
   }
-  const jsonPath = str(process.argv, "--json");
+  const { str } = flagReader(process.argv, VALUE_FLAGS);
+  const jsonPath = str("--json");
   if (jsonPath !== undefined) {
     const { writeFileSync } = await import("node:fs");
     writeFileSync(jsonPath, JSON.stringify(results, null, 2));

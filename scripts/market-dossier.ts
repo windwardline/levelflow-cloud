@@ -31,6 +31,7 @@ import {
 import { getFuturesContractSpec } from "../supabase/functions/trade-analyzer/futures.ts";
 import { SECURITY_OPTIONS } from "../src/lib/symbolMap.ts";
 import { assertManifest, readLinesSync } from "./sweepStats.ts";
+import { flagReader } from "./flagReader.ts";
 
 const BASELINE =
   "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1,sizingHoursFactor=1";
@@ -120,8 +121,13 @@ function spansFrom(paths: string[]) {
  * says on the row: a class threshold or stop cap changed after the
  * sweep re-labels a published cell, and R2 and R4 move these by design.
  */
-export function pinDivergence(symbol: string): string[] {
-  const shipped = getCategoryCalibration(symbol);
+export function pinDivergence(
+  shipped: {
+    maxStopAtrMultiplier?: number;
+    runnerProtection?: string;
+    sizingHoursFactor?: number;
+  },
+): string[] {
   const differing: string[] = [];
   if ((shipped.maxStopAtrMultiplier ?? 1) !== 1) {
     differing.push(
@@ -238,27 +244,7 @@ const VALUE_FLAGS = new Set(["--net", "--gross", "--out"]);
 
 function main() {
   const argv = process.argv.slice(2);
-  const str = (arg: string): string | undefined => {
-    if (!VALUE_FLAGS.has(arg)) {
-      throw new Error(
-        `str("${arg}") reads a value outside VALUE_FLAGS — declare it ` +
-          `there, or its value is read as something else`,
-      );
-    }
-    const index = argv.indexOf(arg);
-    if (index === -1) return undefined;
-    const token = argv[index + 1];
-    if (token === undefined || token.startsWith("--")) {
-      throw new Error(
-        `${arg} owns the token after it and got ${
-          token === undefined ? "no value" : `"${token}"`
-        } — a value, never a flag; pass ${arg} <value>. Silently falling ` +
-          `back here wrote the artifact to the DEFAULT path, or graded an ` +
-          `empty corpus, under a confident success line`,
-      );
-    }
-    return token;
-  };
+  const { str } = flagReader(argv, VALUE_FLAGS);
   const netPaths = (str("--net") ?? "").split(",").filter(Boolean);
   const grossPaths = (str("--gross") ?? "").split(",").filter(Boolean);
   const outPath = str("--out") ??
@@ -343,7 +329,7 @@ function main() {
     // A market with no derived pick falls back to the reconstruction,
     // which is now named for what it is rather than for what it was
     // assumed to represent.
-    const diverging = pinDivergence(symbol);
+    const diverging = pinDivergence(effective);
     const effectiveVariant = cell?.variant ?? RECONSTRUCTED;
     const netCells = net.get(symbol);
     const grossCells = gross.get(symbol);
@@ -399,14 +385,22 @@ function main() {
       tickSpec: spec ?? null,
       trancheHistory: trancheHistory.get(symbol) ?? [],
       effectiveVariant,
-      // Stated per market rather than inferred from the variant name,
-      // and labelled with WHICH calibration it was compared against
-      // (#364 round 50, smaller — the shape round 30 forced on the E8
-      // report): this is the current build's, not the one in force when
-      // the corpus was swept, and R2/R4 move these by design.
-      shippedCellPinDivergence: diverging.length > 0
-        ? { differsOn: diverging, comparedAgainst: "current calibration" }
-        : null,
+      // The caveat rides ONLY the rows it applies to (#364 round 50,
+      // finding 3). It exists for a market with no derived pick, whose
+      // published measurement is read from the pinned cell while it runs
+      // something else. For a market WITH a derived pick the same
+      // divergence is the expected state — the pick is what set those
+      // parameters — and the row's measurement comes from the derived
+      // cell, not the pin. Emitting it on every row made one field carry
+      // two opposite meanings and, since divergence is the norm, made it
+      // non-null across nearly the whole roster: a constant, not a
+      // caveat. Labelled with the calibration it was compared against
+      // (the shape round 30 forced on the E8 report) — the current
+      // build's, not the one in force at sweep time, which R2/R4 move.
+      shippedCellPinDivergence:
+        effectiveVariant === RECONSTRUCTED && diverging.length > 0
+          ? { differsOn: diverging, comparedAgainst: "current calibration" }
+          : null,
     };
   }
 

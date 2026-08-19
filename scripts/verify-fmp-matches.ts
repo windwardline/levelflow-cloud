@@ -19,6 +19,7 @@
  * a report.
  */
 import { MASTER_LIST_ROWS, type MasterListRow } from "../src/lib/broker/masterList.ts";
+import { flagReader } from "./flagReader.ts";
 
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
 const API_KEY = process.env.FMP_API_KEY;
@@ -226,26 +227,6 @@ async function reprobeUnmatched(rows: MasterListRow[]): Promise<void> {
 // a value-taking flag is inside the law rather than on a curated list).
 const VALUE_FLAGS = new Set(["--json"]);
 
-function str(argv: readonly string[], arg: string): string | undefined {
-  if (!VALUE_FLAGS.has(arg)) {
-    throw new Error(
-      `str("${arg}") reads a value outside VALUE_FLAGS — declare it there, ` +
-        `or its value is read as something else`,
-    );
-  }
-  const index = argv.indexOf(arg);
-  if (index === -1) return undefined;
-  const token = argv[index + 1];
-  if (token === undefined || token.startsWith("--")) {
-    throw new Error(
-      `${arg} owns the token after it and got ${
-        token === undefined ? "no value" : `"${token}"`
-      } — a path, never a flag; pass ${arg} <path> (the old form wrote a ` +
-        `file literally named after the next flag)`,
-    );
-  }
-  return token;
-}
 
 async function main(): Promise<void> {
   if (!API_KEY) {
@@ -297,7 +278,8 @@ async function main(): Promise<void> {
 
   await reprobeUnmatched(unmapped);
 
-  const jsonPath = str(process.argv, "--json");
+  const { str } = flagReader(process.argv, VALUE_FLAGS);
+  const jsonPath = str("--json");
   if (jsonPath !== undefined) {
     const { writeFileSync } = await import("node:fs");
     writeFileSync(
