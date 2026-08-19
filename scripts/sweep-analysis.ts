@@ -210,9 +210,12 @@ async function main(): Promise<void> {
       rows.length - dataAbsentRows
     } market-evidence setups`,
   );
+  // Each reader's held-out line names its OWN population (#364 round 26,
+  // finding 2): the three readers' scopes differ.
   if (dataAbsentRows > 0) {
     console.log(
-      `(data-absence rows held out of every denominator: ${dataAbsentRows})`,
+      `(data-absence rows held out of every denominator: ${dataAbsentRows}` +
+        ` — all variants, all splits, holdout excluded)`,
     );
   }
   console.log(`Emit: ${emitPath} · min-n for a reportable cell: ${minN}`);

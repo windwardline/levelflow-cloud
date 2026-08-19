@@ -19,8 +19,10 @@
  * read as a finding, which is exactly how the six-index blanket exclusion
  * got asserted — and the category rollup's SE is clustered by market,
  * because outcomes inside one market share regime, session and
- * calibration. Corpora enter through assertManifestedCorpus (2i): an emit
- * that cannot prove its conditions is refused, not averaged.
+ * calibration. Corpora enter through assertManifestedCorpusStreaming
+ * (2i): an emit that cannot prove its conditions is refused, not
+ * averaged — and streamed, because a full corpus runs to hundreds of MB
+ * and R1b grows it further (#364 round 26, finding 1).
  *
  *   npx tsx scripts/account-type-report.ts <emit.jsonl> [more.jsonl ...]
  *     [--min-filled 300]
@@ -42,7 +44,7 @@ import {
 import type { BrokerClassification } from "../src/lib/profile.ts";
 import {
   addOutcome,
-  assertManifestedCorpus,
+  assertManifestedCorpusStreaming,
   clusteredStandardError,
   emptyStats,
   expectancy,
@@ -145,16 +147,22 @@ async function main(): Promise<void> {
   let kept = 0;
 
   for (const file of files) {
-    const { rows } = assertManifestedCorpus(file);
-    for (const raw of rows) {
+    // Streamed through the manifest door (#364 round 26, finding 1): the
+    // non-streaming read held every parsed row of the file at once — the
+    // exact shape both sibling readers refuse, and R1b grows every emit
+    // by the no-bars decisions that previously emitted nothing, in bulk
+    // for the sparse floorless classes this report judges. This reader
+    // accumulates per symbol in one pass, so it needs no rows array at
+    // all; the hash verifies before the first row, same door as ever.
+    await assertManifestedCorpusStreaming(file, (raw) => {
       const row = raw as unknown as Row;
       // 3e: holdout markets are excluded from every tuning-adjacent read;
       // this report informs inclusion decisions, so it is one of them.
-      if (raw.holdout === true) continue;
-      if (row.variant && row.variant !== "baseline") continue;
+      if (raw.holdout === true) return;
+      if (row.variant && row.variant !== "baseline") return;
       if (!passesOtherGates(row)) {
         gated += 1;
-        continue;
+        return;
       }
       kept += 1;
       let stats = bySymbol.get(row.symbol);
@@ -169,7 +177,7 @@ async function main(): Promise<void> {
         ...raw,
         realizedR: typeof row.realizedR === "number" ? row.realizedR : Number.NaN,
       } as SweepEmitRow);
-    }
+    });
   }
 
   // The headline states its own denominator (#364 round 24, finding 3,
@@ -183,9 +191,13 @@ async function main(): Promise<void> {
     `corpus: ${kept - dataAbsentTotal} market-evidence rows clearing ` +
       `payoff+regime (${gated} gated out)`,
   );
+  // Each reader's held-out line names its OWN population (#364 round 26,
+  // finding 2): the three readers' scopes differ, and one sentence over
+  // three denominators is the unstated-denominator class itself.
   if (dataAbsentTotal > 0) {
     console.log(
-      `(data-absence rows held out of every denominator: ${dataAbsentTotal})`,
+      `(data-absence rows held out of every denominator: ${dataAbsentTotal}` +
+        ` — baseline variant, all splits, rows clearing payoff+regime)`,
     );
   }
   console.log(

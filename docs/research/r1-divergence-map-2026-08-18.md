@@ -438,7 +438,21 @@ layer.
   spreading a row that was itself a closed rebuild one layer up), the
   projection-to-partition path is executed in tests, and the
   field-by-field rollups carry every `SweepStats` key by a
-  self-updating pin. One denominator note beside the unfilled
+  self-updating pin. **The readers also STATE the partition** (#364
+  rounds 24–26): each of the three corpus readers prints its held-out
+  data-absence volume beside its headline, and each line names its
+  OWN population, because the three populations differ —
+  `sweep-analysis` covers all variants and splits (holdout excluded),
+  `account-type-report` covers the baseline variant clearing
+  payoff+regime, and `grid-totalr` covers accepted rows in the GRADED
+  folds only (confirm excluded without `--confirm-final`, so the
+  count reconciles with the tables under it; `gradeCorpus` returns
+  the figure) — three scoped figures, never one sentence over three
+  denominators. `account-type-report` additionally prints `dataAbs`
+  per market and per category rollup, survives a market whose rows
+  are ALL data-absence rows (null expectancy prints "—" with no
+  fabricated verdict — round 25's crash fix, executed), and reads
+  through the streaming door like its siblings (round 26). One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly

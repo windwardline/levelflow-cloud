@@ -72,6 +72,10 @@ async function readStore<T>(path: string): Promise<RollingStore<T> | null> {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return null;
     }
+    // The parenthesized error string is safe in the nightly log only
+    // because the top-up script greps cacheStoreUnreadable ahead of its
+    // \(429\) quota stand-down (#364 rounds 23-24): the token outranks
+    // any status-shaped fragment the wrapped error might carry.
     throw new Error(
       `cacheStoreUnreadable: ${path} exists but cannot be read ` +
         `(${String(error)}) — inspect or delete it deliberately`,

@@ -799,9 +799,12 @@ async function main(): Promise<void> {
   // finding 3, following sweep-analysis's round-7 pattern): the
   // vocabulary holds data-absence rows out of every cell's n, and the
   // held-out volume is printed rather than silent.
+  // Each reader's held-out line names its OWN population (#364 round 26,
+  // finding 2): the three readers' scopes differ.
   if (dataAbsentRows > 0) {
     console.log(
-      `(data-absence rows held out of every fold denominator: ${dataAbsentRows})`,
+      `(data-absence rows held out of every fold denominator: ${dataAbsentRows}` +
+        ` — all variants, graded folds only, accepted rows)`,
     );
   }
   for (const [assetClass, classMap] of verdicts) {

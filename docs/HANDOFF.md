@@ -1177,8 +1177,11 @@ key. Sequenced after item 6's `init.sql` work.
   `BAR_CLOCK` (#364 round 23 replaced round 22's same-discipline
   rationale, which the two-clock split refuted). The top-up script
   greps three of the four BEFORE its 429 stand-down —
-  `cacheClockMismatch` keeps its own named stand-down, its message
-  routing each store to its own remedy (#364 round 24) — because
+  `cacheClockMismatch` keeps its own named stand-down, which defers
+  to the raise site's log line for the remedy: since #364 round 25
+  that line routes by the store's own clock (bar store → the rebuild
+  runbook; calendar-clock store — treasury-rates, econ-calendar —
+  delete that one rolling store and re-run) — because
   with the deferral a terminal roster 429 shares the output under
   the documented blackout and would otherwise downgrade a
   deterministic refusal to a stand-down at exit 0 (#364 round 23);

@@ -260,8 +260,15 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
     assert.match(source, /clusteredStandardError\(/);
   });
 
-  it("reads only manifested corpora — the 2i door applies to reports too", () => {
-    assert.match(source, /assertManifestedCorpus\(/);
+  it("reads only manifested corpora, streamed — the 2i door applies to reports too", () => {
+    // #364 round 26, finding 1: the non-streaming door returns one
+    // array holding every parsed row of the file — the shape both
+    // sibling readers refuse — and R1b grows every emit by the no-bars
+    // decisions that previously emitted nothing. This reader
+    // accumulates per symbol in one pass, so it streams with no rows
+    // array at all.
+    assert.match(source, /assertManifestedCorpusStreaming\(/);
+    assert.doesNotMatch(source, /assertManifestedCorpus\(/);
   });
 
   // #364 round 24, finding 3: round 7 made sweep-analysis state its own
