@@ -1118,6 +1118,21 @@ validate, and requiring the refusal to NAME the corpus found
 where a corpus-less run died on `ENOENT: 4d-candidates.json` and told the
 operator to find a file rather than to pass their shards.
 
+**And the scan itself had been running nothing in CI.** Round 54 paired
+the temp working directory with `npx --no-install tsx`, which resolves
+from the CWD's `node_modules` — so on any machine without tsx already in
+the npx cache, which is every CI runner, it printed "npx canceled due to
+missing packages" and exited 1. Round 54's assertions were `exitCode !==
+0` and a non-empty stderr, and an npm error satisfies both. So the law
+that a run examining nothing must not report success was, in CI, broken
+by the test written to enforce it — green for a whole round while
+executing zero readers. It passed locally only because that machine had
+tsx cached. The runner is now the repo's own `node_modules/.bin/tsx` by
+absolute path, and a separate assertion requires that the runner actually
+STARTED, so a harness failure can never again be read as the subject
+refusing. Round 55's own finding 3 — "said something" is not "said what
+was missing" — is what exposed it.
+
 The 4c/4d corpus resolved every setup against a price stream 4–5 hours
 out of register with the bar that decided it — the cached 15-minute and
 daily series carry naive New-York stamps read as UTC while the 5-minute

@@ -33,6 +33,11 @@ import type { SweepEmitRow } from "../scripts/sweepStats.ts";
 // none. Executed rather than source-matched, because the thing under test
 // is what the process DOES with no rows — which is exactly what a source
 // scan cannot see.
+// The repo's own tsx, by ABSOLUTE path. `npx --no-install tsx` resolves
+// from the working directory's node_modules, so it cannot be paired with a
+// spawn that runs elsewhere — see the note at the temp-cwd spawn below.
+const TSX = join(process.cwd(), "node_modules", ".bin", "tsx");
+
 const DAY = 86_400_000;
 const SYMBOL = "EURUSD";
 
@@ -99,7 +104,7 @@ function shardWithRows(days: number): string {
 function refuses(script: string, args: string[], pattern: RegExp, why: string) {
   assert.throws(
     () =>
-      execFileSync("npx", ["--no-install", "tsx", script, ...args], {
+      execFileSync(TSX, [script, ...args], {
         cwd: process.cwd(),
         encoding: "utf8",
         stdio: "pipe",
@@ -303,7 +308,18 @@ describe("every corpus reader refuses a run that names no corpus", () => {
       const elsewhere = mkdtempSync(join(tmpdir(), "no-corpus-"));
       const before = trackedState();
       try {
-        execFileSync("npx", ["--no-install", "tsx", join(repoRoot, reader)], {
+        // The runner is the repo's OWN tsx, by absolute path, never `npx`
+        // (#364 round 55, self-inflicted). `npx --no-install tsx` resolves
+        // from the CWD's node_modules, so pairing it with the temp cwd
+        // above broke it on any machine without tsx already in the npx
+        // cache — which is every CI runner. It printed "npx canceled due
+        // to missing packages" and exited 1, and round 54's assertions
+        // were `exitCode !== 0` and `stderr` non-empty, both of which an
+        // npm error satisfies. So this scan passed in CI while running
+        // NOTHING: the law that a run examining nothing must not report
+        // success, broken by the test written to enforce it. It went
+        // green locally because this machine had tsx cached.
+        execFileSync(TSX, [join(repoRoot, reader)], {
           cwd: elsewhere,
           encoding: "utf8",
           stdio: "pipe",
@@ -333,6 +349,16 @@ describe("every corpus reader refuses a run that names no corpus", () => {
           `run finished is what makes the empty artifact readable as one`,
       );
       assert.notEqual(exitCode, 0, `${reader} must not exit 0`);
+      // The RUNNER started. Without this, a harness that never launched
+      // the script satisfies every assertion below it — which is exactly
+      // what happened in CI at e1fc975, silently, for a whole round.
+      assert.doesNotMatch(
+        stderr,
+        /npm error|npx canceled|command not found|Cannot find module 'tsx'/,
+        `${reader} was never executed — the failure is the test harness, ` +
+          `not the script, and a harness failure must never be read as ` +
+          `the subject refusing`,
+      );
       assert.ok(
         stderr.trim().length > 0,
         `${reader} refused silently — the refusal must say what was missing`,
