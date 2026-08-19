@@ -198,7 +198,13 @@ async function main(): Promise<void> {
     });
   });
   if (holdoutSkipped > 0) {
-    console.log(`(holdout markets excluded: ${holdoutSkipped} rows)`);
+    // Scope and definition on the line itself (#364 round 30, smaller):
+    // the data-absence line below also names them, but it is gated on
+    // marked rows existing — this line must stand alone.
+    console.log(
+      `(holdout markets excluded: ${holdoutSkipped} rows — all variants, ` +
+        `all splits, stamped flag)`,
+    );
   }
 
   // The headline states its own denominator (#364 round 7, finding 3):

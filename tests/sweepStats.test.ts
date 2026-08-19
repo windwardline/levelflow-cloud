@@ -403,6 +403,22 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
         symbol: "USDJPY",
         variant: "wide",
       },
+      // #364 round 30, finding 2: a market EVERY one of whose rows
+      // fails the report's own payoff gate (rewardRisk 0.5 < every
+      // class's minRewardRisk) must print as ALL ROWS GATED, never as
+      // "NOT IN CORPUS (never swept)" in the coverage-gap tally.
+      {
+        outcome: "take_profit",
+        realizedR: 1,
+        rewardRisk: 0.5,
+        symbol: "AUDUSD",
+      },
+      {
+        outcome: "stop_loss",
+        realizedR: -1,
+        rewardRisk: 0.5,
+        symbol: "AUDUSD",
+      },
     ];
     writeFileSync(
       emitPath,
@@ -441,6 +457,12 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
           series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
           symbol: "USDJPY",
         },
+        {
+          calibration: {},
+          providerSymbol: "AUDUSD",
+          series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
+          symbol: "AUDUSD",
+        },
       ],
       trainShare: 0.6,
       treasuryCurve: {
@@ -471,6 +493,11 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
     // holdout row must not move it) and the line states its scope.
     assert.match(out, /holdout markets excluded: 2 rows — baseline variant/);
     assert.match(out, /HELD OUT \(3e confirmation set\)/);
+    // #364 round 30, finding 2: the fully-gated market prints as the
+    // reader's own doing — swept, gated by the current calibration —
+    // never as a coverage gap.
+    assert.match(out, /ALL ROWS GATED \(2 rows below payoff/);
+    assert.match(out, /fully gated by payoff\+regime under the CURRENT calibration/);
   });
 
   it("excludes holdout markets — the report informs inclusion decisions (3e)", () => {

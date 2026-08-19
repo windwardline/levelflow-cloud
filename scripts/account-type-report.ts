@@ -151,6 +151,7 @@ async function main(): Promise<void> {
   // 5 of the roster, in the report E8 inclusion decisions read.
   let holdoutRows = 0;
   const holdoutSymbols = new Set<string>();
+  const gatedRowsBySymbol = new Map<string, number>();
 
   for (const file of files) {
     // Streamed through the manifest door (#364 round 26, finding 1): the
@@ -178,6 +179,16 @@ async function main(): Promise<void> {
       }
       if (!passesOtherGates(row)) {
         gated += 1;
+        // Per symbol too (#364 round 30, finding 2): a market EVERY one
+        // of whose rows fails these gates never enters bySymbol, and
+        // without this map it printed "NOT IN CORPUS (never swept)" in
+        // the coverage-gap tally — false on both halves, and reachable
+        // whenever a threshold moves between the sweep and the read
+        // (passesOtherGates judges by the CURRENT calibration).
+        gatedRowsBySymbol.set(
+          row.symbol,
+          (gatedRowsBySymbol.get(row.symbol) ?? 0) + 1,
+        );
         return;
       }
       kept += 1;
@@ -254,6 +265,7 @@ async function main(): Promise<void> {
       const lines: string[] = [];
       let missing = 0;
       let heldOut = 0;
+      let allGated = 0;
       for (const member of members) {
         const stats = bySymbol.get(member.levelflowSymbol!);
         if (!stats) {
@@ -265,6 +277,20 @@ async function main(): Promise<void> {
             heldOut += 1;
             lines.push(
               `      ${member.brokerName.padEnd(10)} — HELD OUT (3e confirmation set)`,
+            );
+            continue;
+          }
+          // Fully gated is the reader's own doing, never a coverage gap
+          // (#364 round 30, finding 2): the market was swept, and every
+          // row fell to payoff+regime under the CURRENT calibration —
+          // which may postdate the sweep.
+          const gatedRows = gatedRowsBySymbol.get(member.levelflowSymbol!) ?? 0;
+          if (gatedRows > 0) {
+            allGated += 1;
+            lines.push(
+              `      ${member.brokerName.padEnd(10)} — ALL ROWS GATED ` +
+                `(${gatedRows} rows below payoff or in blocked regimes, ` +
+                `current calibration)`,
             );
             continue;
           }
@@ -342,6 +368,13 @@ async function main(): Promise<void> {
         console.log(
           `      (${heldOut} market(s) held out — 3e confirmation set, ` +
             `swept but excluded from every tuning read)`,
+        );
+      }
+      if (allGated > 0) {
+        console.log(
+          `      (${allGated} market(s) fully gated by payoff+regime under ` +
+            `the CURRENT calibration — swept, not a coverage gap; the ` +
+            `thresholds may postdate the sweep)`,
         );
       }
     }

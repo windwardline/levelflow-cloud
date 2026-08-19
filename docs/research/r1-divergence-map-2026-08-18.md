@@ -80,12 +80,18 @@ wears a plan verdict.
 **Fix**: a distinct resolution state / counter for "no bars in the
 review window" on both sides (live: a distinct feedback marker rather
 than bare `unfilled`; sweep: its own rejection counter, never
-`planRejected`), and — the corpus-door half — `assertManifest` gains a
-**per-symbol 5-minute density assertion** over the sweep span. This is
-the door that carries the verify-cache-clock ceiling's stated blind
-band (~2,386–2,784 cap: only the 15-minute series clips, ≤~14%, ratio
-in band), so the assertion must bind on absolute 5-minute rows/day, not
-only on the 5/15 ratio.
+`planRejected`), and — the density half — a **per-symbol 5-minute
+density assertion** binding absolute rows/day and the shared-window
+ratio, landed in TWO layers (#364 rounds 8–9, superseding the
+corpus-door-only design stated here): the sweep driver's pre-flight,
+refusing at the first violator before simulation, and the read-time
+corpus door, with the nightly `--warm-only` log the standing
+full-roster survey. The verify-cache-clock ceiling's blind band
+(~2,386–2,784 cap: only the 15-minute series clips, ≤~14%, ratio in
+band) is narrowed by the assertion's clip-invariant max(15-minute,
+5-minute/3) population to a stated residue of ≤~7.7%, with the
+symmetric-clip case uncovered by any layer (rounds 10–11) — a
+residue, never a closure.
 
 ## E3 — `market.latest`: 1-minute live, 15-minute decision bar in the sweep — **CLOSED (R1a slice 2)**
 

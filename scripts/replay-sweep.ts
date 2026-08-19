@@ -1154,8 +1154,11 @@ function parseArgs(argv: string[]): SweepArgs {
 // fix is pinned by behaviour — this file runs main() on import and cannot
 // be. Clip detection is NOT per-chunk (measured infeasible without false
 // positives — see that file's header): the guard is the measured caps,
-// verify-cache-clock's density floor+ceiling, and R1's E2 density
-// assertion at the corpus door.
+// verify-cache-clock's density floor+ceiling, and R1b's E2 density
+// assertion — run FIRST by this driver's own pre-flight, refusing at
+// the first violator before simulation (#364 rounds 8-9), and again at
+// the read-time corpus door, with the nightly --warm-only log as the
+// standing full-roster survey.
 
 // Walks backward from now until history genuinely ends, so every symbol
 // contributes its full available depth and the window rolls forward with the
