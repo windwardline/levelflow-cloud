@@ -598,7 +598,21 @@ layer.
   a null it is excluded from, its p reads 1 to match its NO VERDICT
   disposition; the accepting side of the boundary pin runs at 2,000
   permutations with the p asserted against its derived ~0.031, so
-  both sides of the floor meet the same estimator-noise standard. One denominator note beside the unfilled
+  both sides of the floor meet the same estimator-noise standard.
+  Round 41: the confirm-fold burn records READS, never attempts — the
+  already-read check still precedes the computation, but the append
+  lands only after the verdicts exist and only when the corpus HAS a
+  confirm fold, so round 37's baseline-exists throw (or
+  `--confirm-final` against a legacy two-split corpus) no longer
+  spends the one acknowledged read on a run that produced no confirm
+  number; the support predicate lives once (`supportOf`, consumed by
+  the null's membership, the p-floor, the acceptance floor and the
+  reason — pinned to a single zero test at source); the
+  comp/drop sign convention is stated on the verdict type via the
+  exact identity selectTotalDelta = Σ(shared deltas) + compositionR −
+  droppedR; and a group whose baseline carries no select-fold days is
+  diagnosed BY NAME at the market grain rather than blamed on the
+  pairing it empties. One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly

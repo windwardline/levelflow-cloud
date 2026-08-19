@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -286,7 +286,11 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     assert.equal(verdict.accepted, false);
     // #364 round 39, finding 2: a floor refusal names itself — never
     // the same "fails" as a measured loss.
-    assert.equal(verdict.reason, "NO VERDICT (pairing 4 of 4 shared)");
+    assert.equal(
+      verdict.reason,
+      "NO VERDICT — pairing 4 nonzero of 4 shared days is below the " +
+        "statistic's floor (5)",
+    );
   });
 
   // #364 round 39, finding 1: a zero delta contributes nothing under
@@ -313,7 +317,11 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     assert.equal(verdict.sharedDays, 40);
     assert.equal(verdict.effectivePairs, 4);
     assert.equal(verdict.accepted, false);
-    assert.equal(verdict.reason, "NO VERDICT (pairing 4 of 40 shared)");
+    assert.equal(
+      verdict.reason,
+      "NO VERDICT — pairing 4 nonzero of 40 shared days is below the " +
+        "statistic's floor (5)",
+    );
   });
 
   // #364 round 39, smaller; hardened round 40: the five-pair boundary
@@ -411,7 +419,11 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     assert.equal(b.effectivePairs, 2);
     assert.equal(b.pairedP, 1);
     assert.equal(b.accepted, false);
-    assert.equal(b.reason, "NO VERDICT (pairing 2 of 6 shared)");
+    assert.equal(
+      b.reason,
+      "NO VERDICT — pairing 2 nonzero of 6 shared days is below the " +
+        "statistic's floor (5)",
+    );
   });
 
   // #364 round 37, finding 2: a baseline variant that carries no cell
@@ -429,6 +441,91 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
           seed: 2,
         }),
       /baseline variant "tp1Atr=0\.5" carries no cell in this corpus[\s\S]*variants present: baseline, tp1=0\.9/,
+    );
+  });
+
+  // #364 round 41, finding 1: the burned-log records READS, never
+  // attempts. Appended before the verdicts, a throw in between —
+  // round 37's baseline-exists refusal, reached by exactly the typo
+  // the str() message names — burned the corpus's one acknowledged
+  // confirm read on a run that produced no confirm number, and the
+  // corrected re-run then demanded --acknowledge-prior-reads. A legacy
+  // two-split corpus has no confirm fold to read, so a successful
+  // --confirm-final run against one burns nothing either.
+  it("burns the confirm log only after a confirm read actually happened", async () => {
+    const emitPath = corpusWith(better());
+    const confirmLogPath = `${emitPath}.confirm-log.jsonl`;
+    await assert.rejects(
+      () =>
+        gradeCorpus([emitPath], {
+          baselineVariant: "tp1Atr=0.5",
+          confirmFinal: true,
+          confirmLogPath,
+          permutations: 50,
+          seed: 2,
+        }),
+      /carries no cell/,
+    );
+    assert.equal(existsSync(confirmLogPath), false);
+    const graded = await gradeCorpus([emitPath], {
+      confirmFinal: true,
+      confirmLogPath,
+      permutations: 50,
+      seed: 2,
+    });
+    assert.equal(graded.foldNames.confirm, undefined);
+    assert.equal(existsSync(confirmLogPath), false);
+  });
+
+  // #364 round 41, smaller: at the market grain a symbol whose baseline
+  // carries no cell is a per-group gap the cube-wide refusal cannot see
+  // — the amendment-25 starvation shape (the shipped baseline accepted
+  // nothing where a looser variant traded). The diagnosis names the
+  // absent baseline, never the pairing it empties.
+  it("names a group's absent baseline instead of blaming the pairing — market grain", () => {
+    // 30 days so the market grain's absolute minFilled floor does not
+    // fire first — THIN keeps precedence over the baseline diagnosis,
+    // and this fixture isolates the baseline branch.
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 30; day += 1) {
+      rows.push(trainRow("baseline", day, 0.2));
+      rows.push(outcomeRow("baseline", day, 0.2));
+      rows.push(trainRow("wide", day, 0.5));
+      rows.push(outcomeRow("wide", day, 0.5));
+      rows.push({ ...trainRow("wide", day, 0.5), symbol: "GBPUSD" });
+      rows.push({ ...outcomeRow("wide", day, 0.5), symbol: "GBPUSD" });
+    }
+    const gbp = marketVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 100,
+      seed: 5,
+    }).get("GBPUSD")!.get("wide")!;
+    assert.equal(gbp.accepted, false);
+    assert.equal(
+      gbp.reason,
+      'NO VERDICT — baseline "baseline" has no test-fold days in this ' +
+        "group; no comparison is possible",
+    );
+  });
+
+  // #364 round 41, finding 2: the paired machinery's support predicate
+  // lives ONCE — familyPairedP's null membership and p-floor and
+  // groupVerdicts' acceptance floor and reason all call supportOf, so
+  // the invariant "in the null IFF acceptable" cannot silently split
+  // into two zero tests. The single occurrence of the zero test is
+  // pinned at source.
+  it("the support predicate is declared once and consumed by both the null and the verdict", () => {
+    const source = readFileSync("scripts/grid-totalr.ts", "utf8");
+    const zeroTests = [...source.matchAll(/delta !== 0/g)];
+    assert.equal(
+      zeroTests.length,
+      1,
+      "the delta zero test must live only inside supportOf",
+    );
+    const calls = [...source.matchAll(/supportOf\(/g)];
+    assert.ok(
+      calls.length >= 3,
+      "supportOf must be declared and consumed by familyPairedP and groupVerdicts",
     );
   });
 

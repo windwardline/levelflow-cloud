@@ -120,7 +120,12 @@ export type VariantVerdict = {
   // The OTHER half of the non-shared portion (#364 round 40, finding
   // 1): total baseline select-fold R on days the variant did not trade
   // — the R a tightening dial forwent. Both halves are descriptive;
-  // the whole-fold deltas carry both.
+  // the whole-fold deltas carry both, by the exact identity
+  // selectTotalDelta = Σ(shared deltas) + compositionR − droppedR
+  // (#364 round 41, smaller) — droppedR enters ΔR sel NEGATED, so a
+  // NEGATIVE droppedR is avoided baseline loss (a positive
+  // contribution to the printed delta), while compositionR enters with
+  // its own sign.
   droppedR: number | null;
   // The confirm fold is read ONLY under confirmFinal, appended to the
   // burned-log — discipline by mechanism, not promise (LA-6).
@@ -223,6 +228,25 @@ function seedFrom(base: number, text: string): number {
 // four — sparse and dense).
 const MIN_EFFECTIVE_PAIRS = 5;
 
+/**
+ * The support of a delta vector — days whose delta is NONZERO, the one
+ * count the paired machinery keys on. Declared ONCE (#364 round 41,
+ * finding 2): familyPairedP's null membership and p-floor and
+ * groupVerdicts' acceptance floor and NO VERDICT reason all rest on
+ * the invariant that a variant is in the null IFF it can be accepted,
+ * so the zero test lives in one predicate — two independent `!== 0`
+ * checks could silently diverge (a tolerance on one side) and print a
+ * certain-looking wrong diagnosis. tests/acceptanceGate.test.ts pins
+ * the single occurrence.
+ */
+export function supportOf(deltas: Map<number, number>): number {
+  let nonzero = 0;
+  for (const delta of deltas.values()) {
+    if (delta !== 0) nonzero += 1;
+  }
+  return nonzero;
+}
+
 function familyPairedP(
   deltasByVariant: Map<string, Map<number, number>>,
   permutations: number,
@@ -239,15 +263,13 @@ function familyPairedP(
     const deltas = deltasByVariant.get(variant)!;
     let sum = 0;
     let sumSq = 0;
-    let nonzero = 0;
     for (const delta of deltas.values()) {
       sum += delta;
       sumSq += delta * delta;
-      if (delta !== 0) nonzero += 1;
     }
     const norm = Math.sqrt(sumSq);
     scale.set(variant, norm);
-    support.set(variant, nonzero);
+    support.set(variant, supportOf(deltas));
     observed.set(variant, norm > 0 ? sum / norm : 0);
   }
   const exceed = new Map<string, number>(variants.map((v) => [v, 0]));
@@ -439,6 +461,14 @@ function groupVerdicts(
       return totals;
     };
     const baselineDays = dayTotals(baselineVariant);
+    // #364 round 41, smaller: a GROUP whose baseline carries no
+    // select-fold days — reachable at the market grain even though the
+    // cube-wide baseline-exists refusal passed — is diagnosed by name,
+    // never blamed on the pairing (a "pairing 0 of 0 shared" reason at
+    // the 4d grain pointed at the statistic when the absent baseline
+    // was the fact; the amendment-25 starvation shape lands exactly
+    // here).
+    const baselineAbsentInGroup = baselineDays.size === 0;
     const deltasByVariant = new Map<string, Map<number, number>>();
     const compositionByVariant = new Map<string, number>();
     const droppedByVariant = new Map<string, number>();
@@ -553,9 +583,7 @@ function groupVerdicts(
       const pairedP = pairedPs.get(variant) ?? 1;
       const variantDeltas = deltasByVariant.get(variant);
       const sharedDays = variantDeltas?.size ?? 0;
-      const effectivePairs = variantDeltas
-        ? [...variantDeltas.values()].filter((delta) => delta !== 0).length
-        : 0;
+      const effectivePairs = variantDeltas ? supportOf(variantDeltas) : 0;
       // The rule (round-8 batch 1): both folds positive, the PAIRED
       // family-wise p enforced at 0.05, expectancy holds, not thin —
       // and a pairing the statistic can actually resolve (#364 round
@@ -591,11 +619,20 @@ function groupVerdicts(
         // #364 round 39, finding 2: an unresolvable pairing is NO
         // VERDICT with the pairing named — the round-31 rule at the
         // sibling starvation gate — never the same "fails" as a
-        // measured loss.
+        // measured loss. The reasons carry their full specifics so
+        // every printer reuses them verbatim, and an absent baseline
+        // is named before the pairing it empties (#364 round 41,
+        // smaller).
         reason: thin
           ? `THIN (${selectStats.filled} filled)`
+          : baselineAbsentInGroup
+          ? `NO VERDICT — baseline "${baselineVariant}" has no ` +
+            `${foldNames.select}-fold days in this group; no ` +
+            `comparison is possible`
           : effectivePairs < MIN_EFFECTIVE_PAIRS
-          ? `NO VERDICT (pairing ${effectivePairs} of ${sharedDays} shared)`
+          ? `NO VERDICT — pairing ${effectivePairs} nonzero of ` +
+            `${sharedDays} shared days is below the statistic's ` +
+            `floor (${MIN_EFFECTIVE_PAIRS})`
           : accepted
           ? "accept"
           : "fails",
@@ -827,6 +864,14 @@ export async function gradeCorpus(
   // confirm fold is never computed; with it, the read is appended to a
   // burned-log keyed by the corpus's manifest hash, and a corpus whose
   // log already holds a read refuses without explicit acknowledgement.
+  // The CHECK runs here, before any confirm figure can be computed; the
+  // APPEND runs after the verdicts exist (#364 round 41, finding 1) —
+  // appended first, any throw in between (round 37's baseline-exists
+  // refusal, reached by exactly the typo the str() message names) burned
+  // the corpus's one acknowledged read on a run that produced no confirm
+  // number, and the corrected re-run then demanded the escape hatch the
+  // discipline exists to make expensive. The log records READS, never
+  // attempts.
   const confirmLogPath = options.confirmLogPath ??
     `${paths[0]}.confirm-log.jsonl`;
   if (options.confirmFinal) {
@@ -841,13 +886,6 @@ export async function gradeCorpus(
         );
       }
     }
-    appendFileSync(
-      confirmLogPath,
-      JSON.stringify({
-        corpusHash: manifest.manifestHash,
-        readAt: new Date().toISOString(),
-      }) + "\n",
-    );
   }
   // A folded corpus names its own partition; a legacy two-split corpus
   // maps train->fit, test->select and has no confirm fold to read.
@@ -881,15 +919,32 @@ export async function gradeCorpus(
       }
     }
   }
+  const verdicts =
+    (options.verdictUnit === "market" ? marketVerdicts : classVerdicts)(
+      cube,
+      { ...options, foldNames },
+    );
+  // The burn lands only once a confirm figure actually exists (#364
+  // round 41, finding 1): after the verdicts are computed, and only
+  // when the corpus HAS a confirm fold — --confirm-final against a
+  // legacy two-split corpus reads nothing (confirmTotalDelta is null
+  // for every variant, the folds line says so) and therefore burns
+  // nothing.
+  if (options.confirmFinal && foldNames.confirm) {
+    appendFileSync(
+      confirmLogPath,
+      JSON.stringify({
+        corpusHash: manifest.manifestHash,
+        readAt: new Date().toISOString(),
+      }) + "\n",
+    );
+  }
   return {
     dataAbsentRows,
     foldNames,
     heldOutMarkets: held.size,
     manifest,
-    verdicts: (options.verdictUnit === "market" ? marketVerdicts : classVerdicts)(
-      cube,
-      { ...options, foldNames },
-    ),
+    verdicts,
   };
 }
 
@@ -1033,16 +1088,15 @@ async function main(): Promise<void> {
     );
     for (const [variant, verdict] of classMap) {
       // #364 round 39, finding 2: the pairing prints beside the p it
-      // sizes (nonzero/shared), and a floor refusal names itself — at
-      // four effective pairs the estimate can print a
-      // significant-looking p, so a bare "fails" beside all-positive
-      // columns left the discriminating quantity off the line.
+      // sizes (nonzero/shared), and a NO VERDICT refusal names itself
+      // — the reason field carries the full wording (stated on the
+      // verdict, its own rule), so the printer reuses it verbatim
+      // rather than reconstructing it (#364 round 41).
       const label = verdict.thin
         ? `THIN (${verdict.selectFilled} filled) — refuse`
-        : verdict.effectivePairs < MIN_EFFECTIVE_PAIRS
-        ? `NO VERDICT — pairing ${verdict.effectivePairs} nonzero of ` +
-          `${verdict.sharedDays} shared days is below the statistic's ` +
-          `floor (${MIN_EFFECTIVE_PAIRS})`
+        : verdict.reason !== undefined &&
+            verdict.reason.startsWith("NO VERDICT")
+        ? verdict.reason
         : verdict.accepted
         ? "ACCEPT — fit+select, paired p, expectancy holds"
         : "fails";
