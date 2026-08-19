@@ -70,8 +70,10 @@ fi
 # on a STAMPED store) and cacheStoreUnreadable (a corrupt store) — both
 # are fresh, actionable regressions and stay red. Same for the R1b
 # treasury chunk refusals (treasuryCoverageRefused, treasuryChunkHole):
-# deterministic fetch-integrity failures the driver re-throws even under
-# --warm-only (#364 round 21), so they reach this script red, as they must.
+# deterministic fetch-integrity failures on which the driver exits red
+# even under --warm-only — deferred past the bar survey so the roster
+# still warms (#364 rounds 21-22) — so they reach this script red, as
+# they must.
 if grep -q 'cacheClockMismatch' <<<"$out"; then
   echo "$(date -u +%FT%TZ) STOOD DOWN: store clock does not match this build (pre-R0 store, or a BAR_CLOCK bump without its rebuild). NOT topped up and NOT usable — rebuild per docs/cache-rebuild-r0.md."
   exit 0

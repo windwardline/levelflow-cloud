@@ -484,18 +484,35 @@ describe("the driver writes the manifest beside the emit", () => {
     );
     // #364 round 13, smaller + round 14, finding 1: the survey path
     // tolerates a Treasury PROVIDER failure, but the tolerance is
-    // scoped by CAUSE — store-integrity refusals re-throw so the
+    // scoped by CAUSE — store-integrity refusals re-throw immediately
+    // (the bar warm itself rides the same store discipline) so the
     // top-up script's must-stay-red conditions can go red (both of its
-    // branches run only on a nonzero exit). #364 round 21, finding 1:
-    // the round-20 chunk refusals join the must-stay-red set — both
-    // are deterministic (a constant deeper than provider coverage, a
-    // zero-row week inside served coverage), so swallowing them would
-    // leave the nightly survey green while the store never warms and
-    // every night re-attempts the full multi-decade fetch.
+    // branches run only on a nonzero exit). #364 rounds 21-22: the
+    // deterministic chunk refusals are must-stay-red too, but they
+    // DEFER — nothing under --warm-only consumes the curve, so the
+    // bar survey completes and the run exits red after the table,
+    // instead of killing the nightly top-up and rebuild step 2 at
+    // zero of 97 symbols for a cause that never self-heals.
     assert.match(
       script,
-      /\/cacheStoreUnreadable\|cacheClockMismatch\|treasuryCoverageRefused\|treasuryChunkHole\/\s*\n?\s*\.test\(message\)/,
-      "store-integrity AND deterministic chunk refusals must re-throw under --warm-only",
+      /\/cacheStoreUnreadable\|cacheClockMismatch\/\.test\(message\)/,
+      "store-integrity refusals must re-throw immediately under --warm-only",
+    );
+    assert.match(
+      script,
+      /\/treasuryCoverageRefused\|treasuryChunkHole\/\.test\(message\)/,
+      "the deterministic chunk refusals must be matched by token",
+    );
+    assert.match(
+      script,
+      /deferredTreasuryRefusal = error as Error;/,
+      "chunk refusals defer rather than abort the survey",
+    );
+    const deferredThrow = script.indexOf("throw deferredTreasuryRefusal;");
+    const tablePrint = script.indexOf("printTable(rows);");
+    assert.ok(
+      tablePrint >= 0 && deferredThrow > tablePrint,
+      "the deferred refusal exits red AFTER the survey table prints",
     );
     assert.match(
       script,

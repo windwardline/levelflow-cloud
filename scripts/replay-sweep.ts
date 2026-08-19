@@ -206,6 +206,9 @@ async function main() {
   // nightly top-up with the whole roster untouched, one layer earlier
   // than the mid-roster case round 9 removed. Sweep runs keep the throw.
   let treasuryRates: DatedTreasuryRow[] = [];
+  // #364 round 22, finding 1: a deterministic treasury chunk refusal
+  // under --warm-only exits red AFTER the bar survey, not before it.
+  let deferredTreasuryRefusal: Error | null = null;
   if (!args.discover) {
     try {
       treasuryRates = await loadTreasuryRates(args.cacheDir);
@@ -219,27 +222,46 @@ async function main() {
       // both of its branches run only on a nonzero exit — swallowing
       // them here would print "top-up complete" over a corrupt or
       // wrong-clock store, the false green the script's own discipline
-      // forbids. Only provider transport is tolerated on the survey
-      // path. #364 round 21, finding 1: the round-20 chunk refusals
-      // join the must-stay-red set — treasuryCoverageRefused (the
-      // constant asks deeper than the provider serves) and
-      // treasuryChunkHole (a zero-row week inside served coverage) are
-      // DETERMINISTIC, not transport. Swallowed here, the driver exits
-      // 0, the top-up script prints "top-up complete" ahead of both
-      // stand-down greps, the store never warms (the rolling store
-      // writes only after a successful fetch), and every following
-      // night re-attempts the full multi-decade fetch — quota burned
-      // nightly under a green launchd log, permanently.
+      // forbids. They abort IMMEDIATELY: the same store discipline
+      // carries the bar series, so the warm itself is suspect.
       if (
         !args.warmOnly ||
-        /cacheStoreUnreadable|cacheClockMismatch|treasuryCoverageRefused|treasuryChunkHole/
-          .test(message)
+        /cacheStoreUnreadable|cacheClockMismatch/.test(message)
       ) {
         throw error;
       }
-      console.warn(
-        `treasury top-up failed — bar survey continues without it: ${message}`,
-      );
+      // #364 rounds 21-22: the round-20 chunk refusals are must-stay-red
+      // too — treasuryCoverageRefused (the constant asks deeper than the
+      // provider serves) and treasuryChunkHole (a zero-row week inside
+      // served coverage) are DETERMINISTIC, not transport, and the store
+      // never warms past them (the rolling store writes only after a
+      // successful fetch). Warned over, they'd leave "top-up complete"
+      // printing nightly over a store that never warms — and that
+      // permanent false green is the whole cost, not the refetch: the
+      // guard throws on the FIRST zero-row chunk, one request for a
+      // wrong constant, ~13 at most for a cold-store interior hole
+      // (#364 round 22, finding 2). But nothing under --warm-only
+      // CONSUMES treasuryRates (every consumer is behind !args.warmOnly)
+      // and a corpus-path refusal must not bind the survey path (round
+      // 9's law) — an immediate throw here killed the nightly bar
+      // top-up and rebuild step 2 at zero of 97 symbols, every night,
+      // for a cause that never self-heals. So the refusal DEFERS: the
+      // bar survey completes, then the run exits red after the table.
+      // (Round 9 declined collect-then-throw on the SWEEP path because
+      // simulation spends hours on a corpus already known dead; the
+      // survey spends nothing after its loop.) Only genuine transport
+      // failures reach the warn-and-continue below.
+      if (/treasuryCoverageRefused|treasuryChunkHole/.test(message)) {
+        deferredTreasuryRefusal = error as Error;
+        console.warn(
+          `treasury refusal deferred to end of survey — bars still warm, ` +
+            `run exits red after the table: ${message}`,
+        );
+      } else {
+        console.warn(
+          `treasury top-up failed — bar survey continues without it: ${message}`,
+        );
+      }
     }
   }
   // #364 round 2, finding 1: the conditions block CLAIMS reconstruction,
@@ -736,6 +758,14 @@ async function main() {
     );
   }
   printTable(rows);
+  // #364 round 22, finding 1: the deferred deterministic treasury
+  // refusal — set only under --warm-only — exits the run red here,
+  // after the roster warmed and the survey table printed, so the
+  // top-up script's nonzero-exit branches still see it while the
+  // nightly bar top-up and rebuild step 2 keep their work.
+  if (deferredTreasuryRefusal) {
+    throw deferredTreasuryRefusal;
+  }
   if (args.emit && emitStream) {
     await new Promise<void>((resolve, reject) => {
       emitStream.end((error: unknown) => error ? reject(error) : resolve());

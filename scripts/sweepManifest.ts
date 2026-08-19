@@ -264,12 +264,16 @@ export function treasuryGapTouching(
 // Both branches carry must-stay-red TOKENS (#364 round 21, finding 1)
 // the way the cache integrity errors do, because both causes are
 // DETERMINISTIC, never transport: swallowed by the driver's
-// --warm-only transport tolerance, the survey would exit 0, the top-up
-// script would print "top-up complete", the store would never warm
-// (the rolling store writes only after a successful fetch), and every
-// following night would re-attempt the full multi-decade fetch against
-// the provider's quota under a green launchd log — permanently. The
-// driver's re-throw regex names both tokens.
+// --warm-only transport tolerance, the survey would exit 0, the
+// top-up script would print "top-up complete", and the store would
+// never warm (the rolling store writes only after a successful
+// fetch) — a permanent false green. That lie is the whole cost (#364
+// round 22, finding 2): this function throws on the FIRST zero-row
+// chunk, so a wrong constant costs one request per run and a
+// cold-store interior hole at most ~13 — never a quota problem. The
+// driver matches both tokens and exits red DEFERRED to the end of
+// the bar survey (#364 round 22, finding 1), so the roster still
+// warms under a cause that never self-heals.
 export function treasuryChunkRefusal(input: {
   chunkRows: number;
   fromMs: number;

@@ -120,12 +120,22 @@ timeout, quota) warns and continues so the bar warm cannot die on the
 second endpoint — which means a rebuild can finish green with the
 treasury store un-warmed. Before calling step 2 done, grep the log for
 `treasury top-up failed`; a hit means re-run once the endpoint recovers
-(cheap — the bar stores are already warm). Integrity refusals abort
-red, as they must: store-integrity (`cacheStoreUnreadable`,
-`cacheClockMismatch`) and the deterministic chunk refusals
-(`treasuryCoverageRefused`, `treasuryChunkHole` — #364 round 21), which
-never self-heal and, warned over, would leave every following night
-re-running the full-depth fetch against the quota under a green log. Run it directly so the output
+(cheap — the bar stores are already warm). Integrity refusals go red,
+as they must, in two shapes (#364 rounds 21–22): store-integrity
+(`cacheStoreUnreadable`, `cacheClockMismatch`) aborts IMMEDIATELY —
+the bar warm rides the same store discipline, so a step-2 run that
+dies this way warmed nothing and re-runs in full once the store is
+fixed — while the deterministic chunk refusals
+(`treasuryCoverageRefused`, `treasuryChunkHole`), which never
+self-heal, DEFER: the bar survey completes and the run exits red
+after the table, so a step-2 run ending this way has its bar stores
+warm and needs only the treasury fix plus a cheap re-run. (Warned
+over instead, these two would leave `top-up complete` printing
+nightly over a store that never warms — the cost is that false
+green, not the refetch, which the first-zero-row-chunk throw cuts to
+a request or two.) One blind spot to know: the survey path asserts
+nothing about a hole already PINNED in the store — that surfaces at
+the next sweep pre-flight or corpus read, never in the nightly log. Run it directly so the output
 streams (the launchd wrapper buffers everything until exit, which for a
 run this long reads as a hang):
 
@@ -247,7 +257,8 @@ instead of a store-hole message deleting-and-refetching cannot clear
 (#364 rounds 19–20). Its `treasuryCoverageRefused` token stays red
 under `--warm-only` too (round 21), so a wrong constant shows in the
 nightly log as a failure, never as a green survey over an un-warmed
-store.
+store — with the red exit deferred past the bar survey (round 22),
+so the roster still warms on those nights.
 Then move the constant with the new probe recorded beside it AND
 delete the treasury-rates rolling store — an existing store never
 re-fetches its head, and the sweep pre-flight refuses a store

@@ -668,12 +668,14 @@ layer.
   when it fires, and the refusal names the re-probe-and-move remedy —
   while interior chunks keep the hole wording; both branches carry the
   chunk's parser-refusal count, the shared predicate lives in
-  `sweepManifest.ts` with both branches executed, and round 21 gave
-  both branches must-stay-red tokens — `treasuryCoverageRefused` /
-  `treasuryChunkHole` — that the driver's `--warm-only` transport
-  tolerance re-throws, since both causes are deterministic and a
-  warned-over one would leave the nightly survey green while the store
-  never warms), and the door refuses missing facts,
+  `sweepManifest.ts` with both branches executed, and rounds 21–22
+  gave both branches must-stay-red tokens — `treasuryCoverageRefused`
+  / `treasuryChunkHole` — on which the driver's `--warm-only` path
+  exits red, deferred past the bar survey so the roster still warms:
+  both causes are deterministic, and warned over they would leave the
+  nightly log green over a store that never warms — the false green
+  is the cost, the refetch a request or two by the first-chunk
+  throw), and the door refuses missing facts,
   week-plus interior holes where they TOUCH the corpus span (rounds
   14–15: gap positions are manifested, and one shared overlap
   predicate serves the door and the driver pre-flight), a curve ending

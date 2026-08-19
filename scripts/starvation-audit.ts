@@ -74,6 +74,13 @@
  * post-R1b table's real tally subtracts less than the runs produced
  * and biases survival UP, the round-18 direction. A path set whose
  * headers disagree on an optional name refuses rather than blends.
+ * That comparison is also, today, the only thing keeping the
+ * planRejected GENERATIONS apart (#364 round 22, smaller):
+ * planRejected is a required column whose meaning R1b narrowed, and
+ * the refusal separates the two meanings only because the same change
+ * added unresolv and dataAbsent to the header. A future semantics
+ * change to a required column ships its own discriminator — this
+ * check cannot see one.
  *
  * unresolv (R1b's defect bucket — the plan built and the resolver still
  * returned non-finite numbers) is excluded from BOTH sides of the

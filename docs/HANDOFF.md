@@ -1169,11 +1169,17 @@ key. Sequenced after item 6's `init.sql` work.
   warn line — the rebuild runbook's step 2 tells the operator to grep
   for it — while integrity refusals re-throw so the top-up script's
   red stays honest: store-integrity
-  (`cacheStoreUnreadable`/`cacheClockMismatch`) and the deterministic
-  round-20 chunk refusals
+  (`cacheStoreUnreadable`/`cacheClockMismatch`) re-throws immediately
+  (the bar warm rides the same store discipline), while the
+  deterministic round-20 chunk refusals
   (`treasuryCoverageRefused`/`treasuryChunkHole`), which never
-  self-heal and, warned over, would burn the full-depth fetch against
-  the quota nightly under a green log while the store never warmed.
+  self-heal, exit red DEFERRED past the bar survey (#364 round 22) so
+  the roster still warms. Warned over instead, they would leave
+  `top-up complete` printing nightly over a store that never warms —
+  and that false green is the whole cost: the guard throws on the
+  first zero-row chunk, so the wasted refetch is a request or two,
+  never a quota problem (#364 round 22 corrected the round-21
+  quota-burn rationale).
 - **Watch `outcome-sync`'s `skippedForBudget` after the one-physics
   deploy** (#362 round-1 throughput note): E1's dual-series fetch means
   each NEW symbol in a run costs two provider calls inside
