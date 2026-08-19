@@ -672,16 +672,30 @@ layer.
   atomicity: the round-44 fan-out could append to one directory and
   then throw on the next, recording a read the caller never learned
   about. The identity itself gained the sweep's `anchor` and `days` —
-  `conditionsOf` is a shard-COMPATIBILITY predicate, not a corpus
-  identity, so an R3 re-sweep sharing version, clock, grid and fold
-  spec had collided with the corpus it replaces and demanded the
-  acknowledgement on its FIRST read; `symbols` deliberately stays out,
-  since the union differs between a full read and a subset and
-  including it would undo round 44's whole point. Residue, stated:
-  shards swept under different anchors are admitted by `conditionsOf`
-  as one measurement but produce a population-dependent id — that
-  shard set is not one sweep, and it is the one axis on which subset
-  invariance is not absolute. The refusal now names its evidence — the
+  and **round 47 removed the anchor half, which was wrong.** `anchor`
+  is `isoDate(new Date())` stamped at manifest-build time, per
+  INVOCATION, and shards ARE separate invocations: that is the whole
+  reason `--fold-end` and `--fold-spec` exist. Round 45's
+  justification ("every shard of one run carries the same pair") was
+  false, and its stated residue ("shards swept under different anchors
+  … that shard set is not one sweep") is refuted by `conditionsOf`'s
+  own round-8 exclusion of the run-day-variant curve facts and by the
+  executed test pinning that a cross-midnight shard pair must POOL.
+  The cost landed in the direction this file calls unaffordable: a
+  cross-midnight or re-run shard set got a population-dependent id, so
+  a later SUBSET read hashed differently, found no prior, and opened
+  the held-back fold with nothing recorded — round 44's finding
+  restored on a new axis, a MISSED refusal traded for a FALSE one that
+  costs a single logged acknowledgement. Nothing caught it because
+  every fixture hardcoded one anchor; there is now one that does not.
+  What survives is `days`, and it survives by joining `conditionsOf`
+  itself rather than the id alone: two sweeps of different depth are
+  two measurements, the shard loop refuses the mixture, and that
+  refusal is what makes an identity derived from the predicate
+  invariant to subsets BY CONSTRUCTION rather than by assumption about
+  how shards are run. `symbols` deliberately stays out, since the
+  union differs between a full read and a subset and including it
+  would undo round 44's whole point. The refusal now names its evidence — the
   ledger path, the prior read's timestamp, whether the match came by
   corpus identity or the retired per-shard key, and how this read's
   shard population compares to the recorded one — reading the
@@ -700,6 +714,27 @@ layer.
   never been asserted — every prior assertion was about the accessors,
   and a file could satisfy all of them while its walker consumed the
   token after every flag.
+
+  Round 47's other two closed the round-46 fixes' own edges. The test
+  that pins "the repository's ledger is consulted under a redirect"
+  had computed that directory relative to `process.cwd()` while the
+  binary derives it from its own module path — so it pinned the claim
+  round 46 replaced and agreed with the real property only when the
+  suite ran from the repo root; it now derives the path the same way,
+  and its cleanup is registered on process exit and on SIGINT/SIGTERM
+  as well as in `finally`, since a killed worker would otherwise
+  strand a fabricated read in a tracked record. Making the canonical
+  root injectable was declined and the reason recorded: it is the same
+  shape as the bypass round 46's finding 3 closed, and the residual
+  risk it would trade away is tidiness, not a lost refusal. And a
+  redirected run had printed two contradictory instructions on one run
+  — that its read was NOT in the repository's record, then to `git
+  add` it, naming a path outside the working tree where that command
+  fails — with a test asserting both strings and so holding the
+  contradiction in place. The reminder now follows the split the
+  round-46 fix established, and the two messages are named constants
+  so the branch is pinned at source rather than by string-matching a
+  template.
 
   Round 46 closed the ledger work and caught something that was not
   ledger work at all. **`familyPairedP` had lost its family-wise max-T

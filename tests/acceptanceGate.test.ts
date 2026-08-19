@@ -13,6 +13,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   buildSweepManifest,
   seriesFacts,
@@ -1396,7 +1397,13 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // like a corpus never read — and the held-back fold opened again with
   // no refusal. conditionsOf is what defines one measurement, and the
   // shard loop already refuses shards that disagree on it.
-  const foldedShard = (symbol: string): string => {
+  // anchor and days are parameterised (#364 round 47, finding 1): every
+  // fixture used to hardcode one anchor, so the axis on which round 45's
+  // identity was population-dependent could not be exercised at all.
+  const foldedShard = (
+    symbol: string,
+    shard: { anchor?: string; days?: number } = {},
+  ): string => {
     const rows: SweepEmitRow[] = [];
     for (let day = 0; day < 16; day += 1) {
       for (const [split, offset] of [["fit", 0], ["select", 40], ["confirm", 80]] as const) {
@@ -1412,7 +1419,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     );
     const manifest = buildSweepManifest({
       analyzerVersion: "2026.08.09.test",
-      anchor: "2026-08-11",
+      anchor: shard.anchor ?? "2026-08-11",
       barRejections: {},
       clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       conditions: {
@@ -1420,7 +1427,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
         providerWarningCount: "zero-by-construction",
         weightAdjustment: "raw-engine-zero",
       },
-      days: 365,
+      days: shard.days ?? 365,
       folds: [
         { decisionEndMs: 4, endMs: 5, name: "fit", startMs: 0 },
         { decisionEndMs: 8, endMs: 9, name: "select", startMs: 5 },
@@ -1445,6 +1452,61 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     );
     return emitPath;
   };
+
+  // #364 round 47, finding 1: round 45 hashed each shard's `anchor` into
+  // the corpus identity on the reasoning that "every shard of one run
+  // carries the same pair". `anchor` is isoDate(new Date()) stamped per
+  // INVOCATION, and shards are separate invocations — which is why
+  // --fold-end and --fold-spec exist. So a sweep crossing midnight, or
+  // one dead shard re-run the next day, gave the shard set a
+  // population-dependent id: the subset hashed differently, found no
+  // prior read, and opened the held-back fold with nothing recorded.
+  // Round 44's finding restored on a new axis, and in the direction the
+  // file calls the one it cannot afford — a MISSED refusal traded for a
+  // false one. Every fixture hardcoded a single anchor, so nothing saw
+  // it.
+  it("refuses a subset re-read when the shards were swept on different run days", async () => {
+    const tuesday = foldedShard("EURUSD", { anchor: "2026-08-11" });
+    const wednesday = foldedShard("GBPUSD", { anchor: "2026-08-12" });
+    const confirmLogDir = mkdtempSync(join(tmpdir(), "gate-anchor-"));
+    const grade = (paths: string[]) =>
+      gradeCorpus(paths, {
+        confirmFinal: true,
+        confirmLogDir,
+        permutations: 100,
+        seed: 4,
+      });
+
+    // The shard loop admits them as one measurement — conditionsOf
+    // excludes the run-day-variant facts precisely so a cross-midnight
+    // pair POOLS rather than refusing (#364 round 8).
+    const first = await grade([tuesday, wednesday]);
+    assert.equal(first.confirmRead, true);
+
+    // …so every subset of that set must find the read.
+    await assert.rejects(grade([tuesday]), /has already been read 1 time\(s\)/);
+    await assert.rejects(grade([wednesday]), /has already been read 1 time\(s\)/);
+    await assert.rejects(
+      grade([wednesday, tuesday]),
+      /has already been read 1 time\(s\)/,
+    );
+    assert.equal(readdirSync(confirmLogDir).length, 1);
+  });
+
+  // The half of round 45's scope that survives, and it survives by
+  // sitting in the shard-compatibility predicate rather than only in the
+  // id: two sweeps of different DEPTH are two measurements, and the loop
+  // refuses the mixture outright instead of pooling different corpus
+  // spans into one verdict. That refusal is also what makes the id
+  // derived from the predicate subset-invariant by construction.
+  it("refuses to pool shards swept to different depths", async () => {
+    const shallow = foldedShard("EURUSD", { days: 180 });
+    const deep = foldedShard("GBPUSD", { days: 365 });
+    await assert.rejects(
+      gradeCorpus([shallow, deep], { permutations: 50, seed: 4 }),
+      /sweep depth \(days\)[\s\S]*not shards of one measurement/,
+    );
+  });
 
   it("refuses a re-read of the same corpus under a reordered or reduced shard list", async () => {
     const a = foldedShard("EURUSD");
@@ -1503,10 +1565,28 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // ledger is searched either way.
   //
   // This is the one test that touches the canonical directory, because
-  // the property under test IS that directory being consulted. It
-  // asserts the fixture id is absent first (so it can never mistake a
-  // real record for its own), writes one line, and removes it in
-  // `finally`.
+  // the property under test IS that directory being consulted. Three
+  // things bound it (#364 round 47, finding 2). The path is derived the
+  // way the BINARY derives it — from this module's own location up to
+  // the repo root, never from process.cwd(); computing it relatively
+  // pinned the claim round 46 replaced and agreed with the real
+  // property only when the suite happened to run from the repo root.
+  // The fixture id is asserted absent first, so the test can never
+  // mistake a real recorded read for its own. And the removal is
+  // registered on process exit and on SIGINT/SIGTERM as well as in
+  // `finally`, since a killed worker would otherwise strand a
+  // fabricated read in a tracked record whose README says to commit
+  // whatever appears there.
+  //
+  // Not taken, deliberately: making the canonical root injectable would
+  // let the suite avoid the directory altogether, but it is the same
+  // shape as the bypass round 46's finding 3 closed — an option that
+  // removes the repository's ledger from the scan. This file's stated
+  // preference is that losing a recorded read is the one outcome the
+  // discipline cannot afford, so the residual risk lands on tidiness
+  // instead: a SIGKILL between write and removal strands one file named
+  // for a corpus id only this fixture produces (analyzerVersion
+  // "2026.08.09.test"), which refuses nothing real.
   it("still refuses a corpus the repository's own ledger recorded, even under a redirect", async () => {
     const corpus = foldedShard("EURUSD");
     const redirect = mkdtempSync(join(tmpdir(), "gate-redirect-"));
@@ -1518,12 +1598,24 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
     assert.equal(first.confirmRead, true);
     const [ledgerName] = readdirSync(redirect);
-    const canonical = join("docs/research/confirm-reads", ledgerName);
+    const canonical = join(
+      dirname(dirname(fileURLToPath(import.meta.url))),
+      "docs/research/confirm-reads",
+      ledgerName,
+    );
     assert.equal(
       existsSync(canonical),
       false,
       "this fixture's corpus id must not collide with a real recorded read",
     );
+    const cleanup = () => rmSync(canonical, { force: true });
+    const onSignal = () => {
+      cleanup();
+      process.exit(130);
+    };
+    process.on("exit", cleanup);
+    process.on("SIGINT", onSignal);
+    process.on("SIGTERM", onSignal);
     try {
       // The entry a default run would have filed, placed where a
       // default run files it.
@@ -1538,7 +1630,10 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
         /has already been read 1 time\(s\)/,
       );
     } finally {
-      rmSync(canonical, { force: true });
+      cleanup();
+      process.off("exit", cleanup);
+      process.off("SIGINT", onSignal);
+      process.off("SIGTERM", onSignal);
     }
     assert.equal(existsSync(canonical), false);
   });
@@ -1549,7 +1644,15 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // the README opens by naming — and CI cannot see it, because CI runs
   // on a clean checkout and the unrecorded line exists only on the
   // machine that did the reading. So the mechanism fires at the burn.
-  it("names the command that finishes the record, and warns when the write is redirected", async () => {
+  // #364 round 47, smaller: the reminder was printed unconditionally, so
+  // a redirected run said in one breath that its read was NOT in the
+  // repository's record and in the next to `git add` it — naming a path
+  // outside the working tree, where that command fails outright. The
+  // round-46 fix had already established the two cases differ; the
+  // reminder has to follow the split. The previous version of this test
+  // asserted BOTH strings from one run, holding the contradiction in
+  // place — the round-12 defect class, in a test.
+  it("tells a redirected run its read is unrecorded, and does not also tell it to commit", async () => {
     const corpus = foldedShard("GBPUSD");
     const redirect = mkdtempSync(join(tmpdir(), "gate-warn-"));
     const warnings: string[] = [];
@@ -1565,18 +1668,45 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     } finally {
       console.warn = original;
     }
-    const ledger = join(redirect, readdirSync(redirect)[0]);
-    assert.ok(
-      warnings.some((line) => line.includes(`git add ${ledger}`)),
-      `the burn must name the command that records it; got ${
-        JSON.stringify(warnings)
-      }`,
-    );
     assert.ok(
       warnings.some((line) =>
         line.includes("NOT in the repository's confirm record")
       ),
-      "a redirected write must say so out loud",
+      "a redirected write must say so at the prior-read check",
+    );
+    assert.ok(
+      warnings.some((line) => line.includes("nothing here to commit")),
+      `the burn must not claim a record was made; got ${
+        JSON.stringify(warnings)
+      }`,
+    );
+    assert.ok(
+      warnings.every((line) => !line.includes("git add ")),
+      "a redirected run must never name a git add outside the working tree",
+    );
+  });
+
+  // The default branch's reminder is source-pinned for the same reason
+  // DEFAULT_CONFIRM_LOG_DIR is: executing it means letting a test append
+  // to the repository's real confirm record, which is the one thing that
+  // record must never receive from a test run.
+  it("names the command that finishes the record when the write is NOT redirected", () => {
+    const source = readFileSync("scripts/grid-totalr.ts", "utf8");
+    const burn = source.slice(source.indexOf("if (confirmRead) {"));
+    assert.match(
+      burn,
+      /const recordedMessage =[\s\S]*?git add \$\{canonicalLedgerPath\}/,
+      "the default branch must name the git add that records the read",
+    );
+    assert.match(
+      burn,
+      /canonicalLedgerPath === defaultLedgerPath\s*\n\s*\? recordedMessage\s*\n\s*: unrecordedMessage/,
+      "the commit reminder must be the DEFAULT branch's message alone",
+    );
+    assert.doesNotMatch(
+      burn.slice(burn.indexOf("const unrecordedMessage")),
+      /git add/,
+      "the redirected branch must never name a git add",
     );
   });
 

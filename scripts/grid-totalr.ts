@@ -856,6 +856,18 @@ export async function gradeCorpus(
       // and a post-R1b reconstructed-macro shard (same version, same
       // superseded clock, same grid) would pool into one verdict.
       conditions: candidate.conditions ?? null,
+      // The sweep's DEPTH is measurement identity (#364 round 47,
+      // finding 1). It is a CLI parameter every shard of one sweep is
+      // invoked with, not a clock read, so it is constant across a
+      // shard set by construction — unlike `anchor`, which round 45
+      // mistook for sweep-level and which is stamped
+      // `isoDate(new Date())` per invocation. Two sweeps of different
+      // depth over the same grid are two measurements; pooling them
+      // blends different corpus spans into one verdict. Putting it
+      // HERE rather than only in the corpus id is the point: the shard
+      // loop refuses a set that disagrees, which is what makes the id
+      // derived from this predicate invariant to subsets.
+      days: candidate.days,
       folds: candidate.folds ?? null,
       foldsByClass: candidate.foldsByClass ?? null,
       grid: candidate.grid,
@@ -899,7 +911,7 @@ export async function gradeCorpus(
   for (let index = 1; index < shardManifests.length; index += 1) {
     if (conditionsOf(shardManifests[index]) !== firstConditions) {
       throw new Error(
-        `${paths[index]}: shard conditions differ from ${paths[0]} — engine, clock, stated conditions, treasury curve, grid, folds, step or warmup do not match; these are not shards of one measurement`,
+        `${paths[index]}: shard conditions differ from ${paths[0]} — engine, clock, stated conditions, sweep depth (days), treasury curve, grid, folds, step or warmup do not match; these are not shards of one measurement`,
       );
     }
   }
@@ -913,26 +925,36 @@ export async function gradeCorpus(
   // refuses shards over), so it is identical across every shard by
   // construction and invariant to their order.
   //
-  // conditionsOf alone is a shard-COMPATIBILITY predicate, though, not
-  // a corpus identity (#364 round 45, finding 1): it excludes anchor
-  // and days, so an R3 re-sweep sharing version, clock, grid and fold
-  // spec collided with the corpus it replaces and its first read
-  // demanded the acknowledgement. anchor and days join the identity
-  // because they are SWEEP-level — every shard of one run carries the
-  // same pair — which keeps the id invariant across subsets. symbols
-  // deliberately does NOT join it: the union differs between a full
-  // read and a subset, so including it would undo round 44's whole
-  // point and let a subset read the fold unrecorded. Residue, stated:
-  // shards swept under different anchors are admitted by conditionsOf
-  // as one measurement but produce a population-dependent id here —
-  // that shard set is not one sweep, and this is the one axis on which
-  // subset-invariance is not absolute.
-  const sweepScope = [...new Set(
-    shardManifests.map((m) => `${m.anchor}|${m.days}`),
-  )].sort();
-  const corpusId = sha256Hex(
-    stableStringify({ conditions: firstConditions, sweepScope }),
-  );
+  // Round 45 widened this with a per-shard `${anchor}|${days}` scope set
+  // and round 47, finding 1 removed the anchor half. `anchor` is
+  // `isoDate(new Date())` stamped at manifest-build time
+  // (replay-sweep.ts) — the RUN DAY, per invocation — and shards ARE
+  // separate invocations, which is the whole reason --fold-end and
+  // --fold-spec exist. So round 45's justification ("every shard of one
+  // run carries the same pair") was false, and its stated residue
+  // ("shards swept under different anchors … that shard set is not one
+  // sweep") is refuted 60 lines above by conditionsOf's own round-8
+  // exclusion of the run-day-variant curve facts, and by the executed
+  // pooling test that says a cross-midnight shard pair must POOL.
+  //
+  // The cost was in the unaffordable direction. A cross-midnight or
+  // re-run shard set got a population-dependent id, so a later SUBSET
+  // read hashed differently, found no prior, and opened the held-back
+  // fold with nothing recorded — round 44's finding restored on a new
+  // axis. That is a MISSED refusal, traded to fix a FALSE one that
+  // costs a single logged acknowledgement.
+  //
+  // What remains is `days`, and it earns its place by sitting in
+  // conditionsOf rather than here: the shard loop now refuses a set
+  // that disagrees on depth, so the identity is invariant to subsets
+  // BY CONSTRUCTION instead of by assumption about how shards are run.
+  // A re-sweep at a different depth separates; one at the same version,
+  // clock, grid, folds, conditions and depth is the same measurement
+  // re-run, and a second confirm read of it is exactly what LA-6 exists
+  // to make expensive. symbols deliberately stays out: the union
+  // differs between a full read and a subset, so including it would
+  // undo round 44's whole point.
+  const corpusId = sha256Hex(firstConditions);
   const held = options.includeHoldout
     ? new Set<string>()
     : stratifiedHoldout([...unionSymbols], (symbol) => getAssetType(symbol));
@@ -1023,11 +1045,15 @@ export async function gradeCorpus(
   // again (#364 round 45, smaller): the fan-out could leave one
   // directory holding an entry and then throw on the next, recording a
   // read the caller never learned about.
+  // The repository's own file for this corpus, named once and used by
+  // every site that needs it — the prior-read scan, the redirect
+  // warning, and the commit reminder each asked the same question and
+  // must not be able to answer it differently.
+  const defaultLedgerPath = join(DEFAULT_CONFIRM_LOG_DIR, `${corpusId}.jsonl`);
   const canonicalLedgerPath = options.confirmLogPath ??
-    join(
-      options.confirmLogDir ?? DEFAULT_CONFIRM_LOG_DIR,
-      `${corpusId}.jsonl`,
-    );
+    (options.confirmLogDir
+      ? join(options.confirmLogDir, `${corpusId}.jsonl`)
+      : defaultLedgerPath);
   if (options.confirmFinal) {
     // Prior reads are sought in the canonical ledger AND in both
     // retired locations, matching the corpus identity OR any shard's
@@ -1049,7 +1075,7 @@ export async function gradeCorpus(
     // id to find.
     const priorLogPaths = [
       canonicalLedgerPath,
-      join(DEFAULT_CONFIRM_LOG_DIR, `${corpusId}.jsonl`),
+      defaultLedgerPath,
       ...(options.confirmLogPath ? [] : [
         ...[...new Set(paths.map((path) => dirname(path)))].sort().map((dir) =>
           join(dir, `confirm-log-${corpusId.slice(0, 12)}.jsonl`)
@@ -1057,7 +1083,7 @@ export async function gradeCorpus(
         ...paths.map((path) => `${path}.confirm-log.jsonl`),
       ]),
     ].filter((path, index, all) => all.indexOf(path) === index);
-    if (canonicalLedgerPath !== join(DEFAULT_CONFIRM_LOG_DIR, `${corpusId}.jsonl`)) {
+    if (canonicalLedgerPath !== defaultLedgerPath) {
       console.warn(
         `LA-6: this read will be filed at ${canonicalLedgerPath}, NOT in ` +
           `the repository's confirm record — the repository ledger is ` +
@@ -1195,10 +1221,28 @@ export async function gradeCorpus(
     // line exists only on the machine that did the reading and is
     // exactly what CI cannot see. The mechanism has to fire where the
     // read happens, naming the command that finishes it.
-    console.warn(
+    // …and the two cases say DIFFERENT things (#364 round 47, smaller).
+    // Printing the git add unconditionally told a redirected run, in one
+    // breath, that its read was not in the repository's record and, in
+    // the next, to commit it — naming a path outside the working tree,
+    // where `git add` fails with `pathspec did not match any files`.
+    // The round-46 fix already established the two cases are different;
+    // the reminder has to follow that split rather than sit above it.
+    const recordedMessage =
       `LA-6: the confirm fold was READ and the record appended. This is ` +
-        `not finished until it is committed:\n  git add ${canonicalLedgerPath} ` +
-        `&& git commit -m "record LA-6 confirm read ${corpusId.slice(0, 12)}"`,
+      `not finished until it is committed:\n` +
+      `  git add ${canonicalLedgerPath} && git commit -m ` +
+      `"record LA-6 confirm read ${corpusId.slice(0, 12)}"`;
+    const unrecordedMessage =
+      `LA-6: the confirm fold was READ and the entry written to ` +
+      `${canonicalLedgerPath}, which is NOT the repository's confirm ` +
+      `record — there is nothing here to commit, and no record of this ` +
+      `read will exist for the next reader. Re-run without ` +
+      `--confirm-log-dir to record it.`;
+    console.warn(
+      canonicalLedgerPath === defaultLedgerPath
+        ? recordedMessage
+        : unrecordedMessage,
     );
   }
   return {
