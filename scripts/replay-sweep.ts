@@ -1140,7 +1140,7 @@ function parseArgs(argv: string[]): SweepArgs {
     "--step",
     "--symbols",
   ]);
-  const { str } = flagReader(argv, VALUE_FLAGS);
+  const { num, str } = flagReader(argv, VALUE_FLAGS);
   // OP-9: "--symbols roster" derives the list from the engine's own scan
   // roster instead of a hand-kept copy — the ops top-up ran a 57-name
   // snapshot that had silently lost 40+ onboarded markets (and kept
@@ -1152,8 +1152,15 @@ function parseArgs(argv: string[]): SweepArgs {
     .filter(Boolean);
   const daysArg = str("--days") ?? "60";
   // "max" discovers each symbol's full available history from the run date.
-  const days = daysArg === "max" ? MAX_DEPTH_DAYS : Number(daysArg);
-  const step = Number(str("--step") ?? 16);
+  // Numeric dials go through num(), which refuses a token it cannot
+  // parse (#364 round 51, finding 1). Reading them with str() and then
+  // bare Number() took the half of the law that closes a phantom store
+  // and left the half that closes a NaN dial — in the sweep DRIVER:
+  // `--step abc` makes `index += NaN` false on the first comparison, so
+  // the decision loop runs once per symbol, the manifest records
+  // stepBars as null, and the run writes a corpus and exits 0.
+  const days = daysArg === "max" ? MAX_DEPTH_DAYS : num("--days", 365);
+  const step = num("--step", 16);
   const gridSpec = str("--grid");
   const grid: Array<Partial<CategoryCalibration>> = [{}];
   if (gridSpec) {
@@ -1181,9 +1188,12 @@ function parseArgs(argv: string[]): SweepArgs {
   const foldEndRaw = str("--fold-end");
   return {
     cacheDir: str("--cache-dir"),
-    foldEndMs: foldEndRaw !== undefined ? Number(foldEndRaw) : undefined,
+    // The fallback is unreachable — the raw read above already
+    // established the flag is present — but num() is what refuses an
+    // unparseable fold boundary.
+    foldEndMs: foldEndRaw !== undefined ? num("--fold-end", 0) : undefined,
     foldSpecPath: str("--fold-spec"),
-    foldStartMs: foldStartRaw !== undefined ? Number(foldStartRaw) : undefined,
+    foldStartMs: foldStartRaw !== undefined ? num("--fold-start", 0) : undefined,
     captureAll: argv.includes("--capture-all"),
     ignoreLowEdge: argv.includes("--ignore-low-edge"),
     warmOnly: argv.includes("--warm-only"),

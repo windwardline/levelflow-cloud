@@ -68,12 +68,18 @@ prefix), `<shard-dir>/confirm-log-<id>.jsonl`, and
 earlier version keeps refusing — which is why this directory is globbed
 UNPREFIXED while the operator-controlled ones are not: adding the prefix
 would otherwise have orphaned the form written immediately before it.
+Scope, stated: that unprefixed form is honoured HERE only. A directory
+named by `--confirm-log-dir` is globbed with the prefix, because it may
+be the sweeps directory and an open glob there would admit corpus emits
+— so a pre-prefix ledger written under a redirect is not found. The
+redirect is the test hatch and already warns that it files outside the
+record, so nothing an operator did on the default path is affected.
 
 The search is widened across **identities** as well as locations, which
 matters because `conditionsOf` grows: it has been amended several times, and
 each amendment changes every corpus id. Since the id is both the filename
 and the entry key, a read recorded under a previous definition would
-otherwise go unreachable on both halves at once. So every `confirm-log-*.jsonl`
+otherwise go unreachable on both halves at once. So every `*.jsonl`
 in this directory is read rather than the one name today's identity computes,
 the retired per-directory form is globbed rather than named, and an entry
 matches if it shares **any shard hash** with the read being attempted —

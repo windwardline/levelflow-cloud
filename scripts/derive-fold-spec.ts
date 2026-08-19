@@ -24,13 +24,18 @@ import type { ClassFoldSpec } from "./sweepFolds.ts";
 import { flagReader } from "./flagReader.ts";
 
 const VALUE_FLAGS = new Set(["--days", "--out", "--symbols"]);
-const { str } = flagReader(process.argv, VALUE_FLAGS);
+const { num, str } = flagReader(process.argv, VALUE_FLAGS);
 
 async function main(): Promise<void> {
   const symbols = (str("--symbols") ?? "").split(",").map((value) =>
     value.trim().toUpperCase()
   ).filter(Boolean);
-  const days = Number(str("--days") ?? "7000");
+  // num(), never a hand coercion of the string accessor (#364 round 51,
+  // finding 1): a NaN here makes every rolling-store key
+  // `<symbol>-15min-NaN`, so every symbol misses its warmed store and
+  // the script writes an EMPTY fold spec — the artifact 3c's
+  // across-shards law rests on — and exits 0.
+  const days = num("--days", 7000);
   const out = str("--out");
   if (symbols.length === 0 || !out) {
     console.error("usage: derive-fold-spec.ts --symbols A,B --days N --out spec.json");

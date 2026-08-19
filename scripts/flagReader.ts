@@ -29,7 +29,27 @@ export function flagReader(
           `as something else entirely`,
       );
     }
-    const index = argv.indexOf(arg);
+    // Every occurrence, not the first (#364 round 51, finding 3). The
+    // header above lists first-occurrence-only as one of the three modes
+    // this module exists to close, and the first version of it used
+    // argv.indexOf — reproducing the defect verbatim in the one
+    // implementation the whole directory delegates to. A repeated value
+    // flag is refused rather than silently resolved either way:
+    // `--out a.json --out b.json` is an operator who does not know which
+    // file they are writing, and the reachable shape is a wrapper
+    // supplying a default ahead of "$@", where taking the first means
+    // writing to the default under a confident success line.
+    const occurrences = argv.reduce<number[]>(
+      (found, token, at) => token === arg ? [...found, at] : found,
+      [],
+    );
+    if (occurrences.length > 1) {
+      throw new Error(
+        `${arg} was given ${occurrences.length} times — this reader will ` +
+          `not choose between them; pass ${arg} exactly once`,
+      );
+    }
+    const index = occurrences[0] ?? -1;
     if (index === -1) return undefined;
     const next = argv[index + 1];
     if (next === undefined || next.startsWith("--")) {

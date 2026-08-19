@@ -180,7 +180,7 @@ export function collect(
       // The grid's PINNED threshold-0 cell opened the confidence gate;
       // the SHIPPED engine gates at the market's own threshold, so that
       // cell — and only that cell — is re-read the way production reads
-      // it and recorded under its own name.
+      // it, under the name RECONSTRUCTED.
       //
       // The bare-baseline cell (grid entry `{}`) must NOT join it. `{}`
       // applies no override, so the engine already gated those rows at
@@ -196,15 +196,16 @@ export function collect(
       // conclusive: all 48 non-zero n on this pseudo-cell are EVEN,
       // against 82 even / 62 odd across every other variant.
       //
-      // The re-gate undoes confidenceThreshold=0 and NOTHING ELSE. The
-      // pin also fixes runnerProtection, maxStopAtrMultiplier and
-      // sizingHoursFactor, which were asserted rather than checked
-      // (#364 round 49, finding 3) — and `metals` deliberately HOLDS
-      // maxStopAtrMultiplier at 1.6, so a metals market falling back to
-      // this cell would publish a 1.0-stop-cap reconstruction under the
-      // name of the 1.6 configuration it actually runs. Where the pins
-      // diverge the cell keeps its own name: round 25's rule, no
-      // verdict rather than a mislabelled one.
+      // The re-gate is UNCONDITIONAL (#364 round 51, finding 2). Round
+      // 49 gated it on the market's other three pinned parameters
+      // matching and this comment described that rule; round 50 removed
+      // the condition, because divergence is the norm once 4d picks
+      // ship and suppressing on it blanked the roster. The mislabelling
+      // that rule existed to prevent is closed by the NAME instead —
+      // RECONSTRUCTED does not claim to be what the market runs — and
+      // the divergence rides the dossier row as a stated caveat, on
+      // reconstruction rows only. The record was corrected in the map
+      // and this comment, one file away, was left saying the opposite.
       if (variant === BASELINE) {
         const score = Number(row.confidenceScore);
         if (Number.isFinite(score) && score >= thresholdOf(symbol)) {

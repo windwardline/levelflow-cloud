@@ -921,6 +921,47 @@ layer.
   from the current calibration rides each row as a stated caveat naming
   the calibration it was compared against.
 
+  Round 51 found the port's other half. `replay-sweep` and
+  `derive-fold-spec` were brought under the walker law in these commits,
+  and both read their numeric dials through the STRING accessor and then
+  coerced by hand — taking the half that closes a phantom store and
+  leaving the half that closes a NaN dial, in the sweep driver. `--step
+  abc` gave NaN, and `index += NaN` is false on the first comparison, so
+  the decision loop ran exactly once per symbol per variant, the
+  manifest recorded `stepBars` as null (JSON has no NaN), the corpus
+  identity was computed over that null, and the run wrote an emit and
+  exited 0 — a corpus that opens cleanly at the door and measures almost
+  nothing. `derive-fold-spec` had the same shape with a sharper
+  artifact: a NaN day count makes every rolling-store key
+  `<symbol>-15min-NaN`, so every symbol misses its warmed store and the
+  script writes an EMPTY fold spec, silently, which is the artifact 3c's
+  across-shards law rests on. Every dial now reads through `num()`, both
+  refusals are executed against the real binaries, and the scan refuses
+  the hand-coercion idiom outright — it had been satisfiable vacuously,
+  since the `Number.isFinite` pin only fires for a file that calls
+  `num()` at all.
+
+  `flagReader` itself carried one of the three defects its own header
+  lists: it resolved a flag with `indexOf`, first occurrence only, which
+  round 38 had retired from `grid-totalr`. The in-repo path collectors
+  are sequential walkers so paths were never at risk, but the VALUE was:
+  a wrapper supplying a default ahead of `"$@"` writes to the default
+  under a confident success line. A repeated value flag is now refused
+  outright rather than resolved to either end — the conservative form,
+  since an operator who passes `--out` twice does not know which file
+  they are writing.
+
+  Two records were corrected rather than extended: `collect()`'s comment
+  still described round 49's suppress-on-divergence rule and the metals
+  mislabelling the rename closed, in the block directly above the branch
+  that no longer does either — the map had been fixed in the same commit
+  and the comment one file away was left saying the opposite — and the
+  ledger README's summary said "every `confirm-log-*.jsonl`" eight lines
+  under the paragraph explaining why this directory is globbed
+  UNPREFIXED, with the scope of that exemption now stated (it holds in
+  the canonical directory only; a redirect keeps the prefix, because it
+  may be the sweeps directory).
+
   One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus

@@ -1151,6 +1151,19 @@ describe("the driver writes the manifest beside the emit", () => {
             `token, never fall back to a default`,
         );
       }
+      // A numeric dial read through str() and then coerced by hand
+      // bypasses num()'s refusal entirely, and satisfied the isFinite
+      // pin below vacuously — a file with no num() call passed it, and a
+      // file importing flagReader was exempt regardless (#364 round 51,
+      // finding 1). That is how the sweep DRIVER came to accept
+      // `--step abc`. Pinned as a direct source form; it catches the
+      // exact idiom rather than every possible hand-coercion.
+      assert.doesNotMatch(
+        source,
+        /Number\(\s*str\(/,
+        `${file}: a numeric dial must be read through num(), which refuses ` +
+          `a token it cannot parse — Number(str(...)) silently yields NaN`,
+      );
       if (/\bnum\(/.test(source) && !usesSharedReader) {
         assert.match(
           source,
@@ -1227,6 +1240,17 @@ describe("the driver writes the manifest beside the emit", () => {
       /cannot read "many" as a number/,
       "a NaN dial disables the comparison it feeds without saying so",
     );
+
+    // #364 round 51, finding 3: the module's own header listed
+    // first-occurrence-only as a mode it closes, and its first version
+    // used argv.indexOf — reproducing it. A repeated value flag is
+    // refused rather than silently resolved to either end, because the
+    // reachable shape is a wrapper supplying a default ahead of "$@".
+    const twice = flagReader(["--out", "a.json", "--out", "b.json"], declared);
+    assert.throws(
+      () => twice.str("--out"),
+      /was given 2 times — this reader will not choose between them/,
+    );
   });
 
   // #364 round 36, finding 1 + smaller: the token refusal executed in
@@ -1234,6 +1258,48 @@ describe("the driver writes the manifest beside the emit", () => {
   // corpus — both files read the dial BEFORE their usage checks, so
   // the specific refusal wins, and grid-totalr's shard path is never
   // opened.
+  // #364 round 51, finding 1: the two files brought under the walker law
+  // in this change set read their numeric dials through str() and coerced
+  // by hand, so an unparseable token became NaN. In the sweep DRIVER that
+  // meant `index += NaN` was false on the first comparison — one decision
+  // point per symbol, a manifest recording stepBars as null, and exit 0.
+  // Both refusals execute before any corpus or cache work. The driver
+  // checks its provider key before parsing arguments, so the run is
+  // given a placeholder one — the refusal fires at parseArgs, before
+  // any fetch, so nothing reaches the network.
+  it("the sweep driver and the fold-spec deriver refuse an unparseable dial — executed", () => {
+    const refuses = (script: string, args: string[], pattern: RegExp) => {
+      assert.throws(
+        () =>
+          execFileSync("npx", ["--no-install", "tsx", script, ...args], {
+            cwd: process.cwd(),
+            encoding: "utf8",
+            env: { ...process.env, FMP_API_KEY: "placeholder-never-used" },
+            stdio: "pipe",
+            timeout: 120_000,
+          }),
+        (error: unknown) => {
+          assert.match(String((error as { stderr?: string }).stderr ?? ""), pattern);
+          return true;
+        },
+        `${script} must refuse the dial rather than running on NaN`,
+      );
+    };
+    refuses(
+      "scripts/replay-sweep.ts",
+      // The driver's refusals are layered — provider key, then the §21j
+      // byte ceiling, then argument parsing — so both earlier ones are
+      // satisfied to put the dial refusal under test.
+      ["--symbols", "EURUSD", "--byte-budget", "1gb", "--step", "abc"],
+      /--step owns the token after it and cannot read "abc" as a number/,
+    );
+    refuses(
+      "scripts/derive-fold-spec.ts",
+      ["--symbols", "EURUSD", "--out", "/dev/null", "--days", "abc"],
+      /--days owns the token after it and cannot read "abc" as a number/,
+    );
+  });
+
   it("sweep-analysis and grid-totalr refuse a dial typed without its number — executed", () => {
     assert.throws(
       () =>
