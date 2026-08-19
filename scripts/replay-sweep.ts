@@ -220,10 +220,20 @@ async function main() {
       // them here would print "top-up complete" over a corrupt or
       // wrong-clock store, the false green the script's own discipline
       // forbids. Only provider transport is tolerated on the survey
-      // path.
+      // path. #364 round 21, finding 1: the round-20 chunk refusals
+      // join the must-stay-red set — treasuryCoverageRefused (the
+      // constant asks deeper than the provider serves) and
+      // treasuryChunkHole (a zero-row week inside served coverage) are
+      // DETERMINISTIC, not transport. Swallowed here, the driver exits
+      // 0, the top-up script prints "top-up complete" ahead of both
+      // stand-down greps, the store never warms (the rolling store
+      // writes only after a successful fetch), and every following
+      // night re-attempts the full multi-decade fetch — quota burned
+      // nightly under a green launchd log, permanently.
       if (
         !args.warmOnly ||
-        /cacheStoreUnreadable|cacheClockMismatch/.test(message)
+        /cacheStoreUnreadable|cacheClockMismatch|treasuryCoverageRefused|treasuryChunkHole/
+          .test(message)
       ) {
         throw error;
       }

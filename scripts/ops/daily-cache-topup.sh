@@ -68,7 +68,10 @@ fi
 # clearing action is the deliberate rebuild in docs/cache-rebuild-r0.md.
 # Deliberately NOT matched: cacheClockWitnessRefused (a condemned witness
 # on a STAMPED store) and cacheStoreUnreadable (a corrupt store) — both
-# are fresh, actionable regressions and stay red.
+# are fresh, actionable regressions and stay red. Same for the R1b
+# treasury chunk refusals (treasuryCoverageRefused, treasuryChunkHole):
+# deterministic fetch-integrity failures the driver re-throws even under
+# --warm-only (#364 round 21), so they reach this script red, as they must.
 if grep -q 'cacheClockMismatch' <<<"$out"; then
   echo "$(date -u +%FT%TZ) STOOD DOWN: store clock does not match this build (pre-R0 store, or a BAR_CLOCK bump without its rebuild). NOT topped up and NOT usable — rebuild per docs/cache-rebuild-r0.md."
   exit 0

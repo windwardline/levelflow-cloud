@@ -56,14 +56,24 @@
  * acceptance tally in capture-all — so the column is the pre-geometry
  * block exactly.)
  *
- * A table this file parses ZERO rows from is refused the same way
- * (#364 round 20, finding 2): a survey log (--warm-only and --discover
- * print the full header and no data rows — the nightly launchd log has
- * exactly this shape), a --grid table with no baseline variant, and a
- * truncated log all used to print "0 of 0 markets flagged" and exit
- * 0 — a clean pass with nothing measured. --report cannot suppress
- * this refusal: it acknowledges a measured verdict, never an absent
- * one.
+ * A FILE this gate parses ZERO rows from is refused the same way —
+ * per file, not per invocation (#364 round 20, finding 2; round 21,
+ * finding 2), so a shard log from a run that died before any symbol
+ * completed cannot hide beside a healthy table and silently drop its
+ * markets from the roster. The shapes: a survey log (--warm-only and
+ * --discover print the full header and no data rows — the nightly
+ * launchd log has exactly this shape), a --grid table with no
+ * baseline variant, and a truncated log — all used to print "0 of 0
+ * markets flagged" and exit 0, a clean pass with nothing measured.
+ * --report cannot suppress this refusal: it acknowledges a measured
+ * verdict, never an absent one.
+ *
+ * Optional-with-zero is sound only within ONE table generation (#364
+ * round 21, smaller): an absent optional column reads 0, which means
+ * "unknown", not "none" — summing a pre-R1b table's unknown with a
+ * post-R1b table's real tally subtracts less than the runs produced
+ * and biases survival UP, the round-18 direction. A path set whose
+ * headers disagree on an optional name refuses rather than blends.
  *
  * unresolv (R1b's defect bucket — the plan built and the resolver still
  * returned non-finite numbers) is excluded from BOTH sides of the
@@ -106,6 +116,9 @@ for (const name of OPTIONAL_COLUMNS) {
 
 function parse(paths: string[]): Row[] {
   const rows: Row[] = [];
+  // The first file's optional-column set; every later file must agree
+  // (#364 round 21, smaller — see the header's one-generation law).
+  let optionalSeen: { path: string; present: string } | null = null;
   for (const path of paths) {
     const lines = readFileSync(path, "utf8").split("\n");
     if (lines.some((line) => line.trim().startsWith("# capture-all"))) {
@@ -135,6 +148,21 @@ function parse(paths: string[]): Row[] {
         );
       }
     }
+    const present = OPTIONAL_COLUMNS.filter((name) => index.has(name))
+      .join(", ");
+    if (optionalSeen === null) {
+      optionalSeen = { path, present };
+    } else if (optionalSeen.present !== present) {
+      throw new Error(
+        `${path}: header carries optional columns [${present}] but ` +
+          `${optionalSeen.path} carries [${optionalSeen.present}] — an ` +
+          `absent optional column reads 0, which means "unknown", not ` +
+          `"none"; summing it with a real tally biases survival up, so ` +
+          `tables from different generations are audited separately, ` +
+          `never blended`,
+      );
+    }
+    const rowsBefore = rows.length;
     for (const line of lines) {
       const f = line.trim().split(/\s+/);
       if (f.length < header.length || f[0] === "symbol" || !/^[A-Z^]/.test(f[0])) continue;
@@ -154,6 +182,20 @@ function parse(paths: string[]): Row[] {
         dataAbsent: opt("dataAbsent"), setups: n("setups"),
       });
     }
+    // Per FILE, not per invocation (#364 round 21, finding 2): checked
+    // on the flattened result, a dead shard's log contributed nothing
+    // and said nothing whenever a healthy table rode beside it, and
+    // the gate returned a verdict over a partial roster.
+    if (rows.length === rowsBefore) {
+      throw new Error(
+        `${path}: parsed zero baseline rows — either the table carries ` +
+          `no baseline variant (a --grid sweep without one; parse keeps ` +
+          `baseline rows only) or it carries no data rows at all (a ` +
+          `--warm-only or --discover survey log, or a run truncated ` +
+          `before any symbol completed); a gate that measured nothing ` +
+          `cannot pass — run it against a normal sweep's table`,
+      );
+    }
   }
   return rows;
 }
@@ -161,26 +203,13 @@ function parse(paths: string[]): Row[] {
 // Flags filtered out, or readFileSync tries to open "--report" as a log and the
 // gate fails for the wrong reason — which it did on first test.
 const paths = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
-const rows = parse(paths);
-// Zero parsed rows is a refusal, never a clean pass (#364 round 20,
-// finding 2): the header refusals above still admit a structurally
-// valid table this gate measured NOTHING from, and "0 of 0 markets
-// flagged" on exit 0 is the same false green the capture-all guard
-// closes, one shape over. A refusal rather than a verdict, so
-// --report cannot suppress it.
-if (rows.length === 0) {
-  throw new Error(
-    paths.length === 0
-      ? "no log paths given — nothing to audit"
-      : `${paths.join(", ")}: parsed zero baseline rows — either the ` +
-        `table carries no baseline variant (a --grid sweep without ` +
-        `one; parse keeps baseline rows only) or it carries no data ` +
-        `rows at all (a --warm-only or --discover survey log, or a ` +
-        `run truncated before any symbol completed); a gate that ` +
-        `measured nothing cannot pass — run it against a normal ` +
-        `sweep's table`,
-  );
+// Zero paths is the one invocation-level refusal; zero ROWS refuses per
+// file inside parse() (#364 rounds 20–21, finding 2 each), and both are
+// refusals rather than verdicts — --report cannot suppress either.
+if (paths.length === 0) {
+  throw new Error("no log paths given — nothing to audit");
 }
+const rows = parse(paths);
 const byS = new Map<string, Row>();
 for (const r of rows) {
   const prev = byS.get(r.symbol);

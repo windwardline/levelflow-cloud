@@ -1116,14 +1116,19 @@ key. Sequenced after item 6's `init.sql` work.
   driver's stamped `# capture-all` marker (#364 round 19 — acceptance
   gates are untallied there, so survival computed from one is a false
   green; pre-marker archives are indistinguishable, so for those the
-  advice stands: normal tables only) and refuses a table it parsed
-  ZERO rows from (#364 round 20 — survey logs print the full header
-  with no data rows, and a `--grid` table may carry no baseline
-  variant; "0 of 0 markets flagged" on exit 0 was a clean pass with
-  nothing measured, and `--report` suppresses neither refusal). Its
+  advice stands: normal tables only), refuses any FILE it parsed zero
+  rows from — per file, not per invocation, so a dead shard's log
+  cannot hide beside a healthy table (#364 rounds 20–21 — survey logs
+  print the full header with no data rows, and a `--grid` table may
+  carry no baseline variant; "0 of 0 markets flagged" on exit 0 was a
+  clean pass with nothing measured), and refuses a path set whose
+  headers disagree on an optional column (#364 round 21 — an absent
+  optional reads 0 meaning "unknown", and summing it with a real
+  tally biases survival up); `--report` suppresses none of these. Its
   cross-split rollup sums over each parsed row's own keys rather than
   a hand-maintained list (#364 round 20). Executed against synthetic
-  tables: two-split rollup, capture-all refusal, zero-row refusals.
+  tables: two-split rollup, capture-all refusal, per-file zero-row
+  refusals beside a healthy table, mixed-generation refusal.
 - **`confidence-bands.ts` still carries a private `add()`/`Stats`**
   outside the one vocabulary (#364 round 5 noted it in passing —
   pre-existing item-3 drift, not R1b's): its `n` counts every row
@@ -1158,12 +1163,17 @@ key. Sequenced after item 6's `init.sql` work.
   shape the Treasury load was given warn-and-continue for in R1b. Give
   it the identical warm-only tolerance with R2's instrument work; the
   sweep-path throw is correct and stays. The Treasury tolerance's own
-  flip side (#364 round 14): a provider failure there leaves a
-  warm-only run green with the treasury store un-warmed, signalled by
-  one `treasury top-up failed` warn line — the rebuild runbook's step 2
-  now tells the operator to grep for it, and store-integrity failures
-  (`cacheStoreUnreadable`/`cacheClockMismatch`) re-throw so the top-up
-  script's red stays honest.
+  flip side (#364 round 14; scope tightened round 21): a provider
+  TRANSPORT failure there leaves a warm-only run green with the
+  treasury store un-warmed, signalled by one `treasury top-up failed`
+  warn line — the rebuild runbook's step 2 tells the operator to grep
+  for it — while integrity refusals re-throw so the top-up script's
+  red stays honest: store-integrity
+  (`cacheStoreUnreadable`/`cacheClockMismatch`) and the deterministic
+  round-20 chunk refusals
+  (`treasuryCoverageRefused`/`treasuryChunkHole`), which never
+  self-heal and, warned over, would burn the full-depth fetch against
+  the quota nightly under a green log while the store never warmed.
 - **Watch `outcome-sync`'s `skippedForBudget` after the one-physics
   deploy** (#362 round-1 throughput note): E1's dual-series fetch means
   each NEW symbol in a run costs two provider calls inside

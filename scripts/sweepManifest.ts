@@ -260,6 +260,16 @@ export function treasuryGapTouching(
 // 2): rows the parser refused are deterministic on refetch, so without
 // the count "the provider serves nothing" is unverifiable from the
 // message alone.
+//
+// Both branches carry must-stay-red TOKENS (#364 round 21, finding 1)
+// the way the cache integrity errors do, because both causes are
+// DETERMINISTIC, never transport: swallowed by the driver's
+// --warm-only transport tolerance, the survey would exit 0, the top-up
+// script would print "top-up complete", the store would never warm
+// (the rolling store writes only after a successful fetch), and every
+// following night would re-attempt the full multi-decade fetch against
+// the provider's quota under a green launchd log — permanently. The
+// driver's re-throw regex names both tokens.
 export function treasuryChunkRefusal(input: {
   chunkRows: number;
   fromMs: number;
@@ -281,17 +291,18 @@ export function treasuryChunkRefusal(input: {
     : "";
   if (input.fromMs === TREASURY_FETCH_START_MS) {
     return (
-      `Treasury-rate chunk ${span} starts at the requested fetch start and ` +
-      `returned zero parseable rows — the provider serves nothing at ` +
-      `TREASURY_FETCH_START_MS's depth, so this is coverage, not a hole: ` +
-      `deleting and refetching the store cannot clear it; re-probe the ` +
-      `endpoint's earliest served date and move TREASURY_FETCH_START_MS ` +
-      `with the recorded evidence.` + parserNote
+      `treasuryCoverageRefused: Treasury-rate chunk ${span} starts at the ` +
+      `requested fetch start and returned zero parseable rows — the ` +
+      `provider serves nothing at TREASURY_FETCH_START_MS's depth, so this ` +
+      `is coverage, not a hole: deleting and refetching the store cannot ` +
+      `clear it; re-probe the endpoint's earliest served date and move ` +
+      `TREASURY_FETCH_START_MS with the recorded evidence.` + parserNote
     );
   }
   return (
-    `Treasury-rate chunk ${span} returned zero parseable rows — a holed ` +
-    `curve is refused, never merged and pinned.` + parserNote
+    `treasuryChunkHole: Treasury-rate chunk ${span} returned zero ` +
+    `parseable rows — a holed curve is refused, never merged and pinned.` +
+    parserNote
   );
 }
 

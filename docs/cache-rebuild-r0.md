@@ -114,14 +114,18 @@ same `--warm-only` run the nightly top-up performs, fetching every roster
 symbol's full 15-minute, 5-minute and daily history plus the economic
 calendar, the Treasury curve (R1b) and COT contracts, all through the
 current normalizer, all stamped, all witness-checked as they load. One
-asymmetry to know (#364 rounds 13–14): a Treasury PROVIDER failure under
-`--warm-only` warns and continues so the bar warm cannot die on the
+asymmetry to know (#364 rounds 13–14; scope tightened round 21): a
+Treasury provider TRANSPORT failure under `--warm-only` (a non-200, a
+timeout, quota) warns and continues so the bar warm cannot die on the
 second endpoint — which means a rebuild can finish green with the
 treasury store un-warmed. Before calling step 2 done, grep the log for
 `treasury top-up failed`; a hit means re-run once the endpoint recovers
-(cheap — the bar stores are already warm). Store-integrity failures
-(`cacheStoreUnreadable`, `cacheClockMismatch`) still abort, as they
-must. Run it directly so the output
+(cheap — the bar stores are already warm). Integrity refusals abort
+red, as they must: store-integrity (`cacheStoreUnreadable`,
+`cacheClockMismatch`) and the deterministic chunk refusals
+(`treasuryCoverageRefused`, `treasuryChunkHole` — #364 round 21), which
+never self-heal and, warned over, would leave every following night
+re-running the full-depth fetch against the quota under a green log. Run it directly so the output
 streams (the launchd wrapper buffers everything until exit, which for a
 run this long reads as a hang):
 
@@ -240,7 +244,10 @@ a store that loaded — and since #364 round 20 that refusal names this
 exact situation and remedy (coverage, not a hole: re-probe the
 earliest served date and move the constant back with the evidence)
 instead of a store-hole message deleting-and-refetching cannot clear
-(#364 rounds 19–20).
+(#364 rounds 19–20). Its `treasuryCoverageRefused` token stays red
+under `--warm-only` too (round 21), so a wrong constant shows in the
+nightly log as a failure, never as a green survey over an un-warmed
+store.
 Then move the constant with the new probe recorded beside it AND
 delete the treasury-rates rolling store — an existing store never
 re-fetches its head, and the sweep pre-flight refuses a store

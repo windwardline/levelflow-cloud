@@ -318,6 +318,11 @@ describe("treasuryCurveFacts — the curve's own continuity record", () => {
     assert.ok(interior, "an interior zero-row year must refuse");
     assert.match(interior, /a holed curve is refused, never merged and pinned/);
     assert.doesNotMatch(interior, /TREASURY_FETCH_START_MS/);
+    // #364 round 21, finding 1: each branch carries its must-stay-red
+    // token — the driver's --warm-only tolerance re-throws on both, so
+    // a deterministic refusal can never ride the transport warn path.
+    assert.match(interior, /^treasuryChunkHole: /);
+    assert.doesNotMatch(interior, /treasuryCoverageRefused/);
     const atStart = treasuryChunkRefusal({
       chunkRows: 0,
       fromMs: TREASURY_FETCH_START_MS,
@@ -325,6 +330,8 @@ describe("treasuryCurveFacts — the curve's own continuity record", () => {
       windowToMs: TREASURY_FETCH_START_MS + year,
     });
     assert.ok(atStart, "a zero-row chunk at the requested start must refuse");
+    assert.match(atStart, /^treasuryCoverageRefused: /);
+    assert.doesNotMatch(atStart, /treasuryChunkHole/);
     assert.match(atStart, /starts at the requested fetch start/);
     assert.match(atStart, /coverage, not a hole/);
     assert.match(
@@ -479,11 +486,16 @@ describe("the driver writes the manifest beside the emit", () => {
     // tolerates a Treasury PROVIDER failure, but the tolerance is
     // scoped by CAUSE — store-integrity refusals re-throw so the
     // top-up script's must-stay-red conditions can go red (both of its
-    // branches run only on a nonzero exit).
+    // branches run only on a nonzero exit). #364 round 21, finding 1:
+    // the round-20 chunk refusals join the must-stay-red set — both
+    // are deterministic (a constant deeper than provider coverage, a
+    // zero-row week inside served coverage), so swallowing them would
+    // leave the nightly survey green while the store never warms and
+    // every night re-attempts the full multi-decade fetch.
     assert.match(
       script,
-      /\/cacheStoreUnreadable\|cacheClockMismatch\/\.test\(message\)/,
-      "store-integrity refusals must re-throw under --warm-only",
+      /\/cacheStoreUnreadable\|cacheClockMismatch\|treasuryCoverageRefused\|treasuryChunkHole\/\s*\n?\s*\.test\(message\)/,
+      "store-integrity AND deterministic chunk refusals must re-throw under --warm-only",
     );
     assert.match(
       script,
@@ -622,10 +634,14 @@ describe("the driver writes the manifest beside the emit", () => {
   // rollup branch, which summed a hand-maintained key list nothing
   // executed (single-row fixtures never entered the merge) until it
   // was rewritten to iterate the parsed row's own keys. Totals:
-  // decisions 100, pre-geometry blocks 30, unresolv 10, dataAbsent 10
-  // → reached 50; kills 45 → survival 10% and STARVED. A column
-  // frozen at its first split's value moves the printed totals and
-  // fails the match.
+  // decisions 100, pre-geometry blocks 30, unresolv 8, dataAbsent 12
+  // → reached 50; kills 45 → survival 10% and STARVED. Every column
+  // the survival arithmetic or the printout consumes carries a
+  // NONZERO second-split value, so freezing it at the first split's
+  // value moves the printed totals and fails the match; belowConf and
+  // setups are the two no printed figure consumes (#364 round 21,
+  // smaller — their freeze is unobservable to this regex and made
+  // impossible by the own-keys mechanism instead).
   it("the audit's survival excludes unresolv AND dataAbsent from both sides, summed across splits — executed", () => {
     const dir = mkdtempSync(join(tmpdir(), "starv-"));
     const log = join(dir, "sweep.log");
@@ -637,10 +653,10 @@ describe("the driver writes the manifest beside the emit", () => {
         "belowPayoff dataAbsent setups",
         // Each split row is a table a real run could emit: setups =
         // decisions − Σ rejections and dataAbsent ⊆ setups (#364
-        // round 19, smaller) hold per row (train 50−42=8 with 5 ⊆ 8,
-        // test 50−43=7 with 5 ⊆ 7).
-        "EURUSD baseline train 50 5 5 0 2 3 20 5 0 2 5 8",
-        "EURUSD baseline test 50 5 5 0 3 2 20 5 0 3 5 7",
+        // round 19, smaller) hold per row (train 50−43=7 with 6 ⊆ 7,
+        // test 50−44=6 with 6 ⊆ 6).
+        "EURUSD baseline train 50 5 3 1 2 4 22 3 1 2 6 7",
+        "EURUSD baseline test 50 3 4 3 3 2 18 5 3 3 6 6",
         "",
       ].join("\n"),
     );
@@ -745,6 +761,90 @@ describe("the driver writes the manifest beside the emit", () => {
         `${log} must refuse rather than report 0 of 0 markets flagged`,
       );
     }
+    // #364 round 21, finding 2: the refusal is per FILE, not per
+    // invocation — a zero-row shard log refuses BY NAME even when a
+    // healthy table rides beside it (the dead-shard shape: checked on
+    // the flattened result, its markets simply vanished from the
+    // roster and the gate returned a verdict over a partial roster).
+    const realTable = join(dir, "real.log");
+    writeFileSync(
+      realTable,
+      [
+        header,
+        "EURUSD baseline test 100 10 10 0 5 5 40 10 0 5 10 15",
+        "",
+      ].join("\n"),
+    );
+    assert.throws(
+      () =>
+        execFileSync(
+          "npx",
+          [
+            "--no-install",
+            "tsx",
+            "scripts/starvation-audit.ts",
+            realTable,
+            headerOnly,
+            "--report",
+          ],
+          { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+        ),
+      (error: unknown) =>
+        /warm-only\.log: parsed zero baseline rows/.test(
+          String((error as { stderr?: string }).stderr ?? ""),
+        ),
+      "a zero-row file must refuse even beside a healthy table",
+    );
+  });
+
+  // #364 round 21, smaller: an absent optional column reads 0, which
+  // means "unknown", not "none" — summing a pre-R1b table (no
+  // notWarm/unresolv/dataAbsent columns) with a post-R1b one
+  // subtracts less than the runs produced and biases survival UP, the
+  // round-18 direction. Headers that disagree on an optional name
+  // refuse rather than blend.
+  it("the audit refuses to blend tables whose headers disagree on optional columns — executed", () => {
+    const dir = mkdtempSync(join(tmpdir(), "starv-mixed-"));
+    const oldLog = join(dir, "pre-r1b.log");
+    writeFileSync(
+      oldLog,
+      [
+        "symbol variant split decisions sessionBlk newsBlk regimeBlk " +
+        "noConsensus planRejected belowConf belowPayoff setups",
+        "EURUSD baseline test 100 10 10 5 5 40 0 5 25",
+        "",
+      ].join("\n"),
+    );
+    const newLog = join(dir, "post-r1b.log");
+    writeFileSync(
+      newLog,
+      [
+        "symbol variant split decisions sessionBlk newsBlk notWarm " +
+        "regimeBlk noConsensus planRejected unresolv belowConf " +
+        "belowPayoff dataAbsent setups",
+        "EURUSD baseline test 100 10 10 0 5 5 40 10 0 5 10 15",
+        "",
+      ].join("\n"),
+    );
+    assert.throws(
+      () =>
+        execFileSync(
+          "npx",
+          [
+            "--no-install",
+            "tsx",
+            "scripts/starvation-audit.ts",
+            oldLog,
+            newLog,
+            "--report",
+          ],
+          { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+        ),
+      (error: unknown) =>
+        /audited separately, never blended/.test(
+          String((error as { stderr?: string }).stderr ?? ""),
+        ),
+    );
   });
 
   // #364 round 3, finding 4: by-name reading is only as safe as the

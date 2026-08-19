@@ -667,8 +667,13 @@ layer.
   provider serves, the deepening runbook has already deleted the store
   when it fires, and the refusal names the re-probe-and-move remedy —
   while interior chunks keep the hole wording; both branches carry the
-  chunk's parser-refusal count, and the shared predicate lives in
-  `sweepManifest.ts` with both branches executed), and the door refuses missing facts,
+  chunk's parser-refusal count, the shared predicate lives in
+  `sweepManifest.ts` with both branches executed, and round 21 gave
+  both branches must-stay-red tokens — `treasuryCoverageRefused` /
+  `treasuryChunkHole` — that the driver's `--warm-only` transport
+  tolerance re-throws, since both causes are deterministic and a
+  warned-over one would leave the nightly survey green while the store
+  never warms), and the door refuses missing facts,
   week-plus interior holes where they TOUCH the corpus span (rounds
   14–15: gap positions are manifested, and one shared overlap
   predicate serves the door and the driver pre-flight), a curve ending
