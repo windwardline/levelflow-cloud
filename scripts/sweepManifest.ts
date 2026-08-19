@@ -94,6 +94,57 @@ export function seriesFacts(
   };
 }
 
+// #364 round 10, finding 1: the 5/15 density ratio is a SAME-WINDOW
+// statistic, and at depth the two stores' own windows diverge (FMP's
+// 5-minute depth is shallower than 15-minute for most symbols) — so the
+// driver, which holds both bar arrays while it builds seriesFacts,
+// records the counts inside the INTERSECTION window as a manifested
+// fact. The door's ratio then divides two counts measured over one
+// shared window on every symbol, whatever the depths; per-day rates
+// over one window cancel their span, so the ratio is fiveCount /
+// fifteenCount, and spanDays rides along only for the sub-week silence
+// rule and the primary-density gate.
+export type CrossSeriesDensity = {
+  fifteenCount: number;
+  fiveCount: number;
+  spanDays: number;
+};
+
+export function crossSeriesDensityFacts(
+  fiveBars: Array<{ time: number }>,
+  fifteenBars: Array<{ time: number }>,
+): CrossSeriesDensity | undefined {
+  if (fiveBars.length === 0 || fifteenBars.length === 0) {
+    return undefined;
+  }
+  const bounds = (bars: Array<{ time: number }>) => {
+    let min = Infinity;
+    let max = -Infinity;
+    for (const bar of bars) {
+      if (bar.time < min) min = bar.time;
+      if (bar.time > max) max = bar.time;
+    }
+    return { max, min };
+  };
+  const five = bounds(fiveBars);
+  const fifteen = bounds(fifteenBars);
+  const start = Math.max(five.min, fifteen.min);
+  const end = Math.min(five.max, fifteen.max);
+  if (end <= start) {
+    return undefined;
+  }
+  const within = (bars: Array<{ time: number }>) =>
+    bars.reduce(
+      (total, bar) => total + (bar.time >= start && bar.time <= end ? 1 : 0),
+      0,
+    );
+  return {
+    fifteenCount: within(fifteenBars),
+    fiveCount: within(fiveBars),
+    spanDays: Number(((end - start) / 86_400_000).toFixed(2)),
+  };
+}
+
 // E6 (R1b): the three score inputs the sweep used to hardwire to zero,
 // each resolved and STATED — reconstructed (macro), zero-by-construction
 // (provider warnings), or a deliberate raw-engine measurement (the
@@ -192,6 +243,8 @@ export type SweepManifest = {
     // R0: relative registration of the 5-minute series against the
     // 15-minute primary — the audit's own mixed-clock instrument.
     crossSeriesClock?: CrossSeriesClock;
+    // #364 round 10: shared-window counts for the density ratio.
+    crossSeriesDensity?: CrossSeriesDensity;
     providerSymbol: string;
     series: Record<string, SeriesFacts>;
     symbol: string;
@@ -223,6 +276,7 @@ export function buildSweepManifest(input: {
   symbols: Array<{
     calibration: Record<string, unknown>;
     crossSeriesClock?: CrossSeriesClock;
+    crossSeriesDensity?: CrossSeriesDensity;
     providerSymbol: string;
     series: Record<string, SeriesFacts>;
     symbol: string;
@@ -236,6 +290,9 @@ export function buildSweepManifest(input: {
     calibrationHash: sha256Hex(stableStringify(entry.calibration)),
     ...(entry.crossSeriesClock && {
       crossSeriesClock: entry.crossSeriesClock,
+    }),
+    ...(entry.crossSeriesDensity && {
+      crossSeriesDensity: entry.crossSeriesDensity,
     }),
     providerSymbol: entry.providerSymbol,
     series: entry.series,

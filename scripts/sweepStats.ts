@@ -26,6 +26,7 @@ import {
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { CALENDAR_CLOCK } from "./clockWitness.ts";
 import {
+  type CrossSeriesDensity,
   type SeriesFacts,
   sha256Hex,
   stableStringify,
@@ -518,6 +519,14 @@ function verifyManifest(emitPath: string): SweepManifest {
 //   any shared floor either condemns honest sparseness or defends
 //   nothing — their liquid members are exactly the ones the ratio gate
 //   already judges.
+// - Both ratio claims above hold AT DEPTH through the manifested
+//   shared-window counts (#364 round 10, finding 1): the band is a
+//   same-window statistic, the stores' own windows diverge at depth,
+//   and without crossSeriesDensity the ratio would either false-refuse
+//   era differences (round 8's shape) or abstain for most of the
+//   roster (round 9's shape) — silently un-judging the no-floor
+//   classes and reopening the clipped-primary band exactly where
+//   --days max lives.
 const DENSITY_MIN_SPAN_DAYS = 5;
 const DENSITY_RATIO_PRIMARY_FLOOR = 60;
 const DENSITY_RATIO_MIN = 2.7;
@@ -543,7 +552,11 @@ const FIVE_MIN_CLASS_FLOORS: Partial<
 // honest to read from it.
 export function assertFiveMinuteDensity(
   emitPath: string,
-  entry: { series?: Record<string, SeriesFacts>; symbol: string },
+  entry: {
+    crossSeriesDensity?: CrossSeriesDensity;
+    series?: Record<string, SeriesFacts>;
+    symbol: string;
+  },
 ): void {
   const five = entry.series?.["5min"];
   const fifteen = entry.series?.["15min"];
@@ -578,16 +591,47 @@ export function assertFiveMinuteDensity(
         `holed, or not this symbol's feed, and the corpus is refused`,
     );
   }
-  // #364 round 9, finding 2: the band is a SAME-WINDOW statistic — the
-  // probe measured both series over one shared week. At depth the two
-  // stores cover different windows (FMP's 5-minute depth is shallower
-  // than 15-minute for most symbols, the driver's own words), and any
-  // era whose 15-minute density differs from the shared window's — a
-  // thinner provider era, an extended closure — moves the ratio without
-  // any clipping, which a ±0.25 band cannot absorb. So the ratio judges
-  // only near-identical windows and stays silent otherwise, like the
-  // absent-5min and sub-week self-exclusions above; the absolute floors
-  // still bind each series over its own span.
+  // #364 rounds 9-10: the band is a SAME-WINDOW statistic — the probe
+  // measured both series over one shared week — and at depth the two
+  // stores' own windows diverge (FMP's 5-minute depth is shallower than
+  // 15-minute for most symbols, the driver's own words), where
+  // era-density differences masquerade as clipping through own-span
+  // rates. So the ratio judges the manifested INTERSECTION-window
+  // counts (crossSeriesDensity, recorded by the driver from the raw
+  // arrays): two counts over one shared window, exact at any depth —
+  // this is what keeps the gate live for the no-floor classes' liquid
+  // members and keeps the clipped-primary blind band closed on a
+  // --days max corpus. When the fact is present it is the sole judge
+  // (running the own-span heuristic beside it would resurrect the
+  // false positive the fact exists to kill); the own-span computation
+  // below is the FALLBACK for manifests predating the fact, gated on
+  // near-identical windows so it never compares across eras. A
+  // fact-less manifest without window agreement is silent here, and the
+  // absolute floors above still bind.
+  const shared = entry.crossSeriesDensity;
+  if (shared) {
+    if (
+      shared.spanDays >= DENSITY_MIN_SPAN_DAYS &&
+      shared.fifteenCount > 0 &&
+      shared.fifteenCount / shared.spanDays >= DENSITY_RATIO_PRIMARY_FLOOR
+    ) {
+      const ratio = shared.fiveCount / shared.fifteenCount;
+      if (ratio < DENSITY_RATIO_MIN || ratio > DENSITY_RATIO_MAX) {
+        throw new Error(
+          `${emitPath}: ${entry.symbol} 5min/15min density ${
+            ratio.toFixed(2)
+          } (${(shared.fiveCount / shared.spanDays).toFixed(1)}/${
+            (shared.fifteenCount / shared.spanDays).toFixed(1)
+          } rows/day over the ${shared.spanDays}d shared window) ` +
+            `outside [${DENSITY_RATIO_MIN}, ${DENSITY_RATIO_MAX}] — above ` +
+            `means a clipped 15-minute primary (the verify-cache-clock ` +
+            `blind band), below means a clipped or holed 5-minute series; ` +
+            `the corpus is refused`,
+        );
+      }
+    }
+    return;
+  }
   const sharedSpanDays = five.firstTime !== null && five.lastTime !== null &&
       fifteen.firstTime !== null && fifteen.lastTime !== null
     ? (Math.min(five.lastTime, fifteen.lastTime) -

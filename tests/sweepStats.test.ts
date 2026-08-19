@@ -506,6 +506,7 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
   const writeCorpus = (input: {
     clock?: { calendar: string; normalizer: string };
     conditions?: Record<string, unknown>;
+    crossSeriesDensity?: Record<string, unknown>;
     series: Record<string, unknown>;
     symbol: string;
     treasuryCurve?: Record<string, unknown> | null;
@@ -536,6 +537,8 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
       symbols: [{
         calibration: {},
         calibrationHash: sha256Hex(stableStringify({})),
+        ...(input.crossSeriesDensity &&
+          { crossSeriesDensity: input.crossSeriesDensity }),
         providerSymbol: input.symbol,
         series: input.series,
         symbol: input.symbol,
@@ -613,36 +616,73 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
     );
   });
 
-  it("stays silent on the ratio across DIFFERENT windows — the band is a same-window statistic (#364 round 9, finding 2)", () => {
-    // The [2.7, 3.25] band was probed with both series over one shared
-    // week. Here the 15-minute store is 13 years deep and era-mixed
-    // (74/day) while the 5-minute store covers only the most recent
-    // year (288/day) — the normal FMP depth shape, no clipping
-    // anywhere — and the own-window ratio 288/74 = 3.89 would refuse.
-    // The shared window is a fraction of the 15-minute span, so the
-    // ratio self-excludes; the crypto absolute floor still binds the
-    // 5-minute series over its own span (288 >= 260) and admits.
-    const DAY = 86_400_000;
+  // Deep 15-minute store (13 years, era-mixed at 74/day) beside a
+  // shallow 5-minute store (recent year at 288/day) — the normal FMP
+  // depth shape, whose own-window ratio 288/74 = 3.89 sits outside the
+  // band with no clipping anywhere (#364 rounds 9-10).
+  const DAY = 86_400_000;
+  const depthShapeSeries = {
+    "15min": {
+      clock: { verdict: "indeterminate" },
+      count: 351_130,
+      firstTime: 0,
+      largestGapMs: 0,
+      lastTime: 4_745 * DAY,
+      spanDays: 4_745,
+    },
+    "5min": {
+      clock: { verdict: "indeterminate" },
+      count: 105_120,
+      firstTime: 4_380 * DAY,
+      largestGapMs: 0,
+      lastTime: 4_745 * DAY,
+      spanDays: 365,
+    },
+  };
+
+  it("judges the ratio at depth through the manifested shared-window counts (#364 round 10, finding 1)", () => {
+    // Healthy at depth: inside the one-year shared window the counts
+    // run 288/96 per day — ratio 3.0, in band — so the fact admits the
+    // exact shape whose own-span rates would have false-refused.
     assertManifestedCorpus(writeCorpus({
       conditions: goodConditions,
-      series: {
-        "15min": {
-          clock: { verdict: "indeterminate" },
-          count: 351_130,
-          firstTime: 0,
-          largestGapMs: 0,
-          lastTime: 4_745 * DAY,
-          spanDays: 4_745,
-        },
-        "5min": {
-          clock: { verdict: "indeterminate" },
-          count: 105_120,
-          firstTime: 4_380 * DAY,
-          largestGapMs: 0,
-          lastTime: 4_745 * DAY,
-          spanDays: 365,
-        },
+      crossSeriesDensity: {
+        fifteenCount: 35_040,
+        fiveCount: 105_120,
+        spanDays: 365,
       },
+      series: depthShapeSeries,
+      symbol: "BTCUSD",
+    }));
+    // Clipped at depth: same stores, but the shared window holds only
+    // 29_712 15-minute rows (~15% clip) — ratio 3.54. Round 9's span
+    // heuristic would have abstained here, silently un-judging exactly
+    // the population the band exists for; the fact refuses.
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: goodConditions,
+          crossSeriesDensity: {
+            fifteenCount: 29_712,
+            fiveCount: 105_120,
+            spanDays: 365,
+          },
+          series: depthShapeSeries,
+          symbol: "BTCUSD",
+        })),
+      /BTCUSD 5min\/15min density 3\.54.*shared window.*outside \[2\.7, 3\.25\]/s,
+    );
+  });
+
+  it("falls back to the near-identical-window heuristic when the fact is absent — silent across different windows (#364 round 9, finding 2)", () => {
+    // A manifest predating crossSeriesDensity: the own-window ratio
+    // 3.89 would refuse, but the windows diverge, so the fallback
+    // self-excludes rather than comparing across eras; the crypto
+    // absolute floor still binds the 5-minute series over its own span
+    // (288 >= 260) and admits.
+    assertManifestedCorpus(writeCorpus({
+      conditions: goodConditions,
+      series: depthShapeSeries,
       symbol: "BTCUSD",
     }));
   });

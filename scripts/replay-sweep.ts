@@ -33,6 +33,8 @@ import {
 } from "./fmpByteBudget.ts";
 import {
   buildSweepManifest,
+  type CrossSeriesDensity,
+  crossSeriesDensityFacts,
   seriesFacts,
   type SeriesFacts,
   type SweepConditions,
@@ -183,6 +185,7 @@ async function main() {
   const manifestSymbols: Array<{
     calibration: Record<string, unknown>;
     crossSeriesClock: CrossSeriesClock;
+    crossSeriesDensity?: CrossSeriesDensity;
     providerSymbol: string;
     series: Record<string, SeriesFacts>;
     symbol: string;
@@ -441,20 +444,29 @@ async function main() {
     // recent week (2026-08-11..17), and this print is how the first real
     // deep run tells "clipped store" from "the provider's early history
     // is thinner than its 2026 history" before anything is committed.
-    // It prints in EVERY mode, thin symbols included — under --warm-only
-    // the nightly log is the full-roster survey.
-    if (series["5min"].count > 0 && series["5min"].spanDays >= 1) {
-      console.log(
-        `${symbol}	density 5min ${
-          (series["5min"].count / series["5min"].spanDays).toFixed(1)
-        }/day over ${series["5min"].spanDays}d` +
-          (series["15min"].spanDays >= 1
-            ? ` (15min ${
-              (series["15min"].count / series["15min"].spanDays).toFixed(1)
-            }/day)`
-            : ""),
-      );
-    }
+    // It prints in EVERY mode for EVERY symbol, empty 5-minute stores
+    // included (#364 round 10, finding 2): the survey is the only layer
+    // that can surface a total 5-minute feed loss — the door is
+    // deliberately silent on absence (honest degradation, carried
+    // per-row by the emit tier) — so a symbol that lost its feed must
+    // be distinguishable from one the loop never reached.
+    console.log(
+      `${symbol}	` +
+        (series["5min"].count > 0 && series["5min"].spanDays >= 1
+          ? `density 5min ${
+            (series["5min"].count / series["5min"].spanDays).toFixed(1)
+          }/day over ${series["5min"].spanDays}d`
+          : `density 5min ${series["5min"].count} rows`) +
+        (series["15min"].spanDays >= 1
+          ? ` (15min ${
+            (series["15min"].count / series["15min"].spanDays).toFixed(1)
+          }/day)`
+          : ""),
+    );
+    const crossSeriesDensity = crossSeriesDensityFacts(
+      fiveMinuteBars,
+      primaryBars,
+    );
 
     if (primaryBars.length < WARMUP_BARS * 2) {
       console.warn(
@@ -472,13 +484,25 @@ async function main() {
     // the print above runs for every symbol without asserting, so the
     // one-week floors meet multi-year reality on a run they cannot
     // kill. Thin symbols never reach the manifest, so the skip above
-    // exempts them too. A sweep run still refuses at the FIRST violator
-    // — its corpus is dead at the read door regardless, so finishing
-    // the roster would only spend simulation on a doomed run; the
-    // refusal names the survey mode instead.
+    // exempts them too — which is a DIFFERENT placement than the clock
+    // witnesses hold, deliberately (#364 round 10, smaller): witnesses
+    // judge the STORE, which outlives this run cached and stamped, so
+    // data is witnessed before it is dropped; the density floors judge
+    // fitness for THIS measurement's population, which a thin symbol is
+    // not in. Its store still shows in the survey line above, and a
+    // deeper run that does admit the symbol judges it at this same gate
+    // then — deferral with the data intact, not loss. A sweep run still
+    // refuses at the FIRST violator — its corpus is dead at the read
+    // door regardless, so finishing the roster would only spend
+    // simulation on a doomed run; the refusal names the survey mode
+    // instead.
     if (!args.warmOnly) {
       try {
-        assertFiveMinuteDensity(`preflight:${symbol}`, { series, symbol });
+        assertFiveMinuteDensity(`preflight:${symbol}`, {
+          crossSeriesDensity,
+          series,
+          symbol,
+        });
       } catch (error) {
         throw new Error(
           `${(error as Error).message}\n` +
@@ -495,6 +519,7 @@ async function main() {
         ...getCategoryCalibration(symbol),
       } as unknown as Record<string, unknown>,
       crossSeriesClock: registration,
+      crossSeriesDensity,
       providerSymbol,
       series,
       symbol,

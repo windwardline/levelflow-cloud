@@ -491,23 +491,32 @@ layer.
   chunks drags the ratio out the bottom. Absent 5-minute series and
   sub-week spans stay silent, deliberately (degradation is per-row via
   the emit tier; a 2-day span cannot separate holiday from hole).
-  Amended #364 rounds 8–9: the assertion runs in TWO places — the
+  Amended #364 rounds 8–10: the assertion runs in TWO places — the
   read-time door, and the driver pre-flight on SWEEP runs only, beside
   the clock witnesses, refusing at the first violator before simulation
   spends anything (the refusal names the survey mode). `--warm-only`
   (the nightly top-up and the R0 rebuild) never asserts — it produces
   no corpus, and a mid-roster refusal would stop topping up every later
-  symbol — but prints every symbol's rows/day at depth, making the
-  nightly log the standing full-roster density survey; symbols too thin
-  to enter the manifest are exempt the same way. And the RATIO judges
-  only near-identical windows (shared span ≥90% of both): it is a
-  same-window statistic — the probe measured both series over one
-  shared week, while at depth the 5-minute store is shallower than the
-  15-minute for most symbols, and era-density differences in the
-  non-shared depth would masquerade as clipping. The absolute floors
-  still bind each series over its own span, and the first deep survey
-  is what tells whether the one-week floors hold at depth (carried:
-  density-ceiling tightening).
+  symbol — but prints every symbol's line unconditionally, an empty
+  5-minute store included (`5min 0 rows` — the survey is the only
+  layer that can surface a total feed loss, since the door is
+  deliberately silent on absence), making the nightly log the standing
+  full-roster density survey; symbols too thin to enter the manifest
+  are exempt the same way. And the RATIO is a same-window statistic —
+  the probe measured both series over one shared week, while at depth
+  the 5-minute store is shallower than the 15-minute for most symbols,
+  and era-density differences in the non-shared depth would masquerade
+  as clipping — so the driver manifests `crossSeriesDensity`, the two
+  counts inside the stores' intersection window, and the ratio judges
+  those on every symbol at any depth. That is what keeps the no-floor
+  classes' liquid members judged and the clipped-primary blind band
+  closed on a `--days max` corpus; the own-span computation survives
+  only as the fallback for manifests predating the fact, gated on
+  near-identical windows (shared span ≥90% of both) so it never
+  compares across eras. The absolute floors still bind each series
+  over its own span, and the first deep survey is what tells whether
+  the one-week floors hold at depth (carried: density-ceiling
+  tightening).
 - **E6, per term as designed**: `macroAdjustment` is RECONSTRUCTED —
   `macroRates.ts` (new, Deno-free; macroContext.ts keeps fetch/cache/
   recorder and composes the same pieces, pinned) carries the pure

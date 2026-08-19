@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   buildSweepManifest,
+  crossSeriesDensityFacts,
   seriesFacts,
   sha256Hex,
   stableStringify,
@@ -61,6 +62,38 @@ describe("seriesFacts — continuity as a recorded fact", () => {
   it("carries the series' clock witness (R0) — tiny fixtures stay indeterminate", () => {
     assert.equal(seriesFacts([bar(0)], "daily").clock.verdict, "indeterminate");
     assert.equal(seriesFacts([bar(0)], "intraday").clock.verdict, "indeterminate");
+  });
+});
+
+describe("crossSeriesDensityFacts — the ratio's shared window (#364 round 10)", () => {
+  const bar = (time: number) => ({ time });
+  const DAY = 86_400_000;
+
+  it("counts both series inside the intersection window only", () => {
+    // 15-minute covers days 0..20, 5-minute only days 10..20: the
+    // shared window is [10d, 20d], so the 15-minute bars at 0d and 5d
+    // fall outside it and the 5-minute count is untouched.
+    const facts = crossSeriesDensityFacts(
+      [bar(10 * DAY), bar(12 * DAY), bar(15 * DAY), bar(20 * DAY)],
+      [bar(0), bar(5 * DAY), bar(10 * DAY), bar(14 * DAY), bar(20 * DAY)],
+    );
+    assert.deepEqual(facts, {
+      fifteenCount: 3,
+      fiveCount: 4,
+      spanDays: 10,
+    });
+  });
+
+  it("is undefined when either series is empty or the windows never meet", () => {
+    assert.equal(crossSeriesDensityFacts([], [bar(0)]), undefined);
+    assert.equal(crossSeriesDensityFacts([bar(0)], []), undefined);
+    assert.equal(
+      crossSeriesDensityFacts(
+        [bar(0), bar(DAY)],
+        [bar(10 * DAY), bar(11 * DAY)],
+      ),
+      undefined,
+    );
   });
 });
 
@@ -305,6 +338,31 @@ describe("the driver writes the manifest beside the emit", () => {
       script,
       /Full-roster density survey/,
       "a sweep refusal names the survey instrument",
+    );
+    // #364 round 10: the survey line prints for EVERY symbol — an empty
+    // 5-minute store prints "0 rows" (the survey is the only layer that
+    // can surface a total feed loss), and the shared-window counts are
+    // computed from the raw arrays and carried to both the pre-flight
+    // assertion and the manifest.
+    assert.match(
+      script,
+      /`density 5min \$\{series\["5min"\]\.count\} rows`/,
+      "an empty 5-minute store still prints its survey line",
+    );
+    assert.match(
+      script,
+      /const crossSeriesDensity = crossSeriesDensityFacts\(\s*\n?\s*fiveMinuteBars,\s*\n?\s*primaryBars,?\s*\n?\s*\)/,
+      "the shared-window counts come from the raw arrays the driver holds",
+    );
+    assert.match(
+      script,
+      /crossSeriesDensity,\s*\n\s*series,\s*\n\s*symbol,/,
+      "the pre-flight assertion receives the shared-window fact",
+    );
+    assert.match(
+      script,
+      /crossSeriesClock: registration,\s*\n\s*crossSeriesDensity,/,
+      "the manifest symbol entry carries the shared-window fact",
     );
   });
 
