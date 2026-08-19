@@ -117,6 +117,11 @@ export type VariantVerdict = {
   // from the paired test (LA-4c): "trades more days" is composition, not
   // improvement on shared days.
   compositionR: number | null;
+  // The OTHER half of the non-shared portion (#364 round 40, finding
+  // 1): total baseline select-fold R on days the variant did not trade
+  // — the R a tightening dial forwent. Both halves are descriptive;
+  // the whole-fold deltas carry both.
+  droppedR: number | null;
   // The confirm fold is read ONLY under confirmFinal, appended to the
   // burned-log — discipline by mechanism, not promise (LA-6).
   confirmTotalDelta: number | null;
@@ -229,16 +234,20 @@ function familyPairedP(
   )].sort((a, b) => a - b);
   const observed = new Map<string, number>();
   const scale = new Map<string, number>();
+  const support = new Map<string, number>();
   for (const variant of variants) {
     const deltas = deltasByVariant.get(variant)!;
     let sum = 0;
     let sumSq = 0;
+    let nonzero = 0;
     for (const delta of deltas.values()) {
       sum += delta;
       sumSq += delta * delta;
+      if (delta !== 0) nonzero += 1;
     }
     const norm = Math.sqrt(sumSq);
     scale.set(variant, norm);
+    support.set(variant, nonzero);
     observed.set(variant, norm > 0 ? sum / norm : 0);
   }
   const exceed = new Map<string, number>(variants.map((v) => [v, 0]));
@@ -251,7 +260,15 @@ function familyPairedP(
     for (const variant of variants) {
       const deltas = deltasByVariant.get(variant)!;
       const norm = scale.get(variant)!;
-      if (norm === 0) continue;
+      // #364 round 40, finding 2: the family-wise null spans the
+      // hypotheses actually under test. A sub-floor variant cannot be
+      // accepted at any p (rounds 38–39), so it contributes nothing
+      // to maxT — a two-pair sibling reaches T = √2 on a quarter of
+      // draws and would block an accept-eligible six-pair variant
+      // (observed ≈ 1.195, own p 1/64) at p ≈ 0.25 — and round 37's
+      // norm === 0 exclusion is this rule's zero point (support ≥ 1
+      // implies norm > 0, so the division below stays safe).
+      if (support.get(variant)! < MIN_EFFECTIVE_PAIRS) continue;
       let sum = 0;
       for (const [day, delta] of deltas) {
         sum += signs.get(day)! * delta;
@@ -275,9 +292,14 @@ function familyPairedP(
   // pairs — while the sibling permutationPValue guards its own
   // degenerate case (baselineCount 0 → 1) and is descriptive only. A
   // paired test with no pairs supports no verdict.
+  // Round 40 extended the same rule to the sub-floor band: a variant
+  // below MIN_EFFECTIVE_PAIRS neither joins the maxT family nor
+  // receives a p from a null it is excluded from — its p is 1,
+  // matching its NO VERDICT disposition (which subsumes round 37's
+  // scale === 0 case: support 0 implies norm 0).
   return new Map(variants.map((variant) => [
     variant,
-    scale.get(variant)! === 0
+    support.get(variant)! < MIN_EFFECTIVE_PAIRS
       ? 1
       : (1 + exceed.get(variant)!) / (permutations + 1),
   ]));
@@ -419,6 +441,7 @@ function groupVerdicts(
     const baselineDays = dayTotals(baselineVariant);
     const deltasByVariant = new Map<string, Map<number, number>>();
     const compositionByVariant = new Map<string, number>();
+    const droppedByVariant = new Map<string, number>();
     const variantDayCache = new Map<string, Map<number, number>>();
     for (const variant of variants) {
       if (variant === baselineVariant) continue;
@@ -426,6 +449,16 @@ function groupVerdicts(
       variantDayCache.set(variant, variantDays);
       const deltas = new Map<number, number>();
       let composition = 0;
+      // #364 round 40, finding 1: the non-shared portion has TWO
+      // halves. compositionR carries the variant-only days ("trades
+      // more days"); the days the BASELINE traded and the variant did
+      // not — the dominant half for a TIGHTENING dial, which removes
+      // days — were in neither map and on no printed line, while the
+      // whole-fold selectTotalDelta silently carried them: a variant
+      // trading a winning subset of the baseline's days printed comp
+      // 0.0 with its real edge living in the forgone baseline R.
+      // droppedR names that half.
+      let dropped = 0;
       for (const [day, value] of variantDays) {
         if (baselineDays.has(day)) {
           deltas.set(day, value - baselineDays.get(day)!);
@@ -433,8 +466,12 @@ function groupVerdicts(
           composition += value;
         }
       }
+      for (const [day, value] of baselineDays) {
+        if (!variantDays.has(day)) dropped += value;
+      }
       deltasByVariant.set(variant, deltas);
       compositionByVariant.set(variant, composition);
+      droppedByVariant.set(variant, dropped);
     }
     const pairedPs = familyPairedP(
       deltasByVariant,
@@ -528,12 +565,14 @@ function groupVerdicts(
       // floor gates effectivePairs, the same scale the round-37
       // norm === 0 floor sits on). Stated plainly (#364 round 38): the
       // p certifies the SHARED days only, while the fit/select deltas
-      // and the expectancy term are whole-fold aggregates —
-      // compositionR names the non-shared portion per verdict,
-      // printed, descriptive — so a variant that composes heavily
-      // rides an acceptance whose p speaks for its pairing, not its
-      // composition. Sigma and the pooled p remain printed,
-      // descriptive only.
+      // and the expectancy term are whole-fold aggregates — the
+      // non-shared portion's two halves are named per verdict
+      // (compositionR the variant-only days, droppedR the
+      // baseline-only days, #364 round 40, finding 1), printed,
+      // descriptive — so a variant that composes heavily, or rides
+      // the baseline R it forwent, carries an acceptance whose p
+      // speaks for its pairing alone. Sigma and the pooled p remain
+      // printed, descriptive only.
       const accepted = !thin && fitTotalDelta > 0 && selectTotalDelta > 0 &&
         effectivePairs >= MIN_EFFECTIVE_PAIRS && pairedP <= 0.05 &&
         selectExpectancyDelta >= 0;
@@ -561,6 +600,7 @@ function groupVerdicts(
           ? "accept"
           : "fails",
         compositionR: compositionByVariant.get(variant) ?? null,
+        droppedR: droppedByVariant.get(variant) ?? null,
         confirmTotalDelta: accepted && foldNames.confirm
           ? totalOf(aggregate.variant.confirm) -
             totalOf(aggregate.base.confirm)
@@ -989,7 +1029,7 @@ async function main(): Promise<void> {
   for (const [assetClass, classMap] of verdicts) {
     console.log(`\n=== ${assetClass.toUpperCase()} ===`);
     console.log(
-      `${"variant".padEnd(28)}${"ΔR fit".padStart(10)}${"ΔR sel".padStart(9)}${"pairedP".padStart(9)}${"pairs".padStart(8)}${"ΔE sel".padStart(9)}${"comp".padStart(7)}${"expry".padStart(7)}${"worstDay".padStart(10)}  verdict`,
+      `${"variant".padEnd(28)}${"ΔR fit".padStart(10)}${"ΔR sel".padStart(9)}${"pairedP".padStart(9)}${"pairs".padStart(10)}${"ΔE sel".padStart(9)}${"comp".padStart(7)}${"drop".padStart(7)}${"expry".padStart(7)}${"worstDay".padStart(10)}  verdict`,
     );
     for (const [variant, verdict] of classMap) {
       // #364 round 39, finding 2: the pairing prints beside the p it
@@ -1013,10 +1053,12 @@ async function main(): Promise<void> {
         `${variant.padEnd(28)}${verdict.fitTotalDelta.toFixed(1).padStart(10)}${
           verdict.selectTotalDelta.toFixed(1).padStart(9)
         }${verdict.pairedP.toFixed(3).padStart(9)}${
-          `${verdict.effectivePairs}/${verdict.sharedDays}`.padStart(8)
+          `${verdict.effectivePairs}/${verdict.sharedDays}`.padStart(10)
         }${
           verdict.selectExpectancyDelta.toFixed(3).padStart(9)
         }${(verdict.compositionR ?? 0).toFixed(1).padStart(7)}${
+          (verdict.droppedR ?? 0).toFixed(1).padStart(7)
+        }${
           (verdict.selectExpiryShare ?? 0).toFixed(2).padStart(7)
         }${(verdict.worstDayR ?? 0).toFixed(1).padStart(10)}  ${label}${confirmNote}`,
       );

@@ -316,11 +316,15 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     assert.equal(verdict.reason, "NO VERDICT (pairing 4 of 40 shared)");
   });
 
-  // #364 round 39, smaller: the five-pair boundary is pinned from the
-  // ACCEPTING side too — a decisive same-sign pairing at exactly the
-  // floor must clear it (min attainable p there is ~0.031), so any
-  // floor above five fails this test and any below five fails the
-  // four-pair refusals above.
+  // #364 round 39, smaller; hardened round 40: the five-pair boundary
+  // is pinned from the ACCEPTING side too — a decisive same-sign
+  // pairing at exactly the floor must clear it. At 2,000 permutations
+  // the exceed count is Binomial(2000, 1/32) (mean 62.5, sd ≈ 7.8):
+  // p ≤ 0.05 sits ≈ 4.7 sd inside and p > 0.02 ≈ 3 sd, so the accept
+  // is a property of the derivation at any seed, not one seed's
+  // estimate landing under the threshold — the same estimator-noise
+  // standard the refusing side already meets. The p band asserts the
+  // derived value (~0.031), not merely the verdict.
   it("accepts at exactly the floor — five effective pairs is the smallest pairing the statistic can certify", () => {
     const rows: SweepEmitRow[] = [];
     for (let day = 0; day < 5; day += 1) {
@@ -331,12 +335,83 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     }
     const verdict = classVerdicts(readGridCube(rows), {
       foldNames: { fit: "train", select: "test" },
-      permutations: 400,
+      permutations: 2_000,
       seed: 11,
     }).get("forex")!.get("edge")!;
     assert.equal(verdict.sharedDays, 5);
     assert.equal(verdict.effectivePairs, 5);
+    assert.ok(
+      verdict.pairedP > 0.02 && verdict.pairedP <= 0.05,
+      `pairedP ${verdict.pairedP} should sit at the derived ~0.031`,
+    );
     assert.equal(verdict.accepted, true);
+  });
+
+  // #364 round 40, finding 1: the non-shared portion's OTHER half — a
+  // tightening dial trades a strict subset of the baseline's days, so
+  // its printed comp is 0.0 while the baseline R it forwent (15 days
+  // netting −4.5 here) had appeared in no printed quantity despite
+  // driving the whole-fold delta. droppedR names it.
+  it("reports the baseline R a subset variant forwent — droppedR is the other half of composition", () => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 40; day += 1) {
+      const r = day < 25 ? 0.2 : -0.3;
+      rows.push(trainRow("baseline", day, r));
+      rows.push(outcomeRow("baseline", day, r));
+      if (day < 25) {
+        rows.push(trainRow("tighter", day, 0.4));
+        rows.push(outcomeRow("tighter", day, 0.4));
+      }
+    }
+    const verdict = classVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 5,
+    }).get("forex")!.get("tighter")!;
+    assert.equal(verdict.sharedDays, 25);
+    assert.equal(verdict.effectivePairs, 25);
+    assert.equal(verdict.compositionR, 0);
+    assert.ok(
+      verdict.droppedR !== null && Math.abs(verdict.droppedR + 4.5) < 1e-9,
+      `droppedR ${verdict.droppedR} should carry the 15 forgone days (−4.5)`,
+    );
+  });
+
+  // #364 round 40, finding 2: the family-wise null spans only the
+  // hypotheses under test. B's two-pair deltas ([+1, +1]) reach
+  // T = √2 ≈ 1.414 on a quarter of sign draws — above A's observed
+  // ≈ 1.195 — so with B in the maxT family, A's p ran ≈ 0.25 and an
+  // accept-eligible variant printed "fails", blocked by a sibling the
+  // floor had already declared unable to carry any verdict. Every
+  // earlier fixture was a singleton family, so the max-loop's
+  // membership was never exercised.
+  it("a sub-floor sibling neither blocks its family nor receives a p — the null spans hypotheses under test", () => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 6; day += 1) {
+      rows.push(trainRow("baseline", day, 0.2));
+      rows.push(outcomeRow("baseline", day, 0.2));
+      const aEdge = day === 0 ? 5.0 : 0.2;
+      rows.push(trainRow("A", day, 0.2 + aEdge));
+      rows.push(outcomeRow("A", day, 0.2 + aEdge));
+      const bEdge = day < 2 ? 1.0 : 0;
+      rows.push(trainRow("B", day, 0.2 + bEdge));
+      rows.push(outcomeRow("B", day, 0.2 + bEdge));
+    }
+    const options = {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 400,
+      seed: 3,
+    };
+    const family = classVerdicts(readGridCube(rows), options).get("forex")!;
+    const a = family.get("A")!;
+    assert.equal(a.effectivePairs, 6);
+    assert.ok(a.pairedP < 0.05, `A's own null gives ~1/64, got ${a.pairedP}`);
+    assert.equal(a.accepted, true);
+    const b = family.get("B")!;
+    assert.equal(b.effectivePairs, 2);
+    assert.equal(b.pairedP, 1);
+    assert.equal(b.accepted, false);
+    assert.equal(b.reason, "NO VERDICT (pairing 2 of 6 shared)");
   });
 
   // #364 round 37, finding 2: a baseline variant that carries no cell

@@ -585,7 +585,20 @@ layer.
   loss, and at four pairs the estimate can print a
   significant-looking p beside all-positive columns), and the
   five-pair boundary is pinned from both sides: an accepting fixture
-  at exactly five, refusing fixtures at four sparse and dense. One denominator note beside the unfilled
+  at exactly five, refusing fixtures at four sparse and dense. Round
+  40 finished the paired test's stated terms and its family: the
+  non-shared portion's two halves are both named — compositionR the
+  variant-only days, droppedR the baseline R a tightening dial
+  forwent (a variant trading a winning subset of the baseline's days
+  had printed comp 0.0 while its whole-fold edge lived in 15 avoided
+  days) — and the family-wise null spans only the hypotheses under
+  test: a sub-floor sibling neither joins the maxT family (a two-pair
+  member reaching T = √2 on a quarter of draws had blocked an
+  accept-eligible six-pair variant at p ≈ 0.25) nor receives a p from
+  a null it is excluded from, its p reads 1 to match its NO VERDICT
+  disposition; the accepting side of the boundary pin runs at 2,000
+  permutations with the p asserted against its derived ~0.031, so
+  both sides of the floor meet the same estimator-noise standard. One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly
