@@ -282,7 +282,61 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
       seed: 9,
     }).get("forex")!.get("compose")!;
     assert.equal(verdict.sharedDays, 4);
+    assert.equal(verdict.effectivePairs, 4);
     assert.equal(verdict.accepted, false);
+    // #364 round 39, finding 2: a floor refusal names itself — never
+    // the same "fails" as a measured loss.
+    assert.equal(verdict.reason, "NO VERDICT (pairing 4 of 4 shared)");
+  });
+
+  // #364 round 39, finding 1: a zero delta contributes nothing under
+  // any sign assignment, so the floor gates the SUPPORT, not the raw
+  // shared-day count. This variant is bit-identical to the baseline on
+  // 36 of 40 shared days (delta exactly 0) and better on four —
+  // round 38's day-count floor read sharedDays 40 and admitted it,
+  // while its effective pairing is 4, where the minimum attainable p
+  // is 0.0625 and only seed noise could dip under 0.05.
+  it("refuses a pairing whose support is below the floor — zero-delta days cannot flip the statistic", () => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 40; day += 1) {
+      rows.push(trainRow("baseline", day, 0.3));
+      rows.push(outcomeRow("baseline", day, 0.3));
+      const edge = day < 4 ? 0.5 : 0;
+      rows.push(trainRow("sparse", day, 0.3 + edge));
+      rows.push(outcomeRow("sparse", day, 0.3 + edge));
+    }
+    const verdict = classVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 7,
+    }).get("forex")!.get("sparse")!;
+    assert.equal(verdict.sharedDays, 40);
+    assert.equal(verdict.effectivePairs, 4);
+    assert.equal(verdict.accepted, false);
+    assert.equal(verdict.reason, "NO VERDICT (pairing 4 of 40 shared)");
+  });
+
+  // #364 round 39, smaller: the five-pair boundary is pinned from the
+  // ACCEPTING side too — a decisive same-sign pairing at exactly the
+  // floor must clear it (min attainable p there is ~0.031), so any
+  // floor above five fails this test and any below five fails the
+  // four-pair refusals above.
+  it("accepts at exactly the floor — five effective pairs is the smallest pairing the statistic can certify", () => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 5; day += 1) {
+      rows.push(trainRow("baseline", day, 0.2));
+      rows.push(outcomeRow("baseline", day, 0.2));
+      rows.push(trainRow("edge", day, 1.0));
+      rows.push(outcomeRow("edge", day, 1.0));
+    }
+    const verdict = classVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 400,
+      seed: 11,
+    }).get("forex")!.get("edge")!;
+    assert.equal(verdict.sharedDays, 5);
+    assert.equal(verdict.effectivePairs, 5);
+    assert.equal(verdict.accepted, true);
   });
 
   // #364 round 37, finding 2: a baseline variant that carries no cell

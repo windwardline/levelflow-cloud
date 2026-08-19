@@ -573,7 +573,19 @@ layer.
   `--dir` gained its guard — the phantom-store shape: mkdir created
   the mistyped directory, the full provider window refetched into it,
   and the run exited 0 while the real store stopped growing inside
-  the 3-day window. One denominator note beside the unfilled
+  the 3-day window. Round 39 corrected the floor's counted quantity
+  and surfaced it: a zero delta contributes nothing under any sign
+  assignment — and bit-identical days are the grid's common case — so
+  the floor gates the SUPPORT (MIN_EFFECTIVE_PAIRS, nonzero
+  shared-day deltas; a variant identical on 36 of 40 shared days had
+  cleared the day count with a four-day effective pairing), both
+  counts ride every verdict and print as a pairs column beside
+  pairedP, a floor refusal reads NO VERDICT with the pairing named
+  (the round-31 rule — an unresolvable pairing is not a measured
+  loss, and at four pairs the estimate can print a
+  significant-looking p beside all-positive columns), and the
+  five-pair boundary is pinned from both sides: an accepting fixture
+  at exactly five, refusing fixtures at four sparse and dense. One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly

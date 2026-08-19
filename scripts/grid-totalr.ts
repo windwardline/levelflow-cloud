@@ -137,6 +137,12 @@ export type VariantVerdict = {
   selectSigma: number;
   selectTotalDelta: number;
   sharedDays: number;
+  // Days whose delta is NONZERO — the support of the paired statistic
+  // (#364 round 39, finding 1): a zero delta contributes nothing under
+  // any sign assignment, so this count, not sharedDays, sets the
+  // minimum attainable pairedP (~2^-effectivePairs) and is the
+  // quantity the acceptance floor gates.
+  effectivePairs: number;
   thin: boolean;
   // Survival readout (RM-3/8): the variant's own worst select-fold day in
   // R, and the share of its days at or beyond -4R.
@@ -187,20 +193,30 @@ function seedFrom(base: number, text: string): number {
  * family, and the null distribution is the maximum statistic across the
  * family — strong family-wise control over the crossed grid.
  */
-// THE PAIRING FLOOR'S BASIS (#364 round 38, finding 2 — derived, not
-// assumed): for same-signed shared-day deltas, the sign-flip maximum is
-// reached only by the all-matching assignment, so the smallest
-// attainable pairedP at n shared days is ~2^-n — 0.50 at n=1, 0.125 at
-// n=3, 0.0625 at n=4, 0.03125 at n=5 — and 5 is therefore the smallest
-// pairing at which the 0.05 threshold is reachable at all. Below it
-// acceptance was already impossible in EXPECTATION, but the permutation
-// p is an estimate: at n=4 the exceed count is Binomial(permutations,
-// 1/16), and with the default 1,000 draws roughly one seed in twenty
-// realises p <= 0.05 — so the floor makes the impossibility
-// deterministic instead of leaving it to estimator noise. Any floor
-// below 5 admits verdicts the statistic cannot support; raising it
-// above 5 is a strictness choice this derivation does not compel.
-const MIN_SHARED_DAYS = 5;
+// THE PAIRING FLOOR'S BASIS (#364 round 38, finding 2; counted quantity
+// corrected round 39, finding 1): for same-signed NONZERO deltas the
+// sign-flip maximum is reached only by the all-matching assignment, so
+// the smallest attainable pairedP at k nonzero shared-day deltas is
+// ~2^-k — 0.50 at k=1, 0.125 at k=3, 0.0625 at k=4, 0.03125 at k=5 —
+// and 5 is therefore the smallest pairing at which the 0.05 threshold
+// is reachable at all. The count is the SUPPORT, never the raw shared
+// day count: a zero delta contributes s_i·0 = 0 under EVERY sign
+// assignment, and exact zeros are the grid's common case (a parameter
+// tweak leaves most days' trades bit-identical, and dayTotals sums
+// symbols in a fixed order, so unaffected days difference to exactly
+// zero at both grains) — round 38's day-count floor admitted a
+// four-day effective pairing riding behind a forty-day one. Below the
+// floor acceptance was already impossible in EXPECTATION, but the
+// permutation p is an estimate: at k=4 the exceed count is
+// Binomial(permutations, 1/16), and with the default 1,000 draws
+// roughly one seed in twenty realises p <= 0.05 — the floor makes the
+// impossibility deterministic instead of leaving it to estimator
+// noise. Any floor below 5 admits verdicts the statistic cannot
+// support; raising it above 5 is a strictness choice this derivation
+// does not compel. The five-pair boundary is pinned from BOTH sides in
+// tests/acceptanceGate.test.ts (accept at exactly five, refuse at
+// four — sparse and dense).
+const MIN_EFFECTIVE_PAIRS = 5;
 
 function familyPairedP(
   deltasByVariant: Map<string, Map<number, number>>,
@@ -498,21 +514,28 @@ function groupVerdicts(
       );
 
       const pairedP = pairedPs.get(variant) ?? 1;
-      const sharedDays = deltasByVariant.get(variant)?.size ?? 0;
+      const variantDeltas = deltasByVariant.get(variant);
+      const sharedDays = variantDeltas?.size ?? 0;
+      const effectivePairs = variantDeltas
+        ? [...variantDeltas.values()].filter((delta) => delta !== 0).length
+        : 0;
       // The rule (round-8 batch 1): both folds positive, the PAIRED
       // family-wise p enforced at 0.05, expectancy holds, not thin —
       // and a pairing the statistic can actually resolve (#364 round
-      // 37, finding 1 drew the floor at zero pairs; round 38, finding
-      // 2 raised it to MIN_SHARED_DAYS, basis at the constant).
-      // Stated plainly (#364 round 38): the p certifies the SHARED
-      // days only, while the fit/select deltas and the expectancy term
-      // are whole-fold aggregates — compositionR names the non-shared
-      // portion per verdict, printed, descriptive — so a variant that
-      // composes heavily rides an acceptance whose p speaks for its
-      // pairing, not its composition. Sigma and the
-      // pooled p remain printed, descriptive only.
+      // 37, finding 1 drew the floor at zero pairs; round 38 raised it
+      // to five; round 39, finding 1 corrected the counted quantity to
+      // the SUPPORT — zero deltas cannot flip the statistic, so the
+      // floor gates effectivePairs, the same scale the round-37
+      // norm === 0 floor sits on). Stated plainly (#364 round 38): the
+      // p certifies the SHARED days only, while the fit/select deltas
+      // and the expectancy term are whole-fold aggregates —
+      // compositionR names the non-shared portion per verdict,
+      // printed, descriptive — so a variant that composes heavily
+      // rides an acceptance whose p speaks for its pairing, not its
+      // composition. Sigma and the pooled p remain printed,
+      // descriptive only.
       const accepted = !thin && fitTotalDelta > 0 && selectTotalDelta > 0 &&
-        sharedDays >= MIN_SHARED_DAYS && pairedP <= 0.05 &&
+        effectivePairs >= MIN_EFFECTIVE_PAIRS && pairedP <= 0.05 &&
         selectExpectancyDelta >= 0;
       const selectStats = aggregate.variant.select;
       const expiries = selectStats.filled - selectStats.wins -
@@ -526,8 +549,14 @@ function groupVerdicts(
       }
       classMap.set(variant, {
         accepted,
+        // #364 round 39, finding 2: an unresolvable pairing is NO
+        // VERDICT with the pairing named — the round-31 rule at the
+        // sibling starvation gate — never the same "fails" as a
+        // measured loss.
         reason: thin
           ? `THIN (${selectStats.filled} filled)`
+          : effectivePairs < MIN_EFFECTIVE_PAIRS
+          ? `NO VERDICT (pairing ${effectivePairs} of ${sharedDays} shared)`
           : accepted
           ? "accept"
           : "fails",
@@ -551,6 +580,7 @@ function groupVerdicts(
         selectSigma,
         selectTotalDelta,
         sharedDays,
+        effectivePairs,
         thin,
         worstDayR,
       });
@@ -959,11 +989,20 @@ async function main(): Promise<void> {
   for (const [assetClass, classMap] of verdicts) {
     console.log(`\n=== ${assetClass.toUpperCase()} ===`);
     console.log(
-      `${"variant".padEnd(28)}${"ΔR fit".padStart(10)}${"ΔR sel".padStart(9)}${"pairedP".padStart(9)}${"ΔE sel".padStart(9)}${"comp".padStart(7)}${"expry".padStart(7)}${"worstDay".padStart(10)}  verdict`,
+      `${"variant".padEnd(28)}${"ΔR fit".padStart(10)}${"ΔR sel".padStart(9)}${"pairedP".padStart(9)}${"pairs".padStart(8)}${"ΔE sel".padStart(9)}${"comp".padStart(7)}${"expry".padStart(7)}${"worstDay".padStart(10)}  verdict`,
     );
     for (const [variant, verdict] of classMap) {
+      // #364 round 39, finding 2: the pairing prints beside the p it
+      // sizes (nonzero/shared), and a floor refusal names itself — at
+      // four effective pairs the estimate can print a
+      // significant-looking p, so a bare "fails" beside all-positive
+      // columns left the discriminating quantity off the line.
       const label = verdict.thin
         ? `THIN (${verdict.selectFilled} filled) — refuse`
+        : verdict.effectivePairs < MIN_EFFECTIVE_PAIRS
+        ? `NO VERDICT — pairing ${verdict.effectivePairs} nonzero of ` +
+          `${verdict.sharedDays} shared days is below the statistic's ` +
+          `floor (${MIN_EFFECTIVE_PAIRS})`
         : verdict.accepted
         ? "ACCEPT — fit+select, paired p, expectancy holds"
         : "fails";
@@ -974,6 +1013,8 @@ async function main(): Promise<void> {
         `${variant.padEnd(28)}${verdict.fitTotalDelta.toFixed(1).padStart(10)}${
           verdict.selectTotalDelta.toFixed(1).padStart(9)
         }${verdict.pairedP.toFixed(3).padStart(9)}${
+          `${verdict.effectivePairs}/${verdict.sharedDays}`.padStart(8)
+        }${
           verdict.selectExpectancyDelta.toFixed(3).padStart(9)
         }${(verdict.compositionR ?? 0).toFixed(1).padStart(7)}${
           (verdict.selectExpiryShare ?? 0).toFixed(2).padStart(7)
