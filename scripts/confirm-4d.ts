@@ -13,7 +13,12 @@ import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.t
 import { gradeCorpus } from "./grid-totalr.ts";
 import { stratifiedHoldout } from "./sweepFolds.ts";
 import { assertManifest } from "./sweepStats.ts";
-import { soleFlagIndex } from "./flagReader.ts";
+import {
+  describeNumericToken,
+  describeToken,
+  soleFlagIndex,
+  tokenFault,
+} from "./flagReader.ts";
 
 type Candidate = {
   selectExpectancyDelta: number;
@@ -68,11 +73,10 @@ async function main() {
     const index = soleFlagIndex(argv, arg);
     if (index === -1) return undefined;
     const token = argv[index + 1];
-    if (token === undefined || token.startsWith("--")) {
+    if (tokenFault(token) !== null) {
       throw new Error(
-        `${arg} owns the token after it and got ${
-          token === undefined ? "no value" : `"${token}"`
-        } — a value, never a flag; pass ${arg} <value>`,
+        `${arg} owns the token after it and got ${describeToken(token)} — a ` +
+          `value, never a flag and never blank; pass ${arg} <value>`,
       );
     }
     return token;
@@ -86,13 +90,12 @@ async function main() {
     }
     const index = soleFlagIndex(argv, arg);
     if (index === -1) return fallback;
-    const parsed = Number(argv[index + 1]);
-    if (!Number.isFinite(parsed)) {
+    const token = argv[index + 1];
+    const parsed = Number(token);
+    if (tokenFault(token) !== null || !Number.isFinite(parsed)) {
       throw new Error(
         `${arg} owns the token after it and cannot read ${
-          argv[index + 1] === undefined
-            ? "a missing value"
-            : `"${argv[index + 1]}"`
+          describeNumericToken(token)
         } as a number — the walker already kept that token out of the ` +
           `shard paths, and this script burns the confirm read; pass ` +
           `${arg} <number>`,
@@ -107,6 +110,27 @@ async function main() {
   const targetsFlag = str("--targets");
   const prefix = str("--prefix") ??
     (holdoutCycle ? "4d-holdout" : "4d");
+  // VALIDATE BEFORE MUTATING (#364 round 54, found by round 54's own
+  // derived scan running every corpus reader with no arguments). This
+  // script wrote `<prefix>-final-picks.json` — a TRACKED artifact naming
+  // which variant each market ships — from the candidates and feasibility
+  // files ALONE, then called gradeCorpus, which refused with "no corpus
+  // paths given" and exited 1. So a run that refused still rewrote the
+  // picks on disk, with a fresh `frozenAt`, and the operator saw exit 1
+  // and reasonably assumed nothing had happened. Every sibling that
+  // writes an artifact checks its corpus first — derive-4d:115,
+  // feasibility-4d:96, threshold-rescue:67, cost-sensitivity-verdict:211,
+  // market-dossier:259, roster-expectancy-audit:79 — this one alone did
+  // the work first and validated second, which is the state-mutated-
+  // before-validation shape, in the script that BURNS the confirm read.
+  if (paths.length === 0) {
+    throw new Error(
+      "confirm-4d: no shard paths given. This script freezes the final " +
+        "picks and then burns the held-back confirm fold, so it must not " +
+        "rewrite the picks artifact for a corpus it cannot read; pass the " +
+        "sweep shards explicitly.",
+    );
+  }
   const candidates = JSON.parse(
     readFileSync(`${dir}/${prefix}-candidates.json`, "utf8"),
   ) as {
@@ -171,10 +195,31 @@ async function main() {
       variant: chosen.candidate.variant,
     };
   }
+  // An invalidation banner already on the artifact is CARRIED FORWARD,
+  // never dropped by a rewrite (#364 round 54). The shipped
+  // 4d-final-picks.json carries an "INVALID" key — the 2026-08-11 clock
+  // defect — and this writer emits no such key, so any re-run silently
+  // removed the notice saying these numbers must not be used to withdraw,
+  // defend or ship a market, from the file that names each market's
+  // variant. A banner is retired by whoever re-validates the corpus, by
+  // hand, with the reason recorded; it is not retired as a side effect of
+  // running the script again.
+  const picksPath = `${dir}/${prefix}-final-picks.json`;
+  const priorBanner = ((): string | undefined => {
+    try {
+      const prior = JSON.parse(readFileSync(picksPath, "utf8")) as {
+        INVALID?: unknown;
+      };
+      return typeof prior.INVALID === "string" ? prior.INVALID : undefined;
+    } catch {
+      return undefined;
+    }
+  })();
   writeFileSync(
-    `${dir}/${prefix}-final-picks.json`,
+    picksPath,
     JSON.stringify(
       {
+        ...(priorBanner === undefined ? {} : { INVALID: priorBanner }),
         analyzerVersion: candidates.analyzerVersion,
         capacityGated,
         finalPicks,
@@ -186,7 +231,11 @@ async function main() {
   );
   console.log(
     `frozen: ${Object.keys(finalPicks).length} picks, ` +
-      `${capacityGated.length} capacity-gated -> ${prefix}-final-picks.json`,
+      `${capacityGated.length} capacity-gated -> ${prefix}-final-picks.json` +
+      (priorBanner === undefined
+        ? ""
+        : "\n  INVALID banner carried forward from the previous artifact — " +
+          "remove it by hand when the corpus behind it has been revalidated"),
   );
 
   // THE ONE READ. Confirm totals come back per market per accepted

@@ -22,7 +22,13 @@ import {
   type TreasuryCurveFacts,
   treasuryGapTouching,
 } from "../scripts/sweepManifest.ts";
-import { flagReader, soleFlagIndex } from "../scripts/flagReader.ts";
+import {
+  describeNumericToken,
+  describeToken,
+  flagReader,
+  soleFlagIndex,
+  tokenFault,
+} from "../scripts/flagReader.ts";
 import { parseArgs } from "../scripts/replay-sweep.ts";
 
 // 2i (2026-08-09): the corpus describes itself. Nothing used to persist a
@@ -1259,9 +1265,35 @@ describe("the driver writes the manifest beside the emit", () => {
         // delegating to flagReader are covered by its executed tests.
         assert.match(
           source,
-          /token === undefined \|\| token\.startsWith\("--"\)/,
-          `${file}: a value flag must refuse a missing or flag-shaped ` +
-            `token, never fall back to a default`,
+          /tokenFault\(token\) !== null/,
+          `${file}: a value flag must refuse a missing, flag-shaped or ` +
+            `blank token, never fall back to a default`,
+        );
+      }
+      // #364 round 54, finding 1: WHICH tokens are faulty is one
+      // implementation, the way resolution became one in round 53. Every
+      // reader had written the guard against the two shapes an author
+      // types by hand — undefined, and "--something" — and `""` is
+      // neither, so it walked through; `Number("")` is 0 and finite, so
+      // it walked through the parse guard too and the dial read ZERO in
+      // silence. That is the ordinary shell shape (`--min-n "$MIN_N"`
+      // with the variable unset), not a typo, and a zero floor reopens
+      // the very defects the floors were added for. Pinned as a source
+      // form because a reader that hand-rolls the predicate again is
+      // exactly how this came back.
+      assert.doesNotMatch(
+        source,
+        /token === undefined \|\| token\.startsWith\("--"\)/,
+        `${file}: the token predicate must come from flagReader's ` +
+          `tokenFault — a hand-rolled pair of conditions admits "" and a ` +
+          `blank token becomes a silent zero`,
+      );
+      if (/\bnum\(/.test(source) && !usesSharedReader) {
+        assert.match(
+          source,
+          /tokenFault\(token\) !== null \|\| !Number\.isFinite\(parsed\)/,
+          `${file}: a numeric dial must refuse a blank token BEFORE ` +
+            `Number() coerces it to a finite zero`,
         );
       }
       // A numeric dial read through str() and then coerced by hand
@@ -1475,6 +1507,100 @@ describe("the driver writes the manifest beside the emit", () => {
   // flag in silence. The gate is the one that matters most: `--seed 7
   // --seed 8` graded at seed 7 and printed a verdict, and a permutation
   // p-value is exactly the kind of figure nobody re-derives by hand.
+  // #364 round 54, finding 1. `""` passes both hand-written conditions —
+  // it is not undefined and does not start with "--" — and Number("") is
+  // 0, which is FINITE, so it passed the parse guard too. The dial read
+  // zero and said nothing. Reachable through the ordinary shell shape:
+  // `--min-n "$MIN_N"` with the variable unset passes an empty argv entry.
+  it("a blank token is a fault, at the shared predicate and in both message frames", () => {
+    assert.equal(tokenFault("30"), null);
+    assert.equal(tokenFault(undefined), "missing");
+    assert.equal(tokenFault("--other"), "flag-shaped");
+    assert.equal(tokenFault(""), "blank");
+    assert.equal(tokenFault("   "), "blank");
+    assert.equal(tokenFault("\t\n"), "blank");
+    // The coercion the guard was blind to, stated where a reader will
+    // find it: all three of these are 0, and all three are finite.
+    for (const blank of ["", " ", "\t\n"]) {
+      assert.equal(Number(blank), 0);
+      assert.equal(Number.isFinite(Number(blank)), true);
+    }
+    // Two frames, one predicate — the value flags say what they GOT, the
+    // numeric dials say what they cannot READ AS A NUMBER, and executed
+    // tests assert both wordings.
+    assert.equal(describeToken(undefined), "no value");
+    assert.equal(describeNumericToken(undefined), "a missing value");
+    assert.equal(describeToken("--x"), '"--x"');
+    assert.equal(describeNumericToken("abc"), '"abc"');
+    assert.match(describeToken(""), /an EMPTY token/);
+    assert.match(describeNumericToken(""), /an EMPTY token/);
+    assert.match(describeToken("  "), /a WHITESPACE-ONLY token/);
+
+    const declared = new Set(["--out", "--limit"]);
+    assert.throws(
+      () => flagReader(["--out", ""], declared).str("--out"),
+      /--out owns the token after it and got an EMPTY token/,
+      "the shared reader must refuse a blank value, never pass it through",
+    );
+    assert.throws(
+      () => flagReader(["--limit", ""], declared).num("--limit", 30),
+      /--limit owns the token after it and got an EMPTY token/,
+      "a blank numeric dial must refuse rather than read a finite zero",
+    );
+    assert.throws(
+      () => flagReader(["--limit", "  "], declared).num("--limit", 30),
+      /--limit owns the token after it and got a WHITESPACE-ONLY token/,
+    );
+  });
+
+  // The sharpest consequence, executed: `--step ""` gave the driver
+  // stepBars 0, and `index += input.stepBars` at sweep.ts:380 never
+  // advances — simulateSymbol loops forever, re-slicing the bar array
+  // every pass, in a driver whose runs are measured in hours, with no
+  // output and no exit. The refusal fires at parseArgs, before any fetch,
+  // which is why a placeholder key is safe here.
+  it("the sweep driver refuses a blank dial rather than looping forever — executed", () => {
+    const refuses = (script: string, args: string[], pattern: RegExp) => {
+      assert.throws(
+        () =>
+          execFileSync("npx", ["--no-install", "tsx", script, ...args], {
+            cwd: process.cwd(),
+            encoding: "utf8",
+            env: { ...process.env, FMP_API_KEY: "placeholder-never-used" },
+            stdio: "pipe",
+            timeout: 120_000,
+          }),
+        (error: unknown) => {
+          assert.match(String((error as { stderr?: string }).stderr ?? ""), pattern);
+          return true;
+        },
+        `${script} must refuse the blank dial`,
+      );
+    };
+    refuses(
+      "scripts/replay-sweep.ts",
+      ["--symbols", "EURUSD", "--byte-budget", "1gb", "--step", ""],
+      /--step owns the token after it and got an EMPTY token/,
+    );
+    // --days is inside conditionsOf, so a blank one would have hashed a
+    // zero-depth corpus identity into the LA-6 ledger key.
+    refuses(
+      "scripts/replay-sweep.ts",
+      ["--symbols", "EURUSD", "--byte-budget", "1gb", "--days", ""],
+      /--days owns the token after it and got an EMPTY token/,
+    );
+    refuses(
+      "scripts/sweep-analysis.ts",
+      ["--emit", "never-opened.jsonl", "--min-n", ""],
+      /--min-n owns the token after it and cannot read an EMPTY token/,
+    );
+    refuses(
+      "scripts/grid-totalr.ts",
+      ["never-opened.jsonl", "--permutations", ""],
+      /--permutations owns the token after it and cannot read an EMPTY token/,
+    );
+  });
+
   it("a repeated value flag is refused at the shared step", () => {
     assert.equal(soleFlagIndex(["--seed", "7"], "--seed"), 0);
     assert.equal(soleFlagIndex(["--out", "x"], "--seed"), -1);

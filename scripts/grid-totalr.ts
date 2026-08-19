@@ -55,7 +55,12 @@ import {
   type SweepManifest,
 } from "./sweepManifest.ts";
 import { stratifiedHoldout } from "./sweepFolds.ts";
-import { soleFlagIndex } from "./flagReader.ts";
+import {
+  describeNumericToken,
+  describeToken,
+  soleFlagIndex,
+  tokenFault,
+} from "./flagReader.ts";
 import {
   appendFileSync,
   existsSync,
@@ -329,7 +334,10 @@ export function supportOf(deltas: Map<number, number>): number {
  * changed definition legible instead of two hashes that do not match
  * (#364 round 49, smaller).
  */
-function identityKeysDiffering(recorded: string, current: string): string[] {
+export function identityKeysDiffering(
+  recorded: string,
+  current: string,
+): string[] {
   let a: Record<string, unknown>;
   let b: Record<string, unknown>;
   try {
@@ -342,7 +350,25 @@ function identityKeysDiffering(recorded: string, current: string): string[] {
   const differing = keys.filter((key) =>
     JSON.stringify(a[key]) !== JSON.stringify(b[key])
   );
-  return differing.length > 0 ? differing : ["(same terms, different order)"];
+  if (differing.length > 0) return differing;
+  // The fallback names what can actually land here (#364 round 54,
+  // smaller). It read "(same terms, different order)", and key order is
+  // the one cause ruled out by construction: both sides are conditionsOf
+  // output, which is stableStringify'd, and that sorts keys — so two
+  // payloads differing only in order cannot be two different strings.
+  // What DOES reach this branch is a SERIALIZATION difference the
+  // key-by-key comparison normalizes away: number formatting (1.0 vs 1,
+  // 1e3 vs 1000), whitespace, or string escaping. That is a live case
+  // rather than a theoretical one, because these payloads are persisted
+  // across versions — a change to stableStringify itself makes every
+  // recorded identity differ from today's by formatting alone, with every
+  // term identical. So the refusal prints BOTH payloads: the key diff has
+  // nothing to say, and the bytes are the only remaining evidence.
+  return [
+    "(no term differs — the two payloads differ only in how they were " +
+    `SERIALIZED, which is what a change to the stringifier itself looks ` +
+    `like. Recorded: ${recorded} · This read: ${current})`,
+  ];
 }
 
 function familyPairedP(
@@ -1501,10 +1527,10 @@ async function main(): Promise<void> {
     if (index === -1) return fallback;
     const token = args[index + 1];
     const parsed = Number(token);
-    if (!Number.isFinite(parsed)) {
+    if (tokenFault(token) !== null || !Number.isFinite(parsed)) {
       throw new Error(
         `${arg} owns the token after it and cannot read ${
-          token === undefined ? "a missing value" : `"${token}"`
+          describeNumericToken(token)
         } as a number — the filter already kept that token out of the ` +
           `shard paths, and a NaN dial silently refuses every variant; ` +
           `pass ${arg} <number>`,
@@ -1522,11 +1548,10 @@ async function main(): Promise<void> {
     const index = soleFlagIndex(args, arg);
     if (index === -1) return undefined;
     const token = args[index + 1];
-    if (token === undefined || token.startsWith("--")) {
+    if (tokenFault(token) !== null) {
       throw new Error(
-        `${arg} owns the token after it and got ${
-          token === undefined ? "no value" : `"${token}"`
-        } — a variant name, never a flag; pass ${arg} <variant> (an ` +
+        `${arg} owns the token after it and got ${describeToken(token)} — a ` +
+          `variant name, never a flag and never blank; pass ${arg} <variant> (an ` +
           `eaten shard path lands at the cube's baseline-exists refusal)`,
       );
     }

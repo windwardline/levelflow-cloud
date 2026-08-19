@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -219,4 +219,124 @@ describe("the 4c/4d consumers refuse a run that examined nothing", () => {
       "a join that collected no geometry must not be written as a result",
     );
   });
+});
+
+// #364 round 54, finding 2. Round 53 installed the law above over a
+// HAND-PICKED five-file population — "three of the five consumers" — and
+// the flag law one round earlier had already established why that is the
+// wrong move: its population is DERIVED by globbing scripts/, precisely
+// because a curated list is how market-dossier sat outside the flag law
+// for 49 rounds. The empty-corpus law did not inherit the lesson, and the
+// files it missed were listed by name two lines above it in the same test
+// file: exclusion-suspects and stop-provenance printed their column
+// header ALONE at exit 0, and ag-class-derivation printed "no rows" per
+// cohort under a success code — each indistinguishable from a real corpus
+// holding nothing that qualified.
+//
+// So the population is derived here, and the law is EXECUTED rather than
+// source-matched: what a process does when it names no corpus is a fact
+// about the process. Sixteen readers, ~11s.
+describe("every corpus reader refuses a run that names no corpus", () => {
+  // A reader is anything that opens the one-clock door. That is the same
+  // definition the door's own derived scan uses (tests/sweepStats.test.ts),
+  // and it is a fact about the file rather than a list someone maintains.
+  const DOOR = /assertManifest(?:edCorpus(?:Streaming)?)?\(/;
+  const DEFINES_THE_DOOR = "scripts/sweepStats.ts";
+  const repoRoot = process.cwd();
+
+  // The tree as git sees it, minus the one directory a CONCURRENT test
+  // file legitimately writes to: tests/acceptanceGate.test.ts drives the
+  // LA-6 ledger through docs/research/confirm-reads/ and cleans up after
+  // itself, but node:test runs files in parallel, so its fixture can be
+  // on disk while this scan samples. Nothing here can write there — a
+  // ledger line is only appended on a confirm READ, which needs a corpus.
+  const trackedState = () =>
+    execFileSync("git", ["status", "--porcelain"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+    })
+      .split("\n")
+      .filter((line) => line.trim() && !line.includes("docs/research/confirm-reads/"))
+      .sort()
+      .join("\n");
+
+  const readers = readdirSync("scripts")
+    .filter((name) => name.endsWith(".ts"))
+    .map((name) => `scripts/${name}`)
+    .filter((file) => DOOR.test(readFileSync(file, "utf8")))
+    .sort();
+
+  it("the derived population is the readers, and the one exemption states why", () => {
+    assert.ok(
+      readers.includes(DEFINES_THE_DOOR),
+      "the glob must find the module that defines the door, so its " +
+        "exemption stays honest",
+    );
+    // The exemption VERIFIES ITS PREMISE, the way the flag law's do: this
+    // file matches because it EXPORTS the doors, not because it opens one.
+    const source = readFileSync(DEFINES_THE_DOOR, "utf8");
+    assert.match(
+      source,
+      /export function assertManifest\(/,
+      `${DEFINES_THE_DOOR} is exempted as the door's definition — if it ` +
+        `stops exporting one, it is a reader like any other`,
+    );
+    assert.ok(
+      readers.length >= 16,
+      `the glob must find the corpus readers, got ${readers.length}`,
+    );
+  });
+
+  for (const reader of readers.filter((file) => file !== DEFINES_THE_DOOR)) {
+    it(`${reader} refuses with no corpus named — executed`, () => {
+      let exitCode: number | undefined;
+      let stderr = "";
+      // Run from a temp directory, so a reader's DEFAULT relative output
+      // path cannot resolve into the repository. That is not belt and
+      // braces: this scan is how confirm-4d's write-before-validate was
+      // found (#364 round 54). It wrote the tracked
+      // 4d-final-picks.json from the candidates file alone and only THEN
+      // called gradeCorpus, which refused — so the first run of this test
+      // rewrote a tracked artifact, stamped a fresh frozenAt, and dropped
+      // the INVALID banner, while the process exited 1 as if nothing had
+      // happened.
+      const elsewhere = mkdtempSync(join(tmpdir(), "no-corpus-"));
+      const before = trackedState();
+      try {
+        execFileSync("npx", ["--no-install", "tsx", join(repoRoot, reader)], {
+          cwd: elsewhere,
+          encoding: "utf8",
+          stdio: "pipe",
+          timeout: 120_000,
+        });
+      } catch (error) {
+        const failed = error as { status?: number; stderr?: string };
+        exitCode = failed.status;
+        stderr = String(failed.stderr ?? "");
+      }
+      // …and the law the temp cwd cannot enforce on its own, since a
+      // reader may resolve a path from its own module location: a run
+      // that names no corpus writes NOTHING. A refusal that has already
+      // mutated the tree is not a refusal.
+      assert.deepEqual(
+        trackedState(),
+        before,
+        `${reader} changed tracked files while refusing — validate before ` +
+          `mutating; every sibling that writes an artifact checks its ` +
+          `corpus first`,
+      );
+      assert.notEqual(
+        exitCode,
+        undefined,
+        `${reader} exited 0 with no corpus named — a run over zero rows ` +
+          `cannot report a verdict (WIF-4), and an exit code saying the ` +
+          `run finished is what makes the empty artifact readable as one`,
+      );
+      assert.notEqual(exitCode, 0, `${reader} must not exit 0`);
+      assert.ok(
+        stderr.trim().length > 0,
+        `${reader} refused silently — the refusal must say what was missing`,
+      );
+    });
+  }
 });

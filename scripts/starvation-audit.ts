@@ -154,7 +154,11 @@
  * mode marker (above).
  */
 import { readFileSync } from "node:fs";
-import { soleFlagIndex } from "./flagReader.ts";
+import {
+  describeNumericToken,
+  soleFlagIndex,
+  tokenFault,
+} from "./flagReader.ts";
 
 type Row = {
   symbol: string; split: string; decisions: number; sessionBlk: number;
@@ -327,6 +331,7 @@ function num(arg: string, fallback: number): number {
   if (index === -1) return fallback;
   const token = process.argv[index + 1];
   const parsed = Number(token);
+  const fault = tokenFault(token);
   // A flag that OWNS a token must refuse one it cannot parse (#364
   // round 35, finding 1): the walker above has already kept that token
   // out of the path list, so falling back here would silently use the
@@ -336,10 +341,10 @@ function num(arg: string, fallback: number): number {
   // eaten shard. A missing value is a refusal, never a zero — the
   // pattern-match this walker replaced could not eat a filename, so
   // the silent fallback was the walker's own new hole.
-  if (!Number.isFinite(parsed)) {
+  if (fault !== null || !Number.isFinite(parsed)) {
     throw new Error(
       `${arg} owns the token after it and cannot read ${
-        token === undefined ? "a missing value" : `"${token}"`
+        describeNumericToken(token)
       } as a number — the walker already kept that token out of the ` +
         `log paths, so falling back would judge a partial roster; ` +
         `pass ${arg} <number>`,

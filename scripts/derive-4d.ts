@@ -16,7 +16,12 @@ import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.t
 import { gradeCorpus, type VariantVerdict } from "./grid-totalr.ts";
 import { assertManifest } from "./sweepStats.ts";
 import { stratifiedHoldout } from "./sweepFolds.ts";
-import { soleFlagIndex } from "./flagReader.ts";
+import {
+  describeNumericToken,
+  describeToken,
+  soleFlagIndex,
+  tokenFault,
+} from "./flagReader.ts";
 
 // The ONE declaration of which flags own the token after them (#364
 // round 44, smaller) — the form rounds 33–38 installed in the four
@@ -75,11 +80,10 @@ async function main() {
     const index = soleFlagIndex(argv, arg);
     if (index === -1) return undefined;
     const token = argv[index + 1];
-    if (token === undefined || token.startsWith("--")) {
+    if (tokenFault(token) !== null) {
       throw new Error(
-        `${arg} owns the token after it and got ${
-          token === undefined ? "no value" : `"${token}"`
-        } — a value, never a flag; pass ${arg} <value>`,
+        `${arg} owns the token after it and got ${describeToken(token)} — a ` +
+          `value, never a flag and never blank; pass ${arg} <value>`,
       );
     }
     return token;
@@ -93,13 +97,12 @@ async function main() {
     }
     const index = soleFlagIndex(argv, arg);
     if (index === -1) return fallback;
-    const parsed = Number(argv[index + 1]);
-    if (!Number.isFinite(parsed)) {
+    const token = argv[index + 1];
+    const parsed = Number(token);
+    if (tokenFault(token) !== null || !Number.isFinite(parsed)) {
       throw new Error(
         `${arg} owns the token after it and cannot read ${
-          argv[index + 1] === undefined
-            ? "a missing value"
-            : `"${argv[index + 1]}"`
+          describeNumericToken(token)
         } as a number — the walker already kept that token out of the ` +
           `shard paths; pass ${arg} <number>`,
       );

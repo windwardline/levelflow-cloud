@@ -27,7 +27,12 @@ import {
   type SweepStats,
   vocabularyRow,
 } from "./sweepStats.ts";
-import { soleFlagIndex } from "./flagReader.ts";
+import {
+  describeNumericToken,
+  describeToken,
+  soleFlagIndex,
+  tokenFault,
+} from "./flagReader.ts";
 
 type Row = {
   accepted: boolean;
@@ -174,11 +179,10 @@ async function main(): Promise<void> {
     const index = soleFlagIndex(args, arg);
     if (index === -1) return undefined;
     const token = args[index + 1];
-    if (token === undefined || token.startsWith("--")) {
+    if (tokenFault(token) !== null) {
       throw new Error(
-        `${arg} owns the token after it and got ${
-          token === undefined ? "no value" : `"${token}"`
-        } — a corpus path, never a flag; pass ${arg} <path>`,
+        `${arg} owns the token after it and got ${describeToken(token)} — a ` +
+          `corpus path, never a flag and never blank; pass ${arg} <path>`,
       );
     }
     return token;
@@ -193,13 +197,13 @@ async function main(): Promise<void> {
     if (index === -1) return fallback;
     const token = args[index + 1];
     const parsed = Number(token);
-    if (!Number.isFinite(parsed)) {
+    if (tokenFault(token) !== null || !Number.isFinite(parsed)) {
       throw new Error(
         `${arg} owns the token after it and cannot read ${
-          token === undefined ? "a missing value" : `"${token}"`
-        } as a number — NaN would disable every thin marker in tables a ` +
-          `calibration ruling is made from (x < NaN is false for every ` +
-          `x); pass ${arg} <number>`,
+          describeNumericToken(token)
+        } as a number — a NaN or ZERO floor disables every thin marker in ` +
+          `tables a calibration ruling is made from: x < NaN is false for ` +
+          `every x, and x < 0 is false for every count; pass ${arg} <number>`,
       );
     }
     return parsed;

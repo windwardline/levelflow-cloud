@@ -24,6 +24,7 @@ import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import {
   classVerdicts,
+  identityKeysDiffering,
   marketVerdicts,
   gradeCorpus,
   readGridCube,
@@ -1774,6 +1775,47 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     }
     assert.equal(existsSync(canonical), false);
     assert.equal(existsSync(retired), false);
+  });
+
+  // #364 round 54, smaller: the identity diff's fallback named the one
+  // cause its own input rules out. Both payloads are conditionsOf output,
+  // i.e. stableStringify'd — which SORTS keys — so "same terms, different
+  // order" cannot produce two different strings. What reaches the branch
+  // is a serialization difference the key-by-key comparison normalizes
+  // away, which is exactly what a change to the stringifier looks like
+  // against a ledger written by an older version.
+  it("the identity diff names differing terms, and says what an empty diff really means", () => {
+    assert.deepEqual(
+      identityKeysDiffering(
+        '{"clock":"a","days":60}',
+        '{"clock":"a","days":365}',
+      ),
+      ["days"],
+    );
+    assert.deepEqual(
+      identityKeysDiffering('{"a":1}', '{"b":1}').sort(),
+      ["a", "b"],
+    );
+    // Unreadable payloads keep their own answer.
+    assert.deepEqual(
+      identityKeysDiffering("not json", '{"a":1}'),
+      ["(recorded identity is not readable as JSON)"],
+    );
+    // The live shape: identical terms, different bytes. 1e3 and 1000
+    // parse to the same number, so no key differs, while the two strings
+    // hash differently — a stringifier change against an older ledger.
+    const [reason] = identityKeysDiffering('{"days":1e3}', '{"days":1000}');
+    assert.match(reason, /no term differs/);
+    assert.match(reason, /differ only in how they were SERIALIZED/);
+    assert.doesNotMatch(
+      reason,
+      /different order/,
+      "key order is sorted by stableStringify — it cannot be the cause",
+    );
+    // Both payloads print, because the key diff has nothing to say and
+    // the bytes are the only remaining evidence.
+    assert.match(reason, /Recorded: \{"days":1e3\}/);
+    assert.match(reason, /This read: \{"days":1000\}/);
   });
 
   // #364 round 53, finding 3: the prior-read scan parses every line of

@@ -60,7 +60,11 @@ import {
   type SweepEmitRow,
   type SweepStats,
 } from "./sweepStats.ts";
-import { soleFlagIndex } from "./flagReader.ts";
+import {
+  describeNumericToken,
+  soleFlagIndex,
+  tokenFault,
+} from "./flagReader.ts";
 
 const CLASSIFICATIONS: BrokerClassification[] = ["forex", "futures", "crypto"];
 
@@ -155,16 +159,17 @@ function num(arg: string, fallback: number): number {
   if (index === -1) return fallback;
   const token = process.argv[index + 1];
   const parsed = Number(token);
+  const fault = tokenFault(token);
   // A flag that OWNS a token must refuse one it cannot parse (#364
   // round 35, finding 1): the walker in main() has already kept that
   // token out of the file list, so falling back here would silently
   // use the default floor AND silently drop a corpus file —
   // "--min-filled a.jsonl b.jsonl" reported over b.jsonl alone at the
   // default 300. A missing value is a refusal, never a zero.
-  if (!Number.isFinite(parsed)) {
+  if (fault !== null || !Number.isFinite(parsed)) {
     throw new Error(
       `${arg} owns the token after it and cannot read ${
-        token === undefined ? "a missing value" : `"${token}"`
+        describeNumericToken(token)
       } as a number — the walker already kept that token out of the ` +
         `corpus paths, so falling back would report over a partial ` +
         `corpus; pass ${arg} <number>`,
