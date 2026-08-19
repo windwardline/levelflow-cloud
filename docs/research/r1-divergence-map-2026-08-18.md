@@ -489,7 +489,18 @@ layer.
   denominator as NO VERDICT, never maximal starvation — by the
   driver's row identity it means the geometry killed nothing, every
   emitted setup carrying the marker or every decision dying
-  pre-geometry (round 31). One denominator note beside the unfilled
+  pre-geometry (round 31) — withholds the flag, and with it the
+  exit-1, below a `--min-reached` floor of geometry-stage decisions
+  (default 30 — the binomial basis is recorded at the constant: 30 is
+  the smallest denominator holding both boundary misreads, false
+  STARVED from a true 1/3 and false thin from a true 0.5, at ≈2% or
+  below), echoes the floor in effect on every run, and partitions its
+  "N of M flagged" summary by cause so M holds only judged markets
+  (round 32); when the thin-sample and no-verdict exclusions swallow
+  the whole roster it REFUSES — a throw `--report` cannot suppress —
+  rather than printing "0 of 0 markets flagged" and exiting 0, the
+  zero-row clause's false green reopened by a cleanly-parsing second
+  route (round 33). One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly

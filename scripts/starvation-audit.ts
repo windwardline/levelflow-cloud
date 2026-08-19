@@ -107,14 +107,29 @@
  * printed figure as 0-of-2,000 and carries none of its evidence, and
  * a STARVED flag from a handful of decisions is this file's own
  * failure mode pointed at itself — a verdict drawn from a sample too
- * small to support one. Below --min-reached (default 30) the row
- * prints its ratio with "thin sample — flag withheld", joins neither
- * the starved tally nor the flagged denominator, and cannot exit 1.
- * The summary partitions the roster by cause — flagged-eligible,
- * thin-sample, no-verdict — so an excluded market is named, never
- * absorbed (#364 round 32, finding 2: the old "N of M flagged"
- * counted no-verdict markets in M, understating the flagged share of
- * what was actually judged).
+ * small to support one. Below --min-reached (default 30 — the
+ * binomial basis is recorded at the constant, #364 round 33, finding
+ * 2) the row prints its ratio with "thin sample — flag withheld" and
+ * joins neither the starved tally nor the flagged denominator; the
+ * floor in effect prints above the table on EVERY run, so a clean
+ * run and a --min-reached 0 run are distinguishable (#364 round 33,
+ * smaller). The summary partitions the roster by cause —
+ * flagged-eligible, thin-sample, no-verdict — so an excluded market
+ * is named, never absorbed (#364 round 32, finding 2: the old "N of
+ * M flagged" counted no-verdict markets in M, understating the
+ * flagged share of what was actually judged).
+ *
+ * When those two exclusions swallow the WHOLE roster, the gate
+ * REFUSES rather than passes (#364 round 33, finding 1): rounds
+ * 31–32 had reopened the zero-row clause's false green by a second
+ * route — a table that parses perfectly but leaves the judged
+ * denominator at zero printed "0 of 0 markets flagged" and exited 0,
+ * a verdict for nothing. That is exactly the shape of a bounded
+ * pilot sweep over the sparse floorless classes this gate protects —
+ * the run whose green matters most. The per-market table still
+ * prints (the causes are the evidence), then the gate throws with
+ * both exclusion counts named; like every refusal above, --report
+ * cannot suppress it.
  *
  * dataAbsent leaves both sides by the same rule (#364 round 18): those
  * decisions built a plan and their review window held no gradeable
@@ -235,15 +250,49 @@ function parse(paths: string[]): Row[] {
 }
 
 // Flags filtered out, or readFileSync tries to open "--report" as a log and the
-// gate fails for the wrong reason — which it did on first test. Bare numbers
-// are flag VALUES (--min-reached 20), never log paths — the same filter
-// account-type-report carries for the same reason.
-const paths = process.argv.slice(2).filter((arg) =>
-  !arg.startsWith("--") && !/^[\d.]+$/.test(arg)
-);
+// gate fails for the wrong reason — which it did on first test. A value-taking
+// flag OWNS the token after it (#364 round 33, smaller): the bare-number
+// pattern-match that stood here for one round was positional-blind both ways —
+// "--min-reached 1e2" parsed as floor 100 while handing "1e2" to readFileSync
+// as a log path, failing for exactly the wrong reason this comment names.
+// (account-type-report's copy of the pattern-match predates this change and is
+// recorded as carried in HANDOFF.)
+const VALUE_FLAGS = new Set(["--min-reached"]);
+const argv = process.argv.slice(2);
+const paths: string[] = [];
+for (let i = 0; i < argv.length; i += 1) {
+  if (argv[i].startsWith("--")) {
+    if (VALUE_FLAGS.has(argv[i])) i += 1;
+    continue;
+  }
+  paths.push(argv[i]);
+}
 // Below this many geometry-stage decisions a survival ratio prints but is
 // never flagged (#364 round 32, finding 3) — the accessor is
 // account-type-report's num() shape, value riding argv after the flag.
+//
+// THE FLOOR'S BASIS (#364 round 33, finding 2 — recorded, not assumed;
+// neither sibling's figure transfers: sweep-analysis's --min-n 30 counts
+// filled outcomes and only MARKS thin cells, account-type-report's
+// --min-filled 300 counts filled outcomes feeding an expectancy mean,
+// while this floor bounds a binomial SHARE of decisions). The misread it
+// protects against is the false STARVED: a market whose true survival
+// sits at the healthy-band boundary (1/3) drawing an observed share
+// below 15%. That tail, P(X ≤ ceil(0.15·n)−1 | n, p=1/3), runs ≈13% at
+// n=5, ≈10% at n=10, ≈1.2% at n=30; the false-thin misread from a
+// comfortably healthy 0.5 (observed below 1/3) runs ≈17% at n=10, still
+// ≈5.8% at n=20, and reaches ≈2.1% only at n=30 — so 30 is the smallest
+// denominator holding BOTH boundary misreads at ≈2% or below. The floor
+// is deliberately one legible dial, not a per-observation test, and is
+// therefore conservative in the withhold direction: 0-of-29 killed is
+// withheld although at the healthy boundary that observation has
+// probability (2/3)^29 ≈ 8e-6 — an operator holding such a row lowers
+// --min-reached with the printed evidence in hand. Real deep-sweep
+// denominators run far above the floor (the rice figure above: 424
+// decisions, 263 planRejected), so it binds mostly on bounded pilots,
+// where withholding is the intent; the first deep sweep's
+// reached-geometry distribution may justify raising it, never lowering
+// it below the arithmetic here.
 function num(arg: string, fallback: number): number {
   const index = process.argv.indexOf(arg);
   if (index === -1) return fallback;
@@ -308,6 +357,14 @@ const out = [...byS.values()].map((r) => {
   return { ...r, reachedGeometry, geometryKill, survival };
 }).sort((a, b) => (a.survival ?? 2) - (b.survival ?? 2));
 
+// The floor in effect prints on EVERY run (#364 round 33, smaller —
+// sweep-analysis's unconditional min-n line is the pattern): with the
+// echo only inside thin-row flags, a clean run and a --min-reached 0 run
+// were indistinguishable from a default one.
+console.log(
+  `flag floor: survival flags withheld below ${minReached} reached ` +
+    `geometry (--min-reached)`,
+);
 console.log(`${"market".padEnd(9)}${"decisions".padStart(10)}${"reached".padStart(9)}` +
   `${"planRej".padStart(9)}${"belowPay".padStart(9)}${"survive".padStart(9)}  flag`);
 let starved = 0;
@@ -349,6 +406,7 @@ for (const r of out) {
 // The flagged denominator holds only markets that received a verdict;
 // excluded markets are named by cause, never absorbed (#364 round 32,
 // finding 2).
+const judged = out.length - thinSample - noVerdict;
 const excluded = [
   ...(thinSample > 0
     ? [`${thinSample} thin sample below ${minReached} reached`]
@@ -357,8 +415,24 @@ const excluded = [
     ? [`${noVerdict} no verdict — zero geometry denominator`]
     : []),
 ];
+// A roster judged NOWHERE is a refusal, never a pass (#364 round 33,
+// finding 1): rounds 31–32's exclusions had reopened the zero-row
+// clause's "0 of 0 markets flagged" false green by a route that parses
+// cleanly — the shape of a bounded pilot sweep over the sparse
+// floorless classes. The table above already printed the causes; the
+// throw makes the exit code agree with them, and --report cannot
+// suppress a refusal (it acknowledges a measured verdict, never an
+// absent one).
+if (judged === 0) {
+  throw new Error(
+    `every market fell outside the judged denominator ` +
+      `(${excluded.join("; ")}) — a gate that judged nothing cannot ` +
+      `pass (the zero-row rule by a second route); deepen the sweep ` +
+      `window, or lower --min-reached with the per-row evidence in hand`,
+  );
+}
 console.log(
-  `\n${starved} of ${out.length - thinSample - noVerdict} markets flagged` +
+  `\n${starved} of ${judged} markets flagged` +
     `${excluded.length > 0 ? ` (${excluded.join("; ")})` : ""}` +
     `. Ranked worst first.`,
 );

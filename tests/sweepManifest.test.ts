@@ -809,6 +809,102 @@ describe("the driver writes the manifest beside the emit", () => {
       floored,
       /2 of 2 markets flagged \(1 no verdict — zero geometry denominator\)/,
     );
+    // The floor in effect prints on EVERY run (#364 round 33, smaller):
+    // the floored run has zero thin-sample rows, so this line is the
+    // unconditional echo, not the flag text — a clean run and a
+    // --min-reached override are reconcilable from the log alone.
+    assert.match(
+      out,
+      /flag floor: survival flags withheld below 30 reached geometry \(--min-reached\)/,
+    );
+    assert.match(
+      floored,
+      /flag floor: survival flags withheld below 1 reached geometry/,
+    );
+    // #364 round 33, smaller: the flag's value is OWNED by the flag, not
+    // pattern-matched — "1e2" is a number to Number() but was not a
+    // number to the old bare-number regex, so it reached readFileSync as
+    // a log path and the gate failed for the wrong reason. Under floor
+    // 100 every market here is excluded (EURUSD reached 50 and XCUSD 2
+    // are thin, GBPUSD has no verdict), which must also take the
+    // round-33 all-excluded REFUSAL, not print "0 of 0 markets flagged"
+    // — and --report cannot suppress it (finding 1).
+    assert.throws(
+      () =>
+        execFileSync(
+          "npx",
+          [
+            "--no-install",
+            "tsx",
+            "scripts/starvation-audit.ts",
+            log,
+            "--min-reached",
+            "1e2",
+            "--report",
+          ],
+          { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+        ),
+      (error: unknown) => {
+        const failed = error as { stderr?: string; stdout?: string };
+        const stderr = String(failed.stderr ?? "");
+        return (
+          /every market fell outside the judged denominator/.test(stderr) &&
+          /2 thin sample below 100 reached; 1 no verdict — zero geometry denominator/
+            .test(stderr) &&
+          !/no such file/i.test(stderr) &&
+          !/markets flagged/.test(String(failed.stdout ?? ""))
+        );
+      },
+      "floor 100 excludes every market — the gate must refuse, with the " +
+        "flag value consumed as a value rather than opened as a path",
+    );
+  });
+
+  // #364 round 33, finding 1: a table that PARSES cleanly but leaves
+  // the judged denominator at zero — every market thin-sample or
+  // no-verdict at the DEFAULT floor — must refuse rather than print
+  // "0 of 0 markets flagged" and exit 0, the exact false green the
+  // zero-row rule closed for unparsable tables (round 20). This is the
+  // bounded-pilot shape over sparse floorless classes: the run whose
+  // green matters most.
+  it("the audit refuses a roster whose every market is thin or no-verdict — executed", () => {
+    const dir = mkdtempSync(join(tmpdir(), "starv-allex-"));
+    const log = join(dir, "sweep.log");
+    writeFileSync(
+      log,
+      [
+        "symbol variant split decisions sessionBlk newsBlk notWarm " +
+        "regimeBlk noConsensus planRejected unresolv belowConf " +
+        "belowPayoff dataAbsent setups",
+        // No verdict: every emitted setup carries the marker, geometry
+        // killed nothing (reached 0).
+        "GBPUSD baseline test 20 0 0 0 0 0 0 0 0 0 20 20",
+        // Thin at the default floor: reached 2 (< 30), both killed.
+        "XCUSD baseline test 20 3 3 0 2 2 1 2 0 1 6 6",
+        "",
+      ].join("\n"),
+    );
+    assert.throws(
+      () =>
+        execFileSync(
+          "npx",
+          ["--no-install", "tsx", "scripts/starvation-audit.ts", log, "--report"],
+          { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+        ),
+      (error: unknown) => {
+        const failed = error as { stderr?: string; stdout?: string };
+        const stdout = String(failed.stdout ?? "");
+        return (
+          /every market fell outside the judged denominator \(1 thin sample below 30 reached; 1 no verdict — zero geometry denominator\)/
+            .test(String(failed.stderr ?? "")) &&
+          // The per-market table still prints — the causes are the
+          // evidence — but the false-green summary never does.
+          /XCUSD\s+20\s+2\s+1\s+1\s+0%\s+thin sample/.test(stdout) &&
+          !/markets flagged/.test(stdout)
+        );
+      },
+      "a gate that judged nothing must refuse even under --report",
+    );
   });
 
   // #364 round 19, finding 1: the capture-all refusal is a GUARD, not
