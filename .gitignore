@@ -16,3 +16,11 @@ test-results
 .superpowers/
 .calibration-cache/
 .minute-bank/
+
+# Whole copies of this repository, created by isolated agent runs. A
+# machine-local .git/info/exclude may also cover these, but that file
+# never travels with a clone — and an unignored full repo copy in the
+# working tree is the largest possible version of the incident recorded
+# in docs/HANDOFF.md §6b-i, where `git add -A` swept a background
+# agent's edit into a commit.
+.claude/worktrees/

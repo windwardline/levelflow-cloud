@@ -736,6 +736,45 @@ layer.
   so the branch is pinned at source rather than by string-matching a
   template.
 
+  Round 48 closed the identity's durability, which was the deeper
+  version of the same problem. `corpusId` is a hash of `conditionsOf`,
+  and `conditionsOf` is a GROWING statement of what one measurement is
+  — amended three times inside this PR alone. The id was both the
+  ledger's FILENAME and its entry key, so every amendment silently
+  orphaned every read already recorded: the file was never opened and
+  its key matched nothing, on the next amendment, by construction. Only
+  the original per-shard-path form survived, because its name carries
+  no id and its key is a shard hash. The scan is now widened across
+  identities and not merely locations — every `.jsonl` in the ledger
+  directory is read rather than the one name today's identity computes,
+  the retired per-directory form is globbed rather than named, and an
+  entry matches if it shares ANY shard hash with the read being
+  attempted, which is a fact about the shard files that no amendment
+  can move. The entry also records the identity's payload beside its
+  hash, and the refusal says when it matched that way, so an operator
+  is not left facing a hash that no longer reproduces. Exposure was
+  nil — the directory held only its README and the PR is unmerged —
+  which is exactly why it was worth fixing before a read existed to
+  lose.
+
+  Two records were corrected rather than extended. The ledger README
+  still described the retired anchor-and-days identity, including the
+  claim that a re-sweep does not collide with the corpus it replaces —
+  the opposite of the decision round 47 made. It now states the
+  identity as it is, names both exclusions with their residues, and
+  says plainly that a same-depth re-sweep DOES collide and will demand
+  an acknowledgement. The `symbols` exclusion's residue is now stated
+  at the code site too: two sweeps over different symbol populations
+  sharing every other term resolve to one identity, so the first read
+  refuses the second's first read — conservative, and taken knowingly.
+  And `.claude/worktrees/` is now in `.gitignore`. The ESLint ignore
+  added in round 47 justified itself with "git already excludes the
+  path", which rested on a `.git/info/exclude` entry — true on the
+  machine that wrote it, false of the repository, since that file never
+  travels with a clone. Silencing lint over a directory holding whole
+  copies of this repository is only safe once git refuses to stage them
+  on any checkout, given §6b-i.
+
   Round 46 closed the ledger work and caught something that was not
   ledger work at all. **`familyPairedP` had lost its family-wise max-T
   control**: the permutation loop's maximum across the floor-clearing

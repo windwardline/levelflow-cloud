@@ -14,8 +14,13 @@ export default tseslint.config(
       // whole COPIES of this repository, so linting them both duplicates
       // every file and breaks the TS parser outright — several candidate
       // tsconfig roots, no way to pick one. Same category as dist and
-      // node_modules: never source. Git already excludes the path; CI
-      // never sees one because it checks out fresh.
+      // node_modules: never source, and like them backed by a real
+      // .gitignore line (added alongside this one). The first version of
+      // this comment said "git already excludes the path" on the
+      // strength of a `.git/info/exclude` entry — true on the machine
+      // that wrote it and false of the repository, since that file never
+      // travels with a clone. Silencing lint here is only safe because
+      // git now refuses to stage the copy on any checkout.
       ".claude/worktrees",
     ],
   },

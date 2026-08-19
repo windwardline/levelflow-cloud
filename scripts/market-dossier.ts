@@ -15,6 +15,7 @@
 //   npx tsx scripts/market-dossier.ts --net <shards> --gross <shards> \
 //     --out docs/research/market-review-2026-08-11/dossiers.json
 import { readFileSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
   ENGINE_DECLINED_MARKETS,
   getAssetType,
@@ -87,7 +88,7 @@ function spansFrom(paths: string[]) {
 }
 
 /** Every cell's per-fold accumulation, so a market's ALTERNATIVES are visible too. */
-function collect(
+export function collect(
   paths: string[],
   spans: Map<string, { first: number; last: number }>,
   thresholdOf: (symbol: string) => number,
@@ -118,10 +119,25 @@ function collect(
       const r = Number(row.realizedR);
       if (!span || !Number.isFinite(time) || !Number.isFinite(r)) return;
       let variant = row.variant ?? "baseline";
-      // The grid opened the confidence gate; the SHIPPED engine gates at
-      // the market's own threshold, so the baseline cell is read the way
-      // production actually reads it and recorded under its own name.
-      if (variant === BASELINE || variant === "baseline") {
+      // The grid's PINNED threshold-0 cell opened the confidence gate;
+      // the SHIPPED engine gates at the market's own threshold, so that
+      // cell — and only that cell — is re-read the way production reads
+      // it and recorded under its own name.
+      //
+      // The bare-baseline cell (grid entry `{}`) must NOT join it. `{}`
+      // applies no override, so the engine already gated those rows at
+      // the market's shipped threshold: they are the SAME decision
+      // points this branch reconstructs from the threshold-0 cell, and
+      // folding both into one accumulator counted every outcome TWICE.
+      // stats() then computed n, expectancy, se and the 95% interval
+      // over the duplicated sample — se understated by a factor of √2,
+      // so every published interval was about 29% narrower than the
+      // data supports, and markets below the MIN_FILLED floor cleared
+      // it on a doubled n. The signature in the shipped
+      // docs/research/market-review-2026-08-11/dossiers-net.json is
+      // conclusive: all 48 non-zero n on this pseudo-cell are EVEN,
+      // against 82 even / 62 odd across every other variant.
+      if (variant === BASELINE) {
         const score = Number(row.confidenceScore);
         if (Number.isFinite(score) && score >= thresholdOf(symbol)) {
           variant = "SHIPPED (baseline at class threshold)";
@@ -294,4 +310,11 @@ function main() {
   );
 }
 
-main();
+// Run only as a binary, never on import — the grid-totalr pattern. Until
+// now this file executed main() at import time, so the only coverage it
+// could carry was a source pin, which is why a sample-doubling fold
+// survived in a shipped reader. collect() is exported so the join it
+// performs can be tested against a real two-cell corpus.
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main();
+}

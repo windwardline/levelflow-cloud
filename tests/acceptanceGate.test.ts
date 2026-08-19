@@ -1557,6 +1557,59 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.deepEqual(readdirSync(confirmLogDir).length, 1);
   });
 
+  // #364 round 48, finding 2: corpusId is sha256Hex(conditionsOf(...)),
+  // and conditionsOf is a GROWING statement of what one measurement is —
+  // this PR amended it three times. The id was both the filename and the
+  // entry key, so a read recorded under a previous identity went
+  // unreachable on both halves at once, which is the "recorded read
+  // lost" outcome the file calls unaffordable, arriving by construction
+  // on the next amendment. The scan now reads every file in the ledger
+  // directory and matches on a shard-hash overlap, which no amendment to
+  // conditionsOf can move.
+  it("still refuses when the recorded read was filed under an older corpus identity", async () => {
+    const corpus = foldedShard("EURUSD");
+    const confirmLogDir = mkdtempSync(join(tmpdir(), "gate-identity-"));
+    const first = await gradeCorpus([corpus], {
+      confirmFinal: true,
+      confirmLogDir,
+      permutations: 100,
+      seed: 4,
+    });
+    assert.equal(first.confirmRead, true);
+
+    // Rewrite the recorded entry the way a FUTURE amendment to
+    // conditionsOf would leave it: filed under a corpus hash this
+    // build can no longer compute, in a file named for that dead hash.
+    // Nothing about the shards changed — only the definition did.
+    const [ledgerName] = readdirSync(confirmLogDir);
+    const recorded = JSON.parse(
+      readFileSync(join(confirmLogDir, ledgerName), "utf8").trim(),
+    ) as { corpusHash: string; shardHashes: string[] };
+    const stale = "0".repeat(64);
+    assert.notEqual(recorded.corpusHash, stale);
+    rmSync(join(confirmLogDir, ledgerName));
+    writeFileSync(
+      join(confirmLogDir, `${stale}.jsonl`),
+      JSON.stringify({ ...recorded, corpusHash: stale }) + "\n",
+    );
+
+    await assert.rejects(
+      gradeCorpus([corpus], {
+        confirmFinal: true,
+        confirmLogDir,
+        permutations: 100,
+        seed: 4,
+      }),
+      (error: Error) => {
+        assert.match(error.message, /has already been read 1 time\(s\)/);
+        // …and it says WHY it still matched, so the operator is not left
+        // wondering how a hash that does not reproduce was found.
+        assert.match(error.message, /identity's definition has changed/);
+        return true;
+      },
+    );
+  });
+
   // #364 round 46, finding 3: feeding --confirm-log-dir to BOTH halves
   // made the test hatch an unrecorded bypass rather than a relocation —
   // a corpus already recorded in the repository's own ledger opened

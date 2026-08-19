@@ -58,6 +58,7 @@ import {
   appendFileSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
 } from "node:fs";
 
@@ -954,6 +955,17 @@ export async function gradeCorpus(
   // to make expensive. symbols deliberately stays out: the union
   // differs between a full read and a subset, so including it would
   // undo round 44's whole point.
+  //
+  // That exclusion's own residue, stated (#364 round 48, smaller):
+  // two sweeps over DIFFERENT symbol populations sharing every other
+  // term — a focused 40-symbol run and the 97-symbol roster run at one
+  // version, clock, conditions, depth, grid and fold spec — resolve to
+  // one identity and one ledger file, so reading the first refuses the
+  // second's FIRST read. Conservative, and taken knowingly: a false
+  // refusal costs one logged acknowledgement, where including symbols
+  // to separate them would reintroduce the missed refusal. The re-run
+  // case above is not this case, and the earlier comment covered only
+  // the former.
   const corpusId = sha256Hex(firstConditions);
   const held = options.includeHoldout
     ? new Set<string>()
@@ -1073,13 +1085,46 @@ export async function gradeCorpus(
     // The redirect keeps its write, so a test still cannot append to
     // the record, and a temp corpus has no entry under the canonical
     // id to find.
+    // The scan is widened across IDENTITIES, not only locations (#364
+    // round 48, finding 2). corpusId is `sha256Hex(conditionsOf(...))`,
+    // and conditionsOf is a GROWING statement of what one measurement
+    // is — this PR alone amended it three times (round 7 added
+    // conditions and the curve, round 8 narrowed the curve, round 47
+    // added days). Every amendment changes the id, and the id was both
+    // the FILENAME and the entry key, so a read recorded under a
+    // previous identity became unreachable on both halves at once:
+    // the file was never opened, and its key matched nothing. Only the
+    // ORIGINAL per-shard-path form survived, because its name carries
+    // no id and its key is a shard hash. That is the "recorded read
+    // lost" outcome this block calls unaffordable, arriving by
+    // construction on the next amendment rather than by accident —
+    // and conditionsOf will grow again for R1c and R2.
+    //
+    // So: every file in the canonical directory is read rather than one
+    // computed name (it is a tracked directory of a handful of lines),
+    // the retired per-directory form is globbed rather than named, and
+    // the match below adds a shard-hash overlap test, which is
+    // identity-independent by construction. Exposure today is nil —
+    // the directory holds only its README and the PR is unmerged — so
+    // this is the one moment it can be fixed for free.
+    const jsonlIn = (dir: string, prefix = ""): string[] => {
+      if (!existsSync(dir)) return [];
+      return readdirSync(dir)
+        .filter((name) => name.startsWith(prefix) && name.endsWith(".jsonl"))
+        .sort()
+        .map((name) => join(dir, name));
+    };
     const priorLogPaths = [
       canonicalLedgerPath,
-      defaultLedgerPath,
+      // Every ledger file in whichever directory this read files into,
+      // and in the repository's own — not just the one name today's
+      // identity computes, which is the whole point of the widening.
+      ...jsonlIn(dirname(canonicalLedgerPath)),
+      ...jsonlIn(DEFAULT_CONFIRM_LOG_DIR),
       ...(options.confirmLogPath ? [] : [
-        ...[...new Set(paths.map((path) => dirname(path)))].sort().map((dir) =>
-          join(dir, `confirm-log-${corpusId.slice(0, 12)}.jsonl`)
-        ),
+        ...[...new Set(paths.map((path) => dirname(path)))].sort().flatMap((
+          dir,
+        ) => jsonlIn(dir, "confirm-log-")),
         ...paths.map((path) => `${path}.confirm-log.jsonl`),
       ]),
     ].filter((path, index, all) => all.indexOf(path) === index);
@@ -1106,12 +1151,26 @@ export async function gradeCorpus(
         if (!line) continue;
         const entry = JSON.parse(line) as {
           corpusHash: string;
+          identity?: string;
           readAt?: string;
           readId?: string;
           shardHashes?: string[];
         };
         const byIdentity = entry.corpusHash === corpusId;
-        if (!byIdentity && !shardHashes.has(entry.corpusHash)) continue;
+        // A shard this read covers appearing in the entry's recorded
+        // population is the identity-independent match: shard hashes
+        // are stable facts about the shard files themselves, so they
+        // survive every amendment to conditionsOf. Two genuinely
+        // different sweeps cannot share one, since manifestHash covers
+        // the shard's own contents — an overlap means literally the
+        // same shard was in both reads.
+        const byShardOverlap = (entry.shardHashes ?? []).some((hash) =>
+          shardHashes.has(hash)
+        );
+        // …and the retired key form: the first version keyed each entry
+        // on a shard's own manifestHash.
+        const byRetiredKey = shardHashes.has(entry.corpusHash);
+        if (!byIdentity && !byRetiredKey && !byShardOverlap) continue;
         // One read is one entry; a readId repeated across the retired
         // per-directory ledgers is that read seen twice, not two reads.
         if (entry.readId) {
@@ -1132,7 +1191,13 @@ export async function gradeCorpus(
         priorEvidence.push(
           `${entry.readAt ?? "no timestamp"} in ${logPath} ` +
             `(matched by ${
-              byIdentity ? "corpus identity" : "a retired per-shard key"
+              byIdentity
+                ? "corpus identity"
+                : byRetiredKey
+                ? "a retired per-shard key"
+                : "a shard this read also covers, under a DIFFERENT corpus " +
+                  "identity — the identity's definition has changed since " +
+                  "that read"
             }; ${population})`,
         );
       }
@@ -1201,6 +1266,12 @@ export async function gradeCorpus(
   if (confirmRead) {
     const entry = JSON.stringify({
       corpusHash: corpusId,
+      // The identity's PAYLOAD, not just its hash (#364 round 48,
+      // finding 2). conditionsOf grows, so corpusId is a moving target;
+      // recording what it was computed over lets a later reader see
+      // which definition a read was filed under instead of facing an
+      // opaque hash that no longer reproduces.
+      identity: firstConditions,
       readAt: new Date().toISOString(),
       // One id per READ, so a record found twice across the retired
       // locations counts once (#364 round 44, finding 1).
