@@ -206,52 +206,58 @@ async function main() {
   // nightly top-up with the whole roster untouched, one layer earlier
   // than the mid-roster case round 9 removed. Sweep runs keep the throw.
   let treasuryRates: DatedTreasuryRow[] = [];
-  // #364 round 22, finding 1: a deterministic treasury chunk refusal
-  // under --warm-only exits red AFTER the bar survey, not before it.
+  // #364 rounds 22-23: any treasury INTEGRITY refusal under --warm-only
+  // exits red AFTER the bar survey, not before it — none of the four
+  // conditions condemns a bar store.
   let deferredTreasuryRefusal: Error | null = null;
   if (!args.discover) {
     try {
       treasuryRates = await loadTreasuryRates(args.cacheDir);
     } catch (error) {
       const message = (error as Error).message;
-      // #364 round 14, finding 1: tolerance is scoped by CAUSE, never by
-      // call site. cacheStoreUnreadable and cacheClockMismatch are
-      // store-integrity refusals the top-up script names must-stay-red
-      // (one a stand-down with its own operator instruction, one
-      // "deliberately NOT matched — a fresh, actionable regression") and
-      // both of its branches run only on a nonzero exit — swallowing
-      // them here would print "top-up complete" over a corrupt or
-      // wrong-clock store, the false green the script's own discipline
-      // forbids. They abort IMMEDIATELY: the same store discipline
-      // carries the bar series, so the warm itself is suspect.
-      if (
-        !args.warmOnly ||
-        /cacheStoreUnreadable|cacheClockMismatch/.test(message)
-      ) {
+      // The sweep path always throws — tolerance exists only for the
+      // survey (#364 round 13, smaller).
+      if (!args.warmOnly) {
         throw error;
       }
-      // #364 rounds 21-22: the round-20 chunk refusals are must-stay-red
-      // too — treasuryCoverageRefused (the constant asks deeper than the
-      // provider serves) and treasuryChunkHole (a zero-row week inside
-      // served coverage) are DETERMINISTIC, not transport, and the store
-      // never warms past them (the rolling store writes only after a
-      // successful fetch). Warned over, they'd leave "top-up complete"
-      // printing nightly over a store that never warms — and that
-      // permanent false green is the whole cost, not the refetch: the
-      // guard throws on the FIRST zero-row chunk, one request for a
-      // wrong constant, ~13 at most for a cold-store interior hole
-      // (#364 round 22, finding 2). But nothing under --warm-only
-      // CONSUMES treasuryRates (every consumer is behind !args.warmOnly)
-      // and a corpus-path refusal must not bind the survey path (round
-      // 9's law) — an immediate throw here killed the nightly bar
-      // top-up and rebuild step 2 at zero of 97 symbols, every night,
-      // for a cause that never self-heals. So the refusal DEFERS: the
-      // bar survey completes, then the run exits red after the table.
-      // (Round 9 declined collect-then-throw on the SWEEP path because
-      // simulation spends hours on a corpus already known dead; the
-      // survey spends nothing after its loop.) Only genuine transport
-      // failures reach the warn-and-continue below.
-      if (/treasuryCoverageRefused|treasuryChunkHole/.test(message)) {
+      // #364 round 14, finding 1 (rescoped rounds 21-23): tolerance is
+      // scoped by CAUSE, never by call site — and under --warm-only the
+      // cause splits INTEGRITY from TRANSPORT. Every integrity refusal
+      // this load can raise is must-stay-red: the chunk refusals
+      // (treasuryCoverageRefused — the constant asks deeper than the
+      // provider serves; treasuryChunkHole — a zero-row week inside
+      // served coverage) are DETERMINISTIC and the store never warms
+      // past them (the rolling store writes only after a successful
+      // fetch), and the cache refusals mark a corrupt file or a
+      // condemned clock. Warned over, any of them would leave "top-up
+      // complete" printing nightly over a store that never warms — that
+      // permanent false green is the whole cost, not the refetch (the
+      // chunk guard throws on the FIRST zero-row chunk: one request for
+      // a wrong constant, ~13 at most for a cold-store interior hole —
+      // #364 round 22, finding 2). But NONE of the four says anything
+      // about the BAR stores (#364 round 23, finding 2):
+      // cacheStoreUnreadable is per FILE — readStore raises it for
+      // treasury-rates.rolling.json alone — and this store rides
+      // CALENDAR_CLOCK while every bar store rides BAR_CLOCK, so a
+      // calendar-clock bump condemns the curve with the bars correct
+      // under the current normalizer. And nothing under --warm-only
+      // CONSUMES treasuryRates (every consumer is behind
+      // !args.warmOnly). So ALL FOUR DEFER rather than abort: the bar
+      // survey completes, then the run exits red after the table — the
+      // top-up script's branches run on the nonzero exit and grep
+      // these tokens ahead of its 429 stand-down (#364 round 23,
+      // finding 1: with the deferral, a blackout-era roster 429 shares
+      // the output and would otherwise downgrade the refusal to a
+      // stand-down), while the roster keeps its warm instead of dying
+      // at zero of 97 symbols for conditions the bar stores don't
+      // have. (Round 9 declined collect-then-throw on the SWEEP path
+      // because simulation spends hours on a corpus already known
+      // dead; the survey spends nothing after its loop.) Only genuine
+      // transport failures reach the warn-and-continue below.
+      if (
+        /cacheStoreUnreadable|cacheClockMismatch|treasuryCoverageRefused|treasuryChunkHole/
+          .test(message)
+      ) {
         deferredTreasuryRefusal = error as Error;
         console.warn(
           `treasury refusal deferred to end of survey — bars still warm, ` +

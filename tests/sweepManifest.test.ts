@@ -482,31 +482,24 @@ describe("the driver writes the manifest beside the emit", () => {
       /fetchTreasuryRates\(TREASURY_FETCH_START_MS\)/,
       "the driver and the door must share one requested start",
     );
-    // #364 round 13, smaller + round 14, finding 1: the survey path
-    // tolerates a Treasury PROVIDER failure, but the tolerance is
-    // scoped by CAUSE — store-integrity refusals re-throw immediately
-    // (the bar warm itself rides the same store discipline) so the
-    // top-up script's must-stay-red conditions can go red (both of its
-    // branches run only on a nonzero exit). #364 rounds 21-22: the
-    // deterministic chunk refusals are must-stay-red too, but they
-    // DEFER — nothing under --warm-only consumes the curve, so the
-    // bar survey completes and the run exits red after the table,
-    // instead of killing the nightly top-up and rebuild step 2 at
-    // zero of 97 symbols for a cause that never self-heals.
+    // #364 round 13, smaller + round 14, finding 1; rescoped rounds
+    // 21-23: the survey path tolerates a Treasury provider TRANSPORT
+    // failure (warn-and-continue), while EVERY integrity refusal —
+    // the per-file store tokens (the treasury store rides the
+    // calendar clock, so neither condemns a bar store) and the
+    // deterministic chunk tokens — exits red DEFERRED past the bar
+    // survey: the top-up script's must-stay-red grep runs on the
+    // nonzero exit while the roster keeps its warm, instead of dying
+    // at zero of 97 symbols for conditions the bar stores don't have.
     assert.match(
       script,
-      /\/cacheStoreUnreadable\|cacheClockMismatch\/\.test\(message\)/,
-      "store-integrity refusals must re-throw immediately under --warm-only",
-    );
-    assert.match(
-      script,
-      /\/treasuryCoverageRefused\|treasuryChunkHole\/\.test\(message\)/,
-      "the deterministic chunk refusals must be matched by token",
+      /\/cacheStoreUnreadable\|cacheClockMismatch\|treasuryCoverageRefused\|treasuryChunkHole\/\s*\n?\s*\.test\(message\)/,
+      "every treasury integrity refusal must be matched by token under --warm-only",
     );
     assert.match(
       script,
       /deferredTreasuryRefusal = error as Error;/,
-      "chunk refusals defer rather than abort the survey",
+      "integrity refusals defer rather than abort the survey",
     );
     const deferredThrow = script.indexOf("throw deferredTreasuryRefusal;");
     const tablePrint = script.indexOf("printTable(rows);");
@@ -517,7 +510,7 @@ describe("the driver writes the manifest beside the emit", () => {
     assert.match(
       script,
       /bar survey continues without it/,
-      "--warm-only must survive a Treasury PROVIDER outage",
+      "--warm-only must survive a Treasury provider TRANSPORT outage",
     );
     // #364 round 14, finding 2: the fetch counts parser-refused rows so
     // a hole refusal can distinguish "provider served nothing" from
@@ -531,6 +524,33 @@ describe("the driver writes the manifest beside the emit", () => {
       script,
       /headRow\.dateMs > TREASURY_FETCH_START_MS \+ 7 \* 86_400_000/,
       "the store-head refusal keeps requestedStartMs true by construction",
+    );
+  });
+
+  // #364 round 23, finding 1: the top-up script evaluates its branches
+  // in order on ONE captured $out, and the round-22 deferral means a
+  // deferred integrity token shares that output with whatever the
+  // roster walk threw — under the documented 429 blackout, a terminal
+  // roster 429 is the NORMAL companion, not a corner. Grepped after
+  // the 429 stand-down, a deterministic refusal would be downgraded
+  // to a quota stand-down (exit 0) forever; the must-stay-red grep
+  // therefore runs first, and this pin holds the order (the guard's
+  // own exit-1-never-0 shape is pinned in tests/cacheClock.test.ts).
+  it("the top-up script greps must-stay-red tokens before any stand-down", () => {
+    const sh = readFileSync("scripts/ops/daily-cache-topup.sh", "utf8");
+    const redGuard = sh.indexOf(
+      "grep -qE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole'",
+    );
+    const quotaStandDown = sh.indexOf("providerQuotaExhausted");
+    const clockStandDown = sh.indexOf("grep -q 'cacheClockMismatch'");
+    assert.ok(redGuard >= 0, "the must-stay-red guard must exist");
+    assert.ok(
+      quotaStandDown >= 0 && redGuard < quotaStandDown,
+      "must-stay-red tokens are checked before the 429 stand-down",
+    );
+    assert.ok(
+      clockStandDown >= 0 && redGuard < clockStandDown,
+      "must-stay-red tokens are checked before the clock stand-down",
     );
   });
 

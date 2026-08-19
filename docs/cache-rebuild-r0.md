@@ -121,21 +121,30 @@ second endpoint — which means a rebuild can finish green with the
 treasury store un-warmed. Before calling step 2 done, grep the log for
 `treasury top-up failed`; a hit means re-run once the endpoint recovers
 (cheap — the bar stores are already warm). Integrity refusals go red,
-as they must, in two shapes (#364 rounds 21–22): store-integrity
-(`cacheStoreUnreadable`, `cacheClockMismatch`) aborts IMMEDIATELY —
-the bar warm rides the same store discipline, so a step-2 run that
-dies this way warmed nothing and re-runs in full once the store is
-fixed — while the deterministic chunk refusals
-(`treasuryCoverageRefused`, `treasuryChunkHole`), which never
-self-heal, DEFER: the bar survey completes and the run exits red
-after the table, so a step-2 run ending this way has its bar stores
-warm and needs only the treasury fix plus a cheap re-run. (Warned
-over instead, these two would leave `top-up complete` printing
-nightly over a store that never warms — the cost is that false
-green, not the refetch, which the first-zero-row-chunk throw cuts to
-a request or two.) One blind spot to know: the survey path asserts
-nothing about a hole already PINNED in the store — that surfaces at
-the next sweep pre-flight or corpus read, never in the nightly log. Run it directly so the output
+as they must, with the roster's warm preserved (#364 rounds 21–23):
+every treasury integrity refusal — store (`cacheStoreUnreadable`,
+`cacheClockMismatch`) and chunk (`treasuryCoverageRefused`,
+`treasuryChunkHole`) — DEFERS under `--warm-only`: the bar survey
+completes, then the run exits red after the table. None of the four
+says anything about the bar stores — the store guard is per-file,
+and the treasury store is stamped `CALENDAR_CLOCK` while every bar
+store is `BAR_CLOCK` — so a step-2 run that ends this way has its
+bar stores warm and needs only the treasury fix plus a cheap
+re-run. (Warned over instead, these would leave `top-up complete`
+printing nightly over a store that never warms — the cost is that
+false green, not the refetch, which the first-zero-row-chunk throw
+cuts to a request or two. The nightly script also greps these
+tokens ahead of its 429 stand-down, so a blackout-era roster 429 in
+the same log cannot downgrade them to a stand-down.) Two blind
+spots to know: the survey path asserts nothing about a hole already
+PINNED in the store — that surfaces at the next sweep pre-flight or
+corpus read, never in the nightly log — and the economic calendar
+loads BEFORE the treasury curve with no tolerance at all (the
+carried R2 item), so a calendar-endpoint outage — or a
+`CALENDAR_CLOCK` bump, which condemns the calendar store first —
+still ends step 2 in its first seconds with zero symbols warmed; if
+step 2 dies instantly, check the calendar load first and re-run
+once it clears. Run it directly so the output
 streams (the launchd wrapper buffers everything until exit, which for a
 run this long reads as a hang):
 

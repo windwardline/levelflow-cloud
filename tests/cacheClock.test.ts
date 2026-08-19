@@ -105,8 +105,21 @@ describe("the store guard's refusals are loud and the ops jobs know their names"
     assert.match(topup, /grep -qE '\\\(429\\\)\|providerQuotaExhausted\|Too Many Requests' <<<"\$out"/);
     assert.match(topup, /rebuild per docs\/cache-rebuild-r0\.md/);
     // The actionable refusals must NOT be swallowed by a stand-down.
-    assert.doesNotMatch(topup, /grep[^\n]*cacheClockWitnessRefused/);
-    assert.doesNotMatch(topup, /grep[^\n]*cacheStoreUnreadable/);
+    // #364 round 23 turned this from absence into a positive shape: the
+    // driver now DEFERS treasury integrity refusals past the bar
+    // survey, so a blackout-era roster 429 can share $out with one of
+    // these tokens — grepped after the 429 branch, the refusal would be
+    // downgraded to a quota stand-down (exit 0) forever. So the tokens
+    // are grepped FIRST, into a branch that exits 1 and never 0 (the
+    // order relative to both stand-downs is pinned beside the driver's
+    // deferral pins in tests/sweepManifest.test.ts).
+    const redGuard = topup.indexOf(
+      "grep -qE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole'",
+    );
+    assert.ok(redGuard >= 0, "the must-stay-red guard must exist");
+    const guardBlock = topup.slice(redGuard, topup.indexOf("\nfi", redGuard));
+    assert.match(guardBlock, /exit 1/);
+    assert.doesNotMatch(guardBlock, /exit 0/);
   });
 
   it("the rebuild runbook stops the agent first, archives OUTSIDE the repo, and re-arms what it stopped", () => {

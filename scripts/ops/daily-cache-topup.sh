@@ -53,6 +53,22 @@ if [ "$rc" -eq 0 ]; then
   exit 0
 fi
 
+# Must-stay-red integrity refusals outrank every stand-down (#364 round
+# 23): the driver defers treasury integrity refusals past the bar
+# survey, so a terminal roster 429 can share this output with one of
+# these tokens — and under the documented 429 blackout that pairing is
+# the NORMAL state. Grepped after the 429 branch, a deterministic
+# refusal would be downgraded to a quota stand-down (exit 0) forever —
+# the false green the tokens exist to prevent. Checked first for that
+# reason; exits 1, never 0. cacheClockMismatch is deliberately NOT
+# here: it keeps its own named stand-down below (the rebuild is its
+# one clearing action), and a treasury-origin mismatch defers in the
+# driver, so the bars still warm before that stand-down prints.
+if grep -qE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole' <<<"$out"; then
+  echo "$(date -u +%FT%TZ) top-up FAILED: integrity refusal in output (see above) — a co-occurring 429 does not stand this down"
+  exit 1
+fi
+
 # Herestrings, not printf|grep: under `set -o pipefail`, grep -q exiting
 # on an early match can SIGPIPE the printf and flip a legitimate
 # stand-down to red (#358 review).
@@ -66,14 +82,14 @@ fi
 # mixed-clock store, or a future BAR_CLOCK bump whose rebuild has not run
 # yet. Like the 429 branch, this is one named, proven condition whose one
 # clearing action is the deliberate rebuild in docs/cache-rebuild-r0.md.
-# Deliberately NOT matched: cacheClockWitnessRefused (a condemned witness
-# on a STAMPED store) and cacheStoreUnreadable (a corrupt store) — both
-# are fresh, actionable regressions and stay red. Same for the R1b
-# treasury chunk refusals (treasuryCoverageRefused, treasuryChunkHole):
-# deterministic fetch-integrity failures on which the driver exits red
-# even under --warm-only — deferred past the bar survey so the roster
-# still warms (#364 rounds 21-22) — so they reach this script red, as
-# they must.
+# The four must-stay-red integrity tokens (cacheClockWitnessRefused, a
+# condemned witness on a STAMPED store; cacheStoreUnreadable, a corrupt
+# store; and the R1b treasury chunk refusals treasuryCoverageRefused /
+# treasuryChunkHole) are matched ABOVE this branch and above the 429
+# stand-down — fresh, actionable regressions exit 1 there and can never
+# be stood down (#364 rounds 21-23). A treasury-origin cacheClockMismatch
+# defers in the driver, so this stand-down prints with the bars already
+# warmed.
 if grep -q 'cacheClockMismatch' <<<"$out"; then
   echo "$(date -u +%FT%TZ) STOOD DOWN: store clock does not match this build (pre-R0 store, or a BAR_CLOCK bump without its rebuild). NOT topped up and NOT usable — rebuild per docs/cache-rebuild-r0.md."
   exit 0

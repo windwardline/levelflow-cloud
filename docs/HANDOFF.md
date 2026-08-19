@@ -1168,17 +1168,22 @@ key. Sequenced after item 6's `init.sql` work.
   treasury store un-warmed, signalled by one `treasury top-up failed`
   warn line — the rebuild runbook's step 2 tells the operator to grep
   for it — while integrity refusals re-throw so the top-up script's
-  red stays honest: store-integrity
-  (`cacheStoreUnreadable`/`cacheClockMismatch`) re-throws immediately
-  (the bar warm rides the same store discipline), while the
-  deterministic round-20 chunk refusals
-  (`treasuryCoverageRefused`/`treasuryChunkHole`), which never
-  self-heal, exit red DEFERRED past the bar survey (#364 round 22) so
-  the roster still warms. Warned over instead, they would leave
-  `top-up complete` printing nightly over a store that never warms —
-  and that false green is the whole cost: the guard throws on the
-  first zero-row chunk, so the wasted refetch is a request or two,
-  never a quota problem (#364 round 22 corrected the round-21
+  red stays honest: every INTEGRITY refusal — store
+  (`cacheStoreUnreadable`/`cacheClockMismatch`) and chunk
+  (`treasuryCoverageRefused`/`treasuryChunkHole`) — exits red
+  DEFERRED past the bar survey, so the roster still warms: none of
+  the four condemns a bar store, because the store guard is per-file
+  and the treasury store rides `CALENDAR_CLOCK` against the bars'
+  `BAR_CLOCK` (#364 round 23 replaced round 22's same-discipline
+  rationale, which the two-clock split refuted). The top-up script
+  greps the must-stay-red tokens BEFORE its 429 stand-down: with the
+  deferral, a terminal roster 429 shares the output under the
+  documented blackout and would otherwise downgrade a deterministic
+  refusal to a stand-down at exit 0 (#364 round 23). Warned over
+  instead, `top-up complete` would print nightly over a store that
+  never warms — that false green is the whole cost: the guard throws
+  on the first zero-row chunk, so the wasted refetch is a request or
+  two, never a quota problem (#364 round 22 corrected the round-21
   quota-burn rationale).
 - **Watch `outcome-sync`'s `skippedForBudget` after the one-physics
   deploy** (#362 round-1 throughput note): E1's dual-series fetch means
