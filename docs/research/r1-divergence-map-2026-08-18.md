@@ -1013,6 +1013,52 @@ layer.
   stripped first, since those files legitimately discuss the sweep's
   flags in prose.
 
+  **Rounds 54–55 finished the two laws and found what each one had been
+  hiding.** The flag law gained the half round 54 exposed: every numeric
+  dial refused through `Number.isFinite`, and `Number("")`, `Number(" ")`
+  and `Number("\t")` are all a finite **0**, while `""` is neither
+  `undefined` nor `--`-prefixed — so a blank token cleared BOTH guards and
+  the dial read zero in silence, reachable through `--min-n "$MIN_N"` with
+  the variable unset. `tokenFault` is now the one predicate for what a
+  faulty token is, shared by all seven readers exactly as `soleFlagIndex`
+  is for resolution, with the two message frames kept apart because
+  executed tests assert both wordings. Round 55 then separated the token's
+  SHAPE from the dial's DOMAIN: `--step ""` refused while `--step 0`
+  passed, and `stepBars: 0` makes `index += input.stepBars` never advance
+  while the bar slice is rebuilt every pass — a hang with no output in a
+  driver whose runs take hours, reached by an operator typing 0 for "a
+  decision on every bar". `num()` takes an optional domain carrying a
+  REQUIRED basis, checked against the default as well as the typed value,
+  and `--step`, `--days`, `--permutations` and the three sample floors all
+  carry one.
+
+  The empty-corpus law was corrected the same way, one round late: round
+  53 named a five-file population by hand, and the real one is the
+  **sixteen** scripts that open the one-clock door, three more of which
+  had no door at all. It is derived and EXECUTED now — each reader runs
+  with no corpus named and must exit non-zero **naming the corpus**, from
+  a temp directory, leaving the tracked tree unchanged. Each strengthening
+  paid immediately: the derived scan's first run caught `confirm-4d`
+  writing the tracked `4d-final-picks.json` from its candidates file
+  BEFORE validating it had a corpus, and the named-diagnosis assertion
+  caught `feasibility-4d`'s round-53 door sitting below its own candidates
+  read, so a corpus-less run died on `ENOENT: 4d-candidates.json` and told
+  the operator to find a file rather than to pass their shards.
+
+  The banner law is the third of the same shape. Sixteen tracked artifacts
+  under `docs/research/` carry an `INVALID` clock-defect banner; every one
+  is written by a script whose `--out` defaults to the path the banner
+  sits on, and every one of those writers emitted a fresh object with no
+  `INVALID` key — so a re-run silently retired the notice saying those
+  numbers must not be used to withdraw, defend or ship a market. Round 54
+  fixed that at ONE site by hand, in the same commit that corrected a
+  hand-picked population, and it split immediately: one invocation of
+  `confirm-4d` preserved the banner on `-final-picks.json` and stripped it
+  from `-confirm-read.json`, the artifact `market-dossier` and
+  `roster-expectancy-audit` read to find confirmed derived cells. All
+  eight write sites now go through `scripts/researchArtifact.ts`, with the
+  population derived and both exemptions verifying their own premise.
+
   One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus

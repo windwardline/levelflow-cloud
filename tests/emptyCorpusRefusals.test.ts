@@ -337,6 +337,34 @@ describe("every corpus reader refuses a run that names no corpus", () => {
         stderr.trim().length > 0,
         `${reader} refused silently — the refusal must say what was missing`,
       );
+      // "Says what was missing" is checked as SAYING WHAT WAS MISSING
+      // (#364 round 55, finding 3). The first version asserted only
+      // "exited non-zero, said something" — and the temp cwd above makes
+      // that gap live rather than theoretical: several readers resolve a
+      // cwd-relative default INPUT that cannot exist under a temp
+      // directory, so deleting market-dossier's corpus door would leave
+      // the run dying on `ENOENT: 4d-final-picks.json` — non-zero,
+      // non-empty stderr, suite GREEN — with the round-49 defect restored
+      // (a complete-looking 97-market dossier, every measurement null).
+      //
+      // Derived rather than a per-reader pattern table, which would be the
+      // curated list this whole scan exists to replace: the refusal must
+      // NAME the corpus, and must not be an incidental miss on some other
+      // default input.
+      assert.doesNotMatch(
+        stderr,
+        /ENOENT|no such file or directory/,
+        `${reader} refused by failing to open a DEFAULT INPUT, not by ` +
+          `naming its missing corpus — the corpus door is absent, or it ` +
+          `sits behind an input read. Both are the shape round 54 found ` +
+          `in confirm-4d`,
+      );
+      assert.match(
+        stderr,
+        /shard|corpus|emit|\.jsonl/i,
+        `${reader}'s refusal must name the corpus it did not get, so an ` +
+          `operator learns what to pass rather than what broke`,
+      );
     });
   }
 });

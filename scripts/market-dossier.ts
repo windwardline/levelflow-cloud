@@ -14,7 +14,7 @@
 //
 //   npx tsx scripts/market-dossier.ts --net <shards> --gross <shards> \
 //     --out docs/research/market-review-2026-08-11/dossiers.json
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   ENGINE_DECLINED_MARKETS,
@@ -31,6 +31,7 @@ import {
 import { getFuturesContractSpec } from "../supabase/functions/trade-analyzer/futures.ts";
 import { SECURITY_OPTIONS } from "../src/lib/symbolMap.ts";
 import { assertManifest, readLinesSync } from "./sweepStats.ts";
+import { writeResearchArtifact } from "./researchArtifact.ts";
 import { flagReader } from "./flagReader.ts";
 
 const BASELINE =
@@ -405,7 +406,7 @@ function main() {
     };
   }
 
-  writeFileSync(outPath, JSON.stringify({ dossiers }, null, 2) + "\n");
+  writeResearchArtifact(outPath, { dossiers });
   const inheritedOnly = Object.values(dossiers).filter((d) => {
     const p = (d as { provenance: Record<string, string> }).provenance;
     return Object.values(p).every((value) => value.startsWith("inherited"));

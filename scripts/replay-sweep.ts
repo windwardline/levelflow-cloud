@@ -1168,8 +1168,27 @@ export function parseArgs(argv: string[]): SweepArgs {
   // so it is hashed into the corpus identity and the LA-6 ledger key; it
   // also sets the provider fetch volume against the §21j ceiling. The
   // manifest records whatever it was, so the drift left no witness.
-  const days = daysArg === "max" ? MAX_DEPTH_DAYS : num("--days", 60);
-  const step = num("--step", 16);
+  const days = daysArg === "max" ? MAX_DEPTH_DAYS : num("--days", 60, {
+    basis:
+      "a sweep of zero or fractional days fetches nothing and is hashed " +
+      "into conditionsOf, so it becomes a corpus identity for a " +
+      "measurement that was never taken",
+    integer: true,
+    min: 1,
+  });
+  // #364 round 55, finding 2. Round 54 made `--step ""` a refusal; 0 is
+  // finite, so it passed. `index += input.stepBars` (sweep.ts:380) never
+  // advances at 0 while `primaryBars.slice(0, index + 1)` allocates every
+  // pass — a hang with no output, in a driver whose runs take hours — and
+  // an operator wanting a decision on EVERY bar types 0 rather than 1.
+  const step = num("--step", 16, {
+    basis:
+      "the stride advances the decision index; 0 never advances it and " +
+      "hangs the simulation, and a negative walks it backward until the " +
+      "bar slice empties",
+    integer: true,
+    min: 1,
+  });
   const gridSpec = str("--grid");
   const grid: Array<Partial<CategoryCalibration>> = [{}];
   if (gridSpec) {

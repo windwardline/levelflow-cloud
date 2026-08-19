@@ -15,9 +15,9 @@
 //
 //   npx tsx scripts/threshold-rescue.ts sweeps/4c/shard-*.jsonl \
 //     --markets EGLDUSD,ZCUSX,... --out docs/research/.../4d-threshold-rescue.json
-import { writeFileSync } from "node:fs";
 import { assertManifest, readLinesSync } from "./sweepStats.ts";
 import { flagReader } from "./flagReader.ts";
+import { writeResearchArtifact } from "./researchArtifact.ts";
 
 const MIN_FILLED = 30; // the same floor the market-unit gate uses
 
@@ -185,7 +185,7 @@ async function main() {
         `available".`,
     );
   }
-  writeFileSync(outPath, JSON.stringify({ minFilled: MIN_FILLED, report }, null, 2) + "\n");
+  writeResearchArtifact(outPath, { minFilled: MIN_FILLED, report });
   const rescued = Object.values(report).filter((entry) =>
     (entry as { rescue: unknown }).rescue !== null
   ).length;

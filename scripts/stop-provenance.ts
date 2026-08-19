@@ -50,7 +50,7 @@ const files = process.argv.slice(2);
 // under exit 0, which is exactly what a real corpus holding no qualifying
 // row also prints. The operator cannot tell "nothing qualified" from "I
 // forgot the shard path". Round 53 installed this law over a HAND-PICKED
-// five-file population; the population is derived in tests/sweepStats.ts's
+// five-file population; the population is derived in tests/emptyCorpusRefusals.test.ts's
 // scan now, the way the flag law's is.
 if (files.length === 0) {
   console.error(

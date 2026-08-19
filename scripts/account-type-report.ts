@@ -62,8 +62,10 @@ import {
 } from "./sweepStats.ts";
 import {
   describeNumericToken,
+  assertInDomain,
   soleFlagIndex,
   tokenFault,
+  type NumericDomain,
 } from "./flagReader.ts";
 
 const CLASSIFICATIONS: BrokerClassification[] = ["forex", "futures", "crypto"];
@@ -147,7 +149,11 @@ function pct(part: number, whole: number): string {
 // dial forgotten here fails every run at first read instead of shipping.
 const VALUE_FLAGS = new Set(["--min-filled"]);
 
-function num(arg: string, fallback: number): number {
+function num(
+  arg: string,
+  fallback: number,
+  domain?: NumericDomain,
+): number {
   if (!VALUE_FLAGS.has(arg)) {
     throw new Error(
       `num("${arg}") reads a value the path walker does not know owns ` +
@@ -156,7 +162,12 @@ function num(arg: string, fallback: number): number {
     );
   }
   const index = soleFlagIndex(process.argv, arg);
-  if (index === -1) return fallback;
+  if (index === -1) {
+    // The DEFAULT is checked too — a default outside its own
+    // dial's domain is a defect no operator would ever see.
+    if (domain !== undefined) assertInDomain(arg, fallback, domain);
+    return fallback;
+  }
   const token = process.argv[index + 1];
   const parsed = Number(token);
   const fault = tokenFault(token);
@@ -175,6 +186,7 @@ function num(arg: string, fallback: number): number {
         `corpus; pass ${arg} <number>`,
     );
   }
+  if (domain !== undefined) assertInDomain(arg, parsed, domain);
   return parsed;
 }
 
@@ -192,7 +204,13 @@ async function main(): Promise<void> {
   // finding 1): "--min-filled <emit.jsonl>" eats the corpus path as the
   // flag's value, and the specific refusal — naming the flag and the
   // eaten token — must win over the generic usage error it causes.
-  const minFilled = num("--min-filled", 300);
+  const minFilled = num("--min-filled", 300, {
+    basis:
+      "the EXCLUDE verdict is withheld below this many filled outcomes, and a floor of zero is not 'no floor' — it silently readmits " +
+      "the thin cells the floor exists to withhold",
+    integer: true,
+    min: 1,
+  });
   if (files.length === 0) {
     console.error("usage: account-type-report.ts <emit.jsonl> [more.jsonl ...]");
     process.exit(1);

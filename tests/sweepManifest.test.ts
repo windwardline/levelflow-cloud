@@ -23,6 +23,7 @@ import {
   treasuryGapTouching,
 } from "../scripts/sweepManifest.ts";
 import {
+  assertInDomain,
   describeNumericToken,
   describeToken,
   flagReader,
@@ -1075,11 +1076,12 @@ describe("the driver writes the manifest beside the emit", () => {
       [
         "scripts/flagReader.ts",
         "this file IS the law's implementation — it declares no flags of " +
-        "its own, and its four refusals (undeclared flag, missing or " +
-        "flag-shaped token, unparseable number, repeated flag) are pinned " +
-        "by executed tests below rather than by matching its own source " +
-        "against itself. The count is checked, so a fifth cannot arrive " +
-        "unexecuted.",
+        "its own, and its six refusals (undeclared flag, missing or " +
+        "flag-shaped token, unparseable number, repeated flag, and the two " +
+        "DOMAIN refusals added in round 55 — non-integer and below " +
+        "minimum) are pinned by executed tests below rather than by " +
+        "matching its own source against itself. The count is checked, so " +
+        "a seventh cannot arrive unexecuted.",
       ],
       [
         "scripts/fmpByteBudget.ts",
@@ -1109,9 +1111,17 @@ describe("the driver writes the manifest beside the emit", () => {
       .map((name) => `scripts/${name}`)
       .filter((file) => readsAFlagValue(readFileSync(file, "utf8")))
       .sort();
+    // TIGHT against the real count (#364 round 55, smaller). The floor
+    // stood at 7 against a population of 25, so a refactor moving argv
+    // handling behind a helper could have dropped eighteen files out of
+    // the law with this pin still green — which is the failure the
+    // derivation replaced a curated list to avoid. A floor one below the
+    // current count catches any drop; raise it with the population.
     assert.ok(
-      scriptFiles.length >= 7,
-      `the glob must find the readers, got ${scriptFiles.length}`,
+      scriptFiles.length >= 24,
+      `the glob must find the readers, got ${scriptFiles.length} — if a ` +
+        `refactor legitimately shrank the population, lower this floor in ` +
+        `the same commit and say which files left and why`,
     );
     for (const stale of LAW_EXEMPT.keys()) {
       assert.ok(
@@ -1156,7 +1166,7 @@ describe("the driver writes the manifest beside the emit", () => {
     const sharedReader = readFileSync("scripts/flagReader.ts", "utf8");
     assert.equal(
       [...sharedReader.matchAll(/throw new Error\(/g)].length,
-      4,
+      6,
       "flagReader's refusal count changed — update the exemption's " +
         "enumeration and add an executed test for the new refusal",
     );
@@ -1598,6 +1608,98 @@ describe("the driver writes the manifest beside the emit", () => {
       "scripts/grid-totalr.ts",
       ["never-opened.jsonl", "--permutations", ""],
       /--permutations owns the token after it and cannot read an EMPTY token/,
+    );
+  });
+
+  // #364 round 55, finding 2: the token's SHAPE and the dial's DOMAIN are
+  // different guards, and round 54 built only the first. `--step ""`
+  // refuses; `--step 0` is finite, so it passed — and `stepBars: 0` makes
+  // `index += input.stepBars` never advance while the bar slice is rebuilt
+  // every pass. A hang with no output, in a driver whose runs take hours,
+  // reached by an operator typing 0 for "a decision on every bar".
+  it("a dial's domain is a separate refusal from its token's shape", () => {
+    const positiveStride = {
+      basis: "0 never advances the index and hangs the simulation",
+      integer: true,
+      min: 1,
+    };
+    assert.equal(assertInDomain("--step", 16, positiveStride), undefined);
+    assert.throws(
+      () => assertInDomain("--step", 0, positiveStride),
+      /--step must be at least 1 and got 0 — 0 never advances the index/,
+    );
+    assert.throws(
+      () => assertInDomain("--step", -1, positiveStride),
+      /--step must be at least 1 and got -1/,
+    );
+    assert.throws(
+      () => assertInDomain("--step", 2.5, positiveStride),
+      /--step must be a whole number and got 2\.5/,
+    );
+
+    const declared = new Set(["--step"]);
+    assert.equal(
+      flagReader(["--step", "8"], declared).num("--step", 16, positiveStride),
+      8,
+    );
+    assert.throws(
+      () => flagReader(["--step", "0"], declared).num("--step", 16, positiveStride),
+      /--step must be at least 1/,
+    );
+    // The DEFAULT is checked against the domain too — a default outside
+    // its own dial's domain is a defect no operator would ever see, since
+    // the refusal otherwise fires only on what was typed.
+    assert.throws(
+      () => flagReader([], declared).num("--step", 0, positiveStride),
+      /--step must be at least 1 and got 0/,
+    );
+  });
+
+  it("the driver and the gate refuse an out-of-domain dial — executed", () => {
+    const refuses = (script: string, args: string[], pattern: RegExp) => {
+      assert.throws(
+        () =>
+          execFileSync("npx", ["--no-install", "tsx", script, ...args], {
+            cwd: process.cwd(),
+            encoding: "utf8",
+            env: { ...process.env, FMP_API_KEY: "placeholder-never-used" },
+            stdio: "pipe",
+            timeout: 120_000,
+          }),
+        (error: unknown) => {
+          assert.match(String((error as { stderr?: string }).stderr ?? ""), pattern);
+          return true;
+        },
+        `${script} must refuse the out-of-domain dial`,
+      );
+    };
+    // The hang itself, refused before any fetch.
+    refuses(
+      "scripts/replay-sweep.ts",
+      ["--symbols", "EURUSD", "--byte-budget", "1gb", "--step", "0"],
+      /--step must be at least 1 and got 0 — the stride advances the decision index/,
+    );
+    refuses(
+      "scripts/replay-sweep.ts",
+      ["--symbols", "EURUSD", "--byte-budget", "1gb", "--step", "-1"],
+      /--step must be at least 1 and got -1/,
+    );
+    refuses(
+      "scripts/replay-sweep.ts",
+      ["--symbols", "EURUSD", "--byte-budget", "1gb", "--days", "0"],
+      /--days must be at least 1 and got 0/,
+    );
+    // p = (1 + k) / (n + 1): at zero permutations every p is exactly 1 and
+    // the gate refuses every variant without saying why.
+    refuses(
+      "scripts/grid-totalr.ts",
+      ["never-opened.jsonl", "--permutations", "0"],
+      /--permutations must be at least 1 and got 0/,
+    );
+    refuses(
+      "scripts/sweep-analysis.ts",
+      ["--emit", "never-opened.jsonl", "--min-n", "0"],
+      /--min-n must be at least 1 and got 0/,
     );
   });
 

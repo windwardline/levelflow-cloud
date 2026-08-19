@@ -11,16 +11,18 @@
 // permutation, the 30-filled floor. Emits the candidate table the
 // feasibility join and the one confirm-final read consume — this script
 // never touches the confirm fold.
-import { writeFileSync } from "node:fs";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { gradeCorpus, type VariantVerdict } from "./grid-totalr.ts";
 import { assertManifest } from "./sweepStats.ts";
 import { stratifiedHoldout } from "./sweepFolds.ts";
+import { writeResearchArtifact } from "./researchArtifact.ts";
 import {
   describeNumericToken,
   describeToken,
+  assertInDomain,
   soleFlagIndex,
   tokenFault,
+  type NumericDomain,
 } from "./flagReader.ts";
 
 // The ONE declaration of which flags own the token after them (#364
@@ -88,7 +90,11 @@ async function main() {
     }
     return token;
   };
-  const num = (arg: string, fallback: number): number => {
+  const num = (
+    arg: string,
+    fallback: number,
+    domain?: NumericDomain,
+  ): number => {
     if (!VALUE_FLAGS.has(arg)) {
       throw new Error(
         `num("${arg}") reads a value outside VALUE_FLAGS — declare it ` +
@@ -96,7 +102,12 @@ async function main() {
       );
     }
     const index = soleFlagIndex(argv, arg);
-    if (index === -1) return fallback;
+    if (index === -1) {
+      // The DEFAULT is checked too — a default outside its own
+      // dial's domain is a defect no operator would ever see.
+      if (domain !== undefined) assertInDomain(arg, fallback, domain);
+      return fallback;
+    }
     const token = argv[index + 1];
     const parsed = Number(token);
     if (tokenFault(token) !== null || !Number.isFinite(parsed)) {
@@ -107,6 +118,7 @@ async function main() {
           `shard paths; pass ${arg} <number>`,
       );
     }
+    if (domain !== undefined) assertInDomain(arg, parsed, domain);
     return parsed;
   };
   const baselineVariant = str("--baseline") ?? "baseline";
@@ -155,7 +167,14 @@ async function main() {
     baselineVariant,
     includeHoldout: holdoutCycle || targetsFlag !== undefined,
     perMarketFolds,
-    permutations: num("--permutations", 1_000),
+    permutations: num("--permutations", 1_000, {
+    basis:
+      "a permutation p-value is (1 + #{at least as extreme}) / " +
+      "(permutations + 1), so zero permutations makes every p exactly 1 " +
+      "and the gate refuses every variant in silence",
+    integer: true,
+    min: 1,
+  }),
     seed: num("--seed", 7),
     symbolFilter,
     verdictUnit: "market",
@@ -195,7 +214,7 @@ async function main() {
     derivedAt: new Date().toISOString(),
     markets,
   };
-  writeFileSync(outPath, JSON.stringify(summary, null, 2) + "\n");
+  writeResearchArtifact(outPath, summary);
 
   const tuned = Object.values(markets).filter((m) => !m.measureOnly).length;
   const measureOnly = Object.values(markets).filter((m) =>

@@ -123,6 +123,49 @@ export function describeNumericToken(token: string | undefined): string {
   return `"${token}"`;
 }
 
+/**
+ * What values a dial may take, and WHY — the domain, not the token shape.
+ *
+ * Round 54 closed `--step ""` by refusing a blank token. `--step 0` walks
+ * straight past it (#364 round 55, finding 2): `Number.isFinite(0)` is
+ * true, so the shape guard has nothing to say, and `stepBars: 0` reaches
+ * `index += input.stepBars` in `sweep.ts`, which never advances while
+ * `primaryBars.slice(0, index + 1)` allocates a fresh copy every pass —
+ * unbounded in both time and memory, with no output and no exit. The route
+ * is not a typo: an operator wanting a decision on EVERY bar types 0 for
+ * "no skipping" rather than 1, and a bisect script computing `--step
+ * "$STEP"` is the other. `--step -1` is the loud mirror — the index walks
+ * backward, the slice empties and `history.at(-1)!` throws.
+ *
+ * `basis` is required, because a bound with no recorded reason is the
+ * thing this repo keeps having to re-derive. `MIN_EFFECTIVE_PAIRS` and
+ * `--min-reached` both carry theirs at the constant; a domain carries its
+ * own to the operator who trips it.
+ */
+export type NumericDomain = {
+  readonly min?: number;
+  readonly integer?: boolean;
+  readonly basis: string;
+};
+
+export function assertInDomain(
+  arg: string,
+  value: number,
+  domain: NumericDomain,
+): void {
+  if (domain.integer === true && !Number.isInteger(value)) {
+    throw new Error(
+      `${arg} must be a whole number and got ${value} — ${domain.basis}`,
+    );
+  }
+  if (domain.min !== undefined && value < domain.min) {
+    throw new Error(
+      `${arg} must be at least ${domain.min} and got ${value} — ` +
+        `${domain.basis}`,
+    );
+  }
+}
+
 export function flagReader(
   argv: readonly string[],
   valueFlags: ReadonlySet<string>,
@@ -151,9 +194,15 @@ export function flagReader(
 
   return {
     str: (arg: string): string | undefined => token(arg),
-    num: (arg: string, fallback: number): number => {
+    num: (arg: string, fallback: number, domain?: NumericDomain): number => {
       const raw = token(arg);
-      if (raw === undefined) return fallback;
+      // The DEFAULT is checked against the domain too. A default outside
+      // its own dial's domain is a defect nobody would ever see reported,
+      // since the refusal only fires on what an operator typed.
+      if (raw === undefined) {
+        if (domain !== undefined) assertInDomain(arg, fallback, domain);
+        return fallback;
+      }
       const parsed = Number(raw);
       if (!Number.isFinite(parsed)) {
         throw new Error(
@@ -162,6 +211,7 @@ export function flagReader(
             `without saying so; pass ${arg} <number>`,
         );
       }
+      if (domain !== undefined) assertInDomain(arg, parsed, domain);
       return parsed;
     },
   };

@@ -8,16 +8,19 @@
 // from candidates x feasibility BEFORE the confirm fold is opened, so the
 // held-back data can never influence the pick — it can only pass or fail
 // it. The confirm read runs once, per corpus hash, into the burned log.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { gradeCorpus } from "./grid-totalr.ts";
 import { stratifiedHoldout } from "./sweepFolds.ts";
 import { assertManifest } from "./sweepStats.ts";
+import { writeResearchArtifact } from "./researchArtifact.ts";
 import {
   describeNumericToken,
   describeToken,
+  assertInDomain,
   soleFlagIndex,
   tokenFault,
+  type NumericDomain,
 } from "./flagReader.ts";
 
 type Candidate = {
@@ -81,7 +84,11 @@ async function main() {
     }
     return token;
   };
-  const num = (arg: string, fallback: number): number => {
+  const num = (
+    arg: string,
+    fallback: number,
+    domain?: NumericDomain,
+  ): number => {
     if (!VALUE_FLAGS.has(arg)) {
       throw new Error(
         `num("${arg}") reads a value outside VALUE_FLAGS — declare it ` +
@@ -89,7 +96,12 @@ async function main() {
       );
     }
     const index = soleFlagIndex(argv, arg);
-    if (index === -1) return fallback;
+    if (index === -1) {
+      // The DEFAULT is checked too — a default outside its own
+      // dial's domain is a defect no operator would ever see.
+      if (domain !== undefined) assertInDomain(arg, fallback, domain);
+      return fallback;
+    }
     const token = argv[index + 1];
     const parsed = Number(token);
     if (tokenFault(token) !== null || !Number.isFinite(parsed)) {
@@ -101,6 +113,7 @@ async function main() {
           `${arg} <number>`,
       );
     }
+    if (domain !== undefined) assertInDomain(arg, parsed, domain);
     return parsed;
   };
   const baselineVariant = str("--baseline") ?? "baseline";
@@ -195,47 +208,23 @@ async function main() {
       variant: chosen.candidate.variant,
     };
   }
-  // An invalidation banner already on the artifact is CARRIED FORWARD,
-  // never dropped by a rewrite (#364 round 54). The shipped
-  // 4d-final-picks.json carries an "INVALID" key — the 2026-08-11 clock
-  // defect — and this writer emits no such key, so any re-run silently
-  // removed the notice saying these numbers must not be used to withdraw,
-  // defend or ship a market, from the file that names each market's
-  // variant. A banner is retired by whoever re-validates the corpus, by
-  // hand, with the reason recorded; it is not retired as a side effect of
-  // running the script again.
-  const picksPath = `${dir}/${prefix}-final-picks.json`;
-  const priorBanner = ((): string | undefined => {
-    try {
-      const prior = JSON.parse(readFileSync(picksPath, "utf8")) as {
-        INVALID?: unknown;
-      };
-      return typeof prior.INVALID === "string" ? prior.INVALID : undefined;
-    } catch {
-      return undefined;
-    }
-  })();
-  writeFileSync(
-    picksPath,
-    JSON.stringify(
-      {
-        ...(priorBanner === undefined ? {} : { INVALID: priorBanner }),
-        analyzerVersion: candidates.analyzerVersion,
-        capacityGated,
-        finalPicks,
-        frozenAt: new Date().toISOString(),
-      },
-      null,
-      2,
-    ) + "\n",
-  );
+  // Both writes go through the shared artifact writer, which carries any
+  // standing INVALID banner forward (#364 round 55, finding 1). Round 54
+  // found the banner erasure here and fixed it BY HAND, at this site only
+  // — so one invocation preserved the banner on -final-picks.json and
+  // stripped it from -confirm-read.json a hundred lines below, which is
+  // the artifact market-dossier and roster-expectancy-audit read to decide
+  // which markets carry a confirmed derived cell. A hand-picked fix, in
+  // the same commit that corrected a hand-picked population.
+  writeResearchArtifact(`${dir}/${prefix}-final-picks.json`, {
+    analyzerVersion: candidates.analyzerVersion,
+    capacityGated,
+    finalPicks,
+    frozenAt: new Date().toISOString(),
+  });
   console.log(
     `frozen: ${Object.keys(finalPicks).length} picks, ` +
-      `${capacityGated.length} capacity-gated -> ${prefix}-final-picks.json` +
-      (priorBanner === undefined
-        ? ""
-        : "\n  INVALID banner carried forward from the previous artifact — " +
-          "remove it by hand when the corpus behind it has been revalidated"),
+      `${capacityGated.length} capacity-gated -> ${prefix}-final-picks.json`,
   );
 
   // THE ONE READ. Confirm totals come back per market per accepted
@@ -265,7 +254,14 @@ async function main() {
     confirmLogDir: str("--confirm-log-dir"),
     includeHoldout: holdoutCycle || targetsFlag !== undefined,
     perMarketFolds,
-    permutations: num("--permutations", 1_000),
+    permutations: num("--permutations", 1_000, {
+    basis:
+      "a permutation p-value is (1 + #{at least as extreme}) / " +
+      "(permutations + 1), so zero permutations makes every p exactly 1 " +
+      "and the gate refuses every variant in silence",
+    integer: true,
+    min: 1,
+  }),
     seed: num("--seed", 7),
     symbolFilter,
     verdictUnit: "market",
@@ -375,31 +371,24 @@ async function main() {
   // fold was opened at that instant — round 43's finding at the reader
   // that matters. readAt is null when nothing was read, and the cause
   // rides beside it.
-  writeFileSync(
-    `${dir}/${prefix}-confirm-read.json`,
-    JSON.stringify(
-      {
-        confirmRead,
-        confirmReport,
-        confirmedNegative,
-        confirmedPositive,
-        gateCouldNotJudge,
-        missingVerdict,
-        notReadReason: confirmRead
-          ? null
-          : notReadCauses.length > 0
-          ? `nothing burned — ${notReadCauses.join("; ")}`
-          : "nothing burned — there were no frozen picks to confirm",
-        readAt: confirmRead ? new Date().toISOString() : null,
-        refusedByGate,
-        thin,
-        unevidenced,
-        unreadable,
-      },
-      null,
-      2,
-    ) + "\n",
-  );
+  writeResearchArtifact(`${dir}/${prefix}-confirm-read.json`, {
+    confirmRead,
+    confirmReport,
+    confirmedNegative,
+    confirmedPositive,
+    gateCouldNotJudge,
+    missingVerdict,
+    notReadReason: confirmRead
+      ? null
+      : notReadCauses.length > 0
+      ? `nothing burned — ${notReadCauses.join("; ")}`
+      : "nothing burned — there were no frozen picks to confirm",
+    readAt: confirmRead ? new Date().toISOString() : null,
+    refusedByGate,
+    thin,
+    unevidenced,
+    unreadable,
+  });
   console.log(
     (confirmRead
       ? `confirm read: ${confirmedPositive} picks positive, ` +

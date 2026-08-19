@@ -14,7 +14,7 @@
 // Both are reads of the SAME capture-all corpus: every decision is
 // present with its score, so a threshold is a filter, not a new
 // assumption.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   ENGINE_DECLINED_MARKETS,
@@ -23,6 +23,7 @@ import {
 import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import { assertManifest, readLinesSync } from "./sweepStats.ts";
 import { flagReader } from "./flagReader.ts";
+import { writeResearchArtifact } from "./researchArtifact.ts";
 
 const BASELINE =
   "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1,sizingHoursFactor=1";
@@ -242,10 +243,7 @@ async function main() {
     };
   }
 
-  writeFileSync(
-    outPath,
-    JSON.stringify({ report, tally }, null, 2) + "\n",
-  );
+  writeResearchArtifact(outPath, { report, tally });
   console.log(
     `roster expectancy: ${tally.measurablyPositive} positive, ` +
       `${tally.zeroSpanning} zero-spanning, ` +

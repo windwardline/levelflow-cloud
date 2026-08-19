@@ -31,9 +31,10 @@
 //                            published bill the market loses.
 //   gross confirm E  > 0  -> the negative rests on OUR modeled cost.
 //                            DO NOT withdraw; disclose the sensitivity.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { assertManifest, readLinesSync } from "./sweepStats.ts";
 import { flagReader } from "./flagReader.ts";
+import { writeResearchArtifact } from "./researchArtifact.ts";
 
 function spansFrom(paths: string[]): Map<string, { first: number; last: number }> {
   const spans = new Map<string, { first: number; last: number }>();
@@ -265,24 +266,17 @@ async function main() {
       verdict,
     };
   }
-  writeFileSync(
-    outPath,
-    JSON.stringify(
-      {
-        derivedAt: new Date().toISOString(),
-        note:
-          "INVALID — the 'gross' arm charged the same costs as the net arm. " +
-          "LEVELFLOW_MODELED_COST_SCALE never reaches the replay resolver " +
-          "(defect 1c, 2026-08-11), so this file measures nothing. Do not use " +
-          "these numbers to withdraw, defend, or ship a market. See " +
-          "docs/research/remediation-program-2026-08-11.md.",
-        summary: { costDependent, indistinguishable, unreadable, withdrawable },
-        verdicts,
-      },
-      null,
-      2,
-    ) + "\n",
-  );
+  writeResearchArtifact(outPath, {
+    derivedAt: new Date().toISOString(),
+    note:
+      "INVALID — the 'gross' arm charged the same costs as the net arm. " +
+      "LEVELFLOW_MODELED_COST_SCALE never reaches the replay resolver " +
+      "(defect 1c, 2026-08-11), so this file measures nothing. Do not use " +
+      "these numbers to withdraw, defend, or ship a market. See " +
+      "docs/research/remediation-program-2026-08-11.md.",
+    summary: { costDependent, indistinguishable, unreadable, withdrawable },
+    verdicts,
+  });
   console.log(
     `cost sensitivity: ${withdrawable} data-negative beyond error (decline), ` +
       `${costDependent} cost-dependent (keep), ${indistinguishable} indistinguishable from zero (keep), ` +

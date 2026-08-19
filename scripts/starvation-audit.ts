@@ -156,8 +156,10 @@
 import { readFileSync } from "node:fs";
 import {
   describeNumericToken,
+  assertInDomain,
   soleFlagIndex,
   tokenFault,
+  type NumericDomain,
 } from "./flagReader.ts";
 
 type Row = {
@@ -319,7 +321,11 @@ for (let i = 0; i < argv.length; i += 1) {
 // where withholding is the intent; the first deep sweep's
 // reached-geometry distribution may justify raising it, never lowering
 // it below the arithmetic here.
-function num(arg: string, fallback: number): number {
+function num(
+  arg: string,
+  fallback: number,
+  domain?: NumericDomain,
+): number {
   if (!VALUE_FLAGS.has(arg)) {
     throw new Error(
       `num("${arg}") reads a value the path walker does not know owns ` +
@@ -328,7 +334,12 @@ function num(arg: string, fallback: number): number {
     );
   }
   const index = soleFlagIndex(process.argv, arg);
-  if (index === -1) return fallback;
+  if (index === -1) {
+    // The DEFAULT is checked too — a default outside its own
+    // dial's domain is a defect no operator would ever see.
+    if (domain !== undefined) assertInDomain(arg, fallback, domain);
+    return fallback;
+  }
   const token = process.argv[index + 1];
   const parsed = Number(token);
   const fault = tokenFault(token);
@@ -350,9 +361,16 @@ function num(arg: string, fallback: number): number {
         `pass ${arg} <number>`,
     );
   }
+  if (domain !== undefined) assertInDomain(arg, parsed, domain);
   return parsed;
 }
-const minReached = num("--min-reached", 30);
+const minReached = num("--min-reached", 30, {
+    basis:
+      "the withhold fires on reached < minReached, and a floor of zero is not 'no floor' — it silently readmits " +
+      "the thin cells the floor exists to withhold",
+    integer: true,
+    min: 1,
+  });
 // Zero paths is the one invocation-level refusal; zero ROWS refuses per
 // file inside parse() (#364 rounds 20–21, finding 2 each), and both are
 // refusals rather than verdicts — --report cannot suppress either.

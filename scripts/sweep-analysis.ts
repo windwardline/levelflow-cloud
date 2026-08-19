@@ -30,8 +30,10 @@ import {
 import {
   describeNumericToken,
   describeToken,
+  assertInDomain,
   soleFlagIndex,
   tokenFault,
+  type NumericDomain,
 } from "./flagReader.ts";
 
 type Row = {
@@ -187,14 +189,23 @@ async function main(): Promise<void> {
     }
     return token;
   }
-  function num(arg: string, fallback: number): number {
+  function num(
+  arg: string,
+  fallback: number,
+  domain?: NumericDomain,
+): number {
     if (!VALUE_FLAGS.has(arg)) {
       throw new Error(
         `num("${arg}") reads a value outside VALUE_FLAGS — declare it there`,
       );
     }
     const index = soleFlagIndex(args, arg);
-    if (index === -1) return fallback;
+    if (index === -1) {
+      // The DEFAULT is checked too — a default outside its own
+      // dial's domain is a defect no operator would ever see.
+      if (domain !== undefined) assertInDomain(arg, fallback, domain);
+      return fallback;
+    }
     const token = args[index + 1];
     const parsed = Number(token);
     if (tokenFault(token) !== null || !Number.isFinite(parsed)) {
@@ -206,9 +217,16 @@ async function main(): Promise<void> {
           `every x, and x < 0 is false for every count; pass ${arg} <number>`,
       );
     }
+    if (domain !== undefined) assertInDomain(arg, parsed, domain);
     return parsed;
   }
-  const minN = num("--min-n", 30);
+  const minN = num("--min-n", 30, {
+    basis:
+      "the marker fires on stats.n < minN, and a floor of zero is not 'no floor' — it silently readmits " +
+      "the thin cells the floor exists to withhold",
+    integer: true,
+    min: 1,
+  });
   const emitPath = str("--emit");
   if (emitPath === undefined) {
     console.error("Usage: npx tsx scripts/sweep-analysis.ts --emit path.jsonl");

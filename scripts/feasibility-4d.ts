@@ -13,13 +13,14 @@
 // (market, accepted-candidate) — the sizing engine then answers per
 // program line. Nothing here reads the confirm fold's aggregates; the
 // pass collects execution geometry only.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { findBrokerInstrument } from "../src/lib/broker/instruments.ts";
 import { PROGRAM_LINES } from "../src/lib/broker/programs.ts";
 import { sizeSetup } from "../src/lib/broker/sizing.ts";
 import type { ProgramLine } from "../src/lib/broker/types.ts";
 import { assertManifest, readLinesSync } from "./sweepStats.ts";
 import { flagReader } from "./flagReader.ts";
+import { writeResearchArtifact } from "./researchArtifact.ts";
 
 type Candidate = {
   selectExpectancyDelta: number;
@@ -70,6 +71,29 @@ async function main() {
     "docs/research/baseline-2026-08-10/4d-candidates.json";
   const outPath = str("--out") ??
     "docs/research/baseline-2026-08-10/4d-feasibility.json";
+  // A run over zero rows cannot report a verdict — WIF-4, the law
+  // roster-expectancy-audit states at its own door and this file had no
+  // form of (#364 round 53, finding 2). It matters most HERE of the
+  // three: `feasibility` is a join whose consumers read an absent line as
+  // "the venue cannot size this cell", so an empty pass does not read as
+  // missing — it reads as INFEASIBLE EVERYWHERE, a false negative on
+  // every candidate, under a summary line ("feasibility for 0 markets")
+  // and an exit code that both say the run finished.
+  //
+  // ABOVE the candidates read (#364 round 55, finding 3). Round 53 put
+  // this door after it, so a run with no corpus died on `ENOENT:
+  // 4d-candidates.json` — non-zero and loud, but naming the wrong missing
+  // thing, and telling an operator to go find a file rather than to pass
+  // their shards. It is the same ordering defect round 54 found in
+  // confirm-4d, in a door added one round earlier, and the assertion that
+  // caught it is the one round 55 asked for.
+  if (paths.length === 0) {
+    throw new Error(
+      "feasibility-4d: no shard paths given. The geometry pass reads the " +
+        "corpus, and a join over zero rows reports every cell infeasible; " +
+        "pass the sweep shards explicitly.",
+    );
+  }
   const candidateFile = JSON.parse(
     readFileSync(candidatesPath, "utf8"),
   ) as CandidateFile;
@@ -85,21 +109,6 @@ async function main() {
     );
   }
 
-  // A run over zero rows cannot report a verdict — WIF-4, the law
-  // roster-expectancy-audit states at its own door and this file had no
-  // form of (#364 round 53, finding 2). It matters most HERE of the
-  // three: `feasibility` is a join whose consumers read an absent line as
-  // "the venue cannot size this cell", so an empty pass does not read as
-  // missing — it reads as INFEASIBLE EVERYWHERE, a false negative on
-  // every candidate, under a summary line ("feasibility for 0 markets")
-  // and an exit code that both say the run finished.
-  if (paths.length === 0) {
-    throw new Error(
-      "feasibility-4d: no shard paths given. The geometry pass reads the " +
-        "corpus, and a join over zero rows reports every cell infeasible; " +
-        "pass the sweep shards explicitly.",
-    );
-  }
   if (wanted.size === 0) {
     throw new Error(
       `feasibility-4d: ${candidatesPath} names no accepted candidate on any ` +
@@ -239,22 +248,15 @@ async function main() {
     }
   }
 
-  writeFileSync(
-    outPath,
-    JSON.stringify(
-      {
-        dailyLossDefaultPercent: DAILY_LOSS_DEFAULT_PERCENT,
-        derivedAt: new Date().toISOString(),
-        feasibility,
-        note:
-          "feasible = the §19 engine sizes at least one step at the line's " +
-          "smallest account within the published 3% default daily line, at " +
-          "the candidate's median stop geometry.",
-      },
-      null,
-      2,
-    ) + "\n",
-  );
+  writeResearchArtifact(outPath, {
+    dailyLossDefaultPercent: DAILY_LOSS_DEFAULT_PERCENT,
+    derivedAt: new Date().toISOString(),
+    feasibility,
+    note:
+      "feasible = the §19 engine sizes at least one step at the line's " +
+      "smallest account within the published 3% default daily line, at " +
+      "the candidate's median stop geometry.",
+  });
   console.log(
     `feasibility for ${Object.keys(feasibility).length} markets -> ${outPath}`,
   );

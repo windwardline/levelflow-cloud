@@ -58,8 +58,10 @@ import { stratifiedHoldout } from "./sweepFolds.ts";
 import {
   describeNumericToken,
   describeToken,
+  assertInDomain,
   soleFlagIndex,
   tokenFault,
+  type NumericDomain,
 } from "./flagReader.ts";
 import {
   appendFileSync,
@@ -1516,7 +1518,11 @@ async function main(): Promise<void> {
     }
     paths.push(args[i]);
   }
-  const num = (arg: string, fallback: number): number => {
+  const num = (
+    arg: string,
+    fallback: number,
+    domain?: NumericDomain,
+  ): number => {
     if (!VALUE_FLAGS.has(arg)) {
       throw new Error(
         `num("${arg}") reads a value outside VALUE_FLAGS — declare it ` +
@@ -1524,7 +1530,12 @@ async function main(): Promise<void> {
       );
     }
     const index = soleFlagIndex(args, arg);
-    if (index === -1) return fallback;
+    if (index === -1) {
+      // The DEFAULT is checked too — a default outside its own
+      // dial's domain is a defect no operator would ever see.
+      if (domain !== undefined) assertInDomain(arg, fallback, domain);
+      return fallback;
+    }
     const token = args[index + 1];
     const parsed = Number(token);
     if (tokenFault(token) !== null || !Number.isFinite(parsed)) {
@@ -1536,6 +1547,7 @@ async function main(): Promise<void> {
           `pass ${arg} <number>`,
       );
     }
+    if (domain !== undefined) assertInDomain(arg, parsed, domain);
     return parsed;
   };
   const str = (arg: string): string | undefined => {
@@ -1557,7 +1569,14 @@ async function main(): Promise<void> {
     }
     return token;
   };
-  const permutations = num("--permutations", 1_000);
+  const permutations = num("--permutations", 1_000, {
+    basis:
+      "a permutation p-value is (1 + #{at least as extreme}) / " +
+      "(permutations + 1), so zero permutations makes every p exactly 1 " +
+      "and the gate refuses every variant in silence",
+    integer: true,
+    min: 1,
+  });
   const seed = num("--seed", 7);
   const baselineVariant = str("--baseline");
   const confirmLogDir = str("--confirm-log-dir");
