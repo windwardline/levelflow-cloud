@@ -890,7 +890,14 @@ cold session reads to learn the blast radius.
 This repo's `AGENTS.md` now cites the fleet CONVERGE standard, and that
 citation became **deterministically enforced** the same night. The full
 continuation brief lives at **`CONTINUATION.md` in `windwardline/windwardline`**
-— read it before touching any fleet-wide document. What matters here:
+— read it before touching any fleet-wide document. **It is not on that repo's
+`main` yet**: it rides PR #76 on branch `claude/converge-enforcement`, because
+that PR must land AFTER the citation PRs (the checker reads `main`, so landing
+it first makes every repo report `converge-citation:absent` until its own
+citation merges). Until #76 merges, read it at
+`https://github.com/windwardline/windwardline/blob/claude/converge-enforcement/CONTINUATION.md`.
+Stated exactly rather than as a bare filename, because a pointer that does not
+resolve is the defect this session corrected in three repos. What matters here:
 
 - **PR #366 (this branch) carries three commits**, not one: the citation
   (`9a810fb`), the inlined delivery rules (`a255c5a`), and the workflow
