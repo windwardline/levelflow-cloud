@@ -853,18 +853,31 @@ state, not an interrupted one.
 **The rebuild itself did not move on 2026-08-20.** The session spent that
 time on the fleet-wide CONVERGE standard instead — see "The fleet standard,
 2026-08-20" below. R1c is still the next rebuild item and nothing is started
-on it. The changes to THIS repo are `AGENTS.md` and this file, merged in
-PR #366 (`73000d6`), described below. An earlier version of this sentence said
-"the only change is `AGENTS.md`" — false in the very commit that wrote it, since
-that commit also rewrote this block. Corrected because this is the sentence a
-cold session reads to learn the blast radius.
+on it. The day's work in THIS repo is **docs-only — `AGENTS.md` and this file**
+— across a sequence of squash-merged PRs beginning with #366; run
+`git log --oneline origin/main` to see which. Deliberately not enumerated: two
+earlier versions of this sentence named a closed set ("the only change is
+`AGENTS.md`", then "`AGENTS.md` and this file, merged in #366") and each was
+falsified by the very next commit that recorded it. This is the sentence a cold
+session reads to learn the blast radius, so it states the SHAPE of the change —
+which files, what kind — and leaves the count to git.
 
-- **main is at `73000d6`** — the CONVERGE citation and this record merged
-  (#366, squashed), on top of R1b (`19706e8`, #364, squashed). Working
-  branch `claude/rebuild-handoff-continuation-zlecqj` was **restarted from
-  `main`** under the merged-PR rule and now carries #367, the PR holding
-  this very block. Tree clean.
-- **2,474 tests, and all SEVEN gates green** — `check`, `lint`, `check:migrations`, `npm audit --audit-level=high`, `test`, `build`, `check:bundle`, in that order after `npm ci`. Named rather than counted because a count is not a checklist: this session ran six of them for fifty-odd rounds and reported "six gates green", which was an accurate count of what it ran and an under-count of what AGENTS.md requires. The omitted one was `npm audit`, and it passes clean.
+- **main carries R1b (#364), the CONVERGE citation, and this record** — in
+  that order, each squash-merged. **Run `git rev-parse --short origin/main`
+  for the current SHA; it is deliberately not written here.** This block
+  lives ON main, so any SHA it records for main is invalidated by the very
+  commit that records it — which is exactly what happened when an earlier
+  version pinned `73000d6` and then merged, making main `998dcff`. The
+  dead-SHA rule in the statistical-core fingerprint bullet below — the one
+  about `d0b9907` — applies to live pointers too: do not record a pointer whose
+  own recording moves it. Named rather than counted ("four bullets down" was
+  wrong by two when written), because an ordinal is itself a pointer that moves
+  the moment a bullet is inserted. `19706e8` (R1b) stays cited because
+  it is a merge commit on main and will resolve for as long as the history
+  does. Working branch `claude/rebuild-handoff-continuation-zlecqj` is reset
+  onto main after each merge, per the merged-PR rule. Tree clean.
+- **2,474 tests, and all SEVEN gates green** — `check`, `lint`, `check:migrations`, `npm audit --audit-level=high`, `test`, `build`, `check:bundle`, in that order after `npm ci`. Named rather than counted because a count is not a checklist: this session ran six of them across every round it drove and reported
+  "six gates green", which was an accurate count of what it ran and an under-count of what AGENTS.md requires. The omitted one was `npm audit`, and it passes clean.
 - **The statistical core's fingerprint is
   `e9ea8ecf2331d31109b5022054b515e00c75a287b138ba62577d167439ce42d8`** —
   sha256 over `familyPairedP`, `permutationPValue`, `mulberry32`,
@@ -877,8 +890,20 @@ cold session reads to learn the blast radius.
   merged and deleted, so unreferenced on the remote and GC-eligible. A
   standing instruction may not rest on a commit nothing references. The
   core as it stands shipped in `19706e8`.
-- **Next item is R1c**, the E4 correlation-collapse offline instrument.
-  Nothing is started on it; no scaffolding to inherit.
+- **Next item is R1c**, the E4 correlation-collapse offline instrument. Its
+  scope is in `docs/research/r1-divergence-map-2026-08-18.md`, the same map the
+  R1 rank-table row cites. Nothing is started on it; no scaffolding to inherit.
+  **What R0 does and does not block, stated because nothing said it before:**
+  R1c does not wait on R0 *to be built* — it is offline and R0 gates R3 onward
+  — but the map scopes it as "the collapse reader and its report, **doored and
+  population-pinned like every other reader**", and the R1 row above records
+  that corpora without a hashed `conditions` block refuse at the door. The only
+  corpus, `3b108f43d4c2`, predates that block and is condemned by the ⛔ STOP
+  section. So the instrument can be **written** today, independently of R0, and
+  it cannot **produce a reading** until R3's re-sweep yields a corpus its own
+  door accepts. The distinction is the whole point of this file: the 2026-08-11
+  clock defect is the case of a number produced from a corpus that should have
+  refused.
 - **R2b is new and its rank is load-bearing** — it must clear before R3
   opens, because R3 is the ONE re-sweep and R2b changes what should be
   measured.
@@ -903,12 +928,16 @@ resolve is the defect this session corrected in three repos. What matters here:
 - **PR #366 is MERGED as `73000d6`.** It carried three changes, not the one
   its body first described: the citation, the inlined delivery rules, and the
   workflow enumeration. The body was corrected before the merge, so `73000d6`'s
-  message describes all three. This branch is now #367, restarted from `main`.
+  message describes all three. **No PR number is recorded for the working
+  branch anywhere in this file** — it is reset onto `main` after each merge
+  and picks up a new number every time, so any number written here keeps
+  resolving and stops being true. `gh pr list --head
+  claude/rebuild-handoff-continuation-zlecqj` is the authority.
 
   Their individual commit SHAs are deliberately **not** recorded here. #366 was
   squash-merged and its branch deleted, so those commits are unreferenced on the
-  remote and GC-eligible — the same defect this file records four bullets above
-  about `d0b9907`, and a `git show` on any of them fails for a cold session. An
+  remote and GC-eligible — the same defect this file records in the
+  statistical-core fingerprint bullet, about `d0b9907`, and a `git show` on any of them fails for a cold session. An
   earlier version of this bullet cited all three; they were live when written and
   dead by the time it was read, which is the whole argument against citing them.
 - **`windwardline#76`** adds the enforcement: `scripts/fleet-conformance.sh`
@@ -947,8 +976,9 @@ itself draws on. Roughly FIFTY-SIX rounds ran on #364 over its life — this ses
 the last twelve (45–56), which is the window its reports described and
 not the total. The correction matters because this note is an arithmetic
 argument about a weekly budget: the first version understated the spend
-by about 4.7x, while the gate bullet three items above said "fifty-odd
-rounds" — two halves of one block disagreeing. They earned
+by about 4.7x. The gate bullet above no longer carries a round count at
+all: two halves of one block had disagreed, and the fix is to keep the
+arithmetic in one place rather than to make a second copy agree with it. They earned
 their cost (they
 caught a shipped regression, a NaN dial, a silent depth drift, a
 write-before-validate on a tracked artifact, and a test that executed
@@ -958,8 +988,109 @@ green CI without waiting for a tail-flat round, deliberately, on the
 owner's call: the review is advisory per AGENTS.md, and twelve rounds had
 never produced a flat one.
 
-Full detail and the reasons the order is load-bearing:
-`docs/research/remediation-program-2026-08-11.md`.
+#### Unresolved, recorded here so it is not lost — audited 2026-08-20
+
+An adversarial read of this file was run on 2026-08-20 with the single brief
+"find what it FAILS to carry." Each entry survived my own re-derivation and
+names the check that reproduces it. **Entries are as of the commit that wrote
+them.** Two are marked CLOSED or PARTLY CLOSED because the same commit that
+wrote them closed them — a register that records "X is missing" and then
+supplies X in the same diff is this file's own self-invalidating class one
+level up, so it is labelled rather than quietly rewritten, and the wrong
+version is kept visible so it cannot come back. Nothing below blocks building
+R1c; all of it is owed before this file can be called accurate.
+
+- **Five commits cited in §6b-i are unreferenced, and one cited at item 1g
+  does not exist at all.** The reproducible check, and the only one a cold
+  session can run, is `git cat-file -t <sha>`: on a fresh clone it fails
+  identically for all six — `36905a7`, `59cc4d9`, `6beac15`, `d0b9907`,
+  `28bcd7b` and `d947245`. **The dangling-versus-absent split below is an
+  observation from one clone, not a re-derivable fact**, and it is recorded that
+  way deliberately: `git for-each-ref --contains <sha>` returns `refs=0` for the
+  first five only on a machine that once held the #364 branch, and on any other
+  clone it errors with `malformed object name` rather than returning the empty
+  output an earlier version of this bullet claimed. In the clone that has them,
+  the first five are dangling objects and `d947245` (item 1g, the provenance of
+  `MEASURED_POPULATION_BY_ASSET_TYPE`) is absent outright. The
+  consequence is specific: §6b-i's blast-radius audit — the one record proving
+  an unattended agent did not corrupt the max-T null — states the statistical
+  core is "byte-identical" to `d0b9907`, and **no cold session can re-run that
+  comparison.** The fingerprint bullet in the resume block states the rule that
+  retires such a pointer; the rule was applied to one instance and the
+  population was never swept. **The discovery half is now done and the item is
+  cheaper than it reads:** every backticked 7-hex token in this file is one of
+  nine, and the split is exactly three live (`19706e8`, `73000d6`, `998dcff`)
+  against the six above, with nothing missed. Only the re-anchoring remains —
+  each dead pointer either re-anchored to a commit reachable from `main` or
+  replaced by a content hash.
+- **The statistical-core fingerprint is not reproducible from its own recipe.**
+  The hash appears exactly once in the tree (this file) and nothing computes
+  it — no hit in `scripts/`, `tests/`, `.github/`. The recipe does not
+  determine its inputs: in `scripts/grid-totalr.ts`, `accepted`/`thin` appear
+  both as type-field declarations and as expressions, and `MIN_EFFECTIVE_PAIRS`
+  appears eight times with no statement of which lines are in scope. "Re-verify
+  it on every change to that file" is therefore an unexecutable instruction,
+  and no gate fails if it is ignored. The fix is a script that emits the hash,
+  wired into `npm test` — a fingerprint no tool can recompute is a conclusion,
+  not a check.
+- **"2,474 tests" is a bare conclusion, and it disagrees with this file's own
+  other count.** The Tests cell in the "Live in production" table — named
+  rather than given as a line number, since an ordinal into an 1,800-line file
+  breaks on any insertion above it, which is the class the resume block sweeps
+  — says the count drifts every PR and that `npm test` is the authority. It
+  also says **2,178**, against the resume block's 2,474: a ~300 gap between two
+  cells of one file, which is the concrete demonstration the disclaimer needs
+  and neither cell makes. Treat `npm test` as the authority and delete both
+  figures, or stamp each with the commit it was measured at.
+- **PARTLY CLOSED — the ordering is in the resume block, not in the rank
+  table.** "Next item is R1c" and "R0's data half is still the critical path"
+  appeared as peers, with nothing saying whether R1c could proceed while R0 was
+  unrun. The resume block now states it, with the door qualification that
+  separates building the instrument from reading anything with it. **The
+  residue: the rank table still does not carry the ordering**, and the rank
+  table is what a session re-ranks against.
+- **CLOSED — R1c's scope pointer.** An earlier version of this bullet claimed
+  the file never names `docs/research/r1-divergence-map-2026-08-18.md`. False:
+  the R1 rank-table row names it. The narrowed residue — that the resume
+  block's "Next item is R1c" bullet did not carry it — was closed by the same
+  commit that wrote the narrowing. Kept as a closed entry because the claim
+  took two rounds to state correctly.
+- **Spec § numbers resolve across three files and this file names one.**
+  §17c/§17f/§17j/§17p are in `2026-07-30-levelflow-desk-design.md`;
+  §19/§19h/§20/§20i are in `2026-08-02-broker-sizing-governor-design.md`;
+  §21a–§21k are in `2026-08-16-fmp-consumption-governor-design.md` (named).
+  §17p is the reopening procedure for the parked desk — the single most
+  consequential pointer in the document — and a cold reader has six spec files
+  to guess among. Amendments 29–38 are framed as "the live standing approvals"
+  while amendments 19, 22, 24 and 25 are treated as binding in the body;
+  whether pre-29 amendments still bind is never stated.
+- **"Deployed" is a CONVERGE precondition with no meaning for the next three
+  items.** R1c is an offline instrument, R2b is a review round, and R0's data
+  half runs on the studio machine, not production. None has a production
+  surface. Say so in §6b rather than leaving a resuming session to hunt for a
+  verification that cannot exist.
+- **"The studio machine" is never defined** — not what it is, who has access,
+  nor how a session tells whether it is on one. It is the precondition of the
+  top-ranked blocked item.
+- **R0 carries a physical cleanup obligation that is not in the resume block.**
+  `docs/cache-rebuild-r0.md` §4 (re-arm the nightly top-up) and §5 (delete the
+  archive). An un-re-armed top-up silently stops banking minute bars against a
+  ~3-day irrecoverable window, and the condemned ~3.9 GB store sits as orphaned
+  state outside the repo. Highest-consequence "cleaned up" in the program,
+  connected to the phrase nowhere.
+- **This section is a summary, not the authority, for anything fleet-wide.**
+  `CONTINUATION.md` in `windwardline/windwardline` owns fleet state; where the
+  two differ, it governs. The fleet work is **NOT** finished — its own §6
+  records that "every new repo automatically held to the standard" is
+  aspiration, not fact. Do not read the paragraph above as a completion notice.
+
+#### The rebuild sequence itself — full detail
+
+Full detail on the R-ranked sequence above and the reasons its order is
+load-bearing: `docs/research/remediation-program-2026-08-11.md`. It documents
+the sequence and nothing else — in particular it holds none of the register
+entries above, which is why this line now carries its own heading rather than
+trailing them.
 
 #### R0's code half — landed 2026-08-18, hardened same day by the adversarial round
 
@@ -1676,7 +1807,7 @@ Protocols: branch off main, never commit to main, Conventional Commits,
 all SEVEN gates green before anything is called done — check, lint,
 check:migrations, npm audit --audit-level=high, test, build, check:bundle,
 named rather than counted because this session ran six of them for
-fifty-odd rounds while reporting "six gates green" — docs ride
+round after round while reporting "six gates green" — docs ride
 along in the same change set, `gh pr merge --squash --auto
 --delete-branch`, verify production after deploy, clean up branches.
 Report failures honestly with the output. Run to completion; do not stop
