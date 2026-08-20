@@ -900,11 +900,17 @@ citation merges). Until #76 merges, read it at
 Stated exactly rather than as a bare filename, because a pointer that does not
 resolve is the defect this session corrected in three repos. What matters here:
 
-- **PR #366 is MERGED as `73000d6`.** It carried three commits, not the one
-  its body first described: the citation (`9a810fb`), the inlined delivery
-  rules (`a255c5a`), and the workflow enumeration (`ceacf71`). The body was
-  corrected before the merge, so the merge record describes all three. This
-  branch is now #367, restarted from `main`.
+- **PR #366 is MERGED as `73000d6`.** It carried three changes, not the one
+  its body first described: the citation, the inlined delivery rules, and the
+  workflow enumeration. The body was corrected before the merge, so `73000d6`'s
+  message describes all three. This branch is now #367, restarted from `main`.
+
+  Their individual commit SHAs are deliberately **not** recorded here. #366 was
+  squash-merged and its branch deleted, so those commits are unreferenced on the
+  remote and GC-eligible — the same defect this file records four bullets above
+  about `d0b9907`, and a `git show` on any of them fails for a cold session. An
+  earlier version of this bullet cited all three; they were live when written and
+  dead by the time it was read, which is the whole argument against citing them.
 - **`windwardline#76`** adds the enforcement: `scripts/fleet-conformance.sh`
   now requires the citation and checks the cycle against a chain **derived
   from `FLEET.md` at run time**, never a literal in the script. Proven by
