@@ -853,8 +853,11 @@ state, not an interrupted one.
 **The rebuild itself did not move on 2026-08-20.** The session spent that
 time on the fleet-wide CONVERGE standard instead — see "The fleet standard,
 2026-08-20" below. R1c is still the next rebuild item and nothing is started
-on it. The only change to THIS repo is `AGENTS.md`, on the working branch in
-PR #366, described below.
+on it. The changes to THIS repo are `AGENTS.md` and this file, merged in
+PR #366 (`73000d6`), described below. An earlier version of this sentence said
+"the only change is `AGENTS.md`" — false in the very commit that wrote it, since
+that commit also rewrote this block. Corrected because this is the sentence a
+cold session reads to learn the blast radius.
 
 - **main is at `19706e8`** — R1b merged (#364, squashed). Working branch
   `claude/rebuild-handoff-continuation-zlecqj` is reset onto it, tree
@@ -1673,6 +1676,21 @@ one (amendment 37).
 ```
 
 ### 6b. CONVERGE — the one-word trigger, and its long form
+
+**Precedence, and what is NOT checked.** `FLEET.md` in `windwardline/windwardline`
+is the fleet standard and governs where it and any local copy differ — including
+this section. `scripts/fleet-conformance.sh` enforces that mechanically, but only
+against the one-line citation in `AGENTS.md`: it derives the cycle from `FLEET.md`
+at run time and requires each repo's contract to carry those steps in order.
+
+**It does not check the long form below.** So once that enforcement lands, the
+one-sentence summary is pinned to the standard and the eight-step prompt an agent
+actually executes is the only unpinned copy — a worse position than before
+enforcement existed, not a better one. Until that is closed, whoever edits the
+cycle in `FLEET.md` must edit this block in the same change set, by hand, and
+whoever edits this block must check it against `FLEET.md` first. Recorded rather
+than left implicit, because an unchecked copy that nobody knows is unchecked is
+the failure this whole effort exists to prevent.
 
 `CONVERGE` is defined inside the kickoff prompt as a standing command, so once a
 session has read it the single word is enough. The paste below is its long form:
