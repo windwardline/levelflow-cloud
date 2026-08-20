@@ -853,13 +853,17 @@ state, not an interrupted one.
 **The rebuild itself did not move on 2026-08-20.** The session spent that
 time on the fleet-wide CONVERGE standard instead — see "The fleet standard,
 2026-08-20" below. R1c is still the next rebuild item and nothing is started
-on it. The only change to THIS repo is `AGENTS.md`, on the working branch in
-PR #366, described below.
+on it. The changes to THIS repo are `AGENTS.md` and this file, merged in
+PR #366 (`73000d6`), described below. An earlier version of this sentence said
+"the only change is `AGENTS.md`" — false in the very commit that wrote it, since
+that commit also rewrote this block. Corrected because this is the sentence a
+cold session reads to learn the blast radius.
 
-- **main is at `19706e8`** — R1b merged (#364, squashed). Working branch
-  `claude/rebuild-handoff-continuation-zlecqj` is reset onto it, tree
-  clean, and no open PRs once #365 — the docs PR carrying this very
-  block — has merged.
+- **main is at `73000d6`** — the CONVERGE citation and this record merged
+  (#366, squashed), on top of R1b (`19706e8`, #364, squashed). Working
+  branch `claude/rebuild-handoff-continuation-zlecqj` was **restarted from
+  `main`** under the merged-PR rule and now carries #367, the PR holding
+  this very block. Tree clean.
 - **2,474 tests, and all SEVEN gates green** — `check`, `lint`, `check:migrations`, `npm audit --audit-level=high`, `test`, `build`, `check:bundle`, in that order after `npm ci`. Named rather than counted because a count is not a checklist: this session ran six of them for fifty-odd rounds and reported "six gates green", which was an accurate count of what it ran and an under-count of what AGENTS.md requires. The omitted one was `npm audit`, and it passes clean.
 - **The statistical core's fingerprint is
   `e9ea8ecf2331d31109b5022054b515e00c75a287b138ba62577d167439ce42d8`** —
@@ -887,12 +891,26 @@ PR #366, described below.
 This repo's `AGENTS.md` now cites the fleet CONVERGE standard, and that
 citation became **deterministically enforced** the same night. The full
 continuation brief lives at **`CONTINUATION.md` in `windwardline/windwardline`**
-— read it before touching any fleet-wide document. What matters here:
+— read it before touching any fleet-wide document. **It is not on that repo's
+`main` yet**: it rides PR #76 on branch `claude/converge-enforcement`, because
+that PR must land AFTER the citation PRs (the checker reads `main`, so landing
+it first makes every repo report `converge-citation:absent` until its own
+citation merges). Until #76 merges, read it at
+`https://github.com/windwardline/windwardline/blob/claude/converge-enforcement/CONTINUATION.md`.
+Stated exactly rather than as a bare filename, because a pointer that does not
+resolve is the defect this session corrected in three repos. What matters here:
 
-- **PR #366 (this branch) carries three commits**, not one: the citation
-  (`9a810fb`), the inlined delivery rules (`a255c5a`), and the workflow
-  enumeration (`ceacf71`). `main` is still `19706e8`. The PR body has been
-  corrected to describe all three.
+- **PR #366 is MERGED as `73000d6`.** It carried three changes, not the one
+  its body first described: the citation, the inlined delivery rules, and the
+  workflow enumeration. The body was corrected before the merge, so `73000d6`'s
+  message describes all three. This branch is now #367, restarted from `main`.
+
+  Their individual commit SHAs are deliberately **not** recorded here. #366 was
+  squash-merged and its branch deleted, so those commits are unreferenced on the
+  remote and GC-eligible — the same defect this file records four bullets above
+  about `d0b9907`, and a `git show` on any of them fails for a cold session. An
+  earlier version of this bullet cited all three; they were live when written and
+  dead by the time it was read, which is the whole argument against citing them.
 - **`windwardline#76`** adds the enforcement: `scripts/fleet-conformance.sh`
   now requires the citation and checks the cycle against a chain **derived
   from `FLEET.md` at run time**, never a literal in the script. Proven by
@@ -1673,6 +1691,21 @@ one (amendment 37).
 ```
 
 ### 6b. CONVERGE — the one-word trigger, and its long form
+
+**Precedence, and what is NOT checked.** `FLEET.md` in `windwardline/windwardline`
+is the fleet standard and governs where it and any local copy differ — including
+this section. `scripts/fleet-conformance.sh` enforces that mechanically, but only
+against the one-line citation in `AGENTS.md`: it derives the cycle from `FLEET.md`
+at run time and requires each repo's contract to carry those steps in order.
+
+**It does not check the long form below.** So once that enforcement lands, the
+one-sentence summary is pinned to the standard and the eight-step prompt an agent
+actually executes is the only unpinned copy — a worse position than before
+enforcement existed, not a better one. Until that is closed, whoever edits the
+cycle in `FLEET.md` must edit this block in the same change set, by hand, and
+whoever edits this block must check it against `FLEET.md` first. Recorded rather
+than left implicit, because an unchecked copy that nobody knows is unchecked is
+the failure this whole effort exists to prevent.
 
 `CONVERGE` is defined inside the kickoff prompt as a standing command, so once a
 session has read it the single word is enough. The paste below is its long form:
