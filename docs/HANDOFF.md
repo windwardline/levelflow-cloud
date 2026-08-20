@@ -948,6 +948,16 @@ resolve is the defect this session corrected in three repos. What matters here:
 - **Merge order is load-bearing.** Citation PRs first, then `windwardline#76`.
   The checker reads `main`, so landing #76 first makes every repo report
   `converge-citation:absent` until its own citation merges.
+- **Ownership, so nothing here waits on the wrong agent.** Everything in the
+  register above is the rebuild's and lands in this repo. Everything in this
+  fleet-standard section belongs to the standards work and is tracked in
+  `CONTINUATION.md` — including the four `AGENTS.md` defects below, which are
+  fleet-wide corrections that happen to land in this repo's contract, and
+  including this file's own §6b long-form CONVERGE prompt, which is a sixth
+  copy of the cycle that nothing pins (§6b says so itself) and which
+  `CONTINUATION.md` §2 now lists as a home the standard has to reach. Do not
+  fix those from this file: the populations are fleet-wide and a single-repo
+  edit is how an accurate contract elsewhere gets broken.
 - **Four defects in THIS repo's contract are recorded and unfixed.** All are
   in `AGENTS.md`, all verified against the workflow files:
   1. "a daily cron runs only the Headers live probe" is **false** —
