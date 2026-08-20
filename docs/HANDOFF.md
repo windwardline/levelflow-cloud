@@ -859,11 +859,17 @@ PR #366 (`73000d6`), described below. An earlier version of this sentence said
 that commit also rewrote this block. Corrected because this is the sentence a
 cold session reads to learn the blast radius.
 
-- **main is at `73000d6`** — the CONVERGE citation and this record merged
-  (#366, squashed), on top of R1b (`19706e8`, #364, squashed). Working
-  branch `claude/rebuild-handoff-continuation-zlecqj` was **restarted from
-  `main`** under the merged-PR rule and now carries #367, the PR holding
-  this very block. Tree clean.
+- **main carries R1b (#364), the CONVERGE citation, and this record** — in
+  that order, each squash-merged. **Run `git rev-parse --short origin/main`
+  for the current SHA; it is deliberately not written here.** This block
+  lives ON main, so any SHA it records for main is invalidated by the very
+  commit that records it — which is exactly what happened when an earlier
+  version pinned `73000d6` and then merged, making main `998dcff`. The
+  dead-SHA rule four bullets down applies to live ones too: do not record a
+  pointer whose own recording moves it. `19706e8` (R1b) stays cited because
+  it is a merge commit on main and will resolve for as long as the history
+  does. Working branch `claude/rebuild-handoff-continuation-zlecqj` is reset
+  onto main after each merge, per the merged-PR rule. Tree clean.
 - **2,474 tests, and all SEVEN gates green** — `check`, `lint`, `check:migrations`, `npm audit --audit-level=high`, `test`, `build`, `check:bundle`, in that order after `npm ci`. Named rather than counted because a count is not a checklist: this session ran six of them for fifty-odd rounds and reported "six gates green", which was an accurate count of what it ran and an under-count of what AGENTS.md requires. The omitted one was `npm audit`, and it passes clean.
 - **The statistical core's fingerprint is
   `e9ea8ecf2331d31109b5022054b515e00c75a287b138ba62577d167439ce42d8`** —
