@@ -853,11 +853,14 @@ state, not an interrupted one.
 **The rebuild itself did not move on 2026-08-20.** The session spent that
 time on the fleet-wide CONVERGE standard instead — see "The fleet standard,
 2026-08-20" below. R1c is still the next rebuild item and nothing is started
-on it. The changes to THIS repo are `AGENTS.md` and this file, merged in
-PR #366 (`73000d6`), described below. An earlier version of this sentence said
-"the only change is `AGENTS.md`" — false in the very commit that wrote it, since
-that commit also rewrote this block. Corrected because this is the sentence a
-cold session reads to learn the blast radius.
+on it. The day's work in THIS repo is **docs-only — `AGENTS.md` and this file**
+— across a sequence of squash-merged PRs beginning with #366; run
+`git log --oneline origin/main` to see which. Deliberately not enumerated: two
+earlier versions of this sentence named a closed set ("the only change is
+`AGENTS.md`", then "`AGENTS.md` and this file, merged in #366") and each was
+falsified by the very next commit that recorded it. This is the sentence a cold
+session reads to learn the blast radius, so it states the SHAPE of the change —
+which files, what kind — and leaves the count to git.
 
 - **main carries R1b (#364), the CONVERGE citation, and this record** — in
   that order, each squash-merged. **Run `git rev-parse --short origin/main`
@@ -865,8 +868,11 @@ cold session reads to learn the blast radius.
   lives ON main, so any SHA it records for main is invalidated by the very
   commit that records it — which is exactly what happened when an earlier
   version pinned `73000d6` and then merged, making main `998dcff`. The
-  dead-SHA rule four bullets down applies to live ones too: do not record a
-  pointer whose own recording moves it. `19706e8` (R1b) stays cited because
+  dead-SHA rule in the statistical-core fingerprint bullet below — the one
+  about `d0b9907` — applies to live pointers too: do not record a pointer whose
+  own recording moves it. Named rather than counted ("four bullets down" was
+  wrong by two when written), because an ordinal is itself a pointer that moves
+  the moment a bullet is inserted. `19706e8` (R1b) stays cited because
   it is a merge commit on main and will resolve for as long as the history
   does. Working branch `claude/rebuild-handoff-continuation-zlecqj` is reset
   onto main after each merge, per the merged-PR rule. Tree clean.
@@ -913,8 +919,8 @@ resolve is the defect this session corrected in three repos. What matters here:
 
   Their individual commit SHAs are deliberately **not** recorded here. #366 was
   squash-merged and its branch deleted, so those commits are unreferenced on the
-  remote and GC-eligible — the same defect this file records four bullets above
-  about `d0b9907`, and a `git show` on any of them fails for a cold session. An
+  remote and GC-eligible — the same defect this file records in the
+  statistical-core fingerprint bullet, about `d0b9907`, and a `git show` on any of them fails for a cold session. An
   earlier version of this bullet cited all three; they were live when written and
   dead by the time it was read, which is the whole argument against citing them.
 - **`windwardline#76`** adds the enforcement: `scripts/fleet-conformance.sh`
