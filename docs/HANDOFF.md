@@ -1833,20 +1833,11 @@ one (amendment 37).
 
 ### 6b. CONVERGE — the one-word trigger, and its long form
 
-**Precedence, and what is NOT checked.** `FLEET.md` in `windwardline/windwardline`
-is the fleet standard and governs where it and any local copy differ — including
-this section. `scripts/fleet-conformance.sh` enforces that mechanically, but only
-against the one-line citation in `AGENTS.md`: it derives the cycle from `FLEET.md`
-at run time and requires each repo's contract to carry those steps in order.
-
-**It does not check the long form below.** So once that enforcement lands, the
-one-sentence summary is pinned to the standard and the eight-step prompt an agent
-actually executes is the only unpinned copy — a worse position than before
-enforcement existed, not a better one. Until that is closed, whoever edits the
-cycle in `FLEET.md` must edit this block in the same change set, by hand, and
-whoever edits this block must check it against `FLEET.md` first. Recorded rather
-than left implicit, because an unchecked copy that nobody knows is unchecked is
-the failure this whole effort exists to prevent.
+**Precedence and enforcement.** `FLEET.md` in `windwardline/windwardline` is the
+fleet standard and governs where it and any local copy differ — including this
+section. This fenced prompt is the executable long form. The paired fleet checker
+derives the cycle and delivery labels from `FLEET.md`, then requires the prompt to
+carry every item in order. A change to either side lands with the other.
 
 `CONVERGE` is defined inside the kickoff prompt as a standing command, so once a
 session has read it the single word is enough. The paste below is its long form:
@@ -1868,29 +1859,21 @@ your own work has surfaced since into its correct rank rather than appending it.
 current item is genuinely done — gates green, deployed, verified in production, branches
 cleaned — run another full cycle:
 
-(1) FIND. Several adversarial agents, one lens each, each asked what is WRONG or MISSING
-rather than what to improve. Lenses are chosen for the work at hand; the standing set is
-look-ahead and statistical validity, fill realism, cost truth, coverage and population,
-risk and prop-firm survival, product honesty, operations, and engine conformance (does the
-shipped engine do what the corpus measured?). Each finding must carry file:line or command
-output, the exact population it affects, and the procedural mechanism that let it through.
+(1) **FIND.** Use several adversarial agents, one lens each, asking what is wrong or missing rather than what to improve. Choose lenses for the work at hand; the standing set is look-ahead and statistical validity, fill realism, cost truth, coverage and population, risk and prop-firm survival, product honesty, operations, and engine conformance. Each finding carries file:line or command output, the exact population it affects, and the procedural mechanism that let it through.
+(2) **REFUTE.** Run a second, independent pass whose brief is to kill each finding, not agree with it: inflated severity, already remedied, wrong population, or arithmetic that does not hold. A finding survives only if the refuter personally verified it. Expect to kill some and to have others return worse than filed.
+(3) **VERIFY YOURSELF.** Re-derive every load-bearing claim personally before acting or reporting, especially claims that flatter the work. A delta is not a level, and identical numbers from supposedly different runs show that the knob did nothing rather than proving agreement.
+(4) **FIX.** Fix surviving findings durably at the layer that owns them. Close the mechanism that admitted the defect, not only the observed instance.
+(5) **RE-RANK.** Re-rank the whole sequence from current evidence rather than appending new work to the end.
+(6) **TEST.** Test whether the result reaches best-possible positioning. Keep hunting if it does not, or name the input boundary that stops further progress.
+(7) **UPDATE.** Update docs/HANDOFF.md and every other source-of-truth document whose intended purpose the work touched.
+(8) **REPORT.** Report the ranked sequence, surviving findings, refutations, personal verification, changed files and systems, test and gate results, deployment or production verification, blocked work, and what the agent got wrong.
 
-(2) REFUTE. A second, independent pass whose brief is to KILL each finding, not to agree
-with it — inflated severity, already-remedied, wrong population, arithmetic that does not
-hold. A finding survives only if the refuter personally verified it. Expect to kill a
-fifth of them, and expect some to come back WORSE than filed.
-
-(3) VERIFY YOURSELF. Before reporting, re-derive every load-bearing claim personally
-rather than relaying an agent's word — especially any claim you are about to act on, and
-any claim that flatters the work. Two specific traps, both paid for: a DELTA is not a
-LEVEL (an improvement over a bad baseline is not a good result), and identical numbers
-from two supposedly different runs are proof the knob did nothing, not agreement.
-
-(4) FIX durably, not with patches. (5) RE-RANK the whole sequence rather than appending.
-(6) TEST whether it now reaches best-possible positioning, and keep hunting if not, or
-name the input boundary that stops you. (7) UPDATE docs/HANDOFF.md. (8) REPORT in chat
-with the full sequence visible, and state plainly what was refuted and what you verified
-yourself.
+- **Enumerate the gates; never count them.** Name every required command or check and report each result; a count can stay accurate while omitting a gate.
+- **Stage explicit paths. Never git add -A.** Keep background work out of the staged tree, stage only authored paths, and review the staged diff before committing.
+- **Validate before mutating.** Resolve identity, scope, authority, and preconditions before the first write; do not discover them after a partial change.
+- **Preserve standing claims.** Re-derive adjacent assertions and update them with the change so a new truth does not leave an old contradiction behind.
+- **Derive populations; do not curate them.** Build complete sets from authoritative state and state the predicate; never maintain a list that cannot detect its own stale premise.
+- **A harness failure must never read as the subject refusing.** Prove the runner started and the intended subject executed before accepting any refusal or non-zero exit as evidence.
 
 Do not stop at turn boundaries. Never claim green when it is not. If a round yields only
 nulls and validations, say the diminished-returns point is reached rather than
