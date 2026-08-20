@@ -859,10 +859,11 @@ PR #366 (`73000d6`), described below. An earlier version of this sentence said
 that commit also rewrote this block. Corrected because this is the sentence a
 cold session reads to learn the blast radius.
 
-- **main is at `19706e8`** — R1b merged (#364, squashed). Working branch
-  `claude/rebuild-handoff-continuation-zlecqj` is reset onto it, tree
-  clean, and no open PRs once #365 — the docs PR carrying this very
-  block — has merged.
+- **main is at `73000d6`** — the CONVERGE citation and this record merged
+  (#366, squashed), on top of R1b (`19706e8`, #364, squashed). Working
+  branch `claude/rebuild-handoff-continuation-zlecqj` was **restarted from
+  `main`** under the merged-PR rule and now carries #367, the PR holding
+  this very block. Tree clean.
 - **2,474 tests, and all SEVEN gates green** — `check`, `lint`, `check:migrations`, `npm audit --audit-level=high`, `test`, `build`, `check:bundle`, in that order after `npm ci`. Named rather than counted because a count is not a checklist: this session ran six of them for fifty-odd rounds and reported "six gates green", which was an accurate count of what it ran and an under-count of what AGENTS.md requires. The omitted one was `npm audit`, and it passes clean.
 - **The statistical core's fingerprint is
   `e9ea8ecf2331d31109b5022054b515e00c75a287b138ba62577d167439ce42d8`** —
@@ -899,10 +900,11 @@ citation merges). Until #76 merges, read it at
 Stated exactly rather than as a bare filename, because a pointer that does not
 resolve is the defect this session corrected in three repos. What matters here:
 
-- **PR #366 (this branch) carries three commits**, not one: the citation
-  (`9a810fb`), the inlined delivery rules (`a255c5a`), and the workflow
-  enumeration (`ceacf71`). `main` is still `19706e8`. The PR body has been
-  corrected to describe all three.
+- **PR #366 is MERGED as `73000d6`.** It carried three commits, not the one
+  its body first described: the citation (`9a810fb`), the inlined delivery
+  rules (`a255c5a`), and the workflow enumeration (`ceacf71`). The body was
+  corrected before the merge, so the merge record describes all three. This
+  branch is now #367, restarted from `main`.
 - **`windwardline#76`** adds the enforcement: `scripts/fleet-conformance.sh`
   now requires the citation and checks the cycle against a chain **derived
   from `FLEET.md` at run time**, never a literal in the script. Proven by
