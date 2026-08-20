@@ -893,8 +893,17 @@ which files, what kind — and leaves the count to git.
 - **Next item is R1c**, the E4 correlation-collapse offline instrument. Its
   scope is in `docs/research/r1-divergence-map-2026-08-18.md`, the same map the
   R1 rank-table row cites. Nothing is started on it; no scaffolding to inherit.
-  It does **not** wait on R0: R1c is offline and R0 gates R3 onward, so the two
-  are independent and R1c can proceed today.
+  **What R0 does and does not block, stated because nothing said it before:**
+  R1c does not wait on R0 *to be built* — it is offline and R0 gates R3 onward
+  — but the map scopes it as "the collapse reader and its report, **doored and
+  population-pinned like every other reader**", and the R1 row above records
+  that corpora without a hashed `conditions` block refuse at the door. The only
+  corpus, `3b108f43d4c2`, predates that block and is condemned by the ⛔ STOP
+  section. So the instrument can be **written** today, independently of R0, and
+  it cannot **produce a reading** until R3's re-sweep yields a corpus its own
+  door accepts. The distinction is the whole point of this file: the 2026-08-11
+  clock defect is the case of a number produced from a corpus that should have
+  refused.
 - **R2b is new and its rank is load-bearing** — it must clear before R3
   opens, because R3 is the ONE re-sweep and R2b changes what should be
   measured.
@@ -982,10 +991,14 @@ never produced a flat one.
 #### Unresolved, recorded here so it is not lost — audited 2026-08-20
 
 An adversarial read of this file was run on 2026-08-20 with the single brief
-"find what it FAILS to carry." These are the findings that survived my own
-re-derivation and are **not** fixed. Each names the check that reproduces it.
-Nothing below blocks R1c; all of it is owed before this file can be called
-accurate.
+"find what it FAILS to carry." Each entry survived my own re-derivation and
+names the check that reproduces it. **Entries are as of the commit that wrote
+them.** Two are marked CLOSED or PARTLY CLOSED because the same commit that
+wrote them closed them — a register that records "X is missing" and then
+supplies X in the same diff is this file's own self-invalidating class one
+level up, so it is labelled rather than quietly rewritten, and the wrong
+version is kept visible so it cannot come back. Nothing below blocks building
+R1c; all of it is owed before this file can be called accurate.
 
 - **Five commits cited in §6b-i are unreferenced, and one cited at item 1g
   does not exist at all.** The reproducible check, and the only one a cold
@@ -1029,18 +1042,19 @@ accurate.
   cells of one file, which is the concrete demonstration the disclaimer needs
   and neither cell makes. Treat `npm test` as the authority and delete both
   figures, or stamp each with the commit it was measured at.
-- **The next action is stated but not ordered.** "Next item is R1c" and "R0's
-  data half is still the critical path for everything from R3 on" appear as
-  peers. Nothing says whether R1c can proceed while R0 is unrun. It can — R1c
-  is an offline instrument and R0 gates R3 onward — but that is derived here
-  for the first time and belongs in the rank table.
-- **R1c's scope is pointed at, but not from where a cold session starts.**
-  `docs/research/r1-divergence-map-2026-08-18.md` holds it, and the R1 row of
-  the rank table above does name that map — an earlier version of this bullet
-  claimed the file never names it, which was false and is corrected here rather
-  than deleted, since the residue is real: the resume block's "Next item is
-  R1c" bullet, which is the line a resuming session actually reads first, does
-  not carry the pointer. Put it there rather than adding a third copy.
+- **PARTLY CLOSED — the ordering is in the resume block, not in the rank
+  table.** "Next item is R1c" and "R0's data half is still the critical path"
+  appeared as peers, with nothing saying whether R1c could proceed while R0 was
+  unrun. The resume block now states it, with the door qualification that
+  separates building the instrument from reading anything with it. **The
+  residue: the rank table still does not carry the ordering**, and the rank
+  table is what a session re-ranks against.
+- **CLOSED — R1c's scope pointer.** An earlier version of this bullet claimed
+  the file never names `docs/research/r1-divergence-map-2026-08-18.md`. False:
+  the R1 rank-table row names it. The narrowed residue — that the resume
+  block's "Next item is R1c" bullet did not carry it — was closed by the same
+  commit that wrote the narrowing. Kept as a closed entry because the claim
+  took two rounds to state correctly.
 - **Spec § numbers resolve across three files and this file names one.**
   §17c/§17f/§17j/§17p are in `2026-07-30-levelflow-desk-design.md`;
   §19/§19h/§20/§20i are in `2026-08-02-broker-sizing-governor-design.md`;
@@ -1070,8 +1084,13 @@ accurate.
   records that "every new repo automatically held to the standard" is
   aspiration, not fact. Do not read the paragraph above as a completion notice.
 
-Full detail and the reasons the order is load-bearing:
-`docs/research/remediation-program-2026-08-11.md`.
+#### The rebuild sequence itself — full detail
+
+Full detail on the R-ranked sequence above and the reasons its order is
+load-bearing: `docs/research/remediation-program-2026-08-11.md`. It documents
+the sequence and nothing else — in particular it holds none of the register
+entries above, which is why this line now carries its own heading rather than
+trailing them.
 
 #### R0's code half — landed 2026-08-18, hardened same day by the adversarial round
 
