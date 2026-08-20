@@ -1,6 +1,6 @@
 # Levelflow Cloud — operating contract
 
-Operating contract for AI work in this repo; the global `~/AGENTS.md` still applies. Work here follows the CONVERGE cycle and delivery discipline in `FLEET.md` (windwardline/windwardline) — find → refute → verify yourself → fix → re-rank → test → update → report, and the delivery rules under it. Levelflow is disciplined market review and limit-order setup generation on Supabase — auth, RLS-owned tables, Edge Function analyzer. Live at levelflow.windwardline.com. It analyzes; it never places trades.
+Operating contract for AI work in this repo; the global `~/AGENTS.md` still applies. Work here follows the CONVERGE cycle and delivery discipline in `FLEET.md` (windwardline/windwardline) — find → refute → verify yourself → fix → re-rank → test → update → report; enumerate the gates rather than counting them, stage explicit paths, validate before mutating, preserve standing claims, derive populations rather than curating them, and never let a harness failure read as the subject refusing. `FLEET.md` governs where it and this summary differ. Levelflow is disciplined market review and limit-order setup generation on Supabase — auth, RLS-owned tables, Edge Function analyzer. Live at levelflow.windwardline.com. It analyzes; it never places trades.
 
 ## The law of the specs
 
