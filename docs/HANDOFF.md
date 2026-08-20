@@ -910,6 +910,33 @@ which files, what kind — and leaves the count to git.
 - **R0's data half is still the critical path for everything from R3 on.**
   It needs one budgeted studio-machine run per `docs/cache-rebuild-r0.md`,
   minute-bank kickstart first. No corpus exists until it runs.
+- **If you are resuming on a real machine rather than a container, three things
+  change and one of them is time-critical.** Recent sessions ran in ephemeral
+  containers, where none of the following was reachable and the file was
+  written as if it never would be.
+  1. **Check first whether the nightly top-up is still banking minute bars,
+     before anything else.** `docs/cache-rebuild-r0.md` §1 stops that agent and
+     §4 re-arms it; a run that was interrupted between them leaves it stopped,
+     and a stopped top-up loses bars against a **~3-day irrecoverable window** —
+     the provider will not backfill past it. Derive the state rather than assume
+     it: list the loaded launchd agents and compare against the one §1 and §4
+     name, then check the newest bar in the minute bank against the current
+     session date. If it is stopped, re-arm it per §4 before doing anything
+     else in this file. This is the only item here whose cost grows while you
+     read.
+  2. **You may be on the studio machine, which nothing in this file defines.**
+     The test is derivable: the studio machine is the one that holds
+     `.calibration-cache` and the loaded launchd agents. If both are present,
+     R0's budgeted run is available to you rather than blocked, and the
+     condemned ~3.9 GB store from `docs/cache-rebuild-r0.md` §5 is sitting
+     there waiting to be deleted. If neither is present, R0 stays blocked and
+     R1c is what you can move.
+  3. **The dead pointers in the register below may not be dead there.** The
+     five unreferenced commits survive in whatever clone once held the #364
+     branch. If that clone is on this machine, `git cat-file -t d0b9907`
+     succeeds and the re-anchoring the register asks for becomes possible
+     instead of blocked — do it while the objects still exist, because a `git
+     gc` ends that window without warning.
 
 #### The fleet standard, 2026-08-20 — where it stands
 
