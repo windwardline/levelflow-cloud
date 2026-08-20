@@ -844,11 +844,17 @@ the live roster is 97 distinct markets.
 | **R5** | The never-analyzed populations — 8 contract variants, dual-listed crypto per line, register gaps | after R4 |
 | **R6** | Reader-facing claims — D7 (Record rows publish a frequency as a record), D8 (tier ordering the corpus inverts) | pre-reopen |
 
-### ▶ RESUME HERE — 2026-08-19 20:45 UTC
+### ▶ RESUME HERE — 2026-08-20 02:15 UTC
 
-**Paused on the weekly usage limit at 94%, not on a blocker.** It resets
+**Paused on the weekly usage limit, not on a blocker.** It resets
 **Sunday 2026-08-23 11:00 UTC (07:00 EDT)**. Everything below is a clean
 state, not an interrupted one.
+
+**The rebuild itself did not move on 2026-08-20.** The session spent that
+time on the fleet-wide CONVERGE standard instead — see "The fleet standard,
+2026-08-20" below. R1c is still the next rebuild item and nothing is started
+on it. The only change to THIS repo is `AGENTS.md`, on the working branch in
+PR #366, described below.
 
 - **main is at `19706e8`** — R1b merged (#364, squashed). Working branch
   `claude/rebuild-handoff-continuation-zlecqj` is reset onto it, tree
@@ -875,6 +881,46 @@ state, not an interrupted one.
 - **R0's data half is still the critical path for everything from R3 on.**
   It needs one budgeted studio-machine run per `docs/cache-rebuild-r0.md`,
   minute-bank kickstart first. No corpus exists until it runs.
+
+#### The fleet standard, 2026-08-20 — where it stands
+
+This repo's `AGENTS.md` now cites the fleet CONVERGE standard, and that
+citation became **deterministically enforced** the same night. The full
+continuation brief lives at **`CONTINUATION.md` in `windwardline/windwardline`**
+— read it before touching any fleet-wide document. What matters here:
+
+- **PR #366 (this branch) carries three commits**, not one: the citation
+  (`9a810fb`), the inlined delivery rules (`a255c5a`), and the workflow
+  enumeration (`ceacf71`). `main` is still `19706e8`. The PR body has been
+  corrected to describe all three.
+- **`windwardline#76`** adds the enforcement: `scripts/fleet-conformance.sh`
+  now requires the citation and checks the cycle against a chain **derived
+  from `FLEET.md` at run time**, never a literal in the script. Proven by
+  inserting a ninth step into a temp copy of the standard — every repo went
+  red with no repo edited, green again when removed.
+- **Merge order is load-bearing.** Citation PRs first, then `windwardline#76`.
+  The checker reads `main`, so landing #76 first makes every repo report
+  `converge-citation:absent` until its own citation merges.
+- **Four defects in THIS repo's contract are recorded and unfixed.** All are
+  in `AGENTS.md`, all verified against the workflow files:
+  1. "a daily cron runs only the Headers live probe" is **false** —
+     `dependency-scan` carries no schedule guard, deliberately, because it
+     reads the advisory database, which changes with no commit.
+  2. "An advisory Claude review runs on every same-repo PR" is **false** —
+     `claude-review.yml` gates on `github.actor != 'dependabot[bot]'`.
+  3. The `dependabot-auto-merge.yml` hold enumeration omits the
+     `unrecognised update type` branch (`:184-186`), distinct from the
+     empty-metadata hold.
+  4. `verify-action-pins` runs as a STEP inside `security.yml`'s secret-scan
+     job and can fail that required check; the contract does not name it.
+- **Also unfixed, not in this repo:** `security.yml:9`'s comment describes the
+  weekly cron as "Semgrep, CodeQL, Secret scan, License policy". This repo has
+  no CodeQL and no license-policy job. `AGENTS.md` is right; the comment is wrong.
+- **A standing trap.** Do NOT "fix" the daily-cron claim fleet-wide. It is
+  false in exactly five repos and **true** in `craft`, whose dependency-scan
+  is still weekly-guarded under a documented owner hold, and in every repo
+  with no dependency-scan job at all. A blanket edit breaks accurate contracts.
+  This population was derived wrong twice before being derived right.
 
 **A note on cost, for whoever resumes.** The advisory fleet review
 (`claude-review.yml`) bills the OWNER'S Claude subscription, not Console
