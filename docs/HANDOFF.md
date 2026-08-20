@@ -890,8 +890,11 @@ which files, what kind — and leaves the count to git.
   merged and deleted, so unreferenced on the remote and GC-eligible. A
   standing instruction may not rest on a commit nothing references. The
   core as it stands shipped in `19706e8`.
-- **Next item is R1c**, the E4 correlation-collapse offline instrument.
-  Nothing is started on it; no scaffolding to inherit.
+- **Next item is R1c**, the E4 correlation-collapse offline instrument. Its
+  scope is in `docs/research/r1-divergence-map-2026-08-18.md`, the same map the
+  R1 rank-table row cites. Nothing is started on it; no scaffolding to inherit.
+  It does **not** wait on R0: R1c is offline and R0 gates R3 onward, so the two
+  are independent and R1c can proceed today.
 - **R2b is new and its rank is load-bearing** — it must clear before R3
   opens, because R3 is the ONE re-sweep and R2b changes what should be
   measured.
@@ -985,21 +988,28 @@ Nothing below blocks R1c; all of it is owed before this file can be called
 accurate.
 
 - **Five commits cited in §6b-i are unreferenced, and one cited at item 1g
-  does not exist at all.** Re-derive with
-  `git for-each-ref --contains <sha>` (empty output = nothing references it)
-  and `git cat-file -t <sha>`:
-  `36905a7`, `59cc4d9`, `6beac15`, `d0b9907`, `28bcd7b` are dangling objects
-  that survive only in a clone that once held the #364 branch — verified
-  `refs=0` for all five. `d947245` (item 1g, the provenance of
-  `MEASURED_POPULATION_BY_ASSET_TYPE`) is **absent**, not dangling. The
+  does not exist at all.** The reproducible check, and the only one a cold
+  session can run, is `git cat-file -t <sha>`: on a fresh clone it fails
+  identically for all six — `36905a7`, `59cc4d9`, `6beac15`, `d0b9907`,
+  `28bcd7b` and `d947245`. **The dangling-versus-absent split below is an
+  observation from one clone, not a re-derivable fact**, and it is recorded that
+  way deliberately: `git for-each-ref --contains <sha>` returns `refs=0` for the
+  first five only on a machine that once held the #364 branch, and on any other
+  clone it errors with `malformed object name` rather than returning the empty
+  output an earlier version of this bullet claimed. In the clone that has them,
+  the first five are dangling objects and `d947245` (item 1g, the provenance of
+  `MEASURED_POPULATION_BY_ASSET_TYPE`) is absent outright. The
   consequence is specific: §6b-i's blast-radius audit — the one record proving
   an unattended agent did not corrupt the max-T null — states the statistical
   core is "byte-identical" to `d0b9907`, and **no cold session can re-run that
   comparison.** The fingerprint bullet in the resume block states the rule that
   retires such a pointer; the rule was applied to one instance and the
-  population was never swept. Sweeping it is the fix: every SHA in this file,
-  through `git for-each-ref --contains`, and each survivor either re-anchored
-  to a commit on `main` or replaced by a content hash.
+  population was never swept. **The discovery half is now done and the item is
+  cheaper than it reads:** every backticked 7-hex token in this file is one of
+  nine, and the split is exactly three live (`19706e8`, `73000d6`, `998dcff`)
+  against the six above, with nothing missed. Only the re-anchoring remains —
+  each dead pointer either re-anchored to a commit reachable from `main` or
+  replaced by a content hash.
 - **The statistical-core fingerprint is not reproducible from its own recipe.**
   The hash appears exactly once in the tree (this file) and nothing computes
   it — no hit in `scripts/`, `tests/`, `.github/`. The recipe does not
@@ -1010,18 +1020,27 @@ accurate.
   and no gate fails if it is ignored. The fix is a script that emits the hash,
   wired into `npm test` — a fingerprint no tool can recompute is a conclusion,
   not a check.
-- **"2,474 tests" is a bare conclusion.** No run id, date, or commit. Line 198
-  of this file says the count drifts every PR and that `npm test` is the
-  authority; the resume block prints the count without carrying that
-  disclaimer. Treat `npm test` as the authority and delete the cell, or stamp
-  it with the commit it was measured at.
+- **"2,474 tests" is a bare conclusion, and it disagrees with this file's own
+  other count.** The Tests cell in the "Live in production" table — named
+  rather than given as a line number, since an ordinal into an 1,800-line file
+  breaks on any insertion above it, which is the class the resume block sweeps
+  — says the count drifts every PR and that `npm test` is the authority. It
+  also says **2,178**, against the resume block's 2,474: a ~300 gap between two
+  cells of one file, which is the concrete demonstration the disclaimer needs
+  and neither cell makes. Treat `npm test` as the authority and delete both
+  figures, or stamp each with the commit it was measured at.
 - **The next action is stated but not ordered.** "Next item is R1c" and "R0's
   data half is still the critical path for everything from R3 on" appear as
   peers. Nothing says whether R1c can proceed while R0 is unrun. It can — R1c
   is an offline instrument and R0 gates R3 onward — but that is derived here
   for the first time and belongs in the rank table.
-- **R1c has no scope in this file.** Its definition lives in
-  `docs/research/r1-divergence-map-2026-08-18.md`; this file never says so.
+- **R1c's scope is pointed at, but not from where a cold session starts.**
+  `docs/research/r1-divergence-map-2026-08-18.md` holds it, and the R1 row of
+  the rank table above does name that map — an earlier version of this bullet
+  claimed the file never names it, which was false and is corrected here rather
+  than deleted, since the residue is real: the resume block's "Next item is
+  R1c" bullet, which is the line a resuming session actually reads first, does
+  not carry the pointer. Put it there rather than adding a third copy.
 - **Spec § numbers resolve across three files and this file names one.**
   §17c/§17f/§17j/§17p are in `2026-07-30-levelflow-desk-design.md`;
   §19/§19h/§20/§20i are in `2026-08-02-broker-sizing-governor-design.md`;
