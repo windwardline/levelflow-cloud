@@ -18,7 +18,60 @@ Vite 8 + React 19, Tailwind v4, @supabase/supabase-js, lightweight-charts. TypeS
 
 ## Gates — CI in order
 
-`npm ci` → check → lint → check:migrations → `npm audit --audit-level=high` → test → build → check:bundle. That sequence is `ci.yml` — push and pull request against `main`, plus `workflow_dispatch`, in one 15-minute job on Node 24 with npm caching, whose job id `build` is the name the required check goes by (a new commit cancels the run in flight). E2E runs at deploy time only (`deploy.yml`), which also polls production security headers and fails on any `unsafe-inline`. The E2E run prints an explicit coverage block naming every test that stood down and why, and refuses a green whose stand-downs are unexplained or exceed the ceiling in `tests/e2e/coverageReporter.ts` — tests here skip rather than pin behaviour on market conditions, so a count alone cannot tell a healthy run from one where a whole class of coverage has gone dark. A parallel `security.yml` (PRs, pushes, weekly cron; a daily cron runs only the Headers live probe) gates Semgrep, secret scan, and dependency scan; the Headers live job asserts the seven production headers on push and daily, complementing `deploy.yml`'s deploy-time poll. An advisory Claude review runs on every same-repo PR via `claude-review.yml`, which deliberately calls the fleet reusable at `@main` — one merge updates every repo. It activates only when the `CLAUDE_CODE_OAUTH_TOKEN` secret is present — reviews bill the owner's Claude subscription, not Console credits; fork PRs never receive secrets, so they skip it by security design. `retry-infra-failures.yml` re-runs a workflow that died on GitHub's infrastructure, capped at two attempts. `dependabot-auto-merge.yml` merges nothing itself. On a Dependabot PR against `main` — gated on the PR author being `dependabot[bot]` rather than on `github.actor`, so a manual re-run cannot disable the guard, on the owner being `windwardline`, and on the head branch living in this repo, never a fork — it first asserts that the repo allows auto-merge and that the base branch carries at least one required status check, because `gh pr merge --auto` degrades to an immediate merge where no gate exists; only then does it arm GitHub's native auto-merge, leaving the branch ruleset as the only thing that decides whether a merge happens. It holds for a human — withdrawing an already-armed auto-merge, since a rebase can turn a compliant PR non-compliant — on the `no-automerge` label, a release that changed maintainers, pre-1.0 packages, empty or unverifiable Dependabot metadata, and majors, which it labels `deferred-major` before holding. It mints a GitHub App token from the `FLEET_AUTOMERGE_APP_ID` and `FLEET_AUTOMERGE_PRIVATE_KEY` **Dependabot** secrets — Actions secrets are unreadable from a Dependabot-triggered run and resolve to empty rather than erroring, so the run summary is what says which credential was used — and degrades to `GITHUB_TOKEN` when they are absent; that degradation costs the most in this repo, because a push attributed to `GITHUB_TOKEN` creates no workflow run at all, so an auto-merged commit fires neither `deploy.yml` nor `security.yml`'s post-push `Headers live` probe. Its job carries no `name:`, so the check renders exactly `dependabot-auto-merge`, and it must never become a required check; the file is byte-identical in every fleet repo that takes it, so it is fixed in the fleet, not here. Every required workflow carries `workflow_dispatch`, because a check suite that was never created cannot be re-run — `docs/ci-recovery.md` holds the diagnosis and the remedy for each failure mode.
+Every workflow this repository runs is named here by filename: `ci.yml`, `deploy.yml`,
+`security.yml`, `claude-review.yml`, `retry-infra-failures.yml`, and
+`dependabot-auto-merge.yml`.
+
+`ci.yml` runs `npm ci` → check → lint → check:migrations →
+`npm audit --audit-level=high` → test → build → check:bundle on pushes and pull
+requests against `main`, plus `workflow_dispatch`, in one 15-minute Node 24 job with
+npm caching. Its job id `build` is the required-check name, and a new commit cancels
+the run in flight. E2E runs only at deploy time in `deploy.yml`. That workflow also
+polls production security headers and refuses `unsafe-inline`; its E2E coverage block
+names every test that stood down and why, and refuses an unexplained stand-down or one
+above the ceiling in `tests/e2e/coverageReporter.ts`.
+
+`security.yml` runs on pull requests, pushes, `workflow_dispatch`, a weekly full
+sweep, and a daily dependency-and-headers sweep. Semgrep and secret scanning run on
+every non-daily trigger. The unguarded dependency scan runs on every trigger because
+its advisory database can change without a commit. Headers live runs on every
+non-pull-request trigger and asserts the seven production headers. The required
+Secret scan check also carries the SHA-pinned fleet `verify-action-pins` action as a
+step. Every third-party `uses:` in a GitHub Actions workflow is pinned to a full
+commit SHA with a trailing comment naming an immutable full tag that SHA actually
+carries — `# v7.0.1`, never a floating major such as `# v7`.
+
+An advisory Claude review runs through `claude-review.yml` on eligible same-repo PR
+events when `github.actor` — the original event actor — is not `dependabot[bot]`.
+The caller deliberately uses the fleet reusable at `@main`, so one merge updates
+every repo. Fork events and runs without `CLAUDE_CODE_OAUTH_TOKEN` skip by security
+design. Reviews bill the owner's Claude subscription, not Console credits.
+`retry-infra-failures.yml` re-runs a workflow that died on GitHub's infrastructure,
+capped at two attempts.
+
+`dependabot-auto-merge.yml` merges nothing itself. On same-repository Dependabot PRs
+against `main` under the `windwardline` owner, it first requires auto-merge to be
+enabled and the base branch to carry at least one required status check; otherwise
+`gh pr merge --auto` can degrade to an immediate merge. It then arms GitHub's native
+auto-merge and leaves the ruleset as the only merge gate. It holds for a human — and
+withdraws an auto-merge armed on an earlier push — on `no-automerge`, changed
+maintainers, pre-1.0 packages, empty or unverifiable metadata, a major bump, or,
+distinctly, an unrecognised update type. Major bumps receive `deferred-major` before
+being held.
+
+Dependabot groups npm production dependencies, npm development dependencies, and
+GitHub Actions updates. `fetch-metadata` reports the highest semver change for the
+entire grouped PR, so one held member holds the group; arming and holding operate on
+the grouped PR, not an individual dependency. The lane mints a GitHub App token from
+the `FLEET_AUTOMERGE_APP_ID` and `FLEET_AUTOMERGE_PRIVATE_KEY` **Dependabot** secrets
+and degrades to `GITHUB_TOKEN` when they are absent. A Dependabot-triggered run cannot
+read Actions secrets. The run summary names the credential used; a merge attributed
+to the fallback token creates no push workflow run, so neither `deploy.yml` nor
+`security.yml` fires. The job has no `name:`, so its check renders exactly
+`dependabot-auto-merge`; it must never become required. The file is byte-identical in
+every fleet repo that takes it and is fixed in the fleet, not here. Every required
+workflow carries `workflow_dispatch`, because a check suite that was never created
+cannot be re-run; `docs/ci-recovery.md` records the remedies.
 
 ## Laws
 

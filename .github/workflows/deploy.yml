@@ -211,7 +211,7 @@ jobs:
       - name: Verify production security headers
         run: |
           headers="$(mktemp)"
-          for attempt in $(seq 1 10); do
+          for _attempt in $(seq 1 10); do
             curl -fsSI "https://levelflow.windwardline.com/?v=${GITHUB_SHA}" > "$headers" && break
             sleep 30
           done
