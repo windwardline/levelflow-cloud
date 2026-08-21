@@ -911,73 +911,24 @@ which files, what kind — and leaves the count to git.
   It needs one budgeted studio-machine run per `docs/cache-rebuild-r0.md`,
   minute-bank kickstart first. No corpus exists until it runs.
 
-#### The fleet standard, 2026-08-20 — where it stands
+#### Fleet contract — local state
 
-This repo's `AGENTS.md` now cites the fleet CONVERGE standard, and that
-citation became **deterministically enforced** the same night. The full
-continuation brief lives at **`CONTINUATION.md` in `windwardline/windwardline`**
-— read it before touching any fleet-wide document. **It is not on that repo's
-`main` yet**: it rides PR #76 on branch `claude/converge-enforcement`, because
-that PR must land AFTER the citation PRs (the checker reads `main`, so landing
-it first makes every repo report `converge-citation:absent` until its own
-citation merges). Until #76 merges, read it at
-`https://github.com/windwardline/windwardline/blob/claude/converge-enforcement/CONTINUATION.md`.
-Stated exactly rather than as a bare filename, because a pointer that does not
-resolve is the defect this session corrected in three repos. What matters here:
+This repository now carries its complete fleet contract in `AGENTS.md`: the
+`FLEET.md` citation and ordered eight-step CONVERGE cycle; every workflow named
+by filename; Levelflow's actual daily dependency-and-headers schedule; the
+eligible review predicate; the action-pin gate and immutable-tag rule; and the
+Dependabot hold and grouped-PR semantics. `security.yml`'s schedule comments
+describe the jobs that actually run. The daily population is repository-specific:
+Levelflow's dependency scan is intentionally unguarded, while another repo may
+carry an owner-approved hold. Do not turn this local fact into a blanket edit.
 
-- **PR #366 is MERGED as `73000d6`.** It carried three changes, not the one
-  its body first described: the citation, the inlined delivery rules, and the
-  workflow enumeration. The body was corrected before the merge, so `73000d6`'s
-  message describes all three. **No PR number is recorded for the working
-  branch anywhere in this file** — it is reset onto `main` after each merge
-  and picks up a new number every time, so any number written here keeps
-  resolving and stops being true. `gh pr list --head
-  claude/rebuild-handoff-continuation-zlecqj` is the authority.
-
-  Their individual commit SHAs are deliberately **not** recorded here. #366 was
-  squash-merged and its branch deleted, so those commits are unreferenced on the
-  remote and GC-eligible — the same defect this file records in the
-  statistical-core fingerprint bullet, about `d0b9907`, and a `git show` on any of them fails for a cold session. An
-  earlier version of this bullet cited all three; they were live when written and
-  dead by the time it was read, which is the whole argument against citing them.
-- **`windwardline#76`** adds the enforcement: `scripts/fleet-conformance.sh`
-  now requires the citation and checks the cycle against a chain **derived
-  from `FLEET.md` at run time**, never a literal in the script. Proven by
-  inserting a ninth step into a temp copy of the standard — every repo went
-  red with no repo edited, green again when removed.
-- **Merge order is load-bearing.** Citation PRs first, then `windwardline#76`.
-  The checker reads `main`, so landing #76 first makes every repo report
-  `converge-citation:absent` until its own citation merges.
-- **Ownership, so nothing here waits on the wrong agent.** Everything in the
-  register above is the rebuild's and lands in this repo. Everything in this
-  fleet-standard section belongs to the standards work and is tracked in
-  `CONTINUATION.md` — including the four `AGENTS.md` defects below, which are
-  fleet-wide corrections that happen to land in this repo's contract, and
-  including this file's own §6b long-form CONVERGE prompt, which is a sixth
-  copy of the cycle that nothing pins (§6b says so itself) and which
-  `CONTINUATION.md` §2 now lists as a home the standard has to reach. Do not
-  fix those from this file: the populations are fleet-wide and a single-repo
-  edit is how an accurate contract elsewhere gets broken.
-- **Four defects in THIS repo's contract are recorded and unfixed.** All are
-  in `AGENTS.md`, all verified against the workflow files:
-  1. "a daily cron runs only the Headers live probe" is **false** —
-     `dependency-scan` carries no schedule guard, deliberately, because it
-     reads the advisory database, which changes with no commit.
-  2. "An advisory Claude review runs on every same-repo PR" is **false** —
-     `claude-review.yml` gates on `github.actor != 'dependabot[bot]'`.
-  3. The `dependabot-auto-merge.yml` hold enumeration omits the
-     `unrecognised update type` branch (`:184-186`), distinct from the
-     empty-metadata hold.
-  4. `verify-action-pins` runs as a STEP inside `security.yml`'s secret-scan
-     job and can fail that required check; the contract does not name it.
-- **Also unfixed, not in this repo:** `security.yml:9`'s comment describes the
-  weekly cron as "Semgrep, CodeQL, Secret scan, License policy". This repo has
-  no CodeQL and no license-policy job. `AGENTS.md` is right; the comment is wrong.
-- **A standing trap.** Do NOT "fix" the daily-cron claim fleet-wide. It is
-  false in exactly five repos and **true** in `craft`, whose dependency-scan
-  is still weekly-guarded under a documented owner hold, and in every repo
-  with no dependency-scan job at all. A blanket edit breaks accurate contracts.
-  This population was derived wrong twice before being derived right.
+The canonical standard, checker, current rollout state, and fleet continuation
+belong to `windwardline/windwardline`; do not copy their transient branch or PR
+state into this file. Levelflow's rebuild state and ranked sequence remain here.
+This contract maintenance did not move them: R1c is still next, and R0's data
+half still gates R3 onward. Section 6b's executable long form is a governed home
+of the method and is structurally checked against `FLEET.md`; preserve it with
+the standard whenever either changes.
 
 **A note on cost, for whoever resumes.** The advisory fleet review
 (`claude-review.yml`) bills the OWNER'S Claude subscription, not Console
