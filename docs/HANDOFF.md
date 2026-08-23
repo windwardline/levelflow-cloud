@@ -995,8 +995,11 @@ which files, what kind — and leaves the count to git.
   `scripts/e4-collapse.ts`. Its scope was and remains
   `docs/research/r1-divergence-map-2026-08-18.md`, which now also records what
   its own E4 section got wrong and what the reader deliberately does not do.
-  **R2 is offline like R1c and does not wait on R0's data half**, which gates
-  R3 onward.
+  **R2 does not wait on R0's data half**, which gates R3 onward. Whether every
+  R2 item is offline is deliberately NOT claimed — the rank table's R2 row is
+  the careful statement and this bullet defers to it: M5 names the resolver and
+  D1 names learning, both live surfaces, so scope each against the map before
+  assuming a reader-only change.
 
 - **A guard that enforced nothing, for every reader, in CI as well as here
   (#374).** `tests/emptyCorpusRefusals.test.ts` spawns each corpus reader with
@@ -1015,9 +1018,11 @@ which files, what kind — and leaves the count to git.
   environment; `tsx/dist/register` now joins the harness-failure pattern.
   Verified both ways — `data-limits.ts` went from a loader dump to
   `usage: data-limits.ts <emit.jsonl>`, and every reader's spawn moved from a
-  uniform ~90ms crash to 150–450ms of real execution. **All sixteen readers do
-  refuse correctly once actually executed**, so the law held; it was simply
-  never tested. The generalisable half: an assertion that a process SAID
+  uniform ~90ms crash to 150–450ms of real execution. **Every reader the glob
+  finds does refuse correctly once executed** — sixteen at #374, and the
+  population is derived rather than counted precisely so this sentence does not
+  go stale when the next doored reader joins it — so the law held; it was
+  simply never tested. The generalisable half: an assertion that a process SAID
   something is satisfied by any process that says enough, and a substring
   common in minified JavaScript is not evidence of anything.
 
@@ -1085,12 +1090,14 @@ never produced a flat one.
 An adversarial read of this file was run on 2026-08-20 with the single brief
 "find what it FAILS to carry." Each entry survived my own re-derivation and
 names the check that reproduces it. **Entries are as of the commit that wrote
-them.** Two are marked CLOSED or PARTLY CLOSED because the same commit that
-wrote them closed them — a register that records "X is missing" and then
-supplies X in the same diff is this file's own self-invalidating class one
-level up, so it is labelled rather than quietly rewritten, and the wrong
-version is kept visible so it cannot come back. Nothing below blocks building
-R1c; all of it is owed before this file can be called accurate.
+them.** Some are marked CLOSED or PARTLY CLOSED because the same commit that
+wrote them closed them — count the markers in the register rather than
+trusting a number here, which is the rule this file applies to its own test
+counts. A register that records "X is missing" and then supplies X in the same
+diff is this file's own self-invalidating class one level up, so it is
+labelled rather than quietly rewritten, and the wrong version is kept visible
+so it cannot come back. Nothing below blocked building R1c, and R1c is now
+built; all of it is still owed before this file can be called accurate.
 
 - **FIVE commits cited in §6b-i are unreferenced. The sixth, `d947245`, is
   live — the headline said otherwise for two rounds and was wrong.** The
