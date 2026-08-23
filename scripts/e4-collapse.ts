@@ -73,9 +73,11 @@ type Group = {
 };
 
 
-// Every flag that owns the token after it, declared literally so the path
-// walker above cannot swallow a value as a shard name. The law is
-// bidirectional — each of these is read through a guarded accessor below.
+// Every flag that owns the token after it, declared literally. The law is
+// bidirectional — each of these is read through a guarded accessor in main().
+// NOTE what this does NOT do: the corpus-path walker in main() drops the token
+// after ANY `--`-prefixed token rather than consulting this set. The two agree
+// only because every flag here takes a value.
 const VALUE_FLAGS = new Set([
   "--bucket-minutes",
   "--min-groups",
@@ -150,13 +152,39 @@ function project(raw: SweepEmitRow): CollapseRow | null {
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
-  // A flag's VALUE is not a corpus path: drop any token that directly follows
-  // a --flag, so `--bucket-minutes 60` cannot be read as a shard named "60".
+
+  // An UNDECLARED flag refuses, before anything is walked. Without this the
+  // walker below silently halved a population: `--capture-all a.jsonl b.jsonl`
+  // dropped `a.jsonl` as if it were --capture-all's value and reported
+  // `shards 1` over one of the two named shards, exit 0. --capture-all is a
+  // real sibling flag on replay-sweep.ts, so this needed no future boolean flag
+  // to bite. flagReader cannot catch it — its guard fires when the SCRIPT reads
+  // an undeclared flag, never when the OPERATOR types one, which is exactly the
+  // third failure mode flagReader's own header names.
+  //
+  // It also closes the quieter half: `--min-groupz 50` would otherwise leave
+  // min-groups at its default with no word said, which is the "a run measures
+  // something other than what was asked" class this reader exists inside.
+  const undeclared = argv.filter(
+    (token) => token.startsWith("--") && !VALUE_FLAGS.has(token),
+  );
+  if (undeclared.length > 0) {
+    fail(
+      `unknown flag(s) ${undeclared.join(", ")} — this reader declares ${
+        [...VALUE_FLAGS].sort().join(", ")
+      }. Refused rather than ignored: an unrecognised flag's next token would ` +
+        `be walked into the shard list, or silently leave a dial at its default.`,
+    );
+  }
+
+  // A declared flag's VALUE is not a corpus path. Consults VALUE_FLAGS rather
+  // than "any token starting with --", which is what the eight sibling readers
+  // do and what this file's own VALUE_FLAGS comment describes.
   const corpora = argv.reduce<string[]>((kept, token, index) => {
     if (token.startsWith("--")) {
       return kept;
     }
-    if (index > 0 && argv[index - 1].startsWith("--")) {
+    if (index > 0 && VALUE_FLAGS.has(argv[index - 1])) {
       return kept;
     }
     kept.push(token);
@@ -189,6 +217,12 @@ async function main(): Promise<void> {
         "report rather than in this file.",
     );
   }
+  // Buckets are epoch-aligned (`Math.floor(row.time / bucketMs)` below), so the
+  // reading is sensitive to bin PHASE as well as width: two candidates two
+  // minutes apart can land either side of a boundary and not contest. That is
+  // the other half of why the width is a declared term — and it is why a wider
+  // bucket does not monotonically suppress more, since widening also absorbs a
+  // symbol's own repeats.
   const bucketMinutes = Number(bucketToken);
   if (!Number.isFinite(bucketMinutes)) {
     fail(`--bucket-minutes must be a number and got ${JSON.stringify(bucketToken)}`);
@@ -338,7 +372,13 @@ async function main(): Promise<void> {
       correlationGroup: getCorrelationGroup(row.symbol),
       symbol: row.symbol,
     });
-    const id = `${bucket} ${key}`;
+    // The separator is NUL because no symbol or group name can contain it.
+    // Written as an ESCAPE, never as a raw byte: a literal U+0000 in the source
+    // makes ripgrep and git grep classify this whole file as binary and skip it,
+    // which silently removes it from every grep-derived population audit — in a
+    // repo whose discipline is derived populations rather than curated ones. It
+    // shipped that way once and cost a review round to find.
+    const id = `${bucket}\u0000${key}`;
     const existing = groups.get(id);
     if (existing) {
       existing.members.push(row);
@@ -422,13 +462,14 @@ async function main(): Promise<void> {
       ` earliest kept — production sees each symbol once per scan)`,
   );
 
-  const suppressionRate = candidates.length === 0
-    ? null
-    : suppressed / candidates.length;
+  // No zero guard here: a corpus with no accepted rows refuses above, so the
+  // denominator is non-zero by construction. The guard that used to sit here
+  // rendered an em dash and could never fire — a dead branch reading as a live
+  // one, on the line that prints the headline figure.
   console.log(
     `suppression ${suppressed}/${candidates.length} = ${
-      suppressionRate === null ? "—" : (suppressionRate * 100).toFixed(1) + "%"
-    } of accepted candidates — a LOWER BOUND: the cross-scan 6-hour screen is ` +
+      (suppressed / candidates.length * 100).toFixed(1)
+    }% of accepted candidates — a LOWER BOUND: the cross-scan 6-hour screen is ` +
       `not modelled here`,
   );
 
@@ -476,5 +517,16 @@ async function main(): Promise<void> {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  await main();
+  // Wrapped the way grid-totalr.ts wraps its own entry point. Every flag read
+  // THROWS rather than calling fail() — flagReader's token(), assertInDomain
+  // and soleFlagIndex all throw — so a bare `await main()` surfaced an
+  // operator's typo as an unhandled rejection with a stack, while every other
+  // refusal in this file prints one line. This repo's contract says a harness
+  // failure must never read as the subject refusing; the converse holds too,
+  // and without this a genuine internal TypeError and a mistyped dial were
+  // indistinguishable in the output.
+  await main().catch((error: unknown) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
 }

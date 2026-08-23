@@ -286,9 +286,16 @@ describe("every corpus reader refuses a run that names no corpus", () => {
       `${DEFINES_THE_DOOR} is exempted as the door's definition — if it ` +
         `stops exporting one, it is a reader like any other`,
     );
+    // One below the current count, the same rule the sibling flag-law floor
+    // states in words (tests/sweepManifest.test.ts). scripts/e4-collapse.ts
+    // took this population from 17 to 18 and the floor stayed at 16, leaving
+    // the tighter of the two pins carrying two files of slack — a refactor
+    // could have dropped two readers out of the law with this still green.
     assert.ok(
-      readers.length >= 16,
-      `the glob must find the corpus readers, got ${readers.length}`,
+      readers.length >= 17,
+      `the glob must find the corpus readers, got ${readers.length} — if a ` +
+        `refactor legitimately shrank the population, lower this floor in the ` +
+        `same commit and say which files left and why`,
     );
   });
 

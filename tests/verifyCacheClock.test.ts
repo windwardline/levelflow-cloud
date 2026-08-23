@@ -144,6 +144,53 @@ function healthyTrio(dir: string) {
 }
 
 describe("auditCacheClock — the rebuild's acceptance instrument", () => {
+  // R1b's Treasury store fell through storeKindForKey to null, and the audit
+  // fails every store whose kind is null — so a HEALTHY rebuilt cache earned
+  // `treasury-rates: unknown store kind`, in the gate whose runbook says any
+  // red means "the rebuild did not take; do not sweep, do not delete the
+  // archive". Verified against the live rebuild in flight before the fix.
+  it("accepts the calendar-clocked Treasury store instead of calling it unknown", () => {
+    const dir = cacheDir();
+    healthyTrio(dir);
+    store(dir, "econ-calendar", CALENDAR_CLOCK, []);
+    store(dir, "treasury-rates", CALENDAR_CLOCK, [{ time: Date.UTC(2013, 0, 2) }]);
+    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    const lines = report.lines.join("\n");
+    assert.doesNotMatch(
+      lines,
+      /treasury-rates: unknown store kind/,
+      "the Treasury store must be recognised, not read as an unknown key",
+    );
+    assert.match(lines, /treasury-rates: 1 curve rows/);
+  });
+
+  it("still condemns a Treasury store stamped with the bar clock", () => {
+    const dir = cacheDir();
+    healthyTrio(dir);
+    store(dir, "econ-calendar", CALENDAR_CLOCK, []);
+    store(dir, "treasury-rates", BAR_CLOCK, [{ time: Date.UTC(2013, 0, 2) }]);
+    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    assert.ok(
+      report.failures.some((line) => /treasury-rates: stamped/.test(line)),
+      report.failures.join("\n"),
+    );
+  });
+
+  // The rates store must not stand in for a missing calendar — which is why it
+  // is its own kind rather than folded into the calendar branch.
+  it("does not let the Treasury store satisfy the calendar-presence gate", () => {
+    const dir = cacheDir();
+    healthyTrio(dir);
+    store(dir, "treasury-rates", CALENDAR_CLOCK, [{ time: Date.UTC(2013, 0, 2) }]);
+    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    assert.ok(
+      report.failures.some((line) => /calendar/i.test(line)),
+      `a cache with no econ-calendar must fail; got: ${
+        report.failures.join("\n") || "(no failures)"
+      }`,
+    );
+  });
+
   it("passes a healthy stamped cache clean", () => {
     const dir = cacheDir();
     healthyTrio(dir);

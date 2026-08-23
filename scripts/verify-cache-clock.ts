@@ -183,7 +183,9 @@ export function auditCacheClock(input: {
       continue;
     }
     const items = Array.isArray(store.items) ? store.items : [];
-    const expected = kind.kind === "calendar" ? CALENDAR_CLOCK : BAR_CLOCK;
+    const expected = kind.kind === "calendar" || kind.kind === "rates"
+      ? CALENDAR_CLOCK
+      : BAR_CLOCK;
     if (store.clock !== expected) {
       fail(
         `${key}: stamped "${
@@ -197,6 +199,15 @@ export function auditCacheClock(input: {
     }
     if (kind.kind === "calendar") {
       ok(`${key}: ${items.length} events, clock "${store.clock}"`);
+      continue;
+    }
+    // Rates carry no bar witness — they are dated curve rows, not a session
+    // series — so the store proves its clock and stops there. Deliberately NOT
+    // folded into the calendar branch: that branch also satisfies the
+    // calendar-presence gate, and a treasury store must never stand in for a
+    // missing econ-calendar.
+    if (kind.kind === "rates") {
+      ok(`${key}: ${items.length} curve rows, clock "${store.clock}"`);
       continue;
     }
 
