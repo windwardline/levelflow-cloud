@@ -1118,7 +1118,7 @@ describe("the driver writes the manifest beside the emit", () => {
     // derivation replaced a curated list to avoid. A floor one below the
     // current count catches any drop; raise it with the population.
     assert.ok(
-      scriptFiles.length >= 24,
+      scriptFiles.length >= 25,
       `the glob must find the readers, got ${scriptFiles.length} — if a ` +
         `refactor legitimately shrank the population, lower this floor in ` +
         `the same commit and say which files left and why`,

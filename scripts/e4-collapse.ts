@@ -72,6 +72,7 @@ type Group = {
   members: CollapseRow[];
 };
 
+
 // Every flag that owns the token after it, declared literally so the path
 // walker above cannot swallow a value as a shard name. The law is
 // bidirectional — each of these is read through a guarded accessor below.
@@ -218,6 +219,7 @@ async function main(): Promise<void> {
   const requestedVariant = str("--variant");
 
   const rows: CollapseRow[] = [];
+  const manifests: Awaited<ReturnType<typeof assertManifestedCorpusStreaming>>[] = [];
   const hashes: string[] = [];
   const engines = new Set<string>();
   const clocks = new Set<string>();
@@ -232,19 +234,42 @@ async function main(): Promise<void> {
       }
       rows.push(row);
     });
+    manifests.push(manifest);
     hashes.push(manifest.manifestHash.slice(0, 12));
     engines.add(manifest.analyzerVersion);
     clocks.add(`${manifest.clock?.normalizer}/${manifest.clock?.calendar}`);
   }
 
-  // Two sweeps of different engine or clock are two measurements. Refused
-  // rather than pooled, on the same reasoning that keeps `days` inside the
-  // corpus identity in grid-totalr.ts.
-  if (engines.size > 1 || clocks.size > 1) {
+  // Two sweeps of different engine, clock, DEPTH or stated terms are two
+  // measurements. Refused rather than pooled, on the reasoning that keeps
+  // `days` inside the corpus identity in grid-totalr.ts — and the check now
+  // covers what that reasoning covers, rather than citing it while testing
+  // less. `grid-totalr.ts`'s `conditionsOf` is the fuller predicate and is
+  // module-private; the overlap that matters for pooling shards is asserted
+  // here, and lifting one shared predicate into sweepStats.ts is the named
+  // follow-up.
+  const identities = new Set(
+    manifests.map((manifest) =>
+      JSON.stringify({
+        calendar: manifest.clock?.calendar,
+        conditions: manifest.conditions ?? null,
+        days: manifest.days,
+        normalizer: manifest.clock?.normalizer,
+        stepBars: manifest.stepBars,
+        version: manifest.analyzerVersion,
+      })
+    ),
+  );
+  if (identities.size > 1) {
     fail(
-      `the named shards are not one sweep — engines {${[...engines].join(", ")}}, ` +
-        `clocks {${[...clocks].join(", ")}}. Two sweeps are two measurements ` +
-        `and cannot pool.`,
+      `the named shards are not one sweep — they differ in engine, clock, ` +
+        `depth, step or stated conditions. Two sweeps are two measurements ` +
+        `and cannot pool. Engines {${[...engines].join(", ")}}, clocks ` +
+        `{${[...clocks].join(", ")}}, depths {${
+          [...new Set(manifests.map((m) => m.days))].join(", ")
+        }}, steps {${
+          [...new Set(manifests.map((m) => m.stepBars))].join(", ")
+        }}.`,
     );
   }
   if (unreadable > 0) {
@@ -300,6 +325,35 @@ async function main(): Promise<void> {
     groups.set(id, { bucket, key, members: [row] });
   }
 
+  // ONE ROW PER SYMBOL PER BUCKET, and this is a declared measurement rule.
+  // Production sees each symbol exactly once per scan. A bucket does not: the
+  // sweep steps decisions per symbol (`--step`, 16 bars = 4h by default), so any
+  // bucket wider than the step holds several rows of the same symbol — and the
+  // bucket must be wide, which is the whole premise of --bucket-minutes.
+  //
+  // Left in, those repeats corrupt both outputs. They would count as
+  // suppression, inflating a figure labelled a LOWER BOUND in the direction
+  // that makes the label false; and because `getCorrelationGroup` falls back to
+  // the symbol itself, an ungrouped symbol's own repeats would form a
+  // "contested" group and suppress itself, pushing intra-symbol time variation
+  // into a statistic documented as measuring cross-symbol selection.
+  //
+  // The rule: keep the EARLIEST decision in the bucket, the one nearest the
+  // instant the bucket is standing in for. The number of rows dropped is
+  // printed, never silent — a rule that discards rows must say how many.
+  let repeatsDropped = 0;
+  for (const group of groups.values()) {
+    const earliestBySymbol = new Map<string, CollapseRow>();
+    for (const row of group.members) {
+      const held = earliestBySymbol.get(row.symbol);
+      if (held === undefined || row.time < held.time) {
+        earliestBySymbol.set(row.symbol, row);
+      }
+    }
+    repeatsDropped += group.members.length - earliestBySymbol.size;
+    group.members = [...earliestBySymbol.values()];
+  }
+
   const contested = [...groups.values()].filter(
     (group) => group.members.length > 1,
   );
@@ -317,11 +371,13 @@ async function main(): Promise<void> {
     if (!members.every((row) => !row.dataAbsent && Number.isFinite(row.realizedR))) {
       continue;
     }
-    const winner = rankCollapseGroup(members.map(asLiveCandidate))[0];
-    const winnerRow = members.find((row) => row.symbol === winner.symbol);
-    if (!winnerRow) {
-      continue;
-    }
+    // Rank objects that CARRY their row. Resolving the winner back by symbol
+    // returns the first row holding that symbol rather than the ranked one, so
+    // the delta would be computed from a different row's realized R than the
+    // collapse actually chose — silently, with no refusal and no marker.
+    const winnerRow = rankCollapseGroup(
+      members.map((row) => ({ ...asLiveCandidate(row), row })),
+    )[0].row;
     deltas.push(winnerRow.realizedR - mean(members.map((row) => row.realizedR)));
     gradedGroups.push(members);
   }
@@ -339,7 +395,9 @@ async function main(): Promise<void> {
       `(dataAbsent ${dataAbsent.length} held out, graded ${graded.length})`,
   );
   console.log(
-    `groups ${groups.size} = contested ${contested.length} + singleton ${singletons}`,
+    `groups ${groups.size} = contested ${contested.length} + singleton ${singletons}` +
+      ` · ${repeatsDropped} repeat rows dropped (one row per symbol per bucket,` +
+      ` earliest kept — production sees each symbol once per scan)`,
   );
 
   const suppressionRate = candidates.length === 0
