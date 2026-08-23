@@ -183,8 +183,16 @@ async function main(): Promise<void> {
   }
 
   // A declared flag's VALUE is not a corpus path. Consults VALUE_FLAGS rather
-  // than "any token starting with --", which is what the eight sibling readers
-  // do and what this file's own VALUE_FLAGS comment describes.
+  // than "any token starting with --", which is what the sibling readers do.
+  //
+  // Behaviourally this is DEFENCE IN DEPTH, not an independently observable
+  // half: the gate above already refuses every `--` token outside VALUE_FLAGS,
+  // so by the time control reaches here the two forms are pointwise identical
+  // and reverting this line leaves every black-box test green. It is pinned by
+  // the walker law in `tests/sweepManifest.test.ts` instead — a source law,
+  // because that is the only thing that CAN pin it — and it is the right form
+  // to keep, so the day the gate is relaxed the walker does not become the
+  // defect on its own.
   const corpora = argv.reduce<string[]>((kept, token, index) => {
     if (token.startsWith("--")) {
       return kept;
