@@ -136,7 +136,12 @@ describe("the store guard's refusals are loud and the ops jobs know their names"
     const guardSource = readFileSync("scripts/sweepManifest.ts", "utf8");
     const minted = [...guardSource.matchAll(/`(treasury\w+): /g)].map((m) => m[1]);
     assert.ok(minted.length >= 2, "the mint scan must find the treasury tokens");
-    for (const token of minted) {
+    // The two NON-treasury tokens are named, not derived — they are minted in
+    // calibrationCache.ts and clockWitness.ts rather than by the treasury
+    // guard, so the mint scan above cannot see them. Deriving only the
+    // treasury half silently unpinned these two, which is the same shape as
+    // the omission this whole pin exists to catch, one axis over.
+    for (const token of [...minted, "cacheStoreUnreadable", "cacheClockWitnessRefused"]) {
       assert.ok(
         guardTokens.has(token),
         `${token} is minted by treasuryChunkRefusal but is not in the ` +

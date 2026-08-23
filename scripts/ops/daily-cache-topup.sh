@@ -69,8 +69,8 @@ fi
 # one clearing action), and a treasury-origin mismatch defers in the
 # driver, so the bars still warm before that stand-down prints.
 if grep -qE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole|treasuryChunkTruncated' <<<"$out"; then
-  # Name WHICH condition fired (#364 round 24, smaller): each token has
-  # its own remedy — and with the driver's deferral the
+  # Name WHICH condition fired (#364 round 24, smaller): each of the FIVE
+  # tokens has its own remedy — and with the driver's deferral the
   # token line can sit thousands of log lines above the failure that
   # ended the run.
   tokens=$(grep -oE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole|treasuryChunkTruncated' <<<"$out" | sort -u | xargs)
