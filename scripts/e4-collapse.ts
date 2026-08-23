@@ -279,6 +279,18 @@ async function main(): Promise<void> {
     );
   }
 
+  // WIF-4, the zero-row rule by its second route: the door can pass a corpus
+  // that is simply empty, and a report of zeros over nothing is a run that
+  // examined nothing reporting success. Sibling readers close this
+  // (threshold-rescue refuses "cells that matched no row"); so does this one.
+  if (rows.length === 0) {
+    fail(
+      `the corpus carried no rows — ${corpora.join(", ")} passed the manifest ` +
+        `door and is empty. A run over zero rows cannot report a suppression ` +
+        `rate or a verdict.`,
+    );
+  }
+
   const variants = new Set(rows.map((row) => row.variant));
   if (requestedVariant === undefined && variants.size > 1) {
     fail(
@@ -307,6 +319,16 @@ async function main(): Promise<void> {
   const graded = candidates.filter(
     (row) => !row.dataAbsent && Number.isFinite(row.realizedR),
   );
+
+  if (candidates.length === 0) {
+    fail(
+      `no ACCEPTED rows in variant ${JSON.stringify(variant)} — ${
+        inVariant.length
+      } rows matched the variant and none was accepted. Only an accepted setup ` +
+        `became a scan opportunity, and only opportunities reach the collapse, ` +
+        `so there is nothing here the live rule would ever have seen.`,
+    );
+  }
 
   const bucketMs = bucketMinutes * 60_000;
   const groups = new Map<string, Group>();

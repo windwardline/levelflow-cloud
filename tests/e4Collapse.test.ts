@@ -296,6 +296,23 @@ describe("e4-collapse — the replay", () => {
     assert.match(out, /dataAbsent 1 held out, graded 1/);
   });
 
+  it("refuses an empty corpus that passed the door", () => {
+    const emit = corpusWith([]);
+    const { code, out } = run([emit, "--bucket-minutes", "60"]);
+    assert.equal(code, 1);
+    assert.match(out, /carried no rows/);
+  });
+
+  it("refuses a corpus whose rows were all below threshold", () => {
+    const emit = corpusWith([
+      row("EURUSD", 0, 1, { accepted: false }),
+      row("EURJPY", 0, -1, { accepted: false }),
+    ]);
+    const { code, out } = run([emit, "--bucket-minutes", "60"]);
+    assert.equal(code, 1);
+    assert.match(out, /none was accepted/);
+  });
+
   it("refuses to pool two shards swept under different engines", () => {
     const first = corpusWith([row("EURUSD", 0, 1)]);
     const second = corpusWith([row("EURJPY", 0, -1)]);
