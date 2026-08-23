@@ -740,7 +740,9 @@ evidence; the owner decides before the sweep runs. Anything adopted here changes
 what 4c must measure, which is exactly why it cannot come after.
 
 #### 4c — Sweep every matched market to its own limit
-All 111, at the repaired evaluator (item 2), on the discovered spans (4a), in
+All ~~111~~ **97** (the 111 is a superseded universe — see the items 5–11 note
+above; the conclusion does not depend on it), at the repaired evaluator (item 2),
+on the discovered spans (4a), in
 whatever model 4b settled. **Crossed axes** — `replay-sweep.ts` takes
 `--grid a=1,2;b=3,4` now, and a lever downstream of risk cannot be derived at
 another lever's old setting. Corpus manifest per 2i, so no analysis can silently
@@ -1269,15 +1271,16 @@ built; all of it is still owed before this file can be called accurate.
   and no gate fails if it is ignored. The fix is a script that emits the hash,
   wired into `npm test` — a fingerprint no tool can recompute is a conclusion,
   not a check.
-- **"2,474 tests" is a bare conclusion, and it disagrees with this file's own
-  other count.** The Tests cell in the "Live in production" table — named
-  rather than given as a line number, since an ordinal into an 1,800-line file
-  breaks on any insertion above it, which is the class the resume block sweeps
-  — says the count drifts every PR and that `npm test` is the authority. It
-  also says **2,178**, against the resume block's 2,474: a ~300 gap between two
-  cells of one file, which is the concrete demonstration the disclaimer needs
-  and neither cell makes. Treat `npm test` as the authority and delete both
-  figures, or stamp each with the commit it was measured at.
+- **Bare test counts, still open — and this entry's own anchors moved.** It
+  used to name the "Live in production" **Tests** cell and its 2,178 against
+  the resume block's 2,474. That cell is gone: it is now a **Gates** cell
+  naming all seven and carrying no count. What survives is the same defect in
+  two other places — the resume block's **2,474** and the launch record's
+  **2,175**, both bare and unstamped, and both now predating #373–#378. The
+  rule the file states about itself applies: `npm test` is the authority, so
+  either delete each figure or stamp it with the commit it was measured at.
+  Recorded this way rather than silently re-pointed, because an entry that
+  quietly follows its subject around cannot show that the fix was partial.
 - **CLOSED 2026-08-23 — the ordering is now in the rank table itself.** #376
   put it there: R2 reads "does not wait on R0's data half, which gates R3
   onward", R2b reads "after R2, **before R3**", R3 reads "**after R2b**, not
@@ -1713,8 +1716,10 @@ no Edge Function rollback, and functions deploy *before* E2E · ~~cancel-in-prog
 on deploy~~ fixed 2026-08-09, see item 0 · the Supabase CLI that migrates production is unpinned and scanned by
 nothing · `engines.node: ">=24"` lets Vercel build on a Node major CI never ran ·
 CSP `connect-src` trusts every Supabase tenant on the internet · CI verifies an artifact
-Vercel does not build · the CSP style hash is hand-copied with nothing binding it to the
-bundle · `@types/node` two majors ahead of the runtime.
+Vercel does not build · ~~the CSP style hash is hand-copied with nothing binding it to the
+bundle~~ **(CLOSED — `tests/securityHardening.test.ts` now derives the sha256 from the
+installed `lightweight-charts` bundle and fails on a version bump)** · `@types/node` two
+majors ahead of the runtime.
 
 ### 7 — Scan capacity
 `scan_opportunities` is 60 and `SCAN_SYMBOLS_PER_REQUEST` stays 10 — the 10 → 15 change
