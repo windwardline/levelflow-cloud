@@ -210,9 +210,35 @@ silently); a daily store beside every intraday pair; every roster
 symbol's THREE stores present — 15min, 5min and daily, with an empty
 store counting as absent, because a symbol FMP answered with empty
 intraday windows ends up daily-only without any error and previously
-read green on every witness it never ran; and the calendar store
-present. Any red line: the rebuild did not take —
-do not sweep, do not delete the archive, diagnose.
+read green on every witness it never ran; the calendar store present;
+and **the Treasury curve store present, stamped `CALENDAR_CLOCK`, and
+carrying rows** — an empty curve counts as absent, on the same rule the
+bar stores follow, because the sweep refuses
+`historical-treasury-curve over zero rows` one step later and the
+operator would already have been told the rebuild took. Any red line:
+the rebuild did not take — do not sweep, do not delete the archive,
+diagnose.
+
+**Two notes on the Treasury line, added 2026-08-23.** It is NEW to this
+gate: `storeKindForKey` did not recognise `treasury-rates`, so a healthy
+curve earned `unknown store kind — no expected clock for this key` and
+every rebuild reaching step 3 would have gone red on it. And the
+presence half is a deliberate widening: `--warm-only` tolerates a
+Treasury transport failure so the bar warm cannot die on the second
+endpoint, so a rebuild CAN finish with no curve at all — which this
+runbook previously caught only by asking you to grep the log by hand.
+The gate now says it.
+
+**What this gate does NOT check, and it matters more than what it
+does.** Coverage. Measured 2026-08-23 on a freshly rebuilt store: 853
+rows spanning 2013-10-03 to 2026-08-21 against roughly 3,361 business
+days — **25.4%** — with 60 to 62 rows in every one of fourteen
+consecutive years. That uniformity is a per-request row cap, not data
+availability: the fetch chunks at 365 days and the only chunk guard
+refuses a *zero*-row chunk, so a chunk truncated by three quarters
+passes. E6 scores this curve into `confidenceScore`. See
+`docs/HANDOFF.md`'s pre-R3 register; do not refetch before the chunking
+is fixed, or the refetch reproduces the same 25%.
 
 For the record, the same command pointed at the condemned archive should
 fail on every store — it predates the stamp:
