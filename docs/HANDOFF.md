@@ -835,20 +835,79 @@ the live roster is 97 distinct markets.
 
 | rank | item | state |
 |---|---|---|
-| **R0** | One clock — rebuild `.calibration-cache` under a single normalization, assert it in the manifest | **code half DONE 2026-08-18** (see below); **rebuild UNBLOCKED same day** by the owner's 100 GB upgrade (probes green, `to`-inclusivity settled) — one budgeted studio-machine run per `docs/cache-rebuild-r0.md`, minute bank kickstart FIRST |
-| **R1** | One engine — close every sweep↔live divergence (E1 resolution anchor, E2 the 5-min sawtooth, E3 `market.latest`, E6 score terms, E4 correlation collapse, D2 realized R on non-expiry branches, **plus discovered E7**: the options bridge drops the runner-protection mode, so live grades every row "breakeven" while the calibration ships trail_tp1/hold). D3 done (#333); E2's fetch half (chunk sizing) landed with R0. **The map**: `docs/research/r1-divergence-map-2026-08-18.md` pins every divergence to code on both sides and sequences the PRs. **R1a DONE 2026-08-18 in two slices**: slice 1 (#360) D2 — realized R from legs on every filled resolution; slice 2 E1 (the sweep's own resolution tiering in both live writers, recorded per row), E3 (decision anchor = last completed primary bar), E7 (the bridge reads the row's stored runner-protection mode and review window), E2's live no-bars marker — engine now at `2026.08.18.one-physics`. **R1b DONE 2026-08-18** (the sweep tells the truth about its inputs. E2: the no-bars marker gates on whether a completed bar COULD have existed in the resolution stream — the first slot at/after `max(createdAt, streamStartsAtMs)`, the sweep passing decision-bar-open + 15min — never on presence or containment (#364 rounds 3–4; the intermediate presence form never deployed), plus the `unresolvable` counter and the measured per-symbol density door; the aggregator partitions with it — `SweepStats.dataAbsent` holds marked rows out of `n` so fill rates state their denominator, and the driver's `unfilled` column is now `total − filled − dataAbsent`. The FIVE corpus readers STATE the partition (#364 rounds 24–55): three scoped held-out lines each naming their own population and holdout definition (the emit's stamped flag for sweep-analysis and the E8 report vs `gradeCorpus`'s read-time stratified set, whose excluded count the 4c report prints from the read, never the stamp), and `data-limits` — the table 4c per-market sweeps read their limits from — names its list as the stamped flag with the gate's own set called out; the E8 report prints `dataAbs` per market and rollup, labels held-out markets HELD OUT and fully-gated markets ALL ROWS GATED (current calibration — thresholds may postdate the sweep) rather than "NOT IN CORPUS", survives an all-marked market, and withholds its EXCLUDE verdict below `--min-filled` (#364 round 34 — the σ≥2 test's only intrinsic floor was two filled outcomes; round 35 carried the withheld share into the candidates block itself, which now names its floor and states the terms its "none" judged at, and thin negatives below the floor read no-verdict-either-way, never the reassuring "within noise"; round 36 floored the per-category rollup — amendment 24's decision grain — with the same THIN marker, stating the missing clustered s.e. when a category has fewer than two filled markets; round 37 printed the clustered s.e.'s own sample beside it — k filled markets, since roster membership is not the cluster count and k bounds the estimate — and the precision line states that the one `--min-filled` floor applies at both grains); `geometry-evidence` streams with a derived projection and a market-evidence headline; the 4c gate itself floors a zero-shared-days variant at p = 1 — `familyPairedP` had returned the minimum attainable p, exactly, from zero pairs — requires a pairing the statistic can resolve (MIN_EFFECTIVE_PAIRS 5 — the SUPPORT, nonzero shared-day deltas, since a zero delta cannot flip the sign statistic and bit-identical days are the grid's common case; basis at the constant: min attainable p is ~2⁻ᵏ, so 0.05 is unreachable below five effective pairs; both counts print as a pairs column beside pairedP, a floor refusal reads NO VERDICT with the pairing named rather than bare "fails", the boundary is pinned from both sides — accept at exactly five at 2,000 permutations with the p asserted against its derived value, refuse at four sparse and dense — and the family-wise null spans only hypotheses under test: a sub-floor sibling neither joins the maxT family nor receives a p, so it cannot block an accept-eligible variant (#364 round 40) — and the max ITSELF is now pinned by a fixture with three floor-clearing variants on disjoint day blocks, where a variant that accepts alone is refused beside its siblings on an identical observed statistic, since until round 46 every non-singleton fixture had a sub-floor sibling and the family maximum was never actually taken over two competing hypotheses; the non-shared portion's two halves are both named, compositionR the variant-only days and droppedR the baseline R a tightening dial forwent, with the exact accounting identity stated on the verdict type; the shared-vs-whole-fold mismatch is stated at the accepted site; the support predicate is declared once and consumed by the null, the p-floor and the verdict (round 41); the confirm-fold burn lands only after a confirm read actually happened — never on a throw, never on a legacy corpus with no confirm fold (round 41), and never on a run that accepted nothing, since the figure is computed for accepted variants only (round 42), and never on a confirm delta with no evidence behind it — the delta is null unless BOTH sides carry filled confirm-fold outcomes, and states both denominators where it prints (round 43); a group whose baseline carries no select-fold days is diagnosed by name at the market grain (round 41); the row's disposition rides a `noVerdict` field rather than a prefix match on the reason's wording, pinned at source (round 42), with `reason` required so no causeless label can print (round 43); and the folds line claims a read only when the ledger recorded one — naming which of its two causes applies — with `main()` itself now under executed coverage (rounds 43–44); the ledger is keyed on the CORPUS identity (`conditionsOf` — invariant across shard order and subsets, since `symbols` deliberately stays out; round 45 also hashed each shard's run-day `anchor` in, and round 47 removed it: `anchor` is `isoDate(new Date())` per INVOCATION and shards are separate invocations, so a cross-midnight or re-run shard set got a population-dependent id and a later subset read found no prior and opened the held-back fold unrecorded — round 44's finding restored on a new axis, a MISSED refusal traded for a false one. What survives of round 45's widening is `days`, and it survives by joining `conditionsOf` itself: two sweeps of different depth are two measurements, the shard loop now refuses the mixture, and that refusal is what makes the identity subset-invariant by construction rather than by assumption about how shards are run) rather than shard 0's `manifestHash`, so a reorder or a subset can no longer read the held-back fold unrecorded (round 44) — and it is FILED under that identity in one canonical tracked directory, `docs/research/confirm-reads/`, rather than beside the shards, since round 44 fixed the key and left the location derived from the corpus's path: copying the shards elsewhere to grade left the record behind and the copy could be read forever while the original's count never moved. One file also makes the append atomic again, where the per-directory fan-out could record a read the caller never learned about. Both retired forms stay honoured on READ so older ledgers keep refusing, and the refusal now names its evidence — ledger path, prior `readAt`, which key matched, and how this read's shard population compares to the recorded one (round 45). `confirm-4d` consumes `confirmRead` rather than stamping `readAt` unconditionally (round 44), and its `unreadable` count splits into FIVE causes, not three: `thin` and `noVerdict` verdicts both carry `accepted === false`, so both had been reported as having lost the gate when the gate could not judge them at all — refused-by-gate, gate-could-not-judge, thin, accepted-but-unevidenced, missing-verdict, each with a per-pick `gateDisposition` and the gate's own `gateReason`, under executed end-to-end coverage of the script that BURNS (round 45)), and refuses a baseline carrying no cell, closing the route where a typo'd `--baseline` (the one VALUE_FLAGS entry with neither refusal, now read through a guarded string accessor under a bidirectional scan, with all three path readers on one sequential walker) made every class degenerate and accepted every profitable variant (#364 rounds 37–55); and the amendment-25 starvation gate reads a zero geometry denominator as NO VERDICT rather than maximal starvation, withholds the flag below a `--min-reached` floor (default 30, binomial basis recorded at the constant), partitions its summary by cause so the flagged denominator holds only judged markets, and refuses outright — `--report` powerless, remedies routed by cause down to the no-verdict shapes, which the passing summary also names apart, since the floor dial cannot recover a zero denominator and the feed is no lever for windows never consulted — when the exclusions swallow the whole roster (#364 rounds 31–36) — the map's reader clause is the authority. E6: macro reconstruction from the historical Treasury curve at New-York-midnight visibility with curve-evidence facts hashed into the manifest, and providerWarningCount/weightAdjustment stated in the hashed `conditions` block the readers now require; emit rows carry tier, macro adjustment + stance, and marker — closure record in the map is the authority; corpora without conditions refuse at the door, and the one re-sweep stays R3's). **Remaining: R1c** (the E4 collapse instrument). **R1b MERGED 2026-08-19 as `19706e8` (#364, squashed)** after roughly fifty-six advisory fleet-review rounds over its life (this session drove the last twelve, 45–56) — merged on green CI without waiting for a tail-flat round, on the owner's call, the review being advisory per AGENTS.md rather than a required gate. The rounds are not noise: they have found a live regression, a NaN dial, a silent 60→365 depth drift, a write-before-validate on a tracked artifact, and a test that executed nothing in CI for a full round. | **R1b MERGED 2026-08-19 · R1c NEXT** |
-| **R2** | Repair the instrument — D4 (the gate has no absolute-expectancy term), M3 (confirm decides on a bare delta), M1 (audit double-counts), M5 (make the cost scale reach the resolver), D1 (learning from a win rate) | after R1 |
+| **R0** | One clock — rebuild `.calibration-cache` under a single normalization, assert it in the manifest | **code half DONE 2026-08-18** (see below); **rebuild UNBLOCKED same day** by the owner's 100 GB upgrade (probes green, `to`-inclusivity settled) — one budgeted studio-machine run per `docs/cache-rebuild-r0.md`, minute bank kickstart FIRST. **DATA HALF STARTED 2026-08-23 ~18:50 UTC on the studio machine** — steps 1 and 2 under way, steps 3-5 owed; see the resume block |
+| **R1** | One engine — close every sweep↔live divergence (E1 resolution anchor, E2 the 5-min sawtooth, E3 `market.latest`, E6 score terms, E4 correlation collapse, D2 realized R on non-expiry branches, **plus discovered E7**: the options bridge drops the runner-protection mode, so live grades every row "breakeven" while the calibration ships trail_tp1/hold). D3 done (#333); E2's fetch half (chunk sizing) landed with R0. **The map**: `docs/research/r1-divergence-map-2026-08-18.md` pins every divergence to code on both sides and sequences the PRs. **R1a DONE 2026-08-18 in two slices**: slice 1 (#360) D2 — realized R from legs on every filled resolution; slice 2 E1 (the sweep's own resolution tiering in both live writers, recorded per row), E3 (decision anchor = last completed primary bar), E7 (the bridge reads the row's stored runner-protection mode and review window), E2's live no-bars marker — engine now at `2026.08.18.one-physics`. **R1b DONE 2026-08-18** (the sweep tells the truth about its inputs. E2: the no-bars marker gates on whether a completed bar COULD have existed in the resolution stream — the first slot at/after `max(createdAt, streamStartsAtMs)`, the sweep passing decision-bar-open + 15min — never on presence or containment (#364 rounds 3–4; the intermediate presence form never deployed), plus the `unresolvable` counter and the measured per-symbol density door; the aggregator partitions with it — `SweepStats.dataAbsent` holds marked rows out of `n` so fill rates state their denominator, and the driver's `unfilled` column is now `total − filled − dataAbsent`. The FIVE corpus readers STATE the partition (#364 rounds 24–55): three scoped held-out lines each naming their own population and holdout definition (the emit's stamped flag for sweep-analysis and the E8 report vs `gradeCorpus`'s read-time stratified set, whose excluded count the 4c report prints from the read, never the stamp), and `data-limits` — the table 4c per-market sweeps read their limits from — names its list as the stamped flag with the gate's own set called out; the E8 report prints `dataAbs` per market and rollup, labels held-out markets HELD OUT and fully-gated markets ALL ROWS GATED (current calibration — thresholds may postdate the sweep) rather than "NOT IN CORPUS", survives an all-marked market, and withholds its EXCLUDE verdict below `--min-filled` (#364 round 34 — the σ≥2 test's only intrinsic floor was two filled outcomes; round 35 carried the withheld share into the candidates block itself, which now names its floor and states the terms its "none" judged at, and thin negatives below the floor read no-verdict-either-way, never the reassuring "within noise"; round 36 floored the per-category rollup — amendment 24's decision grain — with the same THIN marker, stating the missing clustered s.e. when a category has fewer than two filled markets; round 37 printed the clustered s.e.'s own sample beside it — k filled markets, since roster membership is not the cluster count and k bounds the estimate — and the precision line states that the one `--min-filled` floor applies at both grains); `geometry-evidence` streams with a derived projection and a market-evidence headline; the 4c gate itself floors a zero-shared-days variant at p = 1 — `familyPairedP` had returned the minimum attainable p, exactly, from zero pairs — requires a pairing the statistic can resolve (MIN_EFFECTIVE_PAIRS 5 — the SUPPORT, nonzero shared-day deltas, since a zero delta cannot flip the sign statistic and bit-identical days are the grid's common case; basis at the constant: min attainable p is ~2⁻ᵏ, so 0.05 is unreachable below five effective pairs; both counts print as a pairs column beside pairedP, a floor refusal reads NO VERDICT with the pairing named rather than bare "fails", the boundary is pinned from both sides — accept at exactly five at 2,000 permutations with the p asserted against its derived value, refuse at four sparse and dense — and the family-wise null spans only hypotheses under test: a sub-floor sibling neither joins the maxT family nor receives a p, so it cannot block an accept-eligible variant (#364 round 40) — and the max ITSELF is now pinned by a fixture with three floor-clearing variants on disjoint day blocks, where a variant that accepts alone is refused beside its siblings on an identical observed statistic, since until round 46 every non-singleton fixture had a sub-floor sibling and the family maximum was never actually taken over two competing hypotheses; the non-shared portion's two halves are both named, compositionR the variant-only days and droppedR the baseline R a tightening dial forwent, with the exact accounting identity stated on the verdict type; the shared-vs-whole-fold mismatch is stated at the accepted site; the support predicate is declared once and consumed by the null, the p-floor and the verdict (round 41); the confirm-fold burn lands only after a confirm read actually happened — never on a throw, never on a legacy corpus with no confirm fold (round 41), and never on a run that accepted nothing, since the figure is computed for accepted variants only (round 42), and never on a confirm delta with no evidence behind it — the delta is null unless BOTH sides carry filled confirm-fold outcomes, and states both denominators where it prints (round 43); a group whose baseline carries no select-fold days is diagnosed by name at the market grain (round 41); the row's disposition rides a `noVerdict` field rather than a prefix match on the reason's wording, pinned at source (round 42), with `reason` required so no causeless label can print (round 43); and the folds line claims a read only when the ledger recorded one — naming which of its two causes applies — with `main()` itself now under executed coverage (rounds 43–44); the ledger is keyed on the CORPUS identity (`conditionsOf` — invariant across shard order and subsets, since `symbols` deliberately stays out; round 45 also hashed each shard's run-day `anchor` in, and round 47 removed it: `anchor` is `isoDate(new Date())` per INVOCATION and shards are separate invocations, so a cross-midnight or re-run shard set got a population-dependent id and a later subset read found no prior and opened the held-back fold unrecorded — round 44's finding restored on a new axis, a MISSED refusal traded for a false one. What survives of round 45's widening is `days`, and it survives by joining `conditionsOf` itself: two sweeps of different depth are two measurements, the shard loop now refuses the mixture, and that refusal is what makes the identity subset-invariant by construction rather than by assumption about how shards are run) rather than shard 0's `manifestHash`, so a reorder or a subset can no longer read the held-back fold unrecorded (round 44) — and it is FILED under that identity in one canonical tracked directory, `docs/research/confirm-reads/`, rather than beside the shards, since round 44 fixed the key and left the location derived from the corpus's path: copying the shards elsewhere to grade left the record behind and the copy could be read forever while the original's count never moved. One file also makes the append atomic again, where the per-directory fan-out could record a read the caller never learned about. Both retired forms stay honoured on READ so older ledgers keep refusing, and the refusal now names its evidence — ledger path, prior `readAt`, which key matched, and how this read's shard population compares to the recorded one (round 45). `confirm-4d` consumes `confirmRead` rather than stamping `readAt` unconditionally (round 44), and its `unreadable` count splits into FIVE causes, not three: `thin` and `noVerdict` verdicts both carry `accepted === false`, so both had been reported as having lost the gate when the gate could not judge them at all — refused-by-gate, gate-could-not-judge, thin, accepted-but-unevidenced, missing-verdict, each with a per-pick `gateDisposition` and the gate's own `gateReason`, under executed end-to-end coverage of the script that BURNS (round 45)), and refuses a baseline carrying no cell, closing the route where a typo'd `--baseline` (the one VALUE_FLAGS entry with neither refusal, now read through a guarded string accessor under a bidirectional scan, with all three path readers on one sequential walker) made every class degenerate and accepted every profitable variant (#364 rounds 37–55); and the amendment-25 starvation gate reads a zero geometry denominator as NO VERDICT rather than maximal starvation, withholds the flag below a `--min-reached` floor (default 30, binomial basis recorded at the constant), partitions its summary by cause so the flagged denominator holds only judged markets, and refuses outright — `--report` powerless, remedies routed by cause down to the no-verdict shapes, which the passing summary also names apart, since the floor dial cannot recover a zero denominator and the feed is no lever for windows never consulted — when the exclusions swallow the whole roster (#364 rounds 31–36) — the map's reader clause is the authority. E6: macro reconstruction from the historical Treasury curve at New-York-midnight visibility with curve-evidence facts hashed into the manifest, and providerWarningCount/weightAdjustment stated in the hashed `conditions` block the readers now require; emit rows carry tier, macro adjustment + stance, and marker — closure record in the map is the authority; corpora without conditions refuse at the door, and the one re-sweep stays R3's). **R1c DONE 2026-08-23** (the E4 collapse instrument): `scripts/e4-collapse.ts` replays the per-scan collapse by importing `scanCollapse.ts` — the comparator was extracted from `index.ts` so the live path and the reader call ONE implementation rather than the reader transcribing a Deno-global file it cannot import (#373). The map's feasibility claim did not hold: `executionScore`, the comparator's THIRD tier, was absent from the emit entirely, and it is now emitted — R3 is the one re-sweep, so a field missing then cannot be backfilled without a second one. Live also quantizes tier 2 to two decimals while the emit carries full precision, which is what makes tier 3 bind often rather than rarely. The reader (#375) requires `--bucket-minutes` and `--variant` with no defaults, reads every shard as one population because the sharding SPLITS correlation clusters, holds data-absent rows out of `n`, withholds below `--min-groups` rather than reading thin as reassurance, and states its suppression as a LOWER BOUND because the cross-scan 6-hour screen is not a pure read. Its estimand is paired per (bucket, group) against a null of uniform within-group selection. **It cannot produce a reading until R3** — no corpus exists that its own door accepts. **R1b MERGED 2026-08-19 as `19706e8` (#364, squashed)** after roughly fifty-six advisory fleet-review rounds over its life (this session drove the last twelve, 45–56) — merged on green CI without waiting for a tail-flat round, on the owner's call, the review being advisory per AGENTS.md rather than a required gate. The rounds are not noise: they have found a live regression, a NaN dial, a silent 60→365 depth drift, a write-before-validate on a tracked artifact, and a test that executed nothing in CI for a full round. | **R1a/R1b/R1c ALL MERGED · R1 CLOSED 2026-08-23** |
+| **R2** | Repair the instrument — D4 (the gate has no absolute-expectancy term), M3 (confirm decides on a bare delta), M1 (audit double-counts), M5 (make the cost scale reach the resolver), D1 (learning from a win rate) | **NEXT — R1 is closed.** Does not wait on R0's data half, which gates R3 onward. Whether every item is offline is NOT asserted here — M5 names the resolver and D1 names learning, both live surfaces; scope each against the map before assuming a reader-only change |
 | **R2b** | **The geometry model's own fresh-eyes round** — the old item 4b, re-ranked here 2026-08-19 rather than left in §5's prose. Several lenses, each asked what the MODEL is missing rather than how to tune it; the one surface the adversarial protocol has never been pointed at. **Its rank is load-bearing and was never stated:** its output changes what the sweep should measure, and R3 is `re-sweep ONCE` under item 2's law — one re-simulate after the instrument changes, never one per fix. Run after R3 and the choice is a second full re-sweep or shipping a geometry nobody probed. It must clear before R3 opens. | after R2, **before R3** |
 | **R3** | Re-sweep ONCE — item 2's law: one re-simulate after the instrument changes, never one per fix | **after R2b**, not merely after R2 — R2b changes what should be measured and there is only one re-sweep |
 | **R4** | The per-market program — every matched market individually, against its own shipped configuration, absolute expectancy as the criterion | after R3 |
 | **R5** | The never-analyzed populations — 8 contract variants, dual-listed crypto per line, register gaps | after R4 |
 | **R6** | Reader-facing claims — D7 (Record rows publish a frequency as a record), D8 (tier ordering the corpus inverts) | pre-reopen |
 
-### ▶ RESUME HERE — 2026-08-20 02:15 UTC
+### ▶ RESUME HERE — 2026-08-23 20:00 UTC
 
-**Paused on the weekly usage limit, not on a blocker.** It resets
-**Sunday 2026-08-23 11:00 UTC (07:00 EDT)**. Everything below is a clean
-state, not an interrupted one.
+**This session ran ON THE STUDIO MACHINE, and R0's data half is RUNNING.**
+That is the single fact a resuming session needs first. Everything below
+the next two blocks is the 2026-08-20 record, kept because it is still
+true.
+
+#### What "the studio machine" is — the register item, closed
+
+The term was load-bearing and undefined: it gated the top-ranked item and
+nothing said what it was or how a session could tell. It is **the machine
+that holds `.calibration-cache` and the loaded launchd agents** — in
+practice the owner's own Mac at `~/Projects/levelflow-cloud`, not a
+container. The test is derivable, so no session has to be told:
+
+```sh
+launchctl list | grep levelflow      # the two agents
+ls -d .calibration-cache             # the store the rebuild rebuilds
+```
+
+Both present → R0's budgeted run is available to you. Neither → R0 is
+blocked and only the offline items can move. Recent sessions ran in
+ephemeral containers where neither existed, and the file was written as
+if they never would.
+
+#### R0's data half — STARTED 2026-08-23 ~18:50 UTC
+
+Preconditions re-derived rather than assumed, and all four held: FMP
+answered a live probe **HTTP 200 with real rows** (no 429); the minute
+bank was **already current** — its own agent had run at 18:37 UTC that
+day, banking 27,552 bars across 97 symbols — so no kickstart was owed and
+nothing was expiring; `scripts/intradayChunks.ts` was present; 173 GB
+free.
+
+Executed so far, per `docs/cache-rebuild-r0.md`:
+
+- **Step 1 DONE.** `com.windwardline.levelflow-cache-topup` booted out
+  (the minute-bank agent deliberately left loaded and running — it is a
+  different store and the runbook says so). The condemned 3.9 GB store
+  moved to `~/levelflow-cache-condemned-2026-08-11`, outside the repo,
+  with its `INVALID-READ-ME.txt` and the `cot-*.json` files.
+- **Step 2 RUNNING**, `--symbols roster --days max --warm-only
+  --byte-budget 30gb`, under `caffeinate` so the machine cannot idle-sleep
+  through it, with the key delivered by `wl-secret` at exec and never on
+  argv. The economic calendar (75,206 events) and the Treasury curve (853
+  rows) both loaded — the two instant-death hazards the runbook names —
+  with no tolerated-transport warning.
+- **Steps 3, 4 and 5 are OWED and are the first thing to do.**
+  `npx tsx scripts/verify-cache-clock.ts` must be green before anything
+  sweeps; **step 4 re-arms the top-up agent** and skipping it silently
+  stops the nightly warm; step 5 deletes the archive, and only after one
+  green nightly log.
+
+**Early evidence the rebuild is repairing what it was built to repair.**
+Every forex major warmed so far reports 5-minute density ~197–200 rows/day
+against 15-minute ~66/day — a ratio of **3.00**, mid-band on the
+verifier's [2.5, 3.5]. The 1b sawtooth read **0.6–1.0**. Zero
+`WOULD REFUSE` lines, zero 429s, zero treasury failures. This is an
+in-flight observation, not step 3's verdict; it does not substitute for
+running the verifier.
+
+**Do not run `npm test` or any sweep on this machine while step 2 runs.**
+CI's seven-gate `build` job is the authority for anything merged
+meanwhile — that is how the three PRs below were gated.
 
 **The rebuild itself did not move on 2026-08-20.** The session spent that
 time on the fleet-wide CONVERGE standard instead — see "The fleet standard,
@@ -890,9 +949,39 @@ which files, what kind — and leaves the count to git.
   merged and deleted, so unreferenced on the remote and GC-eligible. A
   standing instruction may not rest on a commit nothing references. The
   core as it stands shipped in `19706e8`.
-- **Next item is R1c**, the E4 correlation-collapse offline instrument. Its
-  scope is in `docs/research/r1-divergence-map-2026-08-18.md`, the same map the
-  R1 rank-table row cites. Nothing is started on it; no scaffolding to inherit.
+- **R1c SHIPPED 2026-08-23 — the next item is R2.** Three PRs, each one
+  concern, each merged on a green seven-gate CI `build`: **#373** extracted the
+  collapse comparator out of `index.ts` into `scanCollapse.ts` and added
+  `executionScore` to the sweep emit; **#374** fixed a load-bearing test that
+  was asserting nothing (below); **#375** is the reader,
+  `scripts/e4-collapse.ts`. Its scope was and remains
+  `docs/research/r1-divergence-map-2026-08-18.md`, which now also records what
+  its own E4 section got wrong and what the reader deliberately does not do.
+  **R2 is offline like R1c and does not wait on R0's data half**, which gates
+  R3 onward.
+
+- **A guard that enforced nothing, for every reader, in CI as well as here
+  (#374).** `tests/emptyCorpusRefusals.test.ts` spawns each corpus reader with
+  no corpus and asserts it refuses. It was passing without any reader ever
+  running. `npm test` runs under `tsx --tsconfig tsconfig.tests.json`, and tsx
+  exports that as `TSX_TSCONFIG_PATH` — **relative**. The scan spawns readers
+  from a temp cwd, deliberately, so the child resolved that path against the
+  temp directory and died inside tsx's own loader before the reader's first
+  line. The crash satisfied every assertion: exit 1, long non-empty stderr, no
+  npm/npx marker, no ENOENT — and the minified bundle it dumps contains the
+  substring `emit`, so it even passed the check that the refusal must NAME the
+  corpus. This is #364 round 55's defect on a new axis, inside the test written
+  to enforce that a run examining nothing must not report success, and it
+  survived round 55's own remedy because the crash text happened to contain the
+  word that remedy looks for. Fixed by dropping the variable from the child
+  environment; `tsx/dist/register` now joins the harness-failure pattern.
+  Verified both ways — `data-limits.ts` went from a loader dump to
+  `usage: data-limits.ts <emit.jsonl>`, and every reader's spawn moved from a
+  uniform ~90ms crash to 150–450ms of real execution. **All sixteen readers do
+  refuse correctly once actually executed**, so the law held; it was simply
+  never tested. The generalisable half: an assertion that a process SAID
+  something is satisfied by any process that says enough, and a substring
+  common in minified JavaScript is not evidence of anything.
   **What R0 does and does not block, stated because nothing said it before:**
   R1c does not wait on R0 *to be built* — it is offline and R0 gates R3 onward
   — but the map scopes it as "the collapse reader and its report, **doored and
@@ -971,8 +1060,14 @@ R1c; all of it is owed before this file can be called accurate.
   first five only on a machine that once held the #364 branch, and on any other
   clone it errors with `malformed object name` rather than returning the empty
   output an earlier version of this bullet claimed. In the clone that has them,
-  the first five are dangling objects and `d947245` (item 1g, the provenance of
-  `MEASURED_POPULATION_BY_ASSET_TYPE`) is absent outright. The
+  the first five are dangling objects. **`d947245` is NOT dead and never was —
+  corrected 2026-08-23 on the studio machine.** `git cat-file -t d947245`
+  returns `commit`, and `git merge-base --is-ancestor d947245 main` succeeds:
+  it is the squash-merge of #133, reachable from `main`, so EVERY full clone
+  has it and no re-anchoring is owed for it. The "absent outright" reading was
+  an artifact of the shallow container clones those sessions ran in, which is
+  the same container/real-machine split this resume block now opens with. The
+  live population of genuinely dead pointers is therefore **five, not six**. The
   consequence is specific: §6b-i's blast-radius audit — the one record proving
   an unattended agent did not corrupt the max-T null — states the statistical
   core is "byte-identical" to `d0b9907`, and **no cold session can re-run that
@@ -980,10 +1075,12 @@ R1c; all of it is owed before this file can be called accurate.
   retires such a pointer; the rule was applied to one instance and the
   population was never swept. **The discovery half is now done and the item is
   cheaper than it reads:** every backticked 7-hex token in this file is one of
-  nine, and the split is exactly three live (`19706e8`, `73000d6`, `998dcff`)
-  against the six above, with nothing missed. Only the re-anchoring remains —
-  each dead pointer either re-anchored to a commit reachable from `main` or
-  replaced by a content hash.
+  nine. **The split, re-derived on a full clone 2026-08-23, is FOUR live —
+  `19706e8`, `73000d6`, `998dcff` and `d947245` — against five dead**, not
+  three against six; `d947245` is an ancestor of `main` and resolves in any
+  full clone, per the correction above. Only the re-anchoring remains — each of
+  the five dead pointers either re-anchored to a commit reachable from `main`
+  or replaced by a content hash.
 - **The statistical-core fingerprint is not reproducible from its own recipe.**
   The hash appears exactly once in the tree (this file) and nothing computes
   it — no hit in `scripts/`, `tests/`, `.github/`. The recipe does not
@@ -1025,20 +1122,36 @@ R1c; all of it is owed before this file can be called accurate.
   to guess among. Amendments 29–38 are framed as "the live standing approvals"
   while amendments 19, 22, 24 and 25 are treated as binding in the body;
   whether pre-29 amendments still bind is never stated.
-- **"Deployed" is a CONVERGE precondition with no meaning for the next three
-  items.** R1c is an offline instrument, R2b is a review round, and R0's data
-  half runs on the studio machine, not production. None has a production
-  surface. Say so in §6b rather than leaving a resuming session to hunt for a
-  verification that cannot exist.
+- **CLOSED — "Deployed" as a precondition for items with no production
+  surface.** §6b now carries the rule, in prose beside the fenced prompt rather
+  than inside it, since the fence is structurally checked against `FLEET.md`:
+  where an item has no production surface, saying so IS the verification.
 - **"The studio machine" is never defined** — not what it is, who has access,
   nor how a session tells whether it is on one. It is the precondition of the
   top-ranked blocked item.
-- **R0 carries a physical cleanup obligation that is not in the resume block.**
-  `docs/cache-rebuild-r0.md` §4 (re-arm the nightly top-up) and §5 (delete the
-  archive). An un-re-armed top-up silently stops banking minute bars against a
-  ~3-day irrecoverable window, and the condemned ~3.9 GB store sits as orphaned
-  state outside the repo. Highest-consequence "cleaned up" in the program,
-  connected to the phrase nowhere.
+- **CLOSED, and its own statement of the risk was wrong — R0's physical
+  cleanup obligation.** `docs/cache-rebuild-r0.md` §4 (re-arm the nightly
+  top-up) and §5 (delete the archive) are now carried explicitly by the resume
+  block, which is where a session executing R0 will actually look.
+
+  **The correction matters more than the closure.** This entry said an
+  un-re-armed top-up "silently stops banking minute bars against a ~3-day
+  irrecoverable window". It does not. There are TWO launchd agents and they are
+  not interchangeable:
+
+  | agent | script | store | R0's instruction |
+  | --- | --- | --- | --- |
+  | `levelflow-minute-bank` | `bank-minute-bars-daily.sh` | `.minute-bank/` | **leave running** — different store, own clock probes, never carried the defect |
+  | `levelflow-cache-topup` | `daily-cache-topup.sh` | `.calibration-cache/` | boot out at §1, re-arm at §4 |
+
+  The ~3-day irrecoverable window belongs to the **minute bank**, which R0 does
+  not touch — `docs/cache-rebuild-r0.md` §0 says so in as many words. The
+  top-up warms the calibration cache, and **everything in it is refetchable**,
+  so an un-re-armed top-up is a stale cache, not lost history. Re-arming still
+  matters; it is simply not a race against an expiring window, and conflating
+  the two sends a session to re-arm the wrong agent believing it has protected
+  something irrecoverable. An unmerged draft (#370) carried the same
+  conflation and was closed rather than merged.
 - **This section is a summary, not the authority, for anything fleet-wide.**
   `CONTINUATION.md` in `windwardline/windwardline` owns fleet state; where the
   two differ, it governs. The fleet work is **NOT** finished — its own §6
@@ -1803,6 +1916,18 @@ clock artifact, and the improvement-versus-positivity conflation were all caught
 by refutation, never by the pass that produced them; and two of the finders'
 own claims were themselves overturned. Finding and refuting are different jobs
 and CONVERGE now names both.
+
+**"Deployed, verified in production" is a precondition that some items cannot
+satisfy, and that is not a failure to hunt down.** The cycle's done-condition and
+its step 8 both name deployment, because the items it was written against had
+production surfaces. Several do not: an offline research reader (R1c) has none, a
+review round (R2b) has none, and R0's data half runs on the studio machine rather
+than production. Where an item has no production surface, **say so explicitly in
+the report** — that is the verification — rather than leaving a resuming session
+to look for evidence that could not exist. Where an item DOES touch the live
+path, the precondition binds exactly as written. The fenced text below is a
+governed home of the method and is structurally checked against `FLEET.md`, so
+this clarification sits outside it rather than editing it.
 
 ```
 Continue. Work docs/HANDOFF.md's sequence from wherever it now stands, and fold anything
