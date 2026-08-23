@@ -462,15 +462,26 @@ async function main(): Promise<void> {
       ` earliest kept — production sees each symbol once per scan)`,
   );
 
-  // No zero guard here: a corpus with no accepted rows refuses above, so the
+  // The rate is taken over the population the collapse ACTUALLY ran over, not
+  // over every accepted row. `suppressed` counts post-rule members, so dividing
+  // by the pre-rule count named a rate of a process some of its denominator
+  // never underwent. How far the two diverge is a function of the dial, not a
+  // constant: repeats per symbol per bucket are bucketMinutes / (stepBars x 15),
+  // so at --step 16 there are none below a 240-minute bucket and five in six are
+  // dropped at 1440. Both counts print, because either alone misleads at some
+  // bucket width.
+  //
+  // No zero guard: a corpus with no accepted rows refuses above, so the
   // denominator is non-zero by construction. The guard that used to sit here
   // rendered an em dash and could never fire — a dead branch reading as a live
   // one, on the line that prints the headline figure.
+  const collapsedOver = candidates.length - repeatsDropped;
   console.log(
-    `suppression ${suppressed}/${candidates.length} = ${
-      (suppressed / candidates.length * 100).toFixed(1)
-    }% of accepted candidates — a LOWER BOUND: the cross-scan 6-hour screen is ` +
-      `not modelled here`,
+    `suppression ${suppressed}/${collapsedOver} = ${
+      (suppressed / collapsedOver * 100).toFixed(1)
+    }% of the rows the collapse ran over (${candidates.length} accepted, ` +
+      `${repeatsDropped} dropped as same-symbol repeats) — a LOWER BOUND: the ` +
+      `cross-scan 6-hour screen is not modelled here`,
   );
 
   if (deltas.length < minGroups) {

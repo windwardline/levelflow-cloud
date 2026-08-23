@@ -260,6 +260,19 @@ describe("e4-collapse — the replay", () => {
     assert.equal(suppressedIn(day.out), 2);
     assert.equal(suppressedIn(week.out), 1);
     assert.match(week.out, /2 repeat rows dropped/);
+    // The DENOMINATOR is the population the collapse ran over, not every
+    // accepted row. At a week the four accepted rows dedupe to two, so the rate
+    // is 1/2 and both counts are stated — dividing by 4 would have named a rate
+    // of a process half its denominator never underwent.
+    assert.match(
+      week.out,
+      /suppression 1\/2 = 50\.0% of the rows the collapse ran over \(4 accepted, 2 dropped as same-symbol repeats\)/,
+    );
+    // And at a day there are no repeats, so both denominators coincide.
+    assert.match(
+      day.out,
+      /suppression 2\/4 = 50\.0% of the rows the collapse ran over \(4 accepted, 0 dropped as same-symbol repeats\)/,
+    );
   });
 
   // Below the floor the reader must withhold, and must NOT phrase a thin

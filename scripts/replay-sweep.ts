@@ -104,6 +104,10 @@ const API_KEY = process.env.FMP_API_KEY;
 // 2026-08-13, and an unset budget must never read as unlimited.
 let sweepBudget: ByteBudget | undefined;
 
+function formatGb(bytes: number): string {
+  return `${(bytes / 1_000_000_000).toFixed(2)}GB`;
+}
+
 function budget(): ByteBudget {
   if (!sweepBudget) {
     throw new Error(
@@ -733,9 +737,18 @@ async function main() {
     // --warm-only: the daily top-up path. Caches are now loaded (and
     // therefore topped up and pinned for today) — no simulation.
     if (args.warmOnly) {
+      // The spend rides the warm line (§21's founding finding: FMP meters
+      // BYTES and publishes no usage endpoint, so the in-process ledger is the
+      // only thing that knows). It knew all along and never said — the sole
+      // signal was the exception thrown at exhaustion, which on a multi-hour
+      // rebuild means the operator learns the budget was short only once the
+      // run is dead. Printed per symbol so the trend is visible early enough to
+      // act on.
       console.log(
         `${symbol}\twarm\t${primaryBars.length} intraday bars through ${
           isoDate(new Date(primaryBars.at(-1)?.time ?? 0))
+        }\tspent ${formatGb(budget().spent())} of ${
+          formatGb(budget().spent() + budget().remaining())
         }`,
       );
       continue;
