@@ -153,7 +153,7 @@ state that they must be zero"):
   come from production outcomes, not from the sweep — so nothing in
   Phase 2 is blocked by this.
 
-## E4 — correlation collapse exists only in production
+## E4 — correlation collapse exists only in production — **CLOSED (R1c, 2026-08-23)**
 
 **Live**: two mechanisms — per-scan
 `collapseRelatedMarketOpportunities` (index.ts:941; winner by
@@ -216,7 +216,9 @@ feasibility is how an instrument ships measuring the wrong rule.
   arguments; the symbol tier reverses a second time and cancels the
   swap.
 
-**Still open, and they belong to the reader (R1c proper):**
+**How the reader handles each of these — all closed in `scripts/e4-collapse.ts`
+(#375), and closed by STATING the limit where it could not be removed. The E7
+and D2 closures above are the shape this follows.**
 
 - **The cross-scan screen is not a pure read.** It is a database query
   over `trade_setups` scoped to a user, a 6-hour `created_at` window and
@@ -259,6 +261,48 @@ feasibility is how an instrument ships measuring the wrong rule.
   push, so the uncollapsed population is the rows that reached the push,
   not every candidate. The reader states its population from the corpus
   rather than assuming this sentence.
+
+### R1c's closure record — what shipped, and what it deliberately does not do
+
+`scripts/e4-collapse.ts`, doored through `assertManifestedCorpusStreaming` and
+enrolled automatically in the derived-population tests
+(`tests/emptyCorpusRefusals.test.ts`, `tests/sweepManifest.test.ts`'s flag law).
+
+**Closed by removal.** The comparator is no longer transcribable — the reader
+imports `scanCollapse.ts`, the module `index.ts` calls. `executionScore` is in
+the emit. Tier 2 is quantized to two decimals before the comparator runs, the
+way live sees it. All named shards are read as ONE population and shards of
+different engine, clock, depth, step or stated conditions are refused, so a
+split cluster cannot have each half win its own collapse.
+
+**Closed by declaration, because the corpus cannot supply the fact.**
+`--bucket-minutes` is required with no default and printed in the report.
+`--variant` is required when the corpus carries more than one. Within a bucket
+the reader keeps ONE row per symbol — the earliest — because production sees
+each symbol once per scan while a bucket holds several of its stepped
+decisions, and it prints how many rows that rule dropped.
+
+**Closed by stating a bound rather than claiming a measurement.** The
+cross-scan 6-hour screen is NOT modelled: it is a database query over
+`trade_setups` scoped to a user, a 6-hour `created_at` window and a status
+filter, none of which the corpus has, and its input is the collapse's own
+output. So the suppression figure is a **LOWER BOUND** and the report says so
+on the line that prints it. Group membership is read from today's `symbols.ts`,
+not the roster as it stood at each decision instant.
+
+**The estimand.** Paired per (bucket, group) — the winner's realized R minus
+its own group's mean — against a null of uniform within-group selection. Not a
+two-sample difference: a pooled uncollapsed mean weights each group by its size
+while the collapsed mean weights each group once, so any size/expectancy
+correlation would move that difference with no selection effect at all. Under
+an uninformative score the winner's R is distributionally a random member's, so
+the null expectation is ZERO and a positive delta is evidence about the rule.
+Below `--min-groups` the reader prints NO VERDICT and says the sign is not
+informative either way — never "within noise".
+
+**It cannot produce a reading until R3.** No corpus exists that its own door
+accepts. That is the door working, not a gap: the 2026-08-11 clock defect was a
+number produced from a corpus that should have refused.
 
 ## E7 (discovered 2026-08-18) — the options bridge drops the runner-protection mode — **CLOSED (R1a slice 2)**
 
