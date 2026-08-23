@@ -12,13 +12,21 @@
 
 ## Private Beta Gate
 
-- Parking soft gate: `src/lib/parkingGate.ts`'s `PARKING_GATE` flag, opened
-  2026-08-01 (`PARKING_GATE = false`) — signed-out visitors land on sign-in,
-  and the `/?enter` session-scoped bypass is a no-op while it is open.
-  While closed, the gate renders the React `ParkingScreen` component, never
-  `public/construction.html`; that static twin is preserved as the reusable
-  layout for a future pause, but nothing in `vercel.json` ever serves it
-  directly. Re-close by flipping `PARKING_GATE` back to true.
+- Parking soft gate: `src/lib/parkingGate.ts`'s `PARKING_GATE` flag. **CLOSED
+  since the re-park of 2026-08-07 (`PARKING_GATE = true`, spec §17p)** — this
+  file said "opened 2026-08-01" for sixteen days after that, which is the
+  failure the reopen gate exists to prevent, in a document whose job is to say
+  what gates launch. Corrected 2026-08-23.
+  While closed, signed-out visitors get the React `ParkingScreen` component,
+  never `public/construction.html`; that static twin is preserved as the
+  reusable layout for a future pause, but nothing in `vercel.json` ever serves
+  it directly. Open it by flipping `PARKING_GATE` to false — at which point the
+  `/?enter` session-scoped bypass becomes a no-op.
+  **Reopening is NOT just the flag.** `docs/HANDOFF.md` ranks R6 as pre-reopen
+  and records what a reopen still owes: reader-facing figures still sourced
+  from the corpus the 2026-08-11 programme condemned, a live magic-link
+  delivery that no test exercises, and the ordering hazard that Vercel builds
+  on push while `deploy.yml` runs separately. Read that before flipping this.
 - Real user email login: needs a real magic-link confirmation from the account owner.
 - Profile persistence: real-user validation should confirm profile preference updates, theme selection, and history loading.
 - Legal pages: `risk-disclaimer.html`, `privacy.html`, and `terms.html` are published under `/legal/`.
