@@ -955,7 +955,13 @@ The remedy is still cheap — delete `treasury-rates.rolling.json` and refetch,
 the bar stores are untouched — but **do not refetch before fixing the
 chunking**, or it reproduces the same 25%.
 
-### Two gaps that no ranked item owns — found 2026-08-23
+### Pre-reopen work, and where it is owned — scoped 2026-08-23
+
+Deliberately not counted, and the heading says where each lands rather than
+claiming none is owned. The first bullet's own title names R6, which IS a
+ranked item — an earlier heading here read "Two gaps that no ranked item owns"
+while holding four bullets, one of which named its owner. That is the same
+defect this session travelled to `docs/launch-readiness.md` to fix.
 
 - **There is no reopen gate, and R6 is what it would have to clear.** SCOPED
   2026-08-23; every figure below re-derived personally. `PARKING_GATE` is a
@@ -1080,7 +1086,10 @@ Executed so far, per `docs/cache-rebuild-r0.md`:
   through it, with the key delivered by `wl-secret` at exec and never on
   argv. The economic calendar (75,206 events) and the Treasury curve (853
   rows) both loaded — the two instant-death hazards the runbook names —
-  with no tolerated-transport warning.
+  with no tolerated-transport warning. ***Amended 2026-08-23: those 853
+  Treasury rows are the 25.4%-covered store. "Loaded" is all this line
+  ever claimed and all it can claim — see R0c and the coverage paragraph
+  below.***
 - **Is step 2 still running? Derive it, do not assume.** The log is
   `~/levelflow-rebuild-20260823.log` (the runbook writes
   `~/levelflow-rebuild-$(date +%Y%m%d).log`, stamped the day the run
@@ -1109,6 +1118,14 @@ Executed so far, per `docs/cache-rebuild-r0.md`:
   ```
 
   The density observation above is early-run evidence, not this grep.
+
+  **This grep is necessary and NOT sufficient, and R0c is why.** None of its
+  three tokens can fire for a Treasury curve that is merely truncated — the
+  25.4%-covered store produced zero of them. A clean grep here means the run
+  did not hit the failures the grep names; it is not evidence the stores are
+  sound. Step 3 is what checks the curve, and only since the coverage gates
+  landed: before them it printed `ok treasury-rates: 853 curve rows` over
+  exactly this store.
 
 - **Steps 3, 4 and 5 are OWED and are the first thing to do after that.**
   `npx tsx scripts/verify-cache-clock.ts` must be green before anything
