@@ -254,14 +254,26 @@ export function auditCacheClock(input: {
       let curveFailed = false;
       if (facts.firstTime > TREASURY_FETCH_START_MS + 7 * 86_400_000) {
         curveFailed = true;
+        // BOTH causes and the action, the way the sweep's own head guard
+        // states them. The gate's whole point is that the operator acts here
+        // instead of at R3, so a red line naming one cause and no remedy
+        // sends them at the wrong fix — and the two are genuinely different:
+        // the fetch guard exempts its first chunk and tolerates 14 days of
+        // reachback, so a provider floor sitting 8-60 days after the constant
+        // passes the fetch cleanly and lands here.
         fail(
           `${key}: starts ${iso(facts.firstTime)} but the sweep requests ` +
             `${iso(TREASURY_FETCH_START_MS)} — the head is ${
               Math.round(
                 (facts.firstTime - TREASURY_FETCH_START_MS) / 86_400_000,
               )
-            } days short. An existing store never deepens on its own, so this ` +
-            `is the shape a too-wide fetch chunk leaves behind`,
+            } days short. An existing store never deepens on its own (top-ups ` +
+            `touch only the tail), so: delete the treasury-rates rolling ` +
+            `store and refetch full history. If a full refetch STILL cannot ` +
+            `reach the requested start, the cause is the provider's coverage ` +
+            `rather than a too-wide fetch chunk — re-probe its earliest ` +
+            `served date and move TREASURY_FETCH_START_MS with the recorded ` +
+            `evidence`,
         );
       }
       if (facts.largestGapMs > 7 * 86_400_000) {

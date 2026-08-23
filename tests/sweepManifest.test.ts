@@ -534,11 +534,19 @@ describe("the driver writes the manifest beside the emit", () => {
     // 365 days is what served ~62 rows and lost three quarters of the curve.
     const chunkDays = /const chunkMs = (\d+) \* 86_400_000;/.exec(fetchBody);
     assert.ok(chunkDays, "the Treasury fetch must declare its chunk width");
+    // 60, not 90. 90 is the CLAMP ITSELF, and the code's comment reasons for
+    // margin below it — a ceiling at 90 permits exactly the value the comment
+    // says is unsafe to assume. There is also a blind band immediately above:
+    // at 92 days the reachback delta is ~2 days (under the 14-day truncation
+    // tolerance) and the per-chunk hole is ~2-6 days (under the 7-day store
+    // gap gate), so widths of roughly 90-97 are invisible to every guard in
+    // this file. The test defends the margin the comment argues for.
     assert.ok(
-      Number(chunkDays![1]) <= 90,
-      `the Treasury chunk is ${chunkDays![1]} days — the endpoint sets no ` +
-        `limit and served the newest ~62 rows of a 365-day window, so a wide ` +
-        `chunk silently returns a partial view`,
+      Number(chunkDays![1]) <= 60,
+      `the Treasury chunk is ${chunkDays![1]} days — the endpoint serves ` +
+        `[to − 90 days, to] whatever \`from\` says, so a chunk at or near 90 ` +
+        `sits on the clamp with no margin, and 90-97 falls in a band no guard ` +
+        `here can see`,
     );
     assert.match(script, /Treasury curve is empty/);
     assert.match(script, /more than 7 days stale/);
@@ -680,9 +688,13 @@ describe("the driver writes the manifest beside the emit", () => {
   // own exit-1-never-0 shape is pinned in tests/cacheClock.test.ts).
   it("the top-up script greps must-stay-red tokens before any stand-down", () => {
     const sh = readFileSync("scripts/ops/daily-cache-topup.sh", "utf8");
-    const redGuard = sh.indexOf(
-      "grep -qE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole'",
-    );
+    // Located by SHAPE, not by the literal alternation. The literal this
+    // replaced is the second copy of the same brittleness — adding a token to
+    // the guard broke this pin, which is better than the other direction but
+    // still pins prose. The token MEMBERSHIP is derived in
+    // tests/cacheClock.test.ts against the strings sweepManifest actually
+    // mints; this test holds only the ORDER.
+    const redGuard = sh.search(/grep -qE '(?:[A-Za-z]+)(?:\|[A-Za-z]+)*' <<</);
     const quotaStandDown = sh.indexOf("providerQuotaExhausted");
     const clockStandDown = sh.indexOf("grep -q 'cacheClockMismatch'");
     assert.ok(redGuard >= 0, "the must-stay-red guard must exist");

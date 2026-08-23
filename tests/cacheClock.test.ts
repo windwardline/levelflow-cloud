@@ -119,10 +119,32 @@ describe("the store guard's refusals are loud and the ops jobs know their names"
     // are grepped FIRST, into a branch that exits 1 and never 0 (the
     // order relative to both stand-downs is pinned beside the driver's
     // deferral pins in tests/sweepManifest.test.ts).
-    const redGuard = topup.indexOf(
-      "grep -qE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole'",
-    );
-    assert.ok(redGuard >= 0, "the must-stay-red guard must exist");
+    // DERIVED, not a literal. The literal this replaced is why
+    // `treasuryChunkTruncated` reached main in the driver's deferral and not
+    // in this script's guard: the pin matched the old alternation exactly, so
+    // adding a token to the guard that mints it left this branch silently
+    // short and a truncation would have fallen through to the 429 arm and
+    // exited 0 as "not a regression". Same failure the driver's own pin had,
+    // one file over.
+    const guardMatch =
+      /if grep -qE '((?:[A-Za-z]+)(?:\|[A-Za-z]+)*)' <<<"\$out"; then/
+        .exec(topup);
+    assert.ok(guardMatch, "the must-stay-red guard must exist");
+    const guardTokens = new Set(guardMatch![1].split("|"));
+    // Every token treasuryChunkRefusal can mint must be in it. Read from the
+    // source that mints them, so a future token cannot be added and forgotten.
+    const guardSource = readFileSync("scripts/sweepManifest.ts", "utf8");
+    const minted = [...guardSource.matchAll(/`(treasury\w+): /g)].map((m) => m[1]);
+    assert.ok(minted.length >= 2, "the mint scan must find the treasury tokens");
+    for (const token of minted) {
+      assert.ok(
+        guardTokens.has(token),
+        `${token} is minted by treasuryChunkRefusal but is not in the ` +
+          `top-up script's must-stay-red guard — a refusal carrying it would ` +
+          `fall past this branch into the 429 stand-down and exit 0`,
+      );
+    }
+    const redGuard = guardMatch!.index;
     const guardBlock = topup.slice(redGuard, topup.indexOf("\nfi", redGuard));
     assert.match(guardBlock, /exit 1/);
     assert.doesNotMatch(guardBlock, /exit 0/);

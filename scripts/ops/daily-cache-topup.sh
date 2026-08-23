@@ -59,17 +59,21 @@ fi
 # these tokens — and under the documented 429 blackout that pairing is
 # the NORMAL state. Grepped after the 429 branch, a deterministic
 # refusal would be downgraded to a quota stand-down (exit 0) forever —
-# the false green the tokens exist to prevent. Checked first for that
+# the false green the tokens exist to prevent. treasuryChunkTruncated
+# joined this list with the guard that mints it: added to the DRIVER's
+# deferral and not here, a truncation would have fallen past this branch
+# into the 429 arm and exited 0 as "not a regression", on the exact
+# scenario the guard was built for. Checked first for that
 # reason; exits 1, never 0. cacheClockMismatch is deliberately NOT
 # here: it keeps its own named stand-down below (the rebuild is its
 # one clearing action), and a treasury-origin mismatch defers in the
 # driver, so the bars still warm before that stand-down prints.
-if grep -qE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole' <<<"$out"; then
-  # Name WHICH condition fired (#364 round 24, smaller): the four tokens
-  # have four different remedies, and with the driver's deferral the
+if grep -qE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole|treasuryChunkTruncated' <<<"$out"; then
+  # Name WHICH condition fired (#364 round 24, smaller): each token has
+  # its own remedy — and with the driver's deferral the
   # token line can sit thousands of log lines above the failure that
   # ended the run.
-  tokens=$(grep -oE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole' <<<"$out" | sort -u | xargs)
+  tokens=$(grep -oE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole|treasuryChunkTruncated' <<<"$out" | sort -u | xargs)
   echo "$(date -u +%FT%TZ) top-up FAILED: integrity refusal ($tokens) — that token's own log line above names the remedy; a co-occurring 429 does not stand this down"
   exit 1
 fi
