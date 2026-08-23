@@ -395,10 +395,14 @@ printed claims, §17c governs controls — so stored reopens now gate their copy
 affordances through a derived `copyWindowEndsAt` that is consulted by the gate
 and printed nowhere; the stamp still reads expiresAt alone, pinned both ways · **1q — display half done 2026-08-09** (the eyebrow reads "payoff after costs",
 naming the basis; the Costs row prints the estimated round trip "already inside
-the payoff figure" — the arithmetic closes on screen). *The formula half is
-item 2's:* `effectiveRewardRisk` charges cost in the numerator AND the
-denominator, a double penalty ≈2×cost/risk — filed under 2d, where cost
-accounting is re-derived whole · plus 1o's residue: `targetLogic` is the same defect one field over
+the payoff figure" — the arithmetic closes on screen). *The formula half was
+item 2's and is **CLOSED**:* `effectiveRewardRisk` charged cost in the numerator
+AND the denominator, a double penalty ≈2×cost/risk, filed under 2d — and 2d
+shipped in #288 on 2026-08-09. `executionQuality.ts` now divides by
+`riskDistance` alone and its comment names the retired form ("one round trip,
+charged once — against the payoff"). Verified 2026-08-23 by `git log -S`;
+corrected in place because this entry read as open for two weeks after its fix
+landed · plus 1o's residue: `targetLogic` is the same defect one field over
 (unconditional constant), and `runnerProvenance`/`tp1Provenance`/`entryProvenance`
 are computed and dropped, which blocks 4d's TP1 and runner phases.
 
@@ -847,6 +851,104 @@ the live roster is 97 distinct markets.
 | **R4** | The per-market program — every matched market individually, against its own shipped configuration, absolute expectancy as the criterion | after R3 |
 | **R5** | The never-analyzed populations — 8 contract variants, dual-listed crypto per line, register gaps | after R4 |
 | **R6** | Reader-facing claims — D7 (Record rows publish a frequency as a record), D8 (tier ordering the corpus inverts) | pre-reopen |
+
+### R2b — the geometry model's fresh-eyes round, RUN 2026-08-23. Its output is a field list awaiting owner sign-off
+
+Five lenses, five independent refuters, every load-bearing claim re-derived here
+before being written down. **The deliverable is the list below, not this
+prose** — R2b's exit criterion was restated as "the emit and manifest carry this
+named field list", and this is that list. **It is a PROPOSAL: it decides what
+the one re-simulate measures, which is the owner's call, not an agent's.**
+Nothing here is implemented. Implementing it is R2's pass, and it must land
+before R3.
+
+#### The keystone, and it came from a refuter rather than a finder
+
+**The corpus contains no price level.** `SweepOutcomeRecord` carries
+`riskDistance` — a distance — and `legs`, which are EMPTY on an unfilled row.
+So an unfilled setup records no price at all, and a filled one records only what
+the resolver printed. Verified: a grep of the record for any price-space field
+returns nothing but comments.
+
+Seven separately-proposed fields turned out to be consequences of that one
+absence. Emit **`latestClose`** — the decision bar's close, already the exact
+argument `buildPricePlan` receives — and the whole plan reconstructs
+deterministically: entry from `latestClose ∓ atr × entryOffset` with the
+provenance already emitted, then the tick alignment, the stop buffer, the
+structural and cap stops, the ladder, and every one of spread, slippage and
+commission, which are pure functions of `(symbol, latestClose, atr, tickSize)`
+over tables pinned by the manifest's `analyzerVersion`.
+
+Five fields doing the work of twelve, on a corpus where per-row width is the
+cost. That is the shape a field list should have.
+
+#### PROPOSED — emit (`SweepOutcomeRecord`)
+
+| field | type | what it recovers | needed by |
+| --- | --- | --- | --- |
+| `latestClose` | number | **The keystone.** Every price level and every cost term, by reconstruction rather than storage | R4, R2b's own remaining questions |
+| `atr` | number | The volatility unit the entire geometry is scaled in. Without it nothing is comparable across markets | R4 |
+| `dailyAtr` | number | The second stop lever. `stopBuffer = max(atr × stopAtrMultiplier, dailyAtr × dailyStopAtrMultiplier)` and nothing records which bound | R4 |
+| `stopPivotDistance` | number \| null | Separates "a pivot was chosen" from "a pivot existed and lost to the cap" | R4, R2b |
+| `grossRewardRisk` | number | Payoff BEFORE cost. Only the net figure is emitted, so the cost charge is currently unmeasurable | R2's M5, R4 |
+| `volatilityPercentile`, `trendStrength` | number, number | The regime's own evidence, computed at every decision and discarded. Makes the fixed-vs-conditional review-window question answerable from ONE corpus instead of a second sweep | R4 |
+| `runnerNearestBeyondMinimum` | number \| null | Whether structure existed beyond the runner limit, which `window_ceiling` alone cannot say | R4 |
+| `unfilledApproachDistance` | number \| null | How close an unfilled setup came. Today an unfilled row carries no price information whatsoever | R4 |
+
+#### PROPOSED — manifest
+
+| field | what it recovers |
+| --- | --- |
+| `decisions[]` — per (symbol, variant, split): `decisionPoints`, `emitted`, rejection buckets | Every denominator behind a market's row count, bound to `manifestHash` instead of to stdout scrollback. Must be EXCLUDED from `conditionsOf` for the same reason `symbols` is, or a shard subset refuses itself |
+| `conditions.timeframePenalty: "zero-by-construction"` | The fourth hardwired score term. Verified: the sweep always supplies four timeframes, so the penalty can never fire offline while it can live. A stated condition, deliberately NOT a per-row field |
+| `captureAll` / `ignoreLowEdge` | The corpus's acceptance mode. Two corpora with entirely different accepted populations currently carry identical conditions and would pool |
+| `symbols[].engineDecline` | The decline state the corpus was produced under — pinned, rather than re-read from a tree R4 is going to rewrite |
+
+**One proposal needs redefining before implementation.**
+`conditions.modeledCostScale` is right to exist — the cost model's scale is an
+unstated measurement term read from the process environment — but
+`verifyManifest` compares each `conditions` term to a hardcoded build constant,
+so a numeric scale would make a gross-arm corpus unreadable on every path rather
+than merely unaggregatable. It needs a literal, or a home outside `conditions`.
+
+#### MODEL findings, which are not field proposals
+
+- **On 26 of the 97 markets the ATR cap binds on EVERY setup, by arithmetic.**
+  Executed against the live calibration: effective `maxStopAtrMultiplier` is
+  26 × 1.0, 6 × 2.5, 65 × 4, and the structural stop is bounded by
+  `entry − 1.25 × atr` by construction — so any multiplier under 1.25 makes the
+  cap bind identically. On those 26, `stopProvenance` is the constant `"cap"`,
+  the stop is a pure formula with no structure in it, and the field records a
+  choice that never happens. **The model's claim to be structural does not hold
+  on a quarter of the roster**, and that is a calibration constant deciding
+  geometry before a price is read.
+- **The payoff gate measures a full-size reward the ladder can never realize.**
+  `rewardRisk` frames payoff as if the whole position rides to the runner, while
+  TP1 takes part of it off. The acceptance gate therefore tests a number the
+  geometry does not produce.
+- **The crypto 5-minute density floor is depth-blind** — found in flight during
+  the R0 rebuild, not by a lens. LTCUSD (216.6 rows/day over 4,675 days) and
+  BTCUSD (235.9 over 4,676) both trip the crypto floor of 260, which is stated
+  as "probed margin under the measured week" — a seven-day window. 260 of 288
+  theoretical bars/day demands ~90% coverage, which no series reaching back to
+  2013 will average. **The floor penalises depth**, so at R3's max depth the
+  markets with the most history are the ones most likely to be refused — and
+  amendment 31 says a matched market leaves the offering only on a calibration
+  verdict, never on caution. A THIRD symbol trips a different gate: PAUSD at a
+  5min/15min ratio of **2.68** against a band of [2.7, 3.25] — two hundredths
+  below the edge. So two distinct door predicates are forecasting refusals at
+  max depth, and both were calibrated on short recent windows. **Collect every
+  `WOULD REFUSE` line from the rebuild log before R3 and decide the population
+  deliberately**, rather than discovering it when the sweep pre-flight refuses.
+
+#### Corrections this round produced
+
+- **The `effectiveRewardRisk` double-charge is CLOSED and this file still lists
+  it as open.** Item 1q says the formula "charges cost in the numerator AND the
+  denominator… filed under 2d". 2d shipped in #288 on 2026-08-09:
+  `executionQuality.ts` now divides by `riskDistance` alone, with a comment
+  naming the old form. Verified by `git log -S`. The register entry is stale.
+- Futures-shaped roster symbols are **27**, not 30.
 
 ### The pre-R3 register — what must reach the emit or the manifest before the one re-sweep
 
