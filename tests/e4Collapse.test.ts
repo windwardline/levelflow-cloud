@@ -535,6 +535,16 @@ describe("e4-collapse — the statistic, actually executed", () => {
     const { code, out } = run([emit, "--bucket-minutes", "60"]);
     assert.equal(code, 1);
     assert.match(out, /failed to parse/);
+    // The property this test is NAMED for. Without it the assertion above
+    // matches `console.error(error)` and `console.error(error.message)`
+    // equally, so reverting the discriminator left it green — the test passed
+    // for a defect it was written to catch. Positive form of the
+    // doesNotMatch the refusal tests use.
+    assert.match(
+      out,
+      /\n\s+at \S+/,
+      "a fault that is not the operator's must keep its stack frames",
+    );
   });
 
   it("refuses a repeated flag rather than silently taking the first", () => {

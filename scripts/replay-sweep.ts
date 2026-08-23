@@ -109,7 +109,7 @@ let sweepBudget: ByteBudget | undefined;
 // `--byte-budget 30gb`. The declared ceiling and the reported ceiling must read
 // as the same number on the one dial that exists because nothing else can
 // refuse an ad-hoc run's spend.
-function formatGib(bytes: number): string {
+export function formatGib(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(2)}GiB`;
 }
 
@@ -749,6 +749,12 @@ async function main() {
       // rebuild means the operator learns the budget was short only once the
       // run is dead. Printed per symbol so the trend is visible early enough to
       // act on.
+      //
+      // Deliberately on the warm-only branch alone, for now: this is the path
+      // that fetches the whole roster to depth and is the only one that runs
+      // for hours unattended. A bounded sweep spends the same bytes with the
+      // same blindness and should get the same line — named here rather than
+      // left as an accident of where the fix landed.
       console.log(
         `${symbol}\twarm\t${primaryBars.length} intraday bars through ${
           isoDate(new Date(primaryBars.at(-1)?.time ?? 0))

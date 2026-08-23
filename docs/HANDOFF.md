@@ -1473,9 +1473,17 @@ Sunday condemning a healthy store run-globally).
   gates — every roster symbol's THREE stores present (an empty store
   counts as absent; a daily-only symbol previously passed every
   presence check), the reference anchor having actually RUN (without its
-  intraday store the one absolute check went dark silently), and the
-  calendar store present. A rebuild abandoned at 40 of 97 symbols, or
-  one that left a symbol daily-only, is incomplete, not green.
+  intraday store the one absolute check went dark silently), the
+  calendar store present, and — added 2026-08-23 — **the Treasury curve
+  store present, stamped `CALENDAR_CLOCK`, and carrying rows**, an empty
+  curve counting as absent on the same rule the bar stores follow. That
+  last one is new because `storeKindForKey` did not recognise
+  `treasury-rates` at all, so a HEALTHY curve earned `unknown store
+  kind` and every rebuild reaching step 3 would have gone red on it.
+  **What the gate still does not check is COVERAGE** — see R0c: the
+  store measured 25.4% covered with a 278-day hole, and step 3 passes
+  it. A rebuild abandoned at 40 of 97 symbols, or one that left a symbol
+  daily-only, is incomplete, not green.
 - **What remains is operational and UNBLOCKED (2026-08-18, the owner's
   100 GB upgrade):** `docs/cache-rebuild-r0.md` — preconditions already
   probed green (200s; `to` measured INCLUSIVE at 1,728 rows/6 dates;

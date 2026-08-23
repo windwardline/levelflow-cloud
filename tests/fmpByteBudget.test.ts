@@ -18,6 +18,7 @@ import {
   parseByteBudgetArg,
   readJsonWithBudget,
 } from "../scripts/fmpByteBudget.ts";
+import { formatGib } from "../scripts/replay-sweep.ts";
 
 describe("createByteBudget — the sweep halts before the allowance does", () => {
   it("accumulates recorded bytes and reports what is left", () => {
@@ -169,4 +170,21 @@ describe("parseByteBudgetArg — an ad-hoc run declares its cost or does not sta
       /--byte-budget was given 2 times/,
     );
   });
+});
+
+// The reporter and the parser must share a base. They did not: `formatGib` used
+// 1e9 while `parseByteBudgetArg` scales a `gb` suffix by 1024**3, so
+// `--byte-budget 30gb` printed "of 32.21GB" — the declared ceiling and the
+// reported ceiling disagreeing in units, on the one dial that exists because
+// nothing else can refuse an ad-hoc run's spend. Pinned as a ROUND TRIP rather
+// than against a literal, so the two cannot drift apart again whatever base
+// either picks.
+describe("formatGib round-trips the byte-budget parser", () => {
+  for (const declared of ["1gb", "30gb", "150gb"]) {
+    it(`--byte-budget ${declared} reports as the number the operator typed`, () => {
+      const bytes = parseByteBudgetArg(["--byte-budget", declared]);
+      const expected = declared.replace("gb", "");
+      assert.equal(formatGib(bytes), `${Number(expected).toFixed(2)}GiB`);
+    });
+  }
 });

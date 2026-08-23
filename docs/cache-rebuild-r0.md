@@ -236,9 +236,24 @@ days — **25.4%** — with 60 to 62 rows in every one of fourteen
 consecutive years. That uniformity is a per-request row cap, not data
 availability: the fetch chunks at 365 days and the only chunk guard
 refuses a *zero*-row chunk, so a chunk truncated by three quarters
-passes. E6 scores this curve into `confidenceScore`. See
-`docs/HANDOFF.md`'s pre-R3 register; do not refetch before the chunking
-is fixed, or the refetch reproduces the same 25%.
+passes. E6 scores this curve into `confidenceScore`.
+
+**Thin or unusable? Unusable — the gap distribution settles it.** Mean
+spacing is 5.5 days, which would squeak under the sweep's seven-day
+threshold if the sample were even. It is not: **13 gaps exceed a week
+and the largest is 278 days.** So the interior-hole guard at
+`replay-sweep.ts:376` WILL refuse every sweep whose window it touches,
+with the remedy *"delete the treasury-rates store, refetch full history,
+and re-run"*.
+
+**Which instruction wins.** That remedy and the one below are not in
+conflict once ordered: the refetch is REQUIRED, and it must follow the
+chunking fix. Refetching first reproduces the same 25% and the same
+refusal, having spent the bytes twice. R0c in `docs/HANDOFF.md` is the
+ranked item and carries the full measurement; it also records that a
+`--warm-only` run — this runbook's step 2 — ends GREEN over this store,
+because every consumer of the curve sits behind `!args.warmOnly`. Step
+3 will agree. Neither is evidence the curve is sound.
 
 For the record, the same command pointed at the condemned archive should
 fail on every store — it predates the stamp:
