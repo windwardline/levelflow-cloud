@@ -68,6 +68,17 @@ export type SweepOutcomeRecord = {
   // entry, and whether TP1 banked. Geometry review reads these from the
   // corpus instead of re-simulating.
   exitAtMs: number;
+  // E4 (R1c): the collapse comparator's THIRD tier. The live scan ranks
+  // correlated candidates on confidence, then payoff, then this — and the
+  // corpus carried the first two and not this one, so an offline replay
+  // resolved on the symbol tie-break every case production resolved on
+  // execution quality. It matters more than it looks: live compares payoff
+  // quantized to two decimals, so tier-2 ties inside a group are common and
+  // this tier binds often. Emitted rather than derived because R3 is the ONE
+  // re-sweep — a field absent from the emit then cannot be backfilled without
+  // a second one. No physics change: the value is already on the plan, read
+  // three fields away for the commission.
+  executionScore: number;
   filledAtMs: number | null;
   legs: ResolutionLeg[];
   // E6 (R1b): the reconstructed Treasury-curve adjustment this row was
@@ -676,6 +687,7 @@ export function simulateSymbol(input: {
       cotPercentile: cotContext.percentile,
       cotStance: cotContext.stance,
       exitAtMs: Date.parse(evaluation.exitAt),
+      executionScore: plan.executionQuality.score,
       filledAtMs: evaluation.filledAt ? Date.parse(evaluation.filledAt) : null,
       legs: evaluation.legs,
       macroAdjustment: macroRate.adjustment,

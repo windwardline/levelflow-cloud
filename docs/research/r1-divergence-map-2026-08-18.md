@@ -167,13 +167,98 @@ live engine actually performs.
 
 **The program is explicit**: "measurable offline from the corpus (a
 read, not a re-sweep)." So E4 is an **instrument, not a sweep change**:
-a doored reader that replays the collapse over corpus rows — group
-candidates by decision instant and correlation group (both already in
-the emit), apply the same comparator, and report collapsed vs
-uncollapsed expectancy and the suppression rate per group. The 6-hour
-cross-scan screen needs candidate timestamps only — also present. If
-the measured difference is material, whether the sweep should collapse
-in-line becomes a Phase 3 decision made on evidence.
+a doored reader that replays the collapse over corpus rows, applies the
+same comparator, and reports collapsed vs uncollapsed expectancy and the
+suppression rate per group. If the measured difference is material,
+whether the sweep should collapse in-line becomes a Phase 3 decision
+made on evidence.
+
+### What R1c's groundwork corrected here — 2026-08-23
+
+The paragraph above said the grouping inputs were "both already in the
+emit" and that the cross-scan screen "needs candidate timestamps only."
+Both were checked against code and neither held. Recorded here rather
+than rewritten away, because the map is R1c's scope of record
+(`docs/HANDOFF.md`, the resume block) and a scope that misstates its own
+feasibility is how an instrument ships measuring the wrong rule.
+
+- **Decision instant: present** as `time` (`sweep.ts`, the outcome push
+  — `latest.time`, the 15-minute decision bar).
+- **`correlationGroup`: not an emit field**, but derivable — the live
+  value comes from `getCorrelationGroup(normalizedSymbol)`, a pure
+  function of the symbol.
+- **`executionScore`: was absent entirely** — the comparator's THIRD
+  tier, so a replay resolved on the symbol tie-break every case
+  production resolved on execution quality. It is **added to the emit by
+  this change set**, because R3 is the ONE re-sweep and a field missing
+  from the emit then cannot be backfilled without a second one. The
+  value was already on the plan; no physics changed.
+- **Live quantizes tier 2 to two decimals** and the sweep does not:
+  `analyzeSetup` writes `confluence.rewardRisk` as
+  `Number(pricePlan.rewardRisk.toFixed(2))` and the comparator reads
+  that field, while the emit carries `plan.rewardRisk` at full
+  precision. A replay must quantize before the tier-2 test, or it
+  resolves as distinct exactly the pairs that tie live — which is also
+  what makes the missing tier 3 bind often rather than rarely. Both
+  acceptance gates test the UNROUNDED value, so the quantization must
+  never reach a decision.
+- **The comparator is no longer transcribable.** It moved to
+  `scanCollapse.ts` with the grouping key and the winner-first ordering,
+  so the live path and the reader call one implementation. `index.ts` is
+  Deno-global and deliberately off `tsconfig.tests.json`'s file list, so
+  a standalone reader could only have copied it, with nothing pinning
+  the copy equal. Four tiers and the tie winner are now pinned by
+  execution in `tests/scanCollapse.test.ts`; before it, the collapse was
+  covered only by `source.includes("function compareScanCandidates")`,
+  which passes against a body that sorts the wrong way.
+- **A total tie is won by the lexicographically SMALLEST symbol.** The
+  three numeric tiers are descending because the caller swaps the sort
+  arguments; the symbol tier reverses a second time and cancels the
+  swap.
+
+**Still open, and they belong to the reader (R1c proper):**
+
+- **The cross-scan screen is not a pure read.** It is a database query
+  over `trade_setups` scoped to a user, a 6-hour `created_at` window and
+  `status in (generated, placed)` — none of which the corpus has. Its
+  input is also the collapse's own output, since persistence runs after
+  the collapse. Offline it must be modelled, and the model needs a
+  stated-assumptions block rather than silent defaults.
+- **The corpus has no notion of a scan.** Decision instants are
+  per-symbol bar indices stepping `--step` (default 16 bars = 4h) over
+  each symbol's own series, and the markets have different history
+  spans, so correlated symbols generally do not share a timestamp.
+  Exact-instant grouping would collapse almost nothing and report a
+  near-zero suppression rate as evidence that E4 is immaterial. The
+  reader must declare a bucketing window; it is a measurement term, not
+  a default. Note the default step (4h) sits INSIDE the screen's 6-hour
+  window, so a model without live's `row.symbol !== symbol` guard would
+  suppress a symbol against its own prior decision.
+- **The shards split correlation clusters.** `sweeps/4c/g-0.symbols`
+  holds `CADCHF` and `ZTUSD` while `g-1.symbols` holds `CADJPY` and
+  `ZFUSD`, against `cad_crosses` and `treasury_futures` in `symbols.ts`.
+  A reader that processes shards independently measures a suppression
+  rate lower than the truth for every split cluster — each half wins its
+  own collapse. **R1c must read the shard set as one population**, and
+  that must be enforced rather than assumed. It also prices the Phase 3
+  option: making the sweep collapse in-line means buffering across all
+  symbols and shards, or re-sharding by cluster, either of which changes
+  corpus identity and therefore spends the one re-sweep.
+- **The null is not "collapsed beats uncollapsed."** Under an
+  uninformative score the winner's realized R is distributionally a
+  random member's, so the expected per-trade delta is ZERO and a
+  positive delta IS evidence about the rule. The real hazards are
+  re-weighting (a pooled uncollapsed mean weights each group by its size
+  k, the collapsed mean weights each group once, so any size/expectancy
+  correlation moves the delta with no selection effect at all),
+  variance, clustering and multiplicity. The estimand is therefore
+  paired per (instant, group), against a null of random within-group
+  selection — not a two-sample standard error.
+- **"Every candidate becomes a corpus row" overstates the sweep.**
+  Several `continue` sites sit between a decision point and the outcome
+  push, so the uncollapsed population is the rows that reached the push,
+  not every candidate. The reader states its population from the corpus
+  rather than assuming this sentence.
 
 ## E7 (discovered 2026-08-18) — the options bridge drops the runner-protection mode — **CLOSED (R1a slice 2)**
 

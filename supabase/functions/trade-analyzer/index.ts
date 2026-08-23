@@ -53,6 +53,10 @@ import { buildPricePlan } from "./pricePlan.ts";
 import { mapWithConcurrency } from "./concurrency.ts";
 import { rankOpportunities } from "./scanRanking.ts";
 import {
+  groupCollapseCandidates,
+  rankCollapseGroup,
+} from "./scanCollapse.ts";
+import {
   persistScannedOpportunities,
   type ScanWriteOutcome,
 } from "./scanPersistence.ts";
@@ -939,22 +943,18 @@ async function scanOpportunity(
   }
 }
 
+// The grouping key, the comparator and the winner-first ordering now live in
+// scanCollapse.ts so the offline E4 instrument (R1c) replays this exact rule
+// instead of a transcription of it. Behaviour is unchanged: same primary-group
+// key, same four tiers, same winner, same order for the blocked remainder.
 function collapseRelatedMarketOpportunities(
   opportunities: MarketScanCandidate[],
 ) {
-  const grouped = new Map<string, MarketScanCandidate[]>();
   const blocked: MarketScanCandidate[] = [];
-
-  for (const candidate of opportunities) {
-    const group = candidate.correlationGroup ?? candidate.symbol;
-    grouped.set(group, [...(grouped.get(group) ?? []), candidate]);
-  }
-
   const winners: MarketScanCandidate[] = [];
-  for (const candidates of grouped.values()) {
-    const sorted = [...candidates].sort((first, second) =>
-      compareScanCandidates(second, first)
-    );
+
+  for (const candidates of groupCollapseCandidates(opportunities).values()) {
+    const sorted = rankCollapseGroup(candidates);
     const winner = sorted[0];
     if (!winner) {
       continue;
@@ -971,30 +971,6 @@ function collapseRelatedMarketOpportunities(
     blocked,
     opportunities: winners,
   };
-}
-
-function compareScanCandidates(
-  first: MarketScanCandidate,
-  second: MarketScanCandidate,
-) {
-  const confidenceDifference = (first.confidenceScore ?? 0) -
-    (second.confidenceScore ?? 0);
-  if (confidenceDifference !== 0) {
-    return confidenceDifference;
-  }
-
-  const rewardDifference = (first.rewardRisk ?? 0) - (second.rewardRisk ?? 0);
-  if (rewardDifference !== 0) {
-    return rewardDifference;
-  }
-
-  const executionDifference = (first.executionScore ?? 0) -
-    (second.executionScore ?? 0);
-  if (executionDifference !== 0) {
-    return executionDifference;
-  }
-
-  return second.symbol.localeCompare(first.symbol);
 }
 
 function buildRelatedMarketBlockedCandidate(
