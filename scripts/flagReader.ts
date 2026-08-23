@@ -25,6 +25,22 @@
  * applies to by globbing this directory rather than curating it.
  */
 /**
+ * An error caused by what the OPERATOR typed, as opposed to a defect in the
+ * script. The distinction is not cosmetic: a reader's entry point prints a
+ * refusal as one clean line and a real fault with its stack, and without a
+ * discriminator it must choose one shape for both — which either buries a
+ * TypeError's frames or dresses a typo up as a crash. `FLEET.md` names the
+ * direction that matters: a harness failure must never read as the subject
+ * refusing.
+ */
+export class OperatorInputError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "OperatorInputError";
+  }
+}
+
+/**
  * Where a flag sits in argv, refusing a repeat.
  *
  * Exported so the readers that keep their own value accessors — six of
@@ -41,7 +57,7 @@ export function soleFlagIndex(argv: readonly string[], arg: string): number {
     [],
   );
   if (occurrences.length > 1) {
-    throw new Error(
+    throw new OperatorInputError(
       `${arg} was given ${occurrences.length} times — this reader will ` +
         `not choose between them; pass ${arg} exactly once`,
     );
@@ -154,12 +170,12 @@ export function assertInDomain(
   domain: NumericDomain,
 ): void {
   if (domain.integer === true && !Number.isInteger(value)) {
-    throw new Error(
+    throw new OperatorInputError(
       `${arg} must be a whole number and got ${value} — ${domain.basis}`,
     );
   }
   if (domain.min !== undefined && value < domain.min) {
-    throw new Error(
+    throw new OperatorInputError(
       `${arg} must be at least ${domain.min} and got ${value} — ` +
         `${domain.basis}`,
     );
@@ -172,7 +188,7 @@ export function flagReader(
 ) {
   const token = (arg: string): string | undefined => {
     if (!valueFlags.has(arg)) {
-      throw new Error(
+      throw new OperatorInputError(
         `${arg} is read as a value flag but is not declared in this ` +
           `script's VALUE_FLAGS — declare it there, or its value is read ` +
           `as something else entirely`,
@@ -182,7 +198,7 @@ export function flagReader(
     if (index === -1) return undefined;
     const next = argv[index + 1];
     if (tokenFault(next) !== null) {
-      throw new Error(
+      throw new OperatorInputError(
         `${arg} owns the token after it and got ${describeToken(next)} — a ` +
           `value, never a flag and never blank; pass ${arg} <value>. Falling ` +
           `back here silently is how a run measures something other than ` +
@@ -205,7 +221,7 @@ export function flagReader(
       }
       const parsed = Number(raw);
       if (!Number.isFinite(parsed)) {
-        throw new Error(
+        throw new OperatorInputError(
           `${arg} owns the token after it and cannot read "${raw}" as a ` +
             `number — a NaN dial disables every comparison it feeds ` +
             `without saying so; pass ${arg} <number>`,

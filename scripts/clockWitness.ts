@@ -716,9 +716,22 @@ export function sessionAnchorWitness(
  */
 export function storeKindForKey(
   key: string,
-): { kind: "bars"; role: SeriesRole } | { kind: "calendar" } | null {
+): { kind: "bars"; role: SeriesRole } | { kind: "calendar" } | { kind: "rates" } | null {
   if (key === "econ-calendar") {
     return { kind: "calendar" };
+  }
+  // R1b's Treasury curve. Calendar-clocked like econ-calendar — calibrationCache
+  // already classes the two together — but deliberately its OWN kind rather than
+  // sharing "calendar", because the verifier uses the calendar branch to satisfy
+  // a presence gate and a rates store must not stand in for a missing calendar.
+  //
+  // Without this the store fell through to null and every rebuilt cache earned
+  // `treasury-rates: unknown store kind` — a RED line on a healthy store, in the
+  // gate whose own runbook says any red means "the rebuild did not take; do not
+  // sweep, do not delete the archive". It arrived with the store in R1b and
+  // would have failed the first R0 rebuild to reach step 3.
+  if (key === "treasury-rates") {
+    return { kind: "rates" };
   }
   if (/-(15min|5min)-/.test(key)) {
     return { kind: "bars", role: "intraday" };

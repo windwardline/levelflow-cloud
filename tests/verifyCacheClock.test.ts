@@ -144,6 +144,83 @@ function healthyTrio(dir: string) {
 }
 
 describe("auditCacheClock — the rebuild's acceptance instrument", () => {
+  // R1b's Treasury store fell through storeKindForKey to null, and the audit
+  // fails every store whose kind is null — so a HEALTHY rebuilt cache earned
+  // `treasury-rates: unknown store kind`, in the gate whose runbook says any
+  // red means "the rebuild did not take; do not sweep, do not delete the
+  // archive". Verified against the live rebuild in flight before the fix.
+  it("accepts the calendar-clocked Treasury store instead of calling it unknown", () => {
+    const dir = cacheDir();
+    healthyTrio(dir);
+    store(dir, "econ-calendar", CALENDAR_CLOCK, []);
+    store(dir, "treasury-rates", CALENDAR_CLOCK, [{ time: Date.UTC(2013, 0, 2) }]);
+    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    const lines = report.lines.join("\n");
+    assert.doesNotMatch(
+      lines,
+      /treasury-rates: unknown store kind/,
+      "the Treasury store must be recognised, not read as an unknown key",
+    );
+    assert.match(lines, /treasury-rates: 1 curve rows/);
+  });
+
+  // "An empty store counts as absent" — this file's doctrine, which the first
+  // version of the rates branch broke by printing ok on zero rows. A zero-row
+  // curve passes the acceptance gate and dies at replay-sweep's own refusal one
+  // step later, after the operator has been told the rebuild took.
+  it("condemns an EMPTY Treasury store rather than calling it green", () => {
+    const dir = cacheDir();
+    healthyTrio(dir);
+    store(dir, "econ-calendar", CALENDAR_CLOCK, []);
+    store(dir, "treasury-rates", CALENDAR_CLOCK, []);
+    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    assert.ok(
+      report.failures.some((line) => /curve store is EMPTY/.test(line)),
+      report.failures.join("\n") || "(no failures)",
+    );
+  });
+
+  it("fails a roster cache with no Treasury store at all", () => {
+    const dir = cacheDir();
+    healthyTrio(dir);
+    store(dir, "econ-calendar", CALENDAR_CLOCK, []);
+    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    assert.ok(
+      report.failures.some((line) => /no curve store/.test(line)),
+      report.failures.join("\n") || "(no failures)",
+    );
+  });
+
+  it("still condemns a Treasury store stamped with the bar clock", () => {
+    const dir = cacheDir();
+    healthyTrio(dir);
+    store(dir, "econ-calendar", CALENDAR_CLOCK, []);
+    store(dir, "treasury-rates", BAR_CLOCK, [{ time: Date.UTC(2013, 0, 2) }]);
+    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    assert.ok(
+      report.failures.some((line) => /treasury-rates: stamped/.test(line)),
+      report.failures.join("\n"),
+    );
+  });
+
+  // The rates store must not stand in for a missing calendar — which is why it
+  // is its own kind rather than folded into the calendar branch.
+  it("does not let the Treasury store satisfy the calendar-presence gate", () => {
+    const dir = cacheDir();
+    healthyTrio(dir);
+    store(dir, "treasury-rates", CALENDAR_CLOCK, [{ time: Date.UTC(2013, 0, 2) }]);
+    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    // The gate's OWN text. `/calendar/i` also matches every condemnation line,
+    // because CALENDAR_CLOCK is "fmp-calendar-utc-v1" — the assertion would
+    // have passed on the wrong failure.
+    assert.ok(
+      report.failures.some((line) => /no calendar store/.test(line)),
+      `a cache with no econ-calendar must fail; got: ${
+        report.failures.join("\n") || "(no failures)"
+      }`,
+    );
+  });
+
   it("passes a healthy stamped cache clean", () => {
     const dir = cacheDir();
     healthyTrio(dir);
@@ -368,11 +445,19 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(dir, "econ-calendar", CALENDAR_CLOCK, [
       { currency: "USD", impact: "high", time: Date.UTC(2026, 0, 3, 13, 30) },
     ]);
+  // The second singleton a complete cache carries. Its own presence gate is
+  // separate from the calendar's, so the fixtures that model completeness must
+  // write both — and the two single-gate tests below each write exactly one.
+  const curveStore = (dir: string) =>
+    store(dir, "treasury-rates", CALENDAR_CLOCK, [
+      { dateMs: Date.UTC(2013, 0, 2), tenYear: 2.62, twoYear: 0.33 },
+    ]);
 
   it("passes a complete roster cache — the completeness gates demand, they do not invent (round 6)", () => {
     const dir = cacheDir();
     healthyTrio(dir);
     calendarStore(dir);
+    curveStore(dir);
     const audit = auditCacheClock({
       cacheDir: dir,
       rosterProviderSymbols: ["EURUSD"],
@@ -384,6 +469,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     const dir = cacheDir();
     store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
     calendarStore(dir);
+    curveStore(dir);
     const audit = auditCacheClock({
       cacheDir: dir,
       rosterProviderSymbols: ["EURUSD"],
@@ -546,6 +632,9 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
   it("fails a roster cache with no calendar store — the rebuild always fetches it (round 6)", () => {
     const dir = cacheDir();
     healthyTrio(dir);
+    // The curve IS present, so this isolates the calendar gate rather than
+    // passing on whichever singleton happens to be missing.
+    curveStore(dir);
     const audit = auditCacheClock({
       cacheDir: dir,
       rosterProviderSymbols: ["EURUSD"],

@@ -48,7 +48,7 @@ import {
   assertManifestedCorpusStreaming,
   type SweepEmitRow,
 } from "./sweepStats.ts";
-import { assertInDomain, flagReader } from "./flagReader.ts";
+import { assertInDomain, flagReader, OperatorInputError } from "./flagReader.ts";
 
 // The comparator's inputs plus what grading needs. Projected explicitly rather
 // than through vocabularyRow, whose closed key set exists for a different
@@ -73,9 +73,16 @@ type Group = {
 };
 
 
-// Every flag that owns the token after it, declared literally so the path
-// walker above cannot swallow a value as a shard name. The law is
-// bidirectional — each of these is read through a guarded accessor below.
+// Every flag that owns the token after it, declared literally. The law is
+// bidirectional — each of these is read through a guarded accessor in main().
+//
+// This set does DOUBLE duty, and the second job constrains what can be added:
+// main() refuses any `--` token that is not a member, and its corpus-path
+// walker skips a token only when its predecessor IS a member. So a future
+// BOOLEAN flag has no legal home here — left out, the unknown-flag gate
+// refuses it; put in, it must be read through num()/str() to satisfy the flag
+// law (tests/sweepManifest.test.ts), which a boolean is not. Adding one means
+// changing both, deliberately.
 const VALUE_FLAGS = new Set([
   "--bucket-minutes",
   "--min-groups",
@@ -150,13 +157,52 @@ function project(raw: SweepEmitRow): CollapseRow | null {
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
-  // A flag's VALUE is not a corpus path: drop any token that directly follows
-  // a --flag, so `--bucket-minutes 60` cannot be read as a shard named "60".
+
+  // An UNDECLARED flag refuses, before anything is walked. Without this the
+  // walker below silently halved a population: `--capture-all a.jsonl b.jsonl`
+  // dropped `a.jsonl` as if it were --capture-all's value and reported
+  // `shards 1` over one of the two named shards, exit 0. --capture-all is a
+  // real sibling flag on replay-sweep.ts, so this needed no future boolean flag
+  // to bite. flagReader cannot catch it — its guard fires when the SCRIPT reads
+  // an undeclared flag, never when the OPERATOR types one, which is exactly the
+  // third failure mode flagReader's own header names.
+  //
+  // It also closes the quieter half: `--min-groupz 50` would otherwise leave
+  // min-groups at its default with no word said, which is the "a run measures
+  // something other than what was asked" class this reader exists inside.
+  // Single dash too. `-variant baseline` is a typo an operator makes, and
+  // keying on `--` alone let it fall through to the corpus list and die in the
+  // manifest reader as a plain Error with a full stack — the shape the entry
+  // point deliberately reserves for genuine faults.
+  const undeclared = argv.filter(
+    (token) =>
+      /^-{1,2}[A-Za-z]/.test(token) && !VALUE_FLAGS.has(token),
+  );
+  if (undeclared.length > 0) {
+    fail(
+      `unknown flag(s) ${undeclared.join(", ")} — this reader declares ${
+        [...VALUE_FLAGS].sort().join(", ")
+      }. Refused rather than ignored: an unrecognised flag's next token would ` +
+        `be walked into the shard list, or silently leave a dial at its default.`,
+    );
+  }
+
+  // A declared flag's VALUE is not a corpus path. Consults VALUE_FLAGS rather
+  // than "any token starting with --", which is what the sibling readers do.
+  //
+  // Behaviourally this is DEFENCE IN DEPTH, not an independently observable
+  // half: the gate above already refuses every `--` token outside VALUE_FLAGS,
+  // so by the time control reaches here the two forms are pointwise identical
+  // and reverting this line leaves every black-box test green. It is pinned by
+  // the walker law in `tests/sweepManifest.test.ts` instead — a source law,
+  // because that is the only thing that CAN pin it — and it is the right form
+  // to keep, so the day the gate is relaxed the walker does not become the
+  // defect on its own.
   const corpora = argv.reduce<string[]>((kept, token, index) => {
     if (token.startsWith("--")) {
       return kept;
     }
-    if (index > 0 && argv[index - 1].startsWith("--")) {
+    if (index > 0 && VALUE_FLAGS.has(argv[index - 1])) {
       return kept;
     }
     kept.push(token);
@@ -189,6 +235,12 @@ async function main(): Promise<void> {
         "report rather than in this file.",
     );
   }
+  // Buckets are epoch-aligned (`Math.floor(row.time / bucketMs)` below), so the
+  // reading is sensitive to bin PHASE as well as width: two candidates two
+  // minutes apart can land either side of a boundary and not contest. That is
+  // the other half of why the width is a declared term — and it is why a wider
+  // bucket does not monotonically suppress more, since widening also absorbs a
+  // symbol's own repeats.
   const bucketMinutes = Number(bucketToken);
   if (!Number.isFinite(bucketMinutes)) {
     fail(`--bucket-minutes must be a number and got ${JSON.stringify(bucketToken)}`);
@@ -338,7 +390,13 @@ async function main(): Promise<void> {
       correlationGroup: getCorrelationGroup(row.symbol),
       symbol: row.symbol,
     });
-    const id = `${bucket} ${key}`;
+    // The separator is NUL because no symbol or group name can contain it.
+    // Written as an ESCAPE, never as a raw byte: a literal U+0000 in the source
+    // makes ripgrep and git grep classify this whole file as binary and skip it,
+    // which silently removes it from every grep-derived population audit — in a
+    // repo whose discipline is derived populations rather than curated ones. It
+    // shipped that way once and cost a review round to find.
+    const id = `${bucket}\u0000${key}`;
     const existing = groups.get(id);
     if (existing) {
       existing.members.push(row);
@@ -422,14 +480,26 @@ async function main(): Promise<void> {
       ` earliest kept — production sees each symbol once per scan)`,
   );
 
-  const suppressionRate = candidates.length === 0
-    ? null
-    : suppressed / candidates.length;
+  // The rate is taken over the population the collapse ACTUALLY ran over, not
+  // over every accepted row. `suppressed` counts post-rule members, so dividing
+  // by the pre-rule count named a rate of a process some of its denominator
+  // never underwent. How far the two diverge is a function of the dial, not a
+  // constant: repeats per symbol per bucket are bucketMinutes / (stepBars x 15),
+  // so at --step 16 there are none below a 240-minute bucket and five in six are
+  // dropped at 1440. Both counts print, because either alone misleads at some
+  // bucket width.
+  //
+  // No zero guard: a corpus with no accepted rows refuses above, so the
+  // denominator is non-zero by construction. The guard that used to sit here
+  // rendered an em dash and could never fire — a dead branch reading as a live
+  // one, on the line that prints the headline figure.
+  const collapsedOver = candidates.length - repeatsDropped;
   console.log(
-    `suppression ${suppressed}/${candidates.length} = ${
-      suppressionRate === null ? "—" : (suppressionRate * 100).toFixed(1) + "%"
-    } of accepted candidates — a LOWER BOUND: the cross-scan 6-hour screen is ` +
-      `not modelled here`,
+    `suppression ${suppressed}/${collapsedOver} = ${
+      (suppressed / collapsedOver * 100).toFixed(1)
+    }% of the rows the collapse ran over (${candidates.length} accepted, ` +
+      `${repeatsDropped} dropped as same-symbol repeats) — a LOWER BOUND: the ` +
+      `cross-scan 6-hour screen is not modelled here`,
   );
 
   if (deltas.length < minGroups) {
@@ -476,5 +546,26 @@ async function main(): Promise<void> {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  await main();
+  // Wrapped the way grid-totalr.ts wraps its own entry point. Every flag read
+  // THROWS rather than calling fail() — flagReader's token(), assertInDomain
+  // and soleFlagIndex all throw — so a bare `await main()` surfaced an
+  // operator's typo as an unhandled rejection with a stack, while every other
+  // refusal in this file prints one line. This repo's contract says a harness
+  // failure must never read as the subject refusing; the converse holds too,
+  // and without this a genuine internal TypeError and a mistyped dial were
+  // indistinguishable in the output.
+  await main().catch((error: unknown) => {
+    // An operator's mistake prints one line; anything else keeps its stack.
+    // Printing `.message` for BOTH was the first version of this fix and it
+    // reproduced the very ambiguity it was written to remove — a genuine
+    // TypeError exiting 1 with a single bare line, shaped exactly like a
+    // refusal. Every sibling reader prints the error object; this one can do
+    // better than that only because flagReader now names its own class.
+    if (error instanceof OperatorInputError) {
+      console.error(error.message);
+    } else {
+      console.error(error);
+    }
+    process.exit(1);
+  });
 }

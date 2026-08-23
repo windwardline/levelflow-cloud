@@ -13,6 +13,7 @@ import {
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import type { SweepEmitRow } from "../scripts/sweepStats.ts";
+import { getCorrelationGroup } from "../supabase/functions/trade-analyzer/symbols.ts";
 
 // The repo's OWN tsx by absolute path, never npx — #364 round 55. These spawns
 // run from a temp directory, where npx would resolve tsx from the wrong
@@ -259,6 +260,19 @@ describe("e4-collapse — the replay", () => {
     assert.equal(suppressedIn(day.out), 2);
     assert.equal(suppressedIn(week.out), 1);
     assert.match(week.out, /2 repeat rows dropped/);
+    // The DENOMINATOR is the population the collapse ran over, not every
+    // accepted row. At a week the four accepted rows dedupe to two, so the rate
+    // is 1/2 and both counts are stated — dividing by 4 would have named a rate
+    // of a process half its denominator never underwent.
+    assert.match(
+      week.out,
+      /suppression 1\/2 = 50\.0% of the rows the collapse ran over \(4 accepted, 2 dropped as same-symbol repeats\)/,
+    );
+    // And at a day there are no repeats, so both denominators coincide.
+    assert.match(
+      day.out,
+      /suppression 2\/4 = 50\.0% of the rows the collapse ran over \(4 accepted, 0 dropped as same-symbol repeats\)/,
+    );
   });
 
   // Below the floor the reader must withhold, and must NOT phrase a thin
@@ -311,6 +325,54 @@ describe("e4-collapse — the replay", () => {
     const { code, out } = run([emit, "--bucket-minutes", "60"]);
     assert.equal(code, 1);
     assert.match(out, /none was accepted/);
+  });
+
+  // Reproduced by execution before the fix: `--capture-all a.jsonl b.jsonl`
+  // walked a.jsonl away as if it were --capture-all's value, reported
+  // `shards 1` over one of two named shards, and exited 0. --capture-all is a
+  // real sibling flag on replay-sweep.ts, so no future boolean flag was needed
+  // for this to bite — and the shards split correlation clusters, so reading
+  // half of them understates suppression for every split cluster.
+  it("refuses an unknown flag instead of walking a shard into its value", () => {
+    const first = corpusWith([row("EURUSD", 0, 1)]);
+    const second = corpusWith([row("EURJPY", 0, -1)]);
+    const { code, out } = run([
+      "--capture-all",
+      first,
+      second,
+      "--bucket-minutes",
+      "1440",
+    ]);
+    assert.equal(code, 1);
+    assert.match(out, /unknown flag\(s\) --capture-all/);
+    assert.doesNotMatch(
+      out,
+      /shards 1/,
+      "the run must refuse, not report over the surviving subset",
+    );
+  });
+
+  it("refuses a SINGLE-dash typo instead of walking it into the corpus list", () => {
+    const emit = corpusWith([row("EURUSD", 0, 1)]);
+    const { code, out } = run([emit, "--bucket-minutes", "60", "-variant", "baseline"]);
+    assert.equal(code, 1);
+    assert.match(out, /unknown flag\(s\) -variant/);
+    // It must refuse as an operator mistake, not die in the manifest reader
+    // with a stack — the shape reserved for genuine faults.
+    assert.doesNotMatch(out, /\n\s+at \S+/);
+  });
+
+  it("refuses a misspelled dial rather than leaving it at its default", () => {
+    const emit = corpusWith([row("EURUSD", 0, 1)]);
+    const { code, out } = run([
+      emit,
+      "--bucket-minutes",
+      "60",
+      "--min-groupz",
+      "50",
+    ]);
+    assert.equal(code, 1);
+    assert.match(out, /unknown flag\(s\) --min-groupz/);
   });
 
   it("refuses to pool two shards swept under different engines", () => {
@@ -387,9 +449,16 @@ describe("e4-collapse — the statistic, actually executed", () => {
   });
 
   it("does not let a repeated ungrouped symbol suppress itself", () => {
-    // TRUMPUSD has no primary group, so it keys on its own symbol. Two rows in
-    // one bucket would otherwise form a "contested" group of one market
-    // suppressing itself.
+    // The fixture's premise, pinned rather than assumed: TRUMPUSD has no
+    // primary group, so getCorrelationGroup returns the symbol itself and the
+    // collapse keys on it. Without this assertion the case would pass
+    // identically for a GROUPED symbol — the dedupe fires either way — and so
+    // would not distinguish the fallback path it is named for.
+    assert.equal(
+      getCorrelationGroup("TRUMPUSD"),
+      "TRUMPUSD",
+      "fixture assumes TRUMPUSD is ungrouped; the roster changed",
+    );
     const emit = corpusWith([
       row("TRUMPUSD", 0, 1),
       row("TRUMPUSD", 1, -1),
@@ -398,6 +467,17 @@ describe("e4-collapse — the statistic, actually executed", () => {
     assert.equal(code, 0, out);
     assert.match(out, /contested 0 /);
     assert.match(out, /suppression 0\//);
+    assert.match(out, /1 repeat rows dropped/);
+  });
+
+  it("keeps two DIFFERENT ungrouped symbols in separate groups", () => {
+    // The other side of the fallback: ungrouped symbols key on themselves, so
+    // two of them in one bucket are two singleton groups, never a contest.
+    // Together with the case above this pins the fallback in both directions.
+    const emit = corpusWith([row("TRUMPUSD", 0, 1), row("NGUSD", 0, -1)]);
+    const { code, out } = run([emit, "--bucket-minutes", "1440"]);
+    assert.equal(code, 0, out);
+    assert.match(out, /groups 2 = contested 0 \+ singleton 2/);
   });
 
   it("runs the permutation null and prints a p with its permutation count", () => {
@@ -434,6 +514,61 @@ describe("e4-collapse — the statistic, actually executed", () => {
     ]);
     assert.equal(code, 1);
     assert.match(out, /--permutations must be at least 100/);
+  });
+
+  // The entry point is wrapped, so a flag that THROWS (flagReader's token(),
+  // assertInDomain, soleFlagIndex on a repeat) reads as a refusal rather than
+  // an unhandled rejection. Without this assertion an operator's typo and a
+  // genuine internal TypeError look identical in the output — and the earlier
+  // domain tests passed either way, because an unhandled rejection also exits
+  // 1 and writes to stderr.
+  it("prints a refusal with no stack frame when a dial throws", () => {
+    const emit = corpusWith([row("EURUSD", 0, 1)]);
+    const { code, out } = run([emit, "--bucket-minutes", "2.5"]);
+    assert.equal(code, 1);
+    assert.match(out, /--bucket-minutes must be a whole number/);
+    assert.doesNotMatch(
+      out,
+      /\s+at \S+ \(|node:internal|Error:\s*$/m,
+      "a mistyped dial must not surface as a stack trace",
+    );
+  });
+
+  // The other half of the same property, and the half the first fix lost: a
+  // genuine internal fault must KEEP its stack, or the harness failure reads as
+  // the subject refusing. Driven through a corpus whose manifest parses but
+  // whose rows are not JSON — the reader's own parse refusal is a plain Error,
+  // not an OperatorInputError.
+  it("keeps the stack on a fault that is not the operator's", () => {
+    const emit = corpusWith([row("EURUSD", 0, 1)]);
+    writeFileSync(emit, "{ this is not json }\n");
+    const { code, out } = run([emit, "--bucket-minutes", "60"]);
+    assert.equal(code, 1);
+    assert.match(out, /failed to parse/);
+    // The property this test is NAMED for. Without it the assertion above
+    // matches `console.error(error)` and `console.error(error.message)`
+    // equally, so reverting the discriminator left it green — the test passed
+    // for a defect it was written to catch. Positive form of the
+    // doesNotMatch the refusal tests use.
+    assert.match(
+      out,
+      /\n\s+at \S+/,
+      "a fault that is not the operator's must keep its stack frames",
+    );
+  });
+
+  it("refuses a repeated flag rather than silently taking the first", () => {
+    const emit = corpusWith([row("EURUSD", 0, 1)]);
+    const { code, out } = run([
+      emit,
+      "--bucket-minutes",
+      "60",
+      "--bucket-minutes",
+      "1440",
+    ]);
+    assert.equal(code, 1);
+    assert.match(out, /--bucket-minutes was given 2 times/);
+    assert.doesNotMatch(out, /\s+at \S+ \(|node:internal/m);
   });
 
   it("refuses a bucket width below its stated floor", () => {

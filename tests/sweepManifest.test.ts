@@ -1164,8 +1164,13 @@ describe("the driver writes the manifest beside the emit", () => {
     // reading "two" — an enumeration in prose narrower than the code
     // beside it, the class this PR keeps closing (#364 round 53).
     const sharedReader = readFileSync("scripts/flagReader.ts", "utf8");
+    // Counts OperatorInputError, not Error: flagReader's throws were renamed to
+    // a named class so a reader's entry point can print an operator's mistake
+    // as one line while a genuine fault keeps its stack. The count is what
+    // makes "pinned by executed tests below" checkable, so it follows the
+    // throw form rather than being loosened to match both.
     assert.equal(
-      [...sharedReader.matchAll(/throw new Error\(/g)].length,
+      [...sharedReader.matchAll(/throw new OperatorInputError\(/g)].length,
       6,
       "flagReader's refusal count changed — update the exemption's " +
         "enumeration and add an executed test for the new refusal",
@@ -1339,18 +1344,30 @@ describe("the driver writes the manifest beside the emit", () => {
       // applies exactly to the files that walk argv. A curated
       // exemption list here would reproduce the defect one level down —
       // it was one, and it already had to be widened by hand once.
-      const walksArgv = /for \(let \w+ = 0; \w+ < (?:argv|args)\.length/
-        .test(source);
+      // Widened 2026-08-23, and the reason is the sharpest possible one: the
+      // ONE file that shipped this exact defect was outside this population.
+      // `scripts/e4-collapse.ts` collects positionals with `argv.reduce`, not
+      // an indexed `for`, so the law never fired on it — and it swallowed a
+      // shard for any undeclared flag until the converge found it by
+      // execution. A regex over one loop idiom IS a curated list; it curates
+      // by syntax rather than by name, which is the same failure this comment
+      // above already warns about one level up.
+      const walksArgv =
+        /for \(let \w+ = 0; \w+ < (?:argv|args)\.length/.test(source) ||
+        /\b(?:argv|args)\.(?:reduce|filter|flatMap)\b/.test(source);
       if (walksArgv) {
+        // `\w+\[\w+\]` did not admit `argv[index - 1]`, so widening the
+        // population alone would have turned this law red on the very file it
+        // was widened for. Index arithmetic is a walker like any other.
         assert.match(
           source,
-          /if \(VALUE_FLAGS\.has\(\w+\[\w+\]\)\)/,
+          /if \([^)]*VALUE_FLAGS\.has\(\w+\[[^\]]+\]\)\)/,
           `${file}: the path walker must consume the following token only ` +
             `for a flag VALUE_FLAGS declares`,
         );
         assert.doesNotMatch(
           source,
-          /if \(!VALUE_FLAGS\.has\(\w+\[\w+\]\)\)/,
+          /if \([^)]*!VALUE_FLAGS\.has\(\w+\[[^\]]+\]\)\)/,
           `${file}: an inverted walker consumes the token after every flag ` +
             `NOT declared, so an undeclared flag eats a positional path`,
         );

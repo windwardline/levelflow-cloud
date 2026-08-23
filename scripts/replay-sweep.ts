@@ -104,6 +104,15 @@ const API_KEY = process.env.FMP_API_KEY;
 // 2026-08-13, and an unset budget must never read as unlimited.
 let sweepBudget: ByteBudget | undefined;
 
+// The SAME base the parser uses: parseByteBudgetArg scales a `gb` suffix by
+// 1024**3, so a decimal formatter printed "of 32.21GB" against a declared
+// `--byte-budget 30gb`. The declared ceiling and the reported ceiling must read
+// as the same number on the one dial that exists because nothing else can
+// refuse an ad-hoc run's spend.
+export function formatGib(bytes: number): string {
+  return `${(bytes / 1024 ** 3).toFixed(2)}GiB`;
+}
+
 function budget(): ByteBudget {
   if (!sweepBudget) {
     throw new Error(
@@ -733,9 +742,24 @@ async function main() {
     // --warm-only: the daily top-up path. Caches are now loaded (and
     // therefore topped up and pinned for today) — no simulation.
     if (args.warmOnly) {
+      // The spend rides the warm line (§21's founding finding: FMP meters
+      // BYTES and publishes no usage endpoint, so the in-process ledger is the
+      // only thing that knows). It knew all along and never said — the sole
+      // signal was the exception thrown at exhaustion, which on a multi-hour
+      // rebuild means the operator learns the budget was short only once the
+      // run is dead. Printed per symbol so the trend is visible early enough to
+      // act on.
+      //
+      // Deliberately on the warm-only branch alone, for now: this is the path
+      // that fetches the whole roster to depth and is the only one that runs
+      // for hours unattended. A bounded sweep spends the same bytes with the
+      // same blindness and should get the same line — named here rather than
+      // left as an accident of where the fix landed.
       console.log(
         `${symbol}\twarm\t${primaryBars.length} intraday bars through ${
           isoDate(new Date(primaryBars.at(-1)?.time ?? 0))
+        }\tspent ${formatGib(budget().spent())} of ${
+          formatGib(budget().spent() + budget().remaining())
         }`,
       );
       continue;
