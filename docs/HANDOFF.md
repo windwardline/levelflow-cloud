@@ -847,9 +847,13 @@ the live roster is 97 distinct markets.
 ### ▶ RESUME HERE — 2026-08-23 20:00 UTC
 
 **This session ran ON THE STUDIO MACHINE, and R0's data half is RUNNING.**
-That is the single fact a resuming session needs first. Everything below
-the next two blocks is the 2026-08-20 record, kept because it is still
-true.
+That is the single fact a resuming session needs first. Below the next two
+blocks is the 2026-08-20 record. It is kept, but it is NOT blanket-endorsed:
+where it and this block disagree, this block governs, and the lines it
+supersedes are corrected in place and dated rather than deleted. An earlier
+draft of this sentence said everything below was "still true", which told a
+resuming session not to check — while three retained lines still called R1c the
+next item.
 
 #### What "the studio machine" is — the register item, closed
 
@@ -871,12 +875,17 @@ if they never would.
 
 #### R0's data half — STARTED 2026-08-23 ~18:50 UTC
 
-Preconditions re-derived rather than assumed, and all four held: FMP
+Preconditions re-derived rather than assumed. Of the runbook's own §0 four,
+three were re-checked and held and the fourth was taken as stamped: FMP
 answered a live probe **HTTP 200 with real rows** (no 429); the minute
 bank was **already current** — its own agent had run at 18:37 UTC that
 day, banking 27,552 bars across 97 symbols — so no kickstart was owed and
-nothing was expiring; `scripts/intradayChunks.ts` was present; 173 GB
-free.
+nothing was expiring; the R0 change set was present
+(`scripts/intradayChunks.ts`). The `to`-inclusivity and cap measurements
+were NOT re-derived — §0 records them SETTLED and re-measuring them is not
+owed. Disk headroom (173 GB free) was checked too; it is §2's budget
+arithmetic rather than a §0 precondition, and is named here so this list
+cannot be read as the runbook's four.
 
 Executed so far, per `docs/cache-rebuild-r0.md`:
 
@@ -891,7 +900,36 @@ Executed so far, per `docs/cache-rebuild-r0.md`:
   argv. The economic calendar (75,206 events) and the Treasury curve (853
   rows) both loaded — the two instant-death hazards the runbook names —
   with no tolerated-transport warning.
-- **Steps 3, 4 and 5 are OWED and are the first thing to do.**
+- **Is step 2 still running? Derive it, do not assume.** The log is
+  `~/levelflow-rebuild-20260823.log` (the runbook writes
+  `~/levelflow-rebuild-$(date +%Y%m%d).log`, stamped the day the run
+  STARTED — a session resuming after midnight must look for the start
+  date, not today's).
+
+  ```sh
+  pgrep -fl replay-sweep                       # alive?
+  tail -3 ~/levelflow-rebuild-20260823.log     # where it got to
+  grep -c '	warm	' ~/levelflow-rebuild-20260823.log   # symbols warmed, of 97
+  ```
+
+  A run that is gone with fewer than 97 warm lines died or was killed.
+  It is **resumable** — completed symbols persist and a re-run tops up
+  cheaply — so the remedy is to re-run step 2, not to start over.
+
+- **Step 2 has its own completion gate, before step 3.** From
+  `docs/cache-rebuild-r0.md` §2: grep the log for `treasury top-up
+  failed` before calling step 2 done, because a rebuild can finish green
+  with the treasury store un-warmed. Also grep for `WOULD REFUSE`, which
+  is the corpus door reporting in advance which symbols would fail a
+  sweep pre-flight at this depth.
+
+  ```sh
+  grep -nE 'treasury top-up failed|WOULD REFUSE|429' ~/levelflow-rebuild-20260823.log
+  ```
+
+  The density observation above is early-run evidence, not this grep.
+
+- **Steps 3, 4 and 5 are OWED and are the first thing to do after that.**
   `npx tsx scripts/verify-cache-clock.ts` must be green before anything
   sweeps; **step 4 re-arms the top-up agent** and skipping it silently
   stops the nightly warm; step 5 deletes the archive, and only after one
@@ -911,8 +949,8 @@ meanwhile — that is how the three PRs below were gated.
 
 **The rebuild itself did not move on 2026-08-20.** The session spent that
 time on the fleet-wide CONVERGE standard instead — see "The fleet standard,
-2026-08-20" below. R1c is still the next rebuild item and nothing is started
-on it. The day's work in THIS repo is **docs-only — `AGENTS.md` and this file**
+2026-08-20" below. R1c was the next rebuild item and nothing was started on it
+*(superseded 2026-08-23: R1c is merged and R2 is next)*. The day's work in THIS repo is **docs-only — `AGENTS.md` and this file**
 — across a sequence of squash-merged PRs beginning with #366; run
 `git log --oneline origin/main` to see which. Deliberately not enumerated: two
 earlier versions of this sentence named a closed set ("the only change is
@@ -982,17 +1020,19 @@ which files, what kind — and leaves the count to git.
   never tested. The generalisable half: an assertion that a process SAID
   something is satisfied by any process that says enough, and a substring
   common in minified JavaScript is not evidence of anything.
-  **What R0 does and does not block, stated because nothing said it before:**
-  R1c does not wait on R0 *to be built* — it is offline and R0 gates R3 onward
-  — but the map scopes it as "the collapse reader and its report, **doored and
-  population-pinned like every other reader**", and the R1 row above records
-  that corpora without a hashed `conditions` block refuse at the door. The only
-  corpus, `3b108f43d4c2`, predates that block and is condemned by the ⛔ STOP
-  section. So the instrument can be **written** today, independently of R0, and
-  it cannot **produce a reading** until R3's re-sweep yields a corpus its own
-  door accepts. The distinction is the whole point of this file: the 2026-08-11
-  clock defect is the case of a number produced from a corpus that should have
-  refused.
+
+- **What R0 does and does not block — and it held exactly as written.** This
+  paragraph was the tail of the old "Next item is R1c" bullet and was left
+  dangling on the bullet above when that one was replaced; it is its own bullet
+  now. R1c did not wait on R0 *to be built* — it is offline, and R0 gates R3
+  onward — but the map scopes it as "doored and population-pinned like every
+  other reader", and corpora without a hashed `conditions` block refuse at the
+  door. The only corpus, `3b108f43d4c2`, predates that block and is condemned
+  by the ⛔ STOP section. So the instrument was **written** without R0, and it
+  **cannot produce a reading** until R3's re-sweep yields a corpus its own door
+  accepts. That is now a shipped fact rather than a forecast, and it is the
+  whole point of this file: the 2026-08-11 clock defect is the case of a number
+  produced from a corpus that should have refused.
 - **R2b is new and its rank is load-bearing** — it must clear before R3
   opens, because R3 is the ONE re-sweep and R2b changes what should be
   measured.
@@ -1014,7 +1054,9 @@ carry an owner-approved hold. Do not turn this local fact into a blanket edit.
 The canonical standard, checker, current rollout state, and fleet continuation
 belong to `windwardline/windwardline`; do not copy their transient branch or PR
 state into this file. Levelflow's rebuild state and ranked sequence remain here.
-This contract maintenance did not move them: R1c is still next, and R0's data
+This contract maintenance did not move them. (*Superseded 2026-08-23: R1c is
+DONE and R2 is next; R0's data half is running. Kept for the 08-20 record.*)
+As of 2026-08-20 R1c was still next, and R0's data
 half still gates R3 onward. Section 6b's executable long form is a governed home
 of the method and is structurally checked against `FLEET.md`; preserve it with
 the standard whenever either changes.
@@ -1050,11 +1092,15 @@ level up, so it is labelled rather than quietly rewritten, and the wrong
 version is kept visible so it cannot come back. Nothing below blocks building
 R1c; all of it is owed before this file can be called accurate.
 
-- **Five commits cited in §6b-i are unreferenced, and one cited at item 1g
-  does not exist at all.** The reproducible check, and the only one a cold
-  session can run, is `git cat-file -t <sha>`: on a fresh clone it fails
-  identically for all six — `36905a7`, `59cc4d9`, `6beac15`, `d0b9907`,
-  `28bcd7b` and `d947245`. **The dangling-versus-absent split below is an
+- **FIVE commits cited in §6b-i are unreferenced. The sixth, `d947245`, is
+  live — the headline said otherwise for two rounds and was wrong.** The
+  reproducible check is `git cat-file -t <sha>` **in a FULL clone**: a shallow
+  checkout — which is what CI and the fleet review run in
+  (`git rev-parse --is-shallow-repository` → `true`) — fails for every SHA
+  including live ones, so it can prove nothing either way. Run
+  `git fetch --unshallow` first, or the test is not the test. In a full clone
+  the five that fail are `36905a7`, `59cc4d9`, `6beac15`, `d0b9907` and
+  `28bcd7b`; `d947245` returns `commit`. **The dangling-versus-absent split below is an
   observation from one clone, not a re-derivable fact**, and it is recorded that
   way deliberately: `git for-each-ref --contains <sha>` returns `refs=0` for the
   first five only on a machine that once held the #364 branch, and on any other
@@ -1126,9 +1172,11 @@ R1c; all of it is owed before this file can be called accurate.
   surface.** §6b now carries the rule, in prose beside the fenced prompt rather
   than inside it, since the fence is structurally checked against `FLEET.md`:
   where an item has no production surface, saying so IS the verification.
-- **"The studio machine" is never defined** — not what it is, who has access,
-  nor how a session tells whether it is on one. It is the precondition of the
-  top-ranked blocked item.
+- **CLOSED 2026-08-23 — "the studio machine" is now defined, derivably.** The
+  resume block carries the two-command test (`launchctl list | grep levelflow`
+  and `ls -d .calibration-cache`) rather than a description a session would
+  have to match itself against. It was the precondition of the top-ranked
+  blocked item and it is no longer undefined.
 - **CLOSED, and its own statement of the risk was wrong — R0's physical
   cleanup obligation.** `docs/cache-rebuild-r0.md` §4 (re-arm the nightly
   top-up) and §5 (delete the archive) are now carried explicitly by the resume
@@ -1843,7 +1891,7 @@ computing) -> Phase 1 one engine (close every sweep-vs-live divergence:
 E1 resolution anchor, E2 the 5-minute sawtooth and its phantom
 unfilleds, E3 market.latest, E6 the score terms, E4 correlation
 collapse, D2 realized R recorded only on expiries — R1a and R1b are MERGED,
-R1c the E4 instrument is what remains) -> Phase 2 repair the
+R1c the E4 instrument MERGED 2026-08-23, so Phase 1 is closed) -> Phase 2 repair the
 instrument (D4 the gate has NO absolute-expectancy term, M3 the confirm
 read decides on a bare delta with no error bar, M1 the audit
 double-counts, M5 make the cost scale actually reach the resolver, D1
