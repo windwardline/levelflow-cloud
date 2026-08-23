@@ -47,6 +47,10 @@ import {
   storeKindForKey,
 } from "./clockWitness.ts";
 import { flagReader } from "./flagReader.ts";
+import {
+  TREASURY_FETCH_START_MS,
+  treasuryCurveFacts,
+} from "./sweepManifest.ts";
 
 type StoredBar = { high: number; low: number; time: number };
 type SlimSeries = {
@@ -226,7 +230,68 @@ export function auditCacheClock(input: {
         continue;
       }
       ratesPresent = true;
-      ok(`${key}: ${items.length} curve rows, clock "${store.clock}"`);
+      // COVERAGE, mirroring the three refusals the SWEEP already makes on
+      // this store and this gate did not. They are why the gate matters: a
+      // clock stamp and a row count certified a curve measured at 25.4%
+      // coverage — 853 rows where ~3,361 business days exist, a nine-month
+      // head shortfall and a 278-day interior hole — and step 3 called it
+      // green while every one of the sweep's own predicates would have
+      // refused it. The predicates live in sweepManifest.ts, a plain Node
+      // module, so this imports them rather than restating them: one
+      // definition, and the gate cannot drift from the sweep it certifies for.
+      const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+      const curveRows = items as unknown as Array<{ dateMs: number }>;
+      const facts = treasuryCurveFacts(
+        curveRows.filter((row) => Number.isFinite(row?.dateMs)),
+      );
+      if (facts.count === 0 || facts.firstTime === null) {
+        fail(
+          `${key}: no parseable curve rows (items carry no dateMs) — the ` +
+            `store is present and says nothing`,
+        );
+        continue;
+      }
+      let curveFailed = false;
+      if (facts.firstTime > TREASURY_FETCH_START_MS + 7 * 86_400_000) {
+        curveFailed = true;
+        fail(
+          `${key}: starts ${iso(facts.firstTime)} but the sweep requests ` +
+            `${iso(TREASURY_FETCH_START_MS)} — the head is ${
+              Math.round(
+                (facts.firstTime - TREASURY_FETCH_START_MS) / 86_400_000,
+              )
+            } days short. An existing store never deepens on its own, so this ` +
+            `is the shape a too-wide fetch chunk leaves behind`,
+        );
+      }
+      if (facts.largestGapMs > 7 * 86_400_000) {
+        curveFailed = true;
+        fail(
+          `${key}: largest interior gap is ${
+            Math.round(facts.largestGapMs / 86_400_000)
+          } days — the visibility pointer stalls inside a hole and scores ` +
+            `months-stale rows as fresh; the sweep refuses this curve`,
+        );
+      }
+      const staleMs = Date.now() - (facts.lastTime ?? 0);
+      if (staleMs > 7 * 86_400_000) {
+        curveFailed = true;
+        fail(
+          `${key}: newest row is ${iso(facts.lastTime!)}, ${
+            Math.round(staleMs / 86_400_000)
+          } days stale — every decision past the curve's end scores against ` +
+            `months-old rows as if they were fresh`,
+        );
+      }
+      if (!curveFailed) {
+        ok(
+          `${key}: ${facts.count} curve rows ${iso(facts.firstTime)}..${
+            iso(facts.lastTime!)
+          }, largest gap ${
+            Math.round(facts.largestGapMs / 86_400_000)
+          }d, clock "${store.clock}"`,
+        );
+      }
       continue;
     }
 
