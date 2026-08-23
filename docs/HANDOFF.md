@@ -957,11 +957,14 @@ chunking**, or it reproduces the same 25%.
 
 ### Pre-reopen work, and where it is owned — scoped 2026-08-23
 
-Deliberately not counted, and the heading says where each lands rather than
-claiming none is owned. The first bullet's own title names R6, which IS a
-ranked item — an earlier heading here read "Two gaps that no ranked item owns"
-while holding four bullets, one of which named its owner. That is the same
-defect this session travelled to `docs/launch-readiness.md` to fix.
+Deliberately not counted. Ownership varies and is stated per bullet rather than
+claimed for the section: R6 owns the first; the provenance-stamp clause inside
+it is pre-R3-register class; and the last two — the live magic-link delivery and
+the flag-flip ordering — are owned by NOTHING yet, which is the fact worth
+carrying. An earlier heading read "Two gaps that no ranked item owns" above four
+bullets, one of which named its owner in its own title — the same defect this
+session travelled to `docs/launch-readiness.md` to fix, reproduced in the diff
+that fixed it.
 
 - **There is no reopen gate, and R6 is what it would have to clear.** SCOPED
   2026-08-23; every figure below re-derived personally. `PARKING_GATE` is a
@@ -1123,9 +1126,12 @@ Executed so far, per `docs/cache-rebuild-r0.md`:
   three tokens can fire for a Treasury curve that is merely truncated — the
   25.4%-covered store produced zero of them. A clean grep here means the run
   did not hit the failures the grep names; it is not evidence the stores are
-  sound. Step 3 is what checks the curve, and only since the coverage gates
-  landed: before them it printed `ok treasury-rates: 853 curve rows` over
-  exactly this store.
+  sound. Step 3 is what checks the curve, and only since **#379's** coverage
+  gates — named rather than left as "since the gates landed", because that was
+  written while they were still unmerged and was therefore false of the tree a
+  reader would have got. Before them step 3 printed
+  `ok treasury-rates: 853 curve rows` over exactly this store and reported no
+  failure of any kind.
 
 - **Steps 3, 4 and 5 are OWED and are the first thing to do after that.**
   `npx tsx scripts/verify-cache-clock.ts` must be green before anything
