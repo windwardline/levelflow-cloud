@@ -524,6 +524,19 @@ describe("e4-collapse — the statistic, actually executed", () => {
     );
   });
 
+  // The other half of the same property, and the half the first fix lost: a
+  // genuine internal fault must KEEP its stack, or the harness failure reads as
+  // the subject refusing. Driven through a corpus whose manifest parses but
+  // whose rows are not JSON — the reader's own parse refusal is a plain Error,
+  // not an OperatorInputError.
+  it("keeps the stack on a fault that is not the operator's", () => {
+    const emit = corpusWith([row("EURUSD", 0, 1)]);
+    writeFileSync(emit, "{ this is not json }\n");
+    const { code, out } = run([emit, "--bucket-minutes", "60"]);
+    assert.equal(code, 1);
+    assert.match(out, /failed to parse/);
+  });
+
   it("refuses a repeated flag rather than silently taking the first", () => {
     const emit = corpusWith([row("EURUSD", 0, 1)]);
     const { code, out } = run([

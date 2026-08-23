@@ -48,7 +48,7 @@ import {
   assertManifestedCorpusStreaming,
   type SweepEmitRow,
 } from "./sweepStats.ts";
-import { assertInDomain, flagReader } from "./flagReader.ts";
+import { assertInDomain, flagReader, OperatorInputError } from "./flagReader.ts";
 
 // The comparator's inputs plus what grading needs. Projected explicitly rather
 // than through vocabularyRow, whose closed key set exists for a different
@@ -75,9 +75,14 @@ type Group = {
 
 // Every flag that owns the token after it, declared literally. The law is
 // bidirectional — each of these is read through a guarded accessor in main().
-// NOTE what this does NOT do: the corpus-path walker in main() drops the token
-// after ANY `--`-prefixed token rather than consulting this set. The two agree
-// only because every flag here takes a value.
+//
+// This set does DOUBLE duty, and the second job constrains what can be added:
+// main() refuses any `--` token that is not a member, and its corpus-path
+// walker skips a token only when its predecessor IS a member. So a future
+// BOOLEAN flag has no legal home here — left out, the unknown-flag gate
+// refuses it; put in, it must be read through num()/str() to satisfy the flag
+// law (tests/sweepManifest.test.ts), which a boolean is not. Adding one means
+// changing both, deliberately.
 const VALUE_FLAGS = new Set([
   "--bucket-minutes",
   "--min-groups",
@@ -537,7 +542,17 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   // and without this a genuine internal TypeError and a mistyped dial were
   // indistinguishable in the output.
   await main().catch((error: unknown) => {
-    console.error(error instanceof Error ? error.message : String(error));
+    // An operator's mistake prints one line; anything else keeps its stack.
+    // Printing `.message` for BOTH was the first version of this fix and it
+    // reproduced the very ambiguity it was written to remove — a genuine
+    // TypeError exiting 1 with a single bare line, shaped exactly like a
+    // refusal. Every sibling reader prints the error object; this one can do
+    // better than that only because flagReader now names its own class.
+    if (error instanceof OperatorInputError) {
+      console.error(error.message);
+    } else {
+      console.error(error);
+    }
     process.exit(1);
   });
 }

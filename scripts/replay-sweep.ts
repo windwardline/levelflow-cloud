@@ -104,8 +104,13 @@ const API_KEY = process.env.FMP_API_KEY;
 // 2026-08-13, and an unset budget must never read as unlimited.
 let sweepBudget: ByteBudget | undefined;
 
-function formatGb(bytes: number): string {
-  return `${(bytes / 1_000_000_000).toFixed(2)}GB`;
+// The SAME base the parser uses: parseByteBudgetArg scales a `gb` suffix by
+// 1024**3, so a decimal formatter printed "of 32.21GB" against a declared
+// `--byte-budget 30gb`. The declared ceiling and the reported ceiling must read
+// as the same number on the one dial that exists because nothing else can
+// refuse an ad-hoc run's spend.
+function formatGib(bytes: number): string {
+  return `${(bytes / 1024 ** 3).toFixed(2)}GiB`;
 }
 
 function budget(): ByteBudget {
@@ -747,8 +752,8 @@ async function main() {
       console.log(
         `${symbol}\twarm\t${primaryBars.length} intraday bars through ${
           isoDate(new Date(primaryBars.at(-1)?.time ?? 0))
-        }\tspent ${formatGb(budget().spent())} of ${
-          formatGb(budget().spent() + budget().remaining())
+        }\tspent ${formatGib(budget().spent())} of ${
+          formatGib(budget().spent() + budget().remaining())
         }`,
       );
       continue;

@@ -1164,8 +1164,13 @@ describe("the driver writes the manifest beside the emit", () => {
     // reading "two" — an enumeration in prose narrower than the code
     // beside it, the class this PR keeps closing (#364 round 53).
     const sharedReader = readFileSync("scripts/flagReader.ts", "utf8");
+    // Counts OperatorInputError, not Error: flagReader's throws were renamed to
+    // a named class so a reader's entry point can print an operator's mistake
+    // as one line while a genuine fault keeps its stack. The count is what
+    // makes "pinned by executed tests below" checkable, so it follows the
+    // throw form rather than being loosened to match both.
     assert.equal(
-      [...sharedReader.matchAll(/throw new Error\(/g)].length,
+      [...sharedReader.matchAll(/throw new OperatorInputError\(/g)].length,
       6,
       "flagReader's refusal count changed — update the exemption's " +
         "enumeration and add an executed test for the new refusal",

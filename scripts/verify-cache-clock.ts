@@ -144,6 +144,10 @@ export function auditCacheClock(input: {
   // round 6).
   const anchorWitnessed = new Set<string>();
   let calendarPresent = false;
+  // Mirrors calendarPresent: the curve is a sweep INPUT scored into
+  // confidenceScore, so a roster-mode audit that is silent about its absence
+  // certifies a cache the sweep will refuse.
+  let ratesPresent = false;
 
   for (const name of rollingNames) {
     const key = name.slice(0, -".rolling.json".length);
@@ -207,6 +211,21 @@ export function auditCacheClock(input: {
     // calendar-presence gate, and a treasury store must never stand in for a
     // missing econ-calendar.
     if (kind.kind === "rates") {
+      // "An empty store counts as absent" and "dark is not green" — this
+      // file's own doctrine, which the first version of this branch broke by
+      // printing ok on zero rows. A stamped-but-empty curve would have passed
+      // the acceptance gate and died one step later at replay-sweep's
+      // "historical-treasury-curve over zero rows; refusing to sweep", after
+      // the operator had been told the rebuild took.
+      if (items.length === 0) {
+        fail(
+          `${key}: curve store is EMPTY (zero rows) — an empty store counts ` +
+            `as absent; the sweep refuses a zero-row curve, so this must not ` +
+            `read as green`,
+        );
+        continue;
+      }
+      ratesPresent = true;
       ok(`${key}: ${items.length} curve rows, clock "${store.clock}"`);
       continue;
     }
@@ -421,6 +440,13 @@ export function auditCacheClock(input: {
       fail(
         `econ-calendar: no calendar store — the rebuild fetches it ` +
           `alongside every roster symbol; a cache without it is incomplete`,
+      );
+    }
+    if (!ratesPresent) {
+      fail(
+        `treasury-rates: no curve store — the rebuild fetches it alongside ` +
+          `the calendar, and E6 scores the curve into confidenceScore; a ` +
+          `cache without it is incomplete`,
       );
     }
   }
