@@ -11,7 +11,9 @@ describe("construction soft gate", () => {
     // that regex would accept a re-park silently. A deliberate re-park updates
     // this guard alongside the flag, the same way any other source-pin does.
     //
-    // TRUE since the 2026-08-07 re-park (§17m). This is the guard doing its
+    // TRUE since the 2026-08-07 re-park (§17p — §17m is the 2026-08-01
+    // post-launch rulings, a different section and a different date). This is
+    // the guard doing its
     // job, not an obstacle to it: the pin is the reason a flag this consequential
     // cannot move without someone saying so in a test diff.
     assert.match(gate, /export const PARKING_GATE = true;/);

@@ -274,12 +274,46 @@ export function treasuryGapTouching(
 // driver matches both tokens and exits red DEFERRED to the end of
 // the bar survey (#364 round 22, finding 1), so the roster still
 // warms under a cause that never self-heals.
+// How far past a chunk's requested `from` its oldest returned row may sit
+// before the response reads as truncated rather than merely thin. Two weeks
+// covers a holiday cluster and a provider whose coverage starts a few days
+// into the window; the failure this exists for left NINE MONTHS.
+const TREASURY_CHUNK_REACHBACK_TOLERANCE_MS = 14 * 86_400_000;
+
 export function treasuryChunkRefusal(input: {
   chunkRows: number;
+  earliestRowMs?: number | null;
   fromMs: number;
   parserRefusals: number;
   windowToMs: number;
 }): string | null {
+  const iso0 = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  // TRUNCATION, checked before emptiness because a truncated chunk is not
+  // empty and every previous guard here tested only `chunkRows > 0`. The
+  // endpoint sets no `limit` and served the NEWEST ~62 rows of each window,
+  // so a 365-day chunk returned its last quarter and the guard passed it —
+  // 25.4% coverage, pinned into the store, invisible to every reader.
+  //
+  // Scoped away from the requested start, where a later first row is the
+  // provider's floor rather than truncation; that case is the coverage
+  // refusal below and its remedy is different.
+  if (
+    input.chunkRows > 0 &&
+    input.earliestRowMs != null &&
+    input.fromMs !== TREASURY_FETCH_START_MS &&
+    input.earliestRowMs - input.fromMs > TREASURY_CHUNK_REACHBACK_TOLERANCE_MS
+  ) {
+    return (
+      `treasuryChunkTruncated: Treasury-rate chunk ${iso0(input.fromMs)}..` +
+      `${iso0(input.windowToMs)} returned ${input.chunkRows} rows but its ` +
+      `oldest is ${iso0(input.earliestRowMs)} — ${
+        Math.round((input.earliestRowMs - input.fromMs) / 86_400_000)
+      } days after the window opened. The response was capped newest-first, ` +
+      `so the chunk is a partial view pinned as if it were the whole one. ` +
+      `Narrow the fetch chunk until each response reaches its own start; do ` +
+      `not widen the tolerance.`
+    );
+  }
   if (
     input.chunkRows > 0 || input.windowToMs - input.fromMs < 7 * 86_400_000
   ) {
