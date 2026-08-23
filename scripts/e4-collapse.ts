@@ -170,8 +170,13 @@ async function main(): Promise<void> {
   // It also closes the quieter half: `--min-groupz 50` would otherwise leave
   // min-groups at its default with no word said, which is the "a run measures
   // something other than what was asked" class this reader exists inside.
+  // Single dash too. `-variant baseline` is a typo an operator makes, and
+  // keying on `--` alone let it fall through to the corpus list and die in the
+  // manifest reader as a plain Error with a full stack — the shape the entry
+  // point deliberately reserves for genuine faults.
   const undeclared = argv.filter(
-    (token) => token.startsWith("--") && !VALUE_FLAGS.has(token),
+    (token) =>
+      /^-{1,2}[A-Za-z]/.test(token) && !VALUE_FLAGS.has(token),
   );
   if (undeclared.length > 0) {
     fail(

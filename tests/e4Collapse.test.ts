@@ -352,6 +352,16 @@ describe("e4-collapse — the replay", () => {
     );
   });
 
+  it("refuses a SINGLE-dash typo instead of walking it into the corpus list", () => {
+    const emit = corpusWith([row("EURUSD", 0, 1)]);
+    const { code, out } = run([emit, "--bucket-minutes", "60", "-variant", "baseline"]);
+    assert.equal(code, 1);
+    assert.match(out, /unknown flag\(s\) -variant/);
+    // It must refuse as an operator mistake, not die in the manifest reader
+    // with a stack — the shape reserved for genuine faults.
+    assert.doesNotMatch(out, /\n\s+at \S+/);
+  });
+
   it("refuses a misspelled dial rather than leaving it at its default", () => {
     const emit = corpusWith([row("EURUSD", 0, 1)]);
     const { code, out } = run([

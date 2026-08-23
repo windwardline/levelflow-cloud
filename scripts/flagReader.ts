@@ -25,17 +25,6 @@
  * applies to by globbing this directory rather than curating it.
  */
 /**
- * Where a flag sits in argv, refusing a repeat.
- *
- * Exported so the readers that keep their own value accessors — six of
- * them, whose specific error messages executed tests assert — share the
- * RESOLUTION step even where they do not share the messages (#364 round
- * 53, finding 1). First-occurrence-only is mode two of the three the
- * header above lists, and round 51 made it a refusal here while leaving
- * it live in all six, including the gates that exit non-zero and the
- * script that burns the confirm read.
- */
-/**
  * An error caused by what the OPERATOR typed, as opposed to a defect in the
  * script. The distinction is not cosmetic: a reader's entry point prints a
  * refusal as one clean line and a real fault with its stack, and without a
@@ -51,6 +40,17 @@ export class OperatorInputError extends Error {
   }
 }
 
+/**
+ * Where a flag sits in argv, refusing a repeat.
+ *
+ * Exported so the readers that keep their own value accessors — six of
+ * them, whose specific error messages executed tests assert — share the
+ * RESOLUTION step even where they do not share the messages (#364 round
+ * 53, finding 1). First-occurrence-only is mode two of the three the
+ * header above lists, and round 51 made it a refusal here while leaving
+ * it live in all six, including the gates that exit non-zero and the
+ * script that burns the confirm read.
+ */
 export function soleFlagIndex(argv: readonly string[], arg: string): number {
   const occurrences = argv.reduce<number[]>(
     (found, token, at) => token === arg ? [...found, at] : found,
