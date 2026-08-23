@@ -1,0 +1,397 @@
+/**
+ * R1c — the E4 correlation-collapse instrument.
+ *
+ * Production collapses correlated candidates within a scan and the sweep does
+ * not, so the corpus overstates concurrent exposure and never measures the
+ * selection the live engine performs. This replays that selection over corpus
+ * rows and reports what it would have changed.
+ *
+ *   npx tsx scripts/e4-collapse.ts <emit.jsonl> [<emit.jsonl> ...] \
+ *     --bucket-minutes 60 [--variant baseline] [--min-groups 30] \
+ *     [--permutations 2000]
+ *
+ * It replays the live rule rather than a transcription of it: the grouping key,
+ * the comparator and the winner-first ordering are imported from
+ * scanCollapse.ts, which index.ts also calls.
+ *
+ * THREE THINGS THIS INSTRUMENT DOES NOT DO, stated here because each is a way
+ * a number from it could be over-read:
+ *
+ * 1. It does not model the cross-scan 6-hour screen
+ *    (findStrongerActiveCorrelatedSetup). That mechanism is a database query
+ *    over trade_setups scoped to a user, a 6-hour created_at window and
+ *    `status in (generated, placed)` — none of which the corpus has — and its
+ *    input is the collapse's own output, since persistence runs after the
+ *    collapse. Modelling it offline means inventing a persistence state
+ *    machine, and every invented rule would be an unpinned assumption inside a
+ *    figure the program reads as a measurement. So the suppression reported
+ *    here is a LOWER BOUND on total live suppression, and says so in the
+ *    report.
+ * 2. It does not reconstruct the historical roster. Group membership is read
+ *    from today's symbols.ts, not from the roster as it stood at each decision
+ *    instant.
+ * 3. It does not decide whether the sweep should collapse in-line. That is the
+ *    Phase 3 question this measurement informs, and it is expensive: the sweep
+ *    emits each symbol's rows before the next begins and shards split
+ *    correlation clusters, so in-line collapse means buffering across every
+ *    symbol and shard, or re-sharding by cluster — either of which changes
+ *    corpus identity and spends the one re-sweep.
+ */
+import { fileURLToPath } from "node:url";
+import {
+  collapseGroupKey,
+  comparatorRewardRisk,
+  rankCollapseGroup,
+} from "../supabase/functions/trade-analyzer/scanCollapse.ts";
+import { getCorrelationGroup } from "../supabase/functions/trade-analyzer/symbols.ts";
+import {
+  assertManifestedCorpusStreaming,
+  type SweepEmitRow,
+} from "./sweepStats.ts";
+import { assertInDomain, describeNumericToken, soleFlagIndex } from "./flagReader.ts";
+
+// The comparator's inputs plus what grading needs. Projected explicitly rather
+// than through vocabularyRow, whose closed key set exists for a different
+// reader and would silently drop executionScore — the R1b lesson about closed
+// projections, one reader over.
+type CollapseRow = {
+  accepted: boolean;
+  confidenceScore: number;
+  dataAbsent: boolean;
+  executionScore: number | undefined;
+  realizedR: number;
+  rewardRisk: number;
+  symbol: string;
+  time: number;
+  variant: string;
+};
+
+type Group = {
+  bucket: number;
+  key: string;
+  members: CollapseRow[];
+};
+
+const MIN_GROUPS_DEFAULT = 30;
+const PERMUTATIONS_DEFAULT = 2_000;
+
+function fail(message: string): never {
+  console.error(message);
+  process.exit(1);
+}
+
+function numericFlag(
+  argv: readonly string[],
+  flag: string,
+  fallback: number | undefined,
+  domain: Parameters<typeof assertInDomain>[2],
+): number {
+  const index = soleFlagIndex(argv, flag);
+  if (index < 0) {
+    if (fallback === undefined) {
+      fail(
+        `${flag} is required and has no default — it is a measurement term, ` +
+          `and a default would put it in the code instead of in the report`,
+      );
+    }
+    return fallback;
+  }
+  const token = argv[index + 1];
+  const value = Number(token);
+  if (!Number.isFinite(value)) {
+    fail(`${flag} ${describeNumericToken(token)}`);
+  }
+  assertInDomain(flag, value, domain);
+  return value;
+}
+
+// A deterministic RNG so a rerun of the same corpus reproduces the same p.
+// Deliberately local: grid-totalr.ts's permutation null is a two-sample block
+// permutation over baseline/variant day blocks, a different statistic from the
+// within-group selection null below, and its mulberry32 is module-private
+// inside the fingerprinted statistical core that HANDOFF pins. Converging the
+// two seeds into scripts/sweepStats.ts — the stated home of the one stats
+// vocabulary — is a named follow-up, not something to do inside this reader.
+function mulberry32(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let drawn = Math.imul(state ^ (state >>> 15), 1 | state);
+    drawn = (drawn + Math.imul(drawn ^ (drawn >>> 7), 61 | drawn)) ^ drawn;
+    return ((drawn ^ (drawn >>> 14)) >>> 0) / 4_294_967_296;
+  };
+}
+
+function mean(values: number[]): number {
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+// The live collapse ranks on payoff QUANTIZED to two decimals, because the scan
+// candidate carries confluence.rewardRisk and analyzeSetup writes that rounded.
+// The emit carries full precision. Quantizing here is what makes tier 3 bind at
+// the rate it binds live instead of being skipped.
+function asLiveCandidate(row: CollapseRow) {
+  return {
+    confidenceScore: row.confidenceScore,
+    correlationGroup: getCorrelationGroup(row.symbol),
+    executionScore: row.executionScore,
+    rewardRisk: comparatorRewardRisk(row.rewardRisk),
+    symbol: row.symbol,
+  };
+}
+
+function project(raw: SweepEmitRow): CollapseRow | null {
+  const time = Number(raw.time);
+  const realizedR = Number(raw.realizedR);
+  const symbol = String(raw.symbol ?? "");
+  if (!Number.isFinite(time) || !symbol) {
+    return null;
+  }
+  return {
+    accepted: raw.accepted === true,
+    confidenceScore: Number(raw.confidenceScore ?? 0),
+    dataAbsent: raw.noBarsInReviewWindow === true,
+    executionScore: raw.executionScore === undefined
+      ? undefined
+      : Number(raw.executionScore),
+    realizedR: Number.isFinite(realizedR) ? realizedR : Number.NaN,
+    rewardRisk: Number(raw.rewardRisk ?? 0),
+    symbol,
+    time,
+    variant: String(raw.variant ?? ""),
+  };
+}
+
+async function main(): Promise<void> {
+  const argv = process.argv.slice(2);
+  // A flag's VALUE is not a corpus path: drop any token that directly follows
+  // a --flag, so `--bucket-minutes 60` cannot be read as a shard named "60".
+  const corpora = argv.reduce<string[]>((kept, token, index) => {
+    if (token.startsWith("--")) {
+      return kept;
+    }
+    if (index > 0 && argv[index - 1].startsWith("--")) {
+      return kept;
+    }
+    kept.push(token);
+    return kept;
+  }, []);
+
+  if (corpora.length === 0) {
+    fail(
+      "usage: e4-collapse.ts <emit.jsonl> [<emit.jsonl> ...] --bucket-minutes N\n" +
+        "no corpus named — the E4 collapse instrument reads one or more " +
+        "manifested sweep emit shards and cannot report over zero rows. Pass " +
+        "every shard of one sweep: the shards split correlation clusters, so " +
+        "a subset measures a suppression rate lower than the truth.",
+    );
+  }
+
+  const bucketMinutes = numericFlag(argv, "--bucket-minutes", undefined, {
+    basis:
+      "the corpus has no notion of a scan — decision instants are per-symbol " +
+      "bar indices over series with different spans, so correlated symbols " +
+      "rarely share a timestamp. The bucket is how wide a window counts as " +
+      "'the same scan', and it is a measurement term the report must carry.",
+    integer: true,
+    min: 1,
+  });
+  const minGroups = numericFlag(argv, "--min-groups", MIN_GROUPS_DEFAULT, {
+    basis:
+      "below this many fully graded contested groups the delta's sign is not " +
+      "informative in either direction, so the reader withholds a verdict " +
+      "rather than reporting a thin negative as reassurance",
+    integer: true,
+    min: 1,
+  });
+  const permutations = numericFlag(argv, "--permutations", PERMUTATIONS_DEFAULT, {
+    basis:
+      "the smallest attainable p is 1/(permutations+1), so 2,000 puts 0.05 " +
+      "comfortably inside reach",
+    integer: true,
+    min: 100,
+  });
+  const variantIndex = soleFlagIndex(argv, "--variant");
+  const requestedVariant = variantIndex < 0 ? undefined : argv[variantIndex + 1];
+
+  const rows: CollapseRow[] = [];
+  const hashes: string[] = [];
+  const engines = new Set<string>();
+  const clocks = new Set<string>();
+  let unreadable = 0;
+
+  for (const corpus of corpora) {
+    const manifest = await assertManifestedCorpusStreaming(corpus, (raw) => {
+      const row = project(raw);
+      if (row === null) {
+        unreadable += 1;
+        return;
+      }
+      rows.push(row);
+    });
+    hashes.push(manifest.manifestHash.slice(0, 12));
+    engines.add(manifest.analyzerVersion);
+    clocks.add(`${manifest.clock?.normalizer}/${manifest.clock?.calendar}`);
+  }
+
+  // Two sweeps of different engine or clock are two measurements. Refused
+  // rather than pooled, on the same reasoning that keeps `days` inside the
+  // corpus identity in grid-totalr.ts.
+  if (engines.size > 1 || clocks.size > 1) {
+    fail(
+      `the named shards are not one sweep — engines {${[...engines].join(", ")}}, ` +
+        `clocks {${[...clocks].join(", ")}}. Two sweeps are two measurements ` +
+        `and cannot pool.`,
+    );
+  }
+  if (unreadable > 0) {
+    fail(
+      `${unreadable} corpus rows carry no usable time or symbol — a holed ` +
+        `corpus is refused, not shrunk`,
+    );
+  }
+
+  const variants = new Set(rows.map((row) => row.variant));
+  if (requestedVariant === undefined && variants.size > 1) {
+    fail(
+      `the corpus carries ${variants.size} variants {${
+        [...variants].sort().join(", ")
+      }} and no --variant was named. The grid's variants are not live ` +
+        `configurations, so pooling them measures a universe production never ` +
+        `ran. Name the one that reproduces live's gates.`,
+    );
+  }
+  const variant = requestedVariant ?? [...variants][0] ?? "";
+  if (requestedVariant !== undefined && !variants.has(requestedVariant)) {
+    fail(
+      `--variant ${requestedVariant} is not in the corpus {${
+        [...variants].sort().join(", ")
+      }}`,
+    );
+  }
+
+  const inVariant = rows.filter((row) => row.variant === variant);
+  // Only an ACCEPTED setup ever became a scan opportunity, and only
+  // opportunities reach the collapse. A capture-all corpus carries the
+  // below-threshold rows too; they were never candidates.
+  const candidates = inVariant.filter((row) => row.accepted);
+  const dataAbsent = candidates.filter((row) => row.dataAbsent);
+  const graded = candidates.filter(
+    (row) => !row.dataAbsent && Number.isFinite(row.realizedR),
+  );
+
+  const bucketMs = bucketMinutes * 60_000;
+  const groups = new Map<string, Group>();
+  for (const row of candidates) {
+    const bucket = Math.floor(row.time / bucketMs);
+    const key = collapseGroupKey({
+      correlationGroup: getCorrelationGroup(row.symbol),
+      symbol: row.symbol,
+    });
+    const id = `${bucket} ${key}`;
+    const existing = groups.get(id);
+    if (existing) {
+      existing.members.push(row);
+      continue;
+    }
+    groups.set(id, { bucket, key, members: [row] });
+  }
+
+  const contested = [...groups.values()].filter(
+    (group) => group.members.length > 1,
+  );
+  const singletons = groups.size - contested.length;
+
+  let suppressed = 0;
+  const deltas: number[] = [];
+  const gradedGroups: CollapseRow[][] = [];
+  for (const group of contested) {
+    suppressed += group.members.length - 1;
+    // A group contributes to the paired statistic only if EVERY member is
+    // graded — a group with an ungradeable member has no honest mean to
+    // compare its winner against.
+    const members = group.members;
+    if (!members.every((row) => !row.dataAbsent && Number.isFinite(row.realizedR))) {
+      continue;
+    }
+    const winner = rankCollapseGroup(members.map(asLiveCandidate))[0];
+    const winnerRow = members.find((row) => row.symbol === winner.symbol);
+    if (!winnerRow) {
+      continue;
+    }
+    deltas.push(winnerRow.realizedR - mean(members.map((row) => row.realizedR)));
+    gradedGroups.push(members);
+  }
+
+  console.log(
+    `corpus ${hashes.join("+")} · engine ${[...engines][0]} · clock ${
+      [...clocks][0]
+    }`,
+  );
+  console.log(
+    `shards ${corpora.length} · variant ${variant || "(unnamed)"} · bucket ${bucketMinutes}min`,
+  );
+  console.log(
+    `rows ${rows.length} → in-variant ${inVariant.length} → accepted ${candidates.length} ` +
+      `(dataAbsent ${dataAbsent.length} held out, graded ${graded.length})`,
+  );
+  console.log(
+    `groups ${groups.size} = contested ${contested.length} + singleton ${singletons}`,
+  );
+
+  const suppressionRate = candidates.length === 0
+    ? null
+    : suppressed / candidates.length;
+  console.log(
+    `suppression ${suppressed}/${candidates.length} = ${
+      suppressionRate === null ? "—" : (suppressionRate * 100).toFixed(1) + "%"
+    } of accepted candidates — a LOWER BOUND: the cross-scan 6-hour screen is ` +
+      `not modelled here`,
+  );
+
+  if (deltas.length < minGroups) {
+    console.log(
+      `NO VERDICT — ${deltas.length} fully graded contested groups, floor ` +
+        `${minGroups}. Below the floor the sign of the delta is not ` +
+        `informative either way; this is not "within noise".`,
+    );
+    return;
+  }
+
+  const observed = mean(deltas);
+  const random = mulberry32(0x0e4c0117);
+  let atLeastAsExtreme = 0;
+  for (let iteration = 0; iteration < permutations; iteration += 1) {
+    let total = 0;
+    for (const members of gradedGroups) {
+      const picked = members[Math.floor(random() * members.length)];
+      total += picked.realizedR - mean(members.map((row) => row.realizedR));
+    }
+    if (total / gradedGroups.length >= observed) {
+      atLeastAsExtreme += 1;
+    }
+  }
+  const p = (1 + atLeastAsExtreme) / (permutations + 1);
+
+  console.log(
+    `paired delta ${observed >= 0 ? "+" : ""}${observed.toFixed(4)}R per ` +
+      `contested group over ${deltas.length} groups · p ${p.toFixed(4)} ` +
+      `(${permutations} permutations, null = uniform within-group selection)`,
+  );
+  console.log(
+    `  the estimand is paired per (bucket, group): the winner's realized R ` +
+      `minus its own group's mean. Not a two-sample difference — a pooled ` +
+      `uncollapsed mean weights each group by its size and the collapsed mean ` +
+      `weights each group once, so any size/expectancy correlation would move ` +
+      `that difference with no selection effect at all.`,
+  );
+  console.log(
+    `  under an uninformative score the winner's R is distributionally a ` +
+      `random member's, so the null expectation is ZERO and a positive delta ` +
+      `is evidence about the rule.`,
+  );
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  await main();
+}

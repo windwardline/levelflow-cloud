@@ -1476,7 +1476,22 @@ layer.
    geometry model's fresh-eyes round, which changes what should be
    measured and so must clear before the single re-sweep opens.)
 3. **R1c — the E4 instrument**: the collapse reader + its report,
-   doored and population-pinned like every other reader.
+   doored and population-pinned like every other reader. **SHIPPED
+   2026-08-23** as `scripts/e4-collapse.ts`. It replays the per-scan
+   collapse by importing `scanCollapse.ts`, the same module `index.ts`
+   calls, so there is no transcription to drift. It reads every named
+   shard as one population and refuses shards from different sweeps; it
+   requires `--bucket-minutes` with no default, because the corpus has no
+   notion of a scan and the bucket is a measurement term; it requires
+   `--variant` when the corpus carries more than one, because the grid's
+   variants are not live configurations; it holds data-absent rows out of
+   the graded population and prints every denominator; and it withholds a
+   verdict below `--min-groups` rather than reading a thin result as
+   reassurance. Its estimand is paired per (bucket, group) against a null
+   of uniform within-group selection. **It cannot produce a reading until
+   R3**: no corpus exists that its own door accepts, which is the point
+   of the door. Its suppression figure is a LOWER BOUND — the cross-scan
+   6-hour screen is not modelled, for the reasons above.
 
 Frontend is untouched in all three except R1a's two client touches
 (#362): `storedSetup.ts` prefers the row's stamped review window
