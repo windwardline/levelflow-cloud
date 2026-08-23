@@ -48,7 +48,7 @@ import {
   assertManifestedCorpusStreaming,
   type SweepEmitRow,
 } from "./sweepStats.ts";
-import { assertInDomain, describeNumericToken, soleFlagIndex } from "./flagReader.ts";
+import { assertInDomain, flagReader } from "./flagReader.ts";
 
 // The comparator's inputs plus what grading needs. Projected explicitly rather
 // than through vocabularyRow, whose closed key set exists for a different
@@ -72,37 +72,22 @@ type Group = {
   members: CollapseRow[];
 };
 
+// Every flag that owns the token after it, declared literally so the path
+// walker above cannot swallow a value as a shard name. The law is
+// bidirectional — each of these is read through a guarded accessor below.
+const VALUE_FLAGS = new Set([
+  "--bucket-minutes",
+  "--min-groups",
+  "--permutations",
+  "--variant",
+]);
+
 const MIN_GROUPS_DEFAULT = 30;
 const PERMUTATIONS_DEFAULT = 2_000;
 
 function fail(message: string): never {
   console.error(message);
   process.exit(1);
-}
-
-function numericFlag(
-  argv: readonly string[],
-  flag: string,
-  fallback: number | undefined,
-  domain: Parameters<typeof assertInDomain>[2],
-): number {
-  const index = soleFlagIndex(argv, flag);
-  if (index < 0) {
-    if (fallback === undefined) {
-      fail(
-        `${flag} is required and has no default — it is a measurement term, ` +
-          `and a default would put it in the code instead of in the report`,
-      );
-    }
-    return fallback;
-  }
-  const token = argv[index + 1];
-  const value = Number(token);
-  if (!Number.isFinite(value)) {
-    fail(`${flag} ${describeNumericToken(token)}`);
-  }
-  assertInDomain(flag, value, domain);
-  return value;
 }
 
 // A deterministic RNG so a rerun of the same corpus reproduces the same p.
@@ -187,16 +172,35 @@ async function main(): Promise<void> {
     );
   }
 
-  const bucketMinutes = numericFlag(argv, "--bucket-minutes", undefined, {
+  const { num, str } = flagReader(argv, VALUE_FLAGS);
+
+  // No default, deliberately. The corpus has no notion of a scan — decision
+  // instants are per-symbol bar indices over series with different spans, so
+  // correlated symbols rarely share a timestamp. The bucket is how wide a
+  // window counts as "the same scan", and a default would hide a measurement
+  // term inside the code instead of printing it in the report.
+  const bucketToken = str("--bucket-minutes");
+  if (bucketToken === undefined) {
+    fail(
+      "--bucket-minutes is required and has no default — it is a measurement " +
+        "term. The corpus has no notion of a scan, so the bucket is what " +
+        "decides which decisions counted as concurrent, and it belongs in the " +
+        "report rather than in this file.",
+    );
+  }
+  const bucketMinutes = Number(bucketToken);
+  if (!Number.isFinite(bucketMinutes)) {
+    fail(`--bucket-minutes must be a number and got ${JSON.stringify(bucketToken)}`);
+  }
+  assertInDomain("--bucket-minutes", bucketMinutes, {
     basis:
-      "the corpus has no notion of a scan — decision instants are per-symbol " +
-      "bar indices over series with different spans, so correlated symbols " +
-      "rarely share a timestamp. The bucket is how wide a window counts as " +
-      "'the same scan', and it is a measurement term the report must carry.",
+      "a bucket must span at least one minute; the width is stated in the " +
+      "report because it decides which decisions counted as concurrent",
     integer: true,
     min: 1,
   });
-  const minGroups = numericFlag(argv, "--min-groups", MIN_GROUPS_DEFAULT, {
+
+  const minGroups = num("--min-groups", MIN_GROUPS_DEFAULT, {
     basis:
       "below this many fully graded contested groups the delta's sign is not " +
       "informative in either direction, so the reader withholds a verdict " +
@@ -204,15 +208,14 @@ async function main(): Promise<void> {
     integer: true,
     min: 1,
   });
-  const permutations = numericFlag(argv, "--permutations", PERMUTATIONS_DEFAULT, {
+  const permutations = num("--permutations", PERMUTATIONS_DEFAULT, {
     basis:
       "the smallest attainable p is 1/(permutations+1), so 2,000 puts 0.05 " +
       "comfortably inside reach",
     integer: true,
     min: 100,
   });
-  const variantIndex = soleFlagIndex(argv, "--variant");
-  const requestedVariant = variantIndex < 0 ? undefined : argv[variantIndex + 1];
+  const requestedVariant = str("--variant");
 
   const rows: CollapseRow[] = [];
   const hashes: string[] = [];
