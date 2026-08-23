@@ -244,8 +244,14 @@ describe("trade analyzer category handling", () => {
       source.includes("function collapseRelatedMarketOpportunities"),
       true,
     );
+    // The comparator moved to scanCollapse.ts (R1c) so the offline E4 reader
+    // replays the live rule rather than a copy of it. What this file can still
+    // assert is that the scan calls the collapse and that the collapse is
+    // sourced from the shared module; the four tiers and the tie winner are
+    // pinned by EXECUTION in tests/scanCollapse.test.ts, which is what a
+    // source-string check never could do.
     assert.equal(
-      source.includes("function compareScanCandidates"),
+      source.includes(`from "./scanCollapse.ts"`),
       true,
     );
     assert.equal(

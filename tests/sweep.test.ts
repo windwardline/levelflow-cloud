@@ -15,9 +15,12 @@ import { treasuryVisibleAtMs } from "../supabase/functions/trade-analyzer/macroR
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 
 // summarizeSweepOutcomes only reads .outcome and .realizedR (sweep.ts:373-395),
-// but SweepOutcomeRecord carries 16 other fields describing the decision that
+// but SweepOutcomeRecord carries every other field describing the decision that
 // produced it. This fills them with inert placeholders so fixtures below can
 // stay focused on the two fields the function under test actually consumes.
+// Deliberately not a count: the record grows (executionScore joined it for E4),
+// and a number here would read as accurate while being wrong. The typechecker
+// is what keeps this fixture complete.
 function outcomeRecord(
   outcome: SweepOutcomeRecord["outcome"],
   realizedR: number,
@@ -28,6 +31,7 @@ function outcomeRecord(
     cotPercentile: null,
     cotStance: "neutral",
     exitAtMs: 0,
+    executionScore: 0,
     filledAtMs: null,
     legs: [],
     macroAdjustment: 0,

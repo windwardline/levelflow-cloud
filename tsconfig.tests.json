@@ -62,6 +62,7 @@
     "supabase/functions/trade-analyzer/pricePlan.ts",
     "supabase/functions/trade-analyzer/quotes.ts",
     "supabase/functions/trade-analyzer/replay.ts",
+    "supabase/functions/trade-analyzer/scanCollapse.ts",
     "supabase/functions/trade-analyzer/scanPersistence.ts",
     "supabase/functions/trade-analyzer/scanRanking.ts",
     "supabase/functions/trade-analyzer/scoring.ts",
