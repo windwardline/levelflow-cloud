@@ -10,6 +10,7 @@ import {
   newYorkWallClockToUtcMs,
 } from "../supabase/functions/trade-analyzer/bars.ts";
 import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
+import { TREASURY_FETCH_START_MS } from "../scripts/sweepManifest.ts";
 
 // R0's acceptance instrument, exercised against synthetic caches in every
 // poisoned shape the rebuild must refuse (#358 finding: the instrument
@@ -137,6 +138,23 @@ function store(dir: string, key: string, clock: string | undefined, items: unkno
   writeFileSync(join(dir, `${key}.rolling.json`), JSON.stringify(body));
 }
 
+// A curve the sweep would accept: reaches TREASURY_FETCH_START_MS, steps in
+// business-day-sized hops so no gap exceeds a week, and runs to today. The
+// one-row fixtures this replaced were 13 years stale and a 4,600-day hole —
+// they passed only because the gate checked presence and never coverage.
+function healthyCurve(): Array<{ dateMs: number }> {
+  const rows: Array<{ dateMs: number }> = [];
+  for (
+    let at = TREASURY_FETCH_START_MS;
+    at <= Date.now();
+    at += 5 * 86_400_000
+  ) {
+    rows.push({ dateMs: at });
+  }
+  rows.push({ dateMs: Date.now() });
+  return rows;
+}
+
 function healthyTrio(dir: string) {
   store(dir, "EURUSD-15min-7000", BAR_CLOCK, intraday(900_000, false));
   store(dir, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
@@ -153,7 +171,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     const dir = cacheDir();
     healthyTrio(dir);
     store(dir, "econ-calendar", CALENDAR_CLOCK, []);
-    store(dir, "treasury-rates", CALENDAR_CLOCK, [{ time: Date.UTC(2013, 0, 2) }]);
+    store(dir, "treasury-rates", CALENDAR_CLOCK, healthyCurve());
     const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     const lines = report.lines.join("\n");
     assert.doesNotMatch(
@@ -161,7 +179,10 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
       /treasury-rates: unknown store kind/,
       "the Treasury store must be recognised, not read as an unknown key",
     );
-    assert.match(lines, /treasury-rates: 1 curve rows/);
+    // The ok line now carries the coverage facts the gate actually checked —
+    // span and largest gap — not just a row count, because a row count is what
+    // certified a 25.4%-covered curve.
+    assert.match(lines, /treasury-rates: \d+ curve rows \d{4}-\d{2}-\d{2}\.\.\d{4}-\d{2}-\d{2}, largest gap \d+d/);
   });
 
   // "An empty store counts as absent" — this file's doctrine, which the first
@@ -191,6 +212,58 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     );
   });
 
+  // The coverage gates, mirroring the three refusals the SWEEP makes on this
+  // store. Before them, step 3 printed `ok treasury-rates: 853 curve rows` on
+  // a curve measured at 25.4% coverage with a 278-day hole — and the operator
+  // learned only at R3, after a ~14-hour rebuild was already spent.
+  it("condemns a curve whose head never reaches the requested start", () => {
+    const dir = cacheDir();
+    healthyTrio(dir);
+    calendarStore(dir);
+    // The live store's exact shape: nine months short at the head.
+    const late = healthyCurve().filter(
+      (row) => row.dateMs >= TREASURY_FETCH_START_MS + 275 * 86_400_000,
+    );
+    store(dir, "treasury-rates", CALENDAR_CLOCK, late);
+    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    assert.ok(
+      report.failures.some((line) => /the head is \d+ days short/.test(line)),
+      report.failures.join("\n") || "(no failures)",
+    );
+  });
+
+  it("condemns a curve with a week-plus interior hole", () => {
+    const dir = cacheDir();
+    healthyTrio(dir);
+    calendarStore(dir);
+    // Drop a year out of the middle — the 278-day hole the live store carried.
+    const cut = TREASURY_FETCH_START_MS + 900 * 86_400_000;
+    const holed = healthyCurve().filter(
+      (row) => row.dateMs < cut || row.dateMs > cut + 278 * 86_400_000,
+    );
+    store(dir, "treasury-rates", CALENDAR_CLOCK, holed);
+    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    assert.ok(
+      report.failures.some((line) => /largest interior gap is 2\d\d days/.test(line)),
+      report.failures.join("\n") || "(no failures)",
+    );
+  });
+
+  it("condemns a curve whose tail is stale", () => {
+    const dir = cacheDir();
+    healthyTrio(dir);
+    calendarStore(dir);
+    const stale = healthyCurve().filter(
+      (row) => row.dateMs < Date.now() - 60 * 86_400_000,
+    );
+    store(dir, "treasury-rates", CALENDAR_CLOCK, stale);
+    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    assert.ok(
+      report.failures.some((line) => /days stale/.test(line)),
+      report.failures.join("\n") || "(no failures)",
+    );
+  });
+
   it("still condemns a Treasury store stamped with the bar clock", () => {
     const dir = cacheDir();
     healthyTrio(dir);
@@ -208,7 +281,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
   it("does not let the Treasury store satisfy the calendar-presence gate", () => {
     const dir = cacheDir();
     healthyTrio(dir);
-    store(dir, "treasury-rates", CALENDAR_CLOCK, [{ time: Date.UTC(2013, 0, 2) }]);
+    store(dir, "treasury-rates", CALENDAR_CLOCK, healthyCurve());
     const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     // The gate's OWN text. `/calendar/i` also matches every condemnation line,
     // because CALENDAR_CLOCK is "fmp-calendar-utc-v1" — the assertion would
@@ -449,9 +522,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
   // separate from the calendar's, so the fixtures that model completeness must
   // write both — and the two single-gate tests below each write exactly one.
   const curveStore = (dir: string) =>
-    store(dir, "treasury-rates", CALENDAR_CLOCK, [
-      { dateMs: Date.UTC(2013, 0, 2), tenYear: 2.62, twoYear: 0.33 },
-    ]);
+    store(dir, "treasury-rates", CALENDAR_CLOCK, healthyCurve());
 
   it("passes a complete roster cache — the completeness gates demand, they do not invent (round 6)", () => {
     const dir = cacheDir();

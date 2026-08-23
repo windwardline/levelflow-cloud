@@ -321,6 +321,64 @@ describe("treasuryCurveFacts — the curve's own continuity record", () => {
   // constant and the re-probe remedy; deleting the store cannot clear
   // it) from an interior chunk (a genuine hole), and both branches
   // execute here rather than riding as source pins.
+  // The defect this guard did not have: a chunk that is TRUNCATED rather than
+  // empty. Measured on the store the R0 rebuild wrote 2026-08-23 — a 365-day
+  // chunk returned its newest ~62 rows and nothing older, fourteen times over,
+  // for 25.4% coverage. Every guard tested `chunkRows > 0` and passed it.
+  it("treasuryChunkRefusal catches a chunk capped newest-first, which is not empty", () => {
+    const year = 365 * day;
+    const from = TREASURY_FETCH_START_MS + 2 * year;
+    // The exact shape the live store had: a year-wide window whose oldest
+    // returned row sits nine months in.
+    const truncated = treasuryChunkRefusal({
+      chunkRows: 62,
+      earliestRowMs: from + 275 * day,
+      fromMs: from,
+      parserRefusals: 0,
+      windowToMs: from + year,
+    });
+    assert.ok(truncated, "a chunk that never reached its own start must refuse");
+    assert.match(truncated, /^treasuryChunkTruncated: /);
+    assert.match(truncated, /returned 62 rows but its oldest is/);
+    assert.match(truncated, /275 days after the window opened/);
+    assert.match(truncated, /Narrow the fetch chunk/);
+    // It must not be mistaken for either sibling: those have different remedies.
+    assert.doesNotMatch(truncated, /treasuryChunkHole/);
+    assert.doesNotMatch(truncated, /treasuryCoverageRefused/);
+  });
+
+  it("treasuryChunkRefusal stays silent on a chunk that does reach its own start", () => {
+    const from = TREASURY_FETCH_START_MS + 2 * 365 * day;
+    assert.equal(
+      treasuryChunkRefusal({
+        chunkRows: 43,
+        earliestRowMs: from + 3 * day,
+        fromMs: from,
+        parserRefusals: 0,
+        windowToMs: from + 60 * day,
+      }),
+      null,
+      "a 60-day chunk whose oldest row is three days in is healthy, not thin",
+    );
+  });
+
+  // At the requested start a later first row is the PROVIDER'S FLOOR, not
+  // truncation, and its remedy is to move the constant rather than narrow the
+  // chunk. Conflating them would send an operator at the wrong fix.
+  it("treasuryChunkRefusal does not call the provider's floor a truncation", () => {
+    assert.equal(
+      treasuryChunkRefusal({
+        chunkRows: 40,
+        earliestRowMs: TREASURY_FETCH_START_MS + 275 * day,
+        fromMs: TREASURY_FETCH_START_MS,
+        parserRefusals: 0,
+        windowToMs: TREASURY_FETCH_START_MS + 365 * day,
+      }),
+      null,
+      "a late first row at the requested start is coverage, not a cap",
+    );
+  });
+
   it("treasuryChunkRefusal names coverage at the requested start, a hole in the interior, and stays silent on healthy or sub-week chunks (#364 round 20, finding 1)", () => {
     const year = 365 * day;
     const interior = treasuryChunkRefusal({
@@ -452,10 +510,43 @@ describe("the driver writes the manifest beside the emit", () => {
     // distinguishable from "we refused what it served". The driver
     // refuses an empty or stale-tailed curve before simulating; and the
     // manifest carries the curve's facts for the door to assert.
+    const fetchBody = script.slice(fetchStart, fetchEnd);
     assert.match(
-      script.slice(fetchStart, fetchEnd),
-      /const refusal = treasuryChunkRefusal\(\{\s*\n\s*chunkRows,\s*\n\s*fromMs: from,\s*\n\s*parserRefusals: treasuryParserRefusals - parserRefusalsBefore,/,
-      "the fetch must run the shared zero-row chunk law on every chunk",
+      fetchBody,
+      /const refusal = treasuryChunkRefusal\(\{\s*\n\s*chunkRows,/,
+      "the fetch must run the shared chunk law on every chunk",
+    );
+    // The TRUNCATION input, pinned separately because the law cannot see a
+    // capped response without it — and a capped response is what pinned a
+    // 25.4%-covered curve into the store while every guard read green.
+    assert.match(
+      fetchBody,
+      /earliestRowMs:/,
+      "the fetch must hand the chunk's oldest row to the law, or a response " +
+        "capped newest-first passes as a healthy one",
+    );
+    assert.match(
+      fetchBody,
+      /parserRefusals: treasuryParserRefusals - parserRefusalsBefore,/,
+      "the law must be wired with the chunk's OWN parser-refusal count",
+    );
+    // The chunk must stay narrow enough that a response reaches its own start.
+    // 365 days is what served ~62 rows and lost three quarters of the curve.
+    const chunkDays = /const chunkMs = (\d+) \* 86_400_000;/.exec(fetchBody);
+    assert.ok(chunkDays, "the Treasury fetch must declare its chunk width");
+    // 60, not 90. 90 is the CLAMP ITSELF, and the code's comment reasons for
+    // margin below it — a ceiling at 90 permits exactly the value the comment
+    // says is unsafe to assume. There is also a blind band immediately above:
+    // at 92 days the reachback delta is ~2 days (under the 14-day truncation
+    // tolerance) and the per-chunk hole is ~2-6 days (under the 7-day store
+    // gap gate), so widths of roughly 90-97 are invisible to every guard in
+    // this file. The test defends the margin the comment argues for.
+    assert.ok(
+      Number(chunkDays![1]) <= 60,
+      `the Treasury chunk is ${chunkDays![1]} days — the endpoint serves ` +
+        `[to − 90 days, to] whatever \`from\` says, so a chunk at or near 90 ` +
+        `sits on the clamp with no margin, and 90-97 falls in a band no guard ` +
+        `here can see`,
     );
     assert.match(script, /Treasury curve is empty/);
     assert.match(script, /more than 7 days stale/);
@@ -505,11 +596,45 @@ describe("the driver writes the manifest beside the emit", () => {
     // survey: the top-up script's must-stay-red grep runs on the
     // nonzero exit while the roster keeps its warm, instead of dying
     // at zero of 97 symbols for conditions the bar stores don't have.
-    assert.match(
-      script,
-      /\/cacheStoreUnreadable\|cacheClockMismatch\|treasuryCoverageRefused\|treasuryChunkHole\/\s*\n?\s*\.test\(message\)/,
-      "every treasury integrity refusal must be matched by token under --warm-only",
-    );
+    // Derived from the tokens the refusals actually mint, rather than pinned
+    // as one literal alternation: `treasuryChunkTruncated` was added with the
+    // guard that catches a capped response, and a literal pin would have
+    // silently kept the new token OUT of the warm-only deferral — where it
+    // would have died at zero of 97 symbols instead of deferring past the bar
+    // survey like its three siblings.
+    const deferred =
+      /\/((?:cacheStoreUnreadable|cacheClockMismatch|treasury\w+)(?:\|(?:cacheStoreUnreadable|cacheClockMismatch|treasury\w+))*)\/\s*\n?\s*\.test\(message\)/
+        .exec(script);
+    assert.ok(deferred, "the warm-only deferral must match refusals by token");
+    const deferredTokens = new Set(deferred![1].split("|"));
+    for (
+      const token of [
+        "cacheStoreUnreadable",
+        "cacheClockMismatch",
+        "treasuryCoverageRefused",
+        "treasuryChunkHole",
+        "treasuryChunkTruncated",
+      ]
+    ) {
+      assert.ok(
+        deferredTokens.has(token),
+        `${token} is not in the warm-only deferral — every treasury ` +
+          `integrity refusal must defer past the bar survey, or a rebuild ` +
+          `dies at zero of 97 symbols for a condition the bar stores do not ` +
+          `have`,
+      );
+    }
+    // And every token the guard can mint must be in that set: derived from
+    // sweepManifest's own refusal strings, so a future token cannot be added
+    // to the guard and forgotten here.
+    const guardSource = readFileSync("scripts/sweepManifest.ts", "utf8");
+    for (const [, minted] of guardSource.matchAll(/`(treasury\w+): /g)) {
+      assert.ok(
+        deferredTokens.has(minted),
+        `${minted} is minted by treasuryChunkRefusal but is not in the ` +
+          `warm-only deferral`,
+      );
+    }
     assert.match(
       script,
       /deferredTreasuryRefusal = error as Error;/,
@@ -563,9 +688,13 @@ describe("the driver writes the manifest beside the emit", () => {
   // own exit-1-never-0 shape is pinned in tests/cacheClock.test.ts).
   it("the top-up script greps must-stay-red tokens before any stand-down", () => {
     const sh = readFileSync("scripts/ops/daily-cache-topup.sh", "utf8");
-    const redGuard = sh.indexOf(
-      "grep -qE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole'",
-    );
+    // Located by SHAPE, not by the literal alternation. The literal this
+    // replaced is the second copy of the same brittleness — adding a token to
+    // the guard broke this pin, which is better than the other direction but
+    // still pins prose. The token MEMBERSHIP is derived in
+    // tests/cacheClock.test.ts against the strings sweepManifest actually
+    // mints; this test holds only the ORDER.
+    const redGuard = sh.search(/grep -qE '(?:[A-Za-z]+)(?:\|[A-Za-z]+)*' <<</);
     const quotaStandDown = sh.indexOf("providerQuotaExhausted");
     const clockStandDown = sh.indexOf("grep -q 'cacheClockMismatch'");
     assert.ok(redGuard >= 0, "the must-stay-red guard must exist");

@@ -271,7 +271,7 @@ async function main() {
       // dead; the survey spends nothing after its loop.) Only genuine
       // transport failures reach the warn-and-continue below.
       if (
-        /cacheStoreUnreadable|cacheClockMismatch|treasuryCoverageRefused|treasuryChunkHole/
+        /cacheStoreUnreadable|cacheClockMismatch|treasuryCoverageRefused|treasuryChunkHole|treasuryChunkTruncated/
           .test(message)
       ) {
         deferredTreasuryRefusal = error as Error;
@@ -1003,9 +1003,28 @@ async function fetchTreasuryRates(
   startMs: number,
 ): Promise<DatedTreasuryRow[]> {
   const rows: DatedTreasuryRow[] = [];
-  // ~250 rows per year-sized chunk; the rolling store's merge dedupes the
-  // inclusive chunk-boundary dates by dateMs.
-  const chunkMs = 365 * 86_400_000;
+  // 60 days, NOT 365, and the mechanism is DETERMINED rather than guessed:
+  // `/treasury-rates` serves exactly [to − 90 days, to] whatever `from` says.
+  // A 365-day chunk therefore discarded 275 of every 365 days server-side.
+  //
+  // Measured 2026-08-23 on the store the R0 rebuild wrote, and the arithmetic
+  // is what settles it: fourteen contiguous blocks, one per chunk, and for
+  // ALL FOURTEEN the block's first row is the first business day at or after
+  // that chunk's own `to` minus 90 days — including the final chunk, whose
+  // `to` is clamped to now. 853 rows where ~3,361 business days exist: 25.4%,
+  // with gaps of 275-278 days between blocks. A row cap would not align to
+  // the window boundary fourteen times.
+  //
+  // So this is a WINDOW clamp, not a row cap, and no probe was needed to know
+  // it. 60 days sits under the 90-day clamp with margin for it being ≤90
+  // rather than exactly 90. The same file's economic-calendar fetch chunks at
+  // 90 days and its store IS complete (42,665 rows from 2013-01-02, one gap
+  // over 14 days) — the contrast that first identified chunk width as the
+  // lever.
+  //
+  // The rolling store's merge dedupes the inclusive chunk-boundary dates by
+  // dateMs, so the narrower window costs requests and not correctness.
+  const chunkMs = 60 * 86_400_000;
   for (let from = startMs; from < Date.now(); from += chunkMs) {
     const endpoint = new URL(`${FMP_API_BASE_URL}/treasury-rates`);
     endpoint.searchParams.set("from", isoDate(new Date(from)));
@@ -1059,6 +1078,17 @@ async function fetchTreasuryRates(
     // "we refused what it served".
     const refusal = treasuryChunkRefusal({
       chunkRows,
+      // The oldest row this chunk actually returned. Under the 90-day window
+      // clamp a too-wide chunk reaches back nowhere near its own `from`,
+      // which is the signature the 365-day chunk left in the store and which
+      // a row COUNT cannot see — holidays and the provider's floor make any
+      // count threshold guesswork, while "it did not reach back to what we
+      // asked for" is exact and needs no tuning.
+      earliestRowMs: rows.slice(rows.length - chunkRows).reduce(
+        (oldest: number | null, row) =>
+          oldest === null || row.dateMs < oldest ? row.dateMs : oldest,
+        null as number | null,
+      ),
       fromMs: from,
       parserRefusals: treasuryParserRefusals - parserRefusalsBefore,
       windowToMs: Math.min(from + chunkMs, Date.now()),
