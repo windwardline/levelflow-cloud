@@ -319,9 +319,27 @@ describe("every corpus reader refuses a run that names no corpus", () => {
         // NOTHING: the law that a run examining nothing must not report
         // success, broken by the test written to enforce it. It went
         // green locally because this machine had tsx cached.
+        // …and the environment must be cleaned as deliberately as the cwd.
+        // `npm test` runs this file under `tsx --tsconfig tsconfig.tests.json`,
+        // and tsx exports that as TSX_TSCONFIG_PATH — RELATIVE. The child
+        // inherits it, resolves it against the temp cwd above, and dies inside
+        // tsx's own loader before the reader's first line runs.
+        //
+        // That crash is round 55's defect on a new axis, and it defeated every
+        // assertion below: it exits 1, its stderr is long and non-empty, it
+        // carries no npm/npx marker and no ENOENT — and the minified bundle it
+        // dumps contains the substring "emit", so it even satisfied "names the
+        // corpus". This whole scan asserted NOTHING about any reader, on this
+        // machine and in CI alike, while reporting green.
+        //
+        // The subjects need no tsconfig to run, so the variable is dropped
+        // rather than absolutized.
+        const env = { ...process.env };
+        delete env.TSX_TSCONFIG_PATH;
         execFileSync(TSX, [join(repoRoot, reader)], {
           cwd: elsewhere,
           encoding: "utf8",
+          env,
           stdio: "pipe",
           timeout: 120_000,
         });
@@ -354,7 +372,7 @@ describe("every corpus reader refuses a run that names no corpus", () => {
       // what happened in CI at e1fc975, silently, for a whole round.
       assert.doesNotMatch(
         stderr,
-        /npm error|npx canceled|command not found|Cannot find module 'tsx'/,
+        /npm error|npx canceled|command not found|Cannot find module 'tsx'|tsx\/dist\/register/,
         `${reader} was never executed — the failure is the test harness, ` +
           `not the script, and a harness failure must never be read as ` +
           `the subject refusing`,
