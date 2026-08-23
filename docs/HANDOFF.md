@@ -861,6 +861,7 @@ impossible later.
 | 3 | **Per-symbol decision arithmetic — `decisionPoints` and all ten rejection buckets — exists only in the printed stdout table** | A stdout table cannot be tied to a corpus identity, so R3's starvation reading would be unverifiable the same way 4c's was |
 | 4 | **Two of Phase 4's five axes cannot be expressed as grid overrides** (AXES-3 pivot depth, AXES-9 oscillatorBias) | R3's one re-sweep cannot produce the corpus R4 is defined to read |
 | 5 | **Amendment 36's re-decision needs a gross corpus AND a net corpus**, and `LEVELFLOW_MODELED_COST_SCALE` is a per-process env read, so `--grid` cannot produce both arms in one run | M5 as written needs two runs where the sequence budgets one. Decide the reconciliation before R3, not after |
+| 6 | **The Treasury curve is ~25% covered and nothing detects it** — see below. It is the worst of these, because the curve is not a reader's input; it is scored INTO `confidenceScore` | R3's corpus would carry a three-quarters-empty macro input, and `confidenceScore` is the acceptance gate's primary term and the collapse comparator's tier 1 |
 
 **R2b's exit criterion follows from this table and should be restated.** As
 written its deliverable is a review — "several lenses, each asked what the MODEL
@@ -868,6 +869,59 @@ is missing". An item whose exit criterion is "a review ran" produces findings; a
 item whose exit criterion is "the emit and manifest carry this named field list"
 produces a corpus R4, R5 and R6 can read. The real order is
 **R2 → R2b → R2's implementation pass → R3**.
+
+#### The Treasury curve is ~25% covered, and every guard passes it — measured 2026-08-23
+
+Found by the converge and re-derived here against the store the R0 rebuild
+wrote at 14:50 EDT. **The uniformity is the proof**, because no market data
+series looks like this:
+
+| year | rows | | year | rows |
+| --- | --- | --- | --- | --- |
+| 2013 | 60 | | 2020 | 61 |
+| 2014 | 60 | | 2021 | 61 |
+| 2015 | 60 | | 2022 | 61 |
+| 2016 | 61 | | 2023 | 62 |
+| 2017 | 62 | | 2024 | 61 |
+| 2018 | 60 | | 2025 | 61 |
+| 2019 | 61 | | 2026 | 62 |
+
+853 rows spanning 2013-10-03 → 2026-08-21, against roughly **3,361 business
+days — 25.4% coverage**, with 13 gaps over a week and a largest gap of **278
+days**. The head also sits nine months later than `TREASURY_FETCH_START_MS`
+(2013-01-01).
+
+**The mechanism, verified in code.** The fetch chunks at **365 days**
+(`replay-sweep.ts`, `const chunkMs = 365 * 86_400_000`) and the provider returns
+about 61 rows per chunk. The only chunk-level guard is
+`treasuryChunkRefusal`, whose predicate is `input.chunkRows > 0` — it refuses a
+**zero**-row chunk and passes a chunk truncated by three quarters. Sixty-one
+rows per year for fourteen consecutive years is a per-request row cap, and the
+guard was built for a different failure.
+
+**Why it outranks the rest of this register.** E6's macro reconstruction reads
+this curve and scores it into `confidenceScore`, which is the acceptance gate's
+primary term and tier 1 of the collapse comparator R1c just shipped. A
+three-quarters-empty curve does not fail loudly; it makes the visibility pointer
+stall on stale rows, which the interior-hole guard's own message describes as
+"scoring months-stale rows as fresh".
+
+**What is NOT yet established**, and must be before anything is changed: whether
+the cap is per-request rows or a provider-side window, and what chunk width
+returns complete coverage. That needs one cheap probe against the endpoint —
+which should NOT be run while the rebuild is drawing on the same allowance. The
+fix follows the probe, not the other way round; the runbook already carries that
+discipline for `TREASURY_FETCH_START_MS`.
+
+**Note for whoever reads the R0 run's exit.** Two guards exist that target
+exactly this store — a head guard (store must start within 7 days of the
+requested start) and an interior-hole guard (any week-plus gap touching the
+requested window). Both throw, and under `--warm-only` the treasury refusal is
+DEFERRED past the bar survey by design. So **this rebuild may well end RED on
+the Treasury store with all 97 bar stores warm.** That is the guards working,
+not the rebuild failing. The remedy is the documented cheap one — delete
+`treasury-rates.rolling.json` and re-run — but do not re-run into the same cap:
+fix the chunking first, or the refetch reproduces the same 25%.
 
 ### Two gaps that no ranked item owns — found 2026-08-23
 
