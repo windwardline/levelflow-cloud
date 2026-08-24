@@ -1283,6 +1283,13 @@ describe("the driver writes the manifest beside the emit", () => {
         ] as [string, string]
       ),
       [
+        "scripts/derive-baselines.ts",
+        "declares VALUE_FLAGS empty and takes no flag VALUE: its one flag, " +
+        "--new-era, is a presence check resolved through soleFlagIndex so a " +
+        "repeat is refused. Checked below, not asserted — the scan refuses " +
+        "this exemption if the file ever reads a token after a flag.",
+      ],
+      [
         "scripts/flagReader.ts",
         "this file IS the law's implementation — it declares no flags of " +
         "its own, and its six refusals (undeclared flag, missing or " +
@@ -1383,6 +1390,23 @@ describe("the driver writes the manifest beside the emit", () => {
       6,
       "flagReader's refusal count changed — update the exemption's " +
         "enumeration and add an executed test for the new refusal",
+    );
+    // The derive-baselines exemption's premise, checked rather than trusted:
+    // it must resolve its one flag through soleFlagIndex (so a repeat is
+    // refused) and must declare VALUE_FLAGS empty (so nothing there can read
+    // the token after a flag).
+    const deriveBaselines = readFileSync("scripts/derive-baselines.ts", "utf8");
+    assert.match(
+      deriveBaselines,
+      /soleFlagIndex\(process\.argv\.slice\(2\), "--new-era"\)/,
+      "the derive-baselines exemption claims a repeat is refused — it must " +
+        "resolve through soleFlagIndex to be true",
+    );
+    assert.match(
+      deriveBaselines,
+      /(export )?const VALUE_FLAGS = new Set<string>\(\[\]\)/,
+      "the exemption rests on it taking no flag VALUE — the empty " +
+        "declaration must still be there",
     );
     const byteBudget = readFileSync("scripts/fmpByteBudget.ts", "utf8");
     assert.match(

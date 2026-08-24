@@ -26,7 +26,7 @@ describe("the clock identifiers are deliberate constants", () => {
     // difference — for their whole history. The other 93 sources are
     // unchanged: their venue IS New York, and v3 assigns them the same
     // instants v2 did.
-    assert.equal(BAR_CLOCK, "venue-wall-utc-v3");
+    assert.equal(BAR_CLOCK, "venue-wall-utc-v4");
   });
 
   it("pins CALENDAR_CLOCK — the calendar's convention is not the bars'", () => {
@@ -39,7 +39,7 @@ describe("the clock identifiers are deliberate constants", () => {
       "supabase/functions/trade-analyzer/bars.ts",
       "utf8",
     );
-    assert.match(bars, /export const BAR_CLOCK = "venue-wall-utc-v3"/);
+    assert.match(bars, /export const BAR_CLOCK = "venue-wall-utc-v4"/);
     // The contract lives in the docblock the constant cannot drift from.
     assert.match(bars, /MUST bump this\s+\* string/);
   });
