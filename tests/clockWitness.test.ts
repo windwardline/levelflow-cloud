@@ -283,6 +283,54 @@ describe("spring-transition witness — the 24/7 condemning witness, per year", 
       "a sparse early era must not be condemned as a clock defect",
     );
     assert.notEqual(witness.verdict, "mixed");
+    // And prove the GUARD is what did it. Without this the case passes for any
+    // reason the verdict is not naive — including a series too young to sample
+    // three springs, which is a different fact with a different remedy.
+    assert.ok(
+      (witness.transition?.sparseSkipped ?? 0) > 0,
+      `the sparse-day guard must be what abstained; transition was ${
+        JSON.stringify(witness.transition)
+      }`,
+    );
+  });
+
+  // #358's band logic, re-covered. The outage-dent pins below now exercise the
+  // sparse guard instead of the band, because a half-missing Sunday is dropped
+  // before it can be judged — so the naive-shaped band needs its own dense
+  // case or it is pinned nowhere. A dent of exactly one bar in 96 is dense
+  // enough to be judged (0.99) and OUTSIDE the band, which is the distinction
+  // the band exists to draw.
+  it("judges a dense but shallow dent against the band rather than skipping it", () => {
+    const bars = [];
+    const springDays = new Set(
+      [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025].map((year) => {
+        const first = new Date(Date.UTC(year, 2, 1)).getUTCDay();
+        return Math.floor(Date.UTC(year, 2, 1 + ((7 - first) % 7) + 7) / DAY);
+      }),
+    );
+    let dropped = 0;
+    for (let index = 0; index < hours; index += 1) {
+      const time = start + index * HOUR;
+      // One hour missing on each spring Sunday: ratio 23/24, naive-shaped.
+      if (springDays.has(Math.floor(time / DAY)) && new Date(time).getUTCHours() === 7) {
+        dropped += 1;
+        continue;
+      }
+      bars.push(bar(time));
+    }
+    assert.ok(dropped >= 8, "the fixture must dent every sampled spring");
+    const witness = seriesClockWitness(bars, "intraday");
+    // Dense days, so nothing is skipped — the band is what judges this.
+    assert.equal(witness.transition?.sparseSkipped, undefined);
+    assert.ok(
+      (witness.transition?.sampled ?? 0) >= 3,
+      "dense dented Sundays must still be sampled, not skipped",
+    );
+    assert.equal(
+      witness.verdict,
+      "naive",
+      "a one-hour dent on every spring is the naive signature and must condemn",
+    );
   });
 
   // The safety property, and the reason the sparse guard does not weaken the

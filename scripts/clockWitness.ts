@@ -443,6 +443,11 @@ function transitionWitness(
     lowYears,
     ratioMedian: round3(ratioMedian),
     sampled: ratios.length,
+    // On EVERY verdict, not just the abstention. A `utc` reading over three
+    // springs where four were dropped is a different fact from a `utc` over
+    // three where none were — and an operator cannot tell them apart unless
+    // the count rides along.
+    ...(sparseSkipped > 0 && { sparseSkipped }),
   };
   if (naiveShaped(ratioMedian)) {
     return { transition, verdict: "naive" };
