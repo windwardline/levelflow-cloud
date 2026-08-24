@@ -857,6 +857,24 @@ export function assertFiveMinuteDensity(
     ? fiveMinuteFloorFor(entry.symbol)
     : undefined;
   if (floor !== undefined && fivePerDay < floor) {
+    // THIS GATE MAY NOT NAME A DIAGNOSIS IT CANNOT MAKE. Until 2026-08-24
+    // this refusal read "the series is clipped, holed, or not this symbol's
+    // feed" — three claims, none of which depth alone can establish, and one
+    // ("holed") which nothing in the codebase measures for a bar series at
+    // all: `largestGapMs` is read only for the Treasury curve, as the comment
+    // below already records. The wording was borrowed from the RATIO check,
+    // which genuinely can separate a clipped 5-minute series from a clipped
+    // 15-minute primary, and which a symbol refused here may well be passing.
+    //
+    // DYDXUSD is the worked case (2026-08-24). It read 249.4 rows/day against
+    // crypto's 260 and was refused as "clipped, holed, or not this symbol's
+    // feed" while its 5/15 ratio sat at 2.83, inside [2.7, 3.25] — the
+    // clip-and-hole instrument cleared it in the same run. It is the roster's
+    // thinnest crypto: 69.1 15-minute rows/day whole-span against 94.2-94.8
+    // for every classmate, both resolutions thinning and recovering together
+    // with volume, and two independent fetches ten days apart returning
+    // bit-identical daily counts for the trough. An operator sent to look for
+    // a clip would have found none, because there is none.
     throw new Error(
       `${emitPath}: ${entry.symbol} 5-minute series runs ${
         fivePerDay.toFixed(1)
@@ -866,8 +884,11 @@ export function assertFiveMinuteDensity(
           : `${five.spanDays} days`
       } — under the ${
         getAssetType(entry.symbol)
-      } floor of ${floor} (measured 2026-08-11..17); the series is clipped, ` +
-        `holed, or not this symbol's feed, and the corpus is refused`,
+      } floor of ${floor} (measured 2026-08-11..17). DEPTH IS ALL THIS ` +
+        `GATE MEASURES: an honestly thin market and a symmetrically ` +
+        `clipped one read alike here. The instrument that separates them ` +
+        `is the 5/15 ratio below — read it before concluding the feed is ` +
+        `broken. The corpus is refused`,
     );
   }
   // #364 rounds 9-10: the band is a SAME-WINDOW statistic — the probe

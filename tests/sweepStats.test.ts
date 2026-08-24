@@ -999,8 +999,10 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
   });
 
   it("refuses a structurally dense class under its absolute 5-minute floor", () => {
-    // Crypto measured 287.9-288.0 rows/day across the class; 200/day is a
-    // clipped, holed, or wrong-symbol series, whatever the ratio says.
+    // The floor judges DEPTH. It is the only instrument that sees a clip
+    // applied symmetrically to both resolutions, which no ratio can detect —
+    // that is why it stays. What it cannot do is say WHICH cause produced the
+    // depth it measured.
     assert.throws(
       () =>
         assertManifestedCorpus(writeCorpus({
@@ -1009,6 +1011,37 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
           symbol: "BTCUSD",
         })),
       /BTCUSD 5-minute series runs 200\.0 rows\/day.*under the crypto floor of 260/s,
+    );
+  });
+
+  it("does not let the depth floor assert a diagnosis it cannot make", () => {
+    // Until 2026-08-24 this refusal read "the series is clipped, holed, or
+    // not this symbol's feed". Depth establishes none of those, and nothing
+    // in the codebase measures holes in a bar series at all — largestGapMs is
+    // read only for the Treasury curve. The wording was borrowed from the
+    // ratio check, which a symbol refused here may be passing: DYDXUSD read
+    // 249.4 against crypto's 260 while its 5/15 ratio sat at 2.83, inside
+    // [2.7, 3.25]. An operator sent to find a clip would have found none.
+    let message = "";
+    try {
+      assertManifestedCorpus(writeCorpus({
+        conditions: goodConditions,
+        series: { "15min": facts(670, 10), "5min": facts(2_000, 10) },
+        symbol: "BTCUSD",
+      }));
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    assert.ok(message.includes("under the crypto floor of 260"), message);
+    assert.doesNotMatch(
+      message,
+      /the series is clipped, holed, or not this symbol's feed/,
+      "the depth floor must not name a cause it did not measure",
+    );
+    assert.match(
+      message,
+      /ratio/,
+      "it must instead point at the instrument that CAN separate the causes",
     );
   });
 
