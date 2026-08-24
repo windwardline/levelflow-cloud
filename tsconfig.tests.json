@@ -73,6 +73,7 @@
     "supabase/functions/trade-analyzer/symbols.ts",
     "supabase/functions/trade-analyzer/types.ts",
     "supabase/functions/trade-analyzer/venueCosts.ts",
+    "supabase/functions/trade-analyzer/venues.ts",
     "supabase/functions/news-calendar/eventRows.ts",
     "supabase/functions/market-data/upstreamStatus.ts"
   ]

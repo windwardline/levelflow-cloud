@@ -231,7 +231,7 @@ describe("the gate must be cheap — it runs inside the scan's 2s CPU budget", (
     });
     const started = performance.now();
     for (let symbolIndex = 0; symbolIndex < 11; symbolIndex += 1) {
-      normalizeFmpBars(payload, 3_000);
+      normalizeFmpBars(payload, 3_000, "America/New_York");
     }
     const elapsed = performance.now() - started;
     assert.ok(
