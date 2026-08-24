@@ -690,12 +690,86 @@ export function crossSeriesClock(
  * the banked S&P cash session reads 09:30–15:45 New York wall in July
  * AND January.
  */
-export const REFERENCE_SESSION_ANCHORS: Record<
-  string,
-  { wallHour: number; wallMinute: number }
-> = {
-  "^GSPC": { wallHour: 9, wallMinute: 30 },
+/**
+ * A venue's session open, expressed in the VENUE'S OWN timezone.
+ *
+ * It was New York wall time until 2026-08-24, which silently restricted the
+ * witness to venues whose DST tracks the United States. Tokyo keeps no DST at
+ * all, so 09:00 JST reads 20:00 in New York for the ~64% of the year the US
+ * sits on EDT and 19:00 for the rest; Sydney's DST runs the OPPOSITE way, so
+ * 10:00 AEST/AEDT takes four New-York readings across a year. The witness
+ * needs a modal share of 0.6 within a year to judge one, so Tokyo sat barely
+ * above the floor and Sydney could not resolve at all — and a non-resolving
+ * anchor reads INDETERMINATE, which verify-cache-clock fails. Expressed in the
+ * venue's own zone the open is constant by construction, for every venue.
+ */
+export type SessionAnchor = {
+  /** IANA zone the venue's open is fixed in. */
+  zone: string;
+  hour: number;
+  minute: number;
 };
+
+/**
+ * THE POPULATION IS DERIVED, NOT LISTED. Every market `getAssetType` classifies
+ * as `indices` must appear here; `tests/clockWitness.test.ts` walks
+ * ASSET_TYPE_BY_SYMBOL and fails if one is missing, so the table cannot fall
+ * behind the roster the way it did.
+ *
+ * It held "^GSPC" alone until 2026-08-24, guarding a failure that afflicted
+ * three of the six indices. FMP labels foreign index bars in LOCAL EXCHANGE
+ * time while the normalizer reads every label as New York wall, so each foreign
+ * index was displaced by exactly its local-to-New-York difference: ^GDAXI +6h,
+ * ^N225 +13h, ^AXJO +14h, against 0h for the three US indices. This witness
+ * convicts all three (4 displaced years each, 0 anchored) and always could
+ * have — nothing else can, because it is the only ABSOLUTE intraday
+ * instrument, and every relative one compares two series that shift together.
+ *
+ * Confirmed four independent ways before this table was written: the offsets
+ * equal each venue's local-to-NY difference exactly; ^N225's hourly histogram
+ * dips at the raw 12:00 label, the Tokyo lunch break; each index observes its
+ * OWN exchange holidays (^AXJO absent on Australia Day and ANZAC Day, present
+ * on US Independence Day; ^N225 absent on Golden Week); and this witness
+ * condemns them.
+ *
+ * Keys are PROVIDER symbols, because that is what the cache stores are keyed by.
+ */
+export const REFERENCE_SESSION_ANCHORS: Record<string, SessionAnchor> = {
+  // NYSE/Nasdaq cash open.
+  "^GSPC": { zone: "America/New_York", hour: 9, minute: 30 },
+  "^DJI": { zone: "America/New_York", hour: 9, minute: 30 },
+  "^NDX": { zone: "America/New_York", hour: 9, minute: 30 },
+  // XETRA continuous trading opens 09:00 Frankfurt.
+  "^GDAXI": { zone: "Europe/Berlin", hour: 9, minute: 0 },
+  // Tokyo's morning session opens 09:00; the 11:30-12:30 lunch break is
+  // visible in the bar histogram and is what identifies the feed as TSE's.
+  "^N225": { zone: "Asia/Tokyo", hour: 9, minute: 0 },
+  // ASX normal trading opens 10:00 Sydney after the opening auction.
+  "^AXJO": { zone: "Australia/Sydney", hour: 10, minute: 0 },
+};
+
+// Hoisted for the same production reason bars.ts states at
+// NEW_YORK_CLOCK_FORMAT: constructing an Intl.DateTimeFormat costs ~50us
+// against a few us to read one, and this runs per sampled day.
+const ZONE_FORMATS = new Map<string, Intl.DateTimeFormat>();
+
+function venueClockMinutes(utcMs: number, zone: string): number {
+  let format = ZONE_FORMATS.get(zone);
+  if (!format) {
+    format = new Intl.DateTimeFormat("en-US", {
+      hour: "2-digit",
+      hour12: false,
+      minute: "2-digit",
+      timeZone: zone,
+    });
+    ZONE_FORMATS.set(zone, format);
+  }
+  const parts = Object.fromEntries(
+    format.formatToParts(new Date(utcMs)).map((part) => [part.type, part.value]),
+  );
+  const hour = Number(parts.hour ?? "0");
+  return (hour === 24 ? 0 : hour) * 60 + Number(parts.minute ?? "0");
+}
 
 export type SessionAnchorWitness = {
   anchoredYears: number;
@@ -715,7 +789,7 @@ export type SessionAnchorWitness = {
  */
 export function sessionAnchorWitness(
   bars: Array<{ time: number }>,
-  anchor: { wallHour: number; wallMinute: number },
+  anchor: SessionAnchor,
 ): SessionAnchorWitness {
   const barsByDay = new Map<number, number[]>();
   for (const bar of bars) {
@@ -732,13 +806,12 @@ export function sessionAnchorWitness(
     }
     sampledDays += 1;
     const first = Math.min(...times);
-    const parts = newYorkClockParts(first);
     const year = new Date(first).getUTCFullYear();
     const list = wallMinutesByYear.get(year) ?? [];
-    list.push(parts.hour * 60 + parts.minute);
+    list.push(venueClockMinutes(first, anchor.zone));
     wallMinutesByYear.set(year, list);
   }
-  const anchorMinutes = anchor.wallHour * 60 + anchor.wallMinute;
+  const anchorMinutes = anchor.hour * 60 + anchor.minute;
   let anchoredYears = 0;
   let displacedYears = 0;
   for (const minutes of wallMinutesByYear.values()) {

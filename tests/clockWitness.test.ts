@@ -8,6 +8,8 @@ import {
   sessionAnchorWitness,
   storeKindForKey,
 } from "../scripts/clockWitness.ts";
+import { ASSET_TYPE_BY_SYMBOL } from "../supabase/functions/trade-analyzer/calibration.ts";
+import { resolveProviderSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
   newYorkClockParts,
   newYorkWallClockToUtcMs,
@@ -658,6 +660,110 @@ describe("cross-series registration — the audit's mixed-clock instrument, per 
       fiveMinute.slice(0, 288 * 5),
     );
     assert.equal(registration.verdict, "indeterminate");
+  });
+});
+
+describe("reference session anchor — the population is derived, not listed", () => {
+  // THE LAW THIS PINS. REFERENCE_SESSION_ANCHORS held "^GSPC" alone until
+  // 2026-08-24 while guarding a failure that afflicted three of the six
+  // indices — FMP labels foreign index bars in LOCAL EXCHANGE time and the
+  // normalizer read every label as New York wall, displacing ^GDAXI by 6h,
+  // ^N225 by 13h and ^AXJO by 14h. It is the ONLY absolute intraday
+  // instrument, so no relative check could ever have caught it: they compare
+  // two series that shift together.
+  //
+  // A hand-picked list is how something sits outside its own law. So the
+  // population is derived from the roster here, and a new index cannot be
+  // onboarded without an anchor.
+  it("gives every market classified as an index a session anchor", () => {
+    const indices = ASSET_TYPE_BY_SYMBOL.indices;
+    assert.ok(indices.length > 0, "the roster must classify some indices");
+    const missing = indices.filter((engineSymbol: string) => {
+      const provider = resolveProviderSymbols(engineSymbol)[0] ?? engineSymbol;
+      return REFERENCE_SESSION_ANCHORS[provider] === undefined;
+    });
+    assert.deepEqual(
+      missing,
+      [],
+      `every index needs a venue session anchor; missing: ${missing.join(", ")}`,
+    );
+  });
+
+  // The zone must be the VENUE'S, and nothing else in the suite pins that: a
+  // mutation swapping Tokyo's zone for New York's passed all 37 tests. A wrong
+  // zone silently flips a verdict — it would read a displaced store as anchored
+  // — so the venue each index belongs to is stated here, independently of the
+  // table it checks.
+  it("anchors each index at ITS OWN venue's open", () => {
+    const VENUES: Record<string, { zone: string; hour: number; minute: number }> = {
+      "^GSPC": { zone: "America/New_York", hour: 9, minute: 30 }, // NYSE
+      "^DJI": { zone: "America/New_York", hour: 9, minute: 30 }, // NYSE
+      "^NDX": { zone: "America/New_York", hour: 9, minute: 30 }, // Nasdaq
+      "^GDAXI": { zone: "Europe/Berlin", hour: 9, minute: 0 }, // XETRA
+      "^N225": { zone: "Asia/Tokyo", hour: 9, minute: 0 }, // Tokyo SE
+      "^AXJO": { zone: "Australia/Sydney", hour: 10, minute: 0 }, // ASX
+    };
+    assert.deepEqual(
+      REFERENCE_SESSION_ANCHORS,
+      VENUES,
+      "an index anchored at the wrong venue reads a displaced store as clean",
+    );
+  });
+
+  it("anchors every index in a real IANA zone, never a New York wall hour", () => {
+    // The zone is what makes the open constant for a venue whose DST does not
+    // track the United States. A regression to a fixed wall hour would make
+    // Sydney unresolvable and Tokyo marginal.
+    for (const [symbol, anchor] of Object.entries(REFERENCE_SESSION_ANCHORS)) {
+      assert.ok(anchor.zone.includes("/"), `${symbol}: zone must be IANA`);
+      assert.doesNotThrow(
+        () => new Intl.DateTimeFormat("en-US", { timeZone: anchor.zone }),
+        `${symbol}: ${anchor.zone} must be a resolvable zone`,
+      );
+      assert.ok(anchor.hour >= 0 && anchor.hour < 24, `${symbol}: hour`);
+      assert.ok(anchor.minute >= 0 && anchor.minute < 60, `${symbol}: minute`);
+    }
+  });
+
+  // Tokyo keeps no DST, so 09:00 JST is 00:00 UTC year-round while its NEW
+  // YORK reading moves between 19:00 and 20:00 with the US regime. Sydney's
+  // DST runs the opposite way again. This pair proves the venue-zone anchor
+  // resolves such a venue and that a displaced store still condemns.
+  const tokyoDays = (shiftHours: number) => {
+    const bars = [];
+    for (let index = 0; index < 320; index += 1) {
+      const base = Date.UTC(2025, 7, 4) + index * DAY;
+      const at = new Date(base);
+      if (at.getUTCDay() === 0 || at.getUTCDay() === 6) continue;
+      // 09:00-15:00 JST == 00:00-06:00 UTC, 15-minute bars.
+      for (let barIndex = 0; barIndex < 24; barIndex += 1) {
+        bars.push(bar(base + barIndex * 15 * 60_000 + shiftHours * HOUR));
+      }
+    }
+    return bars;
+  };
+
+  it("anchors a Tokyo-shaped store whose venue keeps no DST", () => {
+    const witness = sessionAnchorWitness(tokyoDays(0), {
+      zone: "Asia/Tokyo",
+      hour: 9,
+      minute: 0,
+    });
+    assert.equal(witness.verdict, "anchored");
+    assert.ok(witness.anchoredYears >= 2);
+    assert.equal(witness.displacedYears, 0);
+  });
+
+  it("condemns the same store carrying local labels read as New York wall", () => {
+    // The measured production defect: +13h for Tokyo, exactly JST-minus-ET.
+    const witness = sessionAnchorWitness(tokyoDays(13), {
+      zone: "Asia/Tokyo",
+      hour: 9,
+      minute: 0,
+    });
+    assert.equal(witness.verdict, "displaced");
+    assert.ok(witness.displacedYears > 0);
+    assert.equal(witness.anchoredYears, 0);
   });
 });
 
