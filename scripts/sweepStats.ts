@@ -714,7 +714,7 @@ function verifyManifest(emitPath: string): SweepManifest {
 //   classes and reopening the clipped-primary band exactly where
 //   --days max lives.
 const DENSITY_MIN_SPAN_DAYS = 5;
-const DENSITY_RATIO_PRIMARY_FLOOR = 60;
+export const DENSITY_RATIO_PRIMARY_FLOOR = 60;
 const DENSITY_RATIO_MIN = 2.7;
 const DENSITY_RATIO_MAX = 3.25;
 const FIVE_MIN_CLASS_FLOORS: Partial<

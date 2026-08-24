@@ -353,6 +353,135 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     assert.ok(audit.failures.some((line) => /sawtooth/.test(line)));
   });
 
+  // R0e as amended (2026-08-24). A market below the corpus door's slot-dense
+  // floor cannot be judged by the ratio: its parent-child arithmetic
+  // legitimately degenerates, since a 15-minute parent holding one print
+  // yields exactly one 5-minute child, so an honest thin market reads ~1.0
+  // against a band whose floor is 2.5. The door handles that by EXCLUDING
+  // such markets — it has an absolute class floor to fall back on. This
+  // auditor has none, so excluding them here would leave the nine thinnest
+  // markets in the roster judged by nothing at all.
+  //
+  // So they are judged constructively instead, with no constant: every parent
+  // must hold at least one child. This pair is the proof — the same sparse
+  // market passes when its parents are populated and fails when they are not,
+  // and the ratio never speaks for it either way.
+  const sparsePair = (emptyEveryNth: number) => {
+    const parents: B[] = [];
+    const children: B[] = [];
+    let index = 0;
+    for (const { close, open } of forexSessions()) {
+      for (let t = open; t < close; t += 900_000) {
+        // Thin to ~34 15-minute rows/day, below the slot-dense floor of 60.
+        if (index++ % 2 !== 0) continue;
+        const k = Math.floor((t - open) / 900_000);
+        parents.push(barAt(t, k));
+        const empty = emptyEveryNth > 0 && parents.length % emptyEveryNth === 0;
+        if (!empty) children.push(barAt(t, k));
+      }
+    }
+    return { children, parents };
+  };
+
+  it("judges a market too sparse for the ratio constructively, instead of dropping it", () => {
+    const dir = cacheDir();
+    const { children, parents } = sparsePair(0);
+    store(dir, "EURUSD-15min-7000", BAR_CLOCK, parents);
+    store(dir, "EURUSD-5min-7000", BAR_CLOCK, children);
+    store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
+    const audit = auditCacheClock({ cacheDir: dir });
+    // One child per parent is a ratio of 1.0 — far under the band's 2.5 floor.
+    // The band must not speak for this market at all.
+    assert.ok(
+      !audit.failures.some((line) => /sawtooth/.test(line)),
+      `an honestly sparse market must not be condemned: ${audit.failures.join("\n")}`,
+    );
+    assert.ok(
+      !audit.lines.some((line) => /EURUSD.*5min\/15min density/.test(line)),
+      "the ratio must not judge a market below the slot-dense floor",
+    );
+    // And it must be JUDGED, not silently skipped — the whole point of the
+    // amendment. Without this the test passes for a market nothing looked at.
+    assert.ok(
+      audit.lines.some((line) =>
+        /EURUSD.*parents holds a 5min child.*judged constructively/.test(line)
+      ),
+      `the sparse market must be judged constructively: ${audit.lines.join("\n")}`,
+    );
+  });
+
+  it("counts a child in ANY of the parent's three slots, not just the first", () => {
+    // The fixtures above place every child at its parent's own timestamp, so
+    // a coverage check looking at only the first two slots passes them. A real
+    // thin market prints wherever the trade fell. Here the ONLY child sits in
+    // the third slot, :10.
+    const dir = cacheDir();
+    const parents: B[] = [];
+    const children: B[] = [];
+    let index = 0;
+    for (const { close, open } of forexSessions()) {
+      for (let t = open; t < close; t += 900_000) {
+        if (index++ % 2 !== 0) continue;
+        const k = Math.floor((t - open) / 900_000);
+        parents.push(barAt(t, k));
+        children.push(barAt(t + 600_000, k));
+      }
+    }
+    store(dir, "EURUSD-15min-7000", BAR_CLOCK, parents);
+    store(dir, "EURUSD-5min-7000", BAR_CLOCK, children);
+    store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
+    const audit = auditCacheClock({ cacheDir: dir });
+    assert.ok(
+      !audit.failures.some((line) => /hold NO 5min child/.test(line)),
+      `a child in the :10 slot still covers its parent: ${audit.failures.join("\n")}`,
+    );
+  });
+
+  it("judges the RECENT window, so a thin early era does not condemn a healthy feed", () => {
+    // DYDXUSD's shape, which is why the window half of R0e is a real
+    // correction rather than a loosened threshold: whole-span it reads 2.17
+    // and is condemned; over the judged window it reads 2.83 and is clean.
+    // Here the 15-minute primary is complete throughout while the 5-minute
+    // series carries one child per parent in its early era and all three
+    // recently.
+    const dir = cacheDir();
+    const parents = intraday(900_000, false);
+    const lastTime = parents[parents.length - 1].time;
+    const recentFrom = lastTime - 95 * DAY;
+    const children = intraday(300_000, false).filter((bar, position) =>
+      bar.time >= recentFrom ? true : position % 3 === 0
+    );
+    store(dir, "EURUSD-15min-7000", BAR_CLOCK, parents);
+    store(dir, "EURUSD-5min-7000", BAR_CLOCK, children);
+    store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
+    const audit = auditCacheClock({ cacheDir: dir });
+    assert.ok(
+      !audit.failures.some((line) => /sawtooth/.test(line)),
+      `the thin early era must not condemn: ${audit.failures.join("\n")}`,
+    );
+    assert.ok(
+      audit.lines.some((line) => /EURUSD.*5min\/15min density 3\.00/.test(line)),
+      `the judged window must read ~3: ${audit.lines.join("\n")}`,
+    );
+  });
+
+  it("condemns the sawtooth on a sparse market through the empty parents", () => {
+    const dir = cacheDir();
+    // One parent in five holds no child at all. That is the 1b sawtooth's
+    // actual signature; honest sparseness thins a parent without emptying it.
+    const { children, parents } = sparsePair(5);
+    store(dir, "EURUSD-15min-7000", BAR_CLOCK, parents);
+    store(dir, "EURUSD-5min-7000", BAR_CLOCK, children);
+    store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
+    const audit = auditCacheClock({ cacheDir: dir });
+    assert.ok(
+      audit.failures.some((line) =>
+        /parents hold NO 5min child.*sawtooth/.test(line)
+      ),
+      `empty parents must condemn: ${audit.failures.join("\n")}`,
+    );
+  });
+
   it("reports a corrupt store as a RED line instead of crashing the listing", () => {
     const dir = cacheDir();
     healthyTrio(dir);
