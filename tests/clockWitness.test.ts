@@ -255,6 +255,108 @@ describe("spring-transition witness — the 24/7 condemning witness, per year", 
     assert.ok(witness.transition!.sampled >= 8);
   });
 
+  // A day too sparse to hold the signal must read as a GAP, not as clock
+  // evidence — the witness's own doctrine, extended from a dent in a day to a
+  // day that is all dent. DYDXUSD stopped the R0 rebuild at 81 of 97 symbols on
+  // 2026-08-24: a token listed 2021-09 whose early spring Sundays held 46, 61,
+  // 92, 43 and 96 bars of a 96-bar day, producing a median ratio of 0.968 that
+  // landed inside the naive band by coincidence and CONDEMNED a healthy store.
+  // Its cross-series registration is aligned at zero shift, 99.9% over 1,767
+  // days — the witness that CAN judge it says its clock is clean.
+  it("abstains on a series whose sampled days are too sparse to testify", () => {
+    // Dense recent history, trade-sparse early years: bars survive with a
+    // probability that climbs over time, deterministically.
+    const bars = [];
+    let seed = 12345;
+    const rand = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+    for (let index = 0; index < hours; index += 1) {
+      const at = start + index * HOUR;
+      const progress = index / hours;
+      if (progress > 0.75 || rand() < 0.35 + progress) {
+        bars.push(bar(at));
+      }
+    }
+    const witness = seriesClockWitness(bars, "intraday");
+    assert.notEqual(
+      witness.verdict,
+      "naive",
+      "a sparse early era must not be condemned as a clock defect",
+    );
+    assert.notEqual(witness.verdict, "mixed");
+    // And prove the GUARD is what did it. Without this the case passes for any
+    // reason the verdict is not naive — including a series too young to sample
+    // three springs, which is a different fact with a different remedy.
+    assert.ok(
+      (witness.transition?.sparseSkipped ?? 0) > 0,
+      `the sparse-day guard must be what abstained; transition was ${
+        JSON.stringify(witness.transition)
+      }`,
+    );
+  });
+
+  // #358's band logic, re-covered. The outage-dent pins below now exercise the
+  // sparse guard instead of the band, because a half-missing Sunday is dropped
+  // before it can be judged — so the naive-shaped band needs its own dense
+  // case or it is pinned nowhere. A dent of exactly one bar in 96 is dense
+  // enough to be judged (0.99) and OUTSIDE the band, which is the distinction
+  // the band exists to draw.
+  it("judges a dense but shallow dent against the band rather than skipping it", () => {
+    const bars = [];
+    const springDays = new Set(
+      [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025].map((year) => {
+        const first = new Date(Date.UTC(year, 2, 1)).getUTCDay();
+        return Math.floor(Date.UTC(year, 2, 1 + ((7 - first) % 7) + 7) / DAY);
+      }),
+    );
+    let dropped = 0;
+    for (let index = 0; index < hours; index += 1) {
+      const time = start + index * HOUR;
+      // One hour missing on each spring Sunday: ratio 23/24, naive-shaped.
+      if (springDays.has(Math.floor(time / DAY)) && new Date(time).getUTCHours() === 7) {
+        dropped += 1;
+        continue;
+      }
+      bars.push(bar(time));
+    }
+    assert.ok(dropped >= 8, "the fixture must dent every sampled spring");
+    const witness = seriesClockWitness(bars, "intraday");
+    // Dense days, so nothing is skipped — the band is what judges this.
+    assert.equal(witness.transition?.sparseSkipped, undefined);
+    assert.ok(
+      (witness.transition?.sampled ?? 0) >= 3,
+      "dense dented Sundays must still be sampled, not skipped",
+    );
+    assert.equal(
+      witness.verdict,
+      "naive",
+      "a one-hour dent on every spring is the naive signature and must condemn",
+    );
+  });
+
+  // The safety property, and the reason the sparse guard does not weaken the
+  // witness: a genuinely naive day KEEPS 23 of its 24 hours, so it clears the
+  // density floor comfortably and still condemns. If this ever fails, the guard
+  // has been set too high and the 2026-08-11 defect could pass.
+  it("still condemns a naive series after the sparse-day guard", () => {
+    const stamps = new Set<number>();
+    for (let index = 0; index < hours; index += 1) {
+      stamps.add(naiveStamp(start + index * HOUR));
+    }
+    const witness = seriesClockWitness(
+      [...stamps].sort((a, b) => a - b).map(bar),
+      "intraday",
+    );
+    assert.equal(
+      witness.verdict,
+      "naive",
+      "the sparse-day guard must never let a naive series through",
+    );
+    assert.ok(
+      (witness.transition!.sampled ?? 0) >= 3,
+      "a naive dense series must still contribute its sampled springs",
+    );
+  });
+
   it("condemns the naive transform by its missing spring hours", () => {
     const stamps = new Set<number>();
     for (let index = 0; index < hours; index += 1) {
