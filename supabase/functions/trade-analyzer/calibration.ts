@@ -87,7 +87,13 @@ export type CategoryCalibration = {
   volatilityTargetAtrMultiplier: number;
 };
 
-const ASSET_TYPE_BY_SYMBOL: Record<AssetType, string[]> = {
+/**
+ * The roster's classification, exported so laws about a CLASS can derive
+ * their population from it rather than repeating a hand-picked list —
+ * REFERENCE_SESSION_ANCHORS held one of six indices for exactly that reason
+ * (2026-08-24). Read-only by convention; nothing mutates it.
+ */
+export const ASSET_TYPE_BY_SYMBOL: Record<AssetType, string[]> = {
   // The six grains. LE/GF/HE are deliberately NOT here: livestock produced 55
   // filled setups across all three markets and all history — not one confidence
   // bucket carries enough test fills to judge — so a livestock class could only
