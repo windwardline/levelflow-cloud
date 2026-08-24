@@ -62,7 +62,7 @@ describe("seriesFacts — continuity as a recorded fact", () => {
 
   it("reads an empty or single-bar series without inventing ends", () => {
     assert.deepEqual(seriesFacts([], "intraday"), {
-      clock: { verdict: "indeterminate" },
+      clock: { verdict: "indeterminate", verdictFrom: "none" },
       count: 0,
       firstTime: null,
       largestGapMs: 0,
@@ -73,7 +73,7 @@ describe("seriesFacts — continuity as a recorded fact", () => {
     // helper reports the whole count at zero span and the density gate's
     // DENSITY_MIN_SPAN_DAYS check then falls back to the own-span rate.
     assert.deepEqual(seriesFacts([bar(5)], "intraday"), {
-      clock: { verdict: "indeterminate" },
+      clock: { verdict: "indeterminate", verdictFrom: "none" },
       count: 1,
       firstTime: 5,
       largestGapMs: 0,

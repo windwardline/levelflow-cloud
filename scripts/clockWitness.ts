@@ -132,6 +132,14 @@ export type SeriesClockWitness = {
     utcYears: number;
   };
   verdict: WitnessVerdict;
+  /**
+   * WHICH sub-witness produced `verdict`. Recorded because the two were
+   * collapsed into one field until 2026-08-24, and one of them was circular:
+   * a reader could not tell a constructive spring-transition verdict from a
+   * weekly-open verdict that merely restated the normalizer's own signature.
+   * "none" means nothing could speak — an honest abstention, not health.
+   */
+  verdictFrom: "daily" | "transition" | "none";
   /** Weekly-open evidence: modal UTC hour of the week's first bar, by DST regime. */
   weekly?: {
     edtHour: number | null;
@@ -176,7 +184,12 @@ function median(values: number[]): number {
  * stamp hours dilute both shares and resolve toward "indeterminate"
  * rather than toward either era.
  */
-function dailyWitness(times: number[]): SeriesClockWitness {
+// Returns everything but `verdictFrom`, which seriesClockWitness stamps —
+// so a sub-witness cannot claim to be the source of a verdict it did not
+// produce.
+function dailyWitness(
+  times: number[],
+): Omit<SeriesClockWitness, "verdictFrom"> {
   const sampled = times.length;
   if (sampled < 30) {
     return { verdict: "indeterminate" };
@@ -281,7 +294,9 @@ function modalHour(hours: number[]): ModalHour {
  * it; this witness never certifies a mixed store as clean on its own —
  * the cross-series and anchor witnesses carry condemnation.
  */
-function weeklyWitness(times: number[]): Pick<SeriesClockWitness, "verdict" | "weekly"> {
+function weeklyWitness(
+  times: number[],
+): Pick<SeriesClockWitness, "weekly"> {
   const edtHours: number[] = [];
   const estHours: number[] = [];
   for (let index = 1; index < times.length; index += 1) {
@@ -298,7 +313,7 @@ function weeklyWitness(times: number[]): Pick<SeriesClockWitness, "verdict" | "w
   }
   const sampled = edtHours.length + estHours.length;
   if (sampled < 8 || edtHours.length < 3 || estHours.length < 3) {
-    return { verdict: "indeterminate" };
+    return {};
   }
   const edt = modalHour(edtHours);
   const est = modalHour(estHours);
@@ -309,9 +324,27 @@ function weeklyWitness(times: number[]): Pick<SeriesClockWitness, "verdict" | "w
     estShare: round3(est.share),
     sampled,
   };
-  const provesUtc = edt.hour !== null && est.hour !== null &&
-    est.hour === (edt.hour + 1) % 24 && edt.share >= 0.6 && est.share >= 0.6;
-  return { verdict: provesUtc ? "utc" : "indeterminate", weekly };
+  // NO VERDICT. This block is EVIDENCE, and it was a verdict until
+  // 2026-08-24. The rule it applied — EST modal hour is exactly one after
+  // the EDT one — is a property the NORMALIZER IMPOSES, not one the data
+  // carries: every stamp goes through newYorkWallClockToUtcMs, so the New
+  // York DST signature appears whatever the provider's label meant. The
+  // witness therefore could not fail, and its "utc" was the store's own
+  // construction restated as evidence about the store.
+  //
+  // Reproduced against the transform (2026-08-24): a series opening at a
+  // fixed LOCAL hour and read as New York wall gives Tokyo 09:00 ->
+  // {edtHour 13, estHour 14}, Frankfurt 09:00 -> {13, 14}, Sydney 10:00 ->
+  // {14, 15} — and NYSE 09:30 -> {13, 14}. Tokyo's block is byte-identical
+  // to the NYSE block. In the live cache ^GSPC and ^N225 carry the same
+  // pair while their venue anchors read "anchored" and "displaced 13 hours
+  // out of register".
+  //
+  // It blessed 63 of 96 intraday stores as the SOLE source of their
+  // recorded verdict. The modal hours stay because they are a real
+  // observation worth reading; what is gone is the claim they prove
+  // anything.
+  return { weekly };
 }
 
 /**
@@ -490,21 +523,27 @@ export function seriesClockWitness(
 ): SeriesClockWitness {
   const times = bars.map((bar) => bar.time);
   if (role === "daily") {
-    return dailyWitness(times);
+    const daily = dailyWitness(times);
+    return {
+      ...daily,
+      verdictFrom: daily.verdict === "indeterminate" ? "none" : "daily",
+    };
   }
   const weekly = weeklyWitness(times);
   const transition = transitionWitness(times);
-  const verdicts = [weekly.verdict, transition.verdict];
-  const verdict = verdicts.includes("naive")
-    ? "naive"
-    : verdicts.includes("mixed")
-    ? "mixed"
-    : verdicts.includes("utc")
-    ? "utc"
-    : "indeterminate";
+  // ONE SUB-WITNESS SPEAKS, AND THE RECORD SAYS WHICH. Before 2026-08-24 the
+  // two verdicts were collapsed into one field, so no reader could tell a
+  // constructive "utc" from the weekly witness's circular one — and the
+  // weekly witness was the sole source for 63 of 96 intraday stores. With it
+  // demoted to evidence the transition witness is the only intraday voice
+  // here, and a store it cannot judge now says so instead of inheriting a
+  // blessing. The absolute instrument for those stores is the venue anchor
+  // (sessionAnchorWitness), which the sweep driver and the corpus door run.
+  const verdict = transition.verdict;
   return {
     ...(transition.transition && { transition: transition.transition }),
     verdict,
+    verdictFrom: verdict === "indeterminate" ? "none" : "transition",
     ...(weekly.weekly && { weekly: weekly.weekly }),
   };
 }

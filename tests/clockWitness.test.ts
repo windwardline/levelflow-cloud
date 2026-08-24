@@ -191,7 +191,16 @@ describe("weekly-open witness — proves utc, never condemns", () => {
     return bars;
   };
 
-  it("proves utc from the one-hour seasonal shift of a New York venue open", () => {
+  // THE WEEKLY BLOCK IS EVIDENCE AND NOT A VERDICT, and this pair is why.
+  // It proved "utc" from the EST modal hour sitting exactly one after the EDT
+  // one — a property the NORMALIZER IMPOSES. Every stamp passes through
+  // newYorkWallClockToUtcMs, so the New York DST signature appears whatever
+  // the provider's label meant, and the witness could not fail. It was the
+  // SOLE source of the recorded verdict for 63 of 96 intraday stores, and in
+  // the live cache ^GSPC and ^N225 carry byte-identical weekly blocks while
+  // their venue anchors read "anchored" and "displaced 13 hours out of
+  // register".
+  it("records the New York venue open's seasonal shift as evidence, not proof", () => {
     const witness = seriesClockWitness(
       weeks((sunday) => {
         const { day, month, year } = utcDate(sunday);
@@ -199,9 +208,41 @@ describe("weekly-open witness — proves utc, never condemns", () => {
       }),
       "intraday",
     );
-    assert.equal(witness.verdict, "utc");
+    // The observation is kept — the modal hours are a real reading.
     assert.equal(witness.weekly!.edtHour, 21);
     assert.equal(witness.weekly!.estHour, 22);
+    // But it blesses nothing, and the record says nothing spoke.
+    assert.equal(witness.verdict, "indeterminate");
+    assert.equal(witness.verdictFrom, "none");
+  });
+
+  it("gives a FOREIGN venue's local labels the same weekly block as a New York one", () => {
+    // The proof of circularity, run against the real transform. A series
+    // opening at a fixed Tokyo hour, its digits read as New York wall, is
+    // indistinguishable here from a genuine New York venue — so any verdict
+    // drawn from this block would be the store's construction restated.
+    const tokyo = seriesClockWitness(
+      weeks((sunday) => {
+        const { day, month, year } = utcDate(sunday);
+        // 17:00 in Tokyo, read as 17:00 New York.
+        return newYorkWallClockToUtcMs(year, month, day, 17, 0, 0);
+      }),
+      "intraday",
+    );
+    const newYork = seriesClockWitness(
+      weeks((sunday) => {
+        const { day, month, year } = utcDate(sunday);
+        return newYorkWallClockToUtcMs(year, month, day, 17, 0, 0);
+      }),
+      "intraday",
+    );
+    assert.deepEqual(
+      tokyo.weekly,
+      newYork.weekly,
+      "identical evidence from different venues is why this cannot be a verdict",
+    );
+    assert.equal(tokyo.verdict, "indeterminate");
+    assert.equal(newYork.verdict, "indeterminate");
   });
 
   it("does NOT read a no-DST venue's seasonal invariance as naive — the Nikkei pin", () => {
