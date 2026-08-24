@@ -106,6 +106,33 @@ export type SweepOutcomeRecord = {
   // feedback.resolutionIntervalMs): 300000 when the 5-minute series
   // resolved this row, 900000 when it degraded to 15-minute physics.
   resolutionIntervalMs: number;
+  // R2b's field list (2026-08-23), owner-authorised. The keystone is
+  // `latestClose`: before it the corpus contained NO PRICE LEVEL at all —
+  // `riskDistance` is a distance and `legs` are EMPTY on an unfilled row, so an
+  // unfilled setup recorded no price whatsoever. With the decision bar's close
+  // the whole plan reconstructs deterministically, which is why seven
+  // separately-proposed fields collapsed into these.
+  //
+  // `atr` is the volatility unit the entire geometry is scaled in — without it
+  // nothing is comparable across markets, and R4 grades all 97 individually.
+  // `dailyAtr` is the second stop lever the max() hid. `stopPivotDistance`
+  // separates a chosen pivot from one that lost to the cap. `grossRewardRisk`
+  // is payoff BEFORE cost; only the net figure was emitted, so the cost charge
+  // was unmeasurable. `volatilityPercentile` and `trendStrength` are the
+  // regime's own evidence, computed at every decision and discarded — they make
+  // the fixed-versus-conditional review-window question answerable from THIS
+  // corpus instead of a second sweep.
+  //
+  // Measured cost: 245 bytes/row, ~+0.09 GB on a single-cell sweep of the
+  // roster. R3 is the one re-simulate, so a field absent then is unrecoverable
+  // without a second full sweep — which is the whole reason these land now.
+  atr: number;
+  dailyAtr: number;
+  grossRewardRisk: number;
+  latestClose: number;
+  stopPivotDistance: number | null;
+  trendStrength: number;
+  volatilityPercentile: number;
   // The planned risk unit in PRICE terms — with the legs, every half of a
   // resolution reconstructs exactly (rewardRisk alone is a ratio).
   riskDistance: number;
@@ -706,6 +733,13 @@ export function simulateSymbol(input: {
         { noBarsInReviewWindow: true as const }),
       outcome: evaluation.outcome,
       resolutionIntervalMs,
+      atr: plan.atr,
+      dailyAtr: plan.dailyAtr,
+      grossRewardRisk: plan.grossRewardRisk,
+      latestClose: plan.latestClose,
+      stopPivotDistance: plan.stopPivotDistance,
+      trendStrength: regime.trendStrength,
+      volatilityPercentile: regime.volatilityPercentile,
       riskDistance: Math.abs(plan.entryPrice - plan.stopLoss),
       realizedR: realizedRFromLegs({
         legs: evaluation.legs,

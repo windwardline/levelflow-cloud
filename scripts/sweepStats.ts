@@ -799,8 +799,55 @@ export function assertFiveMinuteDensity(
   ) {
     return;
   }
-  const fivePerDay = five.count / five.spanDays;
-  const fifteenPerDay = fifteen.count / fifteen.spanDays;
+  // JUDGED ON THE RECENT WINDOW, not the whole span. The class floors are
+  // "probed margin under the measured week" — a seven-day recent sample — and
+  // applying them to a whole-span average is depth-blind: a series reaching
+  // back to 2013 falls under a floor calibrated on 2026 coverage because its
+  // early years are legitimately sparser, which is none of the three things
+  // this gate exists to catch (clipped, holed, or not this symbol's feed).
+  //
+  // Measured on the R0 rebuild's own stores, 2026-08-23: LTCUSD 216.6 rows/day
+  // whole-span against the crypto floor of 260, and 288.0/day over its last 90
+  // — the theoretical maximum for a 24/7 5-minute series. BTCUSD 235.9 ->
+  // 288.0. Both were forecast REFUSED at max depth by a gate measuring the
+  // wrong window, and amendment 31 says a matched market leaves the offering
+  // only on a calibration verdict, never on caution.
+  //
+  // WHAT THIS GATE DOES AND DOES NOT JUDGE, stated because the first version of
+  // this comment claimed a backstop that does not exist. It said holes "remain
+  // largestGapMs's job over the whole span" — but `largestGapMs` is read only
+  // for the TREASURY curve (the `curve.largestGapMs` check above). Nothing has
+  // ever read it for a bar series, so that sentence invented a guard.
+  //
+  // Judged: current feed health, which is what a clip, a hole in the live tail,
+  // or a wrong feed shows up in — and what the floors were actually calibrated
+  // against.
+  //
+  // NOT judged: the early era. And it cannot be, by a gap threshold — measured
+  // across the 79 five-minute stores the R0 rebuild had written by 2026-08-23,
+  // 25 of them carry a largest gap of 14 days or more, twelve exceed 30, and
+  // NZDUSD reaches 72. Those are healthy markets shipping today; the provider's
+  // deep history is simply gappier than its recent history. Any threshold low
+  // enough to catch a real early hole refuses a third of the roster, which is
+  // amendment 31's forbidden trade — caution removing matched markets.
+  //
+  // So the early era is STATED, not gated: `count` and `spanDays` remain on
+  // every SeriesFacts, so whole-span density is derivable per symbol and a
+  // reader conditioning on era quality has the numbers. That is the same
+  // standing the project gives every other measurable it will not act on — a
+  // measurable offset is stated, never hidden.
+  //
+  // Manifests predating the recent-window fact fall back to the own-span rate.
+  const fiveRecentSpan = five.recentSpanDays ?? 0;
+  const fifteenRecentSpan = fifteen.recentSpanDays ?? 0;
+  const fivePerDay = five.recentCount !== undefined &&
+      fiveRecentSpan >= DENSITY_MIN_SPAN_DAYS
+    ? five.recentCount / fiveRecentSpan
+    : five.count / five.spanDays;
+  const fifteenPerDay = fifteen.recentCount !== undefined &&
+      fifteenRecentSpan >= DENSITY_MIN_SPAN_DAYS
+    ? fifteen.recentCount / fifteenRecentSpan
+    : fifteen.count / fifteen.spanDays;
   // The roster is the class authority; an off-roster symbol (which only a
   // hand-built manifest can carry — the driver refuses them) gets no
   // class floor rather than inheriting getAssetType's forex fallback,
@@ -813,7 +860,11 @@ export function assertFiveMinuteDensity(
     throw new Error(
       `${emitPath}: ${entry.symbol} 5-minute series runs ${
         fivePerDay.toFixed(1)
-      } rows/day over ${five.spanDays} days — under the ${
+      } rows/day over ${
+        five.recentCount !== undefined && fiveRecentSpan >= DENSITY_MIN_SPAN_DAYS
+          ? `its last ${fiveRecentSpan} days`
+          : `${five.spanDays} days`
+      } — under the ${
         getAssetType(entry.symbol)
       } floor of ${floor} (measured 2026-08-11..17); the series is clipped, ` +
         `holed, or not this symbol's feed, and the corpus is refused`,
@@ -859,18 +910,43 @@ export function assertFiveMinuteDensity(
     // out of band; only a SYMMETRIC clip of both stays invisible,
     // which no ratio can see and the absolute floors carry where they
     // exist.
-    const slotDense = shared.fifteenCount > 0 &&
-      Math.max(shared.fifteenCount, shared.fiveCount / 3) / shared.spanDays >=
-        DENSITY_RATIO_PRIMARY_FLOOR;
-    if (shared.spanDays >= DENSITY_MIN_SPAN_DAYS && slotDense) {
-      const ratio = shared.fiveCount / shared.fifteenCount;
+
+    // Same correction, same reason. PAUSD measured 2.678 over its 1,057-day
+    // shared window — below a band opening at 2.70 — and 2.916 over its last
+    // 90. Era-density differences move the ratio too, which is the very
+    // failure the intersection window was introduced to kill; the intersection
+    // fixed WHICH bars are compared and left WHEN unbounded.
+    const recentShared = shared.recentFiveCount !== undefined &&
+        shared.recentFifteenCount !== undefined &&
+        (shared.recentSpanDays ?? 0) >= DENSITY_MIN_SPAN_DAYS &&
+        shared.recentFifteenCount > 0
+      ? {
+        fifteenCount: shared.recentFifteenCount,
+        fiveCount: shared.recentFiveCount,
+        spanDays: shared.recentSpanDays!,
+      }
+      : shared;
+    // The population filter judges the SAME window the ratio does. It was
+    // whole-span, which made it depth-blind in the opposite direction to the
+    // floor: a deep series' low whole-span rate drops it BELOW this floor, so
+    // it leaves the population and the ratio never judges it at all. That is
+    // false silence rather than false refusal — LTCUSD and BTCUSD tripped the
+    // absolute floor while the ratio stayed quiet on them, and PAUSD (a
+    // 1,057-day series, high enough whole-span rate to stay in) tripped the
+    // ratio. Judging both on the recent window makes the deep markets visible
+    // to the gate rather than exempt from it.
+    const slotDense = recentShared.fifteenCount > 0 &&
+      Math.max(recentShared.fifteenCount, recentShared.fiveCount / 3) /
+            recentShared.spanDays >= DENSITY_RATIO_PRIMARY_FLOOR;
+    if (recentShared.spanDays >= DENSITY_MIN_SPAN_DAYS && slotDense) {
+      const ratio = recentShared.fiveCount / recentShared.fifteenCount;
       if (ratio < DENSITY_RATIO_MIN || ratio > DENSITY_RATIO_MAX) {
         throw new Error(
           `${emitPath}: ${entry.symbol} 5min/15min density ${
             ratio.toFixed(2)
-          } (${(shared.fiveCount / shared.spanDays).toFixed(1)}/${
-            (shared.fifteenCount / shared.spanDays).toFixed(1)
-          } rows/day over the ${shared.spanDays}d shared window) ` +
+          } (${(recentShared.fiveCount / recentShared.spanDays).toFixed(1)}/${
+            (recentShared.fifteenCount / recentShared.spanDays).toFixed(1)
+          } rows/day over the ${recentShared.spanDays}d judged window) ` +
             `outside [${DENSITY_RATIO_MIN}, ${DENSITY_RATIO_MAX}] — above ` +
             `means a clipped 15-minute primary (the verify-cache-clock ` +
             `blind band), below means a clipped or holed 5-minute series; ` +

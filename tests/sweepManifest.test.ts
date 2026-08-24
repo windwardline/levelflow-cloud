@@ -69,12 +69,17 @@ describe("seriesFacts — continuity as a recorded fact", () => {
       lastTime: null,
       spanDays: 0,
     });
+    // A single bar has no span, so its recent window has none either — the
+    // helper reports the whole count at zero span and the density gate's
+    // DENSITY_MIN_SPAN_DAYS check then falls back to the own-span rate.
     assert.deepEqual(seriesFacts([bar(5)], "intraday"), {
       clock: { verdict: "indeterminate" },
       count: 1,
       firstTime: 5,
       largestGapMs: 0,
       lastTime: 5,
+      recentCount: 1,
+      recentSpanDays: 0,
       spanDays: 0,
     });
   });
@@ -97,9 +102,17 @@ describe("crossSeriesDensityFacts — the ratio's shared window (#364 round 10)"
       [bar(10 * DAY), bar(12 * DAY), bar(15 * DAY), bar(20 * DAY)],
       [bar(0), bar(5 * DAY), bar(10 * DAY), bar(14 * DAY), bar(20 * DAY)],
     );
+    // The recent window is the last DENSITY_RECENT_WINDOW_DAYS of the shared
+    // window; this fixture's whole shared window is 10 days, well inside it,
+    // so the recent counts equal the shared ones and the gate judges the same
+    // rows either way. That equality is the point: the depth correction only
+    // bites on series deep enough for their eras to differ.
     assert.deepEqual(facts, {
       fifteenCount: 3,
       fiveCount: 4,
+      recentFifteenCount: 3,
+      recentFiveCount: 4,
+      recentSpanDays: 10,
       spanDays: 10,
     });
   });
