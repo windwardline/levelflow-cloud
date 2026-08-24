@@ -293,6 +293,62 @@ describe("price plan integration", () => {
     assert.equal(plan.takeProfit, baseline.takeProfit);
   });
 
+  // R2b's keystone, made checkable rather than asserted. The claim that
+  // justified collapsing twelve proposed emit fields into five is that
+  // `latestClose` reconstructs the plan. If it does not, the corpus is short
+  // seven fields and R3 is the last chance to add them — so this proves it on
+  // the plan's own output rather than on reasoning about the code.
+  it("exposes enough to RECONSTRUCT the entry — the keystone claim, executed", () => {
+    const calibration = getCategoryCalibration("EURUSD");
+    for (const side of ["buy", "sell"] as const) {
+      const plan = buildPricePlan(
+        side,
+        "EURUSD",
+        syntheticMarket(),
+        regime,
+        calibration,
+      );
+      assert.ok(plan, `${side} plan must build`);
+      // Rebuild the entry from ONLY what a corpus row now carries:
+      // latestClose, atr, and the emitted entryProvenance.
+      const offset = plan.atr *
+        (plan.entryProvenance === "trend_offset"
+          ? calibration.entryOffsetTrend
+          : calibration.entryOffsetDefault);
+      const reconstructed = side === "buy"
+        ? plan.latestClose - offset
+        : plan.latestClose + offset;
+      assert.equal(
+        Number(reconstructed.toFixed(5)),
+        Number(plan.entryPrice.toFixed(5)),
+        `${side}: entry must reconstruct from latestClose, atr and entryProvenance`,
+      );
+    }
+  });
+
+  it("exposes the second stop lever and the pivot distance the max() hid", () => {
+    const plan = buildPricePlan(
+      "buy",
+      "EURUSD",
+      syntheticMarket(),
+      regime,
+      getCategoryCalibration("EURUSD"),
+    );
+    assert.ok(plan);
+    // dailyAtr is the other half of stopBuffer = max(atr x m1, dailyAtr x m2).
+    // Without it, which lever bound is unrecoverable — the same defect
+    // stopProvenance was created to end, one choice point over.
+    assert.ok(Number.isFinite(plan.dailyAtr), "dailyAtr must be exposed");
+    assert.ok(plan.dailyAtr > 0, "the fixture's daily series must yield an ATR");
+    // stopPivotDistance separates "a pivot was chosen" from "a pivot existed
+    // and lost to the cap" — null only when no pivot existed at all.
+    assert.ok(
+      plan.stopPivotDistance === null || plan.stopPivotDistance > 0,
+      "stopPivotDistance is a distance or null, never zero or negative",
+    );
+    assert.equal(plan.latestClose, syntheticMarket().primary.at(-1)!.close);
+  });
+
   it("refuses a limit the live market has already crossed — admission, not physics (#362 round 4, finding 1)", () => {
     const baseline = buildPricePlan(
       "buy",

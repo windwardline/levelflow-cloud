@@ -41,6 +41,27 @@ export type EntryProvenance = "trend_offset" | "default_offset";
 
 export type PricePlan = {
   atr: number;
+  // R2b's field list (2026-08-23). All three are ALREADY computed here and were
+  // simply not exposed, and all three are additive — nothing reads them to make
+  // a decision, so live behaviour is unchanged and ANALYZER_VERSION does not
+  // move. They exist because the corpus carried no price level at all: emit
+  // `latestClose` and the whole plan reconstructs (entry, both stops, the
+  // ladder, every tick snap, and spread/slippage/commission, which are pure
+  // functions of symbol, latestClose, atr and tickSize over tables the
+  // manifest's analyzerVersion pins). Five fields doing the work of twelve, on
+  // a corpus where per-row width is the cost.
+  //
+  // `dailyAtr` is the second stop lever — stopBuffer is the MAX of two
+  // calibration levers and nothing recorded which one bound, which is the
+  // defect stopProvenance itself was created to end, one choice point over.
+  //
+  // `stopPivotDistance` separates "a pivot was chosen" from "a pivot existed
+  // and lost to the cap" — on 26 of the 97 markets the cap binds on every
+  // setup by arithmetic, so the provenance alone cannot say whether structure
+  // was there.
+  dailyAtr: number;
+  latestClose: number;
+  stopPivotDistance: number | null;
   contractSpec: FuturesContractSpec | null;
   entryPrice: number;
   executionQuality: ExecutionQuality;
@@ -344,7 +365,12 @@ export function buildPricePlan(
   return {
     atr,
     contractSpec: futuresTickPlan?.contractSpec ?? null,
+    dailyAtr,
     entryPrice,
+    latestClose: currentClose,
+    stopPivotDistance: nearestStopPivot === null
+      ? null
+      : Math.abs(nearestStopPivot - entryPrice),
     executionQuality,
     expectedWindowMove: ladder.expectedWindowMove,
     futuresTickAdjustments: futuresTickPlan?.adjustments ?? [],
