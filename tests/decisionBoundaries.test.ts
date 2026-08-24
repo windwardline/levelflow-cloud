@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 
 // THE BOUNDARY CROSS-PRODUCT (C1/P3).
@@ -130,6 +131,56 @@ const BOUNDARIES: Boundary[] = [
     },
     zone: "ET",
   },
+  // --- replay.ts, the weekly expiry clamp. MISSED BY THIS TABLE'S FIRST
+  //     VERSION, which named three files someone remembered. 16:59 ET is off
+  //     the grid and it gates when a setup's review window is clamped to the
+  //     week's close.
+  {
+    classes: ["futures", "indices", "energies", "metals"],
+    minutes: 17 * 60,
+    name: "weekly close, futures-style, 17:00 ET",
+    source: { file: "replay.ts", literal: "const closeHour = usesFuturesStyleClose ? 17 : 16;" },
+    zone: "ET",
+  },
+  {
+    classes: ["forex", "crypto", "agriculture", "livestock"],
+    minutes: 16 * 60 + 59,
+    name: "weekly close, cash-style, 16:59 ET",
+    source: { file: "replay.ts", literal: "const closeMinute = usesFuturesStyleClose ? 0 : 59;" },
+    zone: "ET",
+  },
+  // --- venues.ts, the venue session opens. ALSO MISSED. Each is on its OWN
+  //     local grid, but the four zones observe DST independently — Tokyo not
+  //     at all, Sydney in reverse — so their UTC placement moves relative to
+  //     one another through the year in ways no single-zone reasoning covers.
+  {
+    classes: ["indices"],
+    minutes: 9 * 60 + 30,
+    name: "NYSE/Nasdaq open, 09:30 America/New_York",
+    source: { file: "venues.ts", literal: 'zone: "America/New_York", open: { hour: 9, minute: 30 }' },
+    zone: "ET",
+  },
+  {
+    classes: ["indices"],
+    minutes: 9 * 60,
+    name: "XETRA open, 09:00 Europe/Berlin",
+    source: { file: "venues.ts", literal: 'zone: "Europe/Berlin", open: { hour: 9, minute: 0 }' },
+    zone: "UTC",
+  },
+  {
+    classes: ["indices"],
+    minutes: 9 * 60,
+    name: "Tokyo open, 09:00 Asia/Tokyo (no DST)",
+    source: { file: "venues.ts", literal: 'zone: "Asia/Tokyo", open: { hour: 9, minute: 0 }' },
+    zone: "UTC",
+  },
+  {
+    classes: ["indices"],
+    minutes: 10 * 60,
+    name: "ASX open, 10:00 Australia/Sydney (reverse DST)",
+    source: { file: "venues.ts", literal: 'zone: "Australia/Sydney", open: { hour: 10, minute: 0 }' },
+    zone: "UTC",
+  },
   // --- macroRates.ts ---
   {
     classes: ["*"],
@@ -159,6 +210,64 @@ describe("decision-instant boundary cross-product (C1/P3)", () => {
           `from the code, so re-derive it rather than editing this string`,
       );
     }
+  });
+
+  // THE POPULATION DERIVES ITSELF NOW. The first version of this table named
+  // its population as "sessions.ts, dailyCompletion.ts and macroRates.ts" —
+  // three files someone remembered. It missed replay.ts:704-705 (16:59 ET, off
+  // grid, gating the weekly expiry clamp) and venues.ts (six venue opens
+  // across four independently-DST'd zones). A cross-product enumerating three
+  // of five files is precisely the defect the cross-product exists to catch,
+  // and the converge that reviewed it said so.
+  //
+  // So the file set is derived from the code: every analyzer file that
+  // converts a wall clock to an instant must be represented here.
+  it("covers every analyzer file that converts a wall clock to an instant", () => {
+    const analyzerDir = "supabase/functions/trade-analyzer";
+    const converting = readdirSync(analyzerDir)
+      .filter((name) => name.endsWith(".ts"))
+      .filter((name) => {
+        const source = readFileSync(join(analyzerDir, name), "utf8");
+        // The call, not the declaration — bars.ts defines both helpers.
+        return /(?<!function )\b(newYork)?[wW]allClockToUtcMs\(/.test(
+          source.replace(/export function \w*[wW]allClockToUtcMs\(/g, ""),
+        );
+      })
+      .sort();
+    const covered = [...new Set(BOUNDARIES.map((b) => b.source.file))].sort();
+    // Two exemptions, each with a premise this test VERIFIES rather than
+    // trusts — an exemption taken on its own word is how a curated list gets
+    // in through the back door.
+    //
+    //   bars.ts   — declares the converters; converting is what it is for.
+    //   sweep.ts  — converts a COMPUTED bucket start, not a fixed venue
+    //               boundary, so it has no constant to enumerate. Found by
+    //               this very derivation on its first run, which is the case
+    //               for deriving rather than listing.
+    const EXEMPT = ["bars.ts", "sweep.ts"];
+    assert.match(
+      readFileSync(join(analyzerDir, "bars.ts"), "utf8"),
+      /export function wallClockToUtcMs\(/,
+      "bars.ts is exempt because it DECLARES the converter — if it stops, it " +
+        "is a caller like any other",
+    );
+    assert.match(
+      readFileSync(join(analyzerDir, "sweep.ts"), "utf8"),
+      /newYorkWallClockToUtcMs\(\s*\n\s*parts\.year,[\s\S]{0,200}?Math\.floor\(bucketMinute \/ 60\)/,
+      "sweep.ts is exempt because its conversion target is COMPUTED from the " +
+        "bucket, not a venue constant — if it ever passes a literal hour, it " +
+        "has a boundary and belongs in the table",
+    );
+    const uncovered = converting.filter(
+      (file) => !covered.includes(file) && !EXEMPT.includes(file),
+    );
+    assert.deepEqual(
+      uncovered,
+      [],
+      `these files convert a wall clock and have no row in this table: ` +
+        `${uncovered.join(", ")} — add them, or the cross-product is ` +
+        `enumerating a subset again`,
+    );
   });
 
   it("energy low-edge hours are whole UTC hours, so all six sit on the grid", () => {
@@ -195,6 +304,12 @@ describe("decision-instant boundary cross-product (C1/P3)", () => {
         "FX daily rollover start, 16:59 ET",
         "agriculture daily completion, 14:20 ET",
         "grain session close, 14:20 ET",
+        // Added 2026-08-24 when this table's population was corrected. The
+        // first version named three files someone remembered and missed
+        // replay.ts entirely — so a table written to catch the archetype was
+        // the archetype. 16:59 ET here gates the weekly expiry clamp for
+        // forex, crypto, agriculture and livestock.
+        "weekly close, cash-style, 16:59 ET",
       ],
       "a fix validated only on grid-aligned classes does not validate these — " +
         "if this set changes, the decision-instant fix's blast radius changed " +
