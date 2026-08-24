@@ -46,6 +46,8 @@ import {
   sessionAnchorWitness,
   storeKindForKey,
 } from "./clockWitness.ts";
+import { DENSITY_RECENT_WINDOW_DAYS } from "./sweepManifest.ts";
+import { DENSITY_RATIO_PRIMARY_FLOOR } from "./sweepStats.ts";
 import { flagReader } from "./flagReader.ts";
 import {
   TREASURY_FETCH_START_MS,
@@ -404,36 +406,114 @@ export function auditCacheClock(input: {
           `(zero-shift match ${registration.matchRateAtZero ?? "n/a"})`,
       );
     }
-    // 1b: over the shared span a complete 5min series holds ~3x the 15min
-    // rows; the sawtooth held ~0.6-1.0x. Counted on the overlap only, so a
-    // 5min history that legitimately starts later is not condemned for
-    // being younger.
+    // R0e, as amended by the converge that ranked it (2026-08-24). Two
+    // changes, and the second exists because the obvious version of the first
+    // would have removed coverage while reading as convergence.
+    //
+    // JUDGE THE RECENT WINDOW. This is the same correction #382 made at the
+    // corpus door: a band calibrated on complete recent data, applied to a
+    // whole span that includes a market's thin early era, condemns honest
+    // history. It moves DYDXUSD from 2.17 to 2.83 — inside the band — and
+    // moves the nine thinnest markets by less than 0.07, so it is a real
+    // measurement correction rather than a threshold loosened to fit.
+    //
+    // DO NOT PORT THE DOOR'S SLOT-DENSE FILTER. At the door that filter has a
+    // fallback: a market it excludes still meets an absolute class floor.
+    // Here there is no fallback, so porting it deletes the only instrument
+    // judging the markets that already carry the least — ZOUSX and ZRUSD go
+    // RED to unjudged, and ZCUSX, ZSUSX, ZLUSX, ZMUSD, LEUSX, GFUSX and
+    // HEUSX go passing to unjudged.
+    //
+    // So the population SPLITS instead. A slot-dense market is judged by the
+    // band. A market below that floor is judged CONSTRUCTIVELY, with no
+    // constant at all: every 15-minute parent in the window must hold at
+    // least one 5-minute child in [t, t+15m). That is the 1b sawtooth's
+    // actual signature — it ran 0.6-1.0 children per parent, so parents stood
+    // EMPTY — while honest sparseness thins a parent without emptying it.
+    // The band cannot judge these markets because their parent-child
+    // arithmetic legitimately degenerates: a parent holding one print yields
+    // one child, so a thin market's ratio approaches 1 with nothing wrong.
+    //
+    // Measured 2026-08-24 across all nine, recent-90 window: ZERO empty
+    // parents of 25,157. ZMUSD 0/4672, ZCUSX 0/4516, ZSUSX 0/4477,
+    // ZLUSX 0/4433, ZOUSX 0/1985, ZRUSD 0/1540, LEUSX/GFUSX/HEUSX 0/1178
+    // each. That is the evidence their low ratios are honest.
     const overlapStart = Math.max(fifteen.firstTime, five.firstTime);
     const overlapEnd = Math.min(fifteen.lastTime, five.lastTime);
-    const inOverlap = (series: SlimSeries) =>
+    const windowStart = Math.max(
+      overlapStart,
+      overlapEnd - DENSITY_RECENT_WINDOW_DAYS * 86_400_000,
+    );
+    const inWindow = (series: SlimSeries) =>
       series.slim.reduce(
         (count, bar) =>
-          bar.time >= overlapStart && bar.time <= overlapEnd
-            ? count + 1
-            : count,
+          bar.time >= windowStart && bar.time <= overlapEnd ? count + 1 : count,
         0,
       );
-    const primaryRows = inOverlap(fifteen);
+    const primaryRows = inWindow(fifteen);
     if (primaryRows >= DENSITY_MIN_PRIMARY_ROWS) {
-      const ratio = inOverlap(five) / primaryRows;
-      if (ratio < DENSITY_RATIO_FLOOR) {
-        fail(
-          `${pairKey}: 5min/15min density ${ratio.toFixed(2)} over the ` +
-            `shared span — the 1b sawtooth signature (complete is ~3)`,
-        );
-      } else if (ratio > DENSITY_RATIO_CEILING) {
-        fail(
-          `${pairKey}: 5min/15min density ${ratio.toFixed(2)} over the ` +
-            `shared span — ABOVE the complete ratio; a clipped 15-minute ` +
-            `primary inflates this, it does not lower it`,
-        );
+      const windowDays = Math.max(
+        1,
+        (overlapEnd - windowStart) / 86_400_000,
+      );
+      const fiveRows = inWindow(five);
+      const slotDense =
+        Math.max(primaryRows / windowDays, fiveRows / windowDays / 3) >=
+          DENSITY_RATIO_PRIMARY_FLOOR;
+      if (slotDense) {
+        const ratio = fiveRows / primaryRows;
+        if (ratio < DENSITY_RATIO_FLOOR) {
+          fail(
+            `${pairKey}: 5min/15min density ${ratio.toFixed(2)} over the ` +
+              `judged window — the 1b sawtooth signature (complete is ~3)`,
+          );
+        } else if (ratio > DENSITY_RATIO_CEILING) {
+          fail(
+            `${pairKey}: 5min/15min density ${ratio.toFixed(2)} over the ` +
+              `judged window — ABOVE the complete ratio; a clipped 15-minute ` +
+              `primary inflates this, it does not lower it`,
+          );
+        } else {
+          ok(`${pairKey}: 5min/15min density ${ratio.toFixed(2)}`);
+        }
       } else {
-        ok(`${pairKey}: 5min/15min density ${ratio.toFixed(2)}`);
+        const children = new Set(
+          five.slim
+            .filter((bar) => bar.time >= windowStart && bar.time <= overlapEnd)
+            .map((bar) => bar.time),
+        );
+        let empty = 0;
+        let parents = 0;
+        for (const bar of fifteen.slim) {
+          // A parent is judged only when its WHOLE 15-minute span lies inside
+          // the window. The last parent's third child sits at +10 minutes,
+          // past overlapEnd, so judging it would condemn every healthy store
+          // for one bar it could never cover — found by the fixture that
+          // places its only child in the :10 slot.
+          if (bar.time < windowStart || bar.time + 600_000 > overlapEnd) {
+            continue;
+          }
+          parents += 1;
+          if (
+            !children.has(bar.time) &&
+            !children.has(bar.time + 300_000) &&
+            !children.has(bar.time + 600_000)
+          ) {
+            empty += 1;
+          }
+        }
+        if (empty > 0) {
+          fail(
+            `${pairKey}: ${empty} of ${parents} 15min parents hold NO 5min ` +
+              `child in the judged window — the 1b sawtooth signature on a ` +
+              `market too sparse for the ratio to judge`,
+          );
+        } else {
+          ok(
+            `${pairKey}: every one of ${parents} 15min parents holds a 5min ` +
+              `child (too sparse for the ratio; judged constructively)`,
+          );
+        }
       }
     }
   }
