@@ -736,6 +736,29 @@ describe("the driver writes the manifest beside the emit", () => {
   // stores could not have been detected from the manifest, because the manifest
   // did not carry the fact. Pinned as source shape, like the rest of this
   // driver's wiring.
+  it("runs the grid registration in the driver and refuses an ungridded pair", () => {
+    const script = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.match(
+      script,
+      /gridRegistration\(primaryBars, fiveMinuteBars\)/,
+      "the grid test judges the two series the sweep actually loaded",
+    );
+    assert.match(
+      script,
+      /grid\.verdict !== "registered"[\s\S]{0,400}?throw new Error\(/,
+      "anything but registered throws in the driver — unjudgeable included, " +
+        "because two series sharing no grid is a defect and not a pass",
+    );
+    const call = script.indexOf("gridRegistration(primaryBars");
+    const push = script.indexOf("manifestSymbols.push(");
+    assert.ok(call >= 0 && push >= 0 && call < push, "judged before pushed");
+    assert.match(
+      script,
+      /gridRegistration: grid,/,
+      "and the verdict rides into the manifest for the door to re-judge",
+    );
+  });
+
   it("runs the absolute venue anchor in the driver and refuses a displaced store", () => {
     const script = readFileSync("scripts/replay-sweep.ts", "utf8");
     assert.match(

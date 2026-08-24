@@ -900,6 +900,40 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
   // both series moved by the same amount. Only the venue anchor sees it, and
   // until 2026-08-24 no manifest carried the fact, so this door could not
   // judge it however displaced the store was.
+  // C3. The relative check cannot see a one-sided shift on a market whose
+  // session sits inside the UTC day — it reads "aligned" at matchRateAtZero
+  // 1.000 against a real 4-hour displacement. The nine markets that shape
+  // describes are also the nine the density gate abstains for, so this is the
+  // only instrument standing between them and a mis-registered corpus.
+  it("refuses a corpus whose 5-minute children escape their 15-minute parents", () => {
+    const manifest = legacyManifest() as Record<string, unknown>;
+    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };
+    (manifest.symbols as Array<Record<string, unknown>>)[0].gridRegistration = {
+      judged: 23_922,
+      verdict: "misregistered",
+      violations: 21_700,
+    };
+    assert.throws(
+      () => assertManifestedCorpus(writeWithManifest(manifest)),
+      /do not bracket their own 5-minute children/s,
+    );
+  });
+
+  it("refuses a corpus whose two series share no common bar grid", () => {
+    const manifest = legacyManifest() as Record<string, unknown>;
+    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };
+    (manifest.symbols as Array<Record<string, unknown>>)[0].gridRegistration = {
+      judged: 0,
+      verdict: "unjudgeable",
+      violations: 0,
+    };
+    assert.throws(
+      () => assertManifestedCorpus(writeWithManifest(manifest)),
+      /do not bracket their own 5-minute children/s,
+      "zero judged is a defect, never a pass",
+    );
+  });
+
   it("refuses a corpus whose intraday bars miss their venue's session open", () => {
     const manifest = legacyManifest() as Record<string, unknown>;
     manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };

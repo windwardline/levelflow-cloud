@@ -52,6 +52,9 @@ import {
   CALENDAR_CLOCK,
   type CrossSeriesClock,
   crossSeriesClock,
+  type GridRegistration,
+  type SessionAnchorWitness,
+  gridRegistration,
   REFERENCE_SESSION_ANCHORS,
   sessionAnchorWitness,
 } from "./clockWitness.ts";
@@ -203,8 +206,14 @@ async function main() {
     calibration: Record<string, unknown>;
     crossSeriesClock: CrossSeriesClock;
     crossSeriesDensity?: CrossSeriesDensity;
+    // The two ABSOLUTE instruments, named here rather than reaching the
+    // manifest through a spread: a spread bypasses excess-property checking,
+    // so `sessionAnchor` compiled against a type that never mentioned it and
+    // a typo would have been silent.
+    gridRegistration?: GridRegistration;
     providerSymbol: string;
     series: Record<string, SeriesFacts>;
+    sessionAnchor?: SessionAnchorWitness;
     symbol: string;
   }> = [];
   const newsEvents = args.discover
@@ -627,6 +636,21 @@ async function main() {
     // registration check above is full coverage: an absolute defect shared by
     // both series shows here, and one confined to the 5-minute series shows
     // as a relative shift there.
+    // C3: the absolute registration test. crossSeriesClock above compares DAY
+    // EXTREMES on the UTC calendar day, so a one-sided shift is invisible for
+    // a market whose session sits inside the day — it reported "aligned" at
+    // matchRateAtZero 1.000 against a real +/-4h displacement on the nine
+    // session-interior markets. This asks whether a parent brackets its own
+    // children, which no timezone can change.
+    const grid = gridRegistration(primaryBars, fiveMinuteBars);
+    if (grid.verdict !== "registered") {
+      throw new Error(
+        `cacheClockWitnessRefused: ${symbol} 15min parents do not bracket ` +
+          `their own 5min children (${JSON.stringify(grid)}) — the two ` +
+          `series are not on one grid; investigate before any rebuild; see ` +
+          `docs/cache-rebuild-r0.md`,
+      );
+    }
     const sessionAnchorSpec = REFERENCE_SESSION_ANCHORS[providerSymbol];
     const sessionAnchor = sessionAnchorSpec
       ? sessionAnchorWitness(primaryBars, sessionAnchorSpec)
@@ -765,6 +789,7 @@ async function main() {
       } as unknown as Record<string, unknown>,
       crossSeriesClock: registration,
       crossSeriesDensity,
+      gridRegistration: grid,
       providerSymbol,
       series,
       ...(sessionAnchor && { sessionAnchor }),
