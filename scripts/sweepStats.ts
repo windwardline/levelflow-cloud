@@ -359,6 +359,23 @@ function verifyManifest(emitPath: string): SweepManifest {
           `shift — the mixed-clock signature; the corpus is refused`,
       );
     }
+    // R0f: the ABSOLUTE witness, judged at the door beside the relative one.
+    // The check above cannot see a store whose two series are displaced
+    // TOGETHER — it read "aligned" on three indices standing 6, 13 and 14
+    // hours out of register, because a provider labelling bars in local
+    // exchange time moves both. Only the venue anchor sees that, and until
+    // 2026-08-24 no manifest carried it, so this door had no fact to judge.
+    // A corpus written from displaced stores resolves every setup against
+    // bars hours away from its own decision — the 2026-08-11 look-ahead
+    // mechanism, on a different axis.
+    if (entry.sessionAnchor?.verdict === "displaced") {
+      throw new Error(
+        `${emitPath}: ${entry.symbol} intraday bars do not open at its ` +
+          `venue's session open (${JSON.stringify(entry.sessionAnchor)}) — ` +
+          `the store's stamps are displaced from the venue clock; the ` +
+          `corpus is refused`,
+      );
+    }
     assertFiveMinuteDensity(emitPath, entry);
   }
   // E6 (R1b): the corpus states the score-input terms it was measured

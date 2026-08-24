@@ -52,6 +52,8 @@ import {
   CALENDAR_CLOCK,
   type CrossSeriesClock,
   crossSeriesClock,
+  REFERENCE_SESSION_ANCHORS,
+  sessionAnchorWitness,
 } from "./clockWitness.ts";
 import {
   emptyStreakLimitFor,
@@ -611,6 +613,34 @@ async function main() {
           `docs/cache-rebuild-r0.md`,
       );
     }
+    // R0f: THE ABSOLUTE WITNESS, ON THE AUTOMATED PATH. Every check above
+    // this line is RELATIVE — it compares two series that a provider
+    // convention change displaces TOGETHER, which is why all of them
+    // reported healthy on three indices standing 6, 13 and 14 hours out of
+    // register. The instrument that sees it existed and ran nowhere a sweep
+    // could reach: only in `scripts/verify-cache-clock.ts`, which is on no
+    // CI path, so R3's one re-sweep could have written a corpus from
+    // displaced stores with nothing to object.
+    //
+    // It judges the 15-minute PRIMARY, the decision timeframe. That plus the
+    // registration check above is full coverage: an absolute defect shared by
+    // both series shows here, and one confined to the 5-minute series shows
+    // as a relative shift there.
+    const sessionAnchorSpec = REFERENCE_SESSION_ANCHORS[providerSymbol];
+    const sessionAnchor = sessionAnchorSpec
+      ? sessionAnchorWitness(primaryBars, sessionAnchorSpec)
+      : undefined;
+    if (sessionAnchor?.verdict === "displaced") {
+      throw new Error(
+        `cacheClockWitnessRefused: ${symbol} (${providerSymbol}) intraday ` +
+          `bars do not open at its venue's session open ` +
+          `(${JSON.stringify(sessionAnchor)}) — the store's stamps are ` +
+          `displaced from ${sessionAnchorSpec.zone} ` +
+          `${String(sessionAnchorSpec.hour).padStart(2, "0")}:` +
+          `${String(sessionAnchorSpec.minute).padStart(2, "0")}; ` +
+          `investigate before any rebuild; see docs/cache-rebuild-r0.md`,
+      );
+    }
     // #364 round 8, finding 2: the density law fails FAST, beside the
     // clock witnesses, where a violation costs minutes — not at read
     // time after a multi-hour sweep has already written a corpus its own
@@ -736,6 +766,7 @@ async function main() {
       crossSeriesDensity,
       providerSymbol,
       series,
+      ...(sessionAnchor && { sessionAnchor }),
       symbol,
     });
 

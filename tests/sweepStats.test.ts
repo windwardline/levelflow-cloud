@@ -892,6 +892,52 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
       /registers against.*4h\s+shift.*mixed-clock signature/s,
     );
   });
+
+  // R0f. The relative check above is BLIND to a store whose two series are
+  // displaced together, and reported "aligned" on three indices standing 6,
+  // 13 and 14 hours out of register — FMP labels foreign index bars in local
+  // exchange time and the normalizer read every label as New York wall, so
+  // both series moved by the same amount. Only the venue anchor sees it, and
+  // until 2026-08-24 no manifest carried the fact, so this door could not
+  // judge it however displaced the store was.
+  it("refuses a corpus whose intraday bars miss their venue's session open", () => {
+    const manifest = legacyManifest() as Record<string, unknown>;
+    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };
+    (manifest.symbols as Array<Record<string, unknown>>)[0].sessionAnchor = {
+      anchoredYears: 0,
+      displacedYears: 4,
+      sampledDays: 733,
+      verdict: "displaced",
+    };
+    assert.throws(
+      () => assertManifestedCorpus(writeWithManifest(manifest)),
+      /do not open at its venue's session open.*displaced/s,
+    );
+  });
+
+  it("accepts a corpus whose venue anchor is anchored", () => {
+    const manifest = legacyManifest() as Record<string, unknown>;
+    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };
+    (manifest.symbols as Array<Record<string, unknown>>)[0].sessionAnchor = {
+      anchoredYears: 7,
+      displacedYears: 0,
+      sampledDays: 1633,
+      verdict: "anchored",
+    };
+    // This fixture trips a LATER door (no conditions block), so the precise
+    // claim is that the ANCHOR gate does not fire — not that nothing does.
+    let message = "";
+    try {
+      assertManifestedCorpus(writeWithManifest(manifest));
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    assert.doesNotMatch(
+      message,
+      /venue's session open/,
+      "an anchored store must not be refused by the anchor gate",
+    );
+  });
 });
 
 // R1b: the stated-conditions door (E6) and the per-symbol 5-minute
