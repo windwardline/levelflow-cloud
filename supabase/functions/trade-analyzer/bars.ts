@@ -168,6 +168,18 @@ export function normalizeFmpBars(
  * implicit v1 and deliberately has no identifier: nothing may ever match
  * it. Pinned in tests/cacheClock.test.ts.
  *
+ * v3 -> v4 (2026-08-24, same day): v3 passed the venue zone to DATE-ONLY
+ * labels as well as intraday ones. A venue zone places a time of day, and a
+ * bare date has none — so ^GDAXI, ^N225 and ^AXJO's daily bars anchored at
+ * their venue's midnight (22-23Z, 15Z and 13-14Z) instead of New York's
+ * 04-05Z. computeCompletionMs recovers a daily bar's DATE through
+ * newYorkClockParts, so those bars read back as the previous day and
+ * completed a full day early: a look-ahead, introduced by the fix for a
+ * look-ahead. The daily-stamp witness RED'd all three at depth, which is the
+ * guard doing precisely its job. Only those three daily stores differ between
+ * v3 and v4; every other store is byte-identical under both, and the bump is
+ * the contract's price for that being provable rather than argued.
+ *
  * v2 -> v3 (R0f, 2026-08-24), and the name changed with it because the
  * clock is no longer New York's. FMP labels intraday bars in the VENUE'S
  * own local wall time; reading every label as New York wall left ^GDAXI,
@@ -179,7 +191,7 @@ export function normalizeFmpBars(
  * assigns them the same instants v2 did, and the bump exists to force the
  * three that move rather than because the majority did.
  */
-export const BAR_CLOCK = "venue-wall-utc-v3";
+export const BAR_CLOCK = "venue-wall-utc-v4";
 
 /**
  * 2b: the provider clock, measured rather than assumed. FMP stamps BARS in
@@ -209,15 +221,33 @@ export function toTimestamp(value: string, zone: string): number {
   if (!match) {
     return Number.NaN;
   }
-  const [, year, month, day, hour = "0", minute = "0", second = "0"] = match;
+  const [, year, month, day, hour, minute, second] = match;
+  // A VENUE ZONE PLACES A TIME OF DAY. A date-only label has none, so it
+  // anchors at New York midnight regardless of the venue — the convention the
+  // daily-completion gate, the daily-stamp witness and the sweep's ordering
+  // all read.
+  //
+  // Passing the venue zone here too was a look-ahead, caught by the daily
+  // witness on the R0f rebuild (2026-08-24). computeCompletionMs recovers a
+  // daily bar's DATE with newYorkClockParts — its own comment says "the
+  // stamp's NY date and UTC date agree for a NY-midnight stamp" — so anchoring
+  // ^N225's 2026-08-17 label at Tokyo midnight put it at 15:00Z on 2026-08-16,
+  // which reads back as the 16th and completes the bar a full day early.
+  // ^GDAXI landed at 22-23Z and ^AXJO at 13-14Z with the same effect.
+  //
+  // The distinction is not a special case: an intraday label names an instant
+  // in the venue's clock, and a date names a trading day whose anchor is a
+  // convention shared across every market so their bars order against each
+  // other.
+  const dateOnly = hour === undefined;
   return wallClockToUtcMs(
-    zone,
+    dateOnly ? "America/New_York" : zone,
     Number(year),
     Number(month),
     Number(day),
-    Number(hour),
-    Number(minute),
-    Number(second),
+    Number(hour ?? "0"),
+    Number(minute ?? "0"),
+    Number(second ?? "0"),
   );
 }
 
