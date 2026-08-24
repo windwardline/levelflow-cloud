@@ -4,6 +4,7 @@ import {
   normalizeFmpBars,
 } from "./bars.ts";
 import { parseFmpQuoteSnapshot, type QuoteSnapshot } from "./quotes.ts";
+import { labelZoneFor } from "./venues.ts";
 import {
   type Bar,
   intradayTimeframes,
@@ -429,6 +430,7 @@ export async function fetchFmpBars(
   const bars = normalizeFmpBars(
     payload as FmpBar[],
     maxBarsForTimeframe(timeframe),
+    labelZoneFor(fmpSymbol),
   );
 
   candleCache.set(cacheKey, {

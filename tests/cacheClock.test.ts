@@ -18,7 +18,15 @@ describe("the clock identifiers are deliberate constants", () => {
     // normalizer-semantics change: update this pin AND the rebuild
     // runbook, and plan the cache rebuild the bump forces) or the constant
     // was edited casually — which strands every stamped store.
-    assert.equal(BAR_CLOCK, "ny-wall-utc-v2");
+    //
+    // v2 -> v3 (R0f, 2026-08-24): toTimestamp now reads a bar label in its
+    // VENUE'S zone rather than New York's. FMP labels intraday bars in the
+    // venue's own local wall time, so ^GDAXI, ^N225 and ^AXJO stood
+    // displaced by 6, 13 and 14 hours — their venue's local-to-New-York
+    // difference — for their whole history. The other 93 sources are
+    // unchanged: their venue IS New York, and v3 assigns them the same
+    // instants v2 did.
+    assert.equal(BAR_CLOCK, "venue-wall-utc-v3");
   });
 
   it("pins CALENDAR_CLOCK — the calendar's convention is not the bars'", () => {
@@ -31,7 +39,7 @@ describe("the clock identifiers are deliberate constants", () => {
       "supabase/functions/trade-analyzer/bars.ts",
       "utf8",
     );
-    assert.match(bars, /export const BAR_CLOCK = "ny-wall-utc-v2"/);
+    assert.match(bars, /export const BAR_CLOCK = "venue-wall-utc-v3"/);
     // The contract lives in the docblock the constant cannot drift from.
     assert.match(bars, /MUST bump this\s+\* string/);
   });

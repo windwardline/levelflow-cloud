@@ -80,6 +80,7 @@ export type BarRejection = {
 export function normalizeFmpBars(
   payload: FmpBar[],
   maxBars: number,
+  zone: string,
   onReject?: (rejection: BarRejection) => void,
 ): Bar[] {
   const bars: Bar[] = [];
@@ -92,7 +93,7 @@ export function normalizeFmpBars(
       onReject?.({ date: point.date, reason: "shape" });
       continue;
     }
-    const time = toTimestamp(point.date);
+    const time = toTimestamp(point.date, zone);
     if (Number.isNaN(time)) {
       onReject?.({ date: point.date, reason: "timestamp" });
       continue;
@@ -166,8 +167,19 @@ export function normalizeFmpBars(
  * the same instant does not bump it. The naive pre-2026-08-09 era is the
  * implicit v1 and deliberately has no identifier: nothing may ever match
  * it. Pinned in tests/cacheClock.test.ts.
+ *
+ * v2 -> v3 (R0f, 2026-08-24), and the name changed with it because the
+ * clock is no longer New York's. FMP labels intraday bars in the VENUE'S
+ * own local wall time; reading every label as New York wall left ^GDAXI,
+ * ^N225 and ^AXJO displaced by exactly their venue's local-to-New-York
+ * difference — 6, 13 and 14 hours — for their entire history, invisible to
+ * every relative instrument because both of a symbol's series shift
+ * together. venues.ts carries the four independent confirmations. The 93
+ * other sources are unchanged by this: their venue IS New York, so v3
+ * assigns them the same instants v2 did, and the bump exists to force the
+ * three that move rather than because the majority did.
  */
-export const BAR_CLOCK = "ny-wall-utc-v2";
+export const BAR_CLOCK = "venue-wall-utc-v3";
 
 /**
  * 2b: the provider clock, measured rather than assumed. FMP stamps BARS in
@@ -183,7 +195,14 @@ export const BAR_CLOCK = "ny-wall-utc-v2";
  * NaN for garbage — the old fallback stamped unparseable input as
  * Date.now(), turning corrupt payloads into bars at the present moment.
  */
-export function toTimestamp(value: string): number {
+/**
+ * A provider bar label to a true instant. THE ZONE IS REQUIRED, deliberately:
+ * a default would be a silent assumption about a venue, and reading every
+ * label as New York wall is exactly the defect that left three indices 6, 13
+ * and 14 hours out of register for their whole history. Callers get the zone
+ * from `labelZoneFor(providerSymbol)` in venues.ts.
+ */
+export function toTimestamp(value: string, zone: string): number {
   const match = value.match(
     /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/,
   );
@@ -191,7 +210,8 @@ export function toTimestamp(value: string): number {
     return Number.NaN;
   }
   const [, year, month, day, hour = "0", minute = "0", second = "0"] = match;
-  return newYorkWallClockToUtcMs(
+  return wallClockToUtcMs(
+    zone,
     Number(year),
     Number(month),
     Number(day),
@@ -261,25 +281,44 @@ export function newYorkClockParts(utcMs: number): {
 // daily row. Built per call, the two formatters below cost ~595ms per
 // 11-symbol scan chunk — which is how #288's deploy died 546 inside the
 // 2s Edge CPU budget.
-const NEW_YORK_GUESS_FORMAT = new Intl.DateTimeFormat("en-US", {
-  day: "2-digit",
-  hour: "2-digit",
-  hour12: false,
-  hourCycle: "h23",
-  minute: "2-digit",
-  month: "2-digit",
-  second: "2-digit",
-  timeZone: "America/New_York",
-  year: "numeric",
-});
+// R0f (2026-08-24): the conversion is now per VENUE ZONE, because FMP labels
+// intraday bars in the venue's own local wall time. Reading every label as New
+// York wall left ^GDAXI, ^N225 and ^AXJO displaced by 6, 13 and 14 hours for
+// their whole history — see venues.ts for the four independent confirmations.
+//
+// Formatters stay hoisted for the reason stated above: construction costs
+// ~50us against a few us to read, and this runs per decoded bar. They are
+// built once per zone and the roster uses four.
+type ZoneFormats = { guess: Intl.DateTimeFormat; verify: Intl.DateTimeFormat };
+const ZONE_FORMATS = new Map<string, ZoneFormats>();
 
-const NEW_YORK_VERIFY_FORMAT = new Intl.DateTimeFormat("en-US", {
-  hour: "2-digit",
-  hour12: false,
-  hourCycle: "h23",
-  minute: "2-digit",
-  timeZone: "America/New_York",
-});
+function formatsFor(zone: string): ZoneFormats {
+  let formats = ZONE_FORMATS.get(zone);
+  if (!formats) {
+    formats = {
+      guess: new Intl.DateTimeFormat("en-US", {
+        day: "2-digit",
+        hour: "2-digit",
+        hour12: false,
+        hourCycle: "h23",
+        minute: "2-digit",
+        month: "2-digit",
+        second: "2-digit",
+        timeZone: zone,
+        year: "numeric",
+      }),
+      verify: new Intl.DateTimeFormat("en-US", {
+        hour: "2-digit",
+        hour12: false,
+        hourCycle: "h23",
+        minute: "2-digit",
+        timeZone: zone,
+      }),
+    };
+    ZONE_FORMATS.set(zone, formats);
+  }
+  return formats;
+}
 
 // The DST-safe guess-correct conversion replay.ts and marketHours.ts already
 // use: guess the UTC instant with the wanted digits, read the guess back in
@@ -290,9 +329,15 @@ const NEW_YORK_VERIFY_FORMAT = new Intl.DateTimeFormat("en-US", {
 // the two Intl reads below at ~19ms per 3,000-bar series were the second
 // half of the 546 CPU deaths (#289) — a cold chunk decodes ~66 series.
 // Growth is bounded by unique stamps an instance ever sees.
-const wallClockCache = new Map<number, number>();
+// KEYED PER ZONE. It was a flat Map<number, number> when only New York
+// existed; leaving it flat while adding zones would return a New York answer
+// for a Tokyo stamp, silently, for every bar whose wall digits happened to
+// have been converted already. Nested rather than a composed string key
+// because this is on the per-bar path.
+const wallClockCache = new Map<string, Map<number, number>>();
 
-export function newYorkWallClockToUtcMs(
+export function wallClockToUtcMs(
+  zone: string,
   year: number,
   month: number,
   day: number,
@@ -301,11 +346,17 @@ export function newYorkWallClockToUtcMs(
   second: number,
 ): number {
   const utcGuess = Date.UTC(year, month - 1, day, hour, minute, second);
-  const cached = wallClockCache.get(utcGuess);
+  let perZone = wallClockCache.get(zone);
+  if (!perZone) {
+    perZone = new Map<number, number>();
+    wallClockCache.set(zone, perZone);
+  }
+  const cached = perZone.get(utcGuess);
   if (cached !== undefined) {
     return cached;
   }
-  const converted = convertNewYorkWallClock(
+  const converted = convertWallClock(
+    zone,
     utcGuess,
     year,
     month,
@@ -314,11 +365,29 @@ export function newYorkWallClockToUtcMs(
     minute,
     second,
   );
-  wallClockCache.set(utcGuess, converted);
+  perZone.set(utcGuess, converted);
   return converted;
 }
 
-function convertNewYorkWallClock(
+/**
+ * The New York case, kept as its own name because most callers reason about
+ * New York specifically — the daily completion gate, the resampler and the
+ * clock witnesses all ask "this New York moment, in UTC" rather than "this
+ * venue's moment". Bar decoding is the caller that needs the venue.
+ */
+export function newYorkWallClockToUtcMs(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second: number,
+): number {
+  return wallClockToUtcMs("America/New_York", year, month, day, hour, minute, second);
+}
+
+function convertWallClock(
+  zone: string,
   utcGuess: number,
   year: number,
   month: number,
@@ -327,7 +396,8 @@ function convertNewYorkWallClock(
   minute: number,
   second: number,
 ): number {
-  const parts = NEW_YORK_GUESS_FORMAT.formatToParts(new Date(utcGuess));
+  const { guess: guessFormat, verify: verifyFormat } = formatsFor(zone);
+  const parts = guessFormat.formatToParts(new Date(utcGuess));
   const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   const guessHour = Number(lookup.hour ?? "0");
   const guessReadAsUtc = Date.UTC(
@@ -344,7 +414,7 @@ function convertNewYorkWallClock(
   // (the spring-forward morning is the pinned case). Re-reading the
   // corrected instant converges; wall times inside the nonexistent
   // spring-forward hour resolve to their post-jump reading.
-  const verify = NEW_YORK_VERIFY_FORMAT.formatToParts(new Date(corrected));
+  const verify = verifyFormat.formatToParts(new Date(corrected));
   const verifyLookup = Object.fromEntries(
     verify.map((part) => [part.type, part.value]),
   );

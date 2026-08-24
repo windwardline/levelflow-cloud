@@ -82,6 +82,7 @@ import {
 import type { SweepNewsEvent } from "../supabase/functions/trade-analyzer/sweep.ts";
 import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
 import { resolveProviderSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
+import { labelZoneFor } from "../supabase/functions/trade-analyzer/venues.ts";
 import {
   BAR_CLOCK,
   type FmpBar,
@@ -1362,7 +1363,7 @@ async function fetchIntradayBars(
     endpoint.searchParams.set("from", isoDate(new Date(window.fromMs)));
     endpoint.searchParams.set("to", isoDate(new Date(window.toMs)));
     endpoint.searchParams.set("apikey", API_KEY!);
-    const chunk = await fetchBars(endpoint);
+    const chunk = await fetchBars(endpoint, labelZoneFor(providerSymbol));
     if (chunk.length === 0) {
       emptyStreak += 1;
       if (emptyStreak >= emptyStreakLimit) {
@@ -1388,10 +1389,10 @@ async function fetchDailyBars(
   endpoint.searchParams.set("from", isoDate(new Date(floor)));
   endpoint.searchParams.set("to", isoDate(new Date()));
   endpoint.searchParams.set("apikey", API_KEY!);
-  return dedupeSort(await fetchBars(endpoint));
+  return dedupeSort(await fetchBars(endpoint, labelZoneFor(providerSymbol)));
 }
 
-async function fetchBars(endpoint: URL): Promise<Bar[]> {
+async function fetchBars(endpoint: URL, zone: string): Promise<Bar[]> {
   const response = await fetchFmpWithRetry(() => fetch(endpoint), {
     paceMs: FMP_PACE_MS,
   });
@@ -1415,6 +1416,7 @@ async function fetchBars(endpoint: URL): Promise<Bar[]> {
   return normalizeFmpBars(
     rows as FmpBar[],
     Number.MAX_SAFE_INTEGER,
+    zone,
     (rejection) => {
       barRejectionTally[rejection.reason] =
         (barRejectionTally[rejection.reason] ?? 0) + 1;

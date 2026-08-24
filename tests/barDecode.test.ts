@@ -8,6 +8,10 @@ import {
   toTimestamp,
 } from "../supabase/functions/trade-analyzer/bars.ts";
 import {
+  labelZoneFor,
+  VENUE_CLOCKS,
+} from "../supabase/functions/trade-analyzer/venues.ts";
+import {
   rollingAtr,
 } from "../supabase/functions/trade-analyzer/indicators.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
@@ -54,7 +58,7 @@ function decodeOld(payload: FmpBar[], maxBars: number): Bar[] {
 // wall), while the economic calendar is TRUE UTC (NFP Jul-2026 stamps
 // 12:30:00 = 08:30 ET). One provider, two conventions, each parsed as itself.
 function toTimestampOld(value: string) {
-  return toTimestamp(value);
+  return toTimestamp(value, "America/New_York");
 }
 
 // ORACLE — indicators.ts before the change: one averageTrueRange over a fresh
@@ -121,7 +125,8 @@ const JUNK_ROWS: FmpBar[] = [
 ];
 
 function bars(source: FmpBar[]): Bar[] {
-  return normalizeFmpBars(source, 10_000);
+  return normalizeFmpBars(source, 10_000,
+      "America/New_York");
 }
 
 describe("the bar decode returns exactly what the old pipeline returned", () => {
@@ -130,7 +135,8 @@ describe("the bar decode returns exactly what the old pipeline returned", () => 
     // The real 15min case: more bars parsed than the timeframe keeps.
     assert.equal(payload.length > 3_000, true);
     assert.deepStrictEqual(
-      normalizeFmpBars(payload, 3_000),
+      normalizeFmpBars(payload, 3_000,
+      "America/New_York"),
       decodeOld(payload, 3_000),
     );
   });
@@ -138,14 +144,16 @@ describe("the bar decode returns exactly what the old pipeline returned", () => 
   it("matches when the payload is shorter than the cap", () => {
     const payload = recordedPayload(771);
     assert.deepStrictEqual(
-      normalizeFmpBars(payload, 1_200),
+      normalizeFmpBars(payload, 1_200,
+      "America/New_York"),
       decodeOld(payload, 1_200),
     );
   });
 
   it("drops the same malformed rows and keeps the same tie order", () => {
     const payload = [...JUNK_ROWS, ...recordedPayload(40)];
-    const next = normalizeFmpBars(payload, 10_000);
+    const next = normalizeFmpBars(payload, 10_000,
+      "America/New_York");
     assert.deepStrictEqual(next, decodeOld(payload, 10_000));
     // The junk is gone: 5 rows missing a field and 1 non-string date.
     assert.equal(next.length, payload.length - 6);
@@ -163,16 +171,19 @@ describe("the bar decode returns exactly what the old pipeline returned", () => 
       { close: 1.1, date: "not-a-date", high: 1.2, low: 1.0, open: 1.05 },
       ...recordedPayload(12),
     ];
-    const decoded = normalizeFmpBars(payload, 10_000);
+    const decoded = normalizeFmpBars(payload, 10_000,
+      "America/New_York");
     assert.equal(decoded.length, 12);
     assert.ok(decoded.every((bar) => Number.isFinite(bar.time)));
   });
 
   it("matches on an empty and an all-junk payload", () => {
-    assert.deepStrictEqual(normalizeFmpBars([], 1_000), decodeOld([], 1_000));
+    assert.deepStrictEqual(normalizeFmpBars([], 1_000,
+      "America/New_York"), decodeOld([], 1_000));
     const allJunk = JUNK_ROWS.slice(0, 6);
     assert.deepStrictEqual(
-      normalizeFmpBars(allJunk, 1_000),
+      normalizeFmpBars(allJunk, 1_000,
+      "America/New_York"),
       decodeOld(allJunk, 1_000),
     );
   });
@@ -327,24 +338,24 @@ describe("nothing mutates a bar, so the cache can share its array", () => {
 // exactly the invariance the banked S&P session proved.
 describe("toTimestamp — New York wall clock, DST-proven (2b)", () => {
   it("converts winter and summer wall clocks four and five hours apart", () => {
-    assert.equal(toTimestamp("2026-01-15 09:30:00"), Date.UTC(2026, 0, 15, 14, 30));
-    assert.equal(toTimestamp("2026-07-15 09:30:00"), Date.UTC(2026, 6, 15, 13, 30));
+    assert.equal(toTimestamp("2026-01-15 09:30:00", "America/New_York"), Date.UTC(2026, 0, 15, 14, 30));
+    assert.equal(toTimestamp("2026-07-15 09:30:00", "America/New_York"), Date.UTC(2026, 6, 15, 13, 30));
   });
 
   it("stamps a date-only bar at New York midnight of its day", () => {
-    assert.equal(toTimestamp("2026-01-15"), Date.UTC(2026, 0, 15, 5, 0));
-    assert.equal(toTimestamp("2026-07-15"), Date.UTC(2026, 6, 15, 4, 0));
+    assert.equal(toTimestamp("2026-01-15", "America/New_York"), Date.UTC(2026, 0, 15, 5, 0));
+    assert.equal(toTimestamp("2026-07-15", "America/New_York"), Date.UTC(2026, 6, 15, 4, 0));
   });
 
   it("lands correctly on the spring-forward morning", () => {
     // 2026-03-08: clocks jump 02:00 -> 03:00 ET. 03:00 wall = 07:00Z (EDT).
-    assert.equal(toTimestamp("2026-03-08 03:00:00"), Date.UTC(2026, 2, 8, 7, 0));
+    assert.equal(toTimestamp("2026-03-08 03:00:00", "America/New_York"), Date.UTC(2026, 2, 8, 7, 0));
   });
 
   it("returns NaN for garbage instead of stamping it as now", () => {
     // The old fallback returned Date.now() — corrupt input silently became a
     // bar at the present moment. A rejection must be a rejection.
-    assert.ok(Number.isNaN(toTimestamp("not-a-date")));
+    assert.ok(Number.isNaN(toTimestamp("not-a-date", "America/New_York")));
   });
 });
 
@@ -369,6 +380,7 @@ describe("normalizeFmpBars — coherence and spike rejection (2h)", () => {
         good("2026-07-15 10:15:00", 101),
       ],
       100,
+      "America/New_York",
       (r) => rejected.push(r),
     );
     assert.equal(bars.length, 2);
@@ -385,6 +397,7 @@ describe("normalizeFmpBars — coherence and spike rejection (2h)", () => {
         good("2026-07-15 10:00:00", 4002),
       ],
       100,
+      "America/New_York",
       (r) => rejected.push(r),
     );
     assert.equal(spiked.length, 2);
@@ -399,6 +412,7 @@ describe("normalizeFmpBars — coherence and spike rejection (2h)", () => {
         good("2026-07-15 10:00:00", 61),
       ],
       100,
+      "America/New_York",
     );
     assert.equal(crashed.length, 3);
   });
@@ -408,6 +422,7 @@ describe("normalizeFmpBars — coherence and spike rejection (2h)", () => {
     const bars = normalizeFmpBars(
       [good("garbage", 100), good("2026-07-15 09:30:00", 100)],
       100,
+      "America/New_York",
       (r) => rejected.push(r),
     );
     assert.equal(bars.length, 1);
@@ -505,5 +520,67 @@ describe("completedIntradaySeries — only closed spans are decision-grade", () 
 
   it("holds the empty series", () => {
     assert.deepEqual(completedIntradaySeries([], "5min", 0), []);
+  });
+});
+
+describe("venue label zones (R0f) — a bar label is read in its exchange's clock", () => {
+  // FMP labels intraday bars in the VENUE'S own local wall time. Reading every
+  // label as New York wall left ^GDAXI, ^N225 and ^AXJO displaced by exactly
+  // their venue's local-to-New-York difference — 6, 13 and 14 hours — for
+  // their entire history, and no relative instrument could see it because both
+  // of a symbol's series shift together.
+  it("reads each venue's session open at the right instant, in both DST regimes", () => {
+    const at = (symbol: string, label: string) =>
+      new Date(toTimestamp(label, labelZoneFor(symbol))).toISOString();
+    // New York: unchanged from v2, which is why the other 93 sources do not move.
+    assert.equal(at("^GSPC", "2026-07-15 09:30:00"), "2026-07-15T13:30:00.000Z");
+    assert.equal(at("^GSPC", "2026-01-15 09:30:00"), "2026-01-15T14:30:00.000Z");
+    // Tokyo keeps NO DST, so its open is the same instant year-round.
+    assert.equal(at("^N225", "2026-07-15 09:00:00"), "2026-07-15T00:00:00.000Z");
+    assert.equal(at("^N225", "2026-01-15 09:00:00"), "2026-01-15T00:00:00.000Z");
+    // Frankfurt: CEST +2 in summer, CET +1 in winter.
+    assert.equal(at("^GDAXI", "2026-07-15 09:00:00"), "2026-07-15T07:00:00.000Z");
+    assert.equal(at("^GDAXI", "2026-01-15 09:00:00"), "2026-01-15T08:00:00.000Z");
+    // Sydney's DST runs OPPOSITE to the northern hemisphere's, and under AEDT
+    // the ASX open falls on the PREVIOUS UTC day. This is the case a New York
+    // wall-hour anchor could never express.
+    assert.equal(at("^AXJO", "2026-07-15 10:00:00"), "2026-07-15T00:00:00.000Z");
+    assert.equal(at("^AXJO", "2026-01-15 10:00:00"), "2026-01-14T23:00:00.000Z");
+  });
+
+  it("defaults an unlisted symbol to New York, and does not move it", () => {
+    // The default is FMP's convention for US-listed instruments, corroborated
+    // by the CME session: livestock runs 13:30-18:05 UTC, i.e. 09:30 ET, so
+    // the provider labels Chicago products in New York time too.
+    assert.equal(labelZoneFor("EURUSD"), "America/New_York");
+    assert.equal(labelZoneFor("LEUSX"), "America/New_York");
+    assert.equal(
+      toTimestamp("2026-07-15 09:30:00", labelZoneFor("EURUSD")),
+      toTimestamp("2026-07-15 09:30:00", "America/New_York"),
+    );
+  });
+
+  it("does not let one zone's memo answer another zone's question", () => {
+    // The conversion memoizes per wall-clock stamp. It was a flat
+    // Map<number, number> when only New York existed; leaving it flat while
+    // adding zones returns a New York answer for a Tokyo stamp — silently, and
+    // only for stamps some other symbol converted first. Order matters here:
+    // the same digits are asked of two zones in sequence.
+    const digits = "2026-05-20 09:00:00";
+    const ny = toTimestamp(digits, "America/New_York");
+    const tokyo = toTimestamp(digits, "Asia/Tokyo");
+    const nyAgain = toTimestamp(digits, "America/New_York");
+    assert.notEqual(tokyo, ny, "Tokyo must not inherit New York's cached answer");
+    assert.equal(nyAgain, ny, "and New York must be unchanged by Tokyo's lookup");
+    assert.equal(new Date(tokyo).toISOString(), "2026-05-20T00:00:00.000Z");
+  });
+
+  it("keeps the anchor table and the label zones one source of truth", () => {
+    // The venue's zone is used twice — to READ its bars and to JUDGE where its
+    // session opens. If those ever disagreed, a store could be normalised under
+    // one clock and blessed under another.
+    for (const [symbol, venue] of Object.entries(VENUE_CLOCKS)) {
+      assert.equal(labelZoneFor(symbol), venue.zone);
+    }
   });
 });

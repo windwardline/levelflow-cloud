@@ -82,6 +82,7 @@
 // guarantee holds on the data itself (amendment 38: verify, don't relay).
 
 import { newYorkClockParts } from "../supabase/functions/trade-analyzer/bars.ts";
+import { VENUE_CLOCKS } from "../supabase/functions/trade-analyzer/venues.ts";
 
 /**
  * The economic-calendar store's clock. FMP stamps CALENDAR events in true
@@ -773,19 +774,13 @@ export type SessionAnchor = {
  *
  * Keys are PROVIDER symbols, because that is what the cache stores are keyed by.
  */
-export const REFERENCE_SESSION_ANCHORS: Record<string, SessionAnchor> = {
-  // NYSE/Nasdaq cash open.
-  "^GSPC": { zone: "America/New_York", hour: 9, minute: 30 },
-  "^DJI": { zone: "America/New_York", hour: 9, minute: 30 },
-  "^NDX": { zone: "America/New_York", hour: 9, minute: 30 },
-  // XETRA continuous trading opens 09:00 Frankfurt.
-  "^GDAXI": { zone: "Europe/Berlin", hour: 9, minute: 0 },
-  // Tokyo's morning session opens 09:00; the 11:30-12:30 lunch break is
-  // visible in the bar histogram and is what identifies the feed as TSE's.
-  "^N225": { zone: "Asia/Tokyo", hour: 9, minute: 0 },
-  // ASX normal trading opens 10:00 Sydney after the opening auction.
-  "^AXJO": { zone: "Australia/Sydney", hour: 10, minute: 0 },
-};
+export const REFERENCE_SESSION_ANCHORS: Record<string, SessionAnchor> =
+  Object.fromEntries(
+    Object.entries(VENUE_CLOCKS).map(([symbol, venue]) => [
+      symbol,
+      { hour: venue.open.hour, minute: venue.open.minute, zone: venue.zone },
+    ]),
+  );
 
 // Hoisted for the same production reason bars.ts states at
 // NEW_YORK_CLOCK_FORMAT: constructing an Intl.DateTimeFormat costs ~50us
