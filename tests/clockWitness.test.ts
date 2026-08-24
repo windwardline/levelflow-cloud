@@ -913,6 +913,73 @@ describe("reference session anchor — the population is derived, not listed", (
     return bars;
   };
 
+  // THE BUCKET MUST BE THE VENUE'S DAY, NOT THE UTC DAY. This witness asks
+  // whether each SESSION begins at its venue's open, and that question is
+  // venue-local — so grouping by UTC day cuts a session in half for any venue
+  // whose hours straddle UTC midnight, making "the first bar of the day" the
+  // middle of the previous session.
+  //
+  // The ASX is that venue and it stopped the R0f rebuild at 47 of 97 on
+  // 2026-08-24: 10:00-16:00 Sydney is 00:00-06:00 UTC under AEST but
+  // 23:00-05:00 under AEDT, and Sydney's DST runs OPPOSITE to the northern
+  // hemisphere's. Bucketed by UTC day the Sydney-local first-bar reading split
+  // 11:00 x373 against 10:00 x352 — neither reaching the 0.6 modal share —
+  // and the store read "displaced" while its bars were correct.
+  it("anchors a venue whose session straddles UTC midnight", () => {
+    // 10:00-16:00 Sydney across a full year, so both DST regimes appear.
+    const bars = [];
+    const toUtc = (y: number, mo: number, d: number, h: number, mi: number) => {
+      const want = Date.UTC(y, mo - 1, d, h, mi);
+      let guess = want;
+      const fmt = new Intl.DateTimeFormat("en-US", {
+        day: "2-digit",
+        hour: "2-digit",
+        hour12: false,
+        hourCycle: "h23",
+        minute: "2-digit",
+        month: "2-digit",
+        timeZone: "Australia/Sydney",
+        year: "numeric",
+      });
+      for (let pass = 0; pass < 3; pass += 1) {
+        const p = Object.fromEntries(
+          fmt.formatToParts(new Date(guess)).map((x) => [x.type, x.value]),
+        );
+        const hh = Number(p.hour) === 24 ? 0 : Number(p.hour);
+        guess += want -
+          Date.UTC(+p.year, +p.month - 1, +p.day, hh, +p.minute);
+      }
+      return guess;
+    };
+    for (let dayIndex = 0; dayIndex < 520; dayIndex += 1) {
+      const at = new Date(Date.UTC(2024, 0, 1) + dayIndex * DAY);
+      if (at.getUTCDay() === 0 || at.getUTCDay() === 6) continue;
+      for (let slot = 0; slot < 24; slot += 1) {
+        const minutes = 10 * 60 + slot * 15;
+        bars.push(
+          bar(
+            toUtc(
+              at.getUTCFullYear(),
+              at.getUTCMonth() + 1,
+              at.getUTCDate(),
+              Math.floor(minutes / 60),
+              minutes % 60,
+            ),
+          ),
+        );
+      }
+    }
+    bars.sort((a, b) => a.time - b.time);
+    const witness = sessionAnchorWitness(bars, {
+      hour: 10,
+      minute: 0,
+      zone: "Australia/Sydney",
+    });
+    assert.equal(witness.verdict, "anchored");
+    assert.equal(witness.displacedYears, 0);
+    assert.ok(witness.anchoredYears >= 2);
+  });
+
   it("anchors a Tokyo-shaped store whose venue keeps no DST", () => {
     const witness = sessionAnchorWitness(tokyoDays(0), {
       zone: "Asia/Tokyo",

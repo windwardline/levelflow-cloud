@@ -892,6 +892,25 @@ export const REFERENCE_SESSION_ANCHORS: Record<string, SessionAnchor> =
 // NEW_YORK_CLOCK_FORMAT: constructing an Intl.DateTimeFormat costs ~50us
 // against a few us to read one, and this runs per sampled day.
 const ZONE_FORMATS = new Map<string, Intl.DateTimeFormat>();
+const ZONE_DATE_FORMATS = new Map<string, Intl.DateTimeFormat>();
+
+function venueDateFormat(zone: string): Intl.DateTimeFormat {
+  let format = ZONE_DATE_FORMATS.get(zone);
+  if (!format) {
+    format = new Intl.DateTimeFormat("en-US", {
+      day: "2-digit",
+      hour: "2-digit",
+      hour12: false,
+      hourCycle: "h23",
+      minute: "2-digit",
+      month: "2-digit",
+      timeZone: zone,
+      year: "numeric",
+    });
+    ZONE_DATE_FORMATS.set(zone, format);
+  }
+  return format;
+}
 
 function venueClockMinutes(utcMs: number, zone: string): number {
   let format = ZONE_FORMATS.get(zone);
@@ -931,9 +950,52 @@ export function sessionAnchorWitness(
   bars: Array<{ time: number }>,
   anchor: SessionAnchor,
 ): SessionAnchorWitness {
+  // GROUPED BY THE VENUE'S DAY, NOT BY THE UTC DAY. The question this witness
+  // asks — does each SESSION begin at its venue's open? — is venue-local, so
+  // the bucket has to be too. Grouping by UTC day cuts a session in half for
+  // any venue whose hours straddle UTC midnight, and then the "first bar of
+  // the day" is the middle of the previous session rather than the open.
+  //
+  // The ASX is exactly that venue and it stopped the R0f rebuild at 47 of 97
+  // on 2026-08-24. Its session is 10:00-16:00 Sydney, which is 00:00-06:00 UTC
+  // under AEST but 23:00-05:00 under AEDT — and Sydney's DST runs opposite to
+  // the northern hemisphere's, so half the year straddles. Bucketed by UTC day
+  // the Sydney-local reading of the first bar split 11:00 x373 against 10:00
+  // x352, neither reaching the 0.6 modal share, and the store read
+  // "displaced" though its bars were correct: hours 06 through 22 exactly
+  // empty, the session on 23 and 00-05.
+  //
+  // The offset is cached per UTC HOUR rather than computed per bar: a zone's
+  // offset cannot change within an hour, and this runs over series of ~400k
+  // bars where an Intl read each would dominate.
+  const offsetByHour = new Map<number, number>();
+  const localOffsetMs = (time: number): number => {
+    const hourKey = Math.floor(time / 3_600_000);
+    const cached = offsetByHour.get(hourKey);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const parts = Object.fromEntries(
+      venueDateFormat(anchor.zone)
+        .formatToParts(new Date(time))
+        .map((part) => [part.type, part.value]),
+    );
+    const hour = Number(parts.hour ?? "0");
+    const asUtc = Date.UTC(
+      Number(parts.year ?? "1970"),
+      Number(parts.month ?? "1") - 1,
+      Number(parts.day ?? "1"),
+      hour === 24 ? 0 : hour,
+      Number(parts.minute ?? "0"),
+    );
+    // Whole minutes: Date.UTC of the local reading minus the instant.
+    const offset = asUtc - Math.floor(time / 60_000) * 60_000;
+    offsetByHour.set(hourKey, offset);
+    return offset;
+  };
   const barsByDay = new Map<number, number[]>();
   for (const bar of bars) {
-    const day = Math.floor(bar.time / DAY_MS);
+    const day = Math.floor((bar.time + localOffsetMs(bar.time)) / DAY_MS);
     const times = barsByDay.get(day) ?? [];
     times.push(bar.time);
     barsByDay.set(day, times);
@@ -946,7 +1008,14 @@ export function sessionAnchorWitness(
     }
     sampledDays += 1;
     const first = Math.min(...times);
-    const year = new Date(first).getUTCFullYear();
+    // The venue's year, for the same reason as the venue's day. NOT separately
+    // pinned, deliberately: for a straddling venue it moves at most one
+    // session per year boundary between buckets, which is below this
+    // witness's own resolution (40 days minimum and a 0.6 modal share), so a
+    // test asserting it would be asserting noise. Correctness hygiene, not a
+    // guard — and a mutation reverting it passes, which is the honest
+    // description of its weight.
+    const year = new Date(first + localOffsetMs(first)).getUTCFullYear();
     const list = wallMinutesByYear.get(year) ?? [];
     list.push(venueClockMinutes(first, anchor.zone));
     wallMinutesByYear.set(year, list);
