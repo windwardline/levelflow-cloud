@@ -4,7 +4,10 @@ import { describe, it } from "node:test";
 import {
   calculateMacroRateAdjustment,
   parseTreasuryRow,
+  TREASURY_MAX_STALE_MS,
   treasuryContextFromRows,
+  treasuryCurveIsStale,
+  treasuryCurveStaleMs,
   treasuryVisibleAtMs,
   unavailableContext,
 } from "../supabase/functions/trade-analyzer/macroRates.ts";
@@ -162,5 +165,68 @@ describe("parseTreasuryRow — the provider's own field names", () => {
       parseTreasuryRow({ date: "August 11, 2026", year2: 3.9, year10: 4.2 }),
       null,
     );
+  });
+});
+
+describe("Treasury curve staleness (C6) — a 200 is not freshness", () => {
+  const DAY = 86_400_000;
+  const label = Date.UTC(2026, 7, 17); // Monday 2026-08-17
+
+  it("passes a curve published within the publication bound", () => {
+    assert.equal(treasuryCurveIsStale(label, label + 1 * DAY), false);
+    assert.equal(treasuryCurveIsStale(label, label + 6 * DAY), false);
+  });
+
+  it("does NOT trip on a lawful weekend or midweek-holiday gap", () => {
+    // THE REMEDY MUST NOT RE-CREATE THE ARCHETYPE. Treasury publishes on
+    // business days, so the curve legitimately gaps three calendar days across
+    // a weekend and four across a midweek holiday. A predicate asking whether
+    // the two newest rows are ADJACENT would refuse every Monday — and under
+    // amendment 31 an unjustified refusal is a coverage loss, never a safe
+    // default. Seven days clears the longest lawful gap.
+    assert.equal(treasuryCurveIsStale(label, label + 3 * DAY), false, "weekend");
+    assert.equal(treasuryCurveIsStale(label, label + 4 * DAY), false, "holiday");
+  });
+
+  it("refuses a curve whose newest label is past the bound", () => {
+    assert.equal(treasuryCurveIsStale(label, label + 8 * DAY), true);
+    assert.equal(treasuryCurveIsStale(label, label + 200 * DAY), true);
+  });
+
+  it("pins the bound at exactly seven days, from both sides", () => {
+    assert.equal(TREASURY_MAX_STALE_MS, 7 * DAY);
+    assert.equal(treasuryCurveIsStale(label, label + 7 * DAY), false);
+    assert.equal(treasuryCurveIsStale(label, label + 7 * DAY + 1), true);
+  });
+
+  it("measures from the LABEL date, not from when the label became visible", () => {
+    // The two differ by up to a day: treasuryVisibleAtMs moves a label to the
+    // New York midnight AFTER it, so a bound taken there runs a day tighter.
+    // Stated because a silent choice between them is a silent day of
+    // tolerance.
+    assert.ok(treasuryVisibleAtMs(label) > label);
+    assert.equal(
+      treasuryCurveStaleMs(label, label + 5 * DAY),
+      5 * DAY,
+      "staleness is asOf minus the label, with no visibility lead subtracted",
+    );
+  });
+
+  it("is ONE definition, called by the sweep rather than copied", () => {
+    // The sweep refused on this bound inline, twice, before the live path had
+    // any bound at all. Moving the number to macroRates without making the
+    // sweep call it would have minted a third copy to keep in step.
+    const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.match(driver, /treasuryCurveIsStale\(lastRow\.dateMs, Date\.now\(\)\)/);
+    assert.doesNotMatch(
+      driver,
+      /lastRow\.dateMs < Date\.now\(\) - 7 \* 86_400_000/,
+      "the inline copy must be gone, not merely shadowed",
+    );
+    const live = readFileSync(
+      "supabase/functions/trade-analyzer/macroContext.ts",
+      "utf8",
+    );
+    assert.match(live, /treasuryCurveIsStale\(latest\.dateMs, Date\.now\(\)\)/);
   });
 });

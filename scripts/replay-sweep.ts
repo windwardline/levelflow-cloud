@@ -46,6 +46,7 @@ import {
 import {
   type DatedTreasuryRow,
   parseTreasuryRow,
+  treasuryCurveIsStale,
 } from "../supabase/functions/trade-analyzer/macroRates.ts";
 import { assertFiveMinuteDensity } from "./sweepStats.ts";
 import {
@@ -329,7 +330,7 @@ async function main() {
           "historical-treasury-curve over zero rows; refusing to sweep",
       );
     }
-    if (lastRow.dateMs < Date.now() - 7 * 86_400_000) {
+    if (treasuryCurveIsStale(lastRow.dateMs, Date.now())) {
       throw new Error(
         `Treasury curve ends ${new Date(lastRow.dateMs).toISOString()} — ` +
           `more than 7 days stale; decisions past its end would score ` +

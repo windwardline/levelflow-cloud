@@ -11,8 +11,12 @@ import {
   type DatedTreasuryRow,
   type MacroRateAdjustment,
   type MacroRateContext,
+  isoDateFromMs,
   parseTreasuryRow,
   treasuryContextFromRows,
+  TREASURY_MAX_STALE_MS,
+  treasuryCurveIsStale,
+  treasuryCurveStaleMs,
   unavailableContext,
 } from "./macroRates.ts";
 
@@ -115,6 +119,30 @@ async function requestMacroRateContext(
       return unavailableContext("FMP Treasury-rate history was incomplete.");
     }
 
+    // A 200 IS NOT FRESHNESS. Every outage this function records above is a
+    // transport failure — a missing key, a non-200, a non-array, a short
+    // history, a throw. A successful response carrying a stale tail passed all
+    // of them, kept source "fmp_treasury_rates", and scored every setup off a
+    // pair that may straddle a large move: the +/-4bps and +/-8bps thresholds
+    // in calculateMacroRateAdjustment are ONE-DAY-CHANGE thresholds, and
+    // energies additionally take a -1 shock penalty at |change| >= 8bps, so a
+    // stale pair penalises BRENT, BZUSD, CLUSD, NGUSD and WTI as well as the
+    // rate-aligned side.
+    //
+    // The sweep has refused exactly this since R1b, twice and explicitly, on
+    // the same seven-day bound; the predicate is shared rather than copied so
+    // the two cannot drift.
+    if (treasuryCurveIsStale(latest.dateMs, Date.now())) {
+      return unavailableContext(
+        `FMP Treasury-rate curve is stale — newest label ${
+          isoDateFromMs(latest.dateMs)
+        } is ${
+          Math.round(treasuryCurveStaleMs(latest.dateMs, Date.now()) / 86_400_000)
+        } days old, past the ${
+          Math.round(TREASURY_MAX_STALE_MS / 86_400_000)
+        }-day publication bound.`,
+      );
+    }
     // One construction for live and sweep alike (macroRates.ts): live reads
     // the response's two most recent rows; the sweep reads the two most
     // recent VISIBLE rows at each decision instant.
