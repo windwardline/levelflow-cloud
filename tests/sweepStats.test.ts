@@ -869,7 +869,7 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
     manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };
     manifest.symbols[0].series["15min"] = {
       ...seriesFacts([{ time: 0 }], "intraday"),
-      clock: { verdict: "naive" },
+      clock: { verdict: "naive", verdictFrom: "transition" },
     };
     assert.throws(
       () => assertManifestedCorpus(writeWithManifest(manifest)),
