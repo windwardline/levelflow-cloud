@@ -11,6 +11,8 @@ import {
   stableStringify,
   TREASURY_FETCH_START_MS,
 } from "../scripts/sweepManifest.ts";
+import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
+import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import {
@@ -1075,6 +1077,43 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
           symbol: "EURUSD",
         })),
       /conditions\.weightAdjustment is "learning-simulated"/,
+    );
+  });
+
+  // C4: THE NO-FLOOR POPULATION IS DERIVED, NOT DESCRIBED. The governing
+  // comment in sweepStats.ts said the no-floor classes were safe "with ONE
+  // named exception... ZCUSX". Derived over the roster it is nine markets, and
+  // ZCUSX is not even the densest of them — ZMUSD is. The list had been
+  // assembled from whichever symbols happened to get a 15-minute probe rather
+  // than by evaluating the gates over the classes, so it could not lag the
+  // roster without anyone noticing. This walks the roster instead.
+  it("derives which markets carry no absolute 5-minute floor", () => {
+    const unfloored = defaultScanSymbols
+      .filter((symbol) => fiveMinuteFloorFor(symbol) === undefined)
+      .sort();
+    const classes = [...new Set(unfloored.map((s) => getAssetType(s)))].sort();
+    assert.deepEqual(
+      classes,
+      ["agriculture", "futures", "livestock"],
+      "only these three classes may carry no absolute floor; a NEW class " +
+        "arriving without one is the thing this test exists to catch",
+    );
+    // Every floored class must actually bind something — a floor that binds
+    // nobody is dead code wearing the costume of a guard, which is what
+    // `indices: 34` looked like until the engine-symbol grain was checked.
+    for (const symbol of defaultScanSymbols) {
+      const floor = fiveMinuteFloorFor(symbol);
+      assert.ok(
+        floor === undefined || floor > 0,
+        `${symbol}: a floor of 0 judges nothing`,
+      );
+    }
+    const floored = defaultScanSymbols.filter((s) =>
+      fiveMinuteFloorFor(s) !== undefined
+    );
+    assert.ok(
+      floored.length > 0 && unfloored.length > 0,
+      "both populations must be non-empty or this test is vacuous",
     );
   });
 

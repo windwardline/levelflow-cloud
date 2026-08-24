@@ -709,11 +709,33 @@ function verifyManifest(emitPath: string): SweepManifest {
 //   detector). futures, agriculture and livestock carry no absolute
 //   floor: their spread spans 8.6..197.7 rows/day, so any shared floor
 //   either condemns honest sparseness or defends nothing — their liquid
-//   members are exactly the ones the ratio gate already judges, with
-//   ONE named exception (#364 rounds 16-17): ZCUSX, measured at 52.4
-//   15-minute rows/calendar day, sits 12.7% under the gate's
-//   population floor and carries no class floor, so it is currently
-//   judged by nothing at all — see the boundary note above. One
+//   members are exactly the ones the ratio gate already judges — WITH
+//   NINE EXCEPTIONS, not the one this comment named until 2026-08-24.
+//   The old text said "ZCUSX, measured at 52.4 15-minute rows/calendar
+//   day, sits 12.7% under the gate's population floor... judged by
+//   nothing at all". Both halves were wrong. The exception list had been
+//   assembled from the symbols that happened to get a 15-minute probe
+//   rather than derived by evaluating the two gates over the classes,
+//   and the hedge word "liquid" is defined nowhere in code.
+//
+//   Derived over the roster at the gate's own statistic —
+//   max(d15, d5/3) over the recent-90 intersection window — nine
+//   markets carry NEITHER an absolute class floor NOR ratio-gate
+//   membership: ZMUSD 51.91, ZCUSX 50.18, ZSUSX 49.74, ZLUSX 49.26,
+//   ZOUSX 22.06, ZRUSD 17.11, and LEUSX / GFUSX / HEUSX at 13.09 each.
+//   ZMUSD is the densest excluded symbol, not ZCUSX, and the margin is
+//   10.0% rather than 12.7%. All 18 futures clear the floor, RBUSD
+//   lowest at 61.40 — 2.33% of margin, with HOUSD next at 64.77, so one
+//   thin quarter moves either into this set and leaving the population
+//   is not an event the gate reports.
+//
+//   They are no longer judged by nothing. `gridRegistration`
+//   (clockWitness.ts, added the same day) covers exactly this
+//   population: it asks whether a 15-minute parent brackets its own
+//   5-minute children, which needs no density floor and no calendar,
+//   and it reads 0 violations of 23,922 judged parents on ZOUSX against
+//   ~90% under a 4-hour shift. The density gate still abstains for
+//   them; the absolute instrument does not. One
 //   provider series can carry TWO roster names under two laws: WTI and
 //   CLUSD are both on defaultScanSymbols and load identical bytes, with
 //   WTI judged by the energies floor plus the ratio and CLUSD by the
