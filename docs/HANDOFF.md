@@ -895,6 +895,27 @@ cost. That is the shape a field list should have.
 | `runnerNearestBeyondMinimum` | number \| null | Whether structure existed beyond the runner limit, which `window_ceiling` alone cannot say | R4 |
 | `unfilledApproachDistance` | number \| null | How close an unfilled setup came. Today an unfilled row carries no price information whatsoever | R4 |
 
+#### What the eight fields COST — the number the sign-off needs
+
+Measured, not estimated: the eight fields serialise to **245 bytes per JSONL
+row** (236 when the three nullable ones are null). The row count is derived from
+the rebuild's own warm lines — 69 symbols warmed carrying 15.8M intraday bars,
+and the density lines put the 5min:15min ratio at ~3.0, so the 15-minute
+decision series is a quarter of that. Projected to the full 97-market roster at
+`--step 16`:
+
+| grid | decision points | upper bound (capture-all, every decision emits) | at a 10% accept rate |
+| --- | --- | --- | --- |
+| 1 cell | ~348,000 | **+0.09 GB** | +0.01 GB |
+| 25 cells | ~8.7M | **+2.13 GB** | +0.21 GB |
+
+So the width cost is small against the ~10–14 GB the cache rebuild itself spends
+and the 36 GB the condemned emit corpus reached. **It does not constrain the
+field decision at either grid size**, which is worth stating plainly because the
+proposal's own framing is "a corpus where per-row width is the cost" — that
+framing is what justified collapsing twelve proposals into five, and it should
+not be read as a reason to trim the five.
+
 #### PROPOSED — manifest
 
 | field | what it recovers |
