@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -95,6 +96,113 @@ const NON_PRICE_PROVIDER_ALLOWANCES: Record<string, string[]> = {
 };
 
 const CODE_ROOTS = ["src", "supabase/functions", "scripts"];
+
+// THE SURFACE IS DERIVED, NOT CURATED. `codeFiles` below walks three roots
+// filtered to .ts/.tsx/.mjs, which is the right population for the wiring
+// pins — but it is the wrong population for the LOCK, and the gap is
+// load-bearing. All four Edge callers resolve
+// `Deno.env.get("FMP_API_BASE_URL") ?? <verified literal>`, so the deployed
+// value is whatever `.github/workflows/deploy.yml` writes into Supabase's
+// function secrets — a YAML file outside CODE_ROOTS and outside the
+// extension filter, on both axes. Every literal pin stayed green while
+// production read an override the lock could not see.
+//
+// Adding ".github/workflows" to CODE_ROOTS would be the same mistake with a
+// longer list: the real scan finds the provider named in tracked files no
+// hand-picked root would have reached. So the lock walks `git ls-files` and
+// deepEquals the result against a recorded allowlist. A new file naming the
+// provider fails until it is recorded, wherever in the repository it lives.
+const trackedTextFiles = execFileSync("git", ["ls-files", "-z"], {
+  encoding: "utf8",
+  maxBuffer: 32 * 1024 * 1024,
+})
+  .split("\0")
+  .filter(Boolean)
+  // Binary artefacts cannot name a provider in readable text and would only
+  // add decode noise.
+  .filter((path) => !/\.(png|jpe?g|gif|webp|ico|woff2?|ttf|pdf|zip)$/i.test(path));
+
+// The lock's question is narrow: what can put a provider host into a RUNNING
+// system? Two exclusions, each with a premise anyone can check rather than a
+// list anyone must maintain.
+//
+//   *.md    — prose. It cannot issue a request and cannot configure a deploy.
+//   tests/  — asserts ABOUT the wiring and is never shipped; the suite has to
+//             name the provider in order to pin it.
+//
+// Everything else is in, whatever directory it sits in. That is the whole
+// point: deploy.yml was invisible because the old walk chose three roots and
+// three extensions, and the file that sets the deployed base URL matched
+// neither.
+function canReachProduction(path: string): boolean {
+  return !path.endsWith(".md") && !path.startsWith("tests/");
+}
+
+function readTracked(path: string): string {
+  try {
+    return readFileSync(path, "utf8");
+  } catch {
+    return "";
+  }
+}
+
+// Files allowed to NAME the provider without CALLING it: they configure the
+// base URL rather than fetch from it. deploy.yml is the one that matters —
+// it sets FMP_API_BASE_URL in Supabase's function secrets, which every Edge
+// caller prefers over its own pinned literal.
+const FMP_CONFIG_ALLOWLIST = [
+  ".env.example",
+  ".github/workflows/deploy.yml",
+];
+
+// The verified base, as §20i ruling 8 observed it. deploy.yml must set this
+// exact value: a host change there repoints every live price, quote,
+// calendar, news and Treasury fetch, and no literal pin in any .ts file
+// would move.
+const VERIFIED_FMP_BASE = "https://financialmodelingprep.com/stable";
+
+// Every external host the production-reaching surface names. Recorded rather
+// than remembered: the denylist below can only catch a vendor someone thought
+// of, while this fails on any host that is not here.
+const EXTERNAL_HOST_ALLOWLIST: string[] = [
+  // DEAD CONFIG, DELIBERATELY VISIBLE. Massive is this codebase's own legacy
+  // market-data provider — migration 20260624044950_rename_provider_symbol.sql
+  // renamed massive_symbol to provider_symbol. `MASSIVE_API_BASE_URL` and
+  // `MASSIVE_API_KEY` survive in .env.example and NOTHING reads them: a
+  // whole-repo search for MASSIVE_API returns that file alone. It sat outside
+  // RIVAL_PROVIDER_HOSTS (nobody remembered it) AND outside the old scanned
+  // surface (a dotfile, not .ts under three roots), so both halves of the
+  // guard missed a second market-data provider named in the repository. It is
+  // recorded here rather than deleted so that its becoming live would be an
+  // edit to this line, reviewed like any other.
+  "api.massive.com",
+  "api.supabase.com",
+  // The verified feed (§20i ruling 8).
+  "financialmodelingprep.com",
+  // The economic calendar's env-gated alternate — news events, never prices,
+  // confined to news-calendar and pinned to its calendar endpoint below.
+  "finnhub.io",
+  // The broker whose platform the feed was verified against; documentation
+  // and support links, no data path.
+  "e8x.e8markets.com",
+  "help.e8markets.com",
+  "helpfutures.e8markets.com",
+  // First-party.
+  "levelflow.windwardline.com",
+  "windwardline.com",
+  // Toolchain and standards: linter docs, schema namespaces, registries,
+  // funding links, Apple's touch-icon namespace, Vercel's OpenAPI spec, and
+  // Supabase's placeholder project host in the example env.
+  "eslint.org",
+  "github.com",
+  "openapi.vercel.sh",
+  "opencollective.com",
+  "registry.npmjs.org",
+  "tidelift.com",
+  "www.apple.com",
+  "www.w3.org",
+  "your-project-ref.supabase.co",
+].sort();
 
 function walkCodeFiles(root: string): string[] {
   return readdirSync(root).flatMap((entry) => {
@@ -396,6 +504,45 @@ describe("feed source lock (§20i ruling 8)", () => {
     assert.deepEqual(referencingFiles, FMP_FILE_ALLOWLIST);
   });
 
+  it("names the provider only in recorded files, across the WHOLE repository", () => {
+    // The pin above walks three code roots filtered to .ts/.tsx/.mjs. This one
+    // walks every tracked file, which is what caught deploy.yml — the file
+    // that actually sets the deployed base URL.
+    const naming = trackedTextFiles
+      .filter(canReachProduction)
+      .filter((path) => readTracked(path).includes("financialmodelingprep"))
+      .sort();
+    assert.deepEqual(
+      naming,
+      [...FMP_FILE_ALLOWLIST, ...FMP_CONFIG_ALLOWLIST].sort(),
+      "a file naming the provider must be recorded, wherever it lives — " +
+        "adding another hand-picked root instead is how deploy.yml stayed " +
+        "invisible while production read its value",
+    );
+  });
+
+  it("pins the base URL deploy.yml actually ships, not just the code's fallback", () => {
+    // Every Edge caller resolves Deno.env.get("FMP_API_BASE_URL") ?? <literal>,
+    // so the literal is only the fallback. The deployed value is this line.
+    const deploy = readTracked(".github/workflows/deploy.yml");
+    assert.ok(deploy.length > 0, "deploy.yml must exist to be pinned");
+    assert.match(
+      deploy,
+      new RegExp(`FMP_API_BASE_URL=${VERIFIED_FMP_BASE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, "m"),
+      "deploy.yml must set the VERIFIED base — a one-line edit here " +
+        "repoints every live fetch and no .ts pin would move",
+    );
+    // And it must be inline, not a secrets lookup: the secrets.FMP_API_BASE_URL
+    // it once read never existed, so the expression rendered empty and only the
+    // || default saved it (#361 round 2).
+    assert.doesNotMatch(
+      deploy,
+      /FMP_API_BASE_URL=\$\{\{\s*secrets\./,
+      "a dead secrets reference renders empty — the shape that blanked " +
+        "FINNHUB_API_KEY",
+    );
+  });
+
   it("no rival market-data provider host exists outside its recorded allowance", () => {
     for (const host of RIVAL_PROVIDER_HOSTS) {
       const referencingFiles = codeFiles
@@ -407,6 +554,28 @@ describe("feed source lock (§20i ruling 8)", () => {
         `${host} appears outside its recorded allowance — a second market-data provider requires a fresh feed verification (docs/research/e8-feed-verification-2026-08-02.md)`,
       );
     }
+  });
+
+  it("declares every external host it reaches, not just the rivals it remembers", () => {
+    // RIVAL_PROVIDER_HOSTS is a DENYLIST of ten remembered vendor names
+    // guarding an unbounded population — "any provider". It stays, because it
+    // substring-matches raw text and so catches a vendor carrying no URL at
+    // all: an SDK import, a base URL assembled from parts, or a bare env-var
+    // name. A host regex catches none of those.
+    //
+    // This is its inverse, and the inverse is the one with a bounded
+    // population: extract every external host the tracked, production-reaching
+    // surface actually names, and deepEqual it against a recorded set. A new
+    // vendor fails here whether or not anyone remembered to deny it.
+    const hosts = new Set<string>();
+    for (const path of trackedTextFiles.filter(canReachProduction)) {
+      for (const match of readTracked(path).matchAll(/https?:\/\/([a-z0-9.-]+)/gi)) {
+        const host = match[1].toLowerCase();
+        if (host === "localhost" || /^127\.|^0\.0\.0\.0/.test(host)) continue;
+        hosts.add(host);
+      }
+    }
+    assert.deepEqual([...hosts].sort(), EXTERNAL_HOST_ALLOWLIST);
   });
 
   it("the finnhub allowance covers the calendar endpoint only, never prices", () => {
