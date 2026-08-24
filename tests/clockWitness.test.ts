@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   crossSeriesClock,
+  gridRegistration,
   newYorkOffsetHours,
   REFERENCE_SESSION_ANCHORS,
   seriesClockWitness,
@@ -613,6 +614,134 @@ describe("spring-transition witness — the 24/7 condemning witness, per year", 
     const witness = seriesClockWitness(bars, "intraday");
     assert.notEqual(witness.verdict, "naive");
     assert.equal(witness.transition, undefined);
+  });
+});
+
+describe("grid registration — the absolute test for a session-interior market", () => {
+  // crossSeriesClock compares DAY EXTREMES on the UTC calendar day, so a
+  // one-sided shift is visible only when it moves a day's high or low across
+  // UTC midnight. For a market whose session sits INSIDE the UTC day a
+  // four-hour mis-registration moves no extreme — that instrument then issues
+  // a clean bill at matchRateAtZero 1.000 rather than abstaining. This one
+  // asks a question with no calendar in it: a parent must bracket its own
+  // children, because they are the same trades.
+  const HOUR_MS = 3_600_000;
+  const session = (
+    days: number,
+    childrenPerParent: number,
+    shiftMs = 0,
+  ) => {
+    const primary: Array<{ time: number; high: number; low: number }> = [];
+    const five: Array<{ time: number; high: number; low: number }> = [];
+    const start = Date.UTC(2025, 0, 6, 13, 0); // 13:00 UTC — inside the day
+    for (let d = 0; d < days; d += 1) {
+      for (let q = 0; q < 24; q += 1) { // six hours of 15-minute bars
+        const t = start + d * DAY + q * 900_000;
+        const base = 100 + Math.sin((d * 24 + q) / 11) * 5;
+        const highs: number[] = [];
+        const lows: number[] = [];
+        for (let c = 0; c < childrenPerParent; c += 1) {
+          const h = base + 0.4 + c * 0.1;
+          const l = base - 0.4 - c * 0.1;
+          highs.push(h);
+          lows.push(l);
+          five.push({ high: h, low: l, time: t + c * 300_000 + shiftMs });
+        }
+        primary.push({
+          high: Math.max(...highs),
+          low: Math.min(...lows),
+          time: t,
+        });
+      }
+    }
+    return { five, primary };
+  };
+
+  it("registers a healthy pair", () => {
+    const { five, primary } = session(120, 3);
+    const result = gridRegistration(primary, five);
+    assert.equal(result.verdict, "registered");
+    assert.equal(result.violations, 0);
+    assert.ok(result.judged > 1_000);
+  });
+
+  it("registers an honestly SPARSE pair — one child per parent is not a defect", () => {
+    // This is the population crossSeriesClock cannot judge and the density
+    // ratio legitimately reads near 1.0 for. A parent holding one child still
+    // brackets that child.
+    const { five, primary } = session(120, 1);
+    const result = gridRegistration(primary, five);
+    assert.equal(result.verdict, "registered");
+    assert.equal(result.violations, 0);
+  });
+
+  it("condemns a one-sided shift that crossSeriesClock reads as aligned", () => {
+    const { five, primary } = session(120, 3, 4 * HOUR_MS);
+    const grid = gridRegistration(primary, five);
+    assert.equal(grid.verdict, "misregistered");
+    // And the point of the pair: the day-extremes instrument does NOT see it,
+    // because the session sits inside the UTC day and no extreme crosses
+    // midnight.
+    const relative = crossSeriesClock(primary, five);
+    assert.notEqual(
+      relative.verdict,
+      "shifted",
+      "if this ever starts failing, crossSeriesClock gained the power and " +
+        "this test's premise needs restating — not deleting",
+    );
+  });
+
+  it("refuses a pair that shares no grid at all rather than passing it", () => {
+    // Both series carry bars in the shared window and not one parent can be
+    // judged. That is a defect, and reading it as 0 violations of 0 would be
+    // a pass.
+    const { primary } = session(120, 3);
+    const offGrid = primary.map((bar) => ({ ...bar, time: bar.time + 60_000 }));
+    const result = gridRegistration(primary, offGrid);
+    assert.equal(result.verdict, "unjudgeable");
+    assert.equal(result.judged, 0);
+  });
+
+  it("sees a violation confined to the THIRD child", () => {
+    // The fixtures above nest their children — child 0 has the narrowest
+    // range — so a check reading only the first child passes them all. A real
+    // escape can sit in any slot: this is the still-forming-parent shape,
+    // where the parent was captured holding only its first child and the
+    // later ones then exceeded it. Measured live on EURUSD and BTCUSD.
+    const { five, primary } = session(60, 3);
+    const target = primary[10];
+    const onlyFirstChild = five.find((bar) => bar.time === target.time)!;
+    target.high = onlyFirstChild.high;
+    target.low = onlyFirstChild.low;
+    const result = gridRegistration(primary, five);
+    assert.equal(
+      result.violations,
+      1,
+      "a child escaping the bracket must count wherever it sits",
+    );
+  });
+
+  it("counts only parents whose whole span lies in the shared window", () => {
+    // The last parent's third child sits at +10 minutes. Judging a parent on
+    // a truncated child set under-samples it — a violation living in the
+    // missing children would never be looked at.
+    const { five, primary } = session(60, 3);
+    const full = gridRegistration(primary, five).judged;
+    const trimmed = gridRegistration(primary, five.slice(0, five.length - 2));
+    assert.equal(
+      trimmed.judged,
+      full - 1,
+      "exactly the boundary parent drops out when its children are cut",
+    );
+  });
+
+  it("does not judge a parent whose children fall outside the shared window", () => {
+    // The last parent's third child sits at +10 minutes. Judging it would
+    // condemn every healthy store for one bar it could never cover.
+    const { five, primary } = session(60, 3);
+    const trimmed = five.slice(0, five.length - 2);
+    const result = gridRegistration(primary, trimmed);
+    assert.equal(result.violations, 0, "the tail must not manufacture a violation");
   });
 });
 

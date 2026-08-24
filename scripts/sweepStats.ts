@@ -359,6 +359,21 @@ function verifyManifest(emitPath: string): SweepManifest {
           `shift — the mixed-clock signature; the corpus is refused`,
       );
     }
+    // C3: the grid registration, judged at the door. The relative check above
+    // cannot see a one-sided shift on a market whose session sits inside the
+    // UTC day — it read "aligned" at matchRateAtZero 1.000 against a real
+    // 4-hour displacement on nine of them, all of which the density gate also
+    // abstains for. This is the only instrument those nine have.
+    if (
+      entry.gridRegistration && entry.gridRegistration.verdict !== "registered"
+    ) {
+      throw new Error(
+        `${emitPath}: ${entry.symbol} 15-minute parents do not bracket their ` +
+          `own 5-minute children ` +
+          `(${JSON.stringify(entry.gridRegistration)}) — the two series are ` +
+          `not on one grid; the corpus is refused`,
+      );
+    }
     // R0f: the ABSOLUTE witness, judged at the door beside the relative one.
     // The check above cannot see a store whose two series are displaced
     // TOGETHER — it read "aligned" on three indices standing 6, 13 and 14

@@ -12,6 +12,7 @@
 import { createHash } from "node:crypto";
 import {
   type CrossSeriesClock,
+  type GridRegistration,
   type SeriesClockWitness,
   seriesClockWitness,
   type SessionAnchorWitness,
@@ -490,6 +491,14 @@ export type SweepManifest = {
     crossSeriesClock?: CrossSeriesClock;
     // #364 round 10: shared-window counts for the density ratio.
     crossSeriesDensity?: CrossSeriesDensity;
+    /**
+     * C3: whether the 5-minute children bracket inside their 15-minute
+     * parents. crossSeriesClock beside it compares DAY EXTREMES bucketed on
+     * the UTC calendar day, so it cannot see a one-sided shift on a market
+     * whose session sits inside the day — it read "aligned" at matchRateAtZero
+     * 1.000 against a real 4-hour displacement on nine of them.
+     */
+    gridRegistration?: GridRegistration;
     providerSymbol: string;
     series: Record<string, SeriesFacts>;
     // R0f: the venue session anchor — the ONLY ABSOLUTE intraday witness,
@@ -533,6 +542,7 @@ export function buildSweepManifest(input: {
     calibration: Record<string, unknown>;
     crossSeriesClock?: CrossSeriesClock;
     crossSeriesDensity?: CrossSeriesDensity;
+    gridRegistration?: GridRegistration;
     sessionAnchor?: SessionAnchorWitness;
     providerSymbol: string;
     series: Record<string, SeriesFacts>;
@@ -545,6 +555,7 @@ export function buildSweepManifest(input: {
   const symbols = input.symbols.map((entry) => ({
     calibration: entry.calibration,
     calibrationHash: sha256Hex(stableStringify(entry.calibration)),
+    ...(entry.gridRegistration && { gridRegistration: entry.gridRegistration }),
     ...(entry.sessionAnchor && { sessionAnchor: entry.sessionAnchor }),
     ...(entry.crossSeriesClock && {
       crossSeriesClock: entry.crossSeriesClock,

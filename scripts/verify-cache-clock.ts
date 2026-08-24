@@ -41,6 +41,7 @@ import {
 import {
   CALENDAR_CLOCK,
   crossSeriesClock,
+  gridRegistration,
   REFERENCE_SESSION_ANCHORS,
   seriesClockWitness,
   sessionAnchorWitness,
@@ -406,6 +407,32 @@ export function auditCacheClock(input: {
           `(zero-shift match ${registration.matchRateAtZero ?? "n/a"})`,
       );
     }
+    // R0f/C3: the ABSOLUTE registration test, beside the relative one above.
+    // crossSeriesClock buckets day extremes on the UTC calendar day, so a
+    // one-sided shift is visible only when it moves a high or low across UTC
+    // midnight — for a market whose session sits INSIDE the day it issues a
+    // clean bill at matchRateAtZero 1.000 rather than abstaining. The grid
+    // test asks a question with no calendar in it: a parent must bracket its
+    // own children, because they are the same trades.
+    const grid = gridRegistration(fifteen.slim, five.slim);
+    if (grid.verdict === "misregistered") {
+      fail(
+        `${pairKey}: ${grid.violations} of ${grid.judged} 15min parents do ` +
+          `not bracket their own 5min children — the two series are not on ` +
+          `one grid, whatever their day extremes say`,
+      );
+    } else if (grid.verdict === "unjudgeable") {
+      fail(
+        `${pairKey}: the 15min and 5min series share no common bar grid ` +
+          `(judged ${grid.judged}) — not one parent could be checked ` +
+          `against its own children`,
+      );
+    } else {
+      ok(
+        `${pairKey}: grid registered (${grid.judged} parents bracket their ` +
+          `children)`,
+      );
+    }
     // R0e, as amended by the converge that ranked it (2026-08-24). Two
     // changes, and the second exists because the obvious version of the first
     // would have removed coverage while reading as convergence.
@@ -477,9 +504,17 @@ export function auditCacheClock(input: {
           ok(`${pairKey}: 5min/15min density ${ratio.toFixed(2)}`);
         }
       } else {
+        // Bounded by the CHILD series' end for the same reason gridRegistration
+        // is: a parent's children extend past its own timestamp, so
+        // min(ends) drops the last parent even when its children exist.
+        const lastChildTime = five.slim.length > 0
+          ? five.slim[five.slim.length - 1].time
+          : overlapEnd;
         const children = new Set(
           five.slim
-            .filter((bar) => bar.time >= windowStart && bar.time <= overlapEnd)
+            .filter((bar) =>
+              bar.time >= windowStart && bar.time <= lastChildTime
+            )
             .map((bar) => bar.time),
         );
         let empty = 0;
@@ -490,7 +525,7 @@ export function auditCacheClock(input: {
           // past overlapEnd, so judging it would condemn every healthy store
           // for one bar it could never cover — found by the fixture that
           // places its only child in the :10 slot.
-          if (bar.time < windowStart || bar.time + 600_000 > overlapEnd) {
+          if (bar.time < windowStart || bar.time + 600_000 > lastChildTime) {
             continue;
           }
           parents += 1;

@@ -591,6 +591,112 @@ function closeEnough(first: number, second: number): boolean {
     1e-6 * Math.max(Math.abs(first), Math.abs(second));
 }
 
+export type GridRegistration = {
+  /** 15-minute parents whose whole span lay in the shared window and held at least one child. */
+  judged: number;
+  /** Parents whose children escaped their high/low bracket. */
+  violations: number;
+  verdict: "misregistered" | "registered" | "unjudgeable";
+};
+
+/**
+ * THE ABSOLUTE REGISTRATION TEST, on a common bar grid.
+ *
+ * `crossSeriesClock` above compares the two series by DAY EXTREMES bucketed on
+ * the UTC calendar day, so a one-sided shift is visible only when it moves a
+ * day's high or low across UTC midnight. For a market whose session sits
+ * INSIDE the UTC day a four-hour mis-registration moves no day's extremes at
+ * all — so that instrument does not abstain, it issues a clean bill at
+ * matchRateAtZero 1.000. Verified against the real 2026-08-11 naive transform
+ * on GFUSX, HEUSX and LEUSX, whose sessions occupy UTC 13-19 only.
+ *
+ * This one asks a question with no calendar in it: a 15-minute parent must
+ * BRACKET whatever 5-minute children it has, because those children are the
+ * same trades. Containment is a property of the aggregation, not of a
+ * timezone, so a relative shift breaks it and sparseness cannot — a parent
+ * holding one child still brackets that child.
+ *
+ * Measured across all 97 markets on the R0 cache (2026-08-24):
+ *
+ *   worst healthy violation rate   0.00301%   (THETAUSD, 3 of ~100k)
+ *   weakest detection under a shift    57.9%   (over +/-1, 4, 5, 6, 13, 14h)
+ *   separation                       19,271x
+ *
+ * The healthy violations are provider inconsistencies where a parent equals
+ * only its first child — one bar in ~400,000 on EURUSD and BTCUSD. The
+ * threshold sits 332x above the worst of those and 58x below the weakest
+ * detection, which is why it is a constant here and not a per-market figure:
+ * the empty region between the two populations spans four orders of
+ * magnitude, and no market sits in it.
+ */
+const GRID_VIOLATION_LIMIT = 0.01;
+
+export function gridRegistration(
+  primary: OhlcBar[],
+  fiveMinute: OhlcBar[],
+): GridRegistration {
+  if (primary.length === 0 || fiveMinute.length === 0) {
+    return { judged: 0, verdict: "unjudgeable", violations: 0 };
+  }
+  const children = new Map<number, OhlcBar>();
+  for (const bar of fiveMinute) {
+    children.set(bar.time, bar);
+  }
+  const windowStart = Math.max(primary[0].time, fiveMinute[0].time);
+  // Bounded by the CHILD series' end, not by min(ends). A parent's children
+  // sit at +0, +5 and +10 minutes, so they legitimately extend past the
+  // parent's own timestamp — taking the minimum drops the last parent even
+  // when all three of its children are present, which is a lost sample rather
+  // than a protected one. What must be excluded is a parent whose children
+  // were never fetched.
+  const lastChildTime = fiveMinute[fiveMinute.length - 1].time;
+  let judged = 0;
+  let violations = 0;
+  for (const bar of primary) {
+    // The parent's WHOLE span must lie inside the shared window: its third
+    // child sits at +10 minutes, and judging a parent whose children fall
+    // outside would condemn a healthy store for bars it could never cover.
+    if (bar.time < windowStart || bar.time + 600_000 > lastChildTime) {
+      continue;
+    }
+    const kids: OhlcBar[] = [];
+    for (const offset of [0, 300_000, 600_000]) {
+      const child = children.get(bar.time + offset);
+      if (child) {
+        kids.push(child);
+      }
+    }
+    // No child at all is the DENSITY gate's finding, not this one's.
+    if (kids.length === 0) {
+      continue;
+    }
+    judged += 1;
+    let high = kids[0].high;
+    let low = kids[0].low;
+    for (const kid of kids) {
+      if (kid.high > high) high = kid.high;
+      if (kid.low < low) low = kid.low;
+    }
+    // Relative tolerance, for values that round-tripped through JSON.
+    if (high > bar.high * (1 + 1e-9) || low < bar.low * (1 - 1e-9)) {
+      violations += 1;
+    }
+  }
+  if (judged === 0) {
+    // Both series carry bars in the shared window and not one parent could be
+    // judged: they do not share a grid at all, which is itself a defect —
+    // never a pass.
+    return { judged, verdict: "unjudgeable", violations };
+  }
+  return {
+    judged,
+    verdict: violations / judged > GRID_VIOLATION_LIMIT
+      ? "misregistered"
+      : "registered",
+    violations,
+  };
+}
+
 /**
  * Relative registration of the 5-minute series against the 15-minute
  * primary: at which shift do the two agree on each UTC day's extremes?
