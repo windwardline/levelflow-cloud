@@ -26,6 +26,14 @@ export type SeriesFacts = {
   count: number;
   firstTime: number | null;
   largestGapMs: number;
+  /**
+   * P5: the longest gap between consecutive bars INSIDE the recent window —
+   * this series' own measure of a long-but-lawful silence, spanning ~13
+   * weekends and any holidays among them. A staleness gate reads it so the
+   * bound is the MARKET'S rather than a constant chosen for a different
+   * market's cadence.
+   */
+  recentMaxGapMs?: number;
   lastTime: number | null;
   // Rows in the last DENSITY_RECENT_WINDOW_DAYS, so the class floor can judge
   // current feed health rather than a whole-span average that penalises depth.
@@ -82,6 +90,8 @@ export function seriesFacts(
     };
   }
   const times = bars.map((bar) => bar.time).sort((a, b) => a - b);
+  const first = times[0];
+  const last = times[times.length - 1];
   let largestGapMs = 0;
   for (let index = 1; index < times.length; index += 1) {
     const gap = times[index] - times[index - 1];
@@ -89,13 +99,47 @@ export function seriesFacts(
       largestGapMs = gap;
     }
   }
-  const first = times[0];
-  const last = times[times.length - 1];
+  // P5: THE MARKET'S OWN IDEA OF A LONG SILENCE, so a staleness gate can judge
+  // it against itself rather than against a constant.
+  //
+  // A flat bound cannot serve this roster. Seven days is right for the daily
+  // Treasury curve it was derived for, far too loose for a 24/7 five-minute
+  // crypto store that is dead at six hours, and too tight for an agricultural
+  // future carrying a lawful weekend-plus-holiday gap.
+  //
+  // Two statistics were tried and rejected, both recorded because the second
+  // was wrong in a way that reads plausible:
+  //
+  //   the MAXIMUM over all history — too loose. 25 of the roster's stores
+  //   carry a historical gap of 14 days or more and NZDUSD carries 72, so the
+  //   bound would permit a silence as long as the market's worst past outage.
+  //
+  //   the p99 over all history — too TIGHT, and the first draft of this
+  //   comment claimed the opposite: that "a session market's routine gaps are
+  //   the bulk of its distribution rather than its tail". They are the bulk;
+  //   the WEEKEND gaps are the thin tail. A five-day forex week has 40
+  //   weekend gaps among 19,040 bars, i.e. 0.2%, so the p99 sits at the
+  //   ordinary 15-minute inter-bar gap and every lawful weekend is past the
+  //   bound. A fixture caught it immediately.
+  //
+  // What is right is the LONGEST SILENCE THIS MARKET HAS HAD RECENTLY: the
+  // maximum gap inside the same recent window the density gate judges. That
+  // window spans ~13 weekends and any holidays among them, so every lawful
+  // gap is inside the bound by construction, while an outage from years ago
+  // is outside the window and cannot loosen it.
+  const recentGapStart = last - DENSITY_RECENT_WINDOW_DAYS * 86_400_000;
+  let recentMaxGapMs = 0;
+  for (let index = 1; index < times.length; index += 1) {
+    if (times[index] < recentGapStart) continue;
+    const gap = times[index] - times[index - 1];
+    if (gap > recentMaxGapMs) recentMaxGapMs = gap;
+  }
   const recent = recentWindow(times, last);
   return {
     clock: seriesClockWitness(bars, role),
     count: bars.length,
     firstTime: first,
+    recentMaxGapMs,
     largestGapMs,
     recentCount: recent.count,
     recentSpanDays: recent.spanDays,

@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { auditCacheClock } from "../scripts/verify-cache-clock.ts";
@@ -19,6 +25,13 @@ import { TREASURY_FETCH_START_MS } from "../scripts/sweepManifest.ts";
 // normalizer and through the defect era's transform — so each RED line is
 // earned on realistic store shapes, not hand-written verdicts.
 
+// P5: a fixture's series ends where the fixture ends, so the audit is anchored
+// THERE rather than at a hidden wall clock. Anchoring at `Date.now()` would
+// make every fixture fail the staleness gate for the accident of having been
+// written in the past, and a single shared constant fails whichever fixture
+// ends earliest. Derived per directory instead: the newest bar in the store
+// set under test. The staleness gate is then exercised DELIBERATELY, by the
+// test that truncates a store, and never incidentally.
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
 
@@ -130,6 +143,25 @@ afterEach(() => {
   }
 });
 
+/** The newest bar across every store in a fixture directory. */
+function newestBarIn(dir: string): number {
+  let newest = 0;
+  for (const name of readdirSync(dir)) {
+    if (!name.endsWith(".rolling.json")) continue;
+    try {
+      const items = JSON.parse(readFileSync(join(dir, name), "utf8")).items;
+      if (!Array.isArray(items)) continue;
+      for (const bar of items) {
+        const time = (bar as { time?: number }).time;
+        if (typeof time === "number" && time > newest) newest = time;
+      }
+    } catch {
+      // A torn store has its own RED line; it contributes no anchor.
+    }
+  }
+  return newest;
+}
+
 function store(dir: string, key: string, clock: string | undefined, items: unknown[]) {
   const body: Record<string, unknown> = { items, pinned: {} };
   if (clock !== undefined) {
@@ -172,7 +204,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     healthyTrio(dir);
     store(dir, "econ-calendar", CALENDAR_CLOCK, []);
     store(dir, "treasury-rates", CALENDAR_CLOCK, healthyCurve());
-    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    const report = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     const lines = report.lines.join("\n");
     assert.doesNotMatch(
       lines,
@@ -194,7 +226,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     healthyTrio(dir);
     store(dir, "econ-calendar", CALENDAR_CLOCK, []);
     store(dir, "treasury-rates", CALENDAR_CLOCK, []);
-    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    const report = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     assert.ok(
       report.failures.some((line) => /curve store is EMPTY/.test(line)),
       report.failures.join("\n") || "(no failures)",
@@ -205,7 +237,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     const dir = cacheDir();
     healthyTrio(dir);
     store(dir, "econ-calendar", CALENDAR_CLOCK, []);
-    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    const report = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     assert.ok(
       report.failures.some((line) => /no curve store/.test(line)),
       report.failures.join("\n") || "(no failures)",
@@ -225,7 +257,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
       (row) => row.dateMs >= TREASURY_FETCH_START_MS + 275 * 86_400_000,
     );
     store(dir, "treasury-rates", CALENDAR_CLOCK, late);
-    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    const report = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     assert.ok(
       report.failures.some((line) => /the head is \d+ days short/.test(line)),
       report.failures.join("\n") || "(no failures)",
@@ -242,7 +274,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
       (row) => row.dateMs < cut || row.dateMs > cut + 278 * 86_400_000,
     );
     store(dir, "treasury-rates", CALENDAR_CLOCK, holed);
-    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    const report = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     assert.ok(
       report.failures.some((line) => /largest interior gap is 2\d\d days/.test(line)),
       report.failures.join("\n") || "(no failures)",
@@ -257,7 +289,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
       (row) => row.dateMs < Date.now() - 60 * 86_400_000,
     );
     store(dir, "treasury-rates", CALENDAR_CLOCK, stale);
-    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    const report = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     assert.ok(
       report.failures.some((line) => /days stale/.test(line)),
       report.failures.join("\n") || "(no failures)",
@@ -269,7 +301,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     healthyTrio(dir);
     store(dir, "econ-calendar", CALENDAR_CLOCK, []);
     store(dir, "treasury-rates", BAR_CLOCK, [{ time: Date.UTC(2013, 0, 2) }]);
-    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    const report = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     assert.ok(
       report.failures.some((line) => /treasury-rates: stamped/.test(line)),
       report.failures.join("\n"),
@@ -282,7 +314,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     const dir = cacheDir();
     healthyTrio(dir);
     store(dir, "treasury-rates", CALENDAR_CLOCK, healthyCurve());
-    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    const report = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     // The gate's OWN text. `/calendar/i` also matches every condemnation line,
     // because CALENDAR_CLOCK is "fmp-calendar-utc-v1" — the assertion would
     // have passed on the wrong failure.
@@ -300,7 +332,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(dir, "econ-calendar", CALENDAR_CLOCK, [
       { currency: "USD", impact: "high", time: Date.UTC(2026, 0, 3, 13, 30) },
     ]);
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     assert.deepEqual(audit.failures, []);
     assert.ok(audit.lines.some((line) => line.includes("density 3.00")));
   });
@@ -310,7 +342,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(dir, "EURUSD-15min-7000", undefined, intraday(900_000, true));
     store(dir, "EURUSD-5min-7000", undefined, intraday(300_000, false));
     store(dir, "EURUSD-daily-7000", undefined, daily(true));
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     assert.equal(audit.failures.length, 3);
     for (const failure of audit.failures) {
       assert.match(failure, /unstamped — pre-R0/);
@@ -322,7 +354,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(dir, "EURUSD-15min-7000", BAR_CLOCK, intraday(900_000, false));
     store(dir, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
     store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(true));
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     assert.equal(audit.failures.length, 1);
     assert.match(audit.failures[0], /daily.*"naive"/s);
   });
@@ -332,7 +364,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(dir, "EURUSD-15min-7000", BAR_CLOCK, intraday(900_000, true));
     store(dir, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
     store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     assert.ok(
       audit.failures.some((line) => /registers at -4h/.test(line)),
       audit.failures.join("\n"),
@@ -349,7 +381,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
       intraday(300_000, false).filter((_, index) => index % 3 === 0),
     );
     store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     assert.ok(audit.failures.some((line) => /sawtooth/.test(line)));
   });
 
@@ -389,7 +421,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(dir, "EURUSD-15min-7000", BAR_CLOCK, parents);
     store(dir, "EURUSD-5min-7000", BAR_CLOCK, children);
     store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     // One child per parent is a ratio of 1.0 — far under the band's 2.5 floor.
     // The band must not speak for this market at all.
     assert.ok(
@@ -430,7 +462,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(dir, "EURUSD-15min-7000", BAR_CLOCK, parents);
     store(dir, "EURUSD-5min-7000", BAR_CLOCK, children);
     store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     assert.ok(
       !audit.failures.some((line) => /hold NO 5min child/.test(line)),
       `a child in the :10 slot still covers its parent: ${audit.failures.join("\n")}`,
@@ -454,7 +486,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(dir, "EURUSD-15min-7000", BAR_CLOCK, parents);
     store(dir, "EURUSD-5min-7000", BAR_CLOCK, children);
     store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     assert.ok(
       !audit.failures.some((line) => /sawtooth/.test(line)),
       `the thin early era must not condemn: ${audit.failures.join("\n")}`,
@@ -473,7 +505,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(dir, "EURUSD-15min-7000", BAR_CLOCK, parents);
     store(dir, "EURUSD-5min-7000", BAR_CLOCK, children);
     store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     assert.ok(
       audit.failures.some((line) =>
         /parents hold NO 5min child.*sawtooth/.test(line)
@@ -482,11 +514,92 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     );
   });
 
+  // P5. Nothing anywhere asked whether a bar feed had STOPPED. `staleMs` lived
+  // at exactly one site — the Treasury branch — and `recentWindow` ends its
+  // 90-day window at the SERIES' OWN last bar, so a store truncated 200 days
+  // ago measures density over a window that ended 200 days ago and reports the
+  // theoretical maximum. Proven on the real cache: BTCUSD truncated as though
+  // dead 200 days reads 288.0 rows/day, recentSpanDays 90, verdict "utc" —
+  // identical to live, and it clears the 260 floor.
+  it("fails a store whose feed has stopped, as a SOURCE failure", () => {
+    const dir = cacheDir();
+    const fifteen = intraday(900_000, false);
+    const five = intraday(300_000, false);
+    // Truncate the 15-minute store 30 days back. Its own recent-window gaps
+    // are weekends of ~2 days, so a 30-day silence is unprecedented for it.
+    const cut = fifteen[fifteen.length - 1].time - 30 * DAY;
+    store(dir, "EURUSD-15min-7000", BAR_CLOCK, fifteen.filter((b) => b.time <= cut));
+    store(dir, "EURUSD-5min-7000", BAR_CLOCK, five);
+    store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
+    assert.ok(
+      audit.failures.some((line) => /SOURCE FAILURE.*silent for 3[0-9]\.\d\d days/.test(line)),
+      `a stopped feed must be caught: ${audit.failures.join("\n")}`,
+    );
+    // Amendment 31 types it: a lapsed feed is a SOURCE failure that ejects
+    // automatically, never a calibration verdict. The wording must say so, or
+    // an operator reads it as the density gate's opinion about the market.
+    assert.ok(
+      audit.failures.some((line) =>
+        /not a density or calibration verdict/.test(line)
+      ),
+    );
+  });
+
+  it("takes the bound from the RECENT window, not from an ancient outage", () => {
+    // The statistic matters and this is the case that separates the
+    // candidates. 25 of the roster's real stores carry a historical gap of 14
+    // days or more, and NZDUSD carries 72 — so a bound taken over ALL history
+    // lets a market sit silent for as long as its worst past outage. Here an
+    // old 60-day hole sits early in the series and the store then stops for
+    // 30 days. Under an all-history bound the 30-day silence is "normal for
+    // this market" and passes; under the recent window it is unprecedented.
+    const dir = cacheDir();
+    const fifteen = intraday(900_000, false);
+    const five = intraday(300_000, false);
+    const start = fifteen[0].time;
+    // Punch a 60-day hole out of the early history, well outside the recent
+    // window, then truncate the tail 30 days back.
+    const holeFrom = start + 20 * DAY;
+    const holeTo = holeFrom + 60 * DAY;
+    const cut = fifteen[fifteen.length - 1].time - 30 * DAY;
+    const holed = fifteen.filter((b) =>
+      (b.time < holeFrom || b.time > holeTo) && b.time <= cut
+    );
+    store(dir, "EURUSD-15min-7000", BAR_CLOCK, holed);
+    store(dir, "EURUSD-5min-7000", BAR_CLOCK, five);
+    store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
+    assert.ok(
+      audit.failures.some((line) => /EURUSD.*15min: SOURCE FAILURE/.test(line)),
+      `an old outage must not license a new silence: ${audit.failures.join("\n")}`,
+    );
+  });
+
+  it("does NOT fail a market for a silence it has had before", () => {
+    // The bound is the market's own longest RECENT gap, so a weekend cannot
+    // trip it. A flat bound could not do this: 7 days is right for a daily
+    // curve, far too loose for a 24/7 5-minute store and too tight for a grain
+    // future's weekend-plus-holiday gap.
+    const dir = cacheDir();
+    healthyTrio(dir);
+    const newest = newestBarIn(dir);
+    const audit = auditCacheClock({
+      // Two days on — inside a forex weekend, which this market has every week.
+      asOfMs: newest + 2 * DAY,
+      cacheDir: dir,
+    });
+    assert.ok(
+      !audit.failures.some((line) => /SOURCE FAILURE/.test(line)),
+      `a lawful weekend must not read as a lapsed feed: ${audit.failures.join("\n")}`,
+    );
+  });
+
   it("reports a corrupt store as a RED line instead of crashing the listing", () => {
     const dir = cacheDir();
     healthyTrio(dir);
     writeFileSync(join(dir, "BTCUSD-15min-7000.rolling.json"), '{"items":[{"ti');
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     assert.ok(audit.failures.some((line) => /unreadable store/.test(line)));
   });
 
@@ -494,7 +607,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     const dir = cacheDir();
     store(dir, "EURUSD-15min-7000", BAR_CLOCK, intraday(900_000, false));
     store(dir, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     assert.ok(audit.failures.some((line) => /no daily store/.test(line)));
   });
 
@@ -502,7 +615,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     const dir = cacheDir();
     store(dir, "EURUSD-15min-7000", BAR_CLOCK, intraday(900_000, false));
     store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     assert.ok(audit.failures.some((line) => /no 5min mate/.test(line)));
   });
 
@@ -510,6 +623,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     const dir = cacheDir();
     healthyTrio(dir);
     const audit = auditCacheClock({
+      asOfMs: newestBarIn(dir),
       cacheDir: dir,
       rosterProviderSymbols: ["EURUSD", "BTCUSD"],
     });
@@ -531,7 +645,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
       intraday(300_000, false).map((b) => ({ ...b, high: b.high + 0.01, low: b.low - 0.01 })),
     );
     store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     assert.ok(
       audit.failures.some((line) => /registration INDETERMINATE over \d+ shared days/.test(line)),
       audit.failures.join("\n"),
@@ -552,7 +666,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     );
     store(inBand, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
     store(inBand, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
-    const green = auditCacheClock({ cacheDir: inBand });
+    const green = auditCacheClock({ asOfMs: newestBarIn(inBand), cacheDir: inBand });
     assert.ok(
       !green.failures.some((line) => /ABOVE the complete ratio/.test(line)),
       green.failures.join("\n"),
@@ -567,7 +681,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     );
     store(pastBand, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
     store(pastBand, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
-    const red = auditCacheClock({ cacheDir: pastBand });
+    const red = auditCacheClock({ asOfMs: newestBarIn(pastBand), cacheDir: pastBand });
     assert.ok(
       red.failures.some((line) => /ABOVE the complete ratio/.test(line)),
       red.failures.join("\n"),
@@ -586,7 +700,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     );
     store(dir, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
     store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     assert.ok(
       audit.failures.some((line) => /ABOVE the complete ratio/.test(line)),
       audit.failures.join("\n"),
@@ -609,7 +723,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
         time: Date.UTC(2025, 6, 1, 12) + index * DAY,
       })),
     );
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     assert.ok(
       audit.failures.some((line) => /daily witness resolved NOTHING/.test(line)),
       audit.failures.join("\n"),
@@ -621,7 +735,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(healthy, "^GSPC-15min-7000", BAR_CLOCK, referenceIntraday(15, false));
     store(healthy, "^GSPC-5min-7000", BAR_CLOCK, referenceIntraday(5, false));
     store(healthy, "^GSPC-daily-7000", BAR_CLOCK, daily(false));
-    const green = auditCacheClock({ cacheDir: healthy });
+    const green = auditCacheClock({ asOfMs: newestBarIn(healthy), cacheDir: healthy });
     assert.deepEqual(green.failures, [], green.failures.join("\n"));
     assert.ok(green.lines.some((line) => /reference session anchored/.test(line)));
 
@@ -629,7 +743,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(poisoned, "^GSPC-15min-7000", BAR_CLOCK, referenceIntraday(15, true));
     store(poisoned, "^GSPC-5min-7000", BAR_CLOCK, referenceIntraday(5, true));
     store(poisoned, "^GSPC-daily-7000", BAR_CLOCK, daily(false));
-    const red = auditCacheClock({ cacheDir: poisoned });
+    const red = auditCacheClock({ asOfMs: newestBarIn(poisoned), cacheDir: poisoned });
     // BOTH naive intraday stores displace from the venue open — the case
     // every relative instrument reads as aligned (#358).
     assert.ok(
@@ -659,6 +773,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     calendarStore(dir);
     curveStore(dir);
     const audit = auditCacheClock({
+      asOfMs: newestBarIn(dir),
       cacheDir: dir,
       rosterProviderSymbols: ["EURUSD"],
     });
@@ -671,6 +786,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     calendarStore(dir);
     curveStore(dir);
     const audit = auditCacheClock({
+      asOfMs: newestBarIn(dir),
       cacheDir: dir,
       rosterProviderSymbols: ["EURUSD"],
     });
@@ -688,6 +804,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
     calendarStore(dir);
     const audit = auditCacheClock({
+      asOfMs: newestBarIn(dir),
       cacheDir: dir,
       rosterProviderSymbols: ["EURUSD"],
     });
@@ -718,6 +835,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
     calendarStore(dir);
     const audit = auditCacheClock({
+      asOfMs: newestBarIn(dir),
       cacheDir: dir,
       rosterProviderSymbols: ["EURUSD"],
     });
@@ -742,6 +860,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
     calendarStore(dir);
     const audit = auditCacheClock({
+      asOfMs: newestBarIn(dir),
       cacheDir: dir,
       rosterProviderSymbols: ["EURUSD"],
     });
@@ -760,7 +879,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
   it("keeps the daily-presence check's pre-round-6 reach: empty intraday beside NO daily still fails without a roster (round 6b)", () => {
     const dir = cacheDir();
     store(dir, "EURUSD-15min-7000", BAR_CLOCK, []);
-    const audit = auditCacheClock({ cacheDir: dir });
+    const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
     assert.ok(
       audit.failures.some((line) =>
         /intraday stores present but no daily store/.test(line)
@@ -779,7 +898,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(misStamped, "EURUSD-15min-7000", BAR_CLOCK, intraday(900_000, false));
     store(misStamped, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
     store(misStamped, "EURUSD-daily-7000", "some-older-clock", daily(false));
-    const stampAudit = auditCacheClock({ cacheDir: misStamped });
+    const stampAudit = auditCacheClock({ asOfMs: newestBarIn(misStamped), cacheDir: misStamped });
     assert.ok(
       stampAudit.failures.some((line) =>
         /daily-7000: stamped "some-older-clock", expected/.test(line)
@@ -797,7 +916,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(torn, "EURUSD-15min-7000", BAR_CLOCK, intraday(900_000, false));
     store(torn, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
     writeFileSync(join(torn, "EURUSD-daily-7000.rolling.json"), '{"items":[{"ti');
-    const tornAudit = auditCacheClock({ cacheDir: torn });
+    const tornAudit = auditCacheClock({ asOfMs: newestBarIn(torn), cacheDir: torn });
     assert.ok(
       tornAudit.failures.some((line) =>
         /daily-7000: unreadable store/.test(line)
@@ -818,6 +937,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     store(dir, "^GSPC-daily-7000", BAR_CLOCK, daily(false));
     calendarStore(dir);
     const audit = auditCacheClock({
+      asOfMs: newestBarIn(dir),
       cacheDir: dir,
       rosterProviderSymbols: ["EURUSD", "^GSPC"],
     });
@@ -836,6 +956,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     // passing on whichever singleton happens to be missing.
     curveStore(dir);
     const audit = auditCacheClock({
+      asOfMs: newestBarIn(dir),
       cacheDir: dir,
       rosterProviderSymbols: ["EURUSD"],
     });
