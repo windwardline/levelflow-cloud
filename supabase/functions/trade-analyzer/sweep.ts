@@ -174,6 +174,17 @@ export type SweepSummary = {
 export type SweepResult = {
   decisionPoints: number;
   outcomes: SweepOutcomeRecord[];
+  /**
+   * P1: one record per rejected decision — the account the counters below
+   * cannot give. A rejected decision emits no outcome row, so before this the
+   * engine's whole record of what it declined was eleven integers per run, and
+   * no reader could ask which BAR produced nothing or why.
+   *
+   * `reason` is `keyof` the counter struct, derived rather than hand-listed.
+   * `belowThreshold` never appears here: it is an aggregate of the three
+   * acceptance-gate branches and appending it would double-count them.
+   */
+  rejectionLedger: Array<{ reason: string; time: number }>;
   rejections: {
     // belowThreshold = belowConfidence + belowPayoff + regimeGated: the
     // combined acceptance-gate tally, kept for continuity; the split fields
@@ -372,6 +383,24 @@ export function simulateSymbol(input: {
   const resolutionTime = (input.primaryBars.at(-1)?.time ?? 0) +
     14 * 24 * 60 * 60 * 1000;
   let decisionPoints = 0;
+  // P1: THE LEDGER, beside the counters that were the only record until
+  // 2026-08-24.
+  //
+  // A rejected decision emitted no row, so `rejections` was the whole account
+  // of every decision the engine declined — eleven integers for a run. That
+  // makes recoverability track DIRECTION rather than effort: a divergence
+  // where the sweep is more PERMISSIVE than live leaves rows a reader can find
+  // and prune, while one where the sweep is more RESTRICTIVE leaves nothing
+  // but an incremented integer. Four of the eleven measured sweep-live
+  // divergences are sweep-restrictive, so their populations were not
+  // measurable from the corpus at all.
+  //
+  // It is also amendment 33's second obligation stated as an artifact
+  // property. "Identifies money-positive setups at a high rate, CAN ACCOUNT
+  // FOR HOW EACH WAS DERIVED, and presents figures the operator can rely on" —
+  // and the amendment names the second as the one most often dropped. A
+  // counter cannot say why THIS bar produced nothing.
+  const rejectionLedger: Array<{ reason: string; time: number }> = [];
   const rejections = {
     belowConfidence: 0,
     belowPayoff: 0,
@@ -384,6 +413,19 @@ export function simulateSymbol(input: {
     regimeGated: 0,
     sessionBlocked: 0,
     unresolvable: 0,
+  };
+  /**
+   * Record a rejection ONCE, in both places, so the two can never disagree.
+   *
+   * The reason type is `keyof typeof rejections` — DERIVED from the counter
+   * struct rather than hand-listed. Hand-listing is how the struct itself
+   * froze: `regimeGated` arrived later as an else-branch and no reader knew to
+   * expect it. Add a counter and the reason exists; there is no second list to
+   * forget.
+   */
+  const reject = (reason: keyof typeof rejections, atMs: number) => {
+    rejections[reason] += 1;
+    rejectionLedger.push({ reason, time: atMs });
   };
   const newsEvents = input.newsEvents ?? [];
   // Decision points advance chronologically, so a moving pointer keeps the
@@ -474,7 +516,7 @@ export function simulateSymbol(input: {
       sessionContext = { ...sessionContext, block: false, penalty: 0 };
     }
     if (sessionContext.block) {
-      rejections.sessionBlocked += 1;
+      reject("sessionBlocked", latest.time);
       continue;
     }
     // News join: mirror the live analyzer's scheduled-event handling.
@@ -506,7 +548,7 @@ export function simulateSymbol(input: {
       }
     }
     if (activeNews.some(isBlockingNewsEvent)) {
-      rejections.newsBlocked += 1;
+      reject("newsBlocked", latest.time);
       continue;
     }
     const newsPenaltyUnits = calculateNewsPenaltyUnits(
@@ -516,19 +558,19 @@ export function simulateSymbol(input: {
 
     const regime = classifyRegime(market);
     if (!regime) {
-      rejections.notWarm += 1;
+      reject("notWarm", latest.time);
       continue;
     }
     if (
       !input.captureAll && calibration.blockedRegimes?.includes(regime.name)
     ) {
-      rejections.regimeBlocked += 1;
+      reject("regimeBlocked", latest.time);
       continue;
     }
     const votes = runStrategyCommittee(input.symbol, market, regime);
     const consensus = scoreConsensus(votes, regime);
     if (!consensus.side) {
-      rejections.noConsensus += 1;
+      reject("noConsensus", latest.time);
       continue;
     }
     const plan = buildPricePlan(
@@ -539,7 +581,7 @@ export function simulateSymbol(input: {
       calibration,
     );
     if (!plan) {
-      rejections.planRejected += 1;
+      reject("planRejected", latest.time);
       continue;
     }
 
@@ -605,9 +647,12 @@ export function simulateSymbol(input: {
     if (!accepted && !input.captureAll) {
       // First failing gate wins the attribution; belowThreshold stays the
       // combined tally so long-running analyses keep their column.
-      if (belowConfidence) rejections.belowConfidence += 1;
-      else if (belowPayoff) rejections.belowPayoff += 1;
-      else rejections.regimeGated += 1;
+      if (belowConfidence) reject("belowConfidence", latest.time);
+      else if (belowPayoff) reject("belowPayoff", latest.time);
+      else reject("regimeGated", latest.time);
+      // AN AGGREGATE, NOT A TWELFTH REASON: it counts the three branches
+      // above, so it takes the counter and NOT a ledger row — appending
+      // here would double-count every rejection at this gate.
       rejections.belowThreshold += 1;
       continue;
     }
@@ -698,7 +743,7 @@ export function simulateSymbol(input: {
       // reaches this branch is a constructed plan the resolver still could
       // not grade (non-finite plan numbers) — its own bucket, so
       // planRejected keeps one meaning and decision arithmetic stays exact.
-      rejections.unresolvable += 1;
+      reject("unresolvable", latest.time);
       continue;
     }
 
@@ -773,6 +818,7 @@ export function simulateSymbol(input: {
   return {
     decisionPoints,
     outcomes,
+    rejectionLedger,
     rejections,
     // Summary keeps its accepted-only semantics in both modes.
     summary: summarizeSweepOutcomes(
