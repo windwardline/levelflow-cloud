@@ -117,6 +117,58 @@ export function calculateMacroRateAdjustment(
  * This function sees only the pair; each caller owns its ordering, and
  * the sweep's is executed end-to-end in tests/sweep.test.ts.
  */
+/**
+ * How old the newest Treasury label may be before the curve stops being
+ * decision-time information.
+ *
+ * SEVEN DAYS, and the number is a publication-calendar fact rather than a
+ * tolerance: Treasury publishes on business days, so the curve legitimately
+ * gaps three calendar days across a weekend and four across a midweek
+ * holiday. A predicate asking whether the two rows are ADJACENT would
+ * false-positive every Monday — and under amendment 31 an unjustified refusal
+ * is a coverage loss, not a safe default. Seven clears the longest lawful gap
+ * and catches a feed that has stopped.
+ *
+ * The sweep already refuses on exactly this bound, twice, inline. This is the
+ * same bound as ONE definition so the live path cannot drift from it — a
+ * second copy in macroContext would be a third number to keep in step.
+ */
+export const TREASURY_MAX_STALE_MS = 7 * 86_400_000;
+
+/**
+ * Whether the newest Treasury label is too old to score against, measured
+ * from its LABEL DATE — not from when it became visible.
+ *
+ * The clock matters and is stated because the two differ by up to a day:
+ * `treasuryVisibleAtMs` moves a label to the New York midnight AFTER it, so a
+ * bound taken there would run a day tighter than this one. The label date is
+ * the right basis for staleness because what has stopped, when a feed stops,
+ * is the labelling — and both callers can name a label date while only the
+ * sweep has a visibility instant.
+ *
+ * A 200 is not freshness. `fetchMacroRateContext` records a provider outage
+ * for a missing key, a non-200, a non-array, a short history and a throw —
+ * and never for a successful response carrying a stale tail, which keeps
+ * `source: "fmp_treasury_rates"` and scores every setup off a pair that may
+ * straddle a large move. The identical lesson was mechanised for the calendar
+ * job in migration 20260729040000_scheduled_sync_watchdog.sql, whose own
+ * comment reads "Cron success is not job success", and was never carried to
+ * the Treasury curve beside it.
+ */
+export function treasuryCurveStaleMs(
+  latestLabelMs: number,
+  asOfMs: number,
+): number {
+  return asOfMs - latestLabelMs;
+}
+
+export function treasuryCurveIsStale(
+  latestLabelMs: number,
+  asOfMs: number,
+): boolean {
+  return treasuryCurveStaleMs(latestLabelMs, asOfMs) > TREASURY_MAX_STALE_MS;
+}
+
 export function treasuryContextFromRows(
   latest: DatedTreasuryRow,
   previous: DatedTreasuryRow,
@@ -299,7 +351,7 @@ function numberFromKeys(row: Record<string, unknown>, keys: string[]) {
   return null;
 }
 
-function isoDateFromMs(ms: number) {
+export function isoDateFromMs(ms: number) {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
