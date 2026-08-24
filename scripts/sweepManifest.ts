@@ -14,6 +14,7 @@ import {
   type CrossSeriesClock,
   type SeriesClockWitness,
   seriesClockWitness,
+  type SessionAnchorWitness,
   type SeriesRole,
 } from "./clockWitness.ts";
 
@@ -491,6 +492,17 @@ export type SweepManifest = {
     crossSeriesDensity?: CrossSeriesDensity;
     providerSymbol: string;
     series: Record<string, SeriesFacts>;
+    // R0f: the venue session anchor — the ONLY ABSOLUTE intraday witness,
+    // and until 2026-08-24 the only one absent from this manifest. The
+    // relative instrument beside it (crossSeriesClock) is blind to a store
+    // whose 5-minute and 15-minute series are displaced TOGETHER, which is
+    // exactly what a provider labelling bars in local exchange time
+    // produces; it reported "aligned" on three indices displaced by 6, 13
+    // and 14 hours. The absolute witness that can see it ran only when a
+    // human typed `npx tsx scripts/verify-cache-clock.ts`, so the corpus
+    // door had no fact to judge. Present only for symbols carrying an
+    // anchor (REFERENCE_SESSION_ANCHORS), absent for continuous markets.
+    sessionAnchor?: SessionAnchorWitness;
     symbol: string;
   }>;
   trainShare: number;
@@ -521,6 +533,7 @@ export function buildSweepManifest(input: {
     calibration: Record<string, unknown>;
     crossSeriesClock?: CrossSeriesClock;
     crossSeriesDensity?: CrossSeriesDensity;
+    sessionAnchor?: SessionAnchorWitness;
     providerSymbol: string;
     series: Record<string, SeriesFacts>;
     symbol: string;
@@ -532,6 +545,7 @@ export function buildSweepManifest(input: {
   const symbols = input.symbols.map((entry) => ({
     calibration: entry.calibration,
     calibrationHash: sha256Hex(stableStringify(entry.calibration)),
+    ...(entry.sessionAnchor && { sessionAnchor: entry.sessionAnchor }),
     ...(entry.crossSeriesClock && {
       crossSeriesClock: entry.crossSeriesClock,
     }),

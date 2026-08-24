@@ -727,6 +727,50 @@ describe("the driver writes the manifest beside the emit", () => {
   // and the R0 rebuild mid-roster, on floors those runs' outputs are
   // never measured against — so the order and the guard are pinned as
   // source shapes, like the rest of this driver's wiring.
+  // R0f. The venue anchor is the ONLY ABSOLUTE intraday witness, and it ran
+  // on no automated path: its single call site was scripts/verify-cache-clock.ts,
+  // which is on no CI path. Every instrument the driver DID run is relative, so
+  // all of them reported healthy on three indices standing 6, 13 and 14 hours
+  // out of register — a provider labelling bars in local exchange time moves
+  // both series together. R3 is one re-sweep; a corpus written from displaced
+  // stores could not have been detected from the manifest, because the manifest
+  // did not carry the fact. Pinned as source shape, like the rest of this
+  // driver's wiring.
+  it("runs the absolute venue anchor in the driver and refuses a displaced store", () => {
+    const script = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.match(
+      script,
+      /REFERENCE_SESSION_ANCHORS\[providerSymbol\]/,
+      "the anchor is looked up by PROVIDER symbol — the cache stores are " +
+        "keyed that way, and the engine name would silently miss every index",
+    );
+    assert.match(
+      script,
+      /sessionAnchorWitness\(primaryBars, sessionAnchorSpec\)/,
+      "the witness judges the 15-minute primary, the decision timeframe",
+    );
+    assert.match(
+      script,
+      /sessionAnchor\?\.verdict === "displaced"[\s\S]{0,400}?throw new Error\(/,
+      "a displaced store throws in the driver, where it costs minutes — " +
+        "not at read time after a multi-hour sweep has written a corpus",
+    );
+    const witnessCall = script.indexOf("sessionAnchorWitness(primaryBars");
+    const manifestPush = script.indexOf("manifestSymbols.push(");
+    assert.ok(witnessCall >= 0 && manifestPush >= 0);
+    assert.ok(
+      witnessCall < manifestPush,
+      "the anchor is judged BEFORE the entry is pushed, so no displaced " +
+        "store reaches the manifest",
+    );
+    assert.match(
+      script,
+      /\.\.\.\(sessionAnchor && \{ sessionAnchor \}\)/,
+      "and the verdict rides into the manifest, so the corpus door can " +
+        "judge it too — the door had no such fact until 2026-08-24",
+    );
+  });
+
   it("asserts density only for manifested symbols on sweep runs — never under --warm-only, never on thin symbols", () => {
     const script = readFileSync("scripts/replay-sweep.ts", "utf8");
     const thinSkip = script.indexOf("primaryBars.length < WARMUP_BARS * 2");
