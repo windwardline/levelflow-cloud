@@ -745,3 +745,124 @@ describe("replay sweep", () => {
     assert.equal(summary.expectancyR, 0.45);
   });
 });
+
+describe("the rejection ledger (P1) — an account, not a tally", () => {
+  // A rejected decision emits no outcome row, so before 2026-08-24 the
+  // engine's entire record of what it declined was eleven integers per run.
+  // Four of the eleven measured sweep-live divergences are sweep-RESTRICTIVE,
+  // which means their populations were not measurable from the corpus at all:
+  // a permissive divergence leaves rows a reader can prune, a restrictive one
+  // leaves an incremented integer.
+  const run = () =>
+    simulateSymbol({
+      calibrationOverride: {
+        blockedRegimes: [],
+        runnerWindowShare: 1,
+        tp1RiskShare: 0.8,
+      },
+      dailyBars: dailyBars(80),
+      primaryBars: triangleBars(600),
+      stepBars: 16,
+      symbol: "EURUSD",
+      warmupBars: 120,
+    });
+
+  it("records one ledger row per rejected decision, and no row for the aggregate", () => {
+    const result = run();
+    const counters = result.rejections as unknown as Record<string, number>;
+    // belowThreshold counts the three acceptance-gate branches; a ledger row
+    // for it would double-count each of them.
+    const distinct = Object.entries(counters)
+      .filter(([reason]) => reason !== "belowThreshold")
+      .reduce((total, [, count]) => total + count, 0);
+    assert.equal(
+      result.rejectionLedger.length,
+      distinct,
+      "one row per rejection, aggregates excluded",
+    );
+    assert.equal(
+      counters.belowThreshold,
+      counters.belowConfidence + counters.belowPayoff + counters.regimeGated,
+      "belowThreshold must remain exactly the sum of its three branches, or " +
+        "excluding it from the ledger drops real rejections",
+    );
+  });
+
+  it("uses only reasons that are counter keys — the enum is DERIVED", () => {
+    // Hand-listing the reasons is how the counter struct itself froze:
+    // regimeGated arrived later as an else-branch and no reader knew to expect
+    // it. The reason type is `keyof typeof rejections`, so adding a counter
+    // creates the reason and there is no second list to forget.
+    const result = run();
+    const keys = new Set(Object.keys(result.rejections));
+    for (const row of result.rejectionLedger) {
+      assert.ok(
+        keys.has(row.reason),
+        `${row.reason} is not a counter key — the ledger and the counters have ` +
+          `diverged`,
+      );
+    }
+  });
+
+  it("stamps every ledger row with a decision instant inside the run", () => {
+    const result = run();
+    for (const row of result.rejectionLedger) {
+      assert.equal(typeof row.time, "number");
+      assert.ok(Number.isFinite(row.time) && row.time > 0);
+    }
+  });
+
+  it("routes every rejection site through the recorder, in source", () => {
+    // The counter and the ledger cannot be allowed to drift, so nothing may
+    // increment a counter directly except the one aggregate.
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/sweep.ts",
+      "utf8",
+    );
+    const direct = [...source.matchAll(/rejections\.(\w+) \+= 1/g)]
+      .map((match) => match[1]);
+    assert.deepEqual(
+      direct,
+      ["belowThreshold"],
+      "only the aggregate may increment directly; every distinct reason goes " +
+        "through reject() so the counter and the ledger move together",
+    );
+    assert.match(
+      source,
+      /const reject = \(reason: keyof typeof rejections, atMs: number\)/,
+      "the reason type must stay DERIVED from the counter struct",
+    );
+
+    // AND THE AGGREGATE NEVER REACHES THE LEDGER. This is pinned in SOURCE
+    // rather than by execution, deliberately and with the limit stated: the
+    // fixture above reaches only noConsensus and sessionBlocked, so the three
+    // acceptance-gate branches are not exercised at run time and a mutation
+    // swapping one of them for the aggregate is invisible to any assertion
+    // over a run. Statically it is not.
+    const reasons = [...source.matchAll(/reject\("(\w+)"/g)]
+      .map((match) => match[1]);
+    assert.ok(
+      !reasons.includes("belowThreshold"),
+      "belowThreshold counts the three acceptance-gate branches; a ledger row " +
+        "for it double-counts every one of them",
+    );
+    // Every distinct counter key must have a site. This is what makes the
+    // enum derived in practice rather than only in the type: adding a counter
+    // and forgetting its reject() call fails here.
+    const counterKeys = [
+      ...source.slice(source.indexOf("const rejections = {"))
+        .slice(0, 400)
+        .matchAll(/^\s{4}(\w+): 0,$/gm),
+    ].map((match) => match[1]);
+    assert.ok(counterKeys.length >= 11, `found ${counterKeys.length} counters`);
+    const missing = counterKeys
+      .filter((key) => key !== "belowThreshold")
+      .filter((key) => !reasons.includes(key));
+    assert.deepEqual(
+      missing,
+      [],
+      `these counters have no reject() site, so they can be incremented ` +
+        `without ever appearing in the ledger: ${missing.join(", ")}`,
+    );
+  });
+});
