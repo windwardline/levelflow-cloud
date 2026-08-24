@@ -2447,6 +2447,46 @@ nulls and validations, say the diminished-returns point is reached rather than
 manufacturing another.
 ```
 
+### 6b-0. The diminished-returns register — what is closed, and what re-opens it
+
+**Rounds run is NOT evidence of exhaustion.** The counter-example is in this
+repo and it is one day old: R1 — the sweep↔live divergence surface — was
+declared CLOSED on 2026-08-23 after roughly fifty-six advisory review rounds.
+The 2026-08-24 converge reopened it with **C1**, five divergent gates, and the
+FIFTH was found during the ranking pass after four lenses and eight skeptics
+had already crossed the same file. Fifty-six rounds bought a closure that was
+one finding early.
+
+**The discriminator is ENUMERATED versus SAMPLED, not how many times a surface
+was hit.** A surface may be declared closed only when its members were
+enumerated and the enumeration yielded nothing. A surface that was sampled —
+however many times, however thoroughly — is not closed; it is unmeasured. The
+converge's own words for R1: *"that is not a sign the surface is exhausted; it
+is a sign the surface was never enumerated."*
+
+**Every closure states its reopener.** The repo already has this idiom in two
+places — `ENGINE_DECLINED_MARKETS` carries `reprobe`, and amendment 31 gives a
+matched market exactly one path off the list. A closed surface with no reopener
+is a permanent blind spot wearing the costume of a decision. Closure is a
+statement about measured yield, never about fatigue with the subject.
+
+**The register.** Yield is read as `filed → survived refutation`.
+
+| surface | rounds | last yield | enumerated? | status | REOPENER |
+|---|---|---|---|---|---|
+| **News join** (live event families vs the corpus) | 2 (2026-08-11 E5, 2026-08-24) | 1 → 0 | yes — the arms are enumerable from `eventRows.ts` | **CLOSED** | a new event family reaching the live gate; or the null-currency asymmetry becoming measurable once R3's corpus exists (`remediation-program-2026-08-11.md:58`) |
+| **Corpus readers / manifest reporting** | ~57 (R1b's life + 2026-08-24) | 1 → 0, killed on the code's own comments | yes — the partition is derivable from the manifest in 30 lines | **CLOSED** | any new corpus reader; any manifest field added at R3; a change to the door's population rules |
+| **Security & secret handling** | several + 2026-08-24 | 2 → 2, both config-surface gaps with no live wrongness | partly — `src/` is pinned both ways; the config surface was NOT walked | **CLOSED after the C7/C8 PR merges** | a new external host; a new configuration surface that can set a provider base URL; any change to `CODE_ROOTS` or the allowlists |
+| **Clock & registration instruments** | 3 (#358, #384, 2026-08-24) | 3 → 3, incl. C2, the deepest defect since the 2026-08-11 clock defect | **no** | **RISING — keep lensing** | — |
+| **Sweep↔live convention** | ~57 (R1's life + 2026-08-24) | 5 gates, one found during ranking | **NO — sampled, never enumerated** | **RISING — reopened after a false closure** | — . Before ANY future closure: enumerate every consumer of `latest.time` in `simulateSymbol` and state, per consumer, which instant live uses. Do not sample it again |
+
+**How to use it.** Read this before choosing lenses. Do not point a lens at a
+CLOSED surface unless its reopener has fired — and say which one fired. Do not
+retire a RISING surface because it has been visited; retire it only by
+enumerating it. When a round produces only nulls and validations in an area,
+add the row rather than leaving the judgment in one report's prose, because a
+judgment that lives only in a transcript is re-litigated every session.
+
 ### 6b-i. Staging discipline when background agents are running — learned the hard way, #364 round 46
 
 **Never run a write-capable background agent against the working tree a
