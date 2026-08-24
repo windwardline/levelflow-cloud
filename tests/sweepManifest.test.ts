@@ -79,6 +79,10 @@ describe("seriesFacts — continuity as a recorded fact", () => {
       largestGapMs: 0,
       lastTime: 5,
       recentCount: 1,
+      // P5: one bar has no gaps at all, so the market states no bound and the
+      // staleness gate abstains rather than inventing one. An empty series
+      // omits the field entirely for the same reason.
+      recentMaxGapMs: 0,
       recentSpanDays: 0,
       spanDays: 0,
     });

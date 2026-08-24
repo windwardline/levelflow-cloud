@@ -59,6 +59,13 @@ type StoredBar = { high: number; low: number; time: number };
 type SlimSeries = {
   count: number;
   firstTime: number;
+  /**
+   * P5: the longest gap inside this series' recent window. REQUIRED, not
+   * optional — an optional field here made the staleness gate typecheck while
+   * reading `undefined` on every store, so it could never fire. A gate that
+   * cannot fire is worse than no gate, because it reads as coverage.
+   */
+  recentMaxGapMs: number;
   lastTime: number;
   slim: StoredBar[];
 };
@@ -88,10 +95,17 @@ export type CacheClockAudit = {
 };
 
 export function auditCacheClock(input: {
+  /**
+   * P5: the instant the audit judges staleness against. Defaults to now, which
+   * is what an operator run means. Injectable because a fixture's series ends
+   * where the fixture ends, and a gate anchored on a hidden `Date.now()` can
+   * neither be pinned nor reproduced.
+   */
+  asOfMs?: number;
   cacheDir: string;
   rosterProviderSymbols?: string[];
 }): CacheClockAudit {
-  const { cacheDir, rosterProviderSymbols } = input;
+  const { asOfMs = Date.now(), cacheDir, rosterProviderSymbols } = input;
   const lines: string[] = [];
   const failures: string[] = [];
   const fail = (line: string) => {
@@ -364,9 +378,20 @@ export function auditCacheClock(input: {
       continue;
     }
     const pairKey = `${keyMatch[1]}|${keyMatch[3]}`;
+    // The longest silence inside the recent window — see sweepManifest.ts for
+    // why an all-history maximum is too loose and an all-history p99 too tight.
+    const recentGapStart = items[items.length - 1].time -
+      DENSITY_RECENT_WINDOW_DAYS * 86_400_000;
+    let recentMaxGapMs = 0;
+    for (let index = 1; index < items.length; index += 1) {
+      if (items[index].time < recentGapStart) continue;
+      const gap = items[index].time - items[index - 1].time;
+      if (gap > recentMaxGapMs) recentMaxGapMs = gap;
+    }
     const slim: SlimSeries = {
       count: items.length,
       firstTime: items[0].time,
+      recentMaxGapMs,
       lastTime: items[items.length - 1].time,
       slim: items.map((bar) => ({
         high: bar.high,
@@ -407,6 +432,45 @@ export function auditCacheClock(input: {
           `(zero-shift match ${registration.matchRateAtZero ?? "n/a"})`,
       );
     }
+    // P5: HAS THIS FEED STOPPED? Nothing asked, anywhere, until 2026-08-24.
+    //
+    // `staleMs` existed at exactly one site — the Treasury branch above — and
+    // no gate compared a BAR store's newest row to now. `recentWindow` ends
+    // its 90-day window at the SERIES' OWN last bar, so a store truncated 200
+    // days ago measures density over a window that ended 200 days ago and
+    // reports the theoretical maximum. Proven on the real cache: BTCUSD
+    // truncated as though the feed died 200 days back reads 288.0 rows/day,
+    // recentSpanDays 90, verdict "utc" — identical to live, and it clears the
+    // 260 floor. `corpusEndMs` cannot see it either, being a MAX across
+    // symbols.
+    //
+    // Amendment 31 makes a lapsed feed a SOURCE FAILURE that ejects
+    // automatically — "not a calibration verdict, and it remains automatic" —
+    // so this refusal is typed as one, and it must never be confused with the
+    // density verdict beside it.
+    //
+    // THE BOUND IS THE MARKET'S OWN: the longest gap inside its recent
+    // window, which spans ~13 weekends and any holidays among them, so every
+    // lawful silence is inside the bound by construction. A flat bound could
+    // not serve the roster — 7 days is right for a daily curve, far too loose
+    // for a 24/7 five-minute store and too tight for a grain future's
+    // weekend-plus-holiday gap.
+    const staleness = (key: string, facts: SlimSeries) => {
+      if (facts.recentMaxGapMs <= 0) return;
+      const silentMs = asOfMs - facts.lastTime;
+      if (silentMs <= facts.recentMaxGapMs) return;
+      fail(
+        `${key}: SOURCE FAILURE — silent for ${
+          (silentMs / 86_400_000).toFixed(2)
+        } days, longer than the longest silence this market has had in its ` +
+          `recent window (${
+            (facts.recentMaxGapMs / 86_400_000).toFixed(2)
+          } days). A lapsed feed ejects automatically under amendment 31; this ` +
+          `is not a density or calibration verdict`,
+      );
+    };
+    staleness(`${pairKey} 15min`, fifteen);
+    staleness(`${pairKey} 5min`, five);
     // R0f/C3: the ABSOLUTE registration test, beside the relative one above.
     // crossSeriesClock buckets day extremes on the UTC calendar day, so a
     // one-sided shift is visible only when it moves a high or low across UTC
