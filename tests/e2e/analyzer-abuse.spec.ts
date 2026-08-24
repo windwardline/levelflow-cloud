@@ -82,6 +82,44 @@ function callAnalyzer(token: string, body: Record<string, unknown>) {
   });
 }
 
+// Eight at a time, not eighty-two. Each flood request is a fast refusal — the
+// symbol normalizes away, so no provider call and no row write — so the whole
+// burst still lands in about two seconds, far inside the sixty-second window,
+// while never asking the edge runtime for eighty-two cold isolates at once.
+const FLOOD_CONCURRENCY = 8;
+
+// The window is minute-aligned and tumbling, so a burst that straddles a
+// boundary splits its requests across two budgets and may trip neither. The
+// old comment priced that risk into FLOOD_SIZE's 4/3 margin; waiting removes
+// it instead of paying for it. Only ever waits when genuinely near a boundary,
+// so the common case costs nothing.
+const WINDOW_EDGE_GUARD_MS = 10_000;
+
+async function startOfNextWindowIfNear() {
+  const msIntoWindow = Date.now() % 60_000;
+  const msLeft = 60_000 - msIntoWindow;
+  if (msLeft < WINDOW_EDGE_GUARD_MS) {
+    await new Promise((resolve) => setTimeout(resolve, msLeft + 250));
+  }
+}
+
+async function flood(token: string, count: number, concurrency: number) {
+  const statuses: number[] = [];
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: concurrency }, async () => {
+      for (let i = next++; i < count; i = next++) {
+        const response = await callAnalyzer(token, {
+          action: "scan_opportunities",
+          symbols: ["RATE_LIMIT_TEST"],
+        });
+        statuses.push(response.status);
+      }
+    }),
+  );
+  return statuses;
+}
+
 test("the analyzer refuses a scan that could exceed its CPU budget", async () => {
   const token = await signIn();
 
@@ -151,15 +189,26 @@ test("trade analyzer caps repeated market scans without server errors", async ()
   // leaves nothing behind for cleanup.teardown.ts to sweep. It is NOT the
   // retired empty-list form: naming a symbol is what keeps it a scan request
   // rather than the 400 the test above asserts.
-  const responses = await Promise.all(
-    Array.from({ length: FLOOD_SIZE }, () =>
-      callAnalyzer(token, {
-        action: "scan_opportunities",
-        symbols: ["RATE_LIMIT_TEST"],
-      })
-    ),
-  );
-  const statuses = responses.map((response) => response.status);
+  //
+  // Start on a fresh window, and fire with bounded concurrency. Both exist to
+  // remove causes of failure this test was never trying to measure.
+  //
+  // The contract under test is the METER: that the request after the budget is
+  // refused with a 429. Firing all 82 simultaneously additionally tested
+  // Supabase's isolate admission, and that is what kept failing — eight Deploy
+  // runs between 2026-08-17 and 2026-08-24, every one of them on this
+  // assertion, every one of them a 502. A 502 is not something this function
+  // can emit: its own failure path returns 500 from the top-level catch in
+  // supabase/functions/trade-analyzer/index.ts. The 502 came from the edge
+  // gateway shedding load before the analyzer ever ran, so no assertion here
+  // was reading the analyzer's behaviour at all.
+  //
+  // Retrying was the wrong answer and this repo already says why:
+  // retry-infra-failures.yml is deliberately narrow because "flaky-until-green
+  // is how a real defect reaches main". So the cause goes instead of the
+  // symptom, and the no-5xx assertion below stays exactly as strict as it was.
+  await startOfNextWindowIfNear();
+  const statuses = await flood(token, FLOOD_SIZE, FLOOD_CONCURRENCY);
 
   expect(
     statuses.filter((status) => status === 429).length,
