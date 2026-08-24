@@ -115,6 +115,13 @@ export type SeriesClockWitness = {
     lowYears: number;
     ratioMedian: number | null;
     sampled: number;
+    /**
+     * Spring Sundays dropped because the day held too few bars to carry the
+     * signal — a lost wall hour is 4 bars of a 96-bar day, so a half-empty
+     * Sunday produces noise, not evidence. Present only when some were
+     * dropped, so an abstention says which kind it is.
+     */
+    sparseSkipped?: number;
   };
   verdict: WitnessVerdict;
   /** Weekly-open evidence: modal UTC hour of the week's first bar, by DST regime. */
@@ -343,6 +350,34 @@ function transitionWitness(
   if (coverage < 0.9) {
     return { verdict: "indeterminate" };
   }
+  // A SAMPLED DAY MUST BE DENSE ENOUGH TO CARRY THE SIGNAL. The witness looks
+  // for one lost wall hour — 4 bars of a 96-bar 15-minute day, 12 of 288 at
+  // 5-minute — so a day holding half its bars cannot testify about it, and the
+  // ratio it produces is noise that can land anywhere, including inside the
+  // naive band by coincidence.
+  //
+  // The `coverage` gate above does NOT cover this: it counts DAYS PRESENT over
+  // the span, not bars within a day. DYDXUSD passed it at 94/96 recent
+  // coverage while its sampled spring Sundays held 46, 61, 92, 43 and 96 bars —
+  // a trade-sparse early history on a token listed 2021-09 — and the resulting
+  // median ratio of 0.968 landed inside [0.93, 0.975] and CONDEMNED a healthy
+  // store, stopping the R0 rebuild at 81 of 97 symbols on 2026-08-24. BTCUSD,
+  // ETHUSD and DOTUSD hold 96 of 96 on every spring Sunday and read clean.
+  //
+  // This does not weaken the witness, and the arithmetic is why: a genuinely
+  // naive day KEEPS 23 of its 24 hours — 92 of 96 bars, a ratio of 0.958 —
+  // which clears an 80% floor comfortably. Every naive year still contributes
+  // and still condemns. What drops out is the day too sparse to hold the
+  // signal, which the witness's own doctrine already calls a gap rather than
+  // clock evidence; this extends that principle from a dent in a day to a day
+  // that is all dent.
+  //
+  // The full-day reference is the series' own p90, not a constant: it is
+  // timeframe-agnostic and robust to a sparse early era.
+  const dayCounts = [...barsByDay.values()].sort((a, b) => a - b);
+  const fullDay = dayCounts[Math.floor(dayCounts.length * 0.9)] ?? 0;
+  const denseEnough = (count: number) => count >= fullDay * 0.8;
+  let sparseSkipped = 0;
   const ratios: number[] = [];
   const firstYear = new Date(times[0]).getUTCFullYear();
   const lastYear = new Date(times[times.length - 1]).getUTCFullYear();
@@ -355,9 +390,15 @@ function transitionWitness(
     if (transitionDay <= firstDay || transitionDay >= lastDay || !transitionCount) {
       continue;
     }
+    if (!denseEnough(transitionCount)) {
+      sparseSkipped += 1;
+      continue;
+    }
     const neighborCounts = [-14, -7, 7, 14]
       .map((offset) => barsByDay.get(transitionDay + offset))
-      .filter((count): count is number => count !== undefined && count > 0)
+      .filter((count): count is number =>
+        count !== undefined && count > 0 && denseEnough(count)
+      )
       .sort((first, second) => first - second);
     if (neighborCounts.length < 2) {
       continue;
@@ -374,7 +415,20 @@ function transitionWitness(
   // 2013-11, ETHUSD 2015, DASH/DOGE 2017 — the 4a corpus manifest)
   // sample 9-13 springs either way.
   if (ratios.length < 3) {
-    return { verdict: "indeterminate" };
+    // An abstention that explains itself. Without the counts a reader cannot
+    // tell "this series is too young to sample three springs" from "its
+    // sampled springs were too sparse to testify" — different facts with
+    // different remedies, and the second is what stopped the 2026-08-24
+    // rebuild on DYDXUSD.
+    return {
+      transition: {
+        lowYears: 0,
+        ratioMedian: ratios.length > 0 ? round3(median(ratios)) : null,
+        sampled: ratios.length,
+        ...(sparseSkipped > 0 && { sparseSkipped }),
+      },
+      verdict: "indeterminate",
+    };
   }
   const ratioMedian = median(ratios);
   // The condemning evidence is NAIVE-SHAPED, not merely low (#358 round
