@@ -25,6 +25,11 @@ export type SeriesFacts = {
   firstTime: number | null;
   largestGapMs: number;
   lastTime: number | null;
+  // Rows in the last DENSITY_RECENT_WINDOW_DAYS, so the class floor can judge
+  // current feed health rather than a whole-span average that penalises depth.
+  // Optional for the same reason as CrossSeriesDensity's.
+  recentCount?: number;
+  recentSpanDays?: number;
   spanDays: number;
 };
 
@@ -84,11 +89,14 @@ export function seriesFacts(
   }
   const first = times[0];
   const last = times[times.length - 1];
+  const recent = recentWindow(times, last);
   return {
     clock: seriesClockWitness(bars, role),
     count: bars.length,
     firstTime: first,
     largestGapMs,
+    recentCount: recent.count,
+    recentSpanDays: recent.spanDays,
     lastTime: last,
     spanDays: Number(((last - first) / 86_400_000).toFixed(2)),
   };
@@ -107,8 +115,57 @@ export function seriesFacts(
 export type CrossSeriesDensity = {
   fifteenCount: number;
   fiveCount: number;
+  // The same counts over the last DENSITY_RECENT_WINDOW_DAYS of the shared
+  // window. Optional so a pre-2026-08-23 manifest still parses; the gate falls
+  // back to the whole span when they are absent.
+  recentFifteenCount?: number;
+  recentFiveCount?: number;
+  recentSpanDays?: number;
   spanDays: number;
 };
+
+// The window the density gates JUDGE on, and why it exists.
+//
+// Both density predicates — the absolute class floor and the 5min/15min ratio —
+// were evaluated over a series' WHOLE span while the floors themselves were
+// "probed margin under the measured week" (sweepStats.ts), a seven-day recent
+// window. That is depth-blind, and it penalises exactly the markets worth most:
+// a series reaching back to 2013 averages below a floor calibrated on 2026
+// coverage because its early years are legitimately sparser, not because the
+// feed is clipped, holed or wrong — which is the only thing the floor exists to
+// catch.
+//
+// Measured 2026-08-23 on the R0 rebuild's own stores: LTCUSD 216.6 rows/day
+// whole-span against a floor of 260, and 288.0/day over its last 90 — which is
+// the theoretical MAXIMUM for a 24/7 5-minute series. BTCUSD 235.9 -> 288.0.
+// PAUSD's ratio 2.678 whole-span against a band opening at 2.70, and 2.916 over
+// its last 90. All four were forecast REFUSED at R3's max depth by a gate
+// measuring the wrong thing, and amendment 31 says a matched market leaves the
+// offering only on a calibration verdict, never on caution.
+//
+// 90 days rather than the calibration's 7: long enough that a holiday cluster
+// cannot move it, short enough to state current feed health. Holes remain the
+// job of `largestGapMs`, which reads the whole span and is untouched.
+export const DENSITY_RECENT_WINDOW_DAYS = 90;
+
+function recentWindow(
+  times: number[],
+  endMs: number,
+): { count: number; spanDays: number } {
+  const startMs = Math.max(
+    endMs - DENSITY_RECENT_WINDOW_DAYS * 86_400_000,
+    times[0],
+  );
+  const spanDays = (endMs - startMs) / 86_400_000;
+  if (spanDays <= 0) {
+    return { count: times.length, spanDays: 0 };
+  }
+  let count = 0;
+  for (const time of times) {
+    if (time >= startMs && time <= endMs) count += 1;
+  }
+  return { count, spanDays: Number(spanDays.toFixed(2)) };
+}
 
 export function crossSeriesDensityFacts(
   fiveBars: Array<{ time: number }>,
@@ -138,9 +195,22 @@ export function crossSeriesDensityFacts(
       (total, bar) => total + (bar.time >= start && bar.time <= end ? 1 : 0),
       0,
     );
+  const recentStart = Math.max(
+    end - DENSITY_RECENT_WINDOW_DAYS * 86_400_000,
+    start,
+  );
+  const withinRecent = (bars: Array<{ time: number }>) =>
+    bars.reduce(
+      (total, bar) =>
+        total + (bar.time >= recentStart && bar.time <= end ? 1 : 0),
+      0,
+    );
   return {
     fifteenCount: within(fifteenBars),
     fiveCount: within(fiveBars),
+    recentFifteenCount: withinRecent(fifteenBars),
+    recentFiveCount: withinRecent(fiveBars),
+    recentSpanDays: Number(((end - recentStart) / 86_400_000).toFixed(2)),
     spanDays: Number(((end - start) / 86_400_000).toFixed(2)),
   };
 }

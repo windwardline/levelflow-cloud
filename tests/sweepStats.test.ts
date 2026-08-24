@@ -1081,7 +1081,7 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
           series: depthShapeSeries,
           symbol: "BTCUSD",
         })),
-      /BTCUSD 5min\/15min density 3\.54.*shared window.*outside \[2\.7, 3\.25\]/s,
+      /BTCUSD 5min\/15min density 3\.54.*judged window.*outside \[2\.7, 3\.25\]/s,
     );
   });
 
@@ -1110,6 +1110,104 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
       console.warn = realWarn;
       delete process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK;
     }
+  });
+
+  // The depth-blindness fix (2026-08-23). Both density predicates judged a
+  // series' WHOLE span against floors that are "probed margin under the
+  // measured week" — a recent seven-day sample. That penalised depth: LTCUSD
+  // measured 216.6 rows/day whole-span against the crypto floor of 260, and
+  // 288.0 over its last 90 days, which is the theoretical maximum for a 24/7
+  // 5-minute series. BTCUSD 235.9 -> 288.0. PAUSD's ratio 2.678 -> 2.916. All
+  // four were forecast REFUSED at R3's max depth by a gate reading the wrong
+  // window, and amendment 31 says a matched market leaves the offering only on
+  // a calibration verdict, never on caution.
+  const deepFacts = (
+    recentPerDay: number,
+    earlyPerDay: number,
+    spanDays: number,
+  ) => {
+    const recentSpan = 90;
+    const earlySpan = spanDays - recentSpan;
+    const recentCount = Math.round(recentPerDay * recentSpan);
+    return {
+      clock: { verdict: "indeterminate" },
+      count: recentCount + Math.round(earlyPerDay * earlySpan),
+      firstTime: 0,
+      largestGapMs: 0,
+      lastTime: spanDays * 86_400_000,
+      recentCount,
+      recentSpanDays: recentSpan,
+      spanDays,
+    };
+  };
+
+  it("admits a DEEP series whose recent feed is perfect and whose early years are sparse", () => {
+    // LTCUSD's real shape: 288/day now, thin early, 4,675 days of history.
+    // Whole-span this averages ~217 and the crypto floor of 260 refuses it.
+    assertManifestedCorpus(writeCorpus({
+      conditions: goodConditions,
+      crossSeriesDensity: {
+        fifteenCount: 8_640,
+        fiveCount: 25_920,
+        recentFifteenCount: 8_640,
+        recentFiveCount: 25_920,
+        recentSpanDays: 90,
+        spanDays: 4_675,
+      },
+      series: {
+        "15min": deepFacts(96, 20, 4_675),
+        "5min": deepFacts(288, 60, 4_675),
+      },
+      symbol: "LTCUSD",
+    }));
+  });
+
+  it("still refuses a feed clipped in the RECENT window — the guard is not weakened", () => {
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: goodConditions,
+          crossSeriesDensity: {
+            fifteenCount: 8_640,
+            fiveCount: 12_960,
+            recentFifteenCount: 8_640,
+            recentFiveCount: 12_960,
+            recentSpanDays: 90,
+            spanDays: 4_675,
+          },
+          series: {
+            "15min": deepFacts(96, 20, 4_675),
+            "5min": deepFacts(144, 288, 4_675),
+          },
+          symbol: "LTCUSD",
+        })),
+      /LTCUSD 5-minute series runs 144\.0 rows\/day over its last 90 days — under the crypto floor of 260/,
+      "a series clipped NOW must refuse even though its whole-span average is healthy",
+    );
+  });
+
+  it("names the window it judged, so a refusal cannot misstate its own basis", () => {
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: goodConditions,
+          crossSeriesDensity: {
+            fifteenCount: 8_640,
+            fiveCount: 51_840,
+            recentFifteenCount: 4_320,
+            recentFiveCount: 25_920,
+            recentSpanDays: 90,
+            spanDays: 4_675,
+          },
+          series: {
+            "15min": deepFacts(48, 96, 4_675),
+            "5min": deepFacts(288, 288, 4_675),
+          },
+          symbol: "LTCUSD",
+        })),
+      /over the 90d judged window/,
+      "a clipped 15-minute primary must refuse on the ratio, naming the judged window",
+    );
   });
 
   it("admits honest shapes: dense-and-coherent, trade-sparse, absent 5-minute, sub-week span", () => {
@@ -1166,7 +1264,7 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
           },
           symbol: "ESUSD",
         })),
-      /ESUSD 5min\/15min density 3\.41.*shared window.*outside \[2\.7, 3\.25\]/s,
+      /ESUSD 5min\/15min density 3\.41.*judged window.*outside \[2\.7, 3\.25\]/s,
     );
   });
 
