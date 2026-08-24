@@ -813,10 +813,31 @@ export function assertFiveMinuteDensity(
   // wrong window, and amendment 31 says a matched market leaves the offering
   // only on a calibration verdict, never on caution.
   //
-  // The guard is not weakened: a clipped or wrong feed shows up in RECENT
-  // density, which is exactly what this now reads, and holes remain
-  // largestGapMs's job over the whole span. Manifests predating the fact fall
-  // back to the own-span rate.
+  // WHAT THIS GATE DOES AND DOES NOT JUDGE, stated because the first version of
+  // this comment claimed a backstop that does not exist. It said holes "remain
+  // largestGapMs's job over the whole span" — but `largestGapMs` is read only
+  // for the TREASURY curve (the `curve.largestGapMs` check above). Nothing has
+  // ever read it for a bar series, so that sentence invented a guard.
+  //
+  // Judged: current feed health, which is what a clip, a hole in the live tail,
+  // or a wrong feed shows up in — and what the floors were actually calibrated
+  // against.
+  //
+  // NOT judged: the early era. And it cannot be, by a gap threshold — measured
+  // across the 79 five-minute stores the R0 rebuild had written by 2026-08-23,
+  // 25 of them carry a largest gap of 14 days or more, twelve exceed 30, and
+  // NZDUSD reaches 72. Those are healthy markets shipping today; the provider's
+  // deep history is simply gappier than its recent history. Any threshold low
+  // enough to catch a real early hole refuses a third of the roster, which is
+  // amendment 31's forbidden trade — caution removing matched markets.
+  //
+  // So the early era is STATED, not gated: `count` and `spanDays` remain on
+  // every SeriesFacts, so whole-span density is derivable per symbol and a
+  // reader conditioning on era quality has the numbers. That is the same
+  // standing the project gives every other measurable it will not act on — a
+  // measurable offset is stated, never hidden.
+  //
+  // Manifests predating the recent-window fact fall back to the own-span rate.
   const fiveRecentSpan = five.recentSpanDays ?? 0;
   const fifteenRecentSpan = fifteen.recentSpanDays ?? 0;
   const fivePerDay = five.recentCount !== undefined &&

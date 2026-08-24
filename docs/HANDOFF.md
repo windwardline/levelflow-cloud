@@ -932,6 +932,51 @@ unstated measurement term read from the process environment — but
 so a numeric scale would make a gross-arm corpus unreadable on every path rather
 than merely unaggregatable. It needs a literal, or a home outside `conditions`.
 
+#### IMPLEMENTED 2026-08-23 under owner authorisation — two of the three
+
+**The emit fields (#382).** Seven landed: `latestClose`, `atr`, `dailyAtr`,
+`stopPivotDistance`, `grossRewardRisk`, `volatilityPercentile`,
+`trendStrength`. `PricePlan` exposes the three it already computed. The
+keystone claim is proven by execution rather than asserted —
+`tests/pricePlan.test.ts` rebuilds the entry from only `latestClose`, `atr` and
+the emitted `entryProvenance` and asserts it equals the plan's own
+`entryPrice`, both sides, mutation-verified. Live behaviour unchanged and
+`ANALYZER_VERSION` did not move: the plan additions are exposures of values
+already computed and nothing reads them for a decision, and `sweep.ts` is not
+imported by `index.ts`.
+
+**The density gates (#382).** Both predicates judged a whole span against
+floors calibrated on a recent week, and were forecasting refusals for the
+deepest markets. Now judged on the last 90 days, carried as new facts on
+`SeriesFacts` and `CrossSeriesDensity`. Proven both ways against the rebuilt
+stores: LTCUSD, BTCUSD, ETHUSD, PAUSD and EURUSD all accepted, while a 5-minute
+feed clipped 50% in the recent window still refuses at 144.0 rows/day, clipped
+80% at 57.6, and a clipped 15-minute primary still refuses on the ratio at 6.00.
+
+A second defect surfaced while fixing the first, pointing the other way: the
+ratio's population filter was whole-span too, so a deep series' low whole-span
+rate dropped it OUT of the population and the ratio never judged it. False
+silence, not false refusal — which is why LTCUSD and BTCUSD tripped the absolute
+floor while the ratio stayed quiet on them. The filter judges the same window
+now, so the deep markets are visible to the gate rather than exempt from it.
+
+**What these gates do NOT judge, stated because a first draft claimed a backstop
+that does not exist.** That draft said holes "remain `largestGapMs`'s job over
+the whole span". `largestGapMs` is read only for the Treasury curve; nothing has
+ever read it for a bar series. The early era is not gated and cannot be by a gap
+threshold — measured across the 79 five-minute stores written by 2026-08-23, 25
+carry a largest gap of 14 days or more, twelve exceed 30, and NZDUSD reaches 72,
+all on healthy shipping markets. Any threshold low enough to catch a real early
+hole refuses a third of the roster, which is amendment 31's forbidden trade. So
+the early era is STATED — `count` and `spanDays` stay on every `SeriesFacts`, so
+whole-span density is derivable per symbol — and a reader conditions on it.
+
+**NOT implemented, deliberately: the ATR-cap constants.** On 26 markets the cap
+binds on every setup, which is a per-market calibration derivation and therefore
+R4's mandate — "per market, never per class". Acting on it now would be the
+piecemeal answer the owner has ruled against. It goes to R4 as input, with the
+measurement already recorded below.
+
 #### MODEL findings, which are not field proposals
 
 - **On 26 of the 97 markets the ATR cap binds on EVERY setup, by arithmetic.**
