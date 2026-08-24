@@ -1639,17 +1639,25 @@ Sunday condemning a healthy store run-globally).
   zero-shift match all read clean under aggregates). Daily NY-midnight
   stamps condemn universally — one naive year is "mixed"; the
   weekly-open DST shift PROVES utc but never condemns (the Nikkei pin);
-  spring-transition counts condemn 24/7 markets on NAIVE-SHAPED evidence
-  only — `lowYears` counts years whose ratio sits in the [0.93, 0.975]
-  band that losing exactly one wall hour produces (~0.958), so outage
-  dents read as gaps, a naive-shaped median condemns, and two
-  naive-shaped years are "mixed"; 15min↔5min
+  spring-transition evidence condemns 24/7 markets BY LOCATION rather
+  than by size — `naiveYears` counts springs whose UTC hour 02 stood
+  empty against an otherwise intact day, the one hour a New York wall
+  stamp cannot produce; two such springs condemn, one is a coincidental
+  outage, and a day ragged across many hours abstains (`sparseSkipped`)
+  instead of testifying. The ratio band this replaced on 2026-08-24 was
+  resolution-dependent where the defect is not — the SAME two-hour
+  outage read 0.9306 at 5min (inside its [0.93, 0.975]) and 0.9167 at
+  15min (outside) — and it condemned two healthy stores in one rebuild;
+  15min↔5min
   registration condemns any year that registers at ±4/5 — both
   polarities pinned, −4 being the real 2026-08-11 signature, and only
   years with their own zero-shift evidence may condemn. The fleet
-  re-review tightened three edges same-day: the transition floor is 3
-  springs (the per-year median makes it safe; the old floor of 8 was
-  unreachable for 2020-2023 crypto listings), the daily witness has no
+  re-review tightened three edges same-day: an affirmative transition
+  "utc" needs 3 clean springs (the old floor of 8 was unreachable for
+  2020-2023 crypto listings), while CONDEMNING needs only 2 — the
+  asymmetry is deliberate, since a naive store certified healthy is what
+  invalidated the corpus and a healthy store refused only stops a
+  rebuild — the daily witness has no
   dead band (any year with ≥5% of both midnights is mixed; ~12 days/year
   is the stated blind floor), and shard aggregation refuses shards whose
   manifests disagree on the clock (`conditionsOf` now hashes it). THE

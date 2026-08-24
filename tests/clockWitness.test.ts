@@ -251,7 +251,7 @@ describe("spring-transition witness — the 24/7 condemning witness, per year", 
   it("keeps a true-UTC series at full transition-day counts", () => {
     const witness = seriesClockWitness(trueUtcBars(), "intraday");
     assert.equal(witness.verdict, "utc");
-    assert.ok(witness.transition!.ratioMedian! >= 0.985);
+    assert.ok(witness.transition!.skippedHourShare! >= 0.8);
     assert.ok(witness.transition!.sampled >= 8);
   });
 
@@ -294,33 +294,49 @@ describe("spring-transition witness — the 24/7 condemning witness, per year", 
     );
   });
 
-  // #358's band logic, re-covered. The outage-dent pins below now exercise the
-  // sparse guard instead of the band, because a half-missing Sunday is dropped
-  // before it can be judged — so the naive-shaped band needs its own dense
-  // case or it is pinned nowhere. A dent of exactly one bar in 96 is dense
-  // enough to be judged (0.99) and OUTSIDE the band, which is the distinction
-  // the band exists to draw.
-  it("judges a dense but shallow dent against the band rather than skipping it", () => {
-    const bars = [];
+  // LOCATION IS THE SIGNAL, AND THIS PAIR IS WHERE THAT IS PINNED. Both
+  // fixtures dent exactly one hour on every spring Sunday, so both are
+  // identical in SIZE — 23 of 24 hours, the ratio the pre-2026-08-24 band
+  // called "naive-shaped". Only the hour differs. A 07:00 dent is a
+  // recurring provider outage and must not condemn; a 02:00 dent is the hour
+  // a New York wall stamp cannot produce, and must. A witness that judges
+  // the day's TOTAL rather than its geometry cannot pass both of these.
+  const dentedEverySpring = (utcHour: number) => {
+    // Derived from the fixture's own span, not listed: a curated list that
+    // misses the first year dents 8 of 9 springs and reads "mixed", which
+    // is a true verdict about a fixture nobody meant to build.
+    const firstYear = new Date(start).getUTCFullYear();
+    const lastYear = new Date(start + hours * HOUR).getUTCFullYear();
     const springDays = new Set(
-      [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025].map((year) => {
+      Array.from(
+        { length: lastYear - firstYear + 1 },
+        (_, offset) => firstYear + offset,
+      ).map((year) => {
         const first = new Date(Date.UTC(year, 2, 1)).getUTCDay();
         return Math.floor(Date.UTC(year, 2, 1 + ((7 - first) % 7) + 7) / DAY);
       }),
     );
+    const bars = [];
     let dropped = 0;
     for (let index = 0; index < hours; index += 1) {
       const time = start + index * HOUR;
-      // One hour missing on each spring Sunday: ratio 23/24, naive-shaped.
-      if (springDays.has(Math.floor(time / DAY)) && new Date(time).getUTCHours() === 7) {
+      if (
+        springDays.has(Math.floor(time / DAY)) &&
+        new Date(time).getUTCHours() === utcHour
+      ) {
         dropped += 1;
         continue;
       }
       bars.push(bar(time));
     }
     assert.ok(dropped >= 8, "the fixture must dent every sampled spring");
-    const witness = seriesClockWitness(bars, "intraday");
-    // Dense days, so nothing is skipped — the band is what judges this.
+    return bars;
+  };
+
+  it("does NOT condemn a recurring one-hour outage away from the wall hour", () => {
+    const witness = seriesClockWitness(dentedEverySpring(7), "intraday");
+    // Dense days, so nothing is dropped for raggedness — the geometry is
+    // what judges this, and it reads the transition hour as full.
     assert.equal(witness.transition?.sparseSkipped, undefined);
     assert.ok(
       (witness.transition?.sampled ?? 0) >= 3,
@@ -328,9 +344,96 @@ describe("spring-transition witness — the 24/7 condemning witness, per year", 
     );
     assert.equal(
       witness.verdict,
-      "naive",
-      "a one-hour dent on every spring is the naive signature and must condemn",
+      "utc",
+      "an outage at 07:00 is a gap in the data, not a defect in the clock",
     );
+    assert.equal(witness.transition!.naiveYears, 0);
+  });
+
+  it("condemns the SAME dent when it lands on the skipped wall hour", () => {
+    const witness = seriesClockWitness(dentedEverySpring(2), "intraday");
+    assert.equal(witness.transition?.sparseSkipped, undefined);
+    assert.equal(
+      witness.verdict,
+      "naive",
+      "an empty 02:00 on every spring is the naive signature and must condemn",
+    );
+    assert.ok(witness.transition!.naiveYears >= 2);
+  });
+
+  // The hourly fixtures above can only make the transition hour EMPTY or
+  // FULL, so they pin neither where the boundary between those sits nor what
+  // happens on a day too ragged to testify — and a mutation run proved it:
+  // widening the naive threshold from 0.25 to 0.9, and disabling the
+  // intact-day guard, each left all 31 tests green. These two run at
+  // 15-minute resolution, where an hour can be PARTLY present.
+  const QUARTER = 900_000;
+  const quarters = 9 * 365 * 96;
+  const springSlotKept = (keep: (utcHour: number, slot: number) => boolean) => {
+    const firstYear = new Date(start).getUTCFullYear();
+    const lastYear = new Date(start + quarters * QUARTER).getUTCFullYear();
+    const springDays = new Set(
+      Array.from(
+        { length: lastYear - firstYear + 1 },
+        (_, offset) => firstYear + offset,
+      ).map((year) => {
+        const first = new Date(Date.UTC(year, 2, 1)).getUTCDay();
+        return Math.floor(Date.UTC(year, 2, 1 + ((7 - first) % 7) + 7) / DAY);
+      }),
+    );
+    const bars = [];
+    for (let index = 0; index < quarters; index += 1) {
+      const time = start + index * QUARTER;
+      const at = new Date(time);
+      if (
+        springDays.has(Math.floor(time / DAY)) &&
+        !keep(at.getUTCHours(), Math.floor(at.getUTCMinutes() / 15))
+      ) {
+        continue;
+      }
+      bars.push(bar(time));
+    }
+    return bars;
+  };
+
+  it("abstains when the transition hour is PARTLY present — half an hour is not an absent one", () => {
+    // Two of the four 02:xx bars survive every spring: a share of 0.5, which
+    // is neither the empty hour a naive stamp leaves behind nor a full one.
+    // Counting it either way would be the old band's mistake in a new place.
+    const witness = seriesClockWitness(
+      springSlotKept((hour, slot) => hour !== 2 || slot < 2),
+      "intraday",
+    );
+    assert.equal(witness.transition?.sparseSkipped, undefined);
+    assert.ok((witness.transition?.sampled ?? 0) >= 3);
+    assert.equal(witness.transition!.naiveYears, 0);
+    // Not condemned — AND not blessed. An affirmative "utc" is a claim that
+    // the wall hour was observed FULL, so a half-present hour must leave the
+    // witness with nothing to say rather than letting it certify health it
+    // never established.
+    assert.equal(witness.transition!.utcYears, 0);
+    assert.equal(witness.verdict, "indeterminate");
+  });
+
+  it("abstains on a day too ragged to testify, even when its 02:00 IS empty", () => {
+    // ALGOUSD's 2020 spring in miniature: five hours badly dented while the
+    // rest stand full. On such a day an empty 02:00 is one more gap, not a
+    // wall hour that was never stamped — so it must not condemn, and must
+    // report that it abstained rather than reading as a clean "utc".
+    const witness = seriesClockWitness(
+      springSlotKept((hour, slot) =>
+        hour !== 2 && (hour < 5 || hour > 9 || slot === 0)
+      ),
+      "intraday",
+    );
+    assert.ok(
+      (witness.transition?.sparseSkipped ?? 0) >= 3,
+      `the ragged springs must be dropped; transition was ${
+        JSON.stringify(witness.transition)
+      }`,
+    );
+    assert.notEqual(witness.verdict, "naive");
+    assert.notEqual(witness.verdict, "mixed");
   });
 
   // The safety property, and the reason the sparse guard does not weaken the
@@ -367,7 +470,7 @@ describe("spring-transition witness — the 24/7 condemning witness, per year", 
       "intraday",
     );
     assert.equal(witness.verdict, "naive");
-    assert.ok(witness.transition!.ratioMedian! <= 0.97);
+    assert.ok(witness.transition!.skippedHourShare! <= 0.25);
   });
 
   it("does NOT condemn a healthy series for one outage-dented transition Sunday (#358)", () => {
@@ -385,7 +488,7 @@ describe("spring-transition witness — the 24/7 condemning witness, per year", 
     assert.equal(witness.verdict, "utc");
     // A half-missing Sunday (ratio ~0.5) is far outside the naive-shaped
     // band, so it reads as a gap — not as clock evidence at all.
-    assert.equal(witness.transition!.lowYears, 0);
+    assert.equal(witness.transition!.naiveYears, 0);
   });
 
   it("condemns a MINORITY naive era among true years as mixed (#358)", () => {
@@ -401,7 +504,7 @@ describe("spring-transition witness — the 24/7 condemning witness, per year", 
       .sort((a, b) => a - b).map(bar);
     const witness = seriesClockWitness(deduped, "intraday");
     assert.equal(witness.verdict, "mixed");
-    assert.ok(witness.transition!.lowYears >= 2);
+    assert.ok(witness.transition!.naiveYears >= 2);
   });
 
   it("does NOT condemn a 3-spring store for two outage-dented Sundays — gaps are not clock evidence (#358 round 3)", () => {
@@ -424,7 +527,7 @@ describe("spring-transition witness — the 24/7 condemning witness, per year", 
     }
     const witness = seriesClockWitness(bars, "intraday");
     assert.equal(witness.verdict, "indeterminate");
-    assert.equal(witness.transition!.lowYears, 0);
+    assert.equal(witness.transition!.naiveYears, 0);
   });
 
   it("fires at realistic young-crypto depth — three springs decide (#358 re-review)", () => {
@@ -450,7 +553,7 @@ describe("spring-transition witness — the 24/7 condemning witness, per year", 
       "intraday",
     );
     assert.equal(poisoned.verdict, "naive");
-    assert.ok(poisoned.transition!.ratioMedian! <= 0.97);
+    assert.ok(poisoned.transition!.skippedHourShare! <= 0.25);
   });
 
   it("stays indeterminate for a session market that is closed at the transition hour", () => {

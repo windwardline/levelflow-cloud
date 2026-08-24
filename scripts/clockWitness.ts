@@ -110,18 +110,26 @@ export type SeriesClockWitness = {
     sampled: number;
     utcYears: number;
   };
-  /** Spring-forward evidence: median ratio, and how many years ran low. */
+  /** Spring-forward evidence: whether the skipped wall hour is empty, per year. */
   transition?: {
-    lowYears: number;
-    ratioMedian: number | null;
+    /** Springs whose UTC hour 02 was empty against an intact day. */
+    naiveYears: number;
     sampled: number;
     /**
-     * Spring Sundays dropped because the day held too few bars to carry the
-     * signal — a lost wall hour is 4 bars of a 96-bar day, so a half-empty
-     * Sunday produces noise, not evidence. Present only when some were
-     * dropped, so an abstention says which kind it is.
+     * Median occupancy of the skipped wall hour as a share of the day's
+     * other hours: ~0 on a naive store, ~1 on a true-UTC one. Reported for
+     * the reader; the per-year counts are what carry the verdict.
+     */
+    skippedHourShare: number | null;
+    /**
+     * Spring Sundays dropped because the day was too ragged to testify about
+     * one hour of itself — a naive day keeps 23 full hours and loses exactly
+     * one, so a day dented across many hours is a gap, not evidence. Present
+     * only when some were dropped, so an abstention says which kind it is.
      */
     sparseSkipped?: number;
+    /** Springs whose UTC hour 02 was populated like the rest of the day. */
+    utcYears: number;
   };
   verdict: WitnessVerdict;
   /** Weekly-open evidence: modal UTC hour of the week's first bar, by DST regime. */
@@ -323,13 +331,57 @@ function springForwardUtcDay(year: number): number | null {
 }
 
 /**
- * Spring-transition bar counts for a series that trades through the New
- * York 02:00 wall hour (24/7 markets), judged per year. A naive year runs
- * ~0.958 against neighboring Sundays; a healthy year ~1.0. Two or more
- * low years condemn as "mixed" even when the median is clean (a minority
- * naive era); a low median condemns as "naive"; a single low year — one
- * provider outage denting one transition Sunday — is tolerated. Session
- * markets are closed at that hour and return "indeterminate" here.
+ * The UTC hour a naive store cannot fill. The defect transform reads an
+ * instant's New York wall digits back as UTC, and on spring-forward Sunday
+ * the wall clock never produces 02:xx — it jumps 01:59 EST straight to
+ * 03:00 EDT — so a naive series has NO bars in UTC hour 02 that day, while
+ * a true-UTC series fills it like any other hour.
+ */
+const SKIPPED_WALL_HOUR = 2;
+
+/**
+ * Spring-transition evidence for a series that trades through the New York
+ * 02:00 wall hour (24/7 markets), judged per year and BY LOCATION.
+ *
+ * The witness asks the constructive question — is the hour a naive stamp
+ * cannot produce actually empty, while the rest of that day is intact? —
+ * instead of the proxy the pre-2026-08-24 version asked, which was whether
+ * the day's TOTAL ran low against neighbouring Sundays.
+ *
+ * The proxy failed twice in one rebuild, both times by condemning a healthy
+ * store, and the second failure is why it was replaced rather than retuned.
+ * ALGOUSD stopped the rebuild at 82 of 97 reading "mixed" on two low years:
+ * 2020, whose deficit was smeared across THIRTEEN hours of a thin
+ * early-listing day (ALGO listed 2019-08) with hour 02 holding 11 of 12;
+ * and 2025, a clean two-hour provider outage at 21:00-22:59 with hour 02
+ * holding 12 of 12. Neither is a clock fault, and three other witnesses said
+ * so: its daily-stamp witness reads "utc" over 8 years with zero naive
+ * years, its 15-minute transition reads "utc", and its cross-series
+ * registration is "aligned" at ZERO shift with a 1.00 match rate over 2,565
+ * days.
+ *
+ * A ratio band could not be repaired in place because it is
+ * resolution-dependent and the defect is not. The SAME 2025 outage read
+ * 268/288 = 0.9306 at 5-minute — inside the old [0.93, 0.975] band — and
+ * 88/96 = 0.9167 at 15-minute, outside it: one physical event, two verdicts.
+ * In bar terms that band admitted a 4-bar-wide window at 15-minute and a
+ * 13-bar-wide window at 5-minute, wide enough to swallow a two-hour outage
+ * whole. The naive signature is resolution-free — 23 of 24 hours at every
+ * timeframe — so judging WHERE the hole sits removes the dependence, and
+ * separates the populations by an empty hour against a full one rather than
+ * by ~4% of a day's bars.
+ *
+ * What this deliberately does NOT do is condemn a UTC-SERVED series that was
+ * mis-converted. FMP serves crypto bars already in UTC — measured, not
+ * assumed: the condemned archive's ALGOUSD 5-minute store starts each day at
+ * 05:00Z where the rebuilt store starts at 00:00Z, so the pre-R0 code was the
+ * one converting. A uniform 4-5 hour shift moves every bar and empties no
+ * hour, so no spring witness of any design can see it. That defect belongs
+ * to crossSeriesClock and the daily-stamp witness; this one stays silent on
+ * it rather than guessing, which is why a condemning verdict here is never
+ * the only guard standing.
+ *
+ * Session markets are closed at that hour and return "indeterminate" here.
  */
 function transitionWitness(
   times: number[],
@@ -337,48 +389,28 @@ function transitionWitness(
   if (times.length < 1_000) {
     return { verdict: "indeterminate" };
   }
-  const barsByDay = new Map<number, number>();
+  const hoursByDay = new Map<number, number[]>();
   for (const time of times) {
     const day = Math.floor(time / DAY_MS);
-    barsByDay.set(day, (barsByDay.get(day) ?? 0) + 1);
+    let hours = hoursByDay.get(day);
+    if (!hours) {
+      hours = new Array<number>(24).fill(0);
+      hoursByDay.set(day, hours);
+    }
+    hours[new Date(time).getUTCHours()] += 1;
   }
   const firstDay = Math.floor(times[0] / DAY_MS);
   const lastDay = Math.floor(times[times.length - 1] / DAY_MS);
-  const coverage = barsByDay.size / Math.max(1, lastDay - firstDay + 1);
+  const coverage = hoursByDay.size / Math.max(1, lastDay - firstDay + 1);
   // Only a market trading through the transition hour can witness it; a
   // weekend-closed market has no bars to lose there.
   if (coverage < 0.9) {
     return { verdict: "indeterminate" };
   }
-  // A SAMPLED DAY MUST BE DENSE ENOUGH TO CARRY THE SIGNAL. The witness looks
-  // for one lost wall hour — 4 bars of a 96-bar 15-minute day, 12 of 288 at
-  // 5-minute — so a day holding half its bars cannot testify about it, and the
-  // ratio it produces is noise that can land anywhere, including inside the
-  // naive band by coincidence.
-  //
-  // The `coverage` gate above does NOT cover this: it counts DAYS PRESENT over
-  // the span, not bars within a day. DYDXUSD passed it at 94/96 recent
-  // coverage while its sampled spring Sundays held 46, 61, 92, 43 and 96 bars —
-  // a trade-sparse early history on a token listed 2021-09 — and the resulting
-  // median ratio of 0.968 landed inside [0.93, 0.975] and CONDEMNED a healthy
-  // store, stopping the R0 rebuild at 81 of 97 symbols on 2026-08-24. BTCUSD,
-  // ETHUSD and DOTUSD hold 96 of 96 on every spring Sunday and read clean.
-  //
-  // This does not weaken the witness, and the arithmetic is why: a genuinely
-  // naive day KEEPS 23 of its 24 hours — 92 of 96 bars, a ratio of 0.958 —
-  // which clears an 80% floor comfortably. Every naive year still contributes
-  // and still condemns. What drops out is the day too sparse to hold the
-  // signal, which the witness's own doctrine already calls a gap rather than
-  // clock evidence; this extends that principle from a dent in a day to a day
-  // that is all dent.
-  //
-  // The full-day reference is the series' own p90, not a constant: it is
-  // timeframe-agnostic and robust to a sparse early era.
-  const dayCounts = [...barsByDay.values()].sort((a, b) => a - b);
-  const fullDay = dayCounts[Math.floor(dayCounts.length * 0.9)] ?? 0;
-  const denseEnough = (count: number) => count >= fullDay * 0.8;
   let sparseSkipped = 0;
-  const ratios: number[] = [];
+  let naiveYears = 0;
+  let utcYears = 0;
+  const shares: number[] = [];
   const firstYear = new Date(times[0]).getUTCFullYear();
   const lastYear = new Date(times[times.length - 1]).getUTCFullYear();
   for (let year = firstYear; year <= lastYear; year += 1) {
@@ -386,76 +418,58 @@ function transitionWitness(
     if (transitionDay === null) {
       continue;
     }
-    const transitionCount = barsByDay.get(transitionDay);
-    if (transitionDay <= firstDay || transitionDay >= lastDay || !transitionCount) {
+    const hours = hoursByDay.get(transitionDay);
+    if (transitionDay <= firstDay || transitionDay >= lastDay || !hours) {
       continue;
     }
-    if (!denseEnough(transitionCount)) {
+    // The day's own reference, taken from the 23 hours the transition
+    // cannot touch, so an outage anywhere ELSE moves the reference rather
+    // than the reading.
+    const others = hours.filter((_, hour) => hour !== SKIPPED_WALL_HOUR);
+    const reference = median(others);
+    // A DAY MUST BE INTACT TO TESTIFY ABOUT ONE HOUR OF IT. A naive day
+    // keeps 23 full hours and loses exactly one, so a day ragged across
+    // many hours is a gap rather than clock evidence — which is precisely
+    // what ALGOUSD's 2020 spring was, at 13 deficient hours of 24. Two
+    // dented hours are tolerated so a single unrelated outage cannot
+    // silence an otherwise readable day.
+    const intact = others.filter((count) => count >= reference * 0.8).length;
+    if (reference === 0 || intact < others.length - 2) {
       sparseSkipped += 1;
       continue;
     }
-    const neighborCounts = [-14, -7, 7, 14]
-      .map((offset) => barsByDay.get(transitionDay + offset))
-      .filter((count): count is number =>
-        count !== undefined && count > 0 && denseEnough(count)
-      )
-      .sort((first, second) => first - second);
-    if (neighborCounts.length < 2) {
-      continue;
+    const share = hours[SKIPPED_WALL_HOUR] / reference;
+    shares.push(share);
+    if (share <= 0.25) {
+      naiveYears += 1;
+    } else if (share >= 0.8) {
+      utcYears += 1;
     }
-    const neighborMedian = neighborCounts[Math.floor(neighborCounts.length / 2)];
-    ratios.push(transitionCount / neighborMedian);
+    // A share between the two is a year that cannot say: a partly-dented
+    // transition hour is neither an absent wall hour nor a full one, and
+    // counting it either way would be the proxy's mistake again.
   }
-  // Three springs suffice (#358 re-review): the per-year, naive-shaped
-  // judging below is what makes a low floor safe — three all-naive
-  // springs give a 0.958 median ("naive"), while outage-dented Sundays
-  // fall outside the naive band and read as gaps, not evidence. The old
-  // floor of 8 needed ~9 years of 24/7 history, which the young
-  // 2020-2023 crypto listings do not have; the deep majors (BTCUSD
-  // 2013-11, ETHUSD 2015, DASH/DOGE 2017 — the 4a corpus manifest)
-  // sample 9-13 springs either way.
-  if (ratios.length < 3) {
-    // An abstention that explains itself. Without the counts a reader cannot
-    // tell "this series is too young to sample three springs" from "its
-    // sampled springs were too sparse to testify" — different facts with
-    // different remedies, and the second is what stopped the 2026-08-24
-    // rebuild on DYDXUSD.
-    return {
-      transition: {
-        lowYears: 0,
-        ratioMedian: ratios.length > 0 ? round3(median(ratios)) : null,
-        sampled: ratios.length,
-        ...(sparseSkipped > 0 && { sparseSkipped }),
-      },
-      verdict: "indeterminate",
-    };
-  }
-  const ratioMedian = median(ratios);
-  // The condemning evidence is NAIVE-SHAPED, not merely low (#358 round
-  // 3): a naive spring loses exactly the 02:xx wall hour — 23/24 ≈ 0.958
-  // — while an outage dent is arbitrary and usually far deeper. Counting
-  // only the [0.93, 0.975] band means two provider gaps among three
-  // sampled Sundays read as gaps (indeterminate), never as a condemned
-  // store, while every genuinely naive year still counts.
-  const naiveShaped = (ratio: number) => ratio >= 0.93 && ratio <= 0.975;
-  const lowYears = ratios.filter(naiveShaped).length;
   const transition = {
-    lowYears,
-    ratioMedian: round3(ratioMedian),
-    sampled: ratios.length,
-    // On EVERY verdict, not just the abstention. A `utc` reading over three
-    // springs where four were dropped is a different fact from a `utc` over
-    // three where none were — and an operator cannot tell them apart unless
+    naiveYears,
+    sampled: shares.length,
+    skippedHourShare: shares.length > 0 ? round3(median(shares)) : null,
+    utcYears,
+    // On EVERY verdict, not just an abstention. A "utc" reading over three
+    // springs where four were dropped is a different fact from a "utc" over
+    // three where none were, and an operator cannot tell them apart unless
     // the count rides along.
     ...(sparseSkipped > 0 && { sparseSkipped }),
   };
-  if (naiveShaped(ratioMedian)) {
-    return { transition, verdict: "naive" };
+  // Two independent springs with the wall hour empty is the defect; one is
+  // an outage that happened to land there, and is tolerated. The direction
+  // of caution is deliberate and asymmetric: a naive store certified healthy
+  // is what invalidated the 4c/4d corpus, while a healthy store refused only
+  // stops a rebuild — so condemnation does not wait for a third spring the
+  // young 2023 listings may not have.
+  if (naiveYears >= 2) {
+    return { transition, verdict: utcYears > 0 ? "mixed" : "naive" };
   }
-  if (lowYears >= 2) {
-    return { transition, verdict: "mixed" };
-  }
-  if (ratioMedian >= 0.985 && lowYears <= 1) {
+  if (naiveYears === 0 && utcYears >= 3) {
     return { transition, verdict: "utc" };
   }
   return { transition, verdict: "indeterminate" };

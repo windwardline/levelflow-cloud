@@ -193,8 +193,10 @@ Green requires, for every store: the expected clock stamp, readable; no
 witness condemning a series — per-year daily stamps at New York
 midnight, with a deep daily store REQUIRED to actually resolve (an
 undecided witness on 100+ rows fails, matching the other absolute
-gates); no spring-transition year in the naive-shaped band [0.93, 0.975]
-that losing exactly one wall hour produces (outage dents read as gaps);
+gates); no two spring-transition years whose UTC hour 02 — the one hour a
+New York wall stamp cannot produce — stood empty against an otherwise
+intact day (an outage anywhere else moves the reference, not the reading,
+and a day ragged across many hours abstains instead of testifying);
 weekly opens moving with DST where the venue does; every 15min/5min pair
 registering at zero shift — with a large-overlap pair that cannot
 register at all treated as a failure, because at this gate uncertainty
