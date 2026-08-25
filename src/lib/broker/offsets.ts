@@ -45,6 +45,7 @@ export type BrokerOffset = {
   measuredAt: readonly string[];
 };
 
+// SYMBOLS: external E8 quote offsets | 2 of 98 vs known
 export const BROKER_OFFSETS: readonly BrokerOffset[] = [
   {
     levelflowSymbol: "XAGUSD",

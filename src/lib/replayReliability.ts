@@ -59,6 +59,7 @@ export const REPLAY_RECORD_BY_ASSET_TYPE: Record<SecurityType, ReplayRecord> = {
 // forex exotic. Membership is the honest line the stored aggregates can
 // support; the per-market manifests of calibration item 4a supersede this
 // file's whole approach when the re-sweep lands.
+// SYMBOLS: record what the 4c/4d corpus measured | 58
 export const MEASURED_POPULATION_BY_ASSET_TYPE: Record<
   SecurityType,
   ReadonlySet<string>

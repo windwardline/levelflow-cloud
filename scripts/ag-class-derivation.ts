@@ -19,7 +19,9 @@ import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 import { assertManifest } from "./sweepStats.ts";
 
+// SYMBOLS: external the grain complex | 6 of 6 vs agriculture
 const GRAINS = new Set(["ZCUSX", "ZSUSX", "ZLUSX", "ZMUSD", "ZOUSX", "ZRUSD"]);
+// SYMBOLS: external the livestock complex | 3 of 3 vs livestock
 const LIVESTOCK = new Set(["LEUSX", "GFUSX", "HEUSX"]);
 const BUCKET = 5;
 const MIN_TEST_FILLS = 30;

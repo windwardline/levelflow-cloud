@@ -54,6 +54,7 @@ const DERIVED_BRIDGE: Provenance = {
  * what stops a later edit from quietly promoting a derived bridge to published
  * (§19f).
  */
+// SYMBOLS: external E8 bridgeable pairs | 13 of 28 vs forex
 export const ENUMERATED_BRIDGE_PAIRS = [
   "AUDUSD",
   "EURUSD",
@@ -71,6 +72,7 @@ export const ENUMERATED_BRIDGE_PAIRS = [
 ];
 
 /** The USD pair Levelflow carries for each non-USD currency, and whether to invert it. */
+// SYMBOLS: external pairs with a USD leg | 7 of 28 vs forex
 const USD_LEG: Record<string, { leg: string; invert: boolean }> = {
   // Quoted USD-first in both E8's roster and Levelflow's, so the USD value of one
   // unit is the reciprocal.
@@ -114,6 +116,7 @@ function isCurrencyPair(symbol: string) {
  * other two name six crosses outright. Among the 28 pairs that is 13 primary
  * bridges and 15 derived ones — the split ENUMERATED_BRIDGE_PAIRS pins by name.
  */
+// SYMBOLS: external E8 tabled crosses | 6 of 28 vs forex
 const TABLED_CROSSES = ["GBPNZD", "GBPJPY", "GBPCHF", "NZDJPY", "NZDCAD", "NZDCHF"];
 
 function bridgeSource(instrument: string): Provenance {

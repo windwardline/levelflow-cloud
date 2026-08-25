@@ -293,6 +293,7 @@ export const CANONICAL_ROSTER_SIZE = CANONICAL_ROWS.length;
  * per 1.0 unit. An exchange contract notional would resolve it and is ruled out
  * by the boundary (§20i ruling 5).
  */
+// SYMBOLS: external E8 inverted quotes | 3 of 28 vs forex
 export const INVERTED_FX: Record<string, string> = {
   USDCAD: "6C",
   USDCHF: "6S",
@@ -411,6 +412,7 @@ function ticketAlt(levelflowSymbol: string): string {
 // silver on the Markets side, and the whole energies class. Each note is the
 // promoted row's own ticket arithmetic (Amendment 4: narrow by construction,
 // nothing borrowed from a sibling instrument's ticket).
+// SYMBOLS: external E8 checkout observations | 10 of 98 vs known
 const FOREX_CONTRACT_OBSERVATIONS: Record<string, { contractSize: number; note: string }> = {
   XAGUSD: {
     contractSize: 5_000,
@@ -465,6 +467,7 @@ const FOREX_CONTRACT_OBSERVATIONS: Record<string, { contractSize: number; note: 
 // way DOW/NSDQ/SP already publish theirs, and these three stay outside wave
 // 1's scannable roster (they are among the nine addendum markets) so nothing
 // sizes against the unbridged figure today.
+// SYMBOLS: external E8 checkout observations | 3 of 6 vs indices
 const INDEX_POINT_OBSERVATIONS: Record<string, { note: string; pointsPerLot: number }> = {
   NIKKEI: {
     pointsPerLot: 500,
@@ -512,6 +515,7 @@ function promotedIndexCfd(symbol: string): CfdMapping {
   };
 }
 
+// SYMBOLS: external E8 CFD book | 9 of 98 vs known
 const CFD_MAPPINGS: Record<string, CfdMapping> = {
   // Metals. Gold is the only metal with a published spec: contract size 100 oz
   // per 1.0 lot, and a ticket cap of 20 lots rather than 50 — a shared
@@ -558,6 +562,7 @@ const CFD_MAPPINGS: Record<string, CfdMapping> = {
  * F6): BRENT is where E8 actually carries this exposure, correcting the
  * crossmap's "no E8 route on any program" verdict for the pair.
  */
+// SYMBOLS: external E8 CFD exposure groups | 6 of 98 vs known
 const CFD_RELATED_EXPOSURE: Record<string, string> = {
   ESUSD: "SP500",
   NQUSD: "NAS100",
@@ -569,6 +574,7 @@ const CFD_RELATED_EXPOSURE: Record<string, string> = {
 };
 
 /** The E8 futures instrument that reaches a spot row's exposure (crossmap §2.2). */
+// SYMBOLS: external E8 futures exposure groups | 16 of 98 vs known
 const FUTURES_RELATED_EXPOSURE: Record<string, string> = {
   AUDUSD: "6A",
   EURUSD: "6E",
@@ -598,6 +604,7 @@ const FUTURES_RELATED_EXPOSURE: Record<string, string> = {
  * now mapped; what remains unmapped must sit in FUTURES_ABSENCE_REGISTER
  * with a stated ground, or row generation throws.
  */
+// SYMBOLS: external E8 futures book | 28 of 98 vs known
 export const FUTURES_MAPPINGS: Record<string, string> = {
   BZUSD: "BZ",
   CLUSD: "CL",
@@ -637,6 +644,7 @@ export const FUTURES_MAPPINGS: Record<string, string> = {
 };
 
 /** GCUSD and MGCUSD are one exposure through two instruments on one line. */
+// SYMBOLS: external E8 sibling contracts | 2 of 98 vs known
 const FUTURES_SIBLING: Record<string, string> = {
   GCUSD: "MGC",
   MGCUSD: "GC",

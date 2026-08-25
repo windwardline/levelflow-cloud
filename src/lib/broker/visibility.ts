@@ -158,6 +158,7 @@ export const OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE: Record<
  * guessing which crypto a CFD desk carries is precisely the inference this
  * replaces.
  */
+// SYMBOLS: external E8 forex-account crypto CFDs | 8 of 33 vs crypto
 export const FOREX_ACCOUNT_CRYPTO_CFDS: ReadonlySet<string> = new Set([
   "ADAUSD",
   "BCHUSD",
