@@ -28,6 +28,7 @@ import type { SecurityType } from "./symbolMap";
  * boundary every other mirror in this file crosses by duplication.
  * tests/calibrationState.test.ts pins these against the engine's real values.
  */
+// SYMBOLS: external the grain complex | 6 of 6 vs agriculture
 export const AGRICULTURE_SYMBOLS = new Set([
   "ZCUSX",
   "ZSUSX",
@@ -36,6 +37,7 @@ export const AGRICULTURE_SYMBOLS = new Set([
   "ZOUSX",
   "ZRUSD",
 ]);
+// SYMBOLS: external the livestock complex | 3 of 3 vs livestock
 export const LIVESTOCK_SYMBOLS = new Set(["LEUSX", "GFUSX", "HEUSX"]);
 
 /** Extra review windows for the classes SecurityType cannot distinguish. */
@@ -107,6 +109,7 @@ export function confidenceThresholdForAssetOrSymbol(
 // for the same bundle reasoning as every table in this file; the
 // calibrationState parity sweep holds every symbol to the engine's own
 // resolver, so this list can never drift silently.
+// SYMBOLS: external markets with a measured floor | 72 of 97 vs roster
 export const DERIVED_CONFIDENCE_FLOOR_BY_SYMBOL: Record<string, number> = {
   // The totality tranche (2026-08-11): twenty-two more on per-market
   // full-span folds, same parity sweep.

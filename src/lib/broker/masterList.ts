@@ -190,6 +190,7 @@ const SERVED_GROUND =
  * rounds and the commit come straight from symbolMap.ts's own header
  * comment and this repo's git history.
  */
+// SYMBOLS: record grounds for markets no longer scannable | 9
 const NOT_SCANNABLE_GROUND: Record<string, string> = {
   SP: "No accepted setups across the full calibration history (round 12) — a calibration finding, not a broker or FMP fact (src/lib/symbolMap.ts's NO_TRADE_SYMBOLS).",
   NSDQ: "No accepted setups across the full calibration history (round 12) — a calibration finding, not a broker or FMP fact (src/lib/symbolMap.ts's NO_TRADE_SYMBOLS).",
@@ -566,6 +567,7 @@ const UNSIZEABLE_BACKEND_ROWS: MasterListRow[] = UNSIZEABLE_BACKEND_FUTURES.map(
 const CROSSMAP_SOURCE = "docs/research/e8-fmp-crossmap.md (§2.2)";
 const F9_SOURCE = "docs/research/e8-futures-account-2026-08-03.md";
 
+// SYMBOLS: external CME FX majors | 6 of 28 vs forex
 const CME_FX_MAJORS: ReadonlyArray<{
   broker: string;
   product: string;

@@ -66,6 +66,7 @@ type Row = {
 // One representative roster symbol per class — only a key into
 // getCategoryCalibration, never a source of numbers. The thresholds
 // printed are whatever calibration.ts holds the moment this runs.
+// SYMBOLS: record one probe symbol per class | 8
 const CLASS_REPRESENTATIVE: Record<string, string> = {
   agriculture: "ZCUSX",
   crypto: "BTCUSD",
@@ -87,6 +88,7 @@ function liveThreshold(className: string): number | null {
 // The ten markets Phase 5 made sizeable for the first time (29 -> 39 on the
 // three full forex lines). Their curves have never existed before this run,
 // which is the whole reason the owner reopened the calibration arc.
+// SYMBOLS: record the 2026-08-10 sizing sweep | 10
 const NEWLY_SIZEABLE = new Set([
   "XAGUSD",
   "WTI",

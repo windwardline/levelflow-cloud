@@ -9,6 +9,7 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const SUPABASE_FETCH_TIMEOUT_MS = 8_000;
 const MARKET_DATA_FETCH_TIMEOUT_MS = 15_000;
 
+// SYMBOLS: external the market-data function's own mirror | 98 of 98 vs known
 const symbolMap: Record<string, string> = {
   EURUSD: "EURUSD",
   GBPUSD: "GBPUSD",

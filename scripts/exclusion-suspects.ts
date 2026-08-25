@@ -21,6 +21,7 @@ import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 import { assertManifest } from "./sweepStats.ts";
 
+// SYMBOLS: record the 2026-07-28 exclusion sweep | 12
 const SUSPECTS = new Set([
   "SP", "NSDQ", "DOW", "NIKKEI", "DAX", "ASX",
   "NGUSD", "HGUSD", "BNBUSD",

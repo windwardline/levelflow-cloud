@@ -37,6 +37,7 @@
  */
 
 /** variant Levelflow symbol -> the analyzed parent it sizes against. */
+// SYMBOLS: external E8 contract-size variants | 9 of 98 vs known
 export const CONTRACT_SIZE_VARIANTS: Readonly<Record<string, string>> = {
   // Micro Gold, 10 oz against GC's 100 oz. Both are live on the F9
   // futures-account sighting (MGCQ6 4041.0 alongside GCQ6 4029.6), and both
