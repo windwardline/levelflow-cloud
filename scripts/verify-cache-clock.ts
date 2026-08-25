@@ -53,6 +53,7 @@ import { flagReader } from "./flagReader.ts";
 import {
   TREASURY_FETCH_START_MS,
   treasuryCurveFacts,
+  type TreasuryCurveFacts,
 } from "./sweepManifest.ts";
 
 type StoredBar = { high: number; low: number; time: number };
@@ -244,8 +245,32 @@ export function auditCacheClock(input: {
    * SIGABRT, Node's out-of-memory abort. Nothing about the staleness bound
    * needs a bar; it needs the last timestamp and two gap statistics.
    */
+  const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
   const stalenessQueue: Array<
     { key: string; lastTime: number; recentMaxGapMs: number; recentMedianGapMs: number }
+  > = [];
+
+  /**
+   * Curve stores whose head and gap checks passed, awaiting the corpus as-of.
+   *
+   * #420 made the BAR staleness gate corpus-relative and left this one on
+   * `Date.now()` — one of two sites, which is this repository's most-repeated
+   * failure, and it had a date on it: the Treasury tail is 2026-08-24, so the
+   * accepted v4 cache would have gone RED on 2026-08-31 on unchanged bytes.
+   *
+   * The loop is what made it serious. That refusal reads "Rebuild per
+   * docs/cache-rebuild-r0.md; do not sweep or top up against this cache" while
+   * a thirty-second `--warm-only` top-up would clear it — the instrument
+   * forbidding its own cheap remedy and routing the operator to a fourteen-hour
+   * rebuild that spends metered bytes.
+   */
+  const pendingCurves: Array<
+    {
+      clock: string;
+      facts: TreasuryCurveFacts & { firstTime: number; lastTime: number };
+      key: string;
+    }
   > = [];
 
   for (const name of rollingNames) {
@@ -334,7 +359,6 @@ export function auditCacheClock(input: {
       // refused it. The predicates live in sweepManifest.ts, a plain Node
       // module, so this imports them rather than restating them: one
       // definition, and the gate cannot drift from the sweep it certifies for.
-      const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
       const curveRows = items as unknown as Array<{ dateMs: number }>;
       const facts = treasuryCurveFacts(
         curveRows.filter((row) => Number.isFinite(row?.dateMs)),
@@ -380,24 +404,40 @@ export function auditCacheClock(input: {
             `months-stale rows as fresh; the sweep refuses this curve`,
         );
       }
-      const staleMs = Date.now() - (facts.lastTime ?? 0);
-      if (staleMs > 7 * 86_400_000) {
-        curveFailed = true;
-        fail(
-          `${key}: newest row is ${iso(facts.lastTime!)}, ${
-            Math.round(staleMs / 86_400_000)
-          } days stale — every decision past the curve's end scores against ` +
-            `months-old rows as if they were fresh`,
-        );
-      }
-      if (!curveFailed) {
-        ok(
-          `${key}: ${facts.count} curve rows ${iso(facts.firstTime)}..${
-            iso(facts.lastTime!)
-          }, largest gap ${
-            Math.round(facts.largestGapMs / 86_400_000)
-          }d, clock "${store.clock}"`,
-        );
+      // CORPUS-RELATIVE, like the bar staleness gate beside it.
+      //
+      // #420 made that gate judge against the corpus's own as-of and left this
+      // one on `Date.now()` — one of two sites, which is this repository's
+      // most-repeated failure. The consequence had a date on it: the Treasury
+      // tail is 2026-08-24, so the accepted 7.65 GB v4 cache would have gone
+      // RED on 2026-08-31 on bytes that had not changed.
+      //
+      // The loop is what makes it serious rather than untidy. This refusal
+      // reads "Rebuild per docs/cache-rebuild-r0.md; do not sweep or top up
+      // against this cache" — while a thirty-second `--warm-only` top-up would
+      // clear it. The instrument's own message forbids its own cheap remedy
+      // and routes the operator to a fourteen-hour rebuild that spends metered
+      // bytes from an allowance this project has already exhausted once.
+      //
+      // The staleness half is DEFERRED, because its bound is the corpus's own
+      // as-of and the loop has not read every store yet. The head and gap
+      // checks above need no such reference and stay here.
+      // `lastTime` is non-null here by construction: an empty curve fails the
+      // head check above and never reaches this line. Narrowed rather than
+      // asserted, so a future change that admits an empty store is a type
+      // error instead of a runtime one.
+      if (
+        !curveFailed && facts.lastTime !== null && facts.firstTime !== null
+      ) {
+        pendingCurves.push({
+          clock: store.clock ?? "",
+          facts: {
+            ...facts,
+            firstTime: facts.firstTime,
+            lastTime: facts.lastTime,
+          },
+          key,
+        });
       }
       continue;
     }
@@ -793,6 +833,31 @@ export function auditCacheClock(input: {
   if (Number.isFinite(corpusEndMs)) {
     for (const entry of stalenessQueue) {
       staleness(entry.key, entry, stalenessAsOf);
+    }
+    // The curve must COVER the corpus it will be joined against, so the corpus
+    // is the reference — not the wall clock. A curve that has genuinely
+    // stopped still falls behind the corpus's newest observation and still
+    // ejects; what stops ejecting is a good cache being read a week later.
+    for (const curve of pendingCurves) {
+      const behindMs = stalenessAsOf - curve.facts.lastTime;
+      if (behindMs > 7 * 86_400_000) {
+        fail(
+          `${curve.key}: newest row is ${iso(curve.facts.lastTime)}, ${
+            Math.round(behindMs / 86_400_000)
+          } days behind the corpus — every decision past the curve's end ` +
+            `scores against months-old rows as if they were fresh. A ` +
+            `--warm-only top-up refreshes the curve; a full rebuild is not ` +
+            `required for this line alone`,
+        );
+        continue;
+      }
+      ok(
+        `${curve.key}: ${curve.facts.count} curve rows ${
+          iso(curve.facts.firstTime)
+        }..${iso(curve.facts.lastTime)}, largest gap ${
+          Math.round(curve.facts.largestGapMs / 86_400_000)
+        }d, clock "${curve.clock}"`,
+      );
     }
     const ageMs = Date.now() - corpusEndMs;
     lines.push(
