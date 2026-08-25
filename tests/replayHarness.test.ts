@@ -1485,3 +1485,86 @@ describe("R1a slice 2 — one physics", () => {
     assert.equal(exit?.price, 101);
   });
 });
+
+describe("unfilledApproachDistance — how close an unfilled setup came", () => {
+  // An unfilled row carried no price information whatsoever: the legs are
+  // empty and riskDistance is a distance, so "missed by a tick" and "never
+  // came near" were the same row. R4 cannot ask whether an entry offset is
+  // too wide from a corpus that cannot tell them apart, and R3 is the one
+  // re-sweep.
+
+  it("measures the gap, and a nearer miss reports a smaller one", () => {
+    // Two setups identical but for the price path. The ORDERING is the
+    // assertion: a fixed value cannot produce it, which is what a hardcoded
+    // or never-updated measurement would be.
+    const setup = buildSetup({ entry: 98, side: "buy", stop: 96, target: 103 });
+    const expiresAt = getSetupExpiryTime(setup.symbol, createdAt);
+    const near = evaluateSetupOutcome(
+      setup,
+      [buildBar(15, 101, 98.2, 100)],
+      expiresAt + 1,
+    );
+    const far = evaluateSetupOutcome(
+      setup,
+      [buildBar(15, 101, 99.5, 100)],
+      expiresAt + 1,
+    );
+    assert.equal(near.state === "resolved" ? near.outcome : null, "unfilled");
+    assert.equal(far.state === "resolved" ? far.outcome : null, "unfilled");
+    const nearGap = near.state === "resolved"
+      ? near.unfilledApproachDistance
+      : null;
+    const farGap = far.state === "resolved" ? far.unfilledApproachDistance : null;
+    assert.ok(typeof nearGap === "number", "the near miss carries no distance");
+    assert.ok(typeof farGap === "number", "the far miss carries no distance");
+    assert.ok(
+      nearGap < farGap,
+      `a low of 98.2 must read nearer than 99.5, got ${nearGap} vs ${farGap}`,
+    );
+    assert.ok(nearGap >= 0, "a negative gap would mean the entry filled");
+  });
+
+  it("measures against the level the FILL test uses, spread included", () => {
+    // Not an idealised gap to the quoted limit. The fill level carries half
+    // the spread and the touch penetration, so measuring to the raw entry
+    // would under-report every row by exactly the amount that decides fills.
+    const setup = buildSetup({ entry: 98, side: "buy", stop: 96, target: 103 });
+    const expiresAt = getSetupExpiryTime(setup.symbol, createdAt);
+    // A spread is supplied so the fill level and the quoted limit DIFFER;
+    // with the default zero-spread options they coincide and this fixture
+    // could not tell the two apart. An earlier draft did not, and asserted a
+    // strict inequality that the defaults made false.
+    const result = evaluateSetupOutcome(
+      setup,
+      [buildBar(15, 101, 99, 100)],
+      expiresAt + 1,
+      { halfSpread: 0.25 },
+    );
+    const gap = result.state === "resolved"
+      ? result.unfilledApproachDistance
+      : null;
+    assert.ok(typeof gap === "number");
+    // A buy fills when the ask reaches the limit, so the fill level sits
+    // half a spread BELOW 98 and the true gap from a low of 99 is 1.25.
+    // Measuring to the raw entry would report 1.0 and under-state every row
+    // by exactly the amount that decides fills.
+    assert.equal(
+      gap,
+      1.25,
+      `the gap must be measured to the fill level, not the quoted limit`,
+    );
+  });
+
+  it("carries nothing on a setup that filled", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 101, 99.8, 100.5),
+      buildBar(30, 105.4, 100.2, 104.8),
+    ]);
+    assert.equal(result.state === "resolved" ? result.outcome : null, "take_profit");
+    assert.equal(
+      result.state === "resolved" ? result.unfilledApproachDistance : "absent",
+      undefined,
+    );
+  });
+});

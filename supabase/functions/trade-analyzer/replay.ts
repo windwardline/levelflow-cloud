@@ -69,6 +69,15 @@ export type ReplayOutcome =
     legs: ResolutionLeg[];
     outcome: Exclude<ResolvedOutcome, "pending">;
     state: "resolved";
+    /**
+     * How close an UNFILLED setup came to its entry, in price. Absent on every
+     * other outcome, and null when the review window held no bars to measure.
+     *
+     * An unfilled row otherwise carries no price information at all — empty
+     * legs and a riskDistance that is a distance — so "missed by a tick" and
+     * "never came near" are the same row.
+     */
+    unfilledApproachDistance?: number | null;
   };
 
 // Engine v2 fill options (round-8 FR-1/3/4/6/7/8, LA-2/13). Every default
@@ -349,11 +358,27 @@ export function evaluateSetupOutcome(
     ? entry - halfSpread - touchFillPenetration
     : entry + halfSpread + touchFillPenetration;
   let fillIndex = -1;
+  // How CLOSE the market came, in price, for a setup that never filled.
+  //
+  // An unfilled row carries no price information whatsoever today: the legs
+  // are empty and riskDistance is a distance, so "missed by a tick" and
+  // "never came near" are the same row. R4 cannot ask whether an entry offset
+  // is too wide without it, and R3 is the one re-sweep.
+  //
+  // Measured against the same level the fill test uses, so it is the true gap
+  // and not an idealised one — spread and touch penetration included.
+  let closestApproach = Number.POSITIVE_INFINITY;
   for (let index = entryLatencyBars; index < createdBars.length; index += 1) {
     const bar = createdBars[index];
     const filled = setup.side === "buy"
       ? bar.low <= entryFillLevel
       : bar.high >= entryFillLevel;
+    const approach = setup.side === "buy"
+      ? bar.low - entryFillLevel
+      : entryFillLevel - bar.high;
+    if (approach < closestApproach) {
+      closestApproach = approach;
+    }
     if (filled) {
       fillIndex = index;
       break;
@@ -375,6 +400,14 @@ export function evaluateSetupOutcome(
         legs: [],
         outcome: "unfilled",
         state: "resolved",
+        // Non-negative by construction on this branch: a negative approach
+        // means the level was reached, which is the filled path. Null only
+        // when the window held no bars to measure against at all — the
+        // data-absent unfilled above returns before this loop runs and
+        // correctly carries no measurement.
+        unfilledApproachDistance: Number.isFinite(closestApproach)
+          ? closestApproach
+          : null,
       };
     }
     return { state: "pending" };
