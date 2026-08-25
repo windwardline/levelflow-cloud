@@ -1,4 +1,10 @@
 import { recordAnalyzerEvent } from "../trade-analyzer/telemetry.ts";
+import { getAssetType } from "../trade-analyzer/calibration.ts";
+import {
+  defaultScanSymbols,
+  getHeadlineNewsSymbols,
+} from "../trade-analyzer/symbols.ts";
+import { batchNewsSymbols } from "./newsBatching.ts";
 import {
   type EconomicEvent,
   parseEarningsEventTime,
@@ -50,46 +56,22 @@ type MaybeTimedEvent = Omit<EconomicEvent, "scheduled_at"> & {
   scheduled_at: string | null;
 };
 
-const FOREX_NEWS_SYMBOLS = [
-  "AUDCAD",
-  "AUDCHF",
-  "AUDJPY",
-  "AUDNZD",
-  "AUDUSD",
-  "CADCHF",
-  "CADJPY",
-  "CHFJPY",
-  "EURAUD",
-  "EURCAD",
-  "EURCHF",
-  "EURGBP",
-  "EURJPY",
-  "EURNZD",
-  "EURUSD",
-  "GBPAUD",
-  "GBPCAD",
-  "GBPCHF",
-  "GBPJPY",
-  "GBPNZD",
-  "GBPUSD",
-  "NZDCAD",
-  "NZDCHF",
-  "NZDJPY",
-  "NZDUSD",
-  "USDCAD",
-  "USDCHF",
-  "USDJPY",
-];
-const CRYPTO_NEWS_SYMBOLS = [
-  "ADAUSD",
-  "BCHUSD",
-  "BNBUSD",
-  "BTCUSD",
-  "ETHUSD",
-  "LTCUSD",
-  "SOLUSD",
-  "XRPUSD",
-];
+/**
+ * Derived from the scan roster, not typed by hand.
+ *
+ * Both lists were exactly exhaustive over their classes when written and
+ * CRYPTO_NEWS_SYMBOLS then stopped at 8 while crypto grew to 33 — so 25
+ * markets could never receive a headline penalty worth up to 4 confidence
+ * points, a standing one-directional advantage over the eight covered
+ * majors. FOREX_NEWS_SYMBOLS still equals its class exactly, by luck; it is
+ * derived here so the luck is not load-bearing.
+ */
+const FOREX_NEWS_SYMBOLS = getHeadlineNewsSymbols(
+  defaultScanSymbols.filter((symbol) => getAssetType(symbol) === "forex"),
+);
+const CRYPTO_NEWS_SYMBOLS = getHeadlineNewsSymbols(
+  defaultScanSymbols.filter((symbol) => getAssetType(symbol) === "crypto"),
+);
 const STOCK_NEWS_SYMBOLS = [
   "BNO",
   "CPER",
@@ -409,6 +391,23 @@ async function fetchFmpHeadlineEvents(
 }
 
 async function fetchFmpNewsEndpoint(
+  category: "crypto" | "forex" | "stock",
+  symbols: string[],
+  windowStart: Date,
+  windowEnd: Date,
+): Promise<MaybeTimedEvent[]> {
+  // One request per batch. A single request carrying the whole list looks
+  // like it worked — HTTP 200, a full 100 articles — while everything past
+  // the 25th symbol is missing from it, which is why this went unnoticed.
+  const batched = await Promise.all(
+    batchNewsSymbols(symbols).map((batch) =>
+      fetchFmpNewsBatch(category, batch, windowStart, windowEnd)
+    ),
+  );
+  return batched.flat();
+}
+
+async function fetchFmpNewsBatch(
   category: "crypto" | "forex" | "stock",
   symbols: string[],
   windowStart: Date,
