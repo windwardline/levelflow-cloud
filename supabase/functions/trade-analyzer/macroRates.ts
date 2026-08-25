@@ -143,7 +143,11 @@ export const MACRO_RATE_ROLE_BY_SYMBOL: Record<string, MacroRateRoleEntry> = {
   HBARUSD: { role: "rate-inverse", why: "USD-priced risk asset, sensitive to the discount rate." },
   HEUSX: { role: "none", why: "Livestock: herd cycle and feed driven, with no first-order claim from the US Treasury curve." },
   HGUSD: { role: "none", why: "Copper is industrial, not monetary. Excluded deliberately: the metals set admitted every precious metal and left this one out, which is a decision written in the set's own composition — but never restated, so it is recorded here." },
-  HOUSD: { role: "none", why: "OPEN (C2): a refined product of the crude that carries the shock penalty, onboarded in the same 2026-08-06 batch and never added." },
+  HOUSD: {
+    role: "energy-shock",
+    why:
+      "Refined product (heating oil): its flat price is crude plus a crack spread, and the crack is the LESS macro-sensitive half — so a rate shock reaching crude reaches this near one-for-one. Onboarded 2026-08-06 in the same batch as the crude already carrying the penalty. NOTE: the −1 magnitude it now inherits has never been measured anywhere in this repo; this change corrects the population of an existing rule and is not a licence to retune it.",
+  },
   IMXUSD: { role: "rate-inverse", why: "USD-priced risk asset, sensitive to the discount rate." },
   LEUSX: { role: "none", why: "Livestock: herd cycle and feed driven, with no first-order claim from the US Treasury curve." },
   LINKUSD: { role: "rate-inverse", why: "USD-priced risk asset, sensitive to the discount rate." },
@@ -160,7 +164,11 @@ export const MACRO_RATE_ROLE_BY_SYMBOL: Record<string, MacroRateRoleEntry> = {
   NZDUSD: { role: "usd-quote", why: "USD is the quote leg, so dollar strength presses the pair." },
   PAUSD: { role: "none", why: "OPEN (C3): platinum-group, industrial as much as monetary. Admitting it means stating the criterion that separates a monetary metal from an industrial one, which nothing in this repo states. An owner ruling, not a repair." },
   PLUSD: { role: "none", why: "OPEN (C3): platinum-group, industrial as much as monetary. Admitting it means stating the criterion that separates a monetary metal from an industrial one, which nothing in this repo states. An owner ruling, not a repair." },
-  RBUSD: { role: "none", why: "OPEN (C2): a refined product of the crude that carries the shock penalty, onboarded in the same 2026-08-06 batch and never added." },
+  RBUSD: {
+    role: "energy-shock",
+    why:
+      "Refined product (RBOB gasoline): its flat price is crude plus a crack spread, and the crack is the LESS macro-sensitive half — so a rate shock reaching crude reaches this near one-for-one. Onboarded 2026-08-06 in the same batch as the crude already carrying the penalty. NOTE: the −1 magnitude it now inherits has never been measured anywhere in this repo; this change corrects the population of an existing rule and is not a licence to retune it.",
+  },
   RTYUSD: { role: "rate-inverse", why: "Equity index, discounted at the long rate." },
   SIUSD: { role: "rate-inverse", why: "Monetary metal: a real-rate asset, which is what this set was named for." },
   SOLUSD: { role: "rate-inverse", why: "USD-priced risk asset, sensitive to the discount rate." },
@@ -182,14 +190,22 @@ export const MACRO_RATE_ROLE_BY_SYMBOL: Record<string, MacroRateRoleEntry> = {
   YMUSD: { role: "rate-inverse", why: "Equity index, discounted at the long rate." },
   ZBUSD: { role: "rate-inverse", why: "Treasury future: its price IS the yield, by the price-yield identity." },
   ZCUSX: { role: "none", why: "Grain: supply and weather driven, with no first-order claim from the US Treasury curve." },
-  ZFUSD: { role: "none", why: "OPEN (C1): a Treasury future receiving no Treasury treatment. correlationGroups.treasury_futures names all four tenors as one curve; this table gives two of them the rule. Roster drift from the 2026-08-06 onboarding, never a decision." },
+  ZFUSD: {
+    role: "rate-inverse",
+    why:
+      "Treasury future (5-year note): its price IS the yield, by the price-yield identity. correlationGroups.treasury_futures already named all four tenors one curve that moves \"together far more than they diverge\" while this table gave the rule to two of them; that split was roster drift from the 2026-08-06 onboarding, never a decision.",
+  },
   ZLUSX: { role: "none", why: "Grain: supply and weather driven, with no first-order claim from the US Treasury curve." },
   ZMUSD: { role: "none", why: "Grain: supply and weather driven, with no first-order claim from the US Treasury curve." },
   ZNUSD: { role: "rate-inverse", why: "Treasury future: its price IS the yield, by the price-yield identity." },
   ZOUSX: { role: "none", why: "Grain: supply and weather driven, with no first-order claim from the US Treasury curve." },
   ZRUSD: { role: "none", why: "Grain: supply and weather driven, with no first-order claim from the US Treasury curve." },
   ZSUSX: { role: "none", why: "Grain: supply and weather driven, with no first-order claim from the US Treasury curve." },
-  ZTUSD: { role: "none", why: "OPEN (C1): a Treasury future receiving no Treasury treatment. correlationGroups.treasury_futures names all four tenors as one curve; this table gives two of them the rule. Roster drift from the 2026-08-06 onboarding, never a decision." },
+  ZTUSD: {
+    role: "rate-inverse",
+    why:
+      "Treasury future (2-year note): its price IS the yield, by the price-yield identity. correlationGroups.treasury_futures already named all four tenors one curve that moves \"together far more than they diverge\" while this table gave the rule to two of them; that split was roster drift from the 2026-08-06 onboarding, never a decision.",
+  },
 };
 
 /**

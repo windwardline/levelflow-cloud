@@ -19,8 +19,22 @@
 > the defect and must be rebuilt (Phase 0) before anything is re-measured.
 
 
-Model version: `2026.08.18.one-physics` (deployed and verified 2026-08-18 — deploy run 380, green end-to-end including the E2E chart gate. R1a slices 1+2: realized R from legs on every filled resolution; live grading on the sweep's resolution tiering with the row's stored runner-protection mode and review window; the decision anchor on the last completed primary bar; calibration cells unchanged from `2026.08.11.declines`). The per-market layer this
-records was derived from the invalidated corpus — see the banner above.
+Model version: `2026.08.25.macro-roles` (**not yet deployed** — the desk is
+parked, so this version has never served a request. The Treasury-rate layer's
+symbol routing moved from four hand-typed Sets and two regexes on the symbol
+name to one per-market role table, and four markets changed what the curve is
+allowed to say about them: ZFUSD and ZTUSD take the rate rule their own
+correlation family already claimed, and HOUSD and RBUSD take the shock penalty
+their crude already carried. Calibration cells are unchanged.)
+
+The previous version, `2026.08.18.one-physics`, is what is deployed and
+verified — 2026-08-18, deploy run 380, green end-to-end including the E2E
+chart gate. R1a slices 1+2: realized R from legs on every filled resolution;
+live grading on the sweep's resolution tiering with the row's stored
+runner-protection mode and review window; the decision anchor on the last
+completed primary bar; calibration cells unchanged from
+`2026.08.11.declines`. The per-market layer this records was derived from the
+invalidated corpus — see the banner above.
 Last reviewed: 2026-07-30 (round 23 — the calibration arc is complete;
 see "The stopping point" and "Resumption protocol" below)
 
@@ -336,7 +350,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.08.18.one-physics'
+   where o.analyzer_version = '2026.08.25.macro-roles'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;
@@ -425,6 +439,37 @@ momentum, volatility expansion, volume-profile position) weighted per asset
 class, gated by a daily-chart regime classifier, scored to a 0–100
 confidence with news, session, execution-cost, macro-rate, and learned
 penalties.
+
+### What the Treasury curve is allowed to say about a market
+
+Every market carries one macro role, in `MACRO_RATE_ROLE_BY_SYMBOL`
+(`supabase/functions/trade-analyzer/macroRates.ts`). The table is exhaustive
+over `symbolMap` and each entry states its own reason; those reasons are the
+record, not this section.
+
+| role | on a rising 10-year | markets |
+|---|---|---|
+| `usd-base` | favours buy | 3 |
+| `usd-quote` | favours sell | 4 |
+| `rate-inverse` | favours sell | 52 |
+| `energy-shock` | no side; −1 at \|Δ\| ≥ 8bps | 6 |
+| `none` | nothing | 33 |
+
+Magnitude is 1, doubling to 2 past 8bps. Moves under 4bps are inert for every
+role.
+
+`usd-quote` and `rate-inverse` emit the same side on today's roster and are
+deliberately kept apart: the agreement is a coincidence of the current
+membership, and one table pins it so a divergence becomes a failure rather
+than a silent reinterpretation.
+
+Two markets carry an open question rather than a settled reason. PLUSD and
+PAUSD are platinum-group — industrial as much as monetary — and admitting
+them to `rate-inverse` means stating a criterion separating a monetary metal
+from an industrial one that nothing in this repo states. That is an owner
+ruling. HGUSD is not open: copper's exclusion is a decision written into the
+old metals set's own composition, which admitted every precious metal and
+left this one out.
 
 ## Acceptance bar
 

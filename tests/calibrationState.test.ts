@@ -297,7 +297,7 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     );
     assert.match(
       calibrationSrc,
-      /ANALYZER_VERSION = "2026\.08\.18\.one-physics"/,
+      /ANALYZER_VERSION = "2026\.08\.25\.macro-roles"/,
     );
     assert.match(src, /ANALYZER_VERSION,\n/);
 
