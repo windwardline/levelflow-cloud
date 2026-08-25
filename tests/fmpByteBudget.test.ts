@@ -112,13 +112,28 @@ describe("replay-sweep — every FMP read is metered", () => {
   const source = readFileSync("scripts/replay-sweep.ts", "utf8");
 
   it("routes every provider read through the budget", () => {
-    const fetches = source.match(/fetchFmpWithRetry\(/g) ?? [];
+    // The entry points are DERIVED from fmpRetry.ts's own exports, not named
+    // here. This test previously counted `fetchFmpWithRetry(` alone and went
+    // red the moment a second entry point arrived — a guard that fails on a
+    // change which strengthens the invariant it protects is a guard people
+    // learn to edit rather than heed. A third entry point now inherits the
+    // check instead of slipping past it.
+    const entryPoints = [
+      ...readFileSync("scripts/fmpRetry.ts", "utf8")
+        .matchAll(/export async function (fetchFmp\w*)/g),
+    ].map((match) => match[1]);
+    assert.ok(entryPoints.length > 0, "fmpRetry.ts exports no fetch entry point");
+    const fetches = entryPoints.reduce(
+      (total, name) =>
+        total + (source.match(new RegExp(`${name}\\(`, "g")) ?? []).length,
+      0,
+    );
     const metered = source.match(/readJsonWithBudget\(/g) ?? [];
-    assert.ok(fetches.length > 0, "expected the sweep to fetch from FMP");
+    assert.ok(fetches > 0, "expected the sweep to fetch from FMP");
     assert.equal(
       metered.length,
-      fetches.length,
-      "every fetchFmpWithRetry site must read its body through readJsonWithBudget",
+      fetches,
+      `every FMP fetch site (${entryPoints.join(", ")}) must read its body through readJsonWithBudget`,
     );
   });
 
