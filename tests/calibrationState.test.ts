@@ -3,8 +3,10 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   ENGINE_DECLINED_MARKETS,
+  getAssetType,
   getCategoryCalibration,
   getClassCalibration,
+  getSymbolCalibrationOverride,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { getSessionContext } from "../supabase/functions/trade-analyzer/sessions.ts";
 import {
@@ -545,5 +547,60 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
       dataNegative,
       "the declined register must equal the data-negative population exactly",
     );
+  });
+});
+
+describe("getSymbolCalibrationOverride — the layer the merge dissolves", () => {
+  it("is exactly the difference between the class row and the merge, on every market", () => {
+    // Derived over the whole roster, not a sampled market: for each symbol,
+    // class-row ∪ override must reproduce the merged calibration the engine
+    // actually uses, and the override must contain nothing the merge does
+    // not carry. That equivalence is what lets the manifest record the two
+    // layers separately and a reader reassemble the shipped configuration.
+    for (const symbol of defaultScanSymbols) {
+      const merged = getCategoryCalibration(symbol) as Record<string, unknown>;
+      const override = getSymbolCalibrationOverride(symbol) as Record<
+        string,
+        unknown
+      >;
+      const classRow = getClassCalibration(
+        getAssetType(symbol),
+      ) as Record<string, unknown>;
+      assert.deepEqual(
+        { ...classRow, ...override },
+        merged,
+        `${symbol}: class row plus override does not reproduce the merge`,
+      );
+      for (const [field, value] of Object.entries(override)) {
+        assert.deepEqual(
+          merged[field],
+          value,
+          `${symbol}: override field ${field} is not what the engine uses`,
+        );
+      }
+    }
+  });
+
+  it("normalizes its key, so a punctuated symbol could never read as unconfigured", () => {
+    // Today's roster is entirely alphanumeric, which is precisely why this is
+    // pinned: the normalization is unobservable until the first punctuated
+    // engine symbol, and an accessor that dropped it would pass every other
+    // test in this file.
+    const configured = defaultScanSymbols.find(
+      (symbol) => Object.keys(getSymbolCalibrationOverride(symbol)).length > 0,
+    );
+    assert.ok(configured, "no market carries an override — check the roster");
+    assert.deepEqual(
+      getSymbolCalibrationOverride(`^${configured.toLowerCase()}-`),
+      getSymbolCalibrationOverride(configured),
+    );
+  });
+
+  it("72 of 97 markets carry a per-symbol layer — the merge alone cannot say which", () => {
+    const configured = defaultScanSymbols.filter(
+      (symbol) => Object.keys(getSymbolCalibrationOverride(symbol)).length > 0,
+    );
+    assert.equal(defaultScanSymbols.length, 97);
+    assert.equal(configured.length, 72);
   });
 });

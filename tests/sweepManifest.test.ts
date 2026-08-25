@@ -12,10 +12,12 @@ import { describe, it } from "node:test";
 import {
   buildSweepManifest,
   crossSeriesDensityFacts,
+  resolveSweepSource,
   seriesFacts,
   sha256Hex,
   stableStringify,
   type SweepConditions,
+  type SweepSource,
   TREASURY_FETCH_START_MS,
   treasuryChunkRefusal,
   treasuryCurveFacts,
@@ -148,9 +150,14 @@ describe("stableStringify — hashes cannot depend on key order", () => {
 });
 
 describe("buildSweepManifest — the NGUSD hazard closed", () => {
-  const symbolInput = (calibration: Record<string, unknown>) => ({
+  const symbolInput = (
+    calibration: Record<string, unknown>,
+    symbolOverride?: Record<string, unknown>,
+  ) => ({
+    assetType: "futures",
     calibration,
     providerSymbol: "ESUSD",
+    ...(symbolOverride && { symbolOverride }),
     series: {
       "15min": seriesFacts([{ time: 0 }, { time: 900_000 }], "intraday"),
       "1day": seriesFacts([{ time: 0 }], "daily"),
@@ -161,16 +168,21 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
 
   const build = (overrides: {
     calibration?: Record<string, unknown>;
+    calibrationByClass?: Record<string, Record<string, unknown>>;
     clock?: { calendar: string; normalizer: string };
     conditions?: SweepConditions;
     generatedAt?: string;
     grid?: unknown[];
+    source?: SweepSource;
+    symbolOverride?: Record<string, unknown>;
     treasuryCurve?: TreasuryCurveFacts;
   } = {}) =>
     buildSweepManifest({
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-09",
       barRejections: { spike: 2 },
+      ...(overrides.calibrationByClass &&
+        { calibrationByClass: overrides.calibrationByClass }),
       clock: overrides.clock ??
         { calendar: "test-calendar-v1", normalizer: "test-clock-v1" },
       conditions: overrides.conditions ?? {
@@ -181,9 +193,13 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
       days: 365,
       generatedAt: overrides.generatedAt ?? "2026-08-09T22:00:00.000Z",
       grid: overrides.grid ?? [{}],
+      ...(overrides.source && { source: overrides.source }),
       stepBars: 16,
       symbols: [
-        symbolInput(overrides.calibration ?? { tp1RiskShare: 0.8 }),
+        symbolInput(
+          overrides.calibration ?? { tp1RiskShare: 0.8 },
+          overrides.symbolOverride,
+        ),
       ],
       trainShare: 0.6,
       treasuryCurve: overrides.treasuryCurve ?? {
@@ -265,6 +281,63 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
           macroAdjustment: "live-fetch",
         } as unknown as SweepConditions,
       }).manifestHash,
+    );
+  });
+
+  it("records the per-symbol layer ALONE, not only the merge it disappears into", () => {
+    // The merged `calibration` is class-row ∪ override. A reader given only
+    // the merge can say which values APPLIED and never which were authored
+    // for this market — on 72 of 97 markets. R4 grades all 97 individually
+    // against their own shipped configuration, so this is the field it needs.
+    const manifest = build({
+      calibration: { stopAtrMultiplier: 1.5, tp1RiskShare: 0.9 },
+      symbolOverride: { tp1RiskShare: 0.9 },
+    });
+    assert.deepEqual(manifest.symbols[0].symbolOverride, { tp1RiskShare: 0.9 });
+    assert.equal(manifest.symbols[0].assetType, "futures");
+  });
+
+  it("moves its hash when the per-symbol layer moves under an unchanged merge", () => {
+    // The mutation that matters: two runs whose merged calibration is
+    // IDENTICAL and whose provenance differs — 0.9 authored for this market
+    // versus 0.9 inherited from its class. If the override sat outside the
+    // hash, the artifact would call those the same measurement.
+    const merged = { tp1RiskShare: 0.9 };
+    assert.notEqual(
+      build({ calibration: merged, symbolOverride: { tp1RiskShare: 0.9 } })
+        .manifestHash,
+      build({ calibration: merged }).manifestHash,
+    );
+  });
+
+  it("moves its hash when a class row moves — the row three classes never show in pure form", () => {
+    // forex, metals and energies have ZERO class-pure members, so their class
+    // row is applied to nothing observable and cannot be recovered by
+    // subtracting overrides from merges. Recording it is the only way the
+    // artifact can state what it ran under.
+    assert.notEqual(
+      build({ calibrationByClass: { futures: { tp1RiskShare: 0.8 } } })
+        .manifestHash,
+      build({ calibrationByClass: { futures: { tp1RiskShare: 0.7 } } })
+        .manifestHash,
+    );
+  });
+
+  it("moves its hash when the engine revision moves — analyzerVersion cannot answer this", () => {
+    // ANALYZER_VERSION is bumped by hand and covers the analyzer only. The
+    // 2026-08-11 clock defect lived in the HARNESS, so a corpus measured
+    // before and after it carries one analyzerVersion and two engines.
+    const revision = "a".repeat(40);
+    assert.notEqual(
+      build({ source: { dirty: false, revision } }).manifestHash,
+      build({ source: { dirty: false, revision: "b".repeat(40) } })
+        .manifestHash,
+    );
+    // A dirty tree is not reproducible from its revision, and the register
+    // has to be able to say so rather than imply a clean checkout.
+    assert.notEqual(
+      build({ source: { dirty: false, revision } }).manifestHash,
+      build({ source: { dirty: true, revision } }).manifestHash,
     );
   });
 
@@ -2309,5 +2382,101 @@ describe("the driver writes the manifest beside the emit", () => {
         `row position ${position} must carry ${name}`,
       );
     });
+  });
+});
+
+/** The text between a call's own parentheses, brace- and paren-balanced. */
+function callArguments(source: string, call: string): string {
+  const start = source.indexOf(call);
+  assert.ok(start >= 0, `call ${call} not found`);
+  let depth = 0;
+  for (let i = start + call.length - 1; i < source.length; i += 1) {
+    if (source[i] === "(") depth += 1;
+    else if (source[i] === ")") {
+      depth -= 1;
+      if (depth === 0) return source.slice(start + call.length, i);
+    }
+  }
+  throw new Error(`call ${call} is unbalanced`);
+}
+
+describe("resolveSweepSource — provenance that refuses rather than guesses", () => {
+  it("records the revision and a clean tree", () => {
+    const revision = "c".repeat(40);
+    assert.deepEqual(
+      resolveSweepSource((args) =>
+        args[0] === "rev-parse" ? `${revision}\n` : "\n"
+      ),
+      { dirty: false, revision },
+    );
+  });
+
+  it("reports a dirty tree — a corpus a revision alone cannot reproduce", () => {
+    assert.equal(
+      resolveSweepSource((args) =>
+        args[0] === "rev-parse" ? `${"d".repeat(40)}\n` : " M scripts/x.ts\n"
+      ).dirty,
+      true,
+    );
+  });
+
+  it("refuses anything that is not a commit SHA", () => {
+    // git answering something other than a commit — not a repository, a
+    // detached empty HEAD, a wrapper printing a warning — must not land a
+    // decorative string where provenance goes. An empty answer is the one
+    // that would otherwise pass silently.
+    for (const answer of ["", "HEAD\n", "fatal: not a git repository\n", "abc"]) {
+      assert.throws(
+        () => resolveSweepSource(() => answer),
+        /not a commit SHA/,
+        `accepted ${JSON.stringify(answer)}`,
+      );
+    }
+  });
+
+  it("is resolved before the sweep runs, not while writing the manifest", () => {
+    // A sweep runs for tens of hours. A git failure discovered at manifest
+    // time would discard the whole run, so the call sits at startup.
+    //
+    // Anchored on the SYMBOL LOOP, not on buildSweepManifest: the call could
+    // sit one line above the manifest build and still satisfy an ordering
+    // test written against it, which is a guard that reads as a guarantee
+    // and holds nothing. Everything expensive happens in that loop.
+    const script = readFileSync("scripts/replay-sweep.ts", "utf8");
+    const resolvedAt = script.indexOf("resolveSweepSource(");
+    const loopAt = script.indexOf("for (const symbol of args.symbols) {");
+    assert.ok(resolvedAt > 0 && loopAt > 0, "markers moved — re-anchor this");
+    assert.ok(
+      resolvedAt < loopAt,
+      "resolveSweepSource must run before the first symbol is fetched",
+    );
+  });
+
+  it("every sweep driver in the repo passes source — derived, not remembered", () => {
+    // The population is DERIVED: whatever calls buildSweepManifest outside
+    // tests/ is a driver, and a driver that omits source writes a corpus that
+    // cannot say which engine measured it. A hand-kept list of drivers would
+    // be correct the day it was written and silently wrong the day a second
+    // driver appeared.
+    const drivers = readdirSync("scripts")
+      .filter((name) => name.endsWith(".ts"))
+      .map((name) => ({
+        name,
+        text: readFileSync(join("scripts", name), "utf8"),
+      }))
+      .filter(({ name, text }) =>
+        name !== "sweepManifest.ts" && text.includes("buildSweepManifest(")
+      );
+    assert.ok(drivers.length > 0, "derivation found no drivers — check it");
+    for (const { name, text } of drivers) {
+      // Scoped to the CALL, not the file. Matching the whole file passes on
+      // the mere presence of `resolveSweepSource` — an assertion that reads
+      // as a guarantee and holds nothing.
+      assert.match(
+        callArguments(text, "buildSweepManifest("),
+        /(^|[\s{])(\.\.\.\(source|source:)/m,
+        `${name} builds a manifest without recording the engine revision`,
+      );
+    }
   });
 });
