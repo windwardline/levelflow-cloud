@@ -153,6 +153,19 @@ const CANONICAL_ROWS: SpecRow[] = [
 // "Not offered" for contracts the same F9 frames show live. The remaining
 // margin-table-only symbols (UB, TN, ZQ, MNG, MHG, blank "Micro Silver")
 // still have no Levelflow counterpart and stay out of scope (§19h).
+/**
+ * Exported so nothing has to transcribe it. masterList's unsizeable set was a
+ * hand-typed copy of two of these five, written when there were two, and it
+ * stayed at two after ZF, ZT and GF joined — the same drift, one file over.
+ */
+export const MARGIN_ONLY_E8_SYMBOLS: readonly string[] = [
+  "GF",
+  "ZB",
+  "ZF",
+  "ZN",
+  "ZT",
+];
+
 const MARGIN_ONLY_ROWS: SpecRow[] = [
   ["GF", "Feeder Cattle", null, null, 10_000, null],
   ["ZB", "30-Year Bond", null, null, 10_000, null],
@@ -412,7 +425,7 @@ function ticketAlt(levelflowSymbol: string): string {
 // silver on the Markets side, and the whole energies class. Each note is the
 // promoted row's own ticket arithmetic (Amendment 4: narrow by construction,
 // nothing borrowed from a sibling instrument's ticket).
-// SYMBOLS: external E8 checkout observations | 10 of 98 vs known
+// SYMBOLS: external E8 checkout observations captured so far | 10 of 98 vs known
 const FOREX_CONTRACT_OBSERVATIONS: Record<string, { contractSize: number; note: string }> = {
   XAGUSD: {
     contractSize: 5_000,
@@ -467,7 +480,7 @@ const FOREX_CONTRACT_OBSERVATIONS: Record<string, { contractSize: number; note: 
 // way DOW/NSDQ/SP already publish theirs, and these three stay outside wave
 // 1's scannable roster (they are among the nine addendum markets) so nothing
 // sizes against the unbridged figure today.
-// SYMBOLS: external E8 checkout observations | 3 of 6 vs indices
+// SYMBOLS: external E8 checkout observations captured so far | 3 of 6 vs indices
 const INDEX_POINT_OBSERVATIONS: Record<string, { note: string; pointsPerLot: number }> = {
   NIKKEI: {
     pointsPerLot: 500,

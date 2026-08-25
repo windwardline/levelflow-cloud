@@ -23,7 +23,14 @@ import { isKnownSymbol } from "./symbols.ts";
 // single-analyze and scan paths, so the cohort boundary moves with it.
 // (Prior: 2026.08.18.one-physics — R1a's grading physics; before that
 // 2026.08.18.realized-r, D2's one R accountant on every filled resolution.)
-export const ANALYZER_VERSION = "2026.08.25.macro-roles";
+// 2026.08.25.treasury-tenors: ZFUSD and ZTUSD gain headline proxies (IEI,
+// SHY), so Treasury news now reaches the 5-year and 2-year the way it
+// already reached the 30-year and 10-year. That changes the news penalty
+// those two markets can receive, which changes their score — the same two
+// markets the macro-roles bump corrected one layer up, for the same reason:
+// they were onboarded on 2026-08-06 into a file nobody revisited.
+// (Prior: 2026.08.25.macro-roles.)
+export const ANALYZER_VERSION = "2026.08.25.treasury-tenors";
 
 export type AssetType =
   | "agriculture"

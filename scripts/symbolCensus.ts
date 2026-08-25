@@ -132,6 +132,23 @@ export type SymbolMarker =
  * is the whole trick — when the roster grows, the total grows, and the marker
  * fails on the GROWTH commit rather than five weeks later.
  *
+ * WHAT IT DOES NOT ATTEST, said plainly because the source label invites the
+ * opposite reading. `external CFTC reported contracts | 20 of 98 vs known`
+ * proves three things: the list has 20 members, all 20 are in the population,
+ * and the population currently holds 98. It proves NOTHING about the other
+ * 78. A reader — or a later agent — must not take the label as evidence that
+ * the CFTC does not report them, or that the broker does not offer them.
+ *
+ * That distinction is not academic. `DIRECT_CONTRACTS` maps 20 of 98 and at
+ * least 15 of the unmapped are CFTC-reported instruments as domain fact,
+ * including ZFUSD and ZTUSD while their curve siblings ZBUSD and ZNUSD are
+ * mapped. Marking it `external` records where coverage stands; it must not
+ * convert a known-partial capture into an attested absence.
+ *
+ * So a source label states WHERE THE LIST CAME FROM, never why the remainder
+ * is absent. Where the capture is known to be incomplete, the label says so —
+ * "mapped so far", not "the reported contracts".
+ *
  * The record form pins the size instead, because a record of what happened
  * must NOT track the roster: widening it asserts a measurement nobody took.
  * Pinning it is what protects it from a later agent helpfully aligning it.

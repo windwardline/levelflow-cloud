@@ -175,7 +175,7 @@ const CRYPTO_COMMISSION_PRICE_FRACTION = 2 * 0.00035; // 0.035% per side
 // the class model, never replacements: live spreads can be wider, and a
 // quoted spread still outranks the whole modeled branch. TRUMP's
 // two-decimal display hid its width entirely; it carries no floor.
-// SYMBOLS: external measured crypto spread floors | 32 of 33 vs crypto
+// SYMBOLS: external crypto spread floors measured so far | 32 of 33 vs crypto
 const CRYPTO_SPREAD_FLOOR_BPS: Record<string, number> = {
   AAVEUSD: 1.1,
   ADAUSD: 11.3,
