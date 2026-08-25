@@ -268,3 +268,32 @@ describe("every FMP fetch in the repo shares the one policy", () => {
     }
   });
 });
+
+describe("the bulk driver's ladder is sized for a bulk job", () => {
+  it("spans minutes, not the module default's forty seconds", () => {
+    // Four consecutive v4 rebuilds died on transport failures that outlasted
+    // the 2s/8s/30s default. That default is right for the analyzer, where a
+    // person is waiting; it is wrong for a run of tens of hours whose every
+    // completed market is already durable on disk.
+    const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
+    const declared = driver.match(/FMP_BULK_DELAYS_MS = \[([^\]]+)\]/);
+    assert.ok(declared, "the bulk ladder was removed or renamed");
+    const rungs = declared[1]
+      .split(",")
+      .map((part) => Number(part.trim().replaceAll("_", "")))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    const totalMs = rungs.reduce((sum, value) => sum + value, 0);
+    assert.ok(
+      totalMs >= 8 * 60_000,
+      `the bulk ladder covers only ${Math.round(totalMs / 1000)}s`,
+    );
+    // Bounded on purpose. An unbounded ladder cannot tell a blip from a
+    // revoked key or an exhausted allowance, and the standing rule for this
+    // provider is never to re-run into a limit.
+    assert.ok(rungs.length <= 10, "the bulk ladder is effectively unbounded");
+    assert.ok(
+      driver.includes("delaysMs: FMP_BULK_DELAYS_MS"),
+      "the bulk ladder is declared but not actually passed",
+    );
+  });
+});

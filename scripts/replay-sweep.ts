@@ -124,7 +124,33 @@ const FMP_PACE_MS = Number(process.env.FMP_PACE_MS ?? 0) || 0;
  * consecutive v4 rebuild deaths — at 58, 72 and 75 markets of 98 — looked
  * like one indistinguishable failure in the log.
  */
+/**
+ * A ladder sized for a BULK job, not a live request.
+ *
+ * The module default is 2s/8s/30s — 40 seconds of cover, which is right for
+ * the analyzer, where a person is waiting and a fast honest failure beats a
+ * slow one. This driver is the opposite case: a full rebuild runs for tens of
+ * hours, every completed market is already durable on disk, and dying at
+ * market 76 of 98 to save eight minutes is a bad trade in every direction.
+ *
+ * Sized against the outage that actually happened rather than a round number.
+ * Four consecutive rebuild attempts died on transport failures — ETIMEDOUT,
+ * then EHOSTUNREACH and UND_ERR_CONNECT_TIMEOUT with a DNS resolver in the
+ * stack — while github.com stayed reachable and the FMP API answered 200 on
+ * a hand probe minutes later. So these are minutes-long blips on this
+ * machine's link to one host, and 40 seconds does not span one. This ladder
+ * spans about ten and a half minutes across seven attempts.
+ *
+ * It is NOT unbounded, deliberately. A ladder that never gives up cannot
+ * distinguish a blip from an outage, a revoked key, or an exhausted
+ * allowance — and the standing rule for this provider is never to re-run
+ * into a limit. After the last rung the original error is rethrown and the
+ * run stops, with every warm market kept.
+ */
+const FMP_BULK_DELAYS_MS = [2_000, 8_000, 30_000, 60_000, 120_000, 240_000, 240_000];
+
 const FMP_RETRY = {
+  delaysMs: FMP_BULK_DELAYS_MS,
   onRetry: (event: FmpRetryEvent) => {
     console.warn(
       `fmp retry ${event.reason} (${event.detail}); attempt ${
