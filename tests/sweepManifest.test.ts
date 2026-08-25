@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
   buildSweepManifest,
+  calendarCensus,
   crossSeriesDensityFacts,
   resolveSweepSource,
   seriesFacts,
@@ -172,7 +173,14 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
     clock?: { calendar: string; normalizer: string };
     conditions?: SweepConditions;
     generatedAt?: string;
+    calendarCensus?: {
+      distinctTimes: number;
+      firstEventMs: number | null;
+      itemCount: number;
+      lastEventMs: number | null;
+    };
     grid?: unknown[];
+    requestedSymbols?: string[];
     source?: SweepSource;
     symbolOverride?: Record<string, unknown>;
     treasuryCurve?: TreasuryCurveFacts;
@@ -193,6 +201,10 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
       days: 365,
       generatedAt: overrides.generatedAt ?? "2026-08-09T22:00:00.000Z",
       grid: overrides.grid ?? [{}],
+      ...(overrides.calendarCensus &&
+        { calendarCensus: overrides.calendarCensus }),
+      ...(overrides.requestedSymbols &&
+        { requestedSymbols: overrides.requestedSymbols }),
       ...(overrides.source && { source: overrides.source }),
       stepBars: 16,
       symbols: [
@@ -339,6 +351,48 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
       build({ source: { dirty: false, revision } }).manifestHash,
       build({ source: { dirty: true, revision } }).manifestHash,
     );
+  });
+
+  it("moves the manifest hash — the census is part of what defines the measurement", () => {
+    assert.notEqual(
+      build({
+        calendarCensus: {
+          distinctTimes: 2,
+          firstEventMs: 1_000,
+          itemCount: 3,
+          lastEventMs: 5_000,
+        },
+      }).manifestHash,
+      build({
+        calendarCensus: {
+          distinctTimes: 3,
+          firstEventMs: 1_000,
+          itemCount: 3,
+          lastEventMs: 5_000,
+        },
+      }).manifestHash,
+    );
+  });
+
+  it("records what the run was ASKED for, not only what survived", () => {
+    // A market that dropped out — refused at a door, starved of bars, thrown
+    // by a fetch — is otherwise indistinguishable from one never requested.
+    // R4 grades every matched market individually; R5 IS the never-analyzed
+    // population.
+    const manifest = build({ requestedSymbols: ["ZZZUSD", "ESUSD"] });
+    assert.deepEqual(manifest.requestedSymbols, ["ESUSD", "ZZZUSD"]);
+    // Sorted, so two runs of the same population hash identically whatever
+    // order the driver walked them in.
+    assert.deepEqual(
+      build({ requestedSymbols: ["ESUSD", "ZZZUSD"] }).manifestHash,
+      manifest.manifestHash,
+    );
+    // And a symbol that produced no rows is still on the record.
+    assert.ok(
+      manifest.requestedSymbols!.includes("ZZZUSD"),
+      "a requested symbol with no surviving rows must still be recorded",
+    );
+    assert.ok(!manifest.symbols.some((entry) => entry.symbol === "ZZZUSD"));
   });
 
   it("does not move its hash for the write timestamp", () => {
@@ -2479,4 +2533,48 @@ describe("resolveSweepSource — provenance that refuses rather than guesses", (
       );
     }
   });
+});
+
+describe("the calendar census — a collapse must be visible from the corpus", () => {
+  // itemCount SITS BESIDE distinctTimes deliberately. The two being EQUAL is
+  // the signature of the merge collapse that discarded 43% of the calendar:
+  // a Map keyed on the timestamp alone keeps one row per instant, so the
+  // counts match exactly. The first time this was found it took comparing a
+  // store on disk against a fetch log; recording both makes it readable from
+  // any corpus.
+  it("records both counts, so equality is readable as the collapse signature", () => {
+    const collapsed = calendarCensus([
+      { time: 1_000 },
+      { time: 2_000 },
+      { time: 3_000 },
+    ]);
+    assert.equal(collapsed.itemCount, collapsed.distinctTimes);
+
+    const healthy = calendarCensus([
+      { time: 1_000 },
+      { time: 1_000 },
+      { time: 2_000 },
+    ]);
+    assert.equal(healthy.itemCount, 3);
+    assert.equal(healthy.distinctTimes, 2);
+    assert.notEqual(
+      healthy.itemCount,
+      healthy.distinctTimes,
+      "a healthy calendar holds more events than instants",
+    );
+  });
+
+  it("records the coverage span, so `no events` is separable from `no calendar`", () => {
+    // newsPenalty: 0 conflates "nothing matched here" with "the calendar has
+    // no coverage here". The store begins 2013-01-02 while forex bars begin
+    // 2009-09-24, so 38.8% of the forex fit fold is news-BLIND, not news-free.
+    const census = calendarCensus([{ time: 5_000 }, { time: 1_000 }]);
+    assert.equal(census.firstEventMs, 1_000);
+    assert.equal(census.lastEventMs, 5_000);
+    const empty = calendarCensus([]);
+    assert.equal(empty.firstEventMs, null);
+    assert.equal(empty.lastEventMs, null);
+    assert.equal(empty.itemCount, 0);
+  });
+
 });
