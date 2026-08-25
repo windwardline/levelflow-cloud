@@ -6,33 +6,11 @@ import {
   fillOptionsFromRiskModel,
   getSetupExpiryTime,
   type ReplayBar,
-  type ReplayFillOptions,
   type ReplaySetup,
   resolutionSeriesFor,
 } from "../supabase/functions/trade-analyzer/replay.ts";
 
 const createdAt = Date.parse("2026-06-15T14:00:00.000Z");
-
-/**
- * Fill options with real friction, for tests that mean a real market.
- *
- * `evaluateSetupOutcome`'s defaults are all ZERO — no spread, no touch
- * penetration, no entry latency — so a test that passes no options is
- * testing a frictionless venue by omission rather than by choice. That is
- * not merely unrealistic: it silently makes some assertions untestable. The
- * approach-distance test below asserted that the measured gap exceeds the
- * gap to the quoted limit, which is TRUE of any real venue and FALSE at zero
- * spread, where the two levels coincide — so it passed vacuously until the
- * spread was supplied.
- *
- * Frictionless remains available and is right for tests about pure geometry.
- * The point is that it now has to be asked for.
- */
-const REALISTIC_FILL: ReplayFillOptions = {
-  entryLatencyBars: 1,
-  halfSpread: 0.25,
-  touchFillPenetration: 0.05,
-};
 
 describe("trade analyzer replay harness", () => {
   it("resolves a buy limit that fills and reaches target", () => {
@@ -1556,15 +1534,18 @@ describe("unfilledApproachDistance — how close an unfilled setup came", () => 
     // with the default zero-spread options they coincide and this fixture
     // could not tell the two apart. An earlier draft did not, and asserted a
     // strict inequality that the defaults made false.
-    // TWO bars, because REALISTIC_FILL carries entryLatencyBars: 1 — the
-    // operator does not place the order on the decision bar's first print.
-    // A one-bar fixture is skipped entirely and measures nothing, which the
-    // realistic default surfaced immediately and the zero default hid.
+    // FIXTURE GEOMETRY, inlined, and deliberately not called realistic. These
+    // are round numbers chosen to make the arithmetic legible on a synthetic
+    // 100-price grid — they are NOT a cost estimate. The engine's own forex
+    // model returns a half-spread of 0.0025 here (executionQuality: spreadBps
+    // 0.35, atrSpreadFactor 0.01, the max of the two at close 100 and ATR
+    // 0.5), so 0.25 is a hundred times it. A shared constant named for a real
+    // market would have invited these numbers into tests that mean one.
     const result = evaluateSetupOutcome(
       setup,
-      [buildBar(15, 101, 99, 100), buildBar(30, 101, 99, 100)],
+      [buildBar(15, 101, 99, 100)],
       expiresAt + 1,
-      REALISTIC_FILL,
+      { halfSpread: 0.25, touchFillPenetration: 0.05 },
     );
     const gap = result.state === "resolved"
       ? result.unfilledApproachDistance
