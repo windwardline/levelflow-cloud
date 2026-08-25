@@ -27,7 +27,10 @@ import {
   hasKnownAssetType,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
-import { fetchFmpWithRetry } from "./fmpRetry.ts";
+import {
+  fetchFmpWithRetry,
+  type FmpRetryEvent,
+} from "./fmpRetry.ts";
 import {
   type ByteBudget,
   parseByteBudgetArg,
@@ -106,6 +109,31 @@ const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
 // applied through the shared retry module so all three fetch sites pace
 // against the same clock.
 const FMP_PACE_MS = Number(process.env.FMP_PACE_MS ?? 0) || 0;
+
+/**
+ * The ONE options object every FMP fetch in this driver passes.
+ *
+ * Four call sites used to repeat `{ paceMs: FMP_PACE_MS }`, which is how a
+ * fifth would have arrived with different behaviour and nothing would have
+ * said so. It matters more now that retries are reported: a run that spent
+ * forty minutes recovering from a flaky link must not look identical to one
+ * that sailed through, and it will not unless every site reports.
+ *
+ * The warning goes to stderr and names the cause code. Node reports every
+ * socket fault as the same `TypeError: fetch failed`, which is how three
+ * consecutive v4 rebuild deaths — at 58, 72 and 75 markets of 98 — looked
+ * like one indistinguishable failure in the log.
+ */
+const FMP_RETRY = {
+  onRetry: (event: FmpRetryEvent) => {
+    console.warn(
+      `fmp retry ${event.reason} (${event.detail}); attempt ${
+        event.attempt + 1
+      }, waiting ${event.delayMs}ms`,
+    );
+  },
+  paceMs: FMP_PACE_MS,
+};
 const API_KEY = process.env.FMP_API_KEY;
 
 // §21j Phase 1. Set once in main() from a REQUIRED --byte-budget. Held at
@@ -1031,9 +1059,7 @@ async function fetchCalendarEvents(
       isoDate(new Date(Math.min(from + chunkMs, Date.now()))),
     );
     endpoint.searchParams.set("apikey", API_KEY!);
-    const response = await fetchFmpWithRetry(() => fetch(endpoint), {
-      paceMs: FMP_PACE_MS,
-    });
+    const response = await fetchFmpWithRetry(() => fetch(endpoint), FMP_RETRY);
     if (!response.ok) {
       // I3: this used to warn and `continue`. loadRollingSeries then merged the
       // holed result and pinned it as the anchor day's truth, and because later
@@ -1132,9 +1158,7 @@ async function fetchTreasuryRates(
       isoDate(new Date(Math.min(from + chunkMs, Date.now()))),
     );
     endpoint.searchParams.set("apikey", API_KEY!);
-    const response = await fetchFmpWithRetry(() => fetch(endpoint), {
-      paceMs: FMP_PACE_MS,
-    });
+    const response = await fetchFmpWithRetry(() => fetch(endpoint), FMP_RETRY);
     if (!response.ok) {
       // I3, verbatim from the calendar: a warned-and-continued hole would
       // be merged and pinned as the anchor day's truth, and later top-ups
@@ -1250,9 +1274,7 @@ async function fetchCotContract(
   endpoint.searchParams.set("from", "2009-01-01");
   endpoint.searchParams.set("to", isoDate(new Date()));
   endpoint.searchParams.set("apikey", API_KEY!);
-  const response = await fetchFmpWithRetry(() => fetch(endpoint), {
-    paceMs: FMP_PACE_MS,
-  });
+  const response = await fetchFmpWithRetry(() => fetch(endpoint), FMP_RETRY);
   if (!response.ok) {
     console.warn(`COT fetch failed for ${contract}: ${response.status}`);
     return [];
@@ -1460,9 +1482,7 @@ async function fetchDailyBars(
 }
 
 async function fetchBars(endpoint: URL, zone: string): Promise<Bar[]> {
-  const response = await fetchFmpWithRetry(() => fetch(endpoint), {
-    paceMs: FMP_PACE_MS,
-  });
+  const response = await fetchFmpWithRetry(() => fetch(endpoint), FMP_RETRY);
   if (!response.ok) {
     throw new Error(
       `FMP request failed (${response.status}) for ${endpoint.pathname}`,
