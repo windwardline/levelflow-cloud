@@ -83,29 +83,58 @@ function contextFor(
   };
 }
 
+/**
+ * The dollar value of one unit of each currency, recomputed here rather than
+ * read from bridging.ts's USD_LEG. The duplication is the point: this file is a
+ * SHADOW of production's arithmetic, and a shadow that imports the thing it
+ * shadows checks nothing.
+ *
+ * What a shadow cannot do is notice that both copies are wrong the same way.
+ * That is exactly what happened to the index arm below, and it is why
+ * tests/brokerSizingGroundTruth.test.ts now anchors per-unit value to E8's own
+ * order tickets instead. This helper covers the floor/cap/monotonicity pipeline
+ * that the ground-truth oracle does not exercise.
+ */
+function usdPerCurrencyFor(context: SizingContext): Record<string, number> {
+  return {
+    USD: 1,
+    JPY: 1 / context.quotes.USDJPY!,
+    CHF: 1 / context.quotes.USDCHF!,
+    CAD: 1 / context.quotes.USDCAD!,
+    AUD: context.quotes.AUDUSD!,
+    EUR: context.quotes.EURUSD!,
+    GBP: context.quotes.GBPUSD!,
+    NZD: context.quotes.NZDUSD!,
+  };
+}
+
 /** The dollar value of one 1.0 price-axis move per 1.0 unit, recomputed here. */
 function perUnitFor(row: BrokerInstrument, context: SizingContext): number {
+  const usdPer = usdPerCurrencyFor(context);
   switch (row.unit.kind) {
     case "futures_tick":
       return row.unit.valuePerTick.value! / row.unit.tickSize.value!;
-    case "index_points":
-      return row.unit.pointsPerLot.value!;
+    case "index_points": {
+      // BRIDGED. This returned pointsPerLot flat while production did the same,
+      // so the §19c budget property passed 26/26 over a live defect that sized
+      // DAX to 115.4% of its budget. Two independent wrongs agreed.
+      const usd = usdPer[row.unit.pointsCurrency];
+      assert.ok(
+        usd !== undefined,
+        `${row.levelflowSymbol} points currency ${row.unit.pointsCurrency} has no USD leg`,
+      );
+      return row.unit.pointsPerLot.value! * usd;
+    }
     case "forex_contract": {
       const quote = row.levelflowSymbol.slice(3, 6);
       const contractSize = row.unit.contractSize.value!;
-      if (quote === "USD" || row.levelflowSymbol.length !== 6) {
+      // Production's guard is isCurrencyPair(); `length !== 6` alone would let a
+      // six-character non-pair take the bridged arm and read undefined.
+      const usd = usdPer[quote];
+      if (row.levelflowSymbol.length !== 6 || usd === undefined) {
         return contractSize;
       }
-      const legs: Record<string, number> = {
-        JPY: 1 / context.quotes.USDJPY!,
-        CHF: 1 / context.quotes.USDCHF!,
-        CAD: 1 / context.quotes.USDCAD!,
-        AUD: context.quotes.AUDUSD!,
-        EUR: context.quotes.EURUSD!,
-        GBP: context.quotes.GBPUSD!,
-        NZD: context.quotes.NZDUSD!,
-      };
-      return contractSize * legs[quote];
+      return contractSize * usd;
     }
   }
 }

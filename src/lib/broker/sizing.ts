@@ -174,8 +174,14 @@ export function invertedStopDistance(entryPrice: number, stopLoss: number): numb
  * runtime gate belongs here (or in `sizeInstrument` above it) and lands
  * whenever a future futures-onboarding change first wires either symbol to
  * a Levelflow row — until then, this comment is the pointer, not the fix.
+ *
+ * **Exported** for one reason: `tests/brokerSizingGroundTruth.test.ts` asserts
+ * this against the dollar figures on E8's own order tickets. That oracle has to
+ * reach the real function — reimplementing it in the test is what let the flat
+ * read survive for months, because the §19c property test's private copy of
+ * this arithmetic carried the identical defect and the two wrongs agreed.
  */
-function perUnitValue(
+export function perUnitValue(
   row: BrokerInstrument,
   quotes: SizingContext["quotes"],
 ): { value: number | null; word: SizeStateWord | null } {
@@ -200,7 +206,8 @@ function perUnitValue(
       // arithmetic then treated euros as dollars: DAX on E8 One, $100k at
       // 0.50%, 26150/26050 sized 1.00 lot — a EUR500 stop worth $577.20
       // against a $500 budget, 15.4% in the UNSAFE direction, on the number
-      // an operator copies into their broker. ASX came out 30.2% UNDER-sized.
+      // an operator copies into their broker. ASX came out 29.6% UNDER-sized
+      // and NIKKEI 157x under, both invisible to a budget CEILING.
       //
       // The code knew. instruments.ts said the values were "not yet bridged
       // to USD" and rested on the premise that those three sit outside the
@@ -237,15 +244,55 @@ function perUnitValue(
   }
 }
 
-/** The contract size E8's max-position formula divides by, per unit kind. */
-function marginContractSize(row: BrokerInstrument): number | null {
+/**
+ * The contract size E8's max-position formula divides by, per unit kind.
+ *
+ * BRIDGED for the same reason `perUnitValue` is, and it is the same defect one
+ * function up: the formula's denominator is `instrumentPrice * contractSize`,
+ * and for an index that is the index level times a per-point multiplier in the
+ * INSTRUMENT's currency, while the numerator `leverage * accountSize` is in the
+ * account's dollars. Dividing dollars by euros is not a cap.
+ *
+ * The error is exactly `usdPerLocalCurrency`, so it is price-independent:
+ * DAX's cap came out 15.4% too LARGE and NIKKEI's ~157x too SMALL at the rates
+ * E8's own order tickets show. NIKKEI's was the one that bit — it binds for any
+ * stop under 5.26% of price, which is every realistic setup on all four CFD
+ * lines, and on the $5,000 and $10,000 tiers it returned "Below one" against
+ * true sizes of 0.03 and 0.07 lots: a refusal on a takeable setup.
+ *
+ * This is E8's published method applied, not an inference from it. The live
+ * margins on E8's own DAX/ASX/NIKKEI tickets are USD-converted through exactly
+ * this bridge (implied 1.15370 / 0.70413 / 0.006343, against 0.99990 for the
+ * three USD indices).
+ *
+ * `forex_contract` needs no bridge here: its contract size is in BASE currency
+ * units and `instrumentPriceBridge` already values the base in dollars, so the
+ * product is dollars already.
+ */
+function marginContractSize(
+  row: BrokerInstrument,
+  quotes: SizingContext["quotes"],
+): { value: number | null; word: SizeStateWord | null } {
   switch (row.unit.kind) {
     case "forex_contract":
-      return row.unit.contractSize.value;
-    case "index_points":
-      return row.unit.pointsPerLot.value;
+      return { value: row.unit.contractSize.value, word: null };
+    case "index_points": {
+      const pointsPerLot = row.unit.pointsPerLot.value;
+      if (pointsPerLot === null) {
+        return { value: null, word: SIZE_STATE_WORDS.notPublished };
+      }
+      const bridge = usdPerCurrencyBridge(row.unit.pointsCurrency);
+      if (!bridge) {
+        return { value: null, word: SIZE_STATE_WORDS.notPublished };
+      }
+      const usdPerPoint = resolveBridge(bridge, quotes);
+      if (usdPerPoint === null) {
+        return { value: null, word: SIZE_STATE_WORDS.rateUnavailable };
+      }
+      return { value: pointsPerLot * usdPerPoint, word: null };
+    }
     case "futures_tick":
-      return null;
+      return { value: null, word: null };
   }
 }
 
@@ -286,7 +333,13 @@ function capsFor(
   const ticketCap = row.maxTicketLots.value;
   const leverageClass = leverageClassFor(row.levelflowSymbol, program.family);
   const leverage = leverageClass ? program.leverage[leverageClass]?.value ?? null : null;
-  const contractSize = marginContractSize(row);
+  const contract = marginContractSize(row, input.quotes);
+  // A missing bridge quote is `rateUnavailable`, not `notPublished`: the method
+  // is published and the datum is absent, and §19e keeps those two apart.
+  if (contract.word !== null) {
+    return { caps: null, word: contract.word };
+  }
+  const contractSize = contract.value;
   const bridge = instrumentPriceBridge(row.levelflowSymbol);
   if (
     ticketCap === null || leverage === null || contractSize === null ||

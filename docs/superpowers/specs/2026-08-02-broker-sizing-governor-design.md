@@ -94,7 +94,7 @@ type Valued<T> = { source: Provenance; value: T | null };
 
 type QuoteUnit =
   | { contractSize: Valued<number>; kind: "forex_contract" }
-  | { kind: "index_points"; pointsPerLot: Valued<number> }
+  | { kind: "index_points"; pointsCurrency: string; pointsPerLot: Valued<number> }
   | { kind: "futures_tick"; tickSize: Valued<number>; valuePerTick: Valued<number> };
 
 type Tradability = "confirmed" | "not_offered" | "not_published" | "unconfirmed";
@@ -436,12 +436,23 @@ unit:
   $50 per index point. GC → 10/0.1 = $100 per dollar. SI → 25/0.005 =
   $5,000 per dollar. YM → 5/1 = $5 per point. All eight confirmed futures
   rows reconcile; the two unconfirmed ones have no tick to divide by.
-- `index_points`: `perUnit = pointsPerLot`. SP500 → $20 per 1.0 index point
-  per 1.0 lot. E8's SP500 multiplier is non-standard — most retail CFD
-  desks quote $1–$10 — and it is the single largest scale trap in the map,
-  because the same S&P exposure costs $12.50 per 0.25 point as `ES` on a
-  futures program and $20.00 per 1.0 point as `SP500` CFD on a Markets
-  program.
+- `index_points`: `perUnit = pointsPerLot × usdPerPointsCurrency`. SP500 →
+  $20 per 1.0 index point per 1.0 lot. E8's SP500 multiplier is
+  non-standard — most retail CFD desks quote $1–$10 — and it is the single
+  largest scale trap in the map, because the same S&P exposure costs $12.50
+  per 0.25 point as `ES` on a futures program and $20.00 per 1.0 point as
+  `SP500` CFD on a Markets program.
+
+  **CORRECTED 2026-08-25.** This step read `perUnit = pointsPerLot` and was
+  a mis-transcription of E8's own method, not a rule of Levelflow's: three
+  of the six index rows publish their multiplier in the instrument's
+  currency, not dollars — NIKKEI ¥500, DAX €5, ASX A$20 — and E8's own
+  order tickets price them at $3.17, $5.77 and $14.08 by performing exactly
+  this bridge. The USD rows are unaffected, since `usdPerUSD` is 1. Left
+  flat, the desk sized DAX to 115.4% of its risk budget while ASX ran 29.6%
+  small and NIKKEI 157× small. `pointsCurrency` is required with no default
+  for the reason §19a rule 2 gives: a fallback is indistinguishable from a
+  stated value, and the fallback here was "assume USD" applied to euros.
 - `forex_contract`: `perUnit = contractSize × usdPerQuote`.
 
 `usdPerQuote` is the USD value of one unit of the pair's quote currency. It
@@ -493,7 +504,14 @@ not something Levelflow will suggest; the cap is the cap.
 
 The **margin cap** is E8's own formula, verbatim: "Leverage × account equity
 / (Instrument price × contract size) = Max. positions you can open"
-(9453396). It is also, algebraically, the margin-feasibility test: E8's only
+(9453396). **Account equity is dollars, so the denominator must be too**
+(corrected 2026-08-25): for an `index_points` row the contract size is the
+per-point multiplier in the instrument's own currency, and it takes the same
+`usdPerPointsCurrency` bridge step 3 applies. This is E8's method rather than
+an inference from it — the live margins on E8's own DAX, ASX and NIKKEI
+tickets are USD-converted through exactly this bridge, reproducing $9,926.07,
+$8,396.58 and $13,357.17 to within 0.06%, against 13.3%, 42.0% and 15,665%
+unbridged. It is also, algebraically, the margin-feasibility test: E8's only
 enforced margin line is the stop-out at Margin Level ≤ 100% — "Once Margin
 Level drops below 100%, all positions are automatically closed" (14964234,
 14722843, both stating the same threshold) — and Margin Level ≥ 100% at

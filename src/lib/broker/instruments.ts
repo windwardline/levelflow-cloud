@@ -3,6 +3,8 @@ import {
   SECURITY_OPTIONS,
   type SecurityType,
 } from "../symbolMap";
+// bridging.ts reads only ./programs and ./types, so this direction adds no cycle.
+import { usdPerCurrencyBridge } from "./bridging";
 import {
   CANONICAL_LIST,
   CONTRACT_SIZES,
@@ -483,11 +485,23 @@ const FOREX_CONTRACT_OBSERVATIONS: Record<string, { contractSize: number; note: 
 
 // batch 2's per-lot index values. Half of six are foreign-currency
 // denominated: the stored value is the ticket's own local-currency multiplier
-// (yen, euro, or Australian-dollar per point), not yet bridged to USD --
-// sizing.ts's index_points arm reads pointsPerLot as a flat dollar figure the
-// way DOW/NSDQ/SP already publish theirs, and these three stay outside wave
-// 1's scannable roster (they are among the nine addendum markets) so nothing
-// sizes against the unbridged figure today.
+// (yen, euro, or Australian-dollar per point), and `pointsCurrency` states
+// which. sizing.ts bridges it to dollars in BOTH arms that read it — the
+// per-unit value and the margin cap's denominator.
+//
+// WHAT THIS COMMENT USED TO SAY, because the shape of the mistake is worth
+// keeping: that the values were "not yet bridged to USD", that sizing read
+// them as flat dollars, and that this was harmless because "these three stay
+// outside wave 1's scannable roster ... so nothing sizes against the unbridged
+// figure today". The first two were true. The third was true when written on
+// 2026-08-04 (#232) and false three days later, when #257 put all six indices
+// on the roster; nothing was watching the premise, so the flat read outlived
+// its own justification. Only the parked desk kept an operator from copying a
+// DAX size worth 115.4% of its risk budget.
+//
+// tests/brokerSizingGroundTruth.test.ts now anchors both arms to the dollar
+// figures on E8's own tickets, which is a check that cannot go stale the way
+// a sentence about the roster can.
 // SYMBOLS: external E8 checkout observations captured so far | 3 of 6 vs indices
 const INDEX_POINT_OBSERVATIONS: Record<
   string,
@@ -1036,6 +1050,16 @@ export function hasPublishedSizeInputs(row: BrokerInstrument): boolean {
     return false;
   }
   if (unitValues(row.unit).some((value) => value.value === null)) {
+    return false;
+  }
+  // An index_points row whose currency has no USD leg has no per-point dollar
+  // value and no margin denominator, so it is not sizeable however complete the
+  // rest of the row looks. Published-ness is about every input the arithmetic
+  // needs, and the currency bridge became one of those inputs.
+  if (
+    row.unit.kind === "index_points" &&
+    usdPerCurrencyBridge(row.unit.pointsCurrency) === null
+  ) {
     return false;
   }
   if (program.family === "futures") {
