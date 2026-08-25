@@ -234,7 +234,15 @@ const symbolCurrencies: Record<SupportedSymbol, string[]> = {
 // These are intentionally not full asset categories. A group should only
 // contain markets that are close substitutes or strongly linked enough that
 // showing both would duplicate the same trade idea.
-const correlationGroups: Record<string, string[]> = {
+/**
+ * Exported so tests can DERIVE a population from the families this repo
+ * already asserts, instead of listing one by hand. The macro role table's
+ * family-closure test reads treasury_futures and us_equity_indices from here
+ * — and that closure is precisely what would have caught ZFUSD and ZTUSD
+ * receiving no Treasury treatment while this very object called all four
+ * tenors one curve.
+ */
+export const correlationGroups: Record<string, string[]> = {
   aud_crosses: [
     "AUDUSD",
     "AUDNZD",
@@ -361,7 +369,20 @@ export const contractSizeVariants = new Set([
   "XC",
 ]);
 
-export const defaultScanSymbols = Object.keys(symbolMap).filter(
+/**
+ * Every symbol the analysis door admits — `isKnownSymbol` tests exactly this
+ * membership.
+ *
+ * Distinct from `defaultScanSymbols` below, which subtracts contract-size
+ * variants that the door still accepts on an explicit request. Anything
+ * enumerating "the markets this engine can be asked about" wants THIS list;
+ * anything enumerating "the markets a scan sweeps" wants that one. The macro
+ * role table wants this one, and a table built from the scan roster would
+ * silently omit MGCUSD, which is scored today.
+ */
+export const knownSymbols: readonly string[] = Object.keys(symbolMap);
+
+export const defaultScanSymbols = knownSymbols.filter(
   (symbol) =>
     !temporarilyUnavailableSymbols.has(symbol) &&
     !noScanSymbols.has(symbol) &&

@@ -3,6 +3,9 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   calculateMacroRateAdjustment,
+  getMacroRateRole,
+  MACRO_RATE_ROLE_BY_SYMBOL,
+  type MacroRateRole,
   parseTreasuryRow,
   TREASURY_MAX_STALE_MS,
   treasuryContextFromRows,
@@ -11,6 +14,17 @@ import {
   treasuryVisibleAtMs,
   unavailableContext,
 } from "../supabase/functions/trade-analyzer/macroRates.ts";
+import {
+  ASSET_TYPE_BY_SYMBOL,
+} from "../supabase/functions/trade-analyzer/calibration.ts";
+import {
+  correlationGroups,
+  knownSymbols,
+} from "../supabase/functions/trade-analyzer/symbols.ts";
+import type {
+  Side,
+  SupportedSymbol,
+} from "../supabase/functions/trade-analyzer/types.ts";
 
 // E6 (R1b): the pure Treasury module both the live fetch and the offline
 // sweep score through. These pins hold the two halves to ONE arithmetic —
@@ -228,5 +242,253 @@ describe("Treasury curve staleness (C6) — a 200 is not freshness", () => {
       "utf8",
     );
     assert.match(live, /treasuryCurveIsStale\(latest\.dateMs, Date\.now\(\)\)/);
+  });
+});
+
+describe("the macro role table — an omission cannot hide in it", () => {
+  const ctx = (bps: number) => ({
+    curveSpreadBps: 50,
+    latestDate: "2026-08-24",
+    previousDate: "2026-08-21",
+    source: "fmp_treasury_rates" as const,
+    tenYearChangeBps: bps,
+    tenYearYield: 4.2,
+    twoYearYield: 3.7,
+  });
+  const adjust = (symbol: string, side: Side, bps: number) =>
+    calculateMacroRateAdjustment(symbol as SupportedSymbol, side, ctx(bps));
+  const membersOf = (role: MacroRateRole) =>
+    Object.entries(MACRO_RATE_ROLE_BY_SYMBOL)
+      .filter(([, entry]) => entry.role === role)
+      .map(([symbol]) => symbol)
+      .sort();
+
+  it("covers every symbol the analysis door admits — derived, not listed", () => {
+    // THE structural guarantee, and the one the four Sets could never give.
+    // They were exhaustive over the 59-symbol roster the day they were
+    // written and silently stopped being exhaustive when nineteen futures
+    // landed on 2026-08-06. This fails on the NEXT onboarding batch instead
+    // of five weeks later.
+    //
+    // Derived from knownSymbols — the door's own population via
+    // isKnownSymbol — and NOT from defaultScanSymbols, which subtracts
+    // contract-size variants the door still admits. MGCUSD is the
+    // difference, and deriving from the scan roster would omit a market that
+    // is scored today.
+    const missing = knownSymbols.filter(
+      (symbol) => !(symbol in MACRO_RATE_ROLE_BY_SYMBOL),
+    );
+    assert.deepEqual(missing, [], `no macro role stated for: ${missing}`);
+  });
+
+  it("names no symbol the door does not admit — rot in the other direction", () => {
+    // BRENT sat in ENERGY_SYMBOLS for fifteen days after it left symbolMap
+    // (#287). A membership naming a market that cannot be analyzed reads as
+    // coverage and is not.
+    const known = new Set(knownSymbols);
+    const dead = Object.keys(MACRO_RATE_ROLE_BY_SYMBOL).filter(
+      (symbol) => !known.has(symbol),
+    );
+    assert.deepEqual(dead, [], `role stated for unknown symbol: ${dead}`);
+  });
+
+  it("keeps each family the repo already asserts whole — the C1/C2 test", () => {
+    // Populations DERIVED from structures this repo maintains for other
+    // reasons, so they cannot drift apart silently. correlationGroups calls
+    // the four Treasury tenors one curve that moves "together far more than
+    // they diverge" — the exact claim that makes a two-of-four rate rule
+    // indefensible.
+    //
+    // No derived closure for energies on purpose: correlationGroups has no
+    // group naming crude with its refined products, and ASSET_TYPE_BY_SYMBOL
+    // .energies is ["BRENT", "WTI"]. Deriving one would mean inventing the
+    // family and then presenting a judgement as though the repo had stated
+    // it. That question stays in the `why` fields, where it is visibly open.
+    for (
+      const [label, members] of [
+        ["us_equity_indices", correlationGroups.us_equity_indices],
+        ["indices", ASSET_TYPE_BY_SYMBOL.indices],
+        ["crypto", ASSET_TYPE_BY_SYMBOL.crypto],
+      ] as const
+    ) {
+      const off = members.filter(
+        (symbol) => getMacroRateRole(symbol).role !== "rate-inverse",
+      );
+      assert.deepEqual(
+        off,
+        [],
+        `${label} is split across roles; these are not rate-inverse: ${off}`,
+      );
+    }
+  });
+
+  it("records the ONE family that is split, rather than omitting it", () => {
+    // treasury_futures does NOT close, and this change deliberately does not
+    // make it close: this is a transcription, and the equivalence proof below
+    // is worth nothing if the transcription quietly changed a market.
+    //
+    // Dropping the family from the loop above would have been the easy move
+    // and the wrong one — a population curated to the members that pass is
+    // the exact defect this whole table exists to end. So the split is
+    // asserted instead, precisely, and the change that closes it replaces
+    // this test with the full closure.
+    const split = Object.fromEntries(
+      correlationGroups.treasury_futures.map((
+        symbol,
+      ) => [symbol, getMacroRateRole(symbol).role]),
+    );
+    assert.deepEqual(split, {
+      ZBUSD: "rate-inverse",
+      ZNUSD: "rate-inverse",
+      ZFUSD: "none",
+      ZTUSD: "none",
+    });
+    for (const symbol of ["ZFUSD", "ZTUSD"]) {
+      assert.match(getMacroRateRole(symbol).why, /^OPEN \(C1\)/);
+    }
+  });
+
+  it("states every role's membership literally — the decision record", () => {
+    // Deliberately LISTED, not derived, and the one test here that is.
+    // Exhaustiveness above catches a market with no role; this catches a
+    // market quietly moved between roles, which no derivation can see
+    // because a reclassification changes the derivation too.
+    assert.deepEqual(membersOf("usd-base"), ["USDCAD", "USDCHF", "USDJPY"]);
+    assert.deepEqual(membersOf("usd-quote"), [
+      "AUDUSD",
+      "EURUSD",
+      "GBPUSD",
+      "NZDUSD",
+    ]);
+    assert.deepEqual(membersOf("energy-shock"), [
+      "BZUSD",
+      "CLUSD",
+      "NGUSD",
+      "WTI",
+    ]);
+    assert.equal(membersOf("rate-inverse").length, 50);
+    assert.equal(membersOf("none").length, 37);
+    assert.equal(Object.keys(MACRO_RATE_ROLE_BY_SYMBOL).length, 98);
+  });
+
+  it("claims seven currency pairs, where the regex claimed thirty", () => {
+    // The defect none of the symptom-level findings named. The old
+    // getUsdStrengthSide tested whether a symbol LOOKED like a pair, so gold,
+    // bitcoin and the Russell were all routed as currency pairs — and any
+    // future ticker shaped XXXUSD would have been claimed sight unseen.
+    const pairs = [...membersOf("usd-base"), ...membersOf("usd-quote")];
+    assert.equal(pairs.length, 7);
+    const shaped = knownSymbols.filter((symbol) =>
+      /^USD[A-Z]{3}$/.test(symbol) || /^[A-Z]{3}USD$/.test(symbol)
+    );
+    // 30 over the DOOR's population, not the 29 the scan roster shows —
+    // MGCUSD is the difference, and quoting the scan figure here would be
+    // the same wrong-population mistake one level down.
+    assert.equal(shaped.length, 30);
+  });
+
+  it("gives every `none` a reason, so an oversight cannot pass as a decision", () => {
+    const silent = Object.entries(MACRO_RATE_ROLE_BY_SYMBOL)
+      .filter(([, entry]) => entry.why.trim().length === 0)
+      .map(([symbol]) => symbol);
+    assert.deepEqual(silent, []);
+    // The four open questions are marked as open rather than settled, so a
+    // reader cannot mistake an unanswered question for a considered no.
+    const open = Object.entries(MACRO_RATE_ROLE_BY_SYMBOL)
+      .filter(([, entry]) => entry.why.startsWith("OPEN"))
+      .map(([symbol]) => symbol)
+      .sort();
+    assert.deepEqual(open, ["HOUSD", "PAUSD", "PLUSD", "RBUSD", "ZFUSD", "ZTUSD"]);
+  });
+
+  it("pins that usd-quote and rate-inverse agree — a coincidence, recorded", () => {
+    // They are separate roles emitting the same side on this roster. That is
+    // why the old regex never produced a wrong answer while shadowing three
+    // Set memberships. Recorded here so the day they diverge, it is a test
+    // failure and not a silent reinterpretation.
+    for (const bps of [7, -7]) {
+      assert.equal(
+        adjust("EURUSD", "buy", bps).stance,
+        adjust("BTCUSD", "buy", bps).stance,
+      );
+    }
+  });
+
+  it("routes each role to the side and magnitude it names", () => {
+    assert.equal(adjust("USDJPY", "buy", 7).stance, "aligned");
+    assert.equal(adjust("EURUSD", "sell", 7).stance, "aligned");
+    for (const symbol of ["ESUSD", "GCUSD", "BTCUSD", "ZBUSD"]) {
+      assert.equal(adjust(symbol, "sell", 7).stance, "aligned", symbol);
+      assert.equal(adjust(symbol, "buy", -7).stance, "aligned", symbol);
+    }
+    // Magnitude doubles past the 8bps shock line, on both sides of it.
+    assert.equal(adjust("ESUSD", "sell", 7).adjustment, 1);
+    assert.equal(adjust("ESUSD", "sell", 10).adjustment, 2);
+    // energy-shock carries no direction: a penalty on a large move, zero
+    // otherwise, and never an alignment either way.
+    assert.equal(adjust("WTI", "buy", 10).adjustment, -1);
+    assert.equal(adjust("WTI", "sell", 10).adjustment, -1);
+    assert.equal(adjust("WTI", "buy", 5).adjustment, 0);
+    assert.equal(adjust("WTI", "buy", 10).stance, "neutral");
+    // `none` is inert in both directions at every magnitude.
+    for (const bps of [5, 10, -5, -10]) {
+      assert.equal(adjust("ZCUSX", "buy", bps).adjustment, 0);
+      assert.equal(adjust("ZCUSX", "buy", bps).stance, "neutral");
+    }
+  });
+
+  it("reproduces the old routing exactly — this is what licenses no version bump", () => {
+    // The transcription proof, and the reason ANALYZER_VERSION does not move
+    // in this change. The four Sets and both regexes are reproduced here as
+    // a local fixture and run against every known symbol at six rate moves
+    // on both sides — 98 × 6 × 2 = 1,176 cases. This test is DELETED in the
+    // change that lands the open questions, where the behaviour is meant to
+    // differ and the tests above carry it instead.
+    const EQUITY = new Set([
+      "ASX", "DAX", "DOW", "ESUSD", "NIKKEI", "NQUSD", "NSDQ", "RTYUSD", "SP",
+      "YMUSD",
+    ]);
+    const METALS = new Set(["GCUSD", "MGCUSD", "SIUSD", "XAGUSD", "XAUUSD"]);
+    const TREASURY = new Set(["ZBUSD", "ZNUSD"]);
+    const ENERGY = new Set(["BRENT", "BZUSD", "CLUSD", "NGUSD", "WTI"]);
+    const CRYPTO = new Set(ASSET_TYPE_BY_SYMBOL.crypto);
+    const oldSide = (symbol: string, bps: number): Side | null => {
+      const rising = bps > 0;
+      if (/^USD[A-Z]{3}$/.test(symbol)) return rising ? "buy" : "sell";
+      if (/^[A-Z]{3}USD$/.test(symbol)) return rising ? "sell" : "buy";
+      if (
+        EQUITY.has(symbol) || METALS.has(symbol) || TREASURY.has(symbol) ||
+        CRYPTO.has(symbol)
+      ) {
+        return rising ? "sell" : "buy";
+      }
+      return null;
+    };
+    let compared = 0;
+    for (const symbol of knownSymbols) {
+      for (const bps of [3, 5, 10, -3, -5, -10]) {
+        for (const side of ["buy", "sell"] as const) {
+          const preferred = oldSide(symbol, bps);
+          // The <4bps dead band short-circuits before any routing runs, and
+          // ±3 is in the grid to exercise it. An earlier draft of this
+          // fixture omitted it and failed on EURUSD — the fixture being
+          // wrong, not the code, which is the failure mode an equivalence
+          // test has to survive to be worth anything.
+          const expected = Math.abs(bps) < 4
+            ? 0
+            : preferred === null
+            ? (ENERGY.has(symbol) && Math.abs(bps) >= 8 ? -1 : 0)
+            : (Math.abs(bps) >= 8 ? 2 : 1) * (side === preferred ? 1 : -1);
+          assert.equal(
+            adjust(symbol, side, bps).adjustment,
+            expected,
+            `${symbol} ${side} ${bps}bps`,
+          );
+          compared += 1;
+        }
+      }
+    }
+    assert.equal(compared, knownSymbols.length * 12);
+    assert.equal(compared, 1176);
   });
 });
