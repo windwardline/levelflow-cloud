@@ -2093,8 +2093,13 @@ key. Sequenced after item 6's `init.sql` work.
 
 ### Carried, small
 - `exclusions.ts` header still says BNBUSD waits on an owner ruling — stale.
-- `masterList.ts`'s `ONBOARDED_PENDING_SWEEP_GROUND` calls swept-and-failed markets
-  "pending sweep."
+- ~~`masterList.ts`'s `ONBOARDED_PENDING_SWEEP_GROUND` calls swept-and-failed markets
+  "pending sweep."~~ **CLOSED 2026-08-25 (#432).** The constant was removed rather than
+  reworded: it was read only as the `??` fallback beside `NOT_SCANNABLE_GROUND`, inside a
+  branch that went unreachable when #257 emptied both source sets. `NOT_SCANNABLE_GROUND`
+  itself still listed nine symbols as withheld while all nine were scannable; its
+  population is now derived from `NO_TRADE_SYMBOLS` union
+  `TEMPORARILY_HIDDEN_ASSET_SYMBOLS` and guarded in both directions.
 - Entry-offset grid never derived at the new geometry.
 - The indices row in `replayReliability.ts` (.51/952) is the **pre-round-28** record.
   It is left as measured rather than restated; re-measuring it is item 4's first act.

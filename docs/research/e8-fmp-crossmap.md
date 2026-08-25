@@ -1,6 +1,18 @@
 # E8 ↔ FMP Instrument Cross-Map
 Design input for Levelflow's broker module (E8 first; other brokers selectable later). Compiled 2026-08-02.
 
+> **Roster figures below are superseded (noted 2026-08-25).** The owner ruling of
+> 2026-08-07 (#257) emptied `NO_TRADE_SYMBOLS` and `TEMPORARILY_HIDDEN_ASSET_SYMBOLS`,
+> so every count and every withholding claim in the Scope section is stale. Measured
+> today: `AVAILABLE_ASSET_SYMBOLS` is **105**, not 50; `NO_TRADE_SYMBOLS` is **0**, not
+> 8; `TEMPORARILY_HIDDEN_ASSET_SYMBOLS` is **0**, not 1. In particular the claim that
+> "all six index rows are in `NO_TRADE_SYMBOLS` or hidden, so the Indices group resolves
+> to zero options and disappears from `AVAILABLE_ASSET_GROUPS` entirely" is now false in
+> both halves: the Indices group renders **all six** (ASX, DAX, DOW, NIKKEI, NSDQ, SP).
+> The E8↔FMP mappings this document exists to record are unaffected — only the roster
+> arithmetic around them moved. Left as compiled rather than rewritten, because a
+> research document records what was measured on its own date.
+
 ## Scope
 
 Levelflow side is read from code, not from memory:

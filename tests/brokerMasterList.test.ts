@@ -20,8 +20,17 @@ import {
   SERVED_COMPATIBLE_STATUSES,
   sweepUniverse,
   visibleSymbols,
+  groundForWithheld,
+  liveNotScannableGroundGaps,
+  notScannableGroundGaps,
+  withheldFromScan,
+  WITHHELD_FROM_SCAN_SYMBOLS,
   type MasterListRow,
 } from "../src/lib/broker/masterList.ts";
+import {
+  NO_TRADE_SYMBOLS,
+  TEMPORARILY_HIDDEN_ASSET_SYMBOLS,
+} from "../src/lib/symbolMap.ts";
 
 // Amendment 23 (owner, 2026-08-05, docs/superpowers/specs/
 // 2026-08-02-owner-rulings-amendments.md) and its offset-ruling extension.
@@ -756,5 +765,101 @@ describe("amendment 31 — matched coverage cannot shrink quietly", () => {
     // case this test was written to catch, resolved by the variant leaving
     // WITH the market instead of outliving it.
     assert.equal(checked, 8);
+  });
+});
+
+describe("the withheld-from-scan population is derived, not restated", () => {
+  // WHY THIS EXISTS. NOT_SCANNABLE_GROUND listed nine symbols under a docblock
+  // calling them "the nine addendum symbols (NO_TRADE_SYMBOLS union
+  // TEMPORARILY_HIDDEN_ASSET_SYMBOLS)". True when written; false from
+  // 2026-08-07, when #257 emptied both sets. Nine markets carried a live
+  // "withheld because..." ground while every one of them was scannable, and
+  // nothing in the suite mentioned the table at all.
+
+  it("derives the withheld set from both source sets, so neither can drift", () => {
+    const union = new Set([...NO_TRADE_SYMBOLS, ...TEMPORARILY_HIDDEN_ASSET_SYMBOLS]);
+    assert.deepEqual([...WITHHELD_FROM_SCAN_SYMBOLS].sort(), [...union].sort());
+  });
+
+  it("unions BOTH sources — neither can be dropped from the derivation", () => {
+    // The assertion above cannot see this. Both real sets are empty, so
+    // deleting either spread from withheldFromScan leaves the live value
+    // identical and the comparison green. Only fixtures with a non-empty
+    // member on each side can tell the two derivations apart.
+    assert.deepEqual([...withheldFromScan(["AAA"], [])].sort(), ["AAA"]);
+    assert.deepEqual([...withheldFromScan([], ["BBB"])].sort(), ["BBB"]);
+    assert.deepEqual([...withheldFromScan(["AAA"], ["BBB"])].sort(), ["AAA", "BBB"]);
+    assert.deepEqual([...withheldFromScan(["AAA"], ["AAA"])].sort(), ["AAA"]);
+  });
+
+  it("leaves no gap between the withheld set and the recorded grounds", () => {
+    // Enforcement at runtime is the throw in masterList.ts's withheld branch: a
+    // symbol withheld with no ground fails at import, naming itself. This
+    // assertion states the invariant and pins today's data as clean.
+    assert.deepEqual(liveNotScannableGroundGaps(), {
+      missingGround: [],
+      orphanedGround: [],
+    });
+  });
+
+  // The live pair is empty on both sides today, so the assertion above cannot
+  // by itself distinguish a working check from one that always returns nothing.
+  // These fixtures do — they are the reason the detector is a pure function.
+  it("detects a withheld symbol with no recorded ground", () => {
+    assert.deepEqual(notScannableGroundGaps(["ZZZ"], {}), {
+      missingGround: ["ZZZ"],
+      orphanedGround: [],
+    });
+  });
+
+  it("detects a recorded ground for a symbol nothing withholds", () => {
+    assert.deepEqual(notScannableGroundGaps([], { ZZZ: "stale reason" }), {
+      missingGround: [],
+      orphanedGround: ["ZZZ"],
+    });
+  });
+
+  it("reports both directions at once, and reports clean when they agree", () => {
+    assert.deepEqual(notScannableGroundGaps(["AAA"], { BBB: "stale" }), {
+      missingGround: ["AAA"],
+      orphanedGround: ["BBB"],
+    });
+    assert.deepEqual(notScannableGroundGaps(["AAA"], { AAA: "recorded" }), {
+      missingGround: [],
+      orphanedGround: [],
+    });
+  });
+
+  it("refuses a withheld symbol that carries no recorded ground", () => {
+    // In situ this fires inside SERVED_ROWS, a top-level const, so it throws at
+    // module IMPORT — every masterList-importing test file fails to load and
+    // the assertions above never run to report it. CI still goes red with a
+    // self-naming message, but the throw has to be exercised here or it is a
+    // claim rather than a guarantee.
+    assert.throws(
+      () => groundForWithheld("ZZZ", {}),
+      /ZZZ is withheld from the scan with no recorded ground/,
+    );
+  });
+
+  it("returns the recorded ground when there is one", () => {
+    assert.equal(groundForWithheld("ZZZ", { ZZZ: "recorded reason" }), "recorded reason");
+  });
+
+  it("counts the eight not-scannable rows as contract-size variants, not withholdings", () => {
+    // The status is reachable by two routes and only one is populated today.
+    // If this ever disagrees with the row count, one route changed silently.
+    const notScannable = MASTER_LIST_ROWS.filter(
+      (entry) => entry.status === "served-but-not-scannable",
+    );
+    assert.equal(notScannable.length, 8);
+    for (const entry of notScannable) {
+      assert.equal(
+        WITHHELD_FROM_SCAN_SYMBOLS.includes(entry.levelflowSymbol ?? ""),
+        false,
+        `${entry.levelflowSymbol} reached served-but-not-scannable via the withheld set, ` +
+          `which is empty — the two routes have diverged`,
+      );
+    }
   });
 });
