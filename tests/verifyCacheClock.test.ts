@@ -285,14 +285,66 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     const dir = cacheDir();
     healthyTrio(dir);
     calendarStore(dir);
+    // Stale RELATIVE TO THE CORPUS, which is what the bound now measures.
+    // This filtered on `Date.now() - 60d`, which was written for a wall-clock
+    // bound and left the curve ending AFTER the bars — a curve ahead of its
+    // own corpus, which is not stale by any reading. Truncating against the
+    // newest bar is what the test always meant.
+    const corpusEnd = newestBarIn(dir);
     const stale = healthyCurve().filter(
-      (row) => row.dateMs < Date.now() - 60 * 86_400_000,
+      (row) => row.dateMs < corpusEnd - 60 * DAY,
     );
     store(dir, "treasury-rates", CALENDAR_CLOCK, stale);
     const report = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     assert.ok(
-      report.failures.some((line) => /days stale/.test(line)),
+      report.failures.some((line) => /days behind the corpus/.test(line)),
       report.failures.join("\n") || "(no failures)",
+    );
+    // The refusal must name the cheap remedy. It used to say "Rebuild per
+    // docs/cache-rebuild-r0.md; do not sweep or top up against this cache" —
+    // forbidding the thirty-second `--warm-only` top-up that clears it and
+    // routing the operator to a fourteen-hour rebuild that spends metered
+    // bytes.
+    assert.ok(
+      report.failures.some((line) => /--warm-only top-up/.test(line)),
+      "the curve refusal must name the top-up that clears it",
+    );
+  });
+
+  it("does NOT condemn a curve that is current with its own corpus", () => {
+    // THE REGRESSION THIS FIX EXISTS FOR. #420 made bar staleness
+    // corpus-relative and left the curve on `Date.now()`, so the accepted
+    // 7.65 GB v4 cache — Treasury tail 2026-08-24 — would have gone RED on
+    // 2026-08-31 on bytes that had not changed.
+    //
+    // Here the curve ends with the bars and the whole corpus sits weeks in the
+    // past, which is the ordinary state of a cache being read after it was
+    // built. Under a wall-clock bound this fails; under a corpus-relative one
+    // it passes, and a genuinely stopped feed still falls behind the corpus.
+    const dir = cacheDir();
+    healthyTrio(dir);
+    calendarStore(dir);
+    const newest = newestBarIn(dir);
+    // The curve ends WITH the corpus, not with the wall clock. That is the
+    // only fixture that separates the two bounds: `healthyCurve()` runs to
+    // Date.now(), so it reads fresh under either and an earlier draft of this
+    // test passed while the wall-clock bound was still in place.
+    const curve = healthyCurve().filter((row) => row.dateMs <= newest);
+    store(dir, "treasury-rates", CALENDAR_CLOCK, curve);
+    assert.ok(
+      Date.now() - newest > 8 * DAY,
+      "the fixture caught up with the clock — pick an older instant",
+    );
+    assert.ok(
+      newest - curve[curve.length - 1].dateMs < 7 * DAY,
+      "the curve must end with the corpus for this test to mean anything",
+    );
+    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    assert.ok(
+      !report.failures.some((line) => /behind the corpus/.test(line)),
+      `a corpus-current curve must not read as stale: ${
+        report.failures.join("\n")
+      }`,
     );
   });
 
@@ -592,6 +644,188 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     assert.ok(
       !audit.failures.some((line) => /SOURCE FAILURE/.test(line)),
       `a lawful weekend must not read as a lapsed feed: ${audit.failures.join("\n")}`,
+    );
+  });
+
+  /**
+   * A 24/7 series with NO lawful gaps — crypto-shaped.
+   *
+   * The forex trio cannot exercise the in-flight grace: its recent maximum
+   * gap is a weekend, which dwarfs two bar intervals, so every silence under
+   * three days is trivially lawful and the grace is never reached. The first
+   * draft of these tests used it and survived every mutation — inert, and
+   * guarding the one bound this change loosened.
+   *
+   * Here the recent maximum gap IS the interval, which is exactly the real
+   * shape that failed: 17 crypto 5-minute stores at 10.0 minutes silent
+   * against a 5.0-minute maximum.
+   */
+  const continuousPair = (dir: string, stepMs: number) => {
+    const end = Date.UTC(2026, 7, 20);
+    const build = (step: number) => {
+      const out: B[] = [];
+      for (let t = end - 200 * DAY; t <= end; t += step) {
+        out.push(barAt(t, Math.floor(t / 900_000)));
+      }
+      return out;
+    };
+    store(dir, "BTCUSD-15min-7000", BAR_CLOCK, build(900_000));
+    store(dir, "BTCUSD-5min-7000", BAR_CLOCK, build(stepMs));
+    return end;
+  };
+
+  it("judges staleness against the CORPUS, not the wall clock, by default", () => {
+    // The change this instrument turns on, and nothing pinned it: every other
+    // test here passes asOfMs explicitly, so the DEFAULT was unexercised and
+    // reverting it to Date.now() failed nothing.
+    //
+    // It defaulted to the wall clock, which made the verdict a property of
+    // when you ran the command rather than of the data. The v4 cache proved
+    // it twice in ten minutes — green at 11:30, red at 11:40, on bytes that
+    // had not changed.
+    //
+    // These fixtures end at a FIXED past instant, so under a wall-clock
+    // default they read as days of silence and eject; under the corpus's own
+    // as-of they are current, which is what they are.
+    const dir = cacheDir();
+    const newest = continuousPair(dir, 300_000);
+    assert.ok(
+      Date.now() - newest > 2 * DAY,
+      "the fixture caught up with the clock — pick an older instant",
+    );
+    const audit = auditCacheClock({ cacheDir: dir });
+    assert.ok(
+      !audit.failures.some((line) => /SOURCE FAILURE/.test(line)),
+      `a corpus is not a lapsed feed for having been built earlier: ${
+        audit.failures.join("\n")
+      }`,
+    );
+  });
+
+  it("runs the staleness gate on a cache with no COT files", () => {
+    // The drain was first written INSIDE `if (cotNames.length > 0)`, so the
+    // gate ran on the real cache (20 contract files) and on nothing else.
+    // Five tests went red and reported empty failure lists — the shape this
+    // whole instrument exists to refuse: a check that silently does not run
+    // reads exactly like a check that passed.
+    //
+    // Every fixture here is COT-free, so this asserts the gate reaches them.
+    const dir = cacheDir();
+    const newest = continuousPair(dir, 300_000);
+    assert.equal(
+      readdirSync(dir).filter((name) => name.startsWith("cot-")).length,
+      0,
+      "fixture gained COT files — this test no longer proves anything",
+    );
+    const audit = auditCacheClock({
+      asOfMs: newest + 30 * 60_000,
+      cacheDir: dir,
+    });
+    assert.ok(
+      audit.failures.some((line) => /SOURCE FAILURE/.test(line)),
+      "the staleness gate did not run without COT files present",
+    );
+  });
+
+  it("does NOT fail a dense 24/7 series for the bar still in flight", () => {
+    // The real failing case. Recent maximum gap is one interval, so without
+    // the grace ANY trailing silence beyond a single bar reads as a lapsed
+    // feed — and trailing silence is [1, 2) intervals from a perfect feed.
+    const dir = cacheDir();
+    const newest = continuousPair(dir, 300_000);
+    const audit = auditCacheClock({
+      asOfMs: newest + 10 * 60_000, // two 5-minute intervals
+      cacheDir: dir,
+    });
+    assert.ok(
+      !audit.failures.some((line) => /5min: SOURCE FAILURE/.test(line)),
+      `two intervals in flight must be lawful: ${audit.failures.join("\n")}`,
+    );
+  });
+
+  it("DOES fail the same series once the silence passes the grace", () => {
+    // The bound is maximum gap plus two intervals — 15 minutes here — so the
+    // grace is bounded and a widened one is caught. Without this the previous
+    // test alone would pass under any grace, however absurd.
+    const dir = cacheDir();
+    const newest = continuousPair(dir, 300_000);
+    const audit = auditCacheClock({
+      asOfMs: newest + 30 * 60_000, // six intervals: past 5 + 2x5
+      cacheDir: dir,
+    });
+    assert.ok(
+      audit.failures.some((line) => /5min: SOURCE FAILURE/.test(line)),
+      `six intervals of silence must eject: ${audit.failures.join("\n")}`,
+    );
+  });
+
+  it("does NOT fail a healthy dense series for the bar still in flight", () => {
+    // Trailing silence and a gap between bars are different quantities. A gap
+    // is a completed interval; the trailing silence includes the bar
+    // currently forming, which cannot have been published yet — so structural
+    // silence is [1, 2) intervals even from a perfect feed.
+    //
+    // Before this was allowed for, the gate refused 17 crypto 5-minute stores
+    // on the real v4 cache at 10.0 minutes silent against a 5.0-minute recent
+    // maximum, while their 15-minute siblings passed at 15.0 against 15.0 —
+    // by one minute of luck. A gate that could not pass a healthy dense
+    // series was measuring the clock it ran on, not the feed.
+    const dir = cacheDir();
+    healthyTrio(dir);
+    const newest = newestBarIn(dir);
+    for (const intervals of [1, 2]) {
+      const audit = auditCacheClock({
+        // One and two 15-minute intervals past the newest bar.
+        asOfMs: newest + intervals * 15 * 60_000,
+        cacheDir: dir,
+      });
+      assert.ok(
+        !audit.failures.some((line) => /SOURCE FAILURE/.test(line)),
+        `${intervals} interval(s) of in-flight silence must be lawful: ${
+          audit.failures.join("\n")
+        }`,
+      );
+    }
+  });
+
+  it("keeps the grace at the INTERVAL, not the market's worst gap", () => {
+    // The grace is two BAR INTERVALS, taken as the median recent gap. Taking
+    // it from the maximum instead would scale it to the market's worst lawful
+    // silence: on a forex store that is a weekend, so the bound would become
+    // roughly three days plus two weekends — about nine — and a genuine
+    // multi-day outage would read as lawful.
+    //
+    // Five days is past a weekend-shaped maximum and inside that inflated
+    // bound, which is the only place the two differ.
+    const dir = cacheDir();
+    healthyTrio(dir);
+    const audit = auditCacheClock({
+      asOfMs: newestBarIn(dir) + 5 * DAY,
+      cacheDir: dir,
+    });
+    assert.ok(
+      audit.failures.some((line) => /SOURCE FAILURE/.test(line)),
+      `five days of silence must eject a weekend-gapped store: ${
+        audit.failures.join("\n")
+      }`,
+    );
+  });
+
+  it("STILL fails a feed that actually stopped — the grace is minutes, not days", () => {
+    // The bound gained two bar intervals, which is minutes. A lapsed feed is
+    // silent for hours or days, so the detection this gate exists for is
+    // untouched. Asserted directly, because a grace that swallowed the defect
+    // would be worse than the false positives it removed.
+    const dir = cacheDir();
+    healthyTrio(dir);
+    const newest = newestBarIn(dir);
+    const audit = auditCacheClock({
+      asOfMs: newest + 10 * DAY,
+      cacheDir: dir,
+    });
+    assert.ok(
+      audit.failures.some((line) => /SOURCE FAILURE/.test(line)),
+      `ten days of silence must still eject: ${audit.failures.join("\n")}`,
     );
   });
 

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { intradayTimeframes } from "../supabase/functions/trade-analyzer/types.ts";
 import { describe, it } from "node:test";
 import { rankOpportunities } from "../supabase/functions/trade-analyzer/scanRanking.ts";
 import { getCorrelationGroup as getAnalyzerCorrelationGroup } from "../supabase/functions/trade-analyzer/symbols.ts";
@@ -72,11 +73,47 @@ describe("market scan batching", () => {
     assert.ok(SCAN_REQUEST_CONCURRENCY >= 2 && SCAN_REQUEST_CONCURRENCY <= 3);
   });
 
+  it("pins the per-market provider cost to the timeframe list that sets it", () => {
+    // A scan's provider cost is markets x (1 daily + 1 quote + one call per
+    // DECISION timeframe), and nothing anywhere asserted that. The analyzer's
+    // own comment carried "markets x 7" for four months after #362 deleted the
+    // minute fetch on 2026-08-18 and made it 6 — a safety argument resting on
+    // a number that had quietly changed by a seventh.
+    //
+    // Derived from the same expression marketLoader.ts uses, so adding or
+    // removing a timeframe fails HERE, on the commit that does it, rather than
+    // leaving a comment to rot. The number is not the point; the coupling is.
+    const decisionTimeframes = intradayTimeframes.filter(
+      (timeframe) => timeframe !== "1min",
+    );
+    const perMarketProviderCalls = 2 + decisionTimeframes.length;
+    assert.equal(
+      perMarketProviderCalls,
+      6,
+      `the decision-timeframe list changed: a market now costs ${perMarketProviderCalls} provider calls, not 6 — re-argue the scan ceiling before updating this number`,
+    );
+    // And the loader must still derive it the same way, or the coupling above
+    // is asserting a coincidence.
+    assert.match(
+      readFileSync(
+        "supabase/functions/trade-analyzer/marketLoader.ts",
+        "utf8",
+      ),
+      /intradayTimeframes\.filter\(\s*\n?\s*\(timeframe\) => timeframe !== "1min",/,
+      "marketLoader no longer derives its decision timeframes this way",
+    );
+  });
+
   it("the e2e claim ledger's arithmetic rests on zero retries", () => {
-    // playwright.config.ts's ledger (29 claims ≤ 40/60s) counts each spec
-    // once. A retries setting would multiply a failing spec's claims — four
-    // retried All-markets specs put the worst case at 53 — so the ledger must
-    // be re-counted before retries are ever enabled.
+    // playwright.config.ts's ledger counts each spec once. A retries setting
+    // would multiply a failing spec's claims, so the margin must be re-argued
+    // before retries are ever enabled.
+    //
+    // The old comment carried "29 claims ≤ 40/60s" and a worst case of 53.
+    // Both were stale — the limit is 60 — and restating them here would put a
+    // fourth copy of the same arithmetic in a fourth file. The relation is
+    // what matters: retries multiply claims, and nothing else in this suite
+    // notices.
     const playwrightConfig = readFileSync("playwright.config.ts", "utf8");
     assert.ok(
       !/^\s*retries\s*:/m.test(playwrightConfig),

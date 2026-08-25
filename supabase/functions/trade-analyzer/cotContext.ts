@@ -61,6 +61,7 @@ const CURRENCY_CONTRACTS: Record<string, string> = {
 };
 
 // Non-currency markets map straight onto their own contract.
+// SYMBOLS: external CFTC contracts mapped so far | 20 of 98 vs known
 const DIRECT_CONTRACTS: Record<string, string> = {
   BRENT: "BZ",
   BTCUSD: "BT",

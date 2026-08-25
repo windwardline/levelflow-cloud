@@ -23,6 +23,23 @@ export type FmpRetryOptions = {
   // reasons were invisible before: a driver could not tell a clean sweep
   // from one that hit five hundred 429s.
   onRetry?: (event: FmpRetryEvent) => void;
+  /**
+   * Which thrown errors are worth another attempt. Default: all of them.
+   *
+   * Moving the body read inside the retried unit made every throw from
+   * `consume` retryable, and one of them must not be: the byte governor
+   * refuses by THROWING, after the bytes are already spent. Retrying that
+   * re-serves and re-charges the whole body — on the one path that streams
+   * hundreds of thousands of bars — three more times on the module ladder and
+   * SEVEN more on the bulk ladder the sweep driver actually passes. The
+   * governor's own contract is "halting before the next fetch"; it was
+   * issuing eight.
+   *
+   * This module is provider-generic and knows nothing of the budget, so the
+   * caller supplies the predicate. A truncated body still retries: a
+   * SyntaxError from a half-read response is a genuine failed read.
+   */
+  isRetryableError?: (error: unknown) => boolean;
   // Optional global pacing: every request (first attempt included) waits
   // until at least this many ms after the previous request THROUGH THIS
   // MODULE. One knob for the whole process — the fleet pacing flag.
@@ -83,7 +100,13 @@ export async function fetchFmpWithRetry<T extends RetryableResponse>(
     try {
       response = await request();
     } catch (error) {
-      if (attempt >= delays.length) {
+      // A caller-classified refusal is FINAL, and that is checked before the
+      // attempt count: the point is to issue no further request at all, not
+      // to issue seven more and then give up.
+      if (
+        attempt >= delays.length ||
+        !(options.isRetryableError?.(error) ?? true)
+      ) {
         throw error;
       }
       options.onRetry?.({
@@ -181,7 +204,13 @@ export async function fetchFmpJsonWithRetry<
         return { body: await consume(response), ok: true };
       }
     } catch (error) {
-      if (attempt >= delays.length) {
+      // A caller-classified refusal is FINAL, and that is checked before the
+      // attempt count: the point is to issue no further request at all, not
+      // to issue seven more and then give up.
+      if (
+        attempt >= delays.length ||
+        !(options.isRetryableError?.(error) ?? true)
+      ) {
         throw error;
       }
       options.onRetry?.({

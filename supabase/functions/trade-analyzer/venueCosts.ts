@@ -46,6 +46,7 @@ type FuturesFeeRow = {
 // Keyed by Levelflow roster name. tickSize deliberately NOT duplicated
 // here — it comes from getFuturesContractSpec, the grid's single source
 // of truth, so the two tables cannot drift apart.
+// SYMBOLS: external E8 fee schedule | 28 of 98 vs known
 const FUTURES_VENUE_FEES: Record<string, FuturesFeeRow> = {
   // CME Equity
   ESUSD: { basis: "published ES", feesRoundTripUsd: 5.76, tickValueUsd: 12.5 },
@@ -120,6 +121,7 @@ const FUTURES_VENUE_FEES: Record<string, FuturesFeeRow> = {
 // $ commission RT and $/point multiplier per index CFD. SP/NSDQ/DOW
 // multipliers are E8-published; DAX/NIKKEI/ASX assume the published $5
 // low (conservative: smaller multiplier -> larger price distance).
+// SYMBOLS: external E8 index commissions | 6 of 6 vs indices
 const INDEX_VENUE_COMMISSIONS: Record<
   string,
   { basis: string; commissionUsd: number; dollarsPerPoint: number }
@@ -141,6 +143,7 @@ const INDEX_VENUE_COMMISSIONS: Record<
 };
 
 // $ commission RT over contract units for the metal/energy CFD lines.
+// SYMBOLS: external E8 lot commissions | 3 of 98 vs known
 const LOT_VENUE_COMMISSIONS: Record<
   string,
   { basis: string; commissionUsd: number; unitsPerLot: number }
@@ -172,6 +175,7 @@ const CRYPTO_COMMISSION_PRICE_FRACTION = 2 * 0.00035; // 0.035% per side
 // the class model, never replacements: live spreads can be wider, and a
 // quoted spread still outranks the whole modeled branch. TRUMP's
 // two-decimal display hid its width entirely; it carries no floor.
+// SYMBOLS: external crypto spread floors measured so far | 32 of 33 vs crypto
 const CRYPTO_SPREAD_FLOOR_BPS: Record<string, number> = {
   AAVEUSD: 1.1,
   ADAUSD: 11.3,

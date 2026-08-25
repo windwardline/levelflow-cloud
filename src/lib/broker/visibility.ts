@@ -53,7 +53,7 @@ import {
 // testing the mechanism itself against a synthetic fixture row).
 //
 // Deliberately built on symbolMap.ts's AVAILABLE_ASSET_OPTIONS (the
-// already-served master 50) rather than on masterList.ts's full 98-row
+// already-served master list) rather than on masterList.ts's full 98-row
 // registry, even though the registry is this task's own conceptual anchor
 // and this file is intentionally kept in step with its vocabulary
 // (classificationOfType below mirrors masterList.ts's own private
@@ -158,6 +158,7 @@ export const OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE: Record<
  * guessing which crypto a CFD desk carries is precisely the inference this
  * replaces.
  */
+// SYMBOLS: external E8 forex-account crypto CFDs | 8 of 33 vs crypto
 export const FOREX_ACCOUNT_CRYPTO_CFDS: ReadonlySet<string> = new Set([
   "ADAUSD",
   "BCHUSD",

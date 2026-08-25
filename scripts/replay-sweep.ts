@@ -34,6 +34,7 @@ import {
 } from "./fmpRetry.ts";
 import {
   type ByteBudget,
+  ByteBudgetExceededError,
   parseByteBudgetArg,
   createByteBudget,
   readJsonWithBudget,
@@ -152,6 +153,13 @@ const FMP_BULK_DELAYS_MS = [2_000, 8_000, 30_000, 60_000, 120_000, 240_000, 240_
 
 const FMP_RETRY = {
   delaysMs: FMP_BULK_DELAYS_MS,
+  // The byte governor refuses by THROWING, after the bytes are already spent.
+  // Since the body read joined the retried unit, that throw looked like a
+  // transport fault and the ladder reissued it — re-serving and re-charging a
+  // full bar body up to seven more times, on a governor whose own contract is
+  // "halting before the next fetch". A refusal is final; a truncated body
+  // (SyntaxError) is a genuine failed read and still retries.
+  isRetryableError: (error: unknown) => !(error instanceof ByteBudgetExceededError),
   onRetry: (event: FmpRetryEvent) => {
     console.warn(
       `fmp retry ${event.reason} (${event.detail}); attempt ${

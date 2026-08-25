@@ -766,9 +766,18 @@ Every parameter family, per market, gated by item 3's acceptance procedure —
 nothing ships that does not clear its own out-of-sample bar corrected for the
 family it was selected from:
 
-- **stop** — cap, ATR multiple, structural floor, pivot search. Note 8a: the
-  floor currently makes the cap bind unconditionally in seven of eight classes,
-  so both levers are dead. Fix before deriving, or this measures nothing again.
+- **stop** — cap, ATR multiple, structural floor, pivot search. Note 8a,
+  **corrected 2026-08-25**: this said the floor makes the cap bind
+  unconditionally in seven of eight classes, so "both levers are dead. Fix
+  before deriving." That is false, and it is an instruction, so an agent
+  obeying AGENTS.md's order to read this file first would either skip stop
+  derivation as pointless or repair geometry that is not broken. Measured over
+  the 97-market scan roster: `maxStopAtrMultiplier` is 1.0 on **26** markets,
+  2.5 on 6 and 4.0 on 65 — so the cap binds by arithmetic on 26 and **71 have
+  both levers live**. The class-level reading predates the per-market cells.
+  Those cells come from the 4c/4d corpus the banner above declares invalid, so
+  this states where the mechanism stands and settles nothing about whether the
+  cells are right.
 - **TP1** — distance, risk share, and whether it should fire *at all* for a given
   market.
 - **TP2 / runner** — ceiling, window share, exit policy. Blocked on 2f: today
@@ -841,7 +850,28 @@ the live roster is 97 distinct markets.
 
 | rank | item | state |
 |---|---|---|
-| **R0** | One clock — rebuild `.calibration-cache` under a single normalization, assert it in the manifest | **code half DONE 2026-08-18** (see below); **rebuild UNBLOCKED same day** by the owner's 100 GB upgrade (probes green, `to`-inclusivity settled) — one budgeted studio-machine run per `docs/cache-rebuild-r0.md`, minute bank kickstart FIRST. **DATA HALF: STEP 2 COMPLETE 2026-08-24 02:07 UTC — 97 of 97 markets warmed**, cache 7.6 GB, 2.10 GiB of the 30 GiB budget spent, no 429 and no quota event. It took three runs: the first stopped at 81 on DYDXUSD and the second at 82 on ALGOUSD, both FALSE clock-witness refusals, fixed in #383 and #384 — the third ran clean end to end. **STEP 3 RUN, and it is RED: 480 ok, 5 failed.** Two are R0c exactly as predicted (Treasury head 275 days short; interior gap 278 days). The other three are NOT data defects and are R0e below. **Steps 4 and 5 stay owed** and must not run until step 3 is green |
+| **R0** | One clock — rebuild `.calibration-cache` under a single normalization, assert it in the manifest | **code half DONE 2026-08-18** (see below); **rebuild UNBLOCKED same day** by the owner's 100 GB upgrade (probes green, `to`-inclusivity settled) — one budgeted studio-machine run per `docs/cache-rebuild-r0.md`, minute bank kickstart FIRST. **DATA HALF: STEP 2 COMPLETE 2026-08-24 02:07 UTC — 97 of 97 markets warmed**, cache 7.6 GB, 2.10 GiB of the 30 GiB budget spent, no 429 and no quota event. It took three runs: the first stopped at 81 on DYDXUSD and the second at 82 on ALGOUSD, both FALSE clock-witness refusals, fixed in #383 and #384 — the third ran clean end to end. **STEP 3 RUN, and it is RED: 480 ok, 5 failed.** Two are R0c exactly as predicted (Treasury head 275 days short; interior gap 278 days). The other three are NOT data defects and are R0e below. **Steps 4 and 5 stay owed** and must not run until step 3 is green.
+
+**STEP 3 IS GREEN — 2026-08-25 15:20Z. THE V4 REBUILD IS ACCEPTED.** 97 of 97
+markets, all three series each, 7.65 GB, verified independently of the run log
+by deriving the roster and resolving each provider symbol. `verify-cache-clock`
+exits 0: "All stores stamped and witnessed on one clock", and now prints the
+corpus's own as-of beside it.
+
+Getting there took five build attempts and cost five defects, every one of
+them in the instruments rather than the data:
+(1) the wrapper reported success on an empty exit status;
+(2) its replacement used `status=$?`, which is read-only in zsh, so it could
+    never report success either;
+(3) `fetchFmpWithRetry` branched on HTTP status, so a socket THROW bypassed
+    the retry entirely (#412);
+(4) 40 seconds of ladder could not span a minutes-long outage (#414);
+(5) the retry covered getting a response and not READING one — the body is
+    the large, slow part, and it streamed outside every guard (#417).
+Then the finished cache failed its own gate twice more: a 16.4-hour ragged
+edge, because `store.pinned[anchor]` froze each market at whatever moment it
+was fetched (fixed by `--repin`), and a staleness bound that judged against
+the wall clock and ignored the bar in flight (#420) |
 | **R0b** | **Back up the MINUTE BANK first, then the cache** — re-ranked 2026-08-23 after measurement. `.minute-bank/` is 182 MB, 1,687,458 bars across 100 symbols, spanning 2026-08-04 to 2026-08-23, and FMP re-serves 1-minute bars only ~3 days deep — so **roughly 84% of it is unrecoverable if lost today**. `.calibration-cache` is expensive (~14 hours, metered bytes) but fully reproducible. The original ranking gated the cheap irreplaceable half behind the expensive reproducible one. A dated local snapshot was taken 2026-08-23 (`~/levelflow-minute-bank-snapshot-20260823`, verified equal on symbol and bar counts) as a STOPGAP — a point-in-time copy starts going stale immediately, so the deliverable is still a recurring mechanism, not that copy | **the bank half is due NOW and is done as a snapshot; the recurring mechanism and the cache half stay after R0 step 3, before step 5 deletes the archive. **RAISE BEFORE STEP 5 RUNS (2026-08-24)**: that archive is the ONLY real naive-era corpus in existence, and it was used on 2026-08-24 to validate the #384 clock-witness redesign against real data rather than synthetic fixtures — old and new witnesses condemn the identical 64 stores in it, 8 on transition evidence alone. Deleting it means no future clock instrument can ever be checked against anything but fixtures. Owner call** |
 | **R0c** | **Fix the Treasury fetch chunking, then refetch the curve** — NEW 2026-08-23. The store is ~25% covered: 60–62 rows in each of fourteen consecutive years, against a written in-code expectation of `~250 rows per year-sized chunk`. Deliberately NOT in the pre-R3 register below, which it would have broken three ways — it is not an emit or manifest field, it is not owned by R2 (the fix is fetch chunking in `replay-sweep.ts`), and it is not impossible later (delete and refetch) | **before R3, after a probe.** R3 HARD-BLOCKS on this store — the head guard refuses pre-symbols on any non-`--warm-only` run — so the cost is a hard stop discovered after R0's ~14-hour rebuild is already spent, not a poisoned corpus. Probe the endpoint's real cap FIRST, and not while R0 draws on the same allowance |
 | **R0d** | **The crypto 5-minute density floor is mis-derived — OWNER DECISION PENDING.** NEW 2026-08-24. `assertFiveMinuteDensity` refuses the WHOLE corpus when a symbol's recent-90-day 5-minute density falls under its class floor. DYDXUSD reads 249.4 rows/day against crypto's 260 and would refuse at symbol 82 of 97. **It is not defective, and this was adversarially verified rather than argued**: its 15-minute store thins in lockstep (5/15 ratio 2.83, inside the repo's own clip-detection band `[2.7, 3.25]` — the purpose-built clip/hole instrument CLEARS it in the same run); 0 of the last-95-days' 15-minute slots hold a bar the 5-minute store lacks; 99.99% of coincident 15-minute closes equal the last present 5-minute sub-bar with volume conservation at 1.0000; the price path 12.99 (2021-09) → 0.12 (2026-08) is dYdX's; two independent fetches ten days apart return bit-identical daily counts for the trough; and the trough (2026-08-01..16, as low as 114/288) RECOVERED unaided to 267.9/day over 08-17..23, above the floor. It is the roster's thinnest crypto — 69.1 15-minute rows/day whole-span against 94.2–94.8 for every classmate. **The floor is the defect.** `crypto: 260` is 90.3% of a perfect 288 grid, derived from two probes that both sat AT that ceiling (BTCUSD 288.0, THETAUSD 287.9) and generalised to 33 symbols on a homogeneity assumption the source comment states outright. Every other class encodes ~70%: forex 150/205.6, metals 140/197.1, energies 140/197.7, indices 34/48.6. Crypto's margin is 3.1× tighter than any sibling's, and it is the only class whose homogeneity is empirically false. Two facts settle it: the floor's own calibration week (2026-08-11..17) sits INSIDE DYDXUSD's trough, where it averaged 205.3/day while BTCUSD read 288.0 — a 29% class spread, present and unmeasured because only two symbols were probed; and THETAUSD, one of the two probes, reads **265.1/day whole-span**, 5.1 above the floor derived from it, while EGLDUSD reads **256.4, under it** — both survive only because #382 already moved the judged window to the recent 90 days. **This is the unfinished half of #382**: that PR moved the window and rescued LTCUSD, BTCUSD and PAUSD, which produced `WOULD REFUSE` lines before it and none after. DYDXUSD is the sole residue. The window was corrected; the threshold was not. **The recommendation is NOT to pick a new constant** — that repeats the error with a new number. It is to judge the recent window against each SYMBOL'S OWN baseline over a FIXED trailing reference era (refuse below ~70% of it; DYDXUSD passes at 95.0%), keeping the class floor only as an absolute sanity bound re-derived from the class MINIMUM (crypto ≈175), which still catches a clip applied symmetrically to both resolutions — the one thing no ratio can see. **Not implemented, deliberately**: the per-symbol baseline is a new MANIFEST FACT, and the manifest is exactly what R2b's field list is awaiting sign-off on. Landing it unilaterally would preempt that decision. **Shipped meanwhile (2026-08-24)**: the refusal no longer asserts "the series is clipped, holed, or not this symbol's feed" — depth establishes none of the three, and nothing in the codebase measures holes in a bar series at all (`largestGapMs` is Treasury-only). It now states that depth is all it measured and points at the ratio | **before R3, and it needs an owner call, not a converge.** Waiting is not an option that expires quietly: at the recovered rate DYDXUSD's trailing-90 window does not clear 260 until ~2026-11-14, when the trough finally ages out. Per-symbol quarantine is ruled out — there is no drop path, and adding one removes a matched market with no calibration verdict, which is amendment 31's forbidden trade |
@@ -2465,6 +2495,66 @@ Do not stop at turn boundaries. Never claim green when it is not. If a round yie
 nulls and validations, say the diminished-returns point is reached rather than
 manufacturing another.
 ```
+
+### 6b-1. Owner decisions owed — raised by the 2026-08-25 converge
+
+Four questions that need a ruling rather than a repair. Each is stated with
+its options and what each option implies; none was decided, because deciding
+them from inside the code would be inventing a criterion and calling it a
+finding.
+
+**A. PLUSD and PAUSD — monetary metals or industrial?** Open since #415 for
+the macro-rate role, where they sit at `none` with an OPEN marker rather than
+a settled reason. The old `RATE_SENSITIVE_METALS` set admitted every precious
+metal and excluded copper, which is a decision written into its composition
+but never stated as a criterion. Admitting the platinum group means stating
+that criterion. *The same two symbols are also 2 of the 15 unmapped COT
+markets*, so one ruling closes two layers. Options: rule once and apply to
+both in one change set, or leave both open and accept that two parts of the
+engine wait on one question.
+
+**B. The COT contract table before R3 — fill it, or declare it partial?**
+`DIRECT_CONTRACTS` maps 20 of 98 symbols; `getCotContractMapping` returns null
+for 50, and at least 15 of those are CFTC-reported instruments as domain
+fact — including ZFUSD and ZTUSD while their curve siblings ZBUSD and ZNUSD
+are mapped. Live blast radius today is ZERO: COT is absent from the live
+analyzer and `cotScoreAdjustment` is 0 on every class. The reason to raise it
+now is timing — R3 is the one re-sweep, and a column missing then cannot be
+backfilled without a second one. Options: (i) map the 15 before R3, which
+needs FMP contract codes verified and bandwidth that is currently spent;
+(ii) declare the table deliberately partial and split `stance: "unavailable"`
+into "no contract mapped" versus "insufficient reports", so the corpus records
+WHY; (iii) do nothing, and accept that futures becomes the one class with a
+within-class mapping differential. *Note*: #418's census marker on this
+declaration was corrected on 2026-08-25 for exactly this reason — as first
+written it would have attested that the CFTC does not report the other 78.
+
+**C. `strategyProfiles` — were the six silent weight blocks hand-authored?**
+Agriculture and livestock carry explicit "carried from futures — NOT derived"
+notes. Crypto, energies, forex, futures, indices and metals carry nothing, and
+those two markers establish the house convention, which makes the other six an
+omission rather than a style. The weights multiply both score and confidence
+of every strategy vote. Only the author can answer; inferring "NOT derived"
+from an absence of evidence is itself an unfounded provenance claim.
+*Second half*: crypto and forex carry ten entries where the other six carry
+eleven — both omit `trend_pullback_to_value`, whose voter runs
+unconditionally, and `getStrategyProfileWeight` ends in
+`?? DEFAULT_PROFILE_WEIGHT`, so a renamed strategy would silently neutralise
+its weight in all eight classes with no error and no failing test. A
+completeness guard is written and additive, and cannot land until this is
+answered because it fails today on those two classes.
+
+**D. macroRates' 4bp band, 8bp line and −1 energy penalty — mark them
+underived now, or wait for R3?** Three distinct decisions, none documented, in
+a file that derives `TREASURY_MAX_STALE_MS` over fifteen lines and gives all
+98 role entries a `why`. #415 already shipped HOUSD and RBUSD with an in-code
+note that the −1 "has never been measured anywhere in this repo". Effect is
+bounded at ±2 on a 0–100 score. Not the staleness shape — these are absolute
+basis-point thresholds that no roster drift can move — but they can rot on
+rate LEVEL: 4bp is a large daily move at a 0.5% ten-year and routine at 4.3%,
+and nothing ties the band to level or realised volatility. Options: extend
+#415's treatment to the other two numbers now, or leave all three until a
+valid corpus can measure them.
 
 ### 6b-0. The diminished-returns register — what is closed, and what re-opens it
 

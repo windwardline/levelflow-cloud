@@ -53,6 +53,7 @@ import { flagReader } from "./flagReader.ts";
 import {
   TREASURY_FETCH_START_MS,
   treasuryCurveFacts,
+  type TreasuryCurveFacts,
 } from "./sweepManifest.ts";
 
 type StoredBar = { high: number; low: number; time: number };
@@ -66,6 +67,7 @@ type SlimSeries = {
    * cannot fire is worse than no gate, because it reads as coverage.
    */
   recentMaxGapMs: number;
+  recentMedianGapMs: number;
   lastTime: number;
   slim: StoredBar[];
 };
@@ -105,7 +107,7 @@ export function auditCacheClock(input: {
   cacheDir: string;
   rosterProviderSymbols?: string[];
 }): CacheClockAudit {
-  const { asOfMs = Date.now(), cacheDir, rosterProviderSymbols } = input;
+  const { asOfMs, cacheDir, rosterProviderSymbols } = input;
   const lines: string[] = [];
   const failures: string[] = [];
   const fail = (line: string) => {
@@ -169,6 +171,107 @@ export function auditCacheClock(input: {
   // confidenceScore, so a roster-mode audit that is silent about its absence
   // certifies a cache the sweep will refuse.
   let ratesPresent = false;
+
+  // P5: HAS THIS FEED STOPPED? Nothing asked, anywhere, until 2026-08-24.
+  //
+  // `staleMs` existed at exactly one site — the Treasury branch above — and
+  // no gate compared a BAR store's newest row to now. `recentWindow` ends
+  // its 90-day window at the SERIES' OWN last bar, so a store truncated 200
+  // days ago measures density over a window that ended 200 days ago and
+  // reports the theoretical maximum. Proven on the real cache: BTCUSD
+  // truncated as though the feed died 200 days back reads 288.0 rows/day,
+  // recentSpanDays 90, verdict "utc" — identical to live, and it clears the
+  // 260 floor. `corpusEndMs` cannot see it either, being a MAX across
+  // symbols.
+  //
+  // Amendment 31 makes a lapsed feed a SOURCE FAILURE that ejects
+  // automatically — "not a calibration verdict, and it remains automatic" —
+  // so this refusal is typed as one, and it must never be confused with the
+  // density verdict beside it.
+  //
+  // THE BOUND IS THE MARKET'S OWN: the longest gap inside its recent
+  // window, which spans ~13 weekends and any holidays among them, so every
+  // lawful silence is inside the bound by construction. A flat bound could
+  // not serve the roster — 7 days is right for a daily curve, far too loose
+  // for a 24/7 five-minute store and too tight for a grain future's
+  // weekend-plus-holiday gap.
+  //
+  // PLUS TWO INTERVALS, because trailing silence and a gap between bars are
+  // not the same quantity. A gap is a completed interval; the trailing
+  // silence includes the bar currently forming, which cannot have been
+  // published yet. At any instant the newest CLOSED bar is labelled
+  // `floor((now - interval) / interval) * interval`, so structural trailing
+  // silence lies in [1 interval, 2 intervals) even from a perfect feed with
+  // zero provider lag. That is a derivation, not a tolerance.
+  //
+  // Without it the gate could not pass a healthy dense series at all. On
+  // the v4 cache it refused 17 crypto 5-minute stores reading 10.0 minutes
+  // silent against a 5.0-minute recent maximum — while their 15-minute
+  // siblings passed on 15.0 against 15.0, which is to say by one minute of
+  // luck. A gate whose verdict turns on the minute you run it is not
+  // measuring the feed.
+  //
+  // Lapsed-feed detection is untouched: a feed that stopped goes silent for
+  // hours or days, and two bar intervals is minutes.
+  const staleness = (
+    key: string,
+    facts: { lastTime: number; recentMaxGapMs: number; recentMedianGapMs: number },
+    asOf: number,
+  ) => {
+    if (facts.recentMaxGapMs <= 0) return;
+    const silentMs = asOf - facts.lastTime;
+    const lawfulMs = facts.recentMaxGapMs + 2 * facts.recentMedianGapMs;
+    if (silentMs <= lawfulMs) return;
+    fail(
+      `${key}: SOURCE FAILURE — silent for ${
+        (silentMs / 86_400_000).toFixed(2)
+      } days, longer than the longest silence this market has had in its ` +
+        `recent window (${
+          (facts.recentMaxGapMs / 86_400_000).toFixed(2)
+        } days) plus the two bar intervals that are always in flight (${
+          (2 * facts.recentMedianGapMs / 86_400_000).toFixed(2)
+        } days). A lapsed feed ejects automatically under amendment 31; this ` +
+        `is not a density or calibration verdict`,
+    );
+  };
+
+  /**
+   * Drained after the loop: the bound needs the corpus's own as-of, which is
+   * not known until every store has been read.
+   *
+   * Holds THREE NUMBERS per series, never the SlimSeries. The first draft
+   * queued the facts object, which carries every bar — so deferring the check
+   * held the whole 7.6 GB corpus resident at once and the verifier died on
+   * SIGABRT, Node's out-of-memory abort. Nothing about the staleness bound
+   * needs a bar; it needs the last timestamp and two gap statistics.
+   */
+  const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
+  const stalenessQueue: Array<
+    { key: string; lastTime: number; recentMaxGapMs: number; recentMedianGapMs: number }
+  > = [];
+
+  /**
+   * Curve stores whose head and gap checks passed, awaiting the corpus as-of.
+   *
+   * #420 made the BAR staleness gate corpus-relative and left this one on
+   * `Date.now()` — one of two sites, which is this repository's most-repeated
+   * failure, and it had a date on it: the Treasury tail is 2026-08-24, so the
+   * accepted v4 cache would have gone RED on 2026-08-31 on unchanged bytes.
+   *
+   * The loop is what made it serious. That refusal reads "Rebuild per
+   * docs/cache-rebuild-r0.md; do not sweep or top up against this cache" while
+   * a thirty-second `--warm-only` top-up would clear it — the instrument
+   * forbidding its own cheap remedy and routing the operator to a fourteen-hour
+   * rebuild that spends metered bytes.
+   */
+  const pendingCurves: Array<
+    {
+      clock: string;
+      facts: TreasuryCurveFacts & { firstTime: number; lastTime: number };
+      key: string;
+    }
+  > = [];
 
   for (const name of rollingNames) {
     const key = name.slice(0, -".rolling.json".length);
@@ -256,7 +359,6 @@ export function auditCacheClock(input: {
       // refused it. The predicates live in sweepManifest.ts, a plain Node
       // module, so this imports them rather than restating them: one
       // definition, and the gate cannot drift from the sweep it certifies for.
-      const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
       const curveRows = items as unknown as Array<{ dateMs: number }>;
       const facts = treasuryCurveFacts(
         curveRows.filter((row) => Number.isFinite(row?.dateMs)),
@@ -302,24 +404,40 @@ export function auditCacheClock(input: {
             `months-stale rows as fresh; the sweep refuses this curve`,
         );
       }
-      const staleMs = Date.now() - (facts.lastTime ?? 0);
-      if (staleMs > 7 * 86_400_000) {
-        curveFailed = true;
-        fail(
-          `${key}: newest row is ${iso(facts.lastTime!)}, ${
-            Math.round(staleMs / 86_400_000)
-          } days stale — every decision past the curve's end scores against ` +
-            `months-old rows as if they were fresh`,
-        );
-      }
-      if (!curveFailed) {
-        ok(
-          `${key}: ${facts.count} curve rows ${iso(facts.firstTime)}..${
-            iso(facts.lastTime!)
-          }, largest gap ${
-            Math.round(facts.largestGapMs / 86_400_000)
-          }d, clock "${store.clock}"`,
-        );
+      // CORPUS-RELATIVE, like the bar staleness gate beside it.
+      //
+      // #420 made that gate judge against the corpus's own as-of and left this
+      // one on `Date.now()` — one of two sites, which is this repository's
+      // most-repeated failure. The consequence had a date on it: the Treasury
+      // tail is 2026-08-24, so the accepted 7.65 GB v4 cache would have gone
+      // RED on 2026-08-31 on bytes that had not changed.
+      //
+      // The loop is what makes it serious rather than untidy. This refusal
+      // reads "Rebuild per docs/cache-rebuild-r0.md; do not sweep or top up
+      // against this cache" — while a thirty-second `--warm-only` top-up would
+      // clear it. The instrument's own message forbids its own cheap remedy
+      // and routes the operator to a fourteen-hour rebuild that spends metered
+      // bytes from an allowance this project has already exhausted once.
+      //
+      // The staleness half is DEFERRED, because its bound is the corpus's own
+      // as-of and the loop has not read every store yet. The head and gap
+      // checks above need no such reference and stay here.
+      // `lastTime` is non-null here by construction: an empty curve fails the
+      // head check above and never reaches this line. Narrowed rather than
+      // asserted, so a future change that admits an empty store is a type
+      // error instead of a runtime one.
+      if (
+        !curveFailed && facts.lastTime !== null && facts.firstTime !== null
+      ) {
+        pendingCurves.push({
+          clock: store.clock ?? "",
+          facts: {
+            ...facts,
+            firstTime: facts.firstTime,
+            lastTime: facts.lastTime,
+          },
+          key,
+        });
       }
       continue;
     }
@@ -383,15 +501,27 @@ export function auditCacheClock(input: {
     const recentGapStart = items[items.length - 1].time -
       DENSITY_RECENT_WINDOW_DAYS * 86_400_000;
     let recentMaxGapMs = 0;
+    const recentGaps: number[] = [];
     for (let index = 1; index < items.length; index += 1) {
       if (items[index].time < recentGapStart) continue;
       const gap = items[index].time - items[index - 1].time;
+      recentGaps.push(gap);
       if (gap > recentMaxGapMs) recentMaxGapMs = gap;
     }
+    // The series' own bar interval, taken as the MEDIAN recent gap. Derived
+    // rather than read off the key, and median rather than mode or minimum
+    // so a doubled bar or a holiday cannot move it. Measured on the v4 cache
+    // it lands exactly: 5.0 minutes for every 5min store, 15.0 for every
+    // 15min one.
+    recentGaps.sort((a, b) => a - b);
+    const recentMedianGapMs = recentGaps.length > 0
+      ? recentGaps[Math.floor(recentGaps.length / 2)]
+      : 0;
     const slim: SlimSeries = {
       count: items.length,
       firstTime: items[0].time,
       recentMaxGapMs,
+      recentMedianGapMs,
       lastTime: items[items.length - 1].time,
       slim: items.map((bar) => ({
         high: bar.high,
@@ -432,45 +562,16 @@ export function auditCacheClock(input: {
           `(zero-shift match ${registration.matchRateAtZero ?? "n/a"})`,
       );
     }
-    // P5: HAS THIS FEED STOPPED? Nothing asked, anywhere, until 2026-08-24.
-    //
-    // `staleMs` existed at exactly one site — the Treasury branch above — and
-    // no gate compared a BAR store's newest row to now. `recentWindow` ends
-    // its 90-day window at the SERIES' OWN last bar, so a store truncated 200
-    // days ago measures density over a window that ended 200 days ago and
-    // reports the theoretical maximum. Proven on the real cache: BTCUSD
-    // truncated as though the feed died 200 days back reads 288.0 rows/day,
-    // recentSpanDays 90, verdict "utc" — identical to live, and it clears the
-    // 260 floor. `corpusEndMs` cannot see it either, being a MAX across
-    // symbols.
-    //
-    // Amendment 31 makes a lapsed feed a SOURCE FAILURE that ejects
-    // automatically — "not a calibration verdict, and it remains automatic" —
-    // so this refusal is typed as one, and it must never be confused with the
-    // density verdict beside it.
-    //
-    // THE BOUND IS THE MARKET'S OWN: the longest gap inside its recent
-    // window, which spans ~13 weekends and any holidays among them, so every
-    // lawful silence is inside the bound by construction. A flat bound could
-    // not serve the roster — 7 days is right for a daily curve, far too loose
-    // for a 24/7 five-minute store and too tight for a grain future's
-    // weekend-plus-holiday gap.
-    const staleness = (key: string, facts: SlimSeries) => {
-      if (facts.recentMaxGapMs <= 0) return;
-      const silentMs = asOfMs - facts.lastTime;
-      if (silentMs <= facts.recentMaxGapMs) return;
-      fail(
-        `${key}: SOURCE FAILURE — silent for ${
-          (silentMs / 86_400_000).toFixed(2)
-        } days, longer than the longest silence this market has had in its ` +
-          `recent window (${
-            (facts.recentMaxGapMs / 86_400_000).toFixed(2)
-          } days). A lapsed feed ejects automatically under amendment 31; this ` +
-          `is not a density or calibration verdict`,
-      );
-    };
-    staleness(`${pairKey} 15min`, fifteen);
-    staleness(`${pairKey} 5min`, five);
+    // DEFERRED, because the bound needs an instant this loop does not have
+    // yet — see the corpus-as-of note where these are drained.
+    for (const [suffix, facts] of [["15min", fifteen], ["5min", five]] as const) {
+      stalenessQueue.push({
+        key: `${pairKey} ${suffix}`,
+        lastTime: facts.lastTime,
+        recentMaxGapMs: facts.recentMaxGapMs,
+        recentMedianGapMs: facts.recentMedianGapMs,
+      });
+    }
     // R0f/C3: the ABSOLUTE registration test, beside the relative one above.
     // crossSeriesClock buckets day extremes on the UTC calendar day, so a
     // one-sided shift is visible only when it moves a high or low across UTC
@@ -705,6 +806,65 @@ export function auditCacheClock(input: {
           `cache without it is incomplete`,
       );
     }
+  }
+  // THE CORPUS'S OWN AS-OF, not the wall clock.
+  //
+  // This defaulted to `Date.now()`, which made the verdict a property of WHEN
+  // YOU RAN THE COMMAND rather than of the data. The v4 cache proved it
+  // twice in ten minutes: green at 11:30 and red at 11:40, on bytes that had
+  // not changed. A calibration corpus is swept for hours and read for weeks;
+  // one that is only valid for the fifteen minutes after it was built is not
+  // an instrument.
+  //
+  // The corpus's own newest observation is the honest as-of, and the sibling
+  // instrument already used it — `corpusEndMs` in sweepStats.ts, a MAX across
+  // symbols. Against it, a market that lapsed while its neighbours kept
+  // publishing still ejects, which is the whole point of amendment 31; what
+  // stops ejecting is the corpus simply having been built yesterday.
+  //
+  // The corpus's age against the wall clock is not lost — it is reported
+  // below as its own line, because "this corpus is three days old" is worth
+  // knowing and is not a per-market source failure.
+  const corpusEndMs = stalenessQueue.reduce(
+    (newest, entry) => Math.max(newest, entry.lastTime),
+    Number.NEGATIVE_INFINITY,
+  );
+  const stalenessAsOf = asOfMs ?? corpusEndMs;
+  if (Number.isFinite(corpusEndMs)) {
+    for (const entry of stalenessQueue) {
+      staleness(entry.key, entry, stalenessAsOf);
+    }
+    // The curve must COVER the corpus it will be joined against, so the corpus
+    // is the reference — not the wall clock. A curve that has genuinely
+    // stopped still falls behind the corpus's newest observation and still
+    // ejects; what stops ejecting is a good cache being read a week later.
+    for (const curve of pendingCurves) {
+      const behindMs = stalenessAsOf - curve.facts.lastTime;
+      if (behindMs > 7 * 86_400_000) {
+        fail(
+          `${curve.key}: newest row is ${iso(curve.facts.lastTime)}, ${
+            Math.round(behindMs / 86_400_000)
+          } days behind the corpus — every decision past the curve's end ` +
+            `scores against months-old rows as if they were fresh. A ` +
+            `--warm-only top-up refreshes the curve; a full rebuild is not ` +
+            `required for this line alone`,
+        );
+        continue;
+      }
+      ok(
+        `${curve.key}: ${curve.facts.count} curve rows ${
+          iso(curve.facts.firstTime)
+        }..${iso(curve.facts.lastTime)}, largest gap ${
+          Math.round(curve.facts.largestGapMs / 86_400_000)
+        }d, clock "${curve.clock}"`,
+      );
+    }
+    const ageMs = Date.now() - corpusEndMs;
+    lines.push(
+      `  note corpus as-of ${
+        new Date(corpusEndMs).toISOString().slice(0, 16)
+      }Z, ${(ageMs / 3_600_000).toFixed(1)}h before this run`,
+    );
   }
   if (cotNames.length > 0) {
     // Informational: cot files are bespoke (no clock stamp; parse

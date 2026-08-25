@@ -43,6 +43,7 @@ export type FuturesPricePlan = FuturesPricePlanInput & {
   contractSpec: FuturesContractSpec;
 };
 
+// SYMBOLS: external exchange contract specifications | 28 of 98 vs known
 const FUTURES_CONTRACT_SPECS: Record<string, FuturesContractSpec> = {
   BZUSD: {
     contractLabel: "Brent crude futures",

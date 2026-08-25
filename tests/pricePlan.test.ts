@@ -525,10 +525,18 @@ describe("price plan integration", () => {
 
 // stopLogic was a constant asserting the stop sat "beyond the nearest confirmed
 // swing pivot with a volatility buffer" on EVERY setup. It does not: structural
-// candidates are floored at 1.25 ATR while the cap is maxStopAtrMultiplier × ATR
-// — 1.0 in seven of eight classes — so the cap binds unconditionally and the
-// pivot never wins outside metals. The sentence was false wherever it mattered,
-// while stopProvenance sat two lines away recording the truth.
+// candidates are floored at 1.25 ATR while the cap is maxStopAtrMultiplier ×
+// ATR, so wherever the cap sits at or below 1.25 the cap binds by arithmetic
+// and the pivot cannot win. The sentence was false wherever that held, while
+// stopProvenance sat two lines away recording the truth.
+//
+// THE POPULATION HAS MOVED, and the old note here said "1.0 in seven of eight
+// classes … the pivot never wins outside metals". Measured over the 97-market
+// scan roster on 2026-08-25: maxStopAtrMultiplier is 1.0 on 26 markets, 2.5 on
+// 6 and 4.0 on 65, so 71 markets sit ABOVE the structural floor and both
+// levers are live on them. Those cells came from the 4c/4d corpus that
+// trade-model.md's own banner declares invalid, so this states where the
+// mechanism stands and settles nothing about whether the cells are right.
 //
 // It is now derived from that provenance, so the description cannot outlive the
 // mechanism. These assert the pairing rather than any one wording.
@@ -556,21 +564,46 @@ describe("stopLogic describes what actually set the stop", () => {
   });
 
   it("never claims a pivot anchored a stop the cap set", () => {
-    const plan = buildPricePlan(
+    // UNCONDITIONAL, and it was not. This assertion sat behind
+    // `if (plan.stopProvenance !== "pivot")`, and EURUSD's provenance is
+    // `pivot` — so the guard was false, the body never ran, and the test
+    // reported green having examined nothing.
+    //
+    // Both branches are now driven deliberately: a cap-4.0 market where the
+    // pivot can win, and a cap-1.0 market where the cap binds by arithmetic.
+    // Whichever way a future calibration moves EURUSD, one of these still
+    // exercises each branch.
+    const capBound = buildPricePlan(
+      "buy",
+      "DOW",
+      syntheticMarket(),
+      regime,
+      getCategoryCalibration("DOW"),
+    );
+    assert.ok(capBound, "the cap-bound fixture no longer produces a plan");
+    assert.equal(getCategoryCalibration("DOW").maxStopAtrMultiplier, 1);
+    assert.equal(capBound.stopProvenance, "cap");
+    assert.doesNotMatch(
+      capBound.stopLogic,
+      /swing pivot/,
+      "a stop the cap set must not be described as pivot-anchored",
+    );
+
+    const pivotBound = buildPricePlan(
       "buy",
       "EURUSD",
       syntheticMarket(),
       regime,
       getCategoryCalibration("EURUSD"),
     );
-    assert.ok(plan);
-    if (plan.stopProvenance !== "pivot") {
-      assert.doesNotMatch(
-        plan.stopLogic,
-        /swing pivot/,
-        "a stop the pivot did not set must not be described as pivot-anchored",
-      );
-    }
+    assert.ok(pivotBound);
+    assert.equal(getCategoryCalibration("EURUSD").maxStopAtrMultiplier, 4);
+    assert.equal(pivotBound.stopProvenance, "pivot");
+    assert.match(
+      pivotBound.stopLogic,
+      /swing pivot/,
+      "a stop the pivot DID set must say so",
+    );
   });
 });
 });

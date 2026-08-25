@@ -100,26 +100,33 @@ const RATE_LIMIT_WINDOW_SECONDS = 60;
 const RATE_LIMITS = {
   refresh_outcomes: 12,
   // A scan is a fan-out of chunked requests since the 2026-08-02 CPU failures
-  // (src/lib/scanBatching.ts). 40 -> 60 on 2026-08-07: the release took the
-  // universe from 50 markets to the full roster (105 today), so a full scan is 11 chunks rather than 6,
-  // and the old budget would have rate-limited a scan against its own second
-  // half. tests/scanBatching.test.ts pins the relation (chunks x 5 <= limit) so
-  // this can never fall back under the real spend.
+  // (src/lib/scanBatching.ts): one claim per chunk, and the chunk count comes
+  // from the live roster. 40 -> 60 on 2026-08-07, when the universe grew from
+  // 50 markets to the full roster and the old budget would have rate-limited a
+  // scan against its own second half.
   //
-  // The honest arithmetic, because the old note's version no longer holds. The
-  // binding constraint is not this limiter, it is FMP: a 105-market scan costs
-  // roughly 105 x 7 = 735 provider calls, so five full scans in a minute is
-  // ~3,900 against FMP Ultimate's 3,000. Chunk size cannot help — a scan's
-  // provider cost is markets x 7 however the markets are grouped — so raising
-  // SCAN_SYMBOLS_PER_REQUEST would move requests around without moving calls.
+  // NO COUNTS HERE, deliberately. This comment used to carry the roster size,
+  // the chunk count and a "markets x 7 = 735 provider calls" total. Every one
+  // of those had gone stale — the roster moved, and #362 deleted the minute
+  // fetch on 2026-08-18 so the per-market cost is 6, not 7 — while reading
+  // like current arithmetic. Restating them with today's numbers would
+  // recreate the same defect with a fresh date stamp.
   //
-  // What that means in practice: roughly FOUR full scans a minute is the
-  // physical ceiling, and this limiter is no longer the thing that enforces it.
-  // A single operator never approaches that; the e2e suite is the only caller
-  // that runs full scans back to back, and spacing them is the fix on that
-  // side rather than a wider door here. Recorded so the next reader does not
-  // re-derive a safety argument from a number that has stopped being the
-  // binding one.
+  // The relations, which do not rot:
+  //   - a scan claims one budget unit per chunk;
+  //     tests/scanBatching.test.ts asserts chunks x 5 <= this limit, reading
+  //     both sides from their live sources.
+  //   - a market costs 1 daily + 1 quote + one call per DECISION TIMEFRAME
+  //     (marketLoader.ts), so a scan's provider cost is
+  //     markets x (2 + decisionTimeframes.length) however the markets are
+  //     grouped. Chunk size cannot move it; only the timeframe list can, and
+  //     tests/scanBatching.test.ts fails if that list changes.
+  //
+  // The binding constraint is FMP's request ceiling, not this limiter, and it
+  // is a small number of full scans a minute. A single operator never
+  // approaches it; the e2e suite is the only caller that runs full scans back
+  // to back, and spacing them is the fix on that side rather than a wider door
+  // here.
   scan_opportunities: 60,
 } as const;
 // The hard ceiling on one request's work, and what makes a 546 impossible

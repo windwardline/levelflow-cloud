@@ -419,3 +419,99 @@ describe("the body read is inside the retry, not after it", () => {
     );
   });
 });
+
+describe("a budget refusal is final, a truncated body is not", () => {
+  // Moving the body read inside the retried unit (#417) made every throw from
+  // `consume` retryable — including the byte governor's refusal, which is
+  // raised AFTER the bytes are spent. The ladder then re-served and
+  // re-charged a full bar body: three more times on the module default and
+  // SEVEN more on the bulk ladder the sweep driver actually passes, on a
+  // governor whose own contract is "halting before the next fetch".
+  class FakeBudgetError extends Error {}
+
+  it("issues exactly ONE request when the caller calls the error final", async () => {
+    let requests = 0;
+    const thrown = new FakeBudgetError("budget spent");
+    await assert.rejects(
+      () =>
+        fetchFmpJsonWithRetry(
+          () => {
+            requests += 1;
+            return Promise.resolve(response(200));
+          },
+          () => Promise.reject(thrown),
+          {
+            delaysMs: [1, 1, 1, 1, 1, 1, 1],
+            isRetryableError: (error) => !(error instanceof FakeBudgetError),
+          },
+        ),
+      (error: unknown) => error === thrown,
+    );
+    assert.equal(requests, 1, `the ladder reissued ${requests - 1} times`);
+  });
+
+  it("does not even sleep before giving up on a final error", async () => {
+    // The refusal is checked BEFORE the attempt count, so no ladder rung is
+    // spent. Seven rungs of the bulk ladder is 11.7 minutes of waiting for an
+    // answer that cannot change.
+    const events: FmpRetryEvent[] = [];
+    await assert.rejects(() =>
+      fetchFmpJsonWithRetry(
+        () => Promise.resolve(response(200)),
+        () => Promise.reject(new FakeBudgetError("budget spent")),
+        {
+          delaysMs: [1, 1, 1],
+          isRetryableError: (error) => !(error instanceof FakeBudgetError),
+          onRetry: (event) => events.push(event),
+        },
+      )
+    );
+    assert.deepEqual(events, [], "a final error must not report a retry");
+  });
+
+  it("STILL retries a truncated body — a half-read response is a failed read", async () => {
+    let reads = 0;
+    const result = await fetchFmpJsonWithRetry(
+      () => Promise.resolve(response(200)),
+      () => {
+        reads += 1;
+        return reads < 2
+          ? Promise.reject(new SyntaxError("Unexpected end of JSON input"))
+          : Promise.resolve("rows");
+      },
+      {
+        delaysMs: [1, 1],
+        isRetryableError: (error) => !(error instanceof FakeBudgetError),
+      },
+    );
+    assert.deepEqual(result, { body: "rows", ok: true });
+    assert.equal(reads, 2);
+  });
+
+  it("retries everything when no classifier is supplied — the default is unchanged", async () => {
+    let calls = 0;
+    await assert.rejects(() =>
+      fetchFmpJsonWithRetry(
+        () => Promise.resolve(response(200)),
+        () => {
+          calls += 1;
+          return Promise.reject(new FakeBudgetError("budget spent"));
+        },
+        { delaysMs: [1, 1] },
+      )
+    );
+    assert.equal(calls, 3, "the unclassified default must still retry");
+  });
+
+  it("the sweep driver classifies the budget refusal — derived from the source", () => {
+    // The classifier lives at the call site because fmpRetry is
+    // provider-generic and knows nothing of the budget. If the driver stops
+    // passing it, the ladder silently starts re-charging bodies again.
+    const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.match(
+      driver,
+      /isRetryableError:[\s\S]{0,120}ByteBudgetExceededError/,
+      "the sweep driver no longer calls a budget refusal final",
+    );
+  });
+});
