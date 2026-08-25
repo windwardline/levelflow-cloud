@@ -306,6 +306,7 @@ describe("the macro role table — an omission cannot hide in it", () => {
     // it. That question stays in the `why` fields, where it is visibly open.
     for (
       const [label, members] of [
+        ["treasury_futures", correlationGroups.treasury_futures],
         ["us_equity_indices", correlationGroups.us_equity_indices],
         ["indices", ASSET_TYPE_BY_SYMBOL.indices],
         ["crypto", ASSET_TYPE_BY_SYMBOL.crypto],
@@ -319,32 +320,6 @@ describe("the macro role table — an omission cannot hide in it", () => {
         [],
         `${label} is split across roles; these are not rate-inverse: ${off}`,
       );
-    }
-  });
-
-  it("records the ONE family that is split, rather than omitting it", () => {
-    // treasury_futures does NOT close, and this change deliberately does not
-    // make it close: this is a transcription, and the equivalence proof below
-    // is worth nothing if the transcription quietly changed a market.
-    //
-    // Dropping the family from the loop above would have been the easy move
-    // and the wrong one — a population curated to the members that pass is
-    // the exact defect this whole table exists to end. So the split is
-    // asserted instead, precisely, and the change that closes it replaces
-    // this test with the full closure.
-    const split = Object.fromEntries(
-      correlationGroups.treasury_futures.map((
-        symbol,
-      ) => [symbol, getMacroRateRole(symbol).role]),
-    );
-    assert.deepEqual(split, {
-      ZBUSD: "rate-inverse",
-      ZNUSD: "rate-inverse",
-      ZFUSD: "none",
-      ZTUSD: "none",
-    });
-    for (const symbol of ["ZFUSD", "ZTUSD"]) {
-      assert.match(getMacroRateRole(symbol).why, /^OPEN \(C1\)/);
     }
   });
 
@@ -363,11 +338,13 @@ describe("the macro role table — an omission cannot hide in it", () => {
     assert.deepEqual(membersOf("energy-shock"), [
       "BZUSD",
       "CLUSD",
+      "HOUSD",
       "NGUSD",
+      "RBUSD",
       "WTI",
     ]);
-    assert.equal(membersOf("rate-inverse").length, 50);
-    assert.equal(membersOf("none").length, 37);
+    assert.equal(membersOf("rate-inverse").length, 52);
+    assert.equal(membersOf("none").length, 33);
     assert.equal(Object.keys(MACRO_RATE_ROLE_BY_SYMBOL).length, 98);
   });
 
@@ -392,13 +369,6 @@ describe("the macro role table — an omission cannot hide in it", () => {
       .filter(([, entry]) => entry.why.trim().length === 0)
       .map(([symbol]) => symbol);
     assert.deepEqual(silent, []);
-    // The four open questions are marked as open rather than settled, so a
-    // reader cannot mistake an unanswered question for a considered no.
-    const open = Object.entries(MACRO_RATE_ROLE_BY_SYMBOL)
-      .filter(([, entry]) => entry.why.startsWith("OPEN"))
-      .map(([symbol]) => symbol)
-      .sort();
-    assert.deepEqual(open, ["HOUSD", "PAUSD", "PLUSD", "RBUSD", "ZFUSD", "ZTUSD"]);
   });
 
   it("pins that usd-quote and rate-inverse agree — a coincidence, recorded", () => {
@@ -437,58 +407,51 @@ describe("the macro role table — an omission cannot hide in it", () => {
     }
   });
 
-  it("reproduces the old routing exactly — this is what licenses no version bump", () => {
-    // The transcription proof, and the reason ANALYZER_VERSION does not move
-    // in this change. The four Sets and both regexes are reproduced here as
-    // a local fixture and run against every known symbol at six rate moves
-    // on both sides — 98 × 6 × 2 = 1,176 cases. This test is DELETED in the
-    // change that lands the open questions, where the behaviour is meant to
-    // differ and the tests above carry it instead.
-    const EQUITY = new Set([
-      "ASX", "DAX", "DOW", "ESUSD", "NIKKEI", "NQUSD", "NSDQ", "RTYUSD", "SP",
-      "YMUSD",
-    ]);
-    const METALS = new Set(["GCUSD", "MGCUSD", "SIUSD", "XAGUSD", "XAUUSD"]);
-    const TREASURY = new Set(["ZBUSD", "ZNUSD"]);
-    const ENERGY = new Set(["BRENT", "BZUSD", "CLUSD", "NGUSD", "WTI"]);
-    const CRYPTO = new Set(ASSET_TYPE_BY_SYMBOL.crypto);
-    const oldSide = (symbol: string, bps: number): Side | null => {
-      const rising = bps > 0;
-      if (/^USD[A-Z]{3}$/.test(symbol)) return rising ? "buy" : "sell";
-      if (/^[A-Z]{3}USD$/.test(symbol)) return rising ? "sell" : "buy";
-      if (
-        EQUITY.has(symbol) || METALS.has(symbol) || TREASURY.has(symbol) ||
-        CRYPTO.has(symbol)
-      ) {
-        return rising ? "sell" : "buy";
-      }
-      return null;
-    };
-    let compared = 0;
-    for (const symbol of knownSymbols) {
-      for (const bps of [3, 5, 10, -3, -5, -10]) {
-        for (const side of ["buy", "sell"] as const) {
-          const preferred = oldSide(symbol, bps);
-          // The <4bps dead band short-circuits before any routing runs, and
-          // ±3 is in the grid to exercise it. An earlier draft of this
-          // fixture omitted it and failed on EURUSD — the fixture being
-          // wrong, not the code, which is the failure mode an equivalence
-          // test has to survive to be worth anything.
-          const expected = Math.abs(bps) < 4
-            ? 0
-            : preferred === null
-            ? (ENERGY.has(symbol) && Math.abs(bps) >= 8 ? -1 : 0)
-            : (Math.abs(bps) >= 8 ? 2 : 1) * (side === preferred ? 1 : -1);
-          assert.equal(
-            adjust(symbol, side, bps).adjustment,
-            expected,
-            `${symbol} ${side} ${bps}bps`,
-          );
-          compared += 1;
-        }
+  it("closed the four open questions and left the two that are owner calls", () => {
+    // The transcription PR marked six markets OPEN. Four are now answered by
+    // the families the repo itself already asserts; two are not, and the
+    // difference is the whole point. A question closed because it was
+    // derivable is a repair. A question closed because someone picked is a
+    // model change, and PLUSD/PAUSD need a criterion separating monetary from
+    // industrial metals that nothing in this repo states.
+    assert.deepEqual(
+      Object.entries(MACRO_RATE_ROLE_BY_SYMBOL)
+        .filter(([, entry]) => entry.why.startsWith("OPEN"))
+        .map(([symbol]) => symbol)
+        .sort(),
+      ["PAUSD", "PLUSD"],
+    );
+    // HGUSD is NOT open: copper's exclusion is a decision written in the old
+    // metals Set's own composition, which admitted every precious metal and
+    // left this one out. It is recorded, not pending.
+    assert.equal(getMacroRateRole("HGUSD").role, "none");
+    assert.ok(!getMacroRateRole("HGUSD").why.startsWith("OPEN"));
+  });
+
+  it("moves the score for exactly the four markets it meant to", () => {
+    // The behaviour change, stated as behaviour. The equivalence proof that
+    // licensed the transcription is deleted with this commit: it reproduced
+    // the OLD routing, and asserting the old routing after deliberately
+    // changing it would pin the defect.
+    for (const symbol of ["ZFUSD", "ZTUSD"]) {
+      assert.equal(adjust(symbol, "sell", 7).adjustment, 1, symbol);
+      assert.equal(adjust(symbol, "buy", 7).adjustment, -1, symbol);
+      assert.equal(adjust(symbol, "buy", -10).adjustment, 2, symbol);
+    }
+    for (const symbol of ["HOUSD", "RBUSD"]) {
+      // No direction — a penalty on a large move, and nothing otherwise.
+      assert.equal(adjust(symbol, "buy", 10).adjustment, -1, symbol);
+      assert.equal(adjust(symbol, "sell", 10).adjustment, -1, symbol);
+      assert.equal(adjust(symbol, "buy", 5).adjustment, 0, symbol);
+      assert.equal(adjust(symbol, "buy", 10).stance, "neutral", symbol);
+    }
+    // And nothing else moved: the two owner calls stay inert at every
+    // magnitude, on both sides.
+    for (const symbol of ["PLUSD", "PAUSD", "HGUSD"]) {
+      for (const bps of [5, 10, -5, -10]) {
+        assert.equal(adjust(symbol, "buy", bps).adjustment, 0, `${symbol} ${bps}`);
       }
     }
-    assert.equal(compared, knownSymbols.length * 12);
-    assert.equal(compared, 1176);
   });
+
 });

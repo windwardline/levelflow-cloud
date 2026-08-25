@@ -655,19 +655,26 @@ describe("1b: futures-shaped classes align or refuse — nothing ships off-grid"
     }
   });
 
-  it("bumps ANALYZER_VERSION — behavior-changing analyzer work always scopes the cohort", () => {
-    // futures-grid landed 1b's alignment; sessions-reconciled followed with
-    // 1e's calendar work; evaluator-repair is item 2's change set. The pin
-    // tracks the CURRENT version at its canonical home (calibration.ts,
-    // Deno-free so the sweep manifest shares it);
-    // calibrationState.test.ts carries the change log.
+  it("keeps ANALYZER_VERSION at its canonical home, and imports it", () => {
+    // This used to pin the version LITERAL, a second copy of the one in
+    // calibrationState.test.ts — which is precisely how the 2026.08.25 bump
+    // shipped locally green and failed in CI: three pins were moved and this
+    // fourth was not. A constant with two independent pins has two chances to
+    // be forgotten and no mechanism that notices.
+    //
+    // So the literal now lives in exactly ONE test, where it is also
+    // cross-checked against trade-model.md's stated version and its cohort
+    // SQL. What belongs here is the structural claim this file actually
+    // cares about: the constant sits in the one Deno-free module the Edge
+    // function and the sweep manifest can both import, and index.ts imports
+    // it rather than restating it.
     const calibrationSource = readFileSync(
       "supabase/functions/trade-analyzer/calibration.ts",
       "utf8",
     );
     assert.match(
       calibrationSource,
-      /export const ANALYZER_VERSION = "2026\.08\.18\.one-physics";/,
+      /export const ANALYZER_VERSION = "\d{4}\.\d{2}\.\d{2}\.[a-z0-9-]+";/,
     );
     assert.match(INDEX_SOURCE, /ANALYZER_VERSION,\n/);
   });

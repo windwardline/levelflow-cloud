@@ -12,9 +12,18 @@ import { isKnownSymbol } from "./symbols.ts";
 // fallbacks; setup construction anchors on the last COMPLETED primary
 // bar instead of the freshest 1-minute print; no-bars expiries are
 // marked. Grading physics and decision inputs changed, so the cohort
-// boundary moves with them. (Prior: 2026.08.18.realized-r — D2's one R
-// accountant on every filled resolution.)
-export const ANALYZER_VERSION = "2026.08.18.one-physics";
+// boundary moves with them.
+//
+// 2026.08.25.macro-roles: the Treasury-rate layer's symbol routing moved
+// from four hand-typed Sets and two name regexes to one per-market role
+// table, and FOUR markets changed what the curve is allowed to say about
+// them. ZFUSD and ZTUSD now take the rate rule their own correlation family
+// already claimed for them; HOUSD and RBUSD now take the shock penalty their
+// crude already carried. That moves the confidence score on both the
+// single-analyze and scan paths, so the cohort boundary moves with it.
+// (Prior: 2026.08.18.one-physics — R1a's grading physics; before that
+// 2026.08.18.realized-r, D2's one R accountant on every filled resolution.)
+export const ANALYZER_VERSION = "2026.08.25.macro-roles";
 
 export type AssetType =
   | "agriculture"

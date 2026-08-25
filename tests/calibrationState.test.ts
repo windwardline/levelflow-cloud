@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
   ENGINE_DECLINED_MARKETS,
@@ -297,7 +298,7 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     );
     assert.match(
       calibrationSrc,
-      /ANALYZER_VERSION = "2026\.08\.18\.one-physics"/,
+      /ANALYZER_VERSION = "2026\.08\.25\.macro-roles"/,
     );
     assert.match(src, /ANALYZER_VERSION,\n/);
 
@@ -546,6 +547,40 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
       Object.keys(ENGINE_DECLINED_MARKETS).sort(),
       dataNegative,
       "the declined register must equal the data-negative population exactly",
+    );
+  });
+});
+
+describe("ANALYZER_VERSION has exactly one pin", () => {
+  it("is hardcoded in this file and nowhere else under tests/", () => {
+    // The 2026.08.25 bump shipped locally green and failed CI because the
+    // literal was pinned in TWO test files and only one was moved. A
+    // constant with two independent pins has two chances to be forgotten
+    // and nothing that notices the second.
+    //
+    // The population is DERIVED from the tests directory, so a third pin
+    // added later fails on the commit that adds it rather than on the next
+    // bump. This file is the one place the literal belongs, because it is
+    // also where the version is cross-checked against trade-model.md's
+    // stated version and its cohort SQL.
+    const version = readFileSync(
+      "supabase/functions/trade-analyzer/calibration.ts",
+      "utf8",
+    ).match(/ANALYZER_VERSION = "([^"]+)"/)?.[1];
+    assert.ok(version, "calibration.ts must state ANALYZER_VERSION");
+    const escaped = version.replaceAll(".", "\\.");
+    const offenders = readdirSync("tests")
+      .filter((name) =>
+        name.endsWith(".ts") && name !== "calibrationState.test.ts"
+      )
+      .filter((name) => {
+        const text = readFileSync(join("tests", name), "utf8");
+        return text.includes(version) || text.includes(escaped);
+      });
+    assert.deepEqual(
+      offenders,
+      [],
+      `these pin the version literal too; assert its SHAPE instead: ${offenders}`,
     );
   });
 });
