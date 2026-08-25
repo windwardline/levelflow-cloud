@@ -153,6 +153,19 @@ const CANONICAL_ROWS: SpecRow[] = [
 // "Not offered" for contracts the same F9 frames show live. The remaining
 // margin-table-only symbols (UB, TN, ZQ, MNG, MHG, blank "Micro Silver")
 // still have no Levelflow counterpart and stay out of scope (§19h).
+/**
+ * Exported so nothing has to transcribe it. masterList's unsizeable set was a
+ * hand-typed copy of two of these five, written when there were two, and it
+ * stayed at two after ZF, ZT and GF joined — the same drift, one file over.
+ */
+export const MARGIN_ONLY_E8_SYMBOLS: readonly string[] = [
+  "GF",
+  "ZB",
+  "ZF",
+  "ZN",
+  "ZT",
+];
+
 const MARGIN_ONLY_ROWS: SpecRow[] = [
   ["GF", "Feeder Cattle", null, null, 10_000, null],
   ["ZB", "30-Year Bond", null, null, 10_000, null],

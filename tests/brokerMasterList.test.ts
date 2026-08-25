@@ -3,6 +3,10 @@ import { describe, it } from "node:test";
 import { AVAILABLE_ASSET_SYMBOLS } from "../src/lib/symbolMap.ts";
 import { visibleAssetSymbols } from "../src/lib/broker/visibility.ts";
 import {
+  FUTURES_MAPPINGS,
+  MARGIN_ONLY_E8_SYMBOLS,
+} from "../src/lib/broker/instruments.ts";
+import {
   findMasterListRow,
   findMasterListRowByBrokerName,
   isServedToday,
@@ -60,7 +64,7 @@ describe("row counts — total, per classification, per status", () => {
       // excluded-no-fmp-source below; nothing is deleted.
       // 96 -> 95: BRENT dormant 2026-08-09, decided on the owner's live
       // frame — the time-varying gap that amendment 32 names.
-      "served-and-visible": 95,
+      "served-and-visible": 92,
             // 9 -> 28: the nineteen futures onboarded 2026-08-05 land here, not in
       // served-and-visible, because the directive makes visibility conditional
       // on an analyzed and acceptable match and they have no sweep evidence yet.
@@ -111,7 +115,7 @@ describe("row counts — total, per classification, per status", () => {
       "excluded-no-fmp-source": 21,
       // 4 -> 2: 6J and 6M reclassified — offered they remain (the F9
       // sightings stand), MATCHED they never were.
-      "offered-but-unsizeable": 2,
+      "offered-but-unsizeable": 5,
       // Zero holders, and the key stays: the status is still derivable, so a
       // row earning it again must still be excluded on every account type that
       // would otherwise reach it (tests/brokerVisibility.test.ts asserts that
@@ -282,9 +286,20 @@ describe("the six CME FX majors — dormant under amendment 32 (2026-08-09)", ()
   });
 });
 
-describe("the four amendment-22 unsizeable rows — offered-but-unsizeable", () => {
-  it("marks ZBUSD and ZNUSD unsizeable while they stay served and visible", () => {
-    for (const symbol of ["ZBUSD", "ZNUSD"]) {
+/** E8's margin-only roots, in Levelflow's own symbols. */
+const MARGIN_ONLY_LEVELFLOW_SYMBOLS = Object.entries(FUTURES_MAPPINGS)
+  .filter(([, e8Symbol]) => MARGIN_ONLY_E8_SYMBOLS.includes(e8Symbol))
+  .map(([symbol]) => symbol);
+
+describe("the amendment-22 unsizeable rows — offered-but-unsizeable", () => {
+  it("marks every margin-only row unsizeable while it stays served and visible", () => {
+    // DERIVED from E8's margin-only table, not listed. The literal list is
+    // exactly why this drifted: the set in masterList.ts read ZBUSD and
+    // ZNUSD, was correct when written, and stayed at two after ZF, ZT and GF
+    // joined the table — so three rows were recorded as carrying no
+    // exclusion or limitation while each carries one. A pin that restates
+    // the code cannot notice the code going stale.
+    for (const symbol of MARGIN_ONLY_LEVELFLOW_SYMBOLS) {
       const entry = findMasterListRow(symbol);
       assert.ok(entry, symbol);
       assert.equal(entry!.status, "offered-but-unsizeable");
@@ -306,12 +321,12 @@ describe("the four amendment-22 unsizeable rows — offered-but-unsizeable", () 
     }
   });
 
-  it("is exactly these two rows, no more and no fewer", () => {
+  it("is exactly the margin-only table, no more and no fewer", () => {
     const unsizeable = MASTER_LIST_ROWS
       .filter((entry) => entry.status === "offered-but-unsizeable")
       .map((entry) => entry.brokerName)
       .sort();
-    assert.deepEqual(unsizeable, ["ZBUSD", "ZNUSD"]);
+    assert.deepEqual(unsizeable, [...MARGIN_ONLY_LEVELFLOW_SYMBOLS].sort());
   });
 });
 
@@ -560,7 +575,7 @@ describe("reentry candidates — no exclusion or limitation is permanent", () =>
     }
   });
 
-  it("reentryList() returns exactly the 26 non-happy-path rows", () => {
+  it("reentryList() returns exactly the 34 non-happy-path rows", () => {
     // 80 -> 26 on 2026-08-07. The release moved every market withheld on a
     // calibration finding into served-and-visible, so it left the reentry
     // population — which is the list working, not shrinking: a reentry
@@ -578,7 +593,13 @@ describe("reentry candidates — no exclusion or limitation is permanent", () =>
     // (FDXM, 6E/6A/6B/6N/6C/6S and 6J/6M were already in it under their
     // previous non-happy states, so only the four served rows add.)
     // 30 -> 31: BRENT rejoins the reentry population as a dormant row.
-    assert.equal(reentryList().length, 31);
+    // 31 -> 34 (2026-08-25): ZFUSD, ZTUSD and GFUSX join. They were always
+    // margin-only rows in E8's own table and were always unsizeable; what
+    // changed is that masterList now DERIVES that set from the table instead
+    // of carrying a two-member copy written when the table had two members.
+    // The list working a third time, and the three rows had been recorded as
+    // carrying no exclusion or limitation while each carries one.
+    assert.equal(reentryList().length, 34);
     assert.ok(reentryList().every((entry: MasterListRow) => entry.reentryCandidate));
   });
 
