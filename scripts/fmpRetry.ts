@@ -18,10 +18,25 @@ type RetryableResponse = { ok: boolean; status: number };
 export type FmpRetryOptions = {
   // Backoff ladder in milliseconds; attempts = delays + 1.
   delaysMs?: number[];
+  // Called before each retry sleep, so a run that spent forty minutes
+  // retrying is distinguishable from one that sailed through. Both retry
+  // reasons were invisible before: a driver could not tell a clean sweep
+  // from one that hit five hundred 429s.
+  onRetry?: (event: FmpRetryEvent) => void;
   // Optional global pacing: every request (first attempt included) waits
   // until at least this many ms after the previous request THROUGH THIS
   // MODULE. One knob for the whole process — the fleet pacing flag.
   paceMs?: number;
+};
+
+export type FmpRetryEvent = {
+  // 0-based index of the attempt that just failed.
+  attempt: number;
+  delayMs: number;
+  detail: string;
+  // "status" = the server answered and asked us to back off (429/5xx).
+  // "transport" = there was no answer at all.
+  reason: "status" | "transport";
 };
 
 const DEFAULT_DELAYS_MS = [2_000, 8_000, 30_000];
@@ -70,13 +85,64 @@ export async function fetchFmpWithRetry<T extends RetryableResponse>(
       }
       lastRequestAtMs = performance.now();
     }
-    response = await request();
+    // A socket that times out, resets or fails DNS never produces a
+    // status, so it never reached shouldRetry below — this module retried
+    // the server asking us to slow down and did not retry the network
+    // dropping the call. Three consecutive v4 cache rebuilds died exactly
+    // here, on `TypeError: fetch failed / read ETIMEDOUT`, at 58, 72 and 75
+    // markets of 98, each throwing away hours of a run whose every
+    // completed market was already durable on disk.
+    //
+    // The throw is retried on the same ladder and, once the ladder is
+    // spent, the ORIGINAL error is rethrown — never swallowed, never
+    // dressed up as a response. A caller must still be able to tell "the
+    // network is down" from "the provider answered".
+    try {
+      response = await request();
+    } catch (error) {
+      if (attempt >= delays.length) {
+        throw error;
+      }
+      options.onRetry?.({
+        attempt,
+        delayMs: delays[attempt],
+        detail: errorDetail(error),
+        reason: "transport",
+      });
+      await sleep(delays[attempt]);
+      continue;
+    }
     if (response.ok || !shouldRetry(response.status)) {
       return response;
     }
     if (attempt >= delays.length) {
       return response;
     }
+    options.onRetry?.({
+      attempt,
+      delayMs: delays[attempt],
+      detail: `HTTP ${response.status}`,
+      reason: "status",
+    });
     await sleep(delays[attempt]);
   }
+}
+
+/**
+ * A short, log-safe description of a thrown transport failure.
+ *
+ * Node reports every socket failure as the same `TypeError: fetch failed`
+ * and puts the real signal — ETIMEDOUT, ECONNRESET, ENOTFOUND — on `cause`.
+ * A message alone would make every network fault look identical in a log,
+ * which is how three identical-looking rebuild deaths went undiagnosed.
+ */
+function errorDetail(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return String(error);
+  }
+  const cause = error.cause;
+  const code = cause instanceof Error && "code" in cause
+    ? String((cause as { code?: unknown }).code)
+    : undefined;
+  return code ? `${error.message} (${code})` : error.message;
 }

@@ -5,9 +5,13 @@
 // driver's three sites and the bank script share it and the tests can
 // exercise every branch without a network.
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
-import { fetchFmpWithRetry } from "../scripts/fmpRetry.ts";
+import {
+  fetchFmpWithRetry,
+  type FmpRetryEvent,
+} from "../scripts/fmpRetry.ts";
 
 type FakeResponse = { ok: boolean; status: number };
 
@@ -123,5 +127,144 @@ describe("fetchFmpWithRetry — the 429 survives, the run does not die (OP-6)", 
     assert.doesNotMatch(code, /Date\.now\(\)/);
     assert.match(code, /performance\.now\(\) - lastRequestAtMs/);
     assert.match(code, /while \(elapsed < paceMs\)/);
+  });
+});
+
+describe("transport failures — the run that dies without a status", () => {
+  // A socket timeout produces no HTTP status, so it never reached the
+  // status test and escaped the retry entirely. Node reports every one of
+  // them as the same TypeError with the real signal on `cause`.
+  const timeout = () =>
+    Object.assign(new TypeError("fetch failed"), {
+      cause: Object.assign(new Error("read ETIMEDOUT"), { code: "ETIMEDOUT" }),
+    });
+
+  it("retries a thrown transport failure and returns the eventual success", async () => {
+    let calls = 0;
+    const result = await fetchFmpWithRetry(
+      () => {
+        calls += 1;
+        return calls < 3
+          ? Promise.reject(timeout())
+          : Promise.resolve(response(200));
+      },
+      { delaysMs: [1, 1, 1] },
+    );
+    assert.equal(result.status, 200);
+    assert.equal(calls, 3);
+  });
+
+  it("rethrows the ORIGINAL error once the ladder is spent", async () => {
+    // Never swallowed and never dressed up as a response: a caller has to
+    // be able to tell "the network is down" from "the provider answered".
+    let calls = 0;
+    const thrown = timeout();
+    await assert.rejects(
+      () =>
+        fetchFmpWithRetry(
+          () => {
+            calls += 1;
+            return Promise.reject(thrown);
+          },
+          { delaysMs: [1, 1] },
+        ),
+      (error: unknown) => error === thrown,
+    );
+    assert.equal(calls, 3);
+  });
+
+  it("does not retry forever — attempts are delays + 1, same as a 429", async () => {
+    let calls = 0;
+    await assert.rejects(() =>
+      fetchFmpWithRetry(
+        () => {
+          calls += 1;
+          return Promise.reject(timeout());
+        },
+        { delaysMs: [1] },
+      )
+    );
+    assert.equal(calls, 2);
+  });
+
+  it("reports each retry with the cause code, not just `fetch failed`", async () => {
+    // Every socket fault carries the identical message, which is how three
+    // rebuild deaths looked the same in a log. The code is the signal.
+    const events: FmpRetryEvent[] = [];
+    let calls = 0;
+    await fetchFmpWithRetry(
+      () => {
+        calls += 1;
+        return calls < 2
+          ? Promise.reject(timeout())
+          : Promise.resolve(response(200));
+      },
+      { delaysMs: [1, 1], onRetry: (event) => events.push(event) },
+    );
+    assert.equal(events.length, 1);
+    assert.equal(events[0].reason, "transport");
+    assert.equal(events[0].attempt, 0);
+    assert.equal(events[0].detail, "fetch failed (ETIMEDOUT)");
+  });
+
+  it("reports a status retry too — that one was invisible as well", async () => {
+    const events: FmpRetryEvent[] = [];
+    let calls = 0;
+    await fetchFmpWithRetry(
+      () => {
+        calls += 1;
+        return Promise.resolve(response(calls < 2 ? 429 : 200));
+      },
+      { delaysMs: [1, 1], onRetry: (event) => events.push(event) },
+    );
+    assert.deepEqual(events.map((event) => [event.reason, event.detail]), [[
+      "status",
+      "HTTP 429",
+    ]]);
+  });
+
+  it("describes a non-Error throw without crashing the reporter", async () => {
+    const events: FmpRetryEvent[] = [];
+    let calls = 0;
+    await fetchFmpWithRetry(
+      () => {
+        calls += 1;
+        return calls < 2 ? Promise.reject("nope") : Promise.resolve(response(200));
+      },
+      { delaysMs: [1], onRetry: (event) => events.push(event) },
+    );
+    assert.equal(events[0].detail, "nope");
+  });
+});
+
+describe("every FMP fetch in the repo shares the one policy", () => {
+  it("no call site passes bespoke retry options — derived, not remembered", () => {
+    // The module's whole premise is "the one retry policy for every FMP
+    // consumer on this machine". Four sites in the sweep driver each
+    // repeated their own options object, which is how a fifth arrives with
+    // different behaviour and nothing says so.
+    //
+    // The population is DERIVED: whatever calls fetchFmpWithRetry outside
+    // this module is a consumer, and each must hand it a shared named
+    // object rather than an inline literal. A remembered list of four call
+    // sites would be right today and quietly wrong at five.
+    const consumers = readdirSync("scripts")
+      .filter((name) => name.endsWith(".ts") && name !== "fmpRetry.ts")
+      .map((name) => ({
+        name,
+        text: readFileSync(join("scripts", name), "utf8"),
+      }))
+      .filter(({ text }) => text.includes("fetchFmpWithRetry("));
+    assert.ok(consumers.length > 0, "derivation found no consumers — check it");
+    for (const { name, text } of consumers) {
+      const inline = [
+        ...text.matchAll(/fetchFmpWithRetry\([^;]*?,\s*\{/g),
+      ];
+      assert.deepEqual(
+        inline.map((match) => match[0].slice(-40)),
+        [],
+        `${name} passes an inline retry-options literal instead of a shared one`,
+      );
+    }
   });
 });
