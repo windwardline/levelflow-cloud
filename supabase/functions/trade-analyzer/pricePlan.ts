@@ -401,11 +401,16 @@ export function buildPricePlan(
     rewardRisk: executionQuality.effectiveRewardRisk,
     // Derived from what actually happened, never asserted. The constant this
     // replaces said "Invalidation beyond the nearest confirmed swing pivot with
-    // a volatility buffer" on EVERY setup — and the pivot never wins in seven of
-    // eight classes, because structuralStop is floored at 1.25 ATR while the cap
-    // is maxStopAtrMultiplier x ATR, which is 1.0 everywhere except metals. So
-    // the sentence was false wherever it mattered most, and stopProvenance was
-    // sitting two lines away recording the truth.
+    // a volatility buffer" on EVERY setup. It is not: structuralStop is floored
+    // at 1.25 ATR while the cap is maxStopAtrMultiplier x ATR, so wherever the
+    // cap sits at or below 1.25 the cap binds by arithmetic and the pivot
+    // cannot win. The sentence was false wherever that held, and stopProvenance
+    // was sitting two lines away recording the truth.
+    //
+    // The old note said "1.0 everywhere except metals", which was a
+    // class-level reading that the per-market cells have since overtaken.
+    // Measured 2026-08-25 over the scan roster: 26 markets at 1.0, 6 at 2.5,
+    // 65 at 4.0 — the cap binds by arithmetic on 26, and 71 carry both levers.
     stopLogic: STOP_LOGIC_BY_PROVENANCE[stopProvenance],
     stopLoss,
     stopProvenance,
