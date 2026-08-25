@@ -326,6 +326,7 @@ describe("§19c — the SP500 scale trap", () => {
       ...row,
       unit: {
         kind: "index_points",
+      pointsCurrency: "USD",
         pointsPerLot: { source: row.tradabilitySource, value: 1 },
       },
     };
@@ -474,6 +475,7 @@ describe("§19e — null blocks, exhaustively, and each null names its own fact"
         "points per lot",
         withUnit({
           kind: "index_points",
+      pointsCurrency: "USD",
           pointsPerLot: { source: base.tradabilitySource, value: null },
         }),
       ],

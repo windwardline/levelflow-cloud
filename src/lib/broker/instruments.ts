@@ -358,6 +358,10 @@ function indexCfd(
   levelflowSymbol: string,
   brokerSymbol: string,
   pointsPerLot: number,
+  // Stated, not defaulted. SP/NSDQ/DOW publish a dollar multiplier; the
+  // foreign rows below publish their own currency, and the difference is what
+  // sized a euro-per-point index as though the points were dollars.
+  pointsCurrency: string,
 ): CfdMapping {
   return {
     brokerSymbol,
@@ -365,7 +369,11 @@ function indexCfd(
     brokerSymbolSource: CONTRACT_SIZES,
     tradability: "confirmed",
     tradabilitySource: CONTRACT_SIZES,
-    unit: { kind: "index_points", pointsPerLot: valued(pointsPerLot, CONTRACT_SIZES) },
+    unit: {
+      kind: "index_points",
+      pointsCurrency,
+      pointsPerLot: valued(pointsPerLot, CONTRACT_SIZES),
+    },
     maxTicketLots: TICKET_CAP_DEFAULT,
     relatedExposure: null,
   };
@@ -481,16 +489,22 @@ const FOREX_CONTRACT_OBSERVATIONS: Record<string, { contractSize: number; note: 
 // 1's scannable roster (they are among the nine addendum markets) so nothing
 // sizes against the unbridged figure today.
 // SYMBOLS: external E8 checkout observations captured so far | 3 of 6 vs indices
-const INDEX_POINT_OBSERVATIONS: Record<string, { note: string; pointsPerLot: number }> = {
+const INDEX_POINT_OBSERVATIONS: Record<
+  string,
+  { note: string; pointsCurrency: string; pointsPerLot: number }
+> = {
   NIKKEI: {
+    pointsCurrency: "JPY",
     pointsPerLot: 500,
     note: "100 ticks = $3.17 at USDJPY (0.00634) -> Y500/point (batch 2, blocked by closed-market validation; the ticket's own arithmetic still prices it)",
   },
   DAX: {
+    pointsCurrency: "EUR",
     pointsPerLot: 5,
     note: "100 ticks = $5.77 at EURUSD 1.1544 -> EUR5/point (batch 2, blocked by closed-market validation; the ticket's own arithmetic still prices it)",
   },
   ASX: {
+    pointsCurrency: "AUD",
     pointsPerLot: 20,
     note: "100 ticks = $14.08 at AUDUSD (~0.704) -> AUD20/point (batch 2, blocked by closed-market validation; the ticket's own arithmetic still prices it)",
   },
@@ -514,7 +528,7 @@ function promotedContractCfd(symbol: string): CfdMapping {
 
 /** A promoted index_points row: same shape, the ticket's per-point multiplier. */
 function promotedIndexCfd(symbol: string): CfdMapping {
-  const { pointsPerLot, note } = INDEX_POINT_OBSERVATIONS[symbol];
+  const { note, pointsCurrency, pointsPerLot } = INDEX_POINT_OBSERVATIONS[symbol];
   const source = proForexTicket(note);
   return {
     brokerSymbol: null,
@@ -522,7 +536,11 @@ function promotedIndexCfd(symbol: string): CfdMapping {
     brokerSymbolSource: source,
     tradability: "confirmed",
     tradabilitySource: source,
-    unit: { kind: "index_points", pointsPerLot: valued(pointsPerLot, source) },
+    unit: {
+      kind: "index_points",
+      pointsCurrency,
+      pointsPerLot: valued(pointsPerLot, source),
+    },
     maxTicketLots: TICKET_CAP_DEFAULT,
     relatedExposure: null,
   };
@@ -560,9 +578,9 @@ const CFD_MAPPINGS: Record<string, CfdMapping> = {
   // symbols never reached `confirmed` on a published tag alone (§19a rule 1).
   // Appendix A batch 2 observed all six directly, three of them (NIKKEI, DAX,
   // ASX) at a foreign-currency per-point multiplier the ticket itself showed.
-  SP: indexCfd("SP", "SP500", 20),
-  NSDQ: indexCfd("NSDQ", "NAS100", 5),
-  DOW: indexCfd("DOW", "US30", 5),
+  SP: indexCfd("SP", "SP500", 20, "USD"),
+  NSDQ: indexCfd("NSDQ", "NAS100", 5, "USD"),
+  DOW: indexCfd("DOW", "US30", 5, "USD"),
   NIKKEI: promotedIndexCfd("NIKKEI"),
   DAX: promotedIndexCfd("DAX"),
   ASX: promotedIndexCfd("ASX"),

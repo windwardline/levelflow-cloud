@@ -1,6 +1,7 @@
 import {
   instrumentPriceBridge,
   resolveBridge,
+  usdPerCurrencyBridge,
   usdPerQuoteBridge,
 } from "./bridging";
 import { findBrokerInstrument, leverageClassFor } from "./instruments";
@@ -192,7 +193,31 @@ function perUnitValue(
       if (pointsPerLot === null) {
         return { value: null, word: SIZE_STATE_WORDS.notPublished };
       }
-      return { value: pointsPerLot, word: null };
+      // BRIDGED, exactly the way forex_contract below already bridges.
+      //
+      // This returned pointsPerLot FLAT while instruments.ts records DAX in
+      // euros per point, NIKKEI in yen and ASX in Australian dollars. The
+      // arithmetic then treated euros as dollars: DAX on E8 One, $100k at
+      // 0.50%, 26150/26050 sized 1.00 lot — a EUR500 stop worth $577.20
+      // against a $500 budget, 15.4% in the UNSAFE direction, on the number
+      // an operator copies into their broker. ASX came out 30.2% UNDER-sized.
+      //
+      // The code knew. instruments.ts said the values were "not yet bridged
+      // to USD" and rested on the premise that those three sit outside the
+      // scannable roster — a premise that died with #257 on 2026-08-07. All
+      // three are on the roster and the menu today; only the parked desk kept
+      // anyone from acting on it.
+      const bridge = usdPerCurrencyBridge(row.unit.pointsCurrency);
+      if (!bridge) {
+        return { value: null, word: SIZE_STATE_WORDS.notPublished };
+      }
+      const usdPerPoint = resolveBridge(bridge, quotes);
+      if (usdPerPoint === null) {
+        // A refusal, never a flat number. Sizing too large is unsafe and
+        // sizing silently wrong is worse; the state word says which.
+        return { value: null, word: SIZE_STATE_WORDS.rateUnavailable };
+      }
+      return { value: pointsPerLot * usdPerPoint, word: null };
     }
     case "forex_contract": {
       const contractSize = row.unit.contractSize.value;

@@ -134,6 +134,25 @@ function bridgeSource(instrument: string): Provenance {
  * USD-quoted pairs, giving the textbook $100,000 per 1.0 price unit and $10 per
  * pip; a reciprocal or direct leg for the other 24.
  */
+/**
+ * The USD value of one unit of a CURRENCY, for instruments that are not
+ * currency pairs.
+ *
+ * `usdPerQuoteBridge` keys on a symbol and reads its quote leg, so for an
+ * index it falls through `isCurrencyPair` and returns `{ kind: "one" }` —
+ * "this is already USD". That is exactly what made a euro-per-point index
+ * size as though the points were dollars.
+ */
+export function usdPerCurrencyBridge(currency: string): Bridge | null {
+  if (currency === "USD") {
+    return { kind: "one", source: DERIVED_PIP_VALUE };
+  }
+  const leg = USD_LEG[currency];
+  return leg
+    ? { kind: "leg", leg: leg.leg, invert: leg.invert, source: DERIVED_PIP_VALUE }
+    : null;
+}
+
 export function usdPerQuoteBridge(levelflowSymbol: string): Bridge | null {
   const quote = quoteOf(levelflowSymbol);
   if (!isCurrencyPair(levelflowSymbol) || quote === "USD") {
