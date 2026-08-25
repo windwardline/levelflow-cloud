@@ -14,7 +14,7 @@ import {
 import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
-import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
+import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import {
   addOutcome,
   assertManifestedCorpus,
@@ -452,7 +452,7 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
-      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+      clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       conditions: {
         macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
@@ -704,7 +704,7 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
-      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+      clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       conditions: {
         macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
@@ -837,7 +837,7 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
 
   it("refuses a corpus swept under a SUPERSEDED clock — a stated clock must be this build's (#358 round 4)", () => {
     const manifest = legacyManifest() as Record<string, unknown>;
-    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: "ny-wall-utc-v1-superseded" };
+    manifest.clock = { calendar: ECON_CALENDAR_CLOCK, normalizer: "ny-wall-utc-v1-superseded" };
     assert.throws(
       () => assertManifestedCorpus(writeWithManifest(manifest)),
       /superseded-clock corpus is re-swept, not/,
@@ -868,7 +868,7 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
     const manifest = legacyManifest() as ReturnType<typeof legacyManifest> & {
       clock?: unknown;
     };
-    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };
+    manifest.clock = { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK };
     manifest.symbols[0].series["15min"] = {
       ...seriesFacts([{ time: 0 }], "intraday"),
       clock: { verdict: "naive", verdictFrom: "transition" },
@@ -881,7 +881,7 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
 
   it("refuses a corpus whose 5min series registers at a shift against the primary", () => {
     const manifest = legacyManifest() as Record<string, unknown>;
-    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };
+    manifest.clock = { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK };
     (manifest.symbols as Array<Record<string, unknown>>)[0].crossSeriesClock = {
       bestShiftHours: 4,
       matchRateAtBest: 0.8,
@@ -909,7 +909,7 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
   // only instrument standing between them and a mis-registered corpus.
   it("refuses a corpus whose 5-minute children escape their 15-minute parents", () => {
     const manifest = legacyManifest() as Record<string, unknown>;
-    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };
+    manifest.clock = { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK };
     (manifest.symbols as Array<Record<string, unknown>>)[0].gridRegistration = {
       judged: 23_922,
       verdict: "misregistered",
@@ -923,7 +923,7 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
 
   it("refuses a corpus whose two series share no common bar grid", () => {
     const manifest = legacyManifest() as Record<string, unknown>;
-    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };
+    manifest.clock = { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK };
     (manifest.symbols as Array<Record<string, unknown>>)[0].gridRegistration = {
       judged: 0,
       verdict: "unjudgeable",
@@ -938,7 +938,7 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
 
   it("refuses a corpus whose intraday bars miss their venue's session open", () => {
     const manifest = legacyManifest() as Record<string, unknown>;
-    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };
+    manifest.clock = { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK };
     (manifest.symbols as Array<Record<string, unknown>>)[0].sessionAnchor = {
       anchoredYears: 0,
       displacedYears: 4,
@@ -953,7 +953,7 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
 
   it("accepts a corpus whose venue anchor is anchored", () => {
     const manifest = legacyManifest() as Record<string, unknown>;
-    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };
+    manifest.clock = { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK };
     (manifest.symbols as Array<Record<string, unknown>>)[0].sessionAnchor = {
       anchoredYears: 7,
       displacedYears: 0,
@@ -1021,7 +1021,7 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
       analyzerVersion: "2026.08.18.test",
       anchor: "2026-08-18",
       barRejections: {},
-      clock: input.clock ?? { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+      clock: input.clock ?? { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       ...(input.conditions && { conditions: input.conditions }),
       days: 365,
       generatedAt: "2026-08-18T04:00:00.000Z",
@@ -1251,7 +1251,7 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
     try {
       assertManifestedCorpus(writeCorpus({
         clock: {
-          calendar: CALENDAR_CLOCK,
+          calendar: ECON_CALENDAR_CLOCK,
           normalizer: "ny-wall-utc-v1-superseded",
         },
         series: depthShapeSeries,
@@ -1703,7 +1703,7 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
     console.warn = () => {};
     try {
       const superseded = {
-        calendar: CALENDAR_CLOCK,
+        calendar: ECON_CALENDAR_CLOCK,
         normalizer: "ny-wall-utc-v1-superseded",
       };
       assert.throws(

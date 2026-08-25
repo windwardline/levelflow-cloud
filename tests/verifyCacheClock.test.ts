@@ -15,7 +15,10 @@ import {
   newYorkClockParts,
   newYorkWallClockToUtcMs,
 } from "../supabase/functions/trade-analyzer/bars.ts";
-import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
+import {
+  CALENDAR_CLOCK,
+  ECON_CALENDAR_CLOCK,
+} from "../scripts/clockWitness.ts";
 import { TREASURY_FETCH_START_MS } from "../scripts/sweepManifest.ts";
 
 // R0's acceptance instrument, exercised against synthetic caches in every
@@ -202,7 +205,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
   it("accepts the calendar-clocked Treasury store instead of calling it unknown", () => {
     const dir = cacheDir();
     healthyTrio(dir);
-    store(dir, "econ-calendar", CALENDAR_CLOCK, []);
+    store(dir, "econ-calendar", ECON_CALENDAR_CLOCK, []);
     store(dir, "treasury-rates", CALENDAR_CLOCK, healthyCurve());
     const report = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     const lines = report.lines.join("\n");
@@ -224,7 +227,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
   it("condemns an EMPTY Treasury store rather than calling it green", () => {
     const dir = cacheDir();
     healthyTrio(dir);
-    store(dir, "econ-calendar", CALENDAR_CLOCK, []);
+    store(dir, "econ-calendar", ECON_CALENDAR_CLOCK, []);
     store(dir, "treasury-rates", CALENDAR_CLOCK, []);
     const report = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     assert.ok(
@@ -236,7 +239,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
   it("fails a roster cache with no Treasury store at all", () => {
     const dir = cacheDir();
     healthyTrio(dir);
-    store(dir, "econ-calendar", CALENDAR_CLOCK, []);
+    store(dir, "econ-calendar", ECON_CALENDAR_CLOCK, []);
     const report = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     assert.ok(
       report.failures.some((line) => /no curve store/.test(line)),
@@ -351,7 +354,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
   it("still condemns a Treasury store stamped with the bar clock", () => {
     const dir = cacheDir();
     healthyTrio(dir);
-    store(dir, "econ-calendar", CALENDAR_CLOCK, []);
+    store(dir, "econ-calendar", ECON_CALENDAR_CLOCK, []);
     store(dir, "treasury-rates", BAR_CLOCK, [{ time: Date.UTC(2013, 0, 2) }]);
     const report = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     assert.ok(
@@ -381,7 +384,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
   it("passes a healthy stamped cache clean", () => {
     const dir = cacheDir();
     healthyTrio(dir);
-    store(dir, "econ-calendar", CALENDAR_CLOCK, [
+    store(dir, "econ-calendar", ECON_CALENDAR_CLOCK, [
       { currency: "USD", impact: "high", time: Date.UTC(2026, 0, 3, 13, 30) },
     ]);
     const audit = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir });
@@ -992,7 +995,7 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
   // store, and nothing asserted the calendar. Roster mode is the
   // completeness spec, and these pin each gate in both directions.
   const calendarStore = (dir: string) =>
-    store(dir, "econ-calendar", CALENDAR_CLOCK, [
+    store(dir, "econ-calendar", ECON_CALENDAR_CLOCK, [
       { currency: "USD", impact: "high", time: Date.UTC(2026, 0, 3, 13, 30) },
     ]);
   // The second singleton a complete cache carries. Its own presence gate is

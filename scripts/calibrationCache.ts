@@ -25,7 +25,7 @@
 // from one imports the defect this guard exists to stop.
 
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { CALENDAR_CLOCK } from "./clockWitness.ts";
+import { CALENDAR_CLOCK, ECON_CALENDAR_CLOCK } from "./clockWitness.ts";
 
 export const DEFAULT_CACHE_DIR = ".calibration-cache";
 
@@ -42,20 +42,49 @@ type RollingStore<T> = {
   pinned: Record<string, number>;
 };
 
+/**
+ * Merge two runs of a series, one row per IDENTITY.
+ *
+ * The identity defaults to the timestamp, which is correct for every bar
+ * store: two bars at one instant on one timeframe is a defect, not a pair,
+ * and `intradayChunks.ts` relies on that dissolution to absorb chunk overlap.
+ *
+ * It is NOT correct for an economic calendar, and that cost 43% of one. A
+ * calendar puts many releases on one instant — Core PPI and Initial Jobless
+ * Claims are both USD/medium at 12:30, HICP and CPI both EUR/medium at 07:00
+ * — so a Map keyed on the timestamp kept one survivor per instant. Measured
+ * against the live store: three fetches returned 75,183 / 75,186 / 75,206
+ * medium-high events; the store held 42,676 items with 42,676 distinct times.
+ *
+ * Last-writer-wins also chose the survivor's CURRENCY, which is the only gate
+ * on which markets a scheduled event touches — so the loss was not merely an
+ * undercount. And the count is load-bearing twice over in the sweep: it feeds
+ * the news penalty, and any active high-impact event REJECTS the setup
+ * outright, so a discarded one produces a corpus row the live engine would
+ * have refused.
+ *
+ * `keyOf` is per-call rather than a new default, so the bar stores keep the
+ * behaviour they need and only the calendar opts into a composite identity.
+ */
 export function mergeByTime<T>(
   existing: T[],
   incoming: T[],
   timeOf: (item: T) => number,
+  keyOf: (item: T) => string | number = timeOf,
 ): T[] {
-  const byTime = new Map<number, T>();
+  const byKey = new Map<string | number, T>();
   for (const item of existing) {
-    byTime.set(timeOf(item), item);
+    byKey.set(keyOf(item), item);
   }
   // Fresher fetch wins on collision: revisions supersede the stored copy.
   for (const item of incoming) {
-    byTime.set(timeOf(item), item);
+    byKey.set(keyOf(item), item);
   }
-  return [...byTime.values()].sort((a, b) => timeOf(a) - timeOf(b));
+  // Sorted by time first, then by identity, so a rebuilt store is byte-stable
+  // and its provenance reproducible. Time alone is no longer a total order.
+  return [...byKey.values()].sort((a, b) =>
+    timeOf(a) - timeOf(b) || String(keyOf(a)).localeCompare(String(keyOf(b)))
+  );
 }
 
 // Absent is a cold start; present-but-unreadable is a STOP. A truncated
@@ -134,6 +163,15 @@ export async function loadRollingSeries<T>(input: {
    * intraday depth has aged out shortens nothing already stored.
    */
   repin?: boolean;
+  /**
+   * The row identity for merging. Defaults to `timeOf`.
+   *
+   * Only the economic calendar passes one. It must be computable from a
+   * STORED item, not just a freshly fetched one — a top-up recomputes keys
+   * for everything already on disk, so a key that needs a field the store
+   * does not carry would treat every stored row as new and duplicate the lot.
+   */
+  keyOf?: (item: T) => string | number;
   timeOf: (item: T) => number;
 }): Promise<T[]> {
   const {
@@ -143,6 +181,7 @@ export async function loadRollingSeries<T>(input: {
     fetchFull,
     fetchSince,
     key,
+    keyOf,
     repin,
     timeOf,
   } = input;
@@ -156,7 +195,7 @@ export async function loadRollingSeries<T>(input: {
     // calendar-clock store (treasury-rates, econ-calendar) clears by
     // deleting that one store; routing it to the 8-12h bar rebuild is
     // a remedy that cannot clear its stamp (round-14's shape).
-    const remedy = clock === CALENDAR_CLOCK
+    const remedy = clock === CALENDAR_CLOCK || clock === ECON_CALENDAR_CLOCK
       ? `delete this one rolling store and re-run — it refetches under ` +
         `the current clock; the bar-store rebuild cannot clear it`
       : `rebuild it per docs/cache-rebuild-r0.md`;
@@ -185,7 +224,7 @@ export async function loadRollingSeries<T>(input: {
   const fresh = lastTime === null
     ? await fetchFull()
     : await fetchSince(lastTime - TOP_UP_OVERLAP_MS);
-  store.items = mergeByTime(store.items, fresh, timeOf);
+  store.items = mergeByTime(store.items, fresh, timeOf, keyOf);
   if (store.items.length === 0) {
     // Never pin an empty series: one failed/empty provider response must
     // not cement an empty cache for the rest of the anchor day. Unpinned,

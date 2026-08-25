@@ -428,3 +428,155 @@ describe("repin — making a multi-hour rebuild into one snapshot", () => {
     );
   });
 });
+
+describe("the calendar keeps every event on an instant", () => {
+  // A Map keyed on the timestamp alone kept ONE survivor per instant, and an
+  // economic calendar puts many releases on one. Measured against the live
+  // store before the fix: three fetches returned 75,183 / 75,186 / 75,206
+  // medium-high events; the store held 42,676 items with 42,676 distinct
+  // times — 43% discarded.
+  //
+  // Sampling FMP for 2026-08-13: of 30 medium/high events, 13 survive keying
+  // on time, 16 survive time|currency|impact, and 30 survive once the release
+  // NAME joins the key. Core PPI and Initial Jobless Claims are both
+  // USD/medium at 12:30; HICP and CPI both EUR/medium at 07:00.
+  const event = (time: number, currency: string, name: string) => ({
+    currency,
+    impact: "medium" as const,
+    name,
+    time,
+  });
+  const calendarKey = (e: { currency: string; impact: string; name: string; time: number }) =>
+    `${e.time}|${e.currency}|${e.impact}|${e.name}`;
+
+  it("keeps two releases that share an instant, a currency and an impact", () => {
+    const merged = mergeByTime(
+      [],
+      [
+        event(1_000, "USD", "Core PPI MoM"),
+        event(1_000, "USD", "Initial Jobless Claims"),
+      ],
+      (e) => e.time,
+      calendarKey,
+    );
+    assert.equal(merged.length, 2);
+    assert.deepEqual(merged.map((e) => e.name).sort(), [
+      "Core PPI MoM",
+      "Initial Jobless Claims",
+    ]);
+  });
+
+  it("still lets a revision supersede its own original", () => {
+    // Same quadruple twice is one release restated, not two events. The
+    // fresher fetch wins, which is the behaviour the time-only key had and
+    // the composite key must keep.
+    const merged = mergeByTime(
+      [{ ...event(1_000, "USD", "CPI YoY"), impact: "medium" as const }],
+      [{ ...event(1_000, "USD", "CPI YoY"), impact: "medium" as const }],
+      (e) => e.time,
+      calendarKey,
+    );
+    assert.equal(merged.length, 1);
+  });
+
+  it("leaves bar stores on time-only keying — two bars at one instant is a defect", () => {
+    // The default must not change. intradayChunks relies on this dissolution
+    // to absorb chunk-boundary overlap, and a second bar at one instant on
+    // one timeframe is a duplicate, not a pair.
+    const merged = mergeByTime(
+      [{ time: 1_000, close: 1 }],
+      [{ time: 1_000, close: 2 }],
+      (b) => b.time,
+    );
+    assert.equal(merged.length, 1);
+    assert.equal(merged[0].close, 2);
+  });
+
+  it("orders by time, then by identity, so a rebuild is byte-stable", () => {
+    // Time alone is no longer a total order, so an unstable sort would make
+    // two rebuilds of identical data produce different files and different
+    // manifest hashes.
+    const rows = [
+      event(2_000, "EUR", "HICP YoY"),
+      event(1_000, "USD", "Initial Jobless Claims"),
+      event(1_000, "USD", "Core PPI MoM"),
+    ];
+    const once = mergeByTime([], rows, (e) => e.time, calendarKey);
+    const again = mergeByTime([], [...rows].reverse(), (e) => e.time, calendarKey);
+    assert.deepEqual(once.map(calendarKey), again.map(calendarKey));
+    assert.deepEqual(once.map((e) => e.name), [
+      "Core PPI MoM",
+      "Initial Jobless Claims",
+      "HICP YoY",
+    ]);
+  });
+
+  it("recomputes stored keys on a top-up instead of duplicating them", () => {
+    // THE FAILURE MODE THAT MAKES THE NAME A STORED FIELD. A top-up keys
+    // everything already on disk, so a key needing a field the store does not
+    // carry would treat every stored row as new. Here the stored rows carry
+    // their names and merge cleanly with an overlapping refetch.
+    const stored = [
+      event(1_000, "USD", "Core PPI MoM"),
+      event(1_000, "USD", "Initial Jobless Claims"),
+    ];
+    const merged = mergeByTime(
+      stored,
+      [event(1_000, "USD", "Core PPI MoM"), event(2_000, "EUR", "CPI YoY")],
+      (e) => e.time,
+      calendarKey,
+    );
+    assert.equal(merged.length, 3);
+  });
+});
+
+describe("the calendar's wiring in the driver, derived from its source", () => {
+  // The merge behaviour above is unit-testable; the driver's use of it is not
+  // — fetchCalendarEvents is not exported and replay-sweep runs main() on
+  // import. Both mutations below survived the unit tests, so these exist.
+  const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
+
+  it("passes a composite key that includes the release name", () => {
+    // Without this the merge keeps its default and the store collapses again,
+    // silently, with every unit test still green.
+    assert.match(
+      driver,
+      /keyOf: \(event\) =>\s*\n?\s*`\$\{event\.time\}\|\$\{event\.currency\}\|\$\{event\.impact\}\|\$\{event\.name\}`/,
+      "the calendar no longer keys on the composite identity",
+    );
+  });
+
+  it("captures the release name from the payload, and refuses a row without one", () => {
+    // The name is the discriminator. A parse that defaulted it to "" would
+    // key every same-instant, same-currency, same-impact event identically
+    // and collapse exactly as before — so an absent name must drop the row
+    // rather than silently produce a colliding one.
+    assert.match(
+      driver,
+      /const name = String\(raw\.event \?\? ""\)\.trim\(\);/,
+      "the calendar parse no longer reads the release name",
+    );
+    assert.match(
+      driver,
+      /if \(Number\.isFinite\(time\) && currency && name\) \{/,
+      "a row with no release name must be refused, not stored nameless",
+    );
+  });
+
+  it("stamps the calendar on its own clock, and leaves the Treasury curve alone", () => {
+    // Splitting the constant is what lets a calendar-only defect invalidate
+    // the calendar alone. Bumping the shared one would have deleted a
+    // Treasury curve that took five build attempts to get right.
+    assert.match(driver, /clock: ECON_CALENDAR_CLOCK,/);
+    assert.match(
+      driver,
+      /clock: \{ calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK \}/,
+      "the manifest must carry the new calendar clock so the door refuses older corpora",
+    );
+    assert.match(
+      readFileSync("scripts/replay-sweep.ts", "utf8"),
+      /clock: CALENDAR_CLOCK,\s*\n\s*repin,\s*\n\s*fetchFull: \(\) => fetchTreasuryRates/,
+      "the Treasury store must stay on CALENDAR_CLOCK",
+    );
+  });
+});

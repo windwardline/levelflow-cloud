@@ -21,7 +21,7 @@ import {
   type TreasuryCurveFacts,
 } from "../scripts/sweepManifest.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
-import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
+import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import {
   classVerdicts,
   identityKeysDiffering,
@@ -97,7 +97,7 @@ function corpusWith(rows: SweepEmitRow[]): string {
     analyzerVersion: "2026.08.09.test",
     anchor: "2026-08-10",
     barRejections: {},
-    clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+    clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
     conditions: {
       macroAdjustment: "historical-treasury-curve",
       providerWarningCount: "zero-by-construction",
@@ -724,7 +724,7 @@ describe("a folded corpus names its own partition (3c/3d)", () => {
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
-      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+      clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       conditions: {
         macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
@@ -783,7 +783,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       anchor: "2026-08-10",
       barRejections: {},
       clock: clockOverride ??
-        { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+        { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       conditions: (conditionsOverride ?? {
         macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
@@ -928,7 +928,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       gradeCorpus([
         shardWith(shardRows("EURUSD")),
         shardWith(shardRows("GBPUSD"), undefined, {
-          calendar: CALENDAR_CLOCK,
+          calendar: ECON_CALENDAR_CLOCK,
           normalizer: "some-other-clock",
         }),
       ]),
@@ -940,7 +940,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
         gradeCorpus([
           shardWith(shardRows("EURUSD")),
           shardWith(shardRows("GBPUSD"), undefined, {
-            calendar: CALENDAR_CLOCK,
+            calendar: ECON_CALENDAR_CLOCK,
             normalizer: "some-other-clock",
           }),
         ]),
@@ -960,7 +960,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     // post-clock-bump shape, since R1b deliberately bumps neither the
     // clock nor ANALYZER_VERSION.
     const supersededClock = {
-      calendar: CALENDAR_CLOCK,
+      calendar: ECON_CALENDAR_CLOCK,
       normalizer: "some-other-clock",
     };
     const warned = console.warn;
@@ -1218,7 +1218,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-11",
       barRejections: {},
-      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+      clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       conditions: {
         macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
@@ -1422,7 +1422,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       analyzerVersion: "2026.08.09.test",
       anchor: shard.anchor ?? "2026-08-11",
       barRejections: {},
-      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+      clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       conditions: {
         macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
@@ -2227,7 +2227,7 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
           analyzerVersion: "2026.08.09.test",
           anchor: "2026-08-11",
           barRejections: {},
-          clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+          clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
           conditions: {
             macroAdjustment: "historical-treasury-curve",
             providerWarningCount: "zero-by-construction",

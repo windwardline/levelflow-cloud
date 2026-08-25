@@ -11,7 +11,7 @@ import {
   stableStringify,
 } from "../scripts/sweepManifest.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
-import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
+import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import type { SweepEmitRow } from "../scripts/sweepStats.ts";
 import { getCorrelationGroup } from "../supabase/functions/trade-analyzer/symbols.ts";
 
@@ -67,7 +67,7 @@ function corpusWith(rows: SweepEmitRow[]): string {
     analyzerVersion: "2026.08.09.test",
     anchor: "2026-08-10",
     barRejections: {},
-    clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+    clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
     conditions: {
       macroAdjustment: "historical-treasury-curve",
       providerWarningCount: "zero-by-construction",
