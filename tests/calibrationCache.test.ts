@@ -321,7 +321,11 @@ describe("the sweep's fetchers report an incomplete series rather than pinning i
       sweep,
       /throw new Error\(\s*`Calendar fetch failed \(\$\{response\.status\}\)/,
     );
-    // The precedent it now matches.
-    assert.match(sweep, /FMP request failed \(\$\{response\.status\}\)/);
+    // The precedent it now matches. Asserted on the SENTENCE rather than on
+    // the exact interpolation: `fetchBars` reads its body inside the retry
+    // now, so the status arrives as `result.response.status`, and pinning the
+    // old expression would have failed a change that strengthened the very
+    // behaviour this test protects.
+    assert.match(sweep, /throw new Error\(\s*`FMP request failed \(\$\{[\w.]+\.status\}\)/);
   });
 });
