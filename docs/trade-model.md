@@ -19,8 +19,11 @@
 > the defect and must be rebuilt (Phase 0) before anything is re-measured.
 
 
-Model version: `2026.08.25.macro-roles` (**not yet deployed** — the desk is
-parked, so this version has never served a request. The Treasury-rate layer's
+Model version: `2026.08.25.treasury-tenors` (**not yet deployed** — the desk is
+parked, so this version has never served a request. ZFUSD and ZTUSD gain
+headline proxies (IEI, SHY), so Treasury news reaches the 5-year and 2-year
+the way it already reached the 30-year and 10-year. Before it, the
+Treasury-rate layer's
 symbol routing moved from four hand-typed Sets and two regexes on the symbol
 name to one per-market role table, and four markets changed what the curve is
 allowed to say about them: ZFUSD and ZTUSD take the rate rule their own
@@ -350,7 +353,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.08.25.macro-roles'
+   where o.analyzer_version = '2026.08.25.treasury-tenors'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;

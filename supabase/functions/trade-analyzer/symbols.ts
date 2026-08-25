@@ -166,8 +166,19 @@ const headlineNewsSymbols: Record<string, string[]> = {
   XAGUSD: ["SLV", "SIUSD", "XAGUSD"],
   XAUUSD: ["GLD", "GCUSD", "XAUUSD"],
   YMUSD: ["DIA", "^DJI", "YMUSD"],
+  // The whole curve carries a headline proxy, not just the long end. ZBUSD
+  // and ZNUSD have had TLT and IEF since this map was written; ZFUSD and
+  // ZTUSD were onboarded 2026-08-06 and got neither, so the 5-year and
+  // 2-year were the only rate instruments whose bond headlines existed in
+  // economic_events and were structurally unreachable.
+  //
+  // IEI (3-7 year) and SHY (1-3 year) are the tenor-matched funds, and they
+  // carry real coverage rather than filling a slot — measured 2026-08-25
+  // against the live feed: TLT 37 articles, IEF 24, IEI 21, SHY 18.
   ZBUSD: ["TLT", "ZBUSD"],
+  ZFUSD: ["IEI", "ZFUSD"],
   ZNUSD: ["IEF", "ZNUSD"],
+  ZTUSD: ["SHY", "ZTUSD"],
 };
 
 const symbolCurrencies: Record<SupportedSymbol, string[]> = {

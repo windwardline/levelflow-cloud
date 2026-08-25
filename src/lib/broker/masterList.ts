@@ -7,6 +7,10 @@ import {
   type SecurityType,
 } from "../symbolMap";
 import { isContractSizeVariant, parentMarketOf } from "./contractVariants";
+import {
+  FUTURES_MAPPINGS,
+  MARGIN_ONLY_E8_SYMBOLS,
+} from "./instruments";
 import { DISPLAY_EXCLUDED_SYMBOLS } from "./offsets";
 import { visibleAssetSymbols } from "./visibility";
 
@@ -201,8 +205,23 @@ const NOT_SCANNABLE_GROUND: Record<string, string> = {
 const BRENT_GROUND =
   "Amendment 23's offset ruling: E8 quotes ~1.67 (~2%, ~196 bp) above this feed, past the significance bar for display. The match and the basis both stay recorded — here and in offsets.ts — for backend broker-matching and every future replay sweep (docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md, Amendment 23).";
 
-/** The two amendment-22 master-50 members: fully served and visible, Size withheld. */
-const UNSIZEABLE_MASTER_SYMBOLS = new Set(["ZBUSD", "ZNUSD"]);
+/**
+ * Master-50 members that are fully served and visible with Size withheld —
+ * DERIVED from E8's margin-only table rather than transcribed from it.
+ *
+ * It used to read `new Set(["ZBUSD", "ZNUSD"])` under a comment calling them
+ * "the two amendment-22 master-50 members", which was true when written. ZF,
+ * ZT and GF joined that table and this copy stayed at two, so the 5-year
+ * note, the 2-year note and feeder cattle were recorded as carrying no
+ * exclusion or limitation while each carries one. Nothing at runtime reads
+ * this, so the harm was confined to the durable artifact and its status
+ * counts — a wrong broker fact on the record is still a wrong fact.
+ */
+const UNSIZEABLE_MASTER_SYMBOLS = new Set(
+  Object.entries(FUTURES_MAPPINGS)
+    .filter(([, e8Symbol]) => MARGIN_ONLY_E8_SYMBOLS.includes(e8Symbol))
+    .map(([symbol]) => symbol),
+);
 
 const UNSIZEABLE_MASTER_GROUND =
   "E8's margin-only table has never published a tick size or a value per tick for this row. OFFERED per the 2026-08-03 F9 futures-account sighting (amendment 19); Size stays withheld per amendment 22's reliable-data bar (docs/research/e8-futures-account-2026-08-03.md).";

@@ -81,6 +81,10 @@ const STOCK_NEWS_SYMBOLS = [
   "EWA",
   "GLD",
   "IEF",
+  // The 3-7 and 1-3 year funds, added with ZFUSD's and ZTUSD's headline
+  // proxies: a proxy nothing ingests matches nothing.
+  "IEI",
+  "SHY",
   "IWM",
   "QQQ",
   "SLV",
