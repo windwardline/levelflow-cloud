@@ -1781,6 +1781,11 @@ describe("every emit reader passes the one-clock door (R0) — the population, n
       "in stdout) is carried on HANDOFF's small list for the instrument " +
       "phase",
     "sweepStats.ts": "is the door module itself",
+    "symbolCensus.ts":
+      "reads TYPESCRIPT SOURCE, not a corpus emit — it walks src/, scripts/ " +
+      "and supabase/functions/ with the TypeScript AST to find declarations " +
+      "that hard-code roster symbols. There is no manifest on a .ts file and " +
+      "no clock to assert; the one-clock door would have nothing to judge",
   };
 
   it("every line-reading script under scripts/ has the door or a named exemption", () => {
