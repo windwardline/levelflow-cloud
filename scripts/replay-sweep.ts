@@ -63,6 +63,7 @@ import { assertFiveMinuteDensity } from "./sweepStats.ts";
 import {
   CALENDAR_CLOCK,
   ECON_CALENDAR_CLOCK,
+  ECON_CALENDAR_MERGE_FIELDS,
   type CrossSeriesClock,
   crossSeriesClock,
   type GridRegistration,
@@ -1096,10 +1097,11 @@ async function loadEconomicCalendar(
     // The calendar's own clock, not BAR_CLOCK: FMP stamps calendar events
     // in true UTC and the parse below has always read them that way.
     clock: ECON_CALENDAR_CLOCK,
-    // The composite identity. Bar stores keep time-only keying, where two
-    // rows at one instant is a defect rather than a pair.
+    // The composite identity, BUILT FROM the field list the clock tag is
+    // derived from — so the two cannot drift. Bar stores keep time-only
+    // keying, where two rows at one instant is a defect rather than a pair.
     keyOf: (event) =>
-      `${event.time}|${event.currency}|${event.impact}|${event.name}`,
+      ECON_CALENDAR_MERGE_FIELDS.map((field) => event[field]).join("|"),
     repin,
     fetchFull: () => fetchCalendarEvents(Date.parse("2013-01-01T00:00:00Z")),
     fetchSince: (sinceMs) => fetchCalendarEvents(sinceMs),
@@ -1139,8 +1141,21 @@ async function fetchCalendarEvents(
       );
     }
     const payload = await readJsonWithBudget(response, budget());
+    // Per-chunk accounting, so a chunk that contributes NOTHING is refused
+    // rather than merged and pinned. The Treasury path has had exactly this
+    // guard since #364 (treasuryChunkHole); the calendar never got it, and
+    // the refusal above covers only `!response.ok`.
+    //
+    // A chunk is 90 days, so a silent drop is a quarter of a year of
+    // calendar — and `--repin` cannot clear it afterwards: repinning deletes
+    // the anchor's pin, leaves `lastTime` non-null and calls `fetchSince`, so
+    // only deleting the store file reaches `fetchFull`. The hole would
+    // survive every subsequent run.
+    let chunkAdmitted = 0;
+    let chunkRows = 0;
     if (Array.isArray(payload)) {
       for (const raw of payload as Array<Record<string, unknown>>) {
+        chunkRows += 1;
         const impact = String(raw.impact ?? "").toLowerCase();
         if (impact !== "high" && impact !== "medium") {
           continue;
@@ -1159,9 +1174,23 @@ async function fetchCalendarEvents(
         // the store lacks would treat every one of them as new.
         const name = String(raw.event ?? "").trim();
         if (Number.isFinite(time) && currency && name) {
+          chunkAdmitted += 1;
           events.push({ currency, impact, name, time });
         }
       }
+    }
+    if (chunkAdmitted === 0) {
+      throw new Error(
+        `calendarChunkHole: economic-calendar chunk ${
+          endpoint.searchParams.get("from")
+        }..${endpoint.searchParams.get("to")} admitted zero events from ` +
+          `${chunkRows} provider row(s) — a 90-day hole is a quarter of a ` +
+          `year of calendar, and it cannot be cleared by a top-up or by ` +
+          `--repin: both call fetchSince and leave the gap pinned. Delete ` +
+          `the econ-calendar rolling store and refetch. If the provider ` +
+          `genuinely serves nothing in this window, record that as measured ` +
+          `coverage and move the fetch floor with the evidence`,
+      );
     }
     await sleep(150);
   }

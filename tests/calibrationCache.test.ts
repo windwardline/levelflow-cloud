@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import {
+  ECON_CALENDAR_CLOCK,
+  ECON_CALENDAR_MERGE_FIELDS,
+} from "../scripts/clockWitness.ts";
 import { join } from "node:path";
 import {
   loadRollingSeries,
@@ -536,13 +540,17 @@ describe("the calendar's wiring in the driver, derived from its source", () => {
   // import. Both mutations below survived the unit tests, so these exist.
   const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
 
-  it("passes a composite key that includes the release name", () => {
-    // Without this the merge keeps its default and the store collapses again,
-    // silently, with every unit test still green.
+  it("passes a composite key, built from the clock-coupled field list", () => {
+    // Without a composite key the merge keeps its default and the store
+    // collapses again, silently, with every unit test still green.
+    //
+    // The key was a hand-written template until the field list became the
+    // single source for both it and the clock tag. Asserting the template
+    // here would now pin the drift-prone form back into place.
     assert.match(
       driver,
-      /keyOf: \(event\) =>\s*\n?\s*`\$\{event\.time\}\|\$\{event\.currency\}\|\$\{event\.impact\}\|\$\{event\.name\}`/,
-      "the calendar no longer keys on the composite identity",
+      /keyOf: \(event\) =>\s*\n?\s*ECON_CALENDAR_MERGE_FIELDS\.map/,
+      "the calendar no longer keys on the clock-coupled field list",
     );
   });
 
@@ -577,6 +585,79 @@ describe("the calendar's wiring in the driver, derived from its source", () => {
       readFileSync("scripts/replay-sweep.ts", "utf8"),
       /clock: CALENDAR_CLOCK,\s*\n\s*repin,\s*\n\s*fetchFull: \(\) => fetchTreasuryRates/,
       "the Treasury store must stay on CALENDAR_CLOCK",
+    );
+  });
+});
+
+describe("the merge key and the clock tag cannot drift apart", () => {
+  // A key ONE FIELD SHORT is the defect a census provably cannot see.
+  // Measured on the live store: dropping `name` discards 42.4% of the
+  // calendar, `currency` 32.9%, `impact` 27.0% — and only the degenerate
+  // time-only case leaves itemCount === distinctTimes. Every partial key in
+  // between reads a healthy events-per-instant ratio, because the healthy
+  // range (1.463 in 2013 to 2.000 in 2026) straddles the collapsed 1.490.
+  //
+  // So the guard is not a threshold. It is that changing the key changes the
+  // store stamp, which forces a refetch instead of producing a lighter corpus
+  // that looks correct.
+
+  it("derives the clock tag from the field list", () => {
+    for (const field of ECON_CALENDAR_MERGE_FIELDS) {
+      assert.ok(
+        ECON_CALENDAR_CLOCK.includes(field),
+        `the clock tag must name ${field}, or dropping it would not change the stamp`,
+      );
+    }
+  });
+
+  it("names exactly the fields that make an event distinct", () => {
+    // Deliberately LISTED. Exhaustiveness cannot be derived here — "what
+    // makes two releases different" is a judgement about the provider, not a
+    // property of the code — so this is the decision record, and a change to
+    // it is meant to be visible in a diff.
+    assert.deepEqual([...ECON_CALENDAR_MERGE_FIELDS], [
+      "time",
+      "currency",
+      "impact",
+      "name",
+    ]);
+  });
+
+  it("the driver builds its key FROM that list, not from a literal", () => {
+    // A hand-written template string would drift from the tag silently,
+    // which is exactly the uncoupling this replaces.
+    const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.match(
+      driver,
+      /keyOf: \(event\) =>\s*\n?\s*ECON_CALENDAR_MERGE_FIELDS\.map/,
+      "the calendar key is hand-written again and can drift from the clock tag",
+    );
+  });
+
+  it("refuses a store stamped under a different field list", () => {
+    // The mechanism itself, executed: a store written when the key was one
+    // field shorter carries a different tag and must not load.
+    const dir = mkdtempSync(join(tmpdir(), "keydrift-"));
+    writeFileSync(
+      join(dir, "econ-calendar.rolling.json"),
+      JSON.stringify({
+        clock: "fmp-econ-calendar-utc-v2-time+currency+impact",
+        items: [{ time: 1_000 }],
+        pinned: {},
+      }),
+    );
+    assert.rejects(
+      () =>
+        loadRollingSeries<{ time: number }>({
+          anchor: "2026-08-25",
+          cacheDir: dir,
+          clock: ECON_CALENDAR_CLOCK,
+          fetchFull: () => Promise.resolve([]),
+          fetchSince: () => Promise.resolve([]),
+          key: "econ-calendar",
+          timeOf: (item) => item.time,
+        }),
+      /cacheClockMismatch/,
     );
   });
 });
