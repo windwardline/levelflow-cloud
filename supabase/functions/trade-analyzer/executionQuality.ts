@@ -190,7 +190,7 @@ export function estimateExecutionQuality(
   const sampledFloor = input.assetType === "crypto"
     ? cryptoSpreadFloorPrice(input.symbol, latestClose) ?? 0
     : 0;
-  const modeledSpread = roundPrice(
+  const modeledSpread = costLeg(
     tickFloor !== null
       ? Math.max(tickFloor, atr * profile.atrSpreadFactor, COST_EPSILON)
       : Math.max(
@@ -203,16 +203,16 @@ export function estimateExecutionQuality(
   const quotedSpread = normalizeQuotedSpread(input.quotedSpread);
   const estimatedSpread = quotedSpread === null
     ? modeledSpread
-    : roundPrice(Math.max(quotedSpread, COST_EPSILON));
+    : costLeg(Math.max(quotedSpread, COST_EPSILON));
   const spreadSource = quotedSpread === null ? "modeled" : "quoted";
-  const estimatedSlippage = roundPrice(
+  const estimatedSlippage = costLeg(
     Math.max(
       latestClose * (profile.slippageBps / 10_000),
       atr * profile.atrSlippageFactor,
       COST_EPSILON,
     ),
   );
-  const estimatedCommission = roundPrice(
+  const estimatedCommission = costLeg(
     venueCommissionRoundTripPrice(input.symbol, latestClose) ?? 0,
   );
   // MEASUREMENT-ONLY sensitivity (owner standard, 2026-08-11: a market
@@ -239,7 +239,7 @@ export function estimateExecutionQuality(
   // Defaults to 1 (full model); the live analyzer never sets it — pinned in
   // tests/executionQuality.test.ts.
   const modeledCostScale = modeledCostScaleFromEnv();
-  const estimatedRoundTripCost = roundPrice(
+  const estimatedRoundTripCost = costLeg(
     (estimatedSpread + estimatedSlippage * 2) * modeledCostScale +
       estimatedCommission,
   );
@@ -330,14 +330,59 @@ function clampInteger(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, Math.round(value)));
 }
 
+/**
+ * Quantize a PRICE to the five decimals a quote carries.
+ *
+ * It must not govern a COST. `tests/executionQuality.test.ts` states the
+ * invariant this file lives under — "execution cost is SCALE-FREE... a
+ * market's cost-to-risk ratio must not depend on where its decimal point
+ * sits" — and an absolute 1e-5 increment is the definition of scale-dependent.
+ * Both statements cannot be true, and the test's is the one that is right.
+ *
+ * The sharpest case is commission, because it is a PUBLISHED figure rather
+ * than a model: `venueCommissionRoundTripPrice` returns price × 5e-5, which is
+ * E8's $5/lot. Quantizing it to 1e-5 restates that published number by
+ * 0.1/price — measured, +66.7% at price 0.12, +13.2% at 0.53, and zero at
+ * price >= 1, so the error is invisible on every instrument anyone happened to
+ * probe and material on the sub-dollar ones.
+ *
+ * Kept for the two ratio fields at the bottom of this file, which are reported
+ * figures rather than cost terms.
+ */
 function roundPrice(value: number) {
   return Number.isFinite(value) ? Number(value.toFixed(5)) : 0;
 }
 
+/**
+ * A cost leg, kept at full precision but guarded against NaN.
+ *
+ * Costs are internal terms that feed a ratio; nothing displays them at five
+ * decimals, so there was never a reason to quantize them and there is a
+ * measured reason not to.
+ */
+function costLeg(value: number) {
+  return Number.isFinite(value) ? value : 0;
+}
+
+/**
+ * A quoted spread, validated but NOT quantized.
+ *
+ * It returned `roundPrice(value)` until 2026-08-24, which annihilated any
+ * positive spread below 5e-6 to exactly zero — and zero survives downstream,
+ * because `replay.ts` guards `spread < 0` rather than `spread <= 0`. The
+ * result would be a setup priced as if the book were free, carrying
+ * `spreadSource: "quoted"` so nothing downstream could tell it from a real
+ * reading.
+ *
+ * Latent rather than live: the band needs a 6-decimal quote and this feed
+ * serves none. Fixed as correctness, not as an incident — the guard above
+ * already rejects zero and negatives, so there was never a reason to round
+ * afterwards.
+ */
 function normalizeQuotedSpread(value: number | null | undefined) {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
     return null;
   }
 
-  return roundPrice(value);
+  return value;
 }

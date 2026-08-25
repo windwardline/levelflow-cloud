@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { estimateExecutionQuality } from "../supabase/functions/trade-analyzer/executionQuality.ts";
+import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
+import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { calculateLearningWeight } from "../supabase/functions/trade-analyzer/learning.ts";
 import { parseFmpQuoteSnapshot } from "../supabase/functions/trade-analyzer/quotes.ts";
 
@@ -25,7 +27,22 @@ describe("execution quality model", () => {
       takeProfit: 1.164,
     });
 
-    assert.equal(quality.estimatedCommission, 0.00006);
+    // 1.1579 * 5e-5 = 0.0000579 EXACTLY. It read 0.00006 until 2026-08-24,
+    // which is the quantized value, not the venue's: roundPrice governed the
+    // cost legs at an absolute 1e-5 and restated E8's published $5/lot by
+    // 0.1/price — +3.6% here, +13.2% at price 0.53, +66.7% at 0.12.
+    assert.ok(
+      Math.abs(quality.estimatedCommission - 0.0000579) < 1e-9,
+      `commission must be the venue's figure, not a rounding of it: ${quality.estimatedCommission}`,
+    );
+    // And it must NOT be a multiple of the old 1e-5 quantum. That is the
+    // property, stated directly: a cost proportional to price cannot land on
+    // an absolute grid except by accident.
+    assert.notEqual(
+      quality.estimatedCommission,
+      Number(quality.estimatedCommission.toFixed(5)),
+      "an unquantized commission must differ from its own 5-decimal rounding",
+    );
     assert.equal(quality.label, "Thin");
     assert.equal(quality.confidencePenalty, 4);
     assert.equal(quality.effectiveRewardRisk < quality.grossRewardRisk, true);
@@ -103,7 +120,9 @@ describe("execution quality model", () => {
       takeProfit: 103.4,
       tickSize: 0.015625,
     });
-    assert.equal(twoYear.modeledSpread, 0.01563);
+    // 1/64 EXACTLY — the contract's own tick. The old 0.01563 was that tick
+    // seen through an absolute 1e-5 quantizer.
+    assert.equal(twoYear.modeledSpread, 0.015625);
   });
 
   it("keeps the volatility-widening term above the tick floor (2j)", () => {
@@ -138,7 +157,10 @@ describe("execution quality model", () => {
       symbol: "EURUSD",
       takeProfit: 1.164,
     });
-    assert.equal(forex.modeledSpread, 0.00004);
+    assert.ok(
+      Math.abs(forex.modeledSpread - 0.00004053) < 1e-10,
+      `class model, unquantized: ${forex.modeledSpread}`,
+    );
   });
 
   it("threads the contract tick from the plan and banks live quoted spreads (2j)", () => {
@@ -342,7 +364,10 @@ describe("execution quality model", () => {
         takeProfit: 7752 + risk * 2,
         symbol: "ESUSD",
       });
-      assert.equal(quality.estimatedSpread, 1.08528);
+      assert.ok(
+        Math.abs(quality.estimatedSpread - 1.08528) < 1e-9,
+        `unchanged, at full precision: ${quality.estimatedSpread}`,
+      );
       assert.equal(quality.estimatedSlippage, 0.62016);
       assert.equal(quality.estimatedCommission, 0.1152);
       assert.equal(quality.estimatedRoundTripCost, 2.4408);
@@ -459,13 +484,14 @@ describe("the venue's commission joins the round trip (round-8 CO-1/3/4)", () =>
       tickSize: 0.25,
     });
     assert.equal(withCommission.estimatedCommission, 0.1152);
-    assert.equal(
-      withCommission.estimatedRoundTripCost,
-      Number(
-        (withCommission.estimatedSpread +
-          withCommission.estimatedSlippage * 2 + 0.1152).toFixed(5),
-      ),
-    );
+    assert.ok(
+        Math.abs(
+          withCommission.estimatedRoundTripCost -
+            (withCommission.estimatedSpread +
+          withCommission.estimatedSlippage * 2 + 0.1152),
+        ) < 1e-12,
+        `the round trip is the sum of its legs, unquantized`,
+      );
   });
 
   it("a symbol the venue tables cannot bill carries zero commission, stated", () => {
@@ -493,9 +519,11 @@ describe("the venue's commission joins the round trip (round-8 CO-1/3/4)", () =>
       ada.modeledSpread >= 0.1941 * 11.3e-4 - 1e-9,
       `ADA modeled spread ${ada.modeledSpread} sits under its book floor`,
     );
-    assert.equal(
-      ada.estimatedCommission,
-      Number((0.1941 * 7e-4).toFixed(5)),
+    // The expected value mirrored the defect: it applied .toFixed(5) to the
+    // venue's figure, so the test could only ever agree with the quantizer.
+    assert.ok(
+      Math.abs(ada.estimatedCommission - 0.1941 * 7e-4) < 1e-12,
+      `the venue's figure, unquantized: ${ada.estimatedCommission}`,
     );
   });
 
@@ -565,13 +593,14 @@ describe("the modeled-cost sensitivity is measurement-only (owner standard 2026-
   it("defaults to the full model when nothing sets it", () => {
     delete process.env.LEVELFLOW_MODELED_COST_SCALE;
     const full = estimateExecutionQuality(fixture);
-    assert.equal(
-      full.estimatedRoundTripCost,
-      Number(
-        (full.estimatedSpread + full.estimatedSlippage * 2 +
-          full.estimatedCommission).toFixed(5),
-      ),
-    );
+    assert.ok(
+        Math.abs(
+          full.estimatedRoundTripCost -
+            (full.estimatedSpread + full.estimatedSlippage * 2 +
+          full.estimatedCommission),
+        ) < 1e-12,
+        `the round trip is the sum of its legs, unquantized`,
+      );
   });
 
   it("at zero, only the venue's PUBLISHED commission remains", () => {
@@ -590,12 +619,12 @@ describe("the modeled-cost sensitivity is measurement-only (owner standard 2026-
       process.env.LEVELFLOW_MODELED_COST_SCALE = bad;
       try {
         const cell = estimateExecutionQuality(fixture);
-        assert.equal(
-          cell.estimatedRoundTripCost,
-          Number(
-            (cell.estimatedSpread + cell.estimatedSlippage * 2 +
-              cell.estimatedCommission).toFixed(5),
-          ),
+        assert.ok(
+          Math.abs(
+            cell.estimatedRoundTripCost -
+              (cell.estimatedSpread + cell.estimatedSlippage * 2 +
+                cell.estimatedCommission),
+          ) < 1e-12,
           `${bad} must fall back to the full model`,
         );
       } finally {
@@ -610,5 +639,74 @@ describe("the modeled-cost sensitivity is measurement-only (owner standard 2026-
       "utf8",
     );
     assert.doesNotMatch(analyzer, /LEVELFLOW_MODELED_COST_SCALE/);
+  });
+});
+
+describe("cost is scale-free, over the ROSTER (2026-08-24)", () => {
+  // The invariant was already declared in this file — "execution cost is
+  // SCALE-FREE... a market's cost-to-risk ratio must not depend on where its
+  // decimal point sits" — while roundPrice governed every cost leg at an
+  // absolute 1e-5. Both could not be true, and the probes never descended
+  // below price 2.67, so the contradiction never showed.
+  //
+  // The population is the ROSTER, not one symbol per class: a hand-picked
+  // probe set is what let an absolute quantum sit under a scale-free claim.
+  it("charges the venue's published commission at every price scale", () => {
+    // Every forex pair on the roster, priced across four decades. The
+    // commission is price * 5e-5 by definition (E8's $5/lot), so the RATIO to
+    // price must be constant — that is what scale-free means here.
+    const forex = defaultScanSymbols.filter((symbol) =>
+      getAssetType(symbol) === "forex" && /^[A-Z]{6}$/.test(symbol)
+    );
+    assert.ok(forex.length >= 20, `expected the FX roster, got ${forex.length}`);
+    for (const symbol of forex) {
+      const ratios = [0.12, 0.53, 1.16, 12.5, 155].map((price) => {
+        const quality = estimateExecutionQuality({
+          assetType: "forex",
+          atr: price * 0.001,
+          availableTimeframes: ["1day", "4hour", "1hour", "15min"],
+          dailyAtr: price * 0.005,
+          entryPrice: price,
+          latestClose: price,
+          providerWarnings: [],
+          side: "buy",
+          stopLoss: price * 0.997,
+          symbol,
+          takeProfit: price * 1.006,
+        });
+        return quality.estimatedCommission / price;
+      });
+      const spread = Math.max(...ratios) - Math.min(...ratios);
+      assert.ok(
+        spread < 1e-12,
+        `${symbol}: commission/price must not depend on the decimal point — ` +
+          `ratios ${ratios.map((r) => r.toExponential(4)).join(", ")}`,
+      );
+    }
+  });
+
+  it("never annihilates a positive quoted spread to zero", () => {
+    // roundPrice sent any positive spread below 5e-6 to exactly zero, and
+    // zero survives downstream because replay.ts guards `spread < 0`. The
+    // setup would price as if the book were free while carrying
+    // spreadSource "quoted".
+    const quality = estimateExecutionQuality({
+      assetType: "forex",
+      atr: 0.0012,
+      availableTimeframes: ["1day", "4hour", "1hour", "15min"],
+      dailyAtr: 0.006,
+      entryPrice: 1.156,
+      latestClose: 1.158,
+      providerWarnings: [],
+      quotedSpread: 0.0000012,
+      side: "buy",
+      stopLoss: 1.153,
+      symbol: "EURUSD",
+      takeProfit: 1.164,
+    });
+    assert.ok(
+      (quality.quotedSpread ?? 0) > 0,
+      `a positive quote must stay positive, got ${quality.quotedSpread}`,
+    );
   });
 });
