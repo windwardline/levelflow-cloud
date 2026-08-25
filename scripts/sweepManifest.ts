@@ -460,6 +460,47 @@ export function treasuryChunkRefusal(input: {
   );
 }
 
+/**
+ * The economic-calendar store's own census, recorded beside the Treasury
+ * curve's facts and for the same reason: a corpus should be able to state the
+ * coverage it was measured against.
+ *
+ * `itemCount` SITS BESIDE `distinctTimes` deliberately. The two being EQUAL is
+ * the signature of the collapse that discarded 43% of the calendar — a Map
+ * keyed on the timestamp alone keeps one row per instant, so the counts match
+ * exactly. Recording both makes that shape visible from any corpus instead of
+ * requiring someone to compare a store against a fetch log, which is how it
+ * was found the first time.
+ *
+ * `firstEventMs` answers a different question the corpus could not answer at
+ * all: `newsPenalty: 0` conflates "no events matched this instant" with "the
+ * calendar has no coverage here". The store begins 2013-01-02 while forex
+ * bars begin 2009-09-24, so 38.8% of the forex fit fold is news-BLIND rather
+ * than news-free. A reader compares a decision instant to this.
+ *
+ * NOT part of `conditions`. verifyManifest compares each conditions term to a
+ * hardcoded build constant, so a store-derived number there would make every
+ * corpus unreadable — the trap already documented for modeledCostScale.
+ */
+export type CalendarCensus = {
+  distinctTimes: number;
+  firstEventMs: number | null;
+  itemCount: number;
+  lastEventMs: number | null;
+};
+
+export function calendarCensus(
+  events: Array<{ time: number }>,
+): CalendarCensus {
+  const times = events.map((event) => event.time);
+  return {
+    distinctTimes: new Set(times).size,
+    firstEventMs: times.length > 0 ? Math.min(...times) : null,
+    itemCount: events.length,
+    lastEventMs: times.length > 0 ? Math.max(...times) : null,
+  };
+}
+
 export function treasuryCurveFacts(
   rows: Array<{ dateMs: number }>,
 ): TreasuryCurveFacts {
@@ -592,6 +633,20 @@ export type SweepManifest = {
   trainShare: number;
   // The evidence behind conditions.macroAdjustment (#364 round 2,
   // finding 1) — asserted by verifyManifest beside the literals.
+  calendarCensus?: CalendarCensus;
+  /**
+   * Every symbol the run was ASKED for, whatever came of it.
+   *
+   * `symbols` below holds only what survived: a market that dropped out —
+   * refused at a door, starved of bars, or thrown by a fetch — is
+   * indistinguishable in this manifest from one that was never requested.
+   * R4 grades every matched market individually and R5 IS the never-analyzed
+   * population, so both need to know what was asked and produced nothing.
+   *
+   * Recorded once at the top rather than as a flag per symbol, because the
+   * absent rows are precisely the ones that have nowhere to carry a flag.
+   */
+  requestedSymbols?: string[];
   treasuryCurve: TreasuryCurveFacts;
   warmupBars: number;
 };
@@ -628,6 +683,20 @@ export function buildSweepManifest(input: {
     symbol: string;
   }>;
   trainShare: number;
+  calendarCensus?: CalendarCensus;
+  /**
+   * Every symbol the run was ASKED for, whatever came of it.
+   *
+   * `symbols` below holds only what survived: a market that dropped out —
+   * refused at a door, starved of bars, or thrown by a fetch — is
+   * indistinguishable in this manifest from one that was never requested.
+   * R4 grades every matched market individually and R5 IS the never-analyzed
+   * population, so both need to know what was asked and produced nothing.
+   *
+   * Recorded once at the top rather than as a flag per symbol, because the
+   * absent rows are precisely the ones that have nowhere to carry a flag.
+   */
+  requestedSymbols?: string[];
   treasuryCurve: TreasuryCurveFacts;
   warmupBars: number;
 }): SweepManifest {
@@ -676,6 +745,9 @@ export function buildSweepManifest(input: {
     stepBars: input.stepBars,
     symbols,
     trainShare: input.trainShare,
+    ...(input.calendarCensus && { calendarCensus: input.calendarCensus }),
+    ...(input.requestedSymbols &&
+      { requestedSymbols: [...input.requestedSymbols].sort() }),
     treasuryCurve: input.treasuryCurve,
     warmupBars: input.warmupBars,
   };

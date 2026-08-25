@@ -50,6 +50,7 @@ import {
   type SweepConditions,
   TREASURY_FETCH_START_MS,
   treasuryChunkRefusal,
+  calendarCensus,
   treasuryCurveFacts,
   treasuryGapTouching,
 } from "./sweepManifest.ts";
@@ -1057,6 +1058,12 @@ async function main() {
       stepBars: args.step,
       symbols: manifestSymbols,
       trainShare: TRAIN_SHARE,
+      // The store's own census, so a future collapse is visible from the
+      // corpus rather than from comparing a store against a fetch log.
+      calendarCensus: calendarCensus(newsEvents),
+      // What the run was ASKED for, so a market that dropped out is
+      // distinguishable from one never requested.
+      requestedSymbols: args.symbols,
       treasuryCurve: {
         ...treasuryCurveFacts(treasuryRates),
         requestedStartMs: TREASURY_FETCH_START_MS,
