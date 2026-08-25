@@ -112,7 +112,32 @@ export const CALENDAR_CLOCK = "fmp-calendar-utc-v1";
  * v2 rather than v1: any store or manifest carrying the old stamp predates
  * the composite key and is missing events that cannot be recovered from it.
  */
-export const ECON_CALENDAR_CLOCK = "fmp-econ-calendar-utc-v2";
+/**
+ * The fields that make one calendar event distinct from another.
+ *
+ * The clock tag below is DERIVED from this list, which is the whole point.
+ * The key and the store stamp were uncoupled, and a key one field short is
+ * the defect a census provably cannot see: dropping `name` discards 42.4% of
+ * the calendar, `impact` 27.0%, `currency` 32.9% — and only the degenerate
+ * time-only case leaves the counts equal. Every partial key in between reads
+ * a healthy events-per-instant ratio, because the healthy range (1.463 in
+ * 2013 to 2.000 in 2026) straddles the collapsed 1.490.
+ *
+ * So the guard is not a number. Change this list and the clock tag changes
+ * with it; `loadRollingSeries` then refuses every store written under the old
+ * tag, and the corpus door refuses every manifest carrying it. A partial-key
+ * change becomes a forced refetch instead of a quarter-light corpus that
+ * looks correct.
+ */
+export const ECON_CALENDAR_MERGE_FIELDS = [
+  "time",
+  "currency",
+  "impact",
+  "name",
+] as const;
+
+export const ECON_CALENDAR_CLOCK =
+  `fmp-econ-calendar-utc-v2-${ECON_CALENDAR_MERGE_FIELDS.join("+")}`;
 
 const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
