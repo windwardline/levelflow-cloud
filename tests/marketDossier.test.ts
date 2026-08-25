@@ -16,7 +16,7 @@ import {
   type TreasuryCurveFacts,
 } from "../scripts/sweepManifest.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
-import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
+import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import type { SweepEmitRow } from "../scripts/sweepStats.ts";
 
 // The dossier's re-gated pseudo-cell had folded TWO distinct grid cells
@@ -82,7 +82,7 @@ function twoCellCorpus(days: number): string {
         analyzerVersion: "2026.08.09.test",
         anchor: "2026-08-11",
         barRejections: {},
-        clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+        clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
         conditions: {
           macroAdjustment: "historical-treasury-curve",
           providerWarningCount: "zero-by-construction",

@@ -644,7 +644,7 @@ symbols on each symbol's full history produced:
   thresholds — the EURUSD case (train +0.058, test −0.051) is the
   archetypal overfit the gate exists to block.
 - **News-aware replay.** Scheduled medium/high-impact events (FMP calendar,
-  74,764 events from 2013) now join the replay at decision time: active
+  the medium/high events FMP serves from 2013 — the store held far fewer until the 2026-08-25 merge-key fix, which was discarding many events per instant) now join the replay at decision time: active
   high-impact events block reviews and the remainder feed the score
   penalty, mirroring production exactly. Measured effect on expectancy:
   neutral (train +0.000, test +0.001) while removing the event-window

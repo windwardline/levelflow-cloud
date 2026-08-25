@@ -24,7 +24,7 @@ import {
   getAssetType,
   hasKnownAssetType,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
-import { CALENDAR_CLOCK } from "./clockWitness.ts";
+import { ECON_CALENDAR_CLOCK } from "./clockWitness.ts";
 import {
   type CrossSeriesDensity,
   type TreasuryCurveFacts,
@@ -319,13 +319,13 @@ function verifyManifest(emitPath: string): SweepManifest {
   let historicalRead = false;
   if (
     manifest.clock.normalizer !== BAR_CLOCK ||
-    manifest.clock.calendar !== CALENDAR_CLOCK
+    manifest.clock.calendar !== ECON_CALENDAR_CLOCK
   ) {
     if (process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK !== "1") {
       throw new Error(
         `${emitPath}: corpus swept under clock "${manifest.clock.normalizer}"/` +
           `"${manifest.clock.calendar}" but this build is "${BAR_CLOCK}"/` +
-          `"${CALENDAR_CLOCK}" — a superseded-clock corpus is re-swept, not ` +
+          `"${ECON_CALENDAR_CLOCK}" — a superseded-clock corpus is re-swept, not ` +
           `aggregated (set LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1 only for a ` +
           `deliberate historical read)`,
       );
@@ -336,7 +336,7 @@ function verifyManifest(emitPath: string): SweepManifest {
     console.warn(
       `SUPERSEDED-CLOCK READ: ${emitPath} was swept under ` +
         `"${manifest.clock.normalizer}"/"${manifest.clock.calendar}"; this ` +
-        `build is "${BAR_CLOCK}"/"${CALENDAR_CLOCK}". Figures derived from ` +
+        `build is "${BAR_CLOCK}"/"${ECON_CALENDAR_CLOCK}". Figures derived from ` +
         `this corpus are historical, not current.`,
     );
     historicalRead = true;

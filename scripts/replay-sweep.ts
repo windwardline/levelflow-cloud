@@ -61,6 +61,7 @@ import {
 import { assertFiveMinuteDensity } from "./sweepStats.ts";
 import {
   CALENDAR_CLOCK,
+  ECON_CALENDAR_CLOCK,
   type CrossSeriesClock,
   crossSeriesClock,
   type GridRegistration,
@@ -1037,7 +1038,7 @@ async function main() {
             { ...getClassCalibration(assetType) } as Record<string, unknown>,
           ]),
       ),
-      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+      clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       conditions,
       days: args.days,
       folds: classFolds ? undefined : folds,
@@ -1087,7 +1088,11 @@ async function loadEconomicCalendar(
     cacheDir: cacheDir ?? DEFAULT_CACHE_DIR,
     // The calendar's own clock, not BAR_CLOCK: FMP stamps calendar events
     // in true UTC and the parse below has always read them that way.
-    clock: CALENDAR_CLOCK,
+    clock: ECON_CALENDAR_CLOCK,
+    // The composite identity. Bar stores keep time-only keying, where two
+    // rows at one instant is a defect rather than a pair.
+    keyOf: (event) =>
+      `${event.time}|${event.currency}|${event.impact}|${event.name}`,
     repin,
     fetchFull: () => fetchCalendarEvents(Date.parse("2013-01-01T00:00:00Z")),
     fetchSince: (sinceMs) => fetchCalendarEvents(sinceMs),
@@ -1137,8 +1142,17 @@ async function fetchCalendarEvents(
           String(raw.date ?? "").replace(" ", "T") + "Z",
         );
         const currency = String(raw.currency ?? "").toUpperCase();
-        if (Number.isFinite(time) && currency) {
-          events.push({ currency, impact, time });
+        // The RELEASE NAME, and it is not decoration. A calendar puts many
+        // releases on one instant — Core PPI and Initial Jobless Claims are
+        // both USD/medium at 12:30, HICP and CPI both EUR/medium at 07:00 —
+        // so the name is the only field that distinguishes them. Without it
+        // the store kept one survivor per instant and discarded 43% of every
+        // fetch. It is STORED, not merely used at merge time: a top-up
+        // recomputes keys for rows already on disk, and a key needing a field
+        // the store lacks would treat every one of them as new.
+        const name = String(raw.event ?? "").trim();
+        if (Number.isFinite(time) && currency && name) {
+          events.push({ currency, impact, name, time });
         }
       }
     }
@@ -1196,9 +1210,17 @@ async function fetchTreasuryRates(
   // So this is a WINDOW clamp, not a row cap, and no probe was needed to know
   // it. 60 days sits under the 90-day clamp with margin for it being ≤90
   // rather than exactly 90. The same file's economic-calendar fetch chunks at
-  // 90 days and its store IS complete (42,665 rows from 2013-01-02, one gap
-  // over 14 days) — the contrast that first identified chunk width as the
-  // lever.
+  // 90 days, and the ROW COUNTS were the contrast that first identified chunk
+  // width as the lever here.
+  //
+  // That contrast was stated as "its store IS complete (42,665 rows from
+  // 2013-01-02, one gap over 14 days)", and the completeness half was FALSE:
+  // the calendar store was collapsing many events per instant onto one
+  // survivor, so it held ~42,676 rows against ~75,200 fetched. Corrected
+  // 2026-08-25 with that defect. The Treasury conclusion is unaffected and
+  // rests on its own evidence — fourteen contiguous blocks each beginning at
+  // its chunk's own `to` minus 90 days, which is a window clamp and could not
+  // be a row cap.
   //
   // The rolling store's merge dedupes the inclusive chunk-boundary dates by
   // dateMs, so the narrower window costs requests and not correctness.

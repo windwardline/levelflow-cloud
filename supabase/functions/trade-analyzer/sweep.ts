@@ -52,6 +52,12 @@ import {
 export type SweepNewsEvent = {
   currency: string;
   impact: "medium" | "high";
+  /**
+   * The release name, which is the only thing separating two events on one
+   * instant — Core PPI and Initial Jobless Claims are both USD/medium at
+   * 12:30. It is not read when scoring; it exists so the store can keep both.
+   */
+  name: string;
   time: number;
 };
 

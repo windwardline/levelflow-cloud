@@ -5,6 +5,7 @@ import {
   resampleBars,
   simulateSymbol,
   summarizeSweepOutcomes,
+  type SweepNewsEvent,
   type SweepOutcomeRecord,
 } from "../supabase/functions/trade-analyzer/sweep.ts";
 import {
@@ -354,7 +355,12 @@ describe("replay sweep", () => {
     const result = simulateSymbol({
       dailyBars: dailyBars(80),
       newsEvents: [
-        { currency: "USD", impact: "high", time: firstDecisionTime },
+        {
+          currency: "USD",
+          impact: "high",
+          name: "Nonfarm Payrolls",
+          time: firstDecisionTime,
+        },
       ],
       primaryBars: triangleBars(600),
       stepBars: 16,
@@ -863,6 +869,63 @@ describe("the rejection ledger (P1) — an account, not a tally", () => {
       [],
       `these counters have no reject() site, so they can be incremented ` +
         `without ever appearing in the ledger: ${missing.join(", ")}`,
+    );
+  });
+});
+
+describe("a calendar collapse changes rejections, not just penalties", () => {
+  // The count is load-bearing TWICE. calculateNewsPenaltyUnits sums per
+  // event, and `activeNews.some(isBlockingNewsEvent)` rejects the setup
+  // outright when any active scheduled event is high-impact. So an event
+  // discarded by a time-only merge key does not merely under-penalise — it
+  // produces a corpus row the live engine would have refused as newsBlocked.
+  //
+  // This is what makes the collapse a corpus defect rather than a magnitude
+  // error, and it is why the fix had to land before the one re-sweep.
+  // The module-level startTime the bar fixtures are built from; the first
+  // decision point sits at warmup index 120.
+  const firstDecisionTime = startTime + 120 * 900_000;
+
+  const runWith = (newsEvents: SweepNewsEvent[]) =>
+    simulateSymbol({
+      dailyBars: dailyBars(80),
+      newsEvents,
+      primaryBars: triangleBars(600),
+      stepBars: 16,
+      symbol: "EURUSD",
+      warmupBars: 120,
+    });
+
+  it("blocks on a high-impact event that a time-only key would have discarded", () => {
+    // Two USD events at ONE instant. Under a time-only merge the medium one
+    // could be the survivor; under the composite key both are present and the
+    // high-impact one blocks.
+    const bothKept = runWith([
+      {
+        currency: "USD",
+        impact: "medium",
+        name: "Initial Jobless Claims",
+        time: firstDecisionTime,
+      },
+      {
+        currency: "USD",
+        impact: "high",
+        name: "Nonfarm Payrolls",
+        time: firstDecisionTime,
+      },
+    ]);
+    const collapsed = runWith([
+      {
+        currency: "USD",
+        impact: "medium",
+        name: "Initial Jobless Claims",
+        time: firstDecisionTime,
+      },
+    ]);
+    assert.ok(
+      bothKept.rejections.newsBlocked > collapsed.rejections.newsBlocked,
+      `keeping the high-impact event must block at least one more decision: ` +
+        `${bothKept.rejections.newsBlocked} vs ${collapsed.rejections.newsBlocked}`,
     );
   });
 });

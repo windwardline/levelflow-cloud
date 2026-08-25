@@ -10,7 +10,7 @@ import {
   type TreasuryCurveFacts,
 } from "../scripts/sweepManifest.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
-import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
+import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import type { SweepEmitRow } from "../scripts/sweepStats.ts";
 
 // WIF-4 (readiness audit, 2026-08-11), applied to the three 4c/4d
@@ -74,7 +74,7 @@ function shardWithRows(days: number): string {
         analyzerVersion: "2026.08.09.test",
         anchor: "2026-08-11",
         barRejections: {},
-        clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+        clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
         conditions: {
           macroAdjustment: "historical-treasury-curve",
           providerWarningCount: "zero-by-construction",

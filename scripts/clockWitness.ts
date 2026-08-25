@@ -96,6 +96,24 @@ import { VENUE_CLOCKS } from "../supabase/functions/trade-analyzer/venues.ts";
  */
 export const CALENDAR_CLOCK = "fmp-calendar-utc-v1";
 
+/**
+ * The economic-calendar store's own clock, split from CALENDAR_CLOCK on
+ * 2026-08-25 so a calendar-only defect could invalidate the calendar alone.
+ *
+ * The two stores shared a constant because they share a TIME CONVENTION, and
+ * that was right until the convention stopped being the only thing a stamp
+ * had to carry. The calendar's merge key changed — it was collapsing 43% of
+ * every fetch onto one survivor per instant — so its store must be refetched
+ * and every corpus built on the old one refused. The Treasury curve has the
+ * same convention, is correct, took five build attempts to get right, and
+ * shares none of that defect. Bumping one constant would have deleted it as
+ * collateral.
+ *
+ * v2 rather than v1: any store or manifest carrying the old stamp predates
+ * the composite key and is missing events that cannot be recovered from it.
+ */
+export const ECON_CALENDAR_CLOCK = "fmp-econ-calendar-utc-v2";
+
 const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
 

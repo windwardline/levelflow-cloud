@@ -40,6 +40,7 @@ import {
 } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
   CALENDAR_CLOCK,
+  ECON_CALENDAR_CLOCK,
   crossSeriesClock,
   gridRegistration,
   REFERENCE_SESSION_ANCHORS,
@@ -311,7 +312,12 @@ export function auditCacheClock(input: {
       continue;
     }
     const items = Array.isArray(store.items) ? store.items : [];
-    const expected = kind.kind === "calendar" || kind.kind === "rates"
+    // Three families now, not two. The econ-calendar store carries its own
+    // stamp so a calendar-only invalidation cannot take the Treasury curve
+    // with it — see ECON_CALENDAR_CLOCK.
+    const expected = kind.kind === "calendar"
+      ? ECON_CALENDAR_CLOCK
+      : kind.kind === "rates"
       ? CALENDAR_CLOCK
       : BAR_CLOCK;
     if (store.clock !== expected) {
