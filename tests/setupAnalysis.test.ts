@@ -138,9 +138,17 @@ function diagnosticsFor(
     weightAdjustment,
   });
 
-  diagnostics.push(
-    `The current ${consensus.side} setup scored ${scoreBreakdown.confidenceScore}; Levelflow requires ${calibration.confidenceThreshold} or higher for this market.`,
-  );
+  // Mirrors index.ts: the score is quoted only when a plan exists, because
+  // `?? 0` above is "not computable", not "zero". This reimplementation
+  // previously carried the same unguarded push as production and so could
+  // never have caught the defect — a test that reproduces the code under
+  // test asserts only that it copied it correctly. The parity check below
+  // is what holds the two together now.
+  if (pricePlan) {
+    diagnostics.push(
+      `The current ${consensus.side} setup scored ${scoreBreakdown.confidenceScore}; Levelflow requires ${calibration.confidenceThreshold} or higher for this market.`,
+    );
+  }
   if (!pricePlan) {
     diagnostics.push(
       "Limit entry failed price validation, so no limit setup was shown.",
@@ -285,5 +293,62 @@ describe("index.ts runs the committee once per symbol", () => {
       assert.doesNotMatch(source, /scoreConsensus\(/, name);
       assert.doesNotMatch(source, /getCategoryCalibration\(/, name);
     }
+  });
+});
+
+describe("explainNoSetup quotes no score it could not compute", () => {
+  // index.ts is deliberately outside tsconfig.tests.json (it reads Deno
+  // globals at module top), so this suite REIMPLEMENTS explainNoSetup rather
+  // than executing it. That is a structural consequence of the Edge
+  // boundary, not a shortcut — but it means the reimplementation can drift,
+  // and it had: both copies pushed the score sentence unguarded, so the
+  // reimplementation agreed with production about something they were both
+  // wrong about. These assertions read the real source and hold the two
+  // together at the exact points that matter.
+
+  it("guards the score sentence on a plan existing, in the source", () => {
+    // The defect: `executionPenalty: pricePlan?.executionQuality
+    // .confidencePenalty ?? 0` means NOT COMPUTABLE when the plan is null,
+    // and the resulting score was quoted anyway — inflated by precisely the
+    // execution cost the missing plan would have charged, in the branch
+    // whose job is telling the operator how close the setup came.
+    assert.ok(
+      ANALYZER.includes("setup scored ${confidenceScore}"),
+      "the score sentence moved — re-anchor this test",
+    );
+    // The push must sit inside the plan guard, not beside it. Asserted as
+    // one structure rather than by slicing a window before the sentence: an
+    // earlier draft of this test anchored mid-template-string and failed
+    // against correct code, which is a guard that cries wolf and gets
+    // deleted by the next person.
+    assert.match(
+      ANALYZER,
+      /if \(pricePlan\) \{\s*\n\s*diagnostics\.push\(\s*\n\s*`The current \$\{consensus\.side\} setup scored/,
+      "the score is quoted without first checking that a plan exists",
+    );
+  });
+
+  it("has no unguarded push of the score sentence anywhere in the file", () => {
+    // Belt to the anchored check above: if a second site ever quotes the
+    // score, it must carry the same guard. Derived by counting, so a new
+    // call site cannot slip in beside the guarded one.
+    const quotes = ANALYZER.match(/setup scored \$\{confidenceScore\}/g) ?? [];
+    assert.equal(quotes.length, 1, "a second score quote appeared — guard it");
+    const guards = ANALYZER.match(/if \(pricePlan\) \{\s*\n\s*diagnostics\.push\(/g) ??
+      [];
+    assert.equal(guards.length, quotes.length);
+  });
+
+  it("still quotes the score when a plan exists — the case that must not regress", () => {
+    // The guard must not have silenced the main path. This is the sentence
+    // the operator relies on for a genuine near-miss, and reviewCopy.ts
+    // rewrites it by regex on the frontend.
+    const template =
+      "The current ${consensus.side} setup scored ${confidenceScore}; " +
+      "Levelflow requires ${calibration.confidenceThreshold} or higher for this market.";
+    assert.ok(
+      ANALYZER.includes(template),
+      "the sentence template changed; reviewCopy.ts's regex reads it",
+    );
   });
 });

@@ -1428,9 +1428,22 @@ async function explainNoSetup(
           declined.reprobe,
       );
     }
-    diagnostics.push(
-      `The current ${consensus.side} setup scored ${confidenceScore}; Levelflow requires ${calibration.confidenceThreshold} or higher for this market.`,
-    );
+    // Quoted ONLY when there is a plan. Without one, `buildPricePlan` returned
+    // null and the `executionPenalty: ... ?? 0` above means "not computable",
+    // not "zero" — so this number would be the score of a setup that could
+    // never have existed, inflated by exactly the execution cost the missing
+    // plan would have charged. It was being shown in the one branch whose
+    // entire job is telling the operator how close the setup came, which is
+    // the reading it can least afford to overstate.
+    //
+    // Nothing else consumes it: this function returns strings, so the fix is
+    // to stop saying it rather than to compute it differently. The refusal
+    // below already carries the real cause, and it is the actionable one.
+    if (pricePlan) {
+      diagnostics.push(
+        `The current ${consensus.side} setup scored ${confidenceScore}; Levelflow requires ${calibration.confidenceThreshold} or higher for this market.`,
+      );
+    }
     if (!pricePlan) {
       // 1b's rule applied to the quote-admission gate (#362 round 5,
       // finding 1): a distinct cause carries its own sentence — geometry
