@@ -115,13 +115,27 @@ function main() {
     // The era is the source's OWN measurable span, and once cut it is fixed.
     const priorEra = existing?.baselines.find((b) => b.providerSymbol === source)
       ?.referenceEra;
-    const allTimes = stores.flatMap(([, items]) => items ?? []).map((b) => b.time);
+    // A LINEAR scan, not a spread. `Math.min(...allTimes)` throws RangeError
+    // above roughly 125,000 arguments and this array is every bar of all three
+    // timeframes for one market — AUDCHF alone is 1,658,537. It throws today,
+    // masked only by the ternary short-circuiting the spread whenever a prior
+    // era exists, so it fires the moment a new era is cut. Same defect as the
+    // one repaired in sweepManifest's calendarCensus, larger and already live.
+    let spanFrom: number | null = null;
+    let spanTo: number | null = null;
+    for (const [, items] of stores) {
+      for (const bar of items ?? []) {
+        if (!Number.isFinite(bar.time)) continue;
+        if (spanFrom === null || bar.time < spanFrom) spanFrom = bar.time;
+        if (spanTo === null || bar.time > spanTo) spanTo = bar.time;
+      }
+    }
     const fromMs = priorEra && !wantNewEra
       ? Date.parse(`${priorEra.fromIso}T00:00:00Z`)
-      : Math.min(...allTimes);
+      : spanFrom ?? Number.NaN;
     const toMs = priorEra && !wantNewEra
       ? Date.parse(`${priorEra.toIso}T23:59:59Z`)
-      : Math.max(...allTimes);
+      : spanTo ?? Number.NaN;
     const timeframes: Record<string, TimeframeBaseline | null> = {};
     for (const [tf, items] of stores) {
       timeframes[tf] = items ? timeframeBaseline(items, fromMs, toMs) : null;

@@ -1632,9 +1632,17 @@ function formatRate(value: number) {
 }
 
 function printTable(rows: string[][]) {
-  const widths = rows[0].map((_, column) =>
-    Math.max(...rows.map((row) => row[column].length))
-  );
+  // Linear, not a spread: this is one row per symbol per grid variant and
+  // runs AFTER the sweep body, so a wide grid would lose the run's whole
+  // summary to a RangeError at the last step. Same class as the census
+  // defect, and unlike indicators.ts's slice(-80) nothing bounds it.
+  const widths = rows[0].map((_, column) => {
+    let widest = 0;
+    for (const row of rows) {
+      if (row[column].length > widest) widest = row[column].length;
+    }
+    return widest;
+  });
   for (const row of rows) {
     console.log(
       row.map((cell, column) => cell.padEnd(widths[column])).join("  "),

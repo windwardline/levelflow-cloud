@@ -2543,12 +2543,17 @@ describe("the calendar census — a collapse must be visible from the corpus", (
   // store on disk against a fetch log; recording both makes it readable from
   // any corpus.
   it("records both counts, so equality is readable as the collapse signature", () => {
-    const collapsed = calendarCensus([
+    // NOT named `collapsed`. Three distinct instants is a healthy micro-
+    // calendar, and an earlier draft of this test bound exactly this to that
+    // name — teaching the misreading the docblock now disclaims. Equality at
+    // this scale is unremarkable: 581 of 4,194 single-day slices of the live
+    // HEALTHY store satisfy it. The signature holds of the store whole.
+    const oneEach = calendarCensus([
       { time: 1_000 },
       { time: 2_000 },
       { time: 3_000 },
     ]);
-    assert.equal(collapsed.itemCount, collapsed.distinctTimes);
+    assert.equal(oneEach.itemCount, oneEach.distinctTimes);
 
     const healthy = calendarCensus([
       { time: 1_000 },
@@ -2561,6 +2566,41 @@ describe("the calendar census — a collapse must be visible from the corpus", (
       healthy.itemCount,
       healthy.distinctTimes,
       "a healthy calendar holds more events than instants",
+    );
+  });
+
+  it("survives a store larger than the argument limit — no spread", () => {
+    // `Math.min(...times)` throws RangeError above roughly 125,000 arguments
+    // on this engine, MEASURED: 110,000 ok, 125,000 RangeError. The store
+    // already held 74,115, so the headroom was 1.69x, and admitting
+    // low-impact events is a one-line filter change that crosses it.
+    //
+    // Where it threw is the point. The census runs AFTER the sweep body, so a
+    // run of tens of hours would have ended by throwing while writing its
+    // manifest — and an emit with no manifest is refused by the corpus door.
+    // The whole run, unreadable, at the last step.
+    const many = Array.from({ length: 150_000 }, (_, index) => ({
+      time: index * 1_000,
+    }));
+    const census = calendarCensus(many);
+    assert.equal(census.itemCount, 150_000);
+    assert.equal(census.distinctTimes, 150_000);
+    assert.equal(census.firstEventMs, 0);
+    assert.equal(census.lastEventMs, 149_999_000);
+  });
+
+  it("REFUSES a non-finite time instead of reporting an empty span", () => {
+    // Left to Math.min this produced NaN, which JSON.stringify writes as
+    // null — so a corrupted store serialised byte-identically to an empty
+    // one. A silent failure by this repository's own rule, and sorting would
+    // have hidden it more thoroughly rather than less.
+    assert.throws(
+      () => calendarCensus([{ time: 5 }, { time: Number.NaN }, { time: 1 }]),
+      /non-finite time/,
+    );
+    assert.throws(
+      () => calendarCensus([{ time: Number.POSITIVE_INFINITY }]),
+      /non-finite time/,
     );
   });
 
