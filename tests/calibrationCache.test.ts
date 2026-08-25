@@ -329,3 +329,102 @@ describe("the sweep's fetchers report an incomplete series rather than pinning i
     assert.match(sweep, /throw new Error\(\s*`FMP request failed \(\$\{[\w.]+\.status\}\)/);
   });
 });
+
+describe("repin — making a multi-hour rebuild into one snapshot", () => {
+  // The pin exists so a run is reproducible within its anchor day: once a
+  // market is fetched, every later call that day returns the same tail. Right
+  // for a sweep, wrong for the last pass of a REBUILD.
+  //
+  // The v4 build took five attempts across a night, so each market was pinned
+  // at whatever moment it happened to be fetched. Measured on the finished
+  // cache: 16.4 hours between the oldest and newest tail, clustering by build
+  // attempt. The clock verifier refused it on 57 checks, correctly — a corpus
+  // whose markets were observed 16 hours apart is not one snapshot.
+
+  const store = (dir: string, key: string, times: number[]) => {
+    writeFileSync(
+      join(dir, `${key}.rolling.json`),
+      JSON.stringify({
+        clock: "test-clock",
+        items: times.map((time) => ({ time })),
+        pinned: { "2026-08-25": times.at(-1) },
+      }),
+    );
+  };
+
+  it("tops up a pinned series instead of returning the pin", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "repin-"));
+    store(dir, "X-15min-7000", [1_000, 2_000]);
+    let fetched = false;
+    const items = await loadRollingSeries<{ time: number }>({
+      anchor: "2026-08-25",
+      cacheDir: dir,
+      clock: "test-clock",
+      fetchFull: () => Promise.resolve([]),
+      fetchSince: () => {
+        fetched = true;
+        return Promise.resolve([{ time: 3_000 }]);
+      },
+      key: "X-15min-7000",
+      repin: true,
+      timeOf: (item) => item.time,
+    });
+    assert.equal(fetched, true, "repin did not reach the provider");
+    assert.deepEqual(items.map((item) => item.time), [1_000, 2_000, 3_000]);
+  });
+
+  it("still honours the pin when repin is off — the default must not change", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "repin-off-"));
+    store(dir, "Y-15min-7000", [1_000, 2_000]);
+    let fetched = false;
+    const items = await loadRollingSeries<{ time: number }>({
+      anchor: "2026-08-25",
+      cacheDir: dir,
+      clock: "test-clock",
+      fetchFull: () => Promise.resolve([]),
+      fetchSince: () => {
+        fetched = true;
+        return Promise.resolve([{ time: 3_000 }]);
+      },
+      key: "Y-15min-7000",
+      timeOf: (item) => item.time,
+    });
+    assert.equal(fetched, false, "the pin no longer holds without repin");
+    assert.deepEqual(items.map((item) => item.time), [1_000, 2_000]);
+  });
+
+  it("is append-only — a shorter provider answer cannot shorten the store", async () => {
+    // FMP's intraday depth ages out; a refetch can legitimately return fewer
+    // bars than are already stored. Repinning must never turn that into data
+    // loss, or the cure would be worse than the ragged edge.
+    const dir = mkdtempSync(join(tmpdir(), "repin-short-"));
+    store(dir, "Z-15min-7000", [1_000, 2_000, 3_000]);
+    const items = await loadRollingSeries<{ time: number }>({
+      anchor: "2026-08-25",
+      cacheDir: dir,
+      clock: "test-clock",
+      fetchFull: () => Promise.resolve([]),
+      fetchSince: () => Promise.resolve([{ time: 3_000 }]),
+      key: "Z-15min-7000",
+      repin: true,
+      timeOf: (item) => item.time,
+    });
+    assert.deepEqual(items.map((item) => item.time), [1_000, 2_000, 3_000]);
+  });
+
+  it("every rolling-store load in the driver passes it — derived, not counted", () => {
+    // Four of the six sites carried it on the first pass; the calendar and
+    // the treasury curve did not. A corpus is one snapshot or it is not, and
+    // "the bars are current but the calendar is sixteen hours behind" is the
+    // same raggedness one layer down.
+    const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
+    const loads = (driver.match(/loadRollingSeries</g) ?? []).length;
+    const passes = (driver.match(/^\s+repin(,|: args\.repin,)$/gm) ?? []).length;
+    assert.ok(loads > 0, "no rolling-store loads found — re-anchor this test");
+    assert.equal(
+      passes,
+      loads,
+      `${loads} rolling-store loads but ${passes} pass repin`,
+    );
+  });
+});
