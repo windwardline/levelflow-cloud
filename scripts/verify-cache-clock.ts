@@ -66,7 +66,6 @@ type SlimSeries = {
    * cannot fire is worse than no gate, because it reads as coverage.
    */
   recentMaxGapMs: number;
-  recentMedianGapMs: number;
   lastTime: number;
   slim: StoredBar[];
 };
@@ -106,7 +105,7 @@ export function auditCacheClock(input: {
   cacheDir: string;
   rosterProviderSymbols?: string[];
 }): CacheClockAudit {
-  const { asOfMs, cacheDir, rosterProviderSymbols } = input;
+  const { asOfMs = Date.now(), cacheDir, rosterProviderSymbols } = input;
   const lines: string[] = [];
   const failures: string[] = [];
   const fail = (line: string) => {
@@ -170,69 +169,6 @@ export function auditCacheClock(input: {
   // confidenceScore, so a roster-mode audit that is silent about its absence
   // certifies a cache the sweep will refuse.
   let ratesPresent = false;
-
-  // P5: HAS THIS FEED STOPPED? Nothing asked, anywhere, until 2026-08-24.
-  //
-  // `staleMs` existed at exactly one site — the Treasury branch above — and
-  // no gate compared a BAR store's newest row to now. `recentWindow` ends
-  // its 90-day window at the SERIES' OWN last bar, so a store truncated 200
-  // days ago measures density over a window that ended 200 days ago and
-  // reports the theoretical maximum. Proven on the real cache: BTCUSD
-  // truncated as though the feed died 200 days back reads 288.0 rows/day,
-  // recentSpanDays 90, verdict "utc" — identical to live, and it clears the
-  // 260 floor. `corpusEndMs` cannot see it either, being a MAX across
-  // symbols.
-  //
-  // Amendment 31 makes a lapsed feed a SOURCE FAILURE that ejects
-  // automatically — "not a calibration verdict, and it remains automatic" —
-  // so this refusal is typed as one, and it must never be confused with the
-  // density verdict beside it.
-  //
-  // THE BOUND IS THE MARKET'S OWN: the longest gap inside its recent
-  // window, which spans ~13 weekends and any holidays among them, so every
-  // lawful silence is inside the bound by construction. A flat bound could
-  // not serve the roster — 7 days is right for a daily curve, far too loose
-  // for a 24/7 five-minute store and too tight for a grain future's
-  // weekend-plus-holiday gap.
-  //
-  // PLUS TWO INTERVALS, because trailing silence and a gap between bars are
-  // not the same quantity. A gap is a completed interval; the trailing
-  // silence includes the bar currently forming, which cannot have been
-  // published yet. At any instant the newest CLOSED bar is labelled
-  // `floor((now - interval) / interval) * interval`, so structural trailing
-  // silence lies in [1 interval, 2 intervals) even from a perfect feed with
-  // zero provider lag. That is a derivation, not a tolerance.
-  //
-  // Without it the gate could not pass a healthy dense series at all. On
-  // the v4 cache it refused 17 crypto 5-minute stores reading 10.0 minutes
-  // silent against a 5.0-minute recent maximum — while their 15-minute
-  // siblings passed on 15.0 against 15.0, which is to say by one minute of
-  // luck. A gate whose verdict turns on the minute you run it is not
-  // measuring the feed.
-  //
-  // Lapsed-feed detection is untouched: a feed that stopped goes silent for
-  // hours or days, and two bar intervals is minutes.
-  const staleness = (key: string, facts: SlimSeries, asOf: number) => {
-    if (facts.recentMaxGapMs <= 0) return;
-    const silentMs = asOf - facts.lastTime;
-    const lawfulMs = facts.recentMaxGapMs + 2 * facts.recentMedianGapMs;
-    if (silentMs <= lawfulMs) return;
-    fail(
-      `${key}: SOURCE FAILURE — silent for ${
-        (silentMs / 86_400_000).toFixed(2)
-      } days, longer than the longest silence this market has had in its ` +
-        `recent window (${
-          (facts.recentMaxGapMs / 86_400_000).toFixed(2)
-        } days) plus the two bar intervals that are always in flight (${
-          (2 * facts.recentMedianGapMs / 86_400_000).toFixed(2)
-        } days). A lapsed feed ejects automatically under amendment 31; this ` +
-        `is not a density or calibration verdict`,
-    );
-  };
-
-  // Drained after the loop: the bound needs the corpus's own as-of, which
-  // is not known until every store has been read.
-  const stalenessQueue: Array<[string, SlimSeries]> = [];
 
   for (const name of rollingNames) {
     const key = name.slice(0, -".rolling.json".length);
@@ -447,27 +383,15 @@ export function auditCacheClock(input: {
     const recentGapStart = items[items.length - 1].time -
       DENSITY_RECENT_WINDOW_DAYS * 86_400_000;
     let recentMaxGapMs = 0;
-    const recentGaps: number[] = [];
     for (let index = 1; index < items.length; index += 1) {
       if (items[index].time < recentGapStart) continue;
       const gap = items[index].time - items[index - 1].time;
-      recentGaps.push(gap);
       if (gap > recentMaxGapMs) recentMaxGapMs = gap;
     }
-    // The series' own bar interval, taken as the MEDIAN recent gap. Derived
-    // rather than read off the key, and median rather than mode or minimum
-    // so a doubled bar or a holiday cannot move it. Measured on the v4 cache
-    // it lands exactly: 5.0 minutes for every 5min store, 15.0 for every
-    // 15min one.
-    recentGaps.sort((a, b) => a - b);
-    const recentMedianGapMs = recentGaps.length > 0
-      ? recentGaps[Math.floor(recentGaps.length / 2)]
-      : 0;
     const slim: SlimSeries = {
       count: items.length,
       firstTime: items[0].time,
       recentMaxGapMs,
-      recentMedianGapMs,
       lastTime: items[items.length - 1].time,
       slim: items.map((bar) => ({
         high: bar.high,
@@ -508,9 +432,45 @@ export function auditCacheClock(input: {
           `(zero-shift match ${registration.matchRateAtZero ?? "n/a"})`,
       );
     }
-    // DEFERRED, because the bound needs an instant this loop does not have
-    // yet — see the corpus-as-of note where these are drained.
-    stalenessQueue.push([`${pairKey} 15min`, fifteen], [`${pairKey} 5min`, five]);
+    // P5: HAS THIS FEED STOPPED? Nothing asked, anywhere, until 2026-08-24.
+    //
+    // `staleMs` existed at exactly one site — the Treasury branch above — and
+    // no gate compared a BAR store's newest row to now. `recentWindow` ends
+    // its 90-day window at the SERIES' OWN last bar, so a store truncated 200
+    // days ago measures density over a window that ended 200 days ago and
+    // reports the theoretical maximum. Proven on the real cache: BTCUSD
+    // truncated as though the feed died 200 days back reads 288.0 rows/day,
+    // recentSpanDays 90, verdict "utc" — identical to live, and it clears the
+    // 260 floor. `corpusEndMs` cannot see it either, being a MAX across
+    // symbols.
+    //
+    // Amendment 31 makes a lapsed feed a SOURCE FAILURE that ejects
+    // automatically — "not a calibration verdict, and it remains automatic" —
+    // so this refusal is typed as one, and it must never be confused with the
+    // density verdict beside it.
+    //
+    // THE BOUND IS THE MARKET'S OWN: the longest gap inside its recent
+    // window, which spans ~13 weekends and any holidays among them, so every
+    // lawful silence is inside the bound by construction. A flat bound could
+    // not serve the roster — 7 days is right for a daily curve, far too loose
+    // for a 24/7 five-minute store and too tight for a grain future's
+    // weekend-plus-holiday gap.
+    const staleness = (key: string, facts: SlimSeries) => {
+      if (facts.recentMaxGapMs <= 0) return;
+      const silentMs = asOfMs - facts.lastTime;
+      if (silentMs <= facts.recentMaxGapMs) return;
+      fail(
+        `${key}: SOURCE FAILURE — silent for ${
+          (silentMs / 86_400_000).toFixed(2)
+        } days, longer than the longest silence this market has had in its ` +
+          `recent window (${
+            (facts.recentMaxGapMs / 86_400_000).toFixed(2)
+          } days). A lapsed feed ejects automatically under amendment 31; this ` +
+          `is not a density or calibration verdict`,
+      );
+    };
+    staleness(`${pairKey} 15min`, fifteen);
+    staleness(`${pairKey} 5min`, five);
     // R0f/C3: the ABSOLUTE registration test, beside the relative one above.
     // crossSeriesClock buckets day extremes on the UTC calendar day, so a
     // one-sided shift is visible only when it moves a high or low across UTC
@@ -750,40 +710,6 @@ export function auditCacheClock(input: {
     // Informational: cot files are bespoke (no clock stamp; parse
     // unchanged across repo history). The rebuild archives them with the
     // directory; their presence is listed so a partial cleanup is visible.
-  // THE CORPUS'S OWN AS-OF, not the wall clock.
-  //
-  // This defaulted to `Date.now()`, which made the verdict a property of WHEN
-  // YOU RAN THE COMMAND rather than of the data. The v4 cache proved it
-  // twice in ten minutes: green at 11:30 and red at 11:40, on bytes that had
-  // not changed. A calibration corpus is swept for hours and read for weeks;
-  // one that is only valid for the fifteen minutes after it was built is not
-  // an instrument.
-  //
-  // The corpus's own newest observation is the honest as-of, and the sibling
-  // instrument already used it — `corpusEndMs` in sweepStats.ts, a MAX across
-  // symbols. Against it, a market that lapsed while its neighbours kept
-  // publishing still ejects, which is the whole point of amendment 31; what
-  // stops ejecting is the corpus simply having been built yesterday.
-  //
-  // The corpus's age against the wall clock is not lost — it is reported
-  // below as its own line, because "this corpus is three days old" is worth
-  // knowing and is not a per-market source failure.
-  const corpusEndMs = stalenessQueue.reduce(
-    (newest, [, facts]) => Math.max(newest, facts.lastTime),
-    Number.NEGATIVE_INFINITY,
-  );
-  const stalenessAsOf = asOfMs ?? corpusEndMs;
-  if (Number.isFinite(corpusEndMs)) {
-    for (const [key, facts] of stalenessQueue) {
-      staleness(key, facts, stalenessAsOf);
-    }
-    const ageMs = Date.now() - corpusEndMs;
-    lines.push(
-      `  note corpus as-of ${
-        new Date(corpusEndMs).toISOString().slice(0, 16)
-      }Z, ${(ageMs / 3_600_000).toFixed(1)}h before this run`,
-    );
-  }
     lines.push(`  note ${cotNames.length} cot-*.json contract file(s) present`);
   }
   return { failures, lines };
