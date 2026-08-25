@@ -125,9 +125,15 @@ async function requestMacroRateContext(
     // of them, kept source "fmp_treasury_rates", and scored every setup off a
     // pair that may straddle a large move: the +/-4bps and +/-8bps thresholds
     // in calculateMacroRateAdjustment are ONE-DAY-CHANGE thresholds, and
-    // energies additionally take a -1 shock penalty at |change| >= 8bps, so a
-    // stale pair penalises BRENT, BZUSD, CLUSD, NGUSD and WTI as well as the
-    // rate-aligned side.
+    // the energy-shock role additionally takes a -1 penalty at
+    // |change| >= 8bps, so a stale pair penalises every market carrying that
+    // role as well as the rate-aligned side.
+    //
+    // Named by ROLE, not by list. This read "BRENT, BZUSD, CLUSD, NGUSD and
+    // WTI" and was wrong in both directions: BRENT left symbolMap and is no
+    // longer analyzable at all, while HOUSD and RBUSD joined the role. The
+    // population lives in MACRO_RATE_ROLE_BY_SYMBOL, where a test holds it to
+    // the roster; a copy here could only ever drift away from it.
     //
     // The sweep has refused exactly this since R1b, twice and explicitly, on
     // the same seven-day bound; the predicate is shared rather than copied so

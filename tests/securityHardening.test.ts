@@ -25,18 +25,22 @@ describe("security hardening", () => {
     );
     // 60, not 40, and not 8. A scan is a fan-out of ≤10-market requests since
     // the 2026-08-02 CPU failures, and the 2026-08-07 release took the universe
-    // from 50 markets to 111 — so a full scan is 12 chunks, and 40 would have
-    // rate-limited a scan against its own second half.
-    // tests/scanBatching.test.ts holds the arithmetic (chunks × 5 ≤ limit);
-    // this holds the number.
+    // from 50 markets to the full roster — so a full scan is many chunks, and
+    // 40 would have rate-limited a scan against its own second half.
+    // tests/scanBatching.test.ts holds the relation (chunks × 5 ≤ limit),
+    // reading both sides from their live sources; this holds the number.
     //
-    // The old note here argued safety from FMP's budget — "40 × ~70 is 2,800
-    // against 3,000". That argument no longer holds and is not repaired by a
-    // bigger number: a 111-market scan costs ~780 provider calls, so five full
-    // scans is ~3,900 against 3,000, and chunk size cannot help because a
-    // scan's provider cost is markets × 7 however they are grouped. Roughly
-    // four full scans a minute is the physical ceiling, FMP enforces it rather
-    // than this limiter, and the source comment beside the limit says so.
+    // NO ROSTER SIZE AND NO PROVIDER TOTAL HERE. This carried "111 markets",
+    // "12 chunks", "~780 provider calls" and "markets × 7", and closed by
+    // asserting that "the source comment beside the limit says so" — which it
+    // no longer did, in three numbers. The roster moved and #362 deleted the
+    // minute fetch, making the per-market cost 6. A fourth restatement of the
+    // same arithmetic in a fourth file is what produced four different
+    // answers; the per-market cost is now pinned to the timeframe list that
+    // sets it, in tests/scanBatching.test.ts.
+    //
+    // The standing fact this test guards: FMP's request ceiling binds before
+    // this limiter does, so widening this number is never the lever.
     assert.match(analyzerSource, /scan_opportunities: 60,/);
 
     // And the deploy-time flood must DERIVE this number rather than restate it.

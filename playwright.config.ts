@@ -60,15 +60,21 @@ export default defineConfig({
   // A Scan click is no longer one request. Since the 2026-08-02 CPU failures the
   // client splits a scan into ≤10-market requests (src/lib/scanBatching.ts), and
   // each one claims the scan budget — so this project's spend is counted in
-  // chunks, not clicks. What the workspace project spends, all in:
-  //   4 All-markets scans (the two Guide/receipt link specs, the ladder-copy
-  //     spec, the persistence spec)  6 claims each = 24
-  //   8 Crypto-scoped scans (§19d and the rail-reference wave,
-  //     two specs per width leg each)                          1 each =  8
-  //   1 single-market scan (the one-door spec)                            1
-  //                                                                   ── 33
-  // spread across a project whose runtime is minutes, against 40 per
-  // minute-aligned tumbling 60s window — a ledger that assumes retries: 0
+  // chunks, not clicks.
+  //
+  // NO TOTALS HERE, deliberately. This ledger used to carry a per-spec
+  // breakdown summing to 33 against "40/60s". Three of those numbers were
+  // wrong: the limit is 60, an all-markets scan is more than 6 chunks, and the
+  // chunk count is not even stable — chunkScanSymbols receives an
+  // availability-filtered list, so a weekday and a weekend scan differ. A
+  // ledger nobody can recompute is a ledger nobody can check, and rewriting it
+  // with today's figures would just reset the clock on the same defect.
+  //
+  // The relation instead: this project spends one claim per chunk, once per
+  // scan, across a runtime of minutes, against a minute-aligned tumbling
+  // window. tests/scanBatching.test.ts holds the safety margin — it reads both
+  // the chunk count and the server limit from their live sources and asserts
+  // five full scans fit. This is a ledger that assumes retries: 0
   // (unset here; pinned in tests/scanBatching.test.ts). visual-proof scans
   // nothing (it captures surfaces) but its ten Desk/Insights surface visits
   // are a heavy consumer of the refresh budget — as, more modestly, are the

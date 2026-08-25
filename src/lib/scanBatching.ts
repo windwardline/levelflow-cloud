@@ -25,9 +25,15 @@ export const SCAN_REQUEST_CONCURRENCY = 2;
  * analyzer collapses correlated markets per request — one market per cluster is
  * shown, the rest come back blocked ("Showing X instead") — so a cluster split
  * across two requests wins its own collapse twice: two versions of the same
- * trade idea, both on the rail and both persisted. Ten-at-a-time chunking of
- * today's 50-market universe splits 6 of its 15 clusters, eur_crosses (7) and
- * aud_crosses (5) among them.
+ * trade idea, both on the rail and both persisted. Naive ten-at-a-time chunking
+ * splits clusters wider than a chunk and any cluster that straddles a boundary.
+ *
+ * The worked example that used to sit here — "today's 50-market universe
+ * splits 6 of its 15 clusters, eur_crosses (7) and aud_crosses (5) among
+ * them" — is gone rather than updated. The universe has more than doubled and
+ * the cluster count moved with it, so the two clusters offered as evidence had
+ * become counterexamples: both now fit. A motivating example that inverts is
+ * worse than none, and the guarantee itself is machine-checked below.
  *
  * First-fit-decreasing over the clusters: the widest cluster is placed first,
  * and the ties keep their input order, so the partition is deterministic.
