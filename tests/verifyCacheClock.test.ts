@@ -285,14 +285,66 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     const dir = cacheDir();
     healthyTrio(dir);
     calendarStore(dir);
+    // Stale RELATIVE TO THE CORPUS, which is what the bound now measures.
+    // This filtered on `Date.now() - 60d`, which was written for a wall-clock
+    // bound and left the curve ending AFTER the bars — a curve ahead of its
+    // own corpus, which is not stale by any reading. Truncating against the
+    // newest bar is what the test always meant.
+    const corpusEnd = newestBarIn(dir);
     const stale = healthyCurve().filter(
-      (row) => row.dateMs < Date.now() - 60 * 86_400_000,
+      (row) => row.dateMs < corpusEnd - 60 * DAY,
     );
     store(dir, "treasury-rates", CALENDAR_CLOCK, stale);
     const report = auditCacheClock({ asOfMs: newestBarIn(dir), cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
     assert.ok(
-      report.failures.some((line) => /days stale/.test(line)),
+      report.failures.some((line) => /days behind the corpus/.test(line)),
       report.failures.join("\n") || "(no failures)",
+    );
+    // The refusal must name the cheap remedy. It used to say "Rebuild per
+    // docs/cache-rebuild-r0.md; do not sweep or top up against this cache" —
+    // forbidding the thirty-second `--warm-only` top-up that clears it and
+    // routing the operator to a fourteen-hour rebuild that spends metered
+    // bytes.
+    assert.ok(
+      report.failures.some((line) => /--warm-only top-up/.test(line)),
+      "the curve refusal must name the top-up that clears it",
+    );
+  });
+
+  it("does NOT condemn a curve that is current with its own corpus", () => {
+    // THE REGRESSION THIS FIX EXISTS FOR. #420 made bar staleness
+    // corpus-relative and left the curve on `Date.now()`, so the accepted
+    // 7.65 GB v4 cache — Treasury tail 2026-08-24 — would have gone RED on
+    // 2026-08-31 on bytes that had not changed.
+    //
+    // Here the curve ends with the bars and the whole corpus sits weeks in the
+    // past, which is the ordinary state of a cache being read after it was
+    // built. Under a wall-clock bound this fails; under a corpus-relative one
+    // it passes, and a genuinely stopped feed still falls behind the corpus.
+    const dir = cacheDir();
+    healthyTrio(dir);
+    calendarStore(dir);
+    const newest = newestBarIn(dir);
+    // The curve ends WITH the corpus, not with the wall clock. That is the
+    // only fixture that separates the two bounds: `healthyCurve()` runs to
+    // Date.now(), so it reads fresh under either and an earlier draft of this
+    // test passed while the wall-clock bound was still in place.
+    const curve = healthyCurve().filter((row) => row.dateMs <= newest);
+    store(dir, "treasury-rates", CALENDAR_CLOCK, curve);
+    assert.ok(
+      Date.now() - newest > 8 * DAY,
+      "the fixture caught up with the clock — pick an older instant",
+    );
+    assert.ok(
+      newest - curve[curve.length - 1].dateMs < 7 * DAY,
+      "the curve must end with the corpus for this test to mean anything",
+    );
+    const report = auditCacheClock({ cacheDir: dir, rosterProviderSymbols: ["EURUSD"] });
+    assert.ok(
+      !report.failures.some((line) => /behind the corpus/.test(line)),
+      `a corpus-current curve must not read as stale: ${
+        report.failures.join("\n")
+      }`,
     );
   });
 
