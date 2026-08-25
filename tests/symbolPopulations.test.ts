@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   CENSUS_MIN_SYMBOLS,
@@ -120,6 +121,48 @@ describe("hand-listed symbol populations declare themselves", () => {
         `${entry.file}:${entry.line} ${entry.name}: names symbols outside ${marker.versus}`,
       );
     }
+  });
+
+  it("every table of record still exists where the exemption names it", () => {
+    // TABLES_OF_RECORD is a curated exemption list, and an exemption list
+    // cannot notice its own premise going stale: a renamed or deleted file
+    // leaves a dead entry that exempts nothing, while any NEW file at a path
+    // nobody rechecked would be policed as normal. Cheap to derive, so derive.
+    const missing = [...TABLES_OF_RECORD].filter(
+      (file) => !existsSync(new URL(`../${file}`, import.meta.url)),
+    );
+    assert.deepEqual(
+      missing,
+      [],
+      `TABLES_OF_RECORD exempts paths that no longer exist:\n  ${missing.join("\n  ")}`,
+    );
+  });
+
+  it("CLASS_REPRESENTATIVE names one symbol for every live asset class", () => {
+    // THE INVARIANT THE MARKER CANNOT SEE. scripts/sweep-analysis.ts's
+    // CLASS_REPRESENTATIVE carries a `record` marker pinned at 8, which
+    // compares the table to a frozen number and never to the class list it
+    // mirrors. Add a ninth asset class and the table stays 8, the marker stays
+    // 8, and assert.equal(8, 8) passes while the new class has no
+    // representative — the same mechanism that let masterList.ts hold nine
+    // withheld markets after its population went empty (#432).
+    //
+    // Checked through the SYMBOLS rather than the keys, which is stronger: a
+    // symbol filed under the wrong class fails here too.
+    const entry = census.find((item) => item.name === "CLASS_REPRESENTATIVE");
+    assert.ok(entry, "CLASS_REPRESENTATIVE is no longer in the census — was it renamed?");
+    const represented = new Set(entry.symbols.map((symbol) => getAssetType(symbol)));
+    const live = new Set(defaultScanSymbols.map((symbol) => getAssetType(symbol)));
+    assert.deepEqual(
+      [...represented].sort(),
+      [...live].sort(),
+      "CLASS_REPRESENTATIVE and the live asset classes have diverged",
+    );
+    assert.equal(
+      entry.symbols.length,
+      represented.size,
+      "two representatives share one class, so some class is unrepresented",
+    );
   });
 
   it("a `record` marker pins its size, so nobody widens a measurement", () => {

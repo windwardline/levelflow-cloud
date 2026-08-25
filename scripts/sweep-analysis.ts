@@ -66,6 +66,19 @@ type Row = {
 // One representative roster symbol per class — only a key into
 // getCategoryCalibration, never a source of numbers. The thresholds
 // printed are whatever calibration.ts holds the moment this runs.
+//
+// THIS IS A LIVE MIRROR, NOT A MEASUREMENT, and the marker below cannot see
+// that. A `record` marker pins this table's size against a frozen number, so
+// a ninth asset class would leave the table at 8, the marker at 8, and
+// `assert.equal(8, 8)` green — the class silently unrepresented. That is the
+// same mechanism that let masterList.ts's NOT_SCANNABLE_GROUND hold nine
+// withheld markets after the population it mirrored went empty (#432).
+//
+// The marker vocabulary in scripts/symbolCensus.ts has no kind for "one entry
+// per member of a derived population" — `external` pins a symbol count against
+// a roster, not a key count against a class list — so the marker stays as a
+// tripwire on edits, and the invariant it cannot express is asserted in
+// tests/symbolPopulations.test.ts instead.
 // SYMBOLS: record one probe symbol per class | 8
 const CLASS_REPRESENTATIVE: Record<string, string> = {
   agriculture: "ZCUSX",
@@ -356,9 +369,17 @@ async function main(): Promise<void> {
       }
       add(buckets.get(bucket)!, row);
     }
-    const live = liveThreshold(className) ?? 0;
+    // No `?? 0`. A class with no representative has no live threshold, and
+    // zero is a real bucket — it would plant the `*` on the 0-4 band and tell
+    // the reader the live threshold sits in the lowest confidence band. The
+    // caption says which of the two it is rather than substituting a number.
+    const live = liveThreshold(className);
     table(
-      `${className} — confidence reliability (5-point buckets; * marks the live threshold's bucket, ! marks n < ${minN})`,
+      `${className} — confidence reliability (5-point buckets; ${
+        live === null
+          ? `NO live threshold — ${className} has no entry in CLASS_REPRESENTATIVE`
+          : "* marks the live threshold's bucket"
+      }, ! marks n < ${minN})`,
       ["band", "n", "tp1", "stop", "unfilled", "dataAbs", "expR", "flag"],
       [...buckets.entries()]
         .sort(([a], [b]) => a - b)
@@ -370,7 +391,9 @@ async function main(): Promise<void> {
           rate(stats.n - stats.filled, stats.n),
           String(stats.dataAbsent),
           expectancyLabel(stats),
-          `${bucket <= live && live <= bucket + 4 ? "*" : ""}${stats.n < minN ? "!" : ""}`,
+          `${
+            live !== null && bucket <= live && live <= bucket + 4 ? "*" : ""
+          }${stats.n < minN ? "!" : ""}`,
         ]),
     );
   }
