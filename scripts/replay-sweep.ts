@@ -18,8 +18,11 @@
 
 import {
   ANALYZER_VERSION,
+  type AssetType,
   type CategoryCalibration,
   getAssetType,
+  getClassCalibration,
+  getSymbolCalibrationOverride,
   getCategoryCalibration,
   hasKnownAssetType,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
@@ -31,8 +34,10 @@ import {
   createByteBudget,
   readJsonWithBudget,
 } from "./fmpByteBudget.ts";
+import { execFileSync } from "node:child_process";
 import {
   buildSweepManifest,
+  resolveSweepSource,
   type CrossSeriesDensity,
   crossSeriesDensityFacts,
   seriesFacts,
@@ -174,6 +179,14 @@ async function main() {
   // Durable by default (r17 hardening): mornings reuse the rolling store
   // and top up incrementally instead of refetching whole windows.
   args.cacheDir = args.cacheDir ?? DEFAULT_CACHE_DIR;
+  // Resolved HERE, not at manifest-write time. A sweep runs for tens of
+  // hours; a git failure discovered while writing the manifest would throw
+  // away the entire run. Validate before mutating.
+  const source = args.emit
+    ? resolveSweepSource((gitArgs) =>
+      execFileSync("git", gitArgs, { encoding: "utf8" })
+    )
+    : undefined;
   const rows: string[][] = [[
     "symbol",
     "variant",
@@ -204,7 +217,9 @@ async function main() {
   const emitStream = args.emit ? createWriteStream(args.emit) : null;
   let emittedRecords = 0;
   const manifestSymbols: Array<{
+    assetType: AssetType;
     calibration: Record<string, unknown>;
+    symbolOverride: Record<string, unknown>;
     crossSeriesClock: CrossSeriesClock;
     crossSeriesDensity?: CrossSeriesDensity;
     // The two ABSOLUTE instruments, named here rather than reaching the
@@ -785,9 +800,24 @@ async function main() {
     const cotReports = await loadCotReports(args.cacheDir, symbol);
 
     manifestSymbols.push({
+      assetType: getAssetType(symbol),
       calibration: {
         ...getCategoryCalibration(symbol),
       } as unknown as Record<string, unknown>,
+      // WAS THIS VALUE CHOSEN FOR THIS MARKET, OR APPLIED TO IT? The merged
+      // object above cannot say: getCategoryCalibration folds the class row and
+      // the per-symbol override into one flat result, and only that result was
+      // recorded. 72 of 97 markets carry an override, and R4 grades all 97
+      // individually against their own shipped configuration — so this is the
+      // field R4 needs first.
+      //
+      // Named `symbolOverride`, NOT `calibrationOverride`: that name is
+      // already taken by the GRID variant override (sweep.ts), and a reader
+      // mistaking shipped config for a grid cell is worse than no field.
+      symbolOverride: getSymbolCalibrationOverride(symbol) as Record<
+        string,
+        unknown
+      >,
       crossSeriesClock: registration,
       crossSeriesDensity,
       gridRegistration: grid,
@@ -920,6 +950,16 @@ async function main() {
       analyzerVersion: ANALYZER_VERSION,
       anchor: isoDate(new Date()),
       barRejections: barRejectionTally,
+      // Derived from the classes this run actually loaded — never a hand-kept
+      // list, which would go stale the day a class joins the roster.
+      calibrationByClass: Object.fromEntries(
+        [...new Set(manifestSymbols.map((entry) => entry.assetType))]
+          .sort()
+          .map((assetType) => [
+            assetType,
+            { ...getClassCalibration(assetType) } as Record<string, unknown>,
+          ]),
+      ),
       clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       conditions,
       days: args.days,
@@ -935,6 +975,7 @@ async function main() {
       generatedAt: new Date().toISOString(),
       grid: args.grid,
       holdoutSymbols: [...holdoutSymbols].sort(),
+      ...(source && { source }),
       stepBars: args.step,
       symbols: manifestSymbols,
       trainShare: TRAIN_SHARE,

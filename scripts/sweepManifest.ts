@@ -491,6 +491,18 @@ export type SweepManifest = {
   analyzerVersion: string;
   anchor: string;
   barRejections: Record<string, number>;
+  /**
+   * The CLASS row for every class present in this run, before any per-symbol
+   * layer. Not redundant with `symbols[].calibration`: three classes — forex,
+   * metals, energies — have ZERO class-pure members, so their class row is
+   * applied to nothing observable and cannot be recovered by subtracting the
+   * overrides from the merges. Without this the artifact could not state the
+   * class row it actually ran under.
+   *
+   * Derived from the asset types the run actually loaded, never a hand-kept
+   * list of classes.
+   */
+  calibrationByClass?: Record<string, Record<string, unknown>>;
   // R0: the normalization every series in this corpus was stamped under —
   // asserted by the store guard at load, witnessed per series in the
   // facts below, and REQUIRED by every reader (sweepStats.verifyManifest
@@ -526,10 +538,29 @@ export type SweepManifest = {
   // excluded from every tuning aggregate — a property of the corpus.
   holdoutSymbols?: string[];
   manifestHash: string;
+  /**
+   * The engine revision this corpus was measured under. Optional because
+   * every pre-#409 corpus on disk genuinely lacks it — not because a new
+   * sweep may omit it.
+   */
+  source?: SweepSource;
   stepBars: number;
   symbols: Array<{
+    /** The class the merged calibration inherited from. */
+    assetType?: string;
     calibration: Record<string, unknown>;
     calibrationHash: string;
+    /**
+     * The per-symbol override ALONE — what was chosen for this market rather
+     * than applied to it. `calibration` above is the MERGE of the class row
+     * and this, and a merge cannot be un-merged: it answers which values
+     * applied and never whether they were authored for the market. 72 of 97
+     * markets carry one.
+     *
+     * It answers class-vs-symbol only. Derived-vs-legacy is a different
+     * question and `source` below is what addresses it.
+     */
+    symbolOverride?: Record<string, unknown>;
     // R0: relative registration of the 5-minute series against the
     // 15-minute primary — the audit's own mixed-clock instrument.
     crossSeriesClock?: CrossSeriesClock;
@@ -569,6 +600,7 @@ export function buildSweepManifest(input: {
   analyzerVersion: string;
   anchor: string;
   barRejections: Record<string, number>;
+  calibrationByClass?: Record<string, Record<string, unknown>>;
   clock: SweepManifest["clock"];
   conditions: SweepConditions;
   days: number;
@@ -577,13 +609,16 @@ export function buildSweepManifest(input: {
   generatedAt: string;
   grid: unknown[];
   holdoutSymbols?: string[];
+  source?: SweepSource;
   stepBars: number;
   // Precomputed per-series FACTS, not raw bars: the driver computes
   // seriesFacts per symbol as it loads and releases the arrays — holding
   // every symbol's full series until the end of the run for the manifest
   // is what OOM'd the first baseline attempt at the 4GB default heap.
   symbols: Array<{
+    assetType?: string;
     calibration: Record<string, unknown>;
+    symbolOverride?: Record<string, unknown>;
     crossSeriesClock?: CrossSeriesClock;
     crossSeriesDensity?: CrossSeriesDensity;
     gridRegistration?: GridRegistration;
@@ -597,8 +632,10 @@ export function buildSweepManifest(input: {
   warmupBars: number;
 }): SweepManifest {
   const symbols = input.symbols.map((entry) => ({
+    ...(entry.assetType && { assetType: entry.assetType }),
     calibration: entry.calibration,
     calibrationHash: sha256Hex(stableStringify(entry.calibration)),
+    ...(entry.symbolOverride && { symbolOverride: entry.symbolOverride }),
     ...(entry.gridRegistration && { gridRegistration: entry.gridRegistration }),
     ...(entry.sessionAnchor && { sessionAnchor: entry.sessionAnchor }),
     ...(entry.crossSeriesClock && {
@@ -611,14 +648,23 @@ export function buildSweepManifest(input: {
     series: entry.series,
     symbol: entry.symbol,
   }));
-  // The hash covers everything that DEFINES the measurement. The write
-  // timestamp deliberately sits outside it: two runs under identical
-  // conditions produce one hash, and a reader asserting the hash is
-  // asserting conditions, not wall-clock provenance.
+  // The hash covers everything that DEFINES the measurement, and the engine
+  // revision is part of that definition: `analyzerVersion` is bumped by hand
+  // and covers the analyzer only, so two corpora can carry identical
+  // conditions and still have been measured by different code — which is
+  // exactly how the 2026-08-11 clock defect crossed a whole corpus unseen.
+  // A doc-only commit therefore re-hashes an otherwise identical run. That
+  // is the conservative direction: a false difference asks a human to look,
+  // where a false sameness silently licenses comparing two engines.
+  //
+  // The write timestamp still sits outside the hash: a reader asserting the
+  // hash is asserting conditions, not wall-clock provenance.
   const hashedPayload = {
     analyzerVersion: input.analyzerVersion,
     anchor: input.anchor,
     barRejections: input.barRejections,
+    ...(input.calibrationByClass &&
+      { calibrationByClass: input.calibrationByClass }),
     clock: input.clock,
     conditions: input.conditions,
     days: input.days,
@@ -626,6 +672,7 @@ export function buildSweepManifest(input: {
     ...(input.foldsByClass && { foldsByClass: input.foldsByClass }),
     grid: input.grid,
     ...(input.holdoutSymbols && { holdoutSymbols: input.holdoutSymbols }),
+    ...(input.source && { source: input.source }),
     stepBars: input.stepBars,
     symbols,
     trainShare: input.trainShare,
@@ -637,4 +684,41 @@ export function buildSweepManifest(input: {
     generatedAt: input.generatedAt,
     manifestHash: sha256Hex(stableStringify(hashedPayload)),
   };
+}
+
+/**
+ * The engine revision a corpus was measured under.
+ *
+ * `analyzerVersion` does not answer this. It is bumped by hand on
+ * behavior-changing analyzer PRs, so it moves for some changes and not for
+ * others, and it says nothing at all about the harness — `replay-sweep.ts`,
+ * `sweep.ts`, the witnesses — which is where the 2026-08-11 clock defect
+ * lived. Two corpora can carry the same analyzerVersion and the same
+ * conditions and still be two different measurements.
+ *
+ * `dirty` is not decoration. A corpus measured on a working tree with
+ * uncommitted edits cannot be reproduced from its revision, and the register
+ * has to be able to say so rather than imply a clean checkout.
+ */
+export type SweepSource = { dirty: boolean; revision: string };
+
+/**
+ * Resolve the revision from git, refusing rather than guessing.
+ *
+ * Call this at sweep START. A sweep runs for tens of hours, and a git failure
+ * discovered while writing the manifest would discard the whole run; resolved
+ * up front it costs a second. Validate before mutating.
+ */
+export function resolveSweepSource(
+  run: (args: string[]) => string,
+): SweepSource {
+  const revision = run(["rev-parse", "HEAD"]).trim();
+  // A short or empty answer means git answered something other than a commit.
+  // Recording it would put an unusable string where provenance goes.
+  if (!/^[0-9a-f]{40}$/.test(revision)) {
+    throw new Error(
+      `resolveSweepSource: git rev-parse HEAD returned ${JSON.stringify(revision)}, not a commit SHA`,
+    );
+  }
+  return { dirty: run(["status", "--porcelain"]).trim().length > 0, revision };
 }

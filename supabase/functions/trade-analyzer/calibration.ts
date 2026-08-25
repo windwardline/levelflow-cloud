@@ -1403,6 +1403,28 @@ export function getClassCalibration(assetType: AssetType): CategoryCalibration {
   return CALIBRATION[assetType];
 }
 
+/**
+ * The per-symbol layer ALONE — what was authored for this market rather than
+ * applied to it. `getCategoryCalibration` merges this over the class row and
+ * returns one flat object, and a merge cannot be un-merged.
+ *
+ * An accessor rather than the bare record, because the lookup key is
+ * NORMALIZED and today's roster hides that. All 97 engine symbols are
+ * alphanumeric — `^GSPC` is a PROVIDER symbol and never a key here — so a
+ * caller indexing the record raw reads correctly, and would keep reading
+ * correctly right up until the first market whose engine symbol carries
+ * punctuation, where it would silently report "no override" for a market
+ * that has one. The normalization lives here once so no caller can drift
+ * from it.
+ */
+export function getSymbolCalibrationOverride(
+  symbol: string,
+): Partial<CategoryCalibration> {
+  return SYMBOL_CALIBRATION_OVERRIDES[
+    symbol.toUpperCase().replace(/[^A-Z0-9]/g, "")
+  ] ?? {};
+}
+
 export function getCategoryCalibration(symbol: string): CategoryCalibration {
   const normalized = symbol.toUpperCase().replace(/[^A-Z0-9]/g, "");
   const base = CALIBRATION[getAssetType(symbol)];
