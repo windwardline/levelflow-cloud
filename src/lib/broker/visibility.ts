@@ -53,7 +53,7 @@ import {
 // testing the mechanism itself against a synthetic fixture row).
 //
 // Deliberately built on symbolMap.ts's AVAILABLE_ASSET_OPTIONS (the
-// already-served master 50) rather than on masterList.ts's full 98-row
+// already-served master list) rather than on masterList.ts's full 98-row
 // registry, even though the registry is this task's own conceptual anchor
 // and this file is intentionally kept in step with its vocabulary
 // (classificationOfType below mirrors masterList.ts's own private

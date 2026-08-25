@@ -80,7 +80,7 @@ import { visibleAssetSymbols } from "./visibility";
  * addition, needed for full coverage of "every instrument E8 offers"
  * (requirement 1) without inventing a new exclusion mechanism — it names
  * exactly the nine rows symbolMap.ts's own `NO_TRADE_SYMBOLS` and
- * `TEMPORARILY_HIDDEN_ASSET_SYMBOLS` already withhold from the master 50,
+ * `TEMPORARILY_HIDDEN_ASSET_SYMBOLS` already withhold from the served master list,
  * for reasons (no measured edge; an unverified chart feed) that are neither
  * a broker↔FMP matching question nor a sizing question — a third, older,
  * already-tested axis this module did not invent and does not re-litigate.
@@ -95,7 +95,7 @@ export type MasterListStatus =
   | "offered-but-unsizeable";
 
 /**
- * The statuses a row in `AVAILABLE_ASSET_SYMBOLS` (the master 50) may
+ * The statuses a row in `AVAILABLE_ASSET_SYMBOLS` (the served master list) may
  * legitimately carry today. A row cannot simultaneously be part of the
  * served master list and carry `mapped-not-yet-onboarded` or
  * `excluded-no-fmp-source` — those two are definitionally rows with no
@@ -106,7 +106,7 @@ export const SERVED_COMPATIBLE_STATUSES: readonly MasterListStatus[] = [
   "served-and-visible",
   "served-but-display-excluded",
   "offered-but-unsizeable",
-  // A row in the master 50 may also be withheld from the scan outright — the
+  // A row in the served master list may also be withheld from the scan outright — the
   // eight no-edge/unverified markets have always been, and 2026-08-05 added
   // contract-size variants (MGCUSD) and the nineteen onboarded futures. All
   // are served: present in symbolMap, sized, swept where a distinct series
@@ -675,7 +675,7 @@ export function reentryList(): MasterListRow[] {
 const MASTER_SYMBOLS = new Set(AVAILABLE_ASSET_SYMBOLS);
 const VISIBLE_SYMBOLS = new Set(visibleAssetSymbols(null));
 
-/** True iff this row's Levelflow symbol is in today's master 50
+/** True iff this row's Levelflow symbol is in today's served master list
  * (`AVAILABLE_ASSET_SYMBOLS`) — computed live against that export, never a
  * hand-copied boolean that could drift out of sync with it. */
 export function isServedToday(entry: MasterListRow): boolean {
