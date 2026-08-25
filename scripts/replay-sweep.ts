@@ -221,6 +221,16 @@ type SweepArgs = {
   foldStartMs: number | undefined;
   captureAll: boolean;
   ignoreLowEdge: boolean;
+  /**
+   * Clear this anchor's pins and top every series up to a common instant.
+   *
+   * Only meaningful with --warm-only. A rebuild spans hours, so each market
+   * is pinned when it happened to be fetched and the finished cache carries
+   * a ragged edge — 16.4 hours across the v4 build, which the clock verifier
+   * correctly refused on 57 checks. This is the last pass that makes the
+   * corpus one snapshot.
+   */
+  repin: boolean;
   warmOnly: boolean;
   days: number;
   discover: boolean;
@@ -297,7 +307,7 @@ async function main() {
   }> = [];
   const newsEvents = args.discover
     ? []
-    : await loadEconomicCalendar(args.cacheDir);
+    : await loadEconomicCalendar(args.cacheDir, args.repin);
   // E6 (R1b): the historical Treasury curve, one rolling store shared by
   // every symbol — each decision instant scores under the two most recent
   // rows visible at that instant (macroRates.ts), the same arithmetic the
@@ -314,7 +324,7 @@ async function main() {
   let deferredTreasuryRefusal: Error | null = null;
   if (!args.discover) {
     try {
-      treasuryRates = await loadTreasuryRates(args.cacheDir);
+      treasuryRates = await loadTreasuryRates(args.cacheDir, args.repin);
     } catch (error) {
       const message = (error as Error).message;
       // The sweep path always throws — tolerance exists only for the
@@ -550,6 +560,7 @@ async function main() {
         anchor,
         cacheDir: args.cacheDir!,
         clock: BAR_CLOCK,
+      repin: args.repin,
         fetchFull: () => fetchIntradayBars(providerSymbol, args.days),
         fetchSince: (sinceMs) =>
           fetchIntradayBars(providerSymbol, args.days, sinceMs),
@@ -609,6 +620,7 @@ async function main() {
         anchor,
         cacheDir: args.cacheDir!,
         clock: BAR_CLOCK,
+      repin: args.repin,
         fetchFull: () => fetchIntradayBars(providerSymbol, args.days),
         fetchSince: (sinceMs) =>
           fetchIntradayBars(providerSymbol, args.days, sinceMs),
@@ -619,6 +631,7 @@ async function main() {
         anchor,
         cacheDir: args.cacheDir!,
         clock: BAR_CLOCK,
+      repin: args.repin,
         fetchFull: () => fetchDailyBars(providerSymbol, args.days + 240),
         fetchSince: (sinceMs) =>
           fetchDailyBars(providerSymbol, args.days + 240, sinceMs),
@@ -633,6 +646,7 @@ async function main() {
         anchor,
         cacheDir: args.cacheDir!,
         clock: BAR_CLOCK,
+      repin: args.repin,
         fetchFull: () =>
           fetchIntradayBars(providerSymbol, args.days, undefined, "5min"),
         fetchSince: (sinceMs) =>
@@ -1065,6 +1079,7 @@ async function main() {
 // system's behavior when no events exist. Cached per run day like bars.
 async function loadEconomicCalendar(
   cacheDir: string | undefined,
+  repin: boolean,
 ): Promise<SweepNewsEvent[]> {
   const anchor = isoDate(new Date());
   return loadRollingSeries<SweepNewsEvent>({
@@ -1073,6 +1088,7 @@ async function loadEconomicCalendar(
     // The calendar's own clock, not BAR_CLOCK: FMP stamps calendar events
     // in true UTC and the parse below has always read them that way.
     clock: CALENDAR_CLOCK,
+    repin,
     fetchFull: () => fetchCalendarEvents(Date.parse("2013-01-01T00:00:00Z")),
     fetchSince: (sinceMs) => fetchCalendarEvents(sinceMs),
     key: "econ-calendar",
@@ -1141,12 +1157,14 @@ async function fetchCalendarEvents(
 // never New-York-normalized bar stamps.
 async function loadTreasuryRates(
   cacheDir: string | undefined,
+  repin: boolean,
 ): Promise<DatedTreasuryRow[]> {
   const anchor = isoDate(new Date());
   return loadRollingSeries<DatedTreasuryRow>({
     anchor,
     cacheDir: cacheDir ?? DEFAULT_CACHE_DIR,
     clock: CALENDAR_CLOCK,
+    repin,
     fetchFull: () => fetchTreasuryRates(TREASURY_FETCH_START_MS),
     fetchSince: (sinceMs) => fetchTreasuryRates(sinceMs),
     key: "treasury-rates",
@@ -1434,6 +1452,7 @@ export function parseArgs(argv: string[]): SweepArgs {
     foldStartMs: foldStartRaw !== undefined ? num("--fold-start", 0) : undefined,
     captureAll: argv.includes("--capture-all"),
     ignoreLowEdge: argv.includes("--ignore-low-edge"),
+    repin: argv.includes("--repin"),
     warmOnly: argv.includes("--warm-only"),
     days,
     discover: argv.includes("--discover"),

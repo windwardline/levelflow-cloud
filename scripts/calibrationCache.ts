@@ -115,10 +115,37 @@ export async function loadRollingSeries<T>(input: {
   fetchFull: () => Promise<T[]>;
   fetchSince: (sinceMs: number) => Promise<T[]>;
   key: string;
+  /**
+   * Ignore this anchor's pin and top the series up anyway.
+   *
+   * The pin exists so a run is reproducible within its anchor day: once a
+   * market is fetched, every later call that day returns the same tail. That
+   * is right for a sweep, and wrong for the last pass of a REBUILD.
+   *
+   * A full rebuild spans hours — the v4 build took five attempts across a
+   * night — so each market is pinned at the moment it happened to be
+   * fetched, and the finished cache carries a ragged edge. Measured on the
+   * v4 cache: 16.4 hours between the oldest and newest tail, clustering by
+   * build attempt. That is not one snapshot, and the clock verifier said so
+   * on 57 checks.
+   *
+   * Repinning is append-only and cannot lose history: the top-up refetches
+   * from `lastTime - TOP_UP_OVERLAP_MS` and merges, so a provider whose
+   * intraday depth has aged out shortens nothing already stored.
+   */
+  repin?: boolean;
   timeOf: (item: T) => number;
 }): Promise<T[]> {
-  const { anchor, cacheDir, clock, fetchFull, fetchSince, key, timeOf } =
-    input;
+  const {
+    anchor,
+    cacheDir,
+    clock,
+    fetchFull,
+    fetchSince,
+    key,
+    repin,
+    timeOf,
+  } = input;
   await mkdir(cacheDir, { recursive: true });
   const path = `${cacheDir}/${key}.rolling.json`;
 
@@ -144,6 +171,9 @@ export async function loadRollingSeries<T>(input: {
     store = { clock, items: [], pinned: {} };
   }
 
+  if (repin) {
+    delete store.pinned[anchor];
+  }
   const pinnedThrough = store.pinned[anchor];
   if (pinnedThrough !== undefined) {
     return store.items.filter((item) => timeOf(item) <= pinnedThrough);
