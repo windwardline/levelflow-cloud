@@ -461,16 +461,31 @@ export function treasuryChunkRefusal(input: {
 }
 
 /**
- * The economic-calendar store's own census, recorded beside the Treasury
- * curve's facts and for the same reason: a corpus should be able to state the
- * coverage it was measured against.
+ * Four facts about the economic-calendar store, recorded beside the Treasury
+ * curve's. NOT a coverage statement: two counts and two endpoints cannot
+ * detect a hole in the middle. Deleting three months from the live store
+ * leaves both endpoints bit-identical and moves the ratio by 0.002 while
+ * 1,348 events go missing, so read these as what they are.
  *
- * `itemCount` SITS BESIDE `distinctTimes` deliberately. The two being EQUAL is
- * the signature of the collapse that discarded 43% of the calendar — a Map
- * keyed on the timestamp alone keeps one row per instant, so the counts match
- * exactly. Recording both makes that shape visible from any corpus instead of
- * requiring someone to compare a store against a fetch log, which is how it
- * was found the first time.
+ * `itemCount` SITS BESIDE `distinctTimes` deliberately. The two being EQUAL
+ * ACROSS THE WHOLE STORE is the signature of the collapse that discarded 42.4%
+ * of the calendar — a Map keyed on the timestamp alone keeps one row per
+ * instant, so the counts match exactly.
+ *
+ * THE SCALE QUALIFIER IS LOAD-BEARING and an earlier draft of this comment
+ * omitted it. Equality is unremarkable on a narrow slice of HEALTHY data:
+ * measured on the live store, 581 of 4,194 single-day slices satisfy it and
+ * 37 of 92 single-currency slices do. It is zero of 164 month slices and zero
+ * of 14 year slices. So the claim holds of the store whole and of nothing
+ * smaller.
+ *
+ * And it detects ONE shape. A merge key one field short — time|currency, or
+ * time|currency|impact — discards 32.9% and 27.0% of the calendar
+ * respectively while leaving the counts unequal and the ratio inside the
+ * healthy band, which runs 1.463 in 2013 to 2.000 in 2026. These two numbers
+ * cannot see that, and no threshold over them can: the collapsed ratio 1.490
+ * sits ABOVE the healthy early-era value. What guards it is the merge key
+ * being recorded and clock-coupled, not this census.
  *
  * `firstEventMs` answers a different question the corpus could not answer at
  * all: `newsPenalty: 0` conflates "no events matched this instant" with "the
@@ -492,12 +507,44 @@ export type CalendarCensus = {
 export function calendarCensus(
   events: Array<{ time: number }>,
 ): CalendarCensus {
-  const times = events.map((event) => event.time);
+  // A LINEAR min/max, not a spread. `Math.min(...times)` throws RangeError
+  // above roughly 125,000 arguments — measured on this engine — and the store
+  // already holds 74,115, so the headroom was 1.69x. Widening the impact
+  // filter in replay-sweep.ts to admit low-impact events is a one-line change
+  // that crosses it immediately.
+  //
+  // Where it would have thrown is the point: this runs AFTER the sweep body,
+  // so a run of tens of hours would have ended by throwing while writing its
+  // manifest, and an emit with no manifest is refused by the corpus door. The
+  // whole run, unreadable, at the last step. Both siblings in this file
+  // already avoid the spread — seriesFacts and treasuryCurveFacts sort and
+  // index — and this one did not.
+  let first: number | null = null;
+  let last: number | null = null;
+  const distinct = new Set<number>();
+  for (const event of events) {
+    const time = event.time;
+    // A non-finite stamp is REFUSED rather than folded in. Left to Math.min
+    // it produced NaN, which JSON.stringify writes as null — so a corrupted
+    // store serialised byte-identically to an empty one, which is a silent
+    // failure by this repository's own rule. Sorting would have hidden it
+    // more thoroughly, not less.
+    if (!Number.isFinite(time)) {
+      throw new Error(
+        `calendarCensus: a calendar event carries a non-finite time (${time}); ` +
+          `a store that cannot state its own span must not be summarised as ` +
+          `though it had none`,
+      );
+    }
+    distinct.add(time);
+    if (first === null || time < first) first = time;
+    if (last === null || time > last) last = time;
+  }
   return {
-    distinctTimes: new Set(times).size,
-    firstEventMs: times.length > 0 ? Math.min(...times) : null,
+    distinctTimes: distinct.size,
+    firstEventMs: first,
     itemCount: events.length,
-    lastEventMs: times.length > 0 ? Math.max(...times) : null,
+    lastEventMs: last,
   };
 }
 
@@ -544,6 +591,7 @@ export type SweepManifest = {
    * list of classes.
    */
   calibrationByClass?: Record<string, Record<string, unknown>>;
+  calendarCensus?: CalendarCensus;
   // R0: the normalization every series in this corpus was stamped under —
   // asserted by the store guard at load, witnessed per series in the
   // facts below, and REQUIRED by every reader (sweepStats.verifyManifest
@@ -579,6 +627,19 @@ export type SweepManifest = {
   // excluded from every tuning aggregate — a property of the corpus.
   holdoutSymbols?: string[];
   manifestHash: string;
+  /**
+   * Every symbol the run was ASKED for, whatever came of it.
+   *
+   * `symbols` below holds only what survived: a market that dropped out —
+   * refused at a door, starved of bars, or thrown by a fetch — is
+   * indistinguishable in this manifest from one that was never requested.
+   * R4 grades every matched market individually and R5 IS the never-analyzed
+   * population, so both need to know what was asked and produced nothing.
+   *
+   * Recorded once at the top rather than as a flag per symbol, because the
+   * absent rows are precisely the ones that have nowhere to carry a flag.
+   */
+  requestedSymbols?: string[];
   /**
    * The engine revision this corpus was measured under. Optional because
    * every pre-#409 corpus on disk genuinely lacks it — not because a new
@@ -633,20 +694,6 @@ export type SweepManifest = {
   trainShare: number;
   // The evidence behind conditions.macroAdjustment (#364 round 2,
   // finding 1) — asserted by verifyManifest beside the literals.
-  calendarCensus?: CalendarCensus;
-  /**
-   * Every symbol the run was ASKED for, whatever came of it.
-   *
-   * `symbols` below holds only what survived: a market that dropped out —
-   * refused at a door, starved of bars, or thrown by a fetch — is
-   * indistinguishable in this manifest from one that was never requested.
-   * R4 grades every matched market individually and R5 IS the never-analyzed
-   * population, so both need to know what was asked and produced nothing.
-   *
-   * Recorded once at the top rather than as a flag per symbol, because the
-   * absent rows are precisely the ones that have nowhere to carry a flag.
-   */
-  requestedSymbols?: string[];
   treasuryCurve: TreasuryCurveFacts;
   warmupBars: number;
 };
@@ -656,6 +703,7 @@ export function buildSweepManifest(input: {
   anchor: string;
   barRejections: Record<string, number>;
   calibrationByClass?: Record<string, Record<string, unknown>>;
+  calendarCensus?: CalendarCensus;
   clock: SweepManifest["clock"];
   conditions: SweepConditions;
   days: number;
@@ -683,7 +731,6 @@ export function buildSweepManifest(input: {
     symbol: string;
   }>;
   trainShare: number;
-  calendarCensus?: CalendarCensus;
   /**
    * Every symbol the run was ASKED for, whatever came of it.
    *
