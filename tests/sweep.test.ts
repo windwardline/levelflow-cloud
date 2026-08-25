@@ -30,6 +30,9 @@ function outcomeRecord(
     accepted: true,
     confidenceScore: 0,
     cotPercentile: null,
+  cotSampleSize: 0,
+  runnerNearestBeyondMinimum: null,
+  unfilledApproachDistance: null,
     cotStance: "neutral",
     atr: 0,
     dailyAtr: 0,
@@ -927,5 +930,83 @@ describe("a calendar collapse changes rejections, not just penalties", () => {
       `keeping the high-impact event must block at least one more decision: ` +
         `${bothKept.rejections.newsBlocked} vs ${collapsed.rejections.newsBlocked}`,
     );
+  });
+});
+
+describe("the three fields R4 was owed", () => {
+  // All three are computed today and thrown away. R3 is the one re-sweep, so
+  // a field absent then costs a second full sweep to recover.
+  //
+  // The same fixture shape the resolution tests use: a bare one produces no
+  // outcomes at all, and a test that inspects an empty array asserts nothing.
+  const owedBase = {
+    calibrationOverride: {
+      blockedRegimes: [],
+      runnerWindowShare: 1,
+      tp1RiskShare: 0.8,
+    },
+    dailyBars: dailyBars(80),
+    primaryBars: triangleBars(600),
+    stepBars: 16,
+    symbol: "EURUSD",
+    warmupBars: 120,
+  };
+
+  it("emits the COT sample size beside the stance it disambiguates", () => {
+    // `stance: "unavailable"` conflates "no contract mapped" with
+    // "insufficient reports". sampleSize 0 on a MAPPED symbol is a fetch or
+    // cache fault; 1..39 is a genuinely short history — and BOTH read
+    // "unavailable" without this field.
+    //
+    // Two runs of the same fixture differing only in how many reports the
+    // engine saw. Under the same stance the sample sizes must differ, which
+    // is the whole point and is what a hardcoded value cannot do.
+    const reports = (count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        date: startTime - (count - index) * 7 * 86_400_000,
+        netPct: 10 + index,
+      }));
+    const none = simulateSymbol({ ...owedBase });
+    const thin = simulateSymbol({ ...owedBase, cotReports: reports(11) });
+    assert.ok(none.outcomes.length > 0 && thin.outcomes.length > 0);
+    // Both are below the 40-report minimum, so the STANCE agrees...
+    assert.equal(none.outcomes[0].cotStance, "unavailable");
+    assert.equal(thin.outcomes[0].cotStance, "unavailable");
+    // ...and only the sample size separates a dead feed from a short history.
+    assert.equal(none.outcomes[0].cotSampleSize, 0);
+    assert.equal(
+      thin.outcomes[0].cotSampleSize,
+      11,
+      "the emitted sample size must be the count the engine actually saw",
+    );
+  });
+
+  it("carries both new fields on every row, never undefined", () => {
+    // The shapes that EXERCISE these two live in tests/pricePlan.test.ts and
+    // tests/replayHarness.test.ts, where they are constructible: this
+    // fixture yields only stop_loss rows with no qualifying pivots, so an
+    // assertion here could not tell a real value from a hardcoded one — and
+    // an earlier draft of this test could not, and passed under all three
+    // mutations.
+    //
+    // What belongs here is that the emit carries them at all.
+    const result = simulateSymbol({ ...owedBase });
+    assert.ok(result.outcomes.length > 0);
+    for (const row of result.outcomes) {
+      assert.ok(
+        row.unfilledApproachDistance === null ||
+          typeof row.unfilledApproachDistance === "number",
+        "unfilledApproachDistance missing from the row",
+      );
+      assert.ok(
+        row.runnerNearestBeyondMinimum === null ||
+          typeof row.runnerNearestBeyondMinimum === "number",
+        "runnerNearestBeyondMinimum missing from the row",
+      );
+      // A filled row can carry no approach distance.
+      if (row.outcome !== "unfilled") {
+        assert.equal(row.unfilledApproachDistance, null);
+      }
+    }
   });
 });

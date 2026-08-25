@@ -67,7 +67,36 @@ export type SweepOutcomeRecord = {
   accepted: boolean;
   confidenceScore: number;
   cotPercentile: number | null;
+  /**
+   * How many COT reports the context actually saw.
+   *
+   * Computed by buildCotContext and discarded until now, and it is the one
+   * COT fact not recoverable post hoc: `0` on a MAPPED symbol means nothing
+   * reached the engine — a fetch or cache fault — while `1..39` means a
+   * genuinely short contract history. `stance: "unavailable"` conflates them,
+   * and R3 is the one re-sweep.
+   */
+  cotSampleSize: number;
   cotStance: string;
+  /**
+   * How close an UNFILLED setup came to its entry, in price. Null on every
+   * filled outcome and on a row the window could not measure.
+   *
+   * Until now an unfilled row carried no price information whatsoever — the
+   * legs are empty and riskDistance is a distance — so "missed by a tick" and
+   * "never came near" were the same row, and R4 cannot ask whether an entry
+   * offset is too wide from a corpus that cannot tell them apart.
+   */
+  unfilledApproachDistance: number | null;
+  /**
+   * Distance to the nearest structural level clearing the minimum payoff,
+   * ignoring the window cap. Null when no level clears it at all.
+   *
+   * `runnerProvenance: "window_ceiling"` collapses two opposite causes — no
+   * structure at these distances, or structure the review window cannot reach
+   * — which are different findings with different remedies.
+   */
+  runnerNearestBeyondMinimum: number | null;
   // The resolver's evidence, carried whole (4b's input — the map's
   // "captured and simply never read"): the gap-aware execution legs, the
   // exit and fill instants, both excursion statistics against the nominal
@@ -763,6 +792,7 @@ export function simulateSymbol(input: {
       accepted,
       confidenceScore: scoreBreakdown.confidenceScore,
       cotPercentile: cotContext.percentile,
+      cotSampleSize: cotContext.sampleSize,
       cotStance: cotContext.stance,
       exitAtMs: Date.parse(evaluation.exitAt),
       executionScore: plan.executionQuality.score,
@@ -783,6 +813,12 @@ export function simulateSymbol(input: {
       ...(evaluation.feedback.noBarsInReviewWindow === true &&
         { noBarsInReviewWindow: true as const }),
       outcome: evaluation.outcome,
+      runnerNearestBeyondMinimum: plan.runnerNearestBeyondMinimum,
+      unfilledApproachDistance:
+        evaluation.state === "resolved" &&
+          evaluation.outcome === "unfilled"
+          ? evaluation.unfilledApproachDistance ?? null
+          : null,
       resolutionIntervalMs,
       atr: plan.atr,
       dailyAtr: plan.dailyAtr,

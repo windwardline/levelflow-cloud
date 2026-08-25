@@ -752,3 +752,72 @@ describe("targetLogic derives from what actually happened (1o residue)", () => {
     assert.equal(ladder.runnerProvenance, "window_ceiling");
   });
 });
+
+describe("runnerNearestBeyondMinimum — what window_ceiling could not say", () => {
+  // `runnerProvenance: "window_ceiling"` collapses two opposite causes: no
+  // structure at these distances, or structure the review window cannot
+  // reach. Different findings with different remedies, and a corpus full of
+  // the word could not tell them apart.
+  //
+  // Constructed here rather than in the sweep because the sweep's fixture
+  // yields no qualifying pivots at all — an assertion there cannot separate a
+  // real value from a hardcoded one.
+
+  it("reports the distance when structure exists BEYOND the window's reach", () => {
+    // runnerWindowShare 0.2 pulls the cap in below the pivot, so the level
+    // clears the minimum payoff and is excluded only by the window.
+    const ladder = buildLadderTargets({
+      atr: 2,
+      calibration: { ...ladderCalibration, runnerWindowShare: 0.5 },
+      dailyAtr: 10,
+      entryPrice: 100,
+      pivotLevels: [140],
+      riskDistance: 1,
+      side: "buy",
+    });
+    assert.ok(ladder, "the fixture produced no ladder");
+    assert.equal(ladder.runnerProvenance, "window_ceiling");
+    assert.equal(
+      ladder.runnerNearestBeyondMinimum,
+      40,
+      "the structure is 40 away and the row must say so",
+    );
+  });
+
+  it("reports null when no structure clears the minimum at all", () => {
+    // The other cause of the same word: a pivot far too close to be a runner.
+    const ladder = buildLadderTargets({
+      atr: 2,
+      calibration: { ...ladderCalibration, runnerWindowShare: 0.5 },
+      dailyAtr: 10,
+      entryPrice: 100,
+      pivotLevels: [100.01],
+      riskDistance: 1,
+      side: "buy",
+    });
+    assert.ok(ladder);
+    assert.equal(ladder.runnerProvenance, "window_ceiling");
+    assert.equal(ladder.runnerNearestBeyondMinimum, null);
+  });
+
+  it("is measured without the cap, so it can exceed the runner itself", () => {
+    // THE MUTATION THIS CATCHES: re-applying the window cap to this search
+    // makes it agree with the runner on every row, which is exactly the
+    // collapse it exists to undo.
+    const ladder = buildLadderTargets({
+      atr: 2,
+      calibration: { ...ladderCalibration, runnerWindowShare: 0.5 },
+      dailyAtr: 10,
+      entryPrice: 100,
+      pivotLevels: [140],
+      riskDistance: 1,
+      side: "buy",
+    });
+    assert.ok(ladder);
+    const runnerDistance = Math.abs(ladder.runnerTarget - 100);
+    assert.ok(
+      ladder.runnerNearestBeyondMinimum! > runnerDistance,
+      `structure at ${ladder.runnerNearestBeyondMinimum} must sit beyond the runner at ${runnerDistance}`,
+    );
+  });
+});

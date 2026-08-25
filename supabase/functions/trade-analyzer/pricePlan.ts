@@ -84,6 +84,7 @@ export type PricePlan = {
   // was there.
   dailyAtr: number;
   latestClose: number;
+  runnerNearestBeyondMinimum: number | null;
   stopPivotDistance: number | null;
   contractSpec: FuturesContractSpec | null;
   entryPrice: number;
@@ -391,6 +392,7 @@ export function buildPricePlan(
     dailyAtr,
     entryPrice,
     latestClose: currentClose,
+    runnerNearestBeyondMinimum: ladder.runnerNearestBeyondMinimum,
     stopPivotDistance: nearestStopPivot === null
       ? null
       : Math.abs(nearestStopPivot - entryPrice),
@@ -445,6 +447,16 @@ export type LadderCalibration = {
 
 export type LadderTargets = {
   expectedWindowMove: number;
+  /**
+   * Distance to the nearest structural level clearing the minimum payoff,
+   * IGNORING the window cap — null when no level clears it at all.
+   *
+   * `runnerProvenance: "window_ceiling"` collapses two opposite causes: no
+   * structure at these distances, or structure the review window cannot
+   * reach. Different findings, different remedies, and the corpus could not
+   * tell them apart.
+   */
+  runnerNearestBeyondMinimum: number | null;
   runnerProvenance: RunnerProvenance;
   runnerTarget: number;
   takeProfit1: number;
@@ -510,6 +522,25 @@ export function buildLadderTargets(input: {
   // Nearest structural level inside the reachable band; with no structure in
   // the band, the expected-move objective itself is the runner.
   const structuralRunner = nearestLevelBeyond(side, entryPrice, qualifyingLevels);
+  // The SAME search without the upper cap, which is the only thing that can
+  // tell R4 what `window_ceiling` actually meant on a row.
+  //
+  // The band filter above excludes a level for two opposite reasons — it did
+  // not clear the minimum payoff, or it sat beyond what the window can reach
+  // — and the provenance collapses both into one word. So a corpus full of
+  // `window_ceiling` cannot distinguish "this market has no structure at
+  // these distances" from "the structure is there and the review window is
+  // too short to reach it", which are different findings with different
+  // remedies. Recorded as a DISTANCE rather than a level so it is comparable
+  // across markets without a price.
+  const beyondMinimum = input.pivotLevels.filter((level) => {
+    const distance = side === "buy" ? level - entryPrice : entryPrice - level;
+    return distance >= minimumRunnerDistance;
+  });
+  const nearestBeyondMinimum = nearestLevelBeyond(side, entryPrice, beyondMinimum);
+  const runnerNearestBeyondMinimum = nearestBeyondMinimum === null
+    ? null
+    : Math.abs(nearestBeyondMinimum - entryPrice);
   // The fallback is a pure formula with no structure in it. Recording which
   // happened is the whole point: "the runner is the nearest structural level the
   // window can reach" described the corpus without ever being measured on it.
@@ -526,6 +557,7 @@ export function buildLadderTargets(input: {
 
   return {
     expectedWindowMove,
+    runnerNearestBeyondMinimum,
     runnerProvenance,
     runnerTarget,
     tp1Provenance,
