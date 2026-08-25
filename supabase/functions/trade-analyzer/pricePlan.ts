@@ -45,11 +45,34 @@ export type PricePlan = {
   // simply not exposed, and all three are additive — nothing reads them to make
   // a decision, so live behaviour is unchanged and ANALYZER_VERSION does not
   // move. They exist because the corpus carried no price level at all: emit
-  // `latestClose` and the whole plan reconstructs (entry, both stops, the
-  // ladder, every tick snap, and spread/slippage/commission, which are pure
-  // functions of symbol, latestClose, atr and tickSize over tables the
-  // manifest's analyzerVersion pins). Five fields doing the work of twelve, on
-  // a corpus where per-row width is the cost.
+  // `latestClose` and the plan reconstructs. Five fields doing the work of
+  // twelve, on a corpus where per-row width is the cost.
+  //
+  // THE ORDER MATTERS, and an earlier draft of this comment gave the wrong
+  // one. Tick alignment is LAST, not second. Read this function: entry offset,
+  // stop buffer, structural and cap stops, the ladder — every one of them
+  // computed from the UNALIGNED entry — and only then does
+  // `applyFuturesTickRules` rewrite entry, stop, both targets and
+  // riskDistance together. A reconstruction that snapped the entry to the grid
+  // first would derive its stop from the aligned entry and land on a different
+  // number, on the 27 futures-shaped markets where the grid applies at all.
+  //
+  // What reconstructs exactly, on all 97: the unaligned entry from
+  // `latestClose ∓ atr × entryOffset` with `entryProvenance` naming the
+  // offset; the aligned entry, stop and runner from the tick rules, then
+  // `riskDistance` and `grossRewardRisk × riskDistance`; `expectedWindowMove`
+  // from `dailyAtr`; and spread, slippage and commission, which are pure
+  // functions of (symbol, latestClose, atr, tickSize) over tables the
+  // manifest's analyzerVersion pins.
+  //
+  // The one level that does NOT reconstruct exactly: TP1, on a futures-grid
+  // market whose `tp1Provenance` is `risk_share`. The ladder consumed the
+  // riskDistance from BEFORE alignment and only the after value is emitted,
+  // so the recovered TP1 carries the alignment of entry and stop — bounded by
+  // the grid, not unbounded, and exact under the other two provenances and on
+  // the 70 markets with no grid. Closing it takes one more number
+  // (the planned riskDistance); the R2b list was authorised as a set, so that
+  // is a decision to put rather than take.
   //
   // `dailyAtr` is the second stop lever — stopBuffer is the MAX of two
   // calibration levers and nothing recorded which one bound, which is the
@@ -405,7 +428,10 @@ function clampBetween(value: number, boundA: number, boundB: number) {
 
 export type LadderCalibration = {
   defaultReviewHours: number;
-  sizingHoursFactor?: number;
+  // Required, mirroring CategoryCalibration: every class row now states it,
+  // so a caller that cannot supply one is a caller holding an incomplete
+  // calibration — which the type should say out loud rather than paper over.
+  sizingHoursFactor: number;
   minimumTargetRewardRisk: number;
   runnerWindowShare: number;
   tp1AtrMultiplier: number;
@@ -435,10 +461,16 @@ export function buildLadderTargets(input: {
   // Q4's split (4c): the factor scales ONLY the sizing hat — patience and
   // expiry keep reading defaultReviewHours, which the baseline measured as
   // censoring nothing (median exit 0.5h against 6-12h windows).
+  // No `?? 1` here any more. That operator gave 25 of the 97 markets a sizing
+  // factor nobody chose, sitting in the arithmetic where no reader of the
+  // calibration table would find it, and reading identically to the 13
+  // markets whose derived value genuinely is 1. The class rows carry the
+  // value now, so the fallback was unreachable — and an unreachable fallback
+  // is worse than none, because it keeps the field optional and lets the
+  // next absence pass silently.
   const expectedWindowMove = dailyAtr *
     Math.sqrt(
-      (calibration.defaultReviewHours * (calibration.sizingHoursFactor ?? 1)) /
-        24,
+      (calibration.defaultReviewHours * calibration.sizingHoursFactor) / 24,
     );
   // TP1 must be meaningful in R terms, not a fixed ATR crumb: the partial
   // is a share of risk, floored by the ATR multiplier, capped by what the

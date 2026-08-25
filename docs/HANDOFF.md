@@ -879,12 +879,27 @@ returns nothing but comments.
 
 Seven separately-proposed fields turned out to be consequences of that one
 absence. Emit **`latestClose`** — the decision bar's close, already the exact
-argument `buildPricePlan` receives — and the whole plan reconstructs
-deterministically: entry from `latestClose ∓ atr × entryOffset` with the
-provenance already emitted, then the tick alignment, the stop buffer, the
-structural and cap stops, the ladder, and every one of spread, slippage and
-commission, which are pure functions of `(symbol, latestClose, atr, tickSize)`
-over tables pinned by the manifest's `analyzerVersion`.
+argument `buildPricePlan` receives — and the plan reconstructs: entry from
+`latestClose ∓ atr × entryOffset` with the provenance already emitted, then
+the stop buffer, the structural and cap stops, the ladder, and **last** the
+tick alignment, which rewrites entry, stop, both targets and `riskDistance`
+together. Spread, slippage and commission follow, being pure functions of
+`(symbol, latestClose, atr, tickSize)` over tables pinned by the manifest's
+`analyzerVersion`.
+
+The order is load-bearing and this passage previously had it wrong, placing
+the tick alignment second. Every level above it is computed from the
+**unaligned** entry; a reconstruction that snapped to the grid first would
+derive its stop from the aligned entry and land on a different number, on the
+27 futures-shaped markets where a grid applies.
+
+One level does not reconstruct exactly: TP1, on a futures-grid market whose
+`tp1Provenance` is `risk_share`. The ladder consumed the `riskDistance` from
+before alignment and only the after value is emitted, so a recovered TP1
+carries the alignment of entry and stop. It is exact under the other two
+provenances and on the 70 markets with no grid. One more number — the planned
+`riskDistance` — closes it; the R2b field list was authorised as a set, so
+that is **an open decision for the owner**, not a change to make quietly.
 
 Five fields doing the work of twelve, on a corpus where per-row width is the
 cost. That is the shape a field list should have.

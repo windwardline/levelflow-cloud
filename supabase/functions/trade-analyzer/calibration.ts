@@ -40,7 +40,15 @@ export type CategoryCalibration = {
   // (expectedWindowMove) — patience/expiry keeps reading
   // defaultReviewHours untouched, because the baseline measured the
   // window censoring nothing (median exit 0.5h).
-  sizingHoursFactor?: number;
+  //
+  // REQUIRED, and that is the whole point. It was optional, no class row
+  // carried it, and 72 markets set it per-symbol — so 25 markets ran at 1
+  // because `?? 1` sat in the ladder arithmetic, indistinguishable from the
+  // 13 markets whose derived value IS 1. R4 grades all 97 individually
+  // against their own shipped configuration and could not have told a
+  // decision from a fallback. Every class row now states the value, so a
+  // market missing one is a type error rather than a silent 1.
+  sizingHoursFactor: number;
   // Regimes in which no new setup may be initiated, regardless of score.
   // Entering elevated-volatility chop is a losing proposition across
   // classes; structure and signals both degrade.
@@ -261,6 +269,12 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     newsPenaltyPerEvent: 3,
     providerWarningPenalty: 3,
     runnerWindowShare: 0.6,
+    // Explicit at 1, which is EXACTLY what these markets already ran: the
+    // value was absent from every class row and `?? 1` supplied it. Stating
+    // it changes no number and makes the absence impossible. Deriving a
+    // different value per class would be a model change, and the corpus that
+    // could justify one is the invalid 4c/4d corpus.
+    sizingHoursFactor: 1,
     stopAtrMultiplier: 1.3,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,
@@ -326,6 +340,12 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     // minimumTargetRewardRisk's absolute floor, which changes how many structural
     // levels qualify. The answer moved. agriculture: test R +56.6 -> +62.7 (train +154.5 -> +169.1).
     runnerWindowShare: 1.4,
+    // Explicit at 1, which is EXACTLY what these markets already ran: the
+    // value was absent from every class row and `?? 1` supplied it. Stating
+    // it changes no number and makes the absence impossible. Deriving a
+    // different value per class would be a model change, and the corpus that
+    // could justify one is the invalid 4c/4d corpus.
+    sizingHoursFactor: 1,
     stopAtrMultiplier: 1.3,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,
@@ -380,6 +400,12 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     // minimumTargetRewardRisk's absolute floor, which changes how many structural
     // levels qualify. The answer moved. crypto: test R +4375 -> +4377 (train +9178 -> +9604).
     runnerWindowShare: 1.0,
+    // Explicit at 1, which is EXACTLY what these markets already ran: the
+    // value was absent from every class row and `?? 1` supplied it. Stating
+    // it changes no number and makes the absence impossible. Deriving a
+    // different value per class would be a model change, and the corpus that
+    // could justify one is the invalid 4c/4d corpus.
+    sizingHoursFactor: 1,
     stopAtrMultiplier: 1.45,
     timeframePenalty: 6,
     tp1AtrMultiplier: 0.5,
@@ -417,6 +443,12 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     newsPenaltyPerEvent: 3,
     providerWarningPenalty: 3,
     runnerWindowShare: 0.8,
+    // Explicit at 1, which is EXACTLY what these markets already ran: the
+    // value was absent from every class row and `?? 1` supplied it. Stating
+    // it changes no number and makes the absence impossible. Deriving a
+    // different value per class would be a model change, and the corpus that
+    // could justify one is the invalid 4c/4d corpus.
+    sizingHoursFactor: 1,
     stopAtrMultiplier: 1.38,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,
@@ -470,6 +502,12 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     // minimumTargetRewardRisk's absolute floor, which changes how many structural
     // levels qualify. The answer moved. forex: test R +49828 -> +54316 (train +80921 -> +81236).
     runnerWindowShare: 1.0,
+    // Explicit at 1, which is EXACTLY what these markets already ran: the
+    // value was absent from every class row and `?? 1` supplied it. Stating
+    // it changes no number and makes the absence impossible. Deriving a
+    // different value per class would be a model change, and the corpus that
+    // could justify one is the invalid 4c/4d corpus.
+    sizingHoursFactor: 1,
     stopAtrMultiplier: 1.2,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,
@@ -514,6 +552,12 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     // minimumTargetRewardRisk's absolute floor, which changes how many structural
     // levels qualify. The answer moved. futures: test R +1267 -> +1317 (train +1506 -> +1599).
     runnerWindowShare: 1.0,
+    // Explicit at 1, which is EXACTLY what these markets already ran: the
+    // value was absent from every class row and `?? 1` supplied it. Stating
+    // it changes no number and makes the absence impossible. Deriving a
+    // different value per class would be a model change, and the corpus that
+    // could justify one is the invalid 4c/4d corpus.
+    sizingHoursFactor: 1,
     stopAtrMultiplier: 1.3,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,
@@ -574,6 +618,12 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     // minimumTargetRewardRisk's absolute floor, which changes how many structural
     // levels qualify. The answer moved. indices: test R -5.6 -> +7.4 — POSITIVE ON BOTH SPLITS for the first time.
     runnerWindowShare: 1.0,
+    // Explicit at 1, which is EXACTLY what these markets already ran: the
+    // value was absent from every class row and `?? 1` supplied it. Stating
+    // it changes no number and makes the absence impossible. Deriving a
+    // different value per class would be a model change, and the corpus that
+    // could justify one is the invalid 4c/4d corpus.
+    sizingHoursFactor: 1,
     stopAtrMultiplier: 1.28,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.3,
@@ -630,6 +680,12 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     newsPenaltyPerEvent: 3,
     providerWarningPenalty: 3,
     runnerWindowShare: 0.8,
+    // Explicit at 1, which is EXACTLY what these markets already ran: the
+    // value was absent from every class row and `?? 1` supplied it. Stating
+    // it changes no number and makes the absence impossible. Deriving a
+    // different value per class would be a model change, and the corpus that
+    // could justify one is the invalid 4c/4d corpus.
+    sizingHoursFactor: 1,
     stopAtrMultiplier: 1.32,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,

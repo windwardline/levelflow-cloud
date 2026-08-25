@@ -16,6 +16,10 @@ const ladderCalibration = {
   defaultReviewHours: 6,
   minimumTargetRewardRisk: 1.9,
   runnerWindowShare: 1,
+  // 1 was what `?? 1` supplied these fixtures before the field became
+  // required, so every expected value below is unchanged. The point of
+  // requiring it is that the fixtures now SAY so.
+  sizingHoursFactor: 1,
   tp1AtrMultiplier: 0.8,
   tp1RiskShare: 0.8,
 };

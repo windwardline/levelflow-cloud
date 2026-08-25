@@ -140,6 +140,13 @@ export function pinDivergence(
       `runnerProtection=${shipped.runnerProtection} (pin breakeven)`,
     );
   }
+  // The `?? 1` STAYS here, unlike the engine's, and the difference is the
+  // input. pricePlan reads the live calibration table, where every class row
+  // now states the value and absence is a type error. This reads a
+  // calibration RECORDED IN A CORPUS — including corpora written before the
+  // field existed, where the key is genuinely absent and 1 is genuinely what
+  // ran. Removing the fallback here would report every legacy market as
+  // diverging from a pin it actually matched.
   if ((shipped.sizingHoursFactor ?? 1) !== 1) {
     differing.push(`sizingHoursFactor=${shipped.sizingHoursFactor} (pin 1)`);
   }

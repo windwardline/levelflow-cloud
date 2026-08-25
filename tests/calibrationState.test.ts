@@ -550,6 +550,61 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
   });
 });
 
+describe("sizingHoursFactor — a fallback is not a decision", () => {
+  it("every market on the roster has a stated value, on every class row", () => {
+    // Derived over the roster and over the classes the roster actually uses.
+    // Before this, NO class row carried the field: 72 markets set it
+    // per-symbol and the remaining 25 were handed 1 by a `?? 1` inside the
+    // ladder arithmetic — a value no reader of the calibration table could
+    // see and no artifact could distinguish from a derived 1.
+    for (const symbol of defaultScanSymbols) {
+      assert.equal(
+        typeof getCategoryCalibration(symbol).sizingHoursFactor,
+        "number",
+        `${symbol} has no stated sizingHoursFactor`,
+      );
+    }
+    for (const assetType of new Set(defaultScanSymbols.map(getAssetType))) {
+      assert.equal(
+        typeof getClassCalibration(assetType).sizingHoursFactor,
+        "number",
+        `class ${assetType} states no sizingHoursFactor`,
+      );
+    }
+  });
+
+  it("states the values the markets were already running — 38 at 1, 59 at 3", () => {
+    // The change had to move NO number: making a value explicit is a
+    // provenance fix, and deriving a different one would be a model change
+    // the invalid 4c/4d corpus cannot justify. This is the arithmetic proof
+    // that it did not — the partition is exactly what it was when the 25
+    // were reading the fallback.
+    const at = (value: number) =>
+      defaultScanSymbols.filter((symbol) =>
+        getCategoryCalibration(symbol).sizingHoursFactor === value
+      ).length;
+    assert.equal(defaultScanSymbols.length, 97);
+    assert.equal(at(1), 38);
+    assert.equal(at(3), 59);
+  });
+
+  it("13 markets CHOSE 1 and 25 inherit it — a distinction that did not exist", () => {
+    // The whole reason the fallback was a defect: these two populations were
+    // indistinguishable to R4, which grades all 97 individually against
+    // their own shipped configuration.
+    const chose = defaultScanSymbols.filter((symbol) =>
+      getSymbolCalibrationOverride(symbol).sizingHoursFactor === 1
+    );
+    const inherits = defaultScanSymbols.filter((symbol) =>
+      getCategoryCalibration(symbol).sizingHoursFactor === 1 &&
+      getSymbolCalibrationOverride(symbol).sizingHoursFactor === undefined
+    );
+    assert.equal(chose.length, 13);
+    assert.equal(inherits.length, 25);
+    assert.equal(chose.length + inherits.length, 38);
+  });
+});
+
 describe("getSymbolCalibrationOverride — the layer the merge dissolves", () => {
   it("is exactly the difference between the class row and the merge, on every market", () => {
     // Derived over the whole roster, not a sampled market: for each symbol,
