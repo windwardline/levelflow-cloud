@@ -1107,6 +1107,19 @@ describe("§19c — E8's bridging method, and only Levelflow's own quotes feedin
         legs.add(leg);
       }
     }
+    // Index rows too, DERIVED from the real rows rather than listed. Sizing's
+    // index arm reads a third bridge — the per-point currency's USD leg — and
+    // until this loop existed the boundary claim was asserted over two of the
+    // three bridges sizing actually resolves.
+    let indexRows = 0;
+    for (const row of BROKER_INSTRUMENTS) {
+      if (row.unit.kind !== "index_points") continue;
+      indexRows += 1;
+      for (const leg of bridgeLegsFor(row.levelflowSymbol, row.unit.pointsCurrency)) {
+        legs.add(leg);
+      }
+    }
+    assert.ok(indexRows > 0, "no index rows reached the boundary check");
     for (const leg of legs) {
       assert.ok(
         AVAILABLE_ASSET_SYMBOLS.includes(leg),

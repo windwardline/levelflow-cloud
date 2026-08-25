@@ -134,6 +134,25 @@ function bridgeSource(instrument: string): Provenance {
  * USD-quoted pairs, giving the textbook $100,000 per 1.0 price unit and $10 per
  * pip; a reciprocal or direct leg for the other 24.
  */
+/**
+ * The USD value of one unit of a CURRENCY, for instruments that are not
+ * currency pairs.
+ *
+ * `usdPerQuoteBridge` keys on a symbol and reads its quote leg, so for an
+ * index it falls through `isCurrencyPair` and returns `{ kind: "one" }` —
+ * "this is already USD". That is exactly what made a euro-per-point index
+ * size as though the points were dollars.
+ */
+export function usdPerCurrencyBridge(currency: string): Bridge | null {
+  if (currency === "USD") {
+    return { kind: "one", source: DERIVED_PIP_VALUE };
+  }
+  const leg = USD_LEG[currency];
+  return leg
+    ? { kind: "leg", leg: leg.leg, invert: leg.invert, source: DERIVED_PIP_VALUE }
+    : null;
+}
+
 export function usdPerQuoteBridge(levelflowSymbol: string): Bridge | null {
   const quote = quoteOf(levelflowSymbol);
   if (!isCurrencyPair(levelflowSymbol) || quote === "USD") {
@@ -168,13 +187,29 @@ export function instrumentPriceBridge(levelflowSymbol: string): Bridge | null {
   return { kind: "leg", leg: leg.leg, invert: leg.invert, source };
 }
 
-/** Every Levelflow market a bridge may read. The boundary, enumerable. */
-export function bridgeLegsFor(levelflowSymbol: string): string[] {
+/**
+ * Every Levelflow market a bridge may read. The boundary, enumerable.
+ *
+ * `pointsCurrency` is what an `index_points` row denominates its per-point
+ * multiplier in, and passing it is what keeps this function's promise true.
+ * Sizing gained a THIRD bridge call site when the index arm started reading
+ * `usdPerCurrencyBridge`; until that leg was enumerated here, "the boundary as
+ * CI" asserted over two of the three bridges sizing actually resolves and
+ * reported green over the one it could not see.
+ */
+export function bridgeLegsFor(
+  levelflowSymbol: string,
+  pointsCurrency?: string | null,
+): string[] {
   const legs = new Set<string>();
-  for (const bridge of [
+  const bridges: (Bridge | null)[] = [
     usdPerQuoteBridge(levelflowSymbol),
     instrumentPriceBridge(levelflowSymbol),
-  ]) {
+  ];
+  if (pointsCurrency) {
+    bridges.push(usdPerCurrencyBridge(pointsCurrency));
+  }
+  for (const bridge of bridges) {
     if (bridge && bridge.kind === "leg") {
       legs.add(bridge.leg);
     }

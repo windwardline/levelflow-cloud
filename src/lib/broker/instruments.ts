@@ -3,6 +3,8 @@ import {
   SECURITY_OPTIONS,
   type SecurityType,
 } from "../symbolMap";
+// bridging.ts reads only ./programs and ./types, so this direction adds no cycle.
+import { usdPerCurrencyBridge } from "./bridging";
 import {
   CANONICAL_LIST,
   CONTRACT_SIZES,
@@ -358,6 +360,10 @@ function indexCfd(
   levelflowSymbol: string,
   brokerSymbol: string,
   pointsPerLot: number,
+  // Stated, not defaulted. SP/NSDQ/DOW publish a dollar multiplier; the
+  // foreign rows below publish their own currency, and the difference is what
+  // sized a euro-per-point index as though the points were dollars.
+  pointsCurrency: string,
 ): CfdMapping {
   return {
     brokerSymbol,
@@ -365,7 +371,11 @@ function indexCfd(
     brokerSymbolSource: CONTRACT_SIZES,
     tradability: "confirmed",
     tradabilitySource: CONTRACT_SIZES,
-    unit: { kind: "index_points", pointsPerLot: valued(pointsPerLot, CONTRACT_SIZES) },
+    unit: {
+      kind: "index_points",
+      pointsCurrency,
+      pointsPerLot: valued(pointsPerLot, CONTRACT_SIZES),
+    },
     maxTicketLots: TICKET_CAP_DEFAULT,
     relatedExposure: null,
   };
@@ -475,22 +485,40 @@ const FOREX_CONTRACT_OBSERVATIONS: Record<string, { contractSize: number; note: 
 
 // batch 2's per-lot index values. Half of six are foreign-currency
 // denominated: the stored value is the ticket's own local-currency multiplier
-// (yen, euro, or Australian-dollar per point), not yet bridged to USD --
-// sizing.ts's index_points arm reads pointsPerLot as a flat dollar figure the
-// way DOW/NSDQ/SP already publish theirs, and these three stay outside wave
-// 1's scannable roster (they are among the nine addendum markets) so nothing
-// sizes against the unbridged figure today.
+// (yen, euro, or Australian-dollar per point), and `pointsCurrency` states
+// which. sizing.ts bridges it to dollars in BOTH arms that read it — the
+// per-unit value and the margin cap's denominator.
+//
+// WHAT THIS COMMENT USED TO SAY, because the shape of the mistake is worth
+// keeping: that the values were "not yet bridged to USD", that sizing read
+// them as flat dollars, and that this was harmless because "these three stay
+// outside wave 1's scannable roster ... so nothing sizes against the unbridged
+// figure today". The first two were true. The third was true when written on
+// 2026-08-04 (#232) and false three days later, when #257 put all six indices
+// on the roster; nothing was watching the premise, so the flat read outlived
+// its own justification. Only the parked desk kept an operator from copying a
+// DAX size worth 115.4% of its risk budget.
+//
+// tests/brokerSizingGroundTruth.test.ts now anchors both arms to the dollar
+// figures on E8's own tickets, which is a check that cannot go stale the way
+// a sentence about the roster can.
 // SYMBOLS: external E8 checkout observations captured so far | 3 of 6 vs indices
-const INDEX_POINT_OBSERVATIONS: Record<string, { note: string; pointsPerLot: number }> = {
+const INDEX_POINT_OBSERVATIONS: Record<
+  string,
+  { note: string; pointsCurrency: string; pointsPerLot: number }
+> = {
   NIKKEI: {
+    pointsCurrency: "JPY",
     pointsPerLot: 500,
     note: "100 ticks = $3.17 at USDJPY (0.00634) -> Y500/point (batch 2, blocked by closed-market validation; the ticket's own arithmetic still prices it)",
   },
   DAX: {
+    pointsCurrency: "EUR",
     pointsPerLot: 5,
     note: "100 ticks = $5.77 at EURUSD 1.1544 -> EUR5/point (batch 2, blocked by closed-market validation; the ticket's own arithmetic still prices it)",
   },
   ASX: {
+    pointsCurrency: "AUD",
     pointsPerLot: 20,
     note: "100 ticks = $14.08 at AUDUSD (~0.704) -> AUD20/point (batch 2, blocked by closed-market validation; the ticket's own arithmetic still prices it)",
   },
@@ -514,7 +542,7 @@ function promotedContractCfd(symbol: string): CfdMapping {
 
 /** A promoted index_points row: same shape, the ticket's per-point multiplier. */
 function promotedIndexCfd(symbol: string): CfdMapping {
-  const { pointsPerLot, note } = INDEX_POINT_OBSERVATIONS[symbol];
+  const { note, pointsCurrency, pointsPerLot } = INDEX_POINT_OBSERVATIONS[symbol];
   const source = proForexTicket(note);
   return {
     brokerSymbol: null,
@@ -522,7 +550,11 @@ function promotedIndexCfd(symbol: string): CfdMapping {
     brokerSymbolSource: source,
     tradability: "confirmed",
     tradabilitySource: source,
-    unit: { kind: "index_points", pointsPerLot: valued(pointsPerLot, source) },
+    unit: {
+      kind: "index_points",
+      pointsCurrency,
+      pointsPerLot: valued(pointsPerLot, source),
+    },
     maxTicketLots: TICKET_CAP_DEFAULT,
     relatedExposure: null,
   };
@@ -560,9 +592,9 @@ const CFD_MAPPINGS: Record<string, CfdMapping> = {
   // symbols never reached `confirmed` on a published tag alone (§19a rule 1).
   // Appendix A batch 2 observed all six directly, three of them (NIKKEI, DAX,
   // ASX) at a foreign-currency per-point multiplier the ticket itself showed.
-  SP: indexCfd("SP", "SP500", 20),
-  NSDQ: indexCfd("NSDQ", "NAS100", 5),
-  DOW: indexCfd("DOW", "US30", 5),
+  SP: indexCfd("SP", "SP500", 20, "USD"),
+  NSDQ: indexCfd("NSDQ", "NAS100", 5, "USD"),
+  DOW: indexCfd("DOW", "US30", 5, "USD"),
   NIKKEI: promotedIndexCfd("NIKKEI"),
   DAX: promotedIndexCfd("DAX"),
   ASX: promotedIndexCfd("ASX"),
@@ -1018,6 +1050,16 @@ export function hasPublishedSizeInputs(row: BrokerInstrument): boolean {
     return false;
   }
   if (unitValues(row.unit).some((value) => value.value === null)) {
+    return false;
+  }
+  // An index_points row whose currency has no USD leg has no per-point dollar
+  // value and no margin denominator, so it is not sizeable however complete the
+  // rest of the row looks. Published-ness is about every input the arithmetic
+  // needs, and the currency bridge became one of those inputs.
+  if (
+    row.unit.kind === "index_points" &&
+    usdPerCurrencyBridge(row.unit.pointsCurrency) === null
+  ) {
     return false;
   }
   if (program.family === "futures") {

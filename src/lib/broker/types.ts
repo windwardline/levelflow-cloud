@@ -71,7 +71,17 @@ export type Valued<T> = { source: Provenance; value: T | null };
  */
 export type QuoteUnit =
   | { contractSize: Valued<number>; kind: "forex_contract" }
-  | { kind: "index_points"; pointsPerLot: Valued<number> }
+  | {
+    kind: "index_points";
+    /**
+     * The currency `pointsPerLot` is denominated in. REQUIRED, with no
+     * default, for the reason #410 made sizingHoursFactor required: an
+     * optional field with a fallback is indistinguishable from a stated one,
+     * and here the fallback was "assume USD" applied to euros.
+     */
+    pointsCurrency: string;
+    pointsPerLot: Valued<number>;
+  }
   | { kind: "futures_tick"; tickSize: Valued<number>; valuePerTick: Valued<number> };
 
 export type Tradability = "confirmed" | "not_offered" | "not_published" | "unconfirmed";
