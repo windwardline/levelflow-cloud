@@ -9,6 +9,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
+  fetchFmpJsonWithRetry,
   fetchFmpWithRetry,
   type FmpRetryEvent,
 } from "../scripts/fmpRetry.ts";
@@ -294,6 +295,127 @@ describe("the bulk driver's ladder is sized for a bulk job", () => {
     assert.ok(
       driver.includes("delaysMs: FMP_BULK_DELAYS_MS"),
       "the bulk ladder is declared but not actually passed",
+    );
+  });
+});
+
+describe("the body read is inside the retry, not after it", () => {
+  // fetchFmpWithRetry returns the moment the headers arrive. The body is
+  // streamed afterwards, outside every guard this module provides — and for
+  // the sweep's bar fetches the body is the large, slow, risky part.
+  //
+  // The fifth v4 rebuild died at 88 markets of 98 on `Fetch.onAborted /
+  // read ECONNRESET` mid-stream and logged NO retry, because from the
+  // retry's point of view the request had already succeeded.
+  const reset = () =>
+    Object.assign(new TypeError("fetch failed"), {
+      cause: Object.assign(new Error("read ECONNRESET"), {
+        code: "ECONNRESET",
+      }),
+    });
+
+  it("retries when the BODY throws, not just the request", async () => {
+    let reads = 0;
+    const result = await fetchFmpJsonWithRetry(
+      () => Promise.resolve(response(200)),
+      () => {
+        reads += 1;
+        return reads < 3 ? Promise.reject(reset()) : Promise.resolve("rows");
+      },
+      { delaysMs: [1, 1, 1] },
+    );
+    assert.deepEqual(result, { body: "rows", ok: true });
+    assert.equal(reads, 3);
+  });
+
+  it("repeats the WHOLE attempt, not just the read", async () => {
+    // A partially read body is a failed request, not a partial success:
+    // re-reading a broken stream is not a thing, so the request must be
+    // reissued too.
+    let requests = 0;
+    let reads = 0;
+    await fetchFmpJsonWithRetry(
+      () => {
+        requests += 1;
+        return Promise.resolve(response(200));
+      },
+      () => {
+        reads += 1;
+        return reads < 2 ? Promise.reject(reset()) : Promise.resolve("rows");
+      },
+      { delaysMs: [1, 1] },
+    );
+    assert.equal(requests, 2, "the request was not reissued with the read");
+    assert.equal(reads, 2);
+  });
+
+  it("rethrows the original body error once the ladder is spent", async () => {
+    const thrown = reset();
+    let reads = 0;
+    await assert.rejects(
+      () =>
+        fetchFmpJsonWithRetry(
+          () => Promise.resolve(response(200)),
+          () => {
+            reads += 1;
+            return Promise.reject(thrown);
+          },
+          { delaysMs: [1] },
+        ),
+      (error: unknown) => error === thrown,
+    );
+    assert.equal(reads, 2);
+  });
+
+  it("never consumes a body it should not have read", async () => {
+    // A non-ok status is handed back unconsumed: the caller owns what a 404
+    // means, and reading the body of a failed request spends bytes against
+    // the budget for nothing.
+    let reads = 0;
+    const result = await fetchFmpJsonWithRetry(
+      () => Promise.resolve(response(404)),
+      () => {
+        reads += 1;
+        return Promise.resolve("rows");
+      },
+      { delaysMs: [1] },
+    );
+    assert.equal(result.ok, false);
+    assert.equal(reads, 0);
+    if (!result.ok) assert.equal(result.response.status, 404);
+  });
+
+  it("still retries a 429 the same way, and reports both reasons", async () => {
+    const events: FmpRetryEvent[] = [];
+    let calls = 0;
+    const result = await fetchFmpJsonWithRetry(
+      () => {
+        calls += 1;
+        return calls < 2
+          ? Promise.resolve(response(429))
+          : Promise.resolve(response(200));
+      },
+      () => Promise.resolve("rows"),
+      { delaysMs: [1, 1], onRetry: (event) => events.push(event) },
+    );
+    assert.equal(result.ok, true);
+    assert.deepEqual(events.map((event) => event.reason), ["status"]);
+  });
+
+  it("the sweep's bar fetch routes through it — derived from the source", () => {
+    // The bar fetch is the one that died. If it ever returns to the
+    // headers-only helper, the large-body path is unguarded again.
+    const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
+    const barFetch = driver.slice(driver.indexOf("async function fetchBars("));
+    const body = barFetch.slice(0, barFetch.indexOf("\n}\n"));
+    assert.match(
+      body,
+      /fetchFmpJsonWithRetry\(/,
+      "fetchBars reads its body outside the retry again",
+    );
+    assert.ok(
+      !/fetchFmpWithRetry\(/.test(body),
+      "fetchBars uses the headers-only retry for a large body",
     );
   });
 });

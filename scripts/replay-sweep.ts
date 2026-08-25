@@ -28,6 +28,7 @@ import {
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
+  fetchFmpJsonWithRetry,
   fetchFmpWithRetry,
   type FmpRetryEvent,
 } from "./fmpRetry.ts";
@@ -1508,13 +1509,24 @@ async function fetchDailyBars(
 }
 
 async function fetchBars(endpoint: URL, zone: string): Promise<Bar[]> {
-  const response = await fetchFmpWithRetry(() => fetch(endpoint), FMP_RETRY);
-  if (!response.ok) {
+  // Fetch AND body-read as ONE retried unit. The body is where the risk
+  // actually is here — these responses carry hundreds of thousands of bars —
+  // and it used to sit entirely outside the retry, because
+  // `fetchFmpWithRetry` returns the moment the headers arrive. The fifth v4
+  // rebuild attempt died at 88 markets of 98 on `Fetch.onAborted /
+  // read ECONNRESET` mid-stream, and logged no retry at all: from the retry's
+  // point of view the request had already succeeded.
+  const result = await fetchFmpJsonWithRetry(
+    () => fetch(endpoint),
+    (response) => readJsonWithBudget(response, budget()),
+    FMP_RETRY,
+  );
+  if (!result.ok) {
     throw new Error(
-      `FMP request failed (${response.status}) for ${endpoint.pathname}`,
+      `FMP request failed (${result.response.status}) for ${endpoint.pathname}`,
     );
   }
-  const payload = await readJsonWithBudget(response, budget());
+  const payload = result.body;
   const rows = Array.isArray(payload)
     ? payload
     : Array.isArray((payload as { historical?: unknown[] }).historical)
