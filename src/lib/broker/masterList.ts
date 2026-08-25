@@ -78,13 +78,17 @@ import { visibleAssetSymbols } from "./visibility";
  * `mapped-not-yet-onboarded` · `excluded-no-fmp-source` ·
  * `offered-but-unsizeable`); `served-but-not-scannable` is this module's one
  * addition, needed for full coverage of "every instrument E8 offers"
- * (requirement 1) without inventing a new exclusion mechanism — it names
- * exactly the nine rows symbolMap.ts's own `NO_TRADE_SYMBOLS` and
- * `TEMPORARILY_HIDDEN_ASSET_SYMBOLS` already withhold from the served master list,
- * for reasons (no measured edge; an unverified chart feed) that are neither
- * a broker↔FMP matching question nor a sizing question — a third, older,
- * already-tested axis this module did not invent and does not re-litigate.
- * Every one of the nine still carries its own specific ground below.
+ * (requirement 1) without inventing a new exclusion mechanism. It means
+ * exactly "in the symbol map, withheld from the scan", and it reaches a row by
+ * two independent routes: a contract-size variant (`contractVariants.ts`), or
+ * membership of `WITHHELD_FROM_SCAN` — symbolMap.ts's own `NO_TRADE_SYMBOLS`
+ * union `TEMPORARILY_HIDDEN_ASSET_SYMBOLS`.
+ *
+ * This paragraph used to say the status "names exactly the nine rows"
+ * those two sets withhold. It was true when written and false from
+ * 2026-08-07, when the owner ruling behind #257 emptied both: the eight rows
+ * carrying it today are all contract-size variants, and the withheld route is
+ * live but unreached. Counting a population in prose is what let that sit.
  */
 export type MasterListStatus =
   | "served-and-visible"
@@ -184,24 +188,128 @@ const SERVED_GROUND =
   "none — fully served and visible, no exclusion or limitation on record.";
 
 /**
- * The nine addendum symbols (symbolMap.ts's own NO_TRADE_SYMBOLS union
- * TEMPORARILY_HIDDEN_ASSET_SYMBOLS) and the specific, already-recorded
- * reason each one carries. Cited rather than re-derived: the calibration
- * rounds and the commit come straight from symbolMap.ts's own header
- * comment and this repo's git history.
+ * Every symbol symbolMap withholds from the scan, as ONE set derived from its
+ * two sources rather than transcribed alongside them — the same treatment
+ * `UNSIZEABLE_MASTER_SYMBOLS` below already gets, for the same reason.
  */
-// SYMBOLS: record grounds for markets no longer scannable | 9
-const NOT_SCANNABLE_GROUND: Record<string, string> = {
-  SP: "No accepted setups across the full calibration history (round 12) — a calibration finding, not a broker or FMP fact (src/lib/symbolMap.ts's NO_TRADE_SYMBOLS).",
-  NSDQ: "No accepted setups across the full calibration history (round 12) — a calibration finding, not a broker or FMP fact (src/lib/symbolMap.ts's NO_TRADE_SYMBOLS).",
-  DOW: "No accepted setups across the full calibration history (round 12) — a calibration finding, not a broker or FMP fact (src/lib/symbolMap.ts's NO_TRADE_SYMBOLS).",
-  NIKKEI: "No accepted setups across the full calibration history (round 12) — a calibration finding, not a broker or FMP fact (src/lib/symbolMap.ts's NO_TRADE_SYMBOLS). Levelflow's own NIKKEI row reads a cash index (^N225); the CME NKD future is a separate, unrelated row below (excluded-no-fmp-source).",
-  DAX: "No accepted setups across the full calibration history (round 12) — a calibration finding, not a broker or FMP fact (src/lib/symbolMap.ts's NO_TRADE_SYMBOLS).",
-  NGUSD: "Zero accepted setups across the full calibration history (round 14) — a calibration finding, not a broker or FMP fact (src/lib/symbolMap.ts's NO_TRADE_SYMBOLS).",
-  HGUSD: "Zero accepted setups across the full calibration history (round 14) — a calibration finding, not a broker or FMP fact (src/lib/symbolMap.ts's NO_TRADE_SYMBOLS).",
-  BNBUSD: "Mixed calibration record (train -0.030 / test +0.099) missed the provable bar (commit ad86422) — a calibration finding, not a broker or FMP fact (src/lib/symbolMap.ts's NO_TRADE_SYMBOLS). Its FMP identity is independently re-verified a third time in docs/research/e8-crypto-source-resolution-2026-08-05.md §6, feeding a separate future onboarding question this row's status does not answer.",
-  ASX: "Chart feed not yet verified against the matching traded CFD — a feed-verification gap, not a broker or FMP fact (src/lib/symbolMap.ts's TEMPORARILY_HIDDEN_ASSET_SYMBOLS).",
-};
+/**
+ * Pure so the guard test can prove it unions BOTH sources. Asserting the live
+ * value against a locally recomputed union cannot: both sides are empty today,
+ * so dropping either source from the derivation changes nothing observable and
+ * the assertion passes over it.
+ */
+export function withheldFromScan(
+  noTrade: Iterable<string>,
+  temporarilyHidden: Iterable<string>,
+): Set<string> {
+  return new Set<string>([...noTrade, ...temporarilyHidden]);
+}
+
+const WITHHELD_FROM_SCAN = withheldFromScan(
+  NO_TRADE_SYMBOLS,
+  TEMPORARILY_HIDDEN_ASSET_SYMBOLS,
+);
+
+/**
+ * The recorded reason each withheld symbol carries. Its population is
+ * `WITHHELD_FROM_SCAN` exactly — no more, no fewer — and
+ * tests/brokerMasterList.test.ts asserts that in both directions.
+ *
+ * **EMPTY, and the emptiness is derived rather than declared.** This table
+ * listed nine symbols under a docblock calling them "the nine addendum symbols
+ * (symbolMap.ts's own NO_TRADE_SYMBOLS union TEMPORARILY_HIDDEN_ASSET_SYMBOLS)".
+ * That sentence was true when written. `NO_TRADE_SYMBOLS` was emptied by the
+ * owner ruling of 2026-08-07 (#257) and `TEMPORARILY_HIDDEN_ASSET_SYMBOLS`
+ * with it, so the union became empty and the table did not follow — nine
+ * markets carried a live "withheld because..." ground while every one of them
+ * was scannable. SP, NSDQ, DOW, NIKKEI, DAX, NGUSD, HGUSD, BNBUSD and ASX all
+ * render today.
+ *
+ * The grounds themselves are calibration history and are NOT lost — checked
+ * before deleting, not assumed: the round-12 index finding and round-14
+ * NGUSD/HGUSD finding are in symbolMap.ts's own NO_TRADE_SYMBOLS header, ASX's
+ * feed verdict is in its TEMPORARILY_HIDDEN_ASSET_SYMBOLS header (F2's -5.7,
+ * 0.06%, "TRACKS (cash hours)"), and BNBUSD's mixed record (train -0.030 /
+ * test +0.099) is in docs/trade-model.md's round-16 section.
+ *
+ * SOMETHING WAS WATCHING, AND IT GUARDED THE WRONG THING — the sharper version
+ * of the lesson. The table carried `// SYMBOLS: record grounds ... | 9`, a
+ * size-pinning marker enforced on every CI run by tests/symbolPopulations.test.ts.
+ * That check is `assert.equal(entry.symbols.length, marker.size)`, so it would
+ * have failed anyone who correctly shrank the table toward the empty union: a
+ * live guard, running green, defending the stale state, because it pinned a
+ * hand-authored 9 against nothing rather than against the population the table
+ * claimed to mirror. A count is not a derivation. This is now derived, and the
+ * derivation itself is tested on fixtures where it can actually fail.
+ */
+const NOT_SCANNABLE_GROUND: Record<string, string> = {};
+
+/**
+ * Where the ground table and the withheld set disagree, in both directions.
+ *
+ * Exported as a PURE function over its inputs so the guard test can exercise
+ * it on constructed populations. With both the real set and the real table
+ * empty, asserting `keys(table) === union` on live data alone is vacuous —
+ * empty equals empty, and the assertion cannot distinguish a working check
+ * from one that always returns nothing. The fixtures do that; the live call
+ * proves today's data is clean.
+ */
+export function notScannableGroundGaps(
+  withheld: Iterable<string>,
+  ground: Readonly<Record<string, string>>,
+): { missingGround: string[]; orphanedGround: string[] } {
+  const withheldSet = new Set(withheld);
+  return {
+    missingGround: [...withheldSet]
+      .filter((symbol) => !Object.hasOwn(ground, symbol))
+      .sort(),
+    orphanedGround: Object.keys(ground)
+      .filter((symbol) => !withheldSet.has(symbol))
+      .sort(),
+  };
+}
+
+/**
+ * The recorded ground for a withheld symbol, or a refusal.
+ *
+ * Extracted so the refusal is TESTABLE. It fires inside `SERVED_ROWS`, a
+ * top-level const, so in situ it throws at module import — which means the
+ * guard test never runs to report it: all five masterList-importing test files
+ * fail to load instead. CI still goes red with a self-naming message, but the
+ * assertion cannot be the thing that catches it, and an untested throw is a
+ * claim rather than a guarantee. `tests/brokerMasterList.test.ts` exercises
+ * this function directly.
+ *
+ * No silent fallback: `noUncheckedIndexedAccess` is off, so an absent key types
+ * as `string` and would ride through as `undefined` — a row reading "withheld,
+ * reason: undefined" on the artifact whose whole purpose is recording why.
+ */
+export function groundForWithheld(
+  symbol: string,
+  ground: Readonly<Record<string, string>>,
+): string {
+  const recorded = ground[symbol];
+  if (recorded === undefined) {
+    throw new Error(
+      `${symbol} is withheld from the scan with no recorded ground. ` +
+        `Add one to NOT_SCANNABLE_GROUND in src/lib/broker/masterList.ts.`,
+    );
+  }
+  return recorded;
+}
+
+/** The withheld set, for the guard test to check the live data against. */
+export const WITHHELD_FROM_SCAN_SYMBOLS: readonly string[] = [...WITHHELD_FROM_SCAN]
+  .sort();
+
+/**
+ * `notScannableGroundGaps` applied to the real pair. Exported rather than the
+ * table itself so a test cannot accidentally check a copy of the data and
+ * report green over the live one.
+ */
+export function liveNotScannableGroundGaps() {
+  return notScannableGroundGaps(WITHHELD_FROM_SCAN, NOT_SCANNABLE_GROUND);
+}
 
 const BRENT_GROUND =
   "Amendment 23's offset ruling: E8 quotes ~1.67 (~2%, ~196 bp) above this feed, past the significance bar for display. The match and the basis both stay recorded — here and in offsets.ts — for backend broker-matching and every future replay sweep (docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md, Amendment 23).";
@@ -227,24 +335,14 @@ const UNSIZEABLE_MASTER_SYMBOLS = new Set(
 const UNSIZEABLE_MASTER_GROUND =
   "E8's margin-only table has never published a tick size or a value per tick for this row. OFFERED per the 2026-08-03 F9 futures-account sighting (amendment 19); Size stays withheld per amendment 22's reliable-data bar (docs/research/e8-futures-account-2026-08-03.md).";
 
-/**
- * The ground for a market onboarded under the owner's 2026-08-05 directive —
- * every market E8 actually trades, with a confirmed FMP match, is represented
- * and analyzed in Levelflow — but not yet promoted to a user surface.
- *
- * The directive's own condition is why: a market is visible "so long as there
- * is an analyzed and acceptable match from FMP". These carry a confirmed match
- * and no sweep evidence, so they are analyzed and withheld. The eight older
- * not-scannable rows keep their individual grounds in NOT_SCANNABLE_GROUND;
- * this covers the batch that shares one reason, rather than repeating one
- * sentence nineteen times.
- */
-const ONBOARDED_PENDING_SWEEP_GROUND =
-  "Onboarded 2026-08-05 from E8's live futures-account offering with a " +
-  "confirmed FMP series carrying usable daily and 15-minute depth. In the " +
-  "replay universe now; withheld from every user surface until a sweep " +
-  "produces an acceptable, both-splits result. Promotion is a calibration " +
-  "decision, and so is continued exclusion.";
+// ONBOARDED_PENDING_SWEEP_GROUND stood here: the shared reason for the
+// nineteen futures onboarded 2026-08-05 and held back pending a sweep. It was
+// read only as the `??` fallback beside NOT_SCANNABLE_GROUND, so it died with
+// the same premise — those nineteen are no longer withheld, and a fallback that
+// supplies a reason for a market nothing is withholding is a wrong fact on a
+// compliance record. docs/HANDOFF.md carried it as a known-stale item ("calls
+// swept-and-failed markets 'pending sweep'"); this removes the constant rather
+// than rewording it.
 
 const SERVED_ROWS: MasterListRow[] = SECURITY_OPTIONS.map((option) => {
   const symbol = option.symbol;
@@ -275,11 +373,17 @@ const SERVED_ROWS: MasterListRow[] = SECURITY_OPTIONS.map((option) => {
       source: "src/lib/broker/contractVariants.ts",
     });
   }
-  if (NO_TRADE_SYMBOLS.has(symbol) || TEMPORARILY_HIDDEN_ASSET_SYMBOLS.has(symbol)) {
+  // Unreachable while WITHHELD_FROM_SCAN is empty, and kept so that refilling
+  // either source set is HANDLED rather than ignored — a withheld market must
+  // never fall through to served-and-visible. Refilling a set WITH a matching
+  // ground classifies here; refilling one WITHOUT a ground throws at module
+  // import, naming the symbol. Stated precisely because a comment that
+  // over-promises is the failure class this whole file just corrected.
+  if (WITHHELD_FROM_SCAN.has(symbol)) {
     return row({
       ...shared,
       status: "served-but-not-scannable",
-      ground: NOT_SCANNABLE_GROUND[symbol] ?? ONBOARDED_PENDING_SWEEP_GROUND,
+      ground: groundForWithheld(symbol, NOT_SCANNABLE_GROUND),
       source: "src/lib/symbolMap.ts",
     });
   }

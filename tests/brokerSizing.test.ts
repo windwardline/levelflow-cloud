@@ -621,9 +621,12 @@ describe("§19e — null blocks, exhaustively, and each null names its own fact"
   it("blocks every non-sizeable market on every line, with a word and no number", () => {
     for (const program of PROGRAM_LINES) {
       const sizeable = new Set(SIZEABLE_MARKETS_BY_LINE[program.line]);
-      // The 50 scannable markets: the nine addendum rows have no setup to size and
-      // are excluded from SIZEABLE_MARKETS_BY_LINE by construction, which is where
-      // §19a's "never sizeable while they are no-trade or hidden" is enforced.
+      // Rows outside SIZEABLE_MARKETS_BY_LINE are excluded from it by
+      // construction, which is where §19a's "never sizeable while they are
+      // no-trade or hidden" is enforced. The comment here used to name "the
+      // nine addendum rows"; both source sets emptied on 2026-08-07 (#257),
+      // and the derived population lives in masterList.ts rather than in a
+      // count written down beside it.
       for (const row of BROKER_INSTRUMENTS) {
         if (
           row.programLine !== program.line || sizeable.has(row.levelflowSymbol) ||

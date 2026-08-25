@@ -1074,9 +1074,15 @@ export function hasPublishedSizeInputs(row: BrokerInstrument): boolean {
  * What each program line can actually size in wave 1: a confirmed row with every
  * published input present, on a market Levelflow scans. The scannable
  * intersection is what makes §19a's "never sizeable while they are no-trade or
- * hidden" true in CI rather than in prose — a market with no setup has nothing to
- * size, and the nine addendum rows exist for the governor's universe question
- * alone.
+ * hidden" true in CI rather than in prose — a market with no setup has nothing
+ * to size.
+ *
+ * This used to add "and the nine addendum rows exist for the governor's
+ * universe question alone". No-trade and temporarily-hidden are both empty
+ * since 2026-08-07 (#257), so there is no such nine; the rows the scan
+ * withholds today are contract-size variants, which hold no scan slot for a
+ * different reason. masterList.ts derives that population rather than counting
+ * it in a sentence.
  */
 export const SIZEABLE_MARKETS_BY_LINE: Record<ProgramLine, string[]> =
   Object.fromEntries(
