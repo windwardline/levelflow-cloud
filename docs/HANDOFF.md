@@ -766,9 +766,18 @@ Every parameter family, per market, gated by item 3's acceptance procedure —
 nothing ships that does not clear its own out-of-sample bar corrected for the
 family it was selected from:
 
-- **stop** — cap, ATR multiple, structural floor, pivot search. Note 8a: the
-  floor currently makes the cap bind unconditionally in seven of eight classes,
-  so both levers are dead. Fix before deriving, or this measures nothing again.
+- **stop** — cap, ATR multiple, structural floor, pivot search. Note 8a,
+  **corrected 2026-08-25**: this said the floor makes the cap bind
+  unconditionally in seven of eight classes, so "both levers are dead. Fix
+  before deriving." That is false, and it is an instruction, so an agent
+  obeying AGENTS.md's order to read this file first would either skip stop
+  derivation as pointless or repair geometry that is not broken. Measured over
+  the 97-market scan roster: `maxStopAtrMultiplier` is 1.0 on **26** markets,
+  2.5 on 6 and 4.0 on 65 — so the cap binds by arithmetic on 26 and **71 have
+  both levers live**. The class-level reading predates the per-market cells.
+  Those cells come from the 4c/4d corpus the banner above declares invalid, so
+  this states where the mechanism stands and settles nothing about whether the
+  cells are right.
 - **TP1** — distance, risk share, and whether it should fire *at all* for a given
   market.
 - **TP2 / runner** — ceiling, window share, exit policy. Blocked on 2f: today

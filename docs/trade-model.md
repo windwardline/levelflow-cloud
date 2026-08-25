@@ -418,10 +418,13 @@ and near-zero take-profit hits in production).
   fraction (indices sit near the market; deep offsets never filled).
 - **Stop**: the structural candidate — nearest confirmed swing pivot with a
   volatility buffer, floored at 1.25 ATR — clipped by the class cap
-  `maxStopAtrMultiplier × ATR(15m)`. Because the floor exceeds the cap in
-  seven of eight classes, the cap binds unconditionally there and
-  `stopProvenance` records `cap` (see item 8a: both other levers are dead
-  until the floor/cap geometry is re-derived). The prose here used to state
+  `maxStopAtrMultiplier × ATR(15m)`. Wherever the cap sits at or below the
+  floor the cap binds by arithmetic and `stopProvenance` records `cap`. That
+  is 26 of the 97 scan-roster markets as of 2026-08-25; the other 71 carry a
+  cap of 2.5 or 4.0 and can be set by any of the three. The class-level
+  reading this passage carried — "seven of eight classes, both other levers
+  dead" — predates the per-market cells, which themselves come from the
+  corpus the banner above declares invalid. The prose here used to state
   the pivot case as the rule; the emitted `stopLogic` now derives from the
   provenance instead, and so does this sentence.
 - **TP1**: `max(tp1RiskShare × risk, tp1AtrMultiplier × ATR)`, capped at 60%
