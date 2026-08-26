@@ -2091,6 +2091,83 @@ key. Sequenced after item 6's `init.sql` work.
 ### 11 — Then hedge mind
 §20, then pillar 4.
 
+### The two cache archives, and why v2 was released (2026-08-26)
+
+`~/levelflow-cache-v3-preDateFix-20260824` is **KEPT**. Its own retention condition is
+measured and unmet: `verify-rebuild-depth --reference` against it reports **24 stores /
+10,850 rows** master did not recover.
+
+`~/levelflow-cache-v2-preR0f-20260824` was **RELEASED**, on evidence from a 65-agent
+adversarial pass (38 refuted / 23 survived). Its full residue against the retained set is
+**94 rows across 63 stores**, enumerated in
+`docs/research/v2-preR0f-residue-2026-08-26.json`:
+
+- **73 back-edge daily bars (2006–2013)** — the strongest keep argument, since `mergeByTime`
+  never prunes and top-ups only fetch forward, so no routine path regains them. **All 73 are
+  in the retained condemned corpus, OHLC-identical.** A first pass reported 56 as missing;
+  that was a displacement artifact — condemned anchors daily bars at `T00:00Z` where v2 uses
+  `T04:00Z`, so a timestamp match reports absent what a date match finds present.
+- **9 Saturday bars** dated 2026-08-22 on a closed FX spot market, restating the preceding
+  Friday to within ticks.
+- **1 BTCUSD bad tick**, `o=h=l=c=4000` between bars closing 296.87 and opening 314.68.
+- **1 DYDXUSD bar** inside a truncated, degraded tail — v2 ends 00:30 showing volume 0 where
+  v3 and master show 15,919 and 5,784.
+- **~9 calendar rows** from a `time`-only merge key, superseded by master's
+  `time+currency+impact+name` with 31,446 more events — an artifact of the collapse #426/#430
+  repaired.
+- **201,945 further rows** in the three mis-registered foreign indices, which **reconstruct
+  byte-exact from master** via the zone transform `venues.ts` records. Displacement, not data.
+
+**Zero rows carried information a retained corpus cannot produce.** Both archives' own
+`READ-ME.txt` texts are preserved verbatim below, because deleting an archive otherwise
+destroys the document explaining why it mattered.
+
+#### v2-preR0f READ-ME.txt (verbatim)
+
+```
+Snapshot of .calibration-cache under BAR_CLOCK "ny-wall-utc-v2",
+taken 2026-08-24 immediately before the R0f rebuild under
+"venue-wall-utc-v3".
+
+WHY IT EXISTS. Not because v2 is correct -- ^GDAXI, ^N225 and ^AXJO are
+mis-registered in it by 6, 13 and 14 hours (that is what v3 fixes). It
+exists because FMP's INTRADAY DEPTH AGES OUT: refetching history can
+return FEWER bars than were previously served. Measured 2026-08-23 on
+DYDXUSD, where 2026-08-10 came back 238 -> 212 rows and 2026-08-11
+250 -> 169 on a refetch ten days later.
+
+So this is the deepest copy of the 93 correctly-registered sources at
+the moment of the bump. If the v3 rebuild returns a shallower store for
+any symbol, compare against this before accepting the loss.
+
+The three foreign indices in here are WRONG and must not be measured
+from. Everything else is correct but was normalised under v2's identity
+and will not load under v3.
+```
+
+#### v3-preDateFix READ-ME.txt (verbatim)
+
+```
+Snapshot of .calibration-cache under BAR_CLOCK "venue-wall-utc-v3",
+taken 2026-08-24 before the date-only anchoring fix and the v4 bump.
+
+WHAT IS RIGHT IN IT. All 97 markets, intraday normalised per venue --
+this is the deepest CORRECT intraday data we hold. Measured against the
+v2 snapshot: 227 stores deeper, 23 identical, 40 shallower by exactly
+one daily bar (the 5000-row rolling cap sliding, not loss).
+
+WHAT IS WRONG IN IT. Exactly three files: the DAILY stores of ^GDAXI,
+^N225 and ^AXJO. toTimestamp passed the venue zone to date-only labels
+as well as intraday ones, so their daily bars anchored at the VENUE's
+midnight (15Z Tokyo, 22-23Z Berlin, 13-14Z Sydney) instead of New
+York's 04-05Z. computeCompletionMs recovers a daily bar's date with
+newYorkClockParts, so those bars completed a full day early -- a
+look-ahead. The daily-stamp witness caught it and RED'd all three.
+
+Keep this until the v4 rebuild is verified deeper or equal. FMP's
+intraday depth ages out, so a refetch can return less than it once did.
+```
+
 ### A rebuild is not lossless — run the depth check before trusting one
 
 **Corrects R0b's "fully reproducible".** FMP's intraday window ages out: a refetch can
