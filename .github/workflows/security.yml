@@ -52,7 +52,7 @@ jobs:
       # A step, not a job: the gate rides an already-required check, so no
       # ruleset change. Pinned by SHA like every other action — the gate that
       # enforces pinning is itself pinned; Dependabot carries version bumps.
-      - uses: windwardline/windwardline/actions/verify-action-pins@6c8d5dac0940af3adb5ace7e625a9cc62020d305 # v1.1.0
+      - uses: windwardline/windwardline/actions/verify-action-pins@7e6d53cdf02944bf21cab73e13104386e9a4735a # v1.1.1
 
   dependency-scan:
     name: Dependency scan
@@ -79,6 +79,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - uses: windwardline/windwardline/actions/verify-live-headers@6c8d5dac0940af3adb5ace7e625a9cc62020d305 # v1.1.0
+      - uses: windwardline/windwardline/actions/verify-live-headers@7e6d53cdf02944bf21cab73e13104386e9a4735a # v1.1.1
         with:
           url: https://levelflow.windwardline.com
