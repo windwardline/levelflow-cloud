@@ -52,7 +52,7 @@ jobs:
       # A step, not a job: the gate rides an already-required check, so no
       # ruleset change. Pinned by SHA like every other action — the gate that
       # enforces pinning is itself pinned; Dependabot carries version bumps.
-      - uses: windwardline/windwardline/actions/verify-action-pins@a7df3fb364021d34f501cd1aa3a481f39135c034 # v1.0.0
+      - uses: windwardline/windwardline/actions/verify-action-pins@6c8d5dac0940af3adb5ace7e625a9cc62020d305 # v1.1.0
 
   dependency-scan:
     name: Dependency scan
@@ -77,19 +77,8 @@ jobs:
     name: Headers live
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
-      - name: Assert the seven security headers on production
-        run: |
-          sleep 60
-          for _attempt in 1 2 3 4 5 6; do
-            missing=""
-            h=$(curl -sI --max-time 20 https://levelflow.windwardline.com/)
-            for want in content-security-policy strict-transport-security x-content-type-options referrer-policy x-frame-options permissions-policy cross-origin-opener-policy; do
-              printf '%s' "$h" | grep -qi "^$want:" || missing="$missing $want"
-            done
-            if [ -z "$missing" ]; then echo "All seven present."; exit 0; fi
-            sleep 45
-          done
-          echo "Missing headers after retries:$missing"
-          exit 1
+      - uses: windwardline/windwardline/actions/verify-live-headers@6c8d5dac0940af3adb5ace7e625a9cc62020d305 # v1.1.0
+        with:
+          url: https://levelflow.windwardline.com
