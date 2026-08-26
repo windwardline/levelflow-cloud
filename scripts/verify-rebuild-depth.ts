@@ -40,12 +40,14 @@ import { join } from "node:path";
 
 import { flagReader } from "./flagReader.ts";
 
-type Store = { clock?: string; items?: { time?: number }[] };
+type Row = Record<string, unknown>;
+type Store = { clock?: string; items?: Row[] };
 
 export type StoreVerdict =
   | { kind: "ok"; missing: 0; store: string }
   | { kind: "shallower"; missing: number; store: string }
   | { kind: "absent"; missing: number; store: string }
+  | { kind: "unkeyed"; missing: number; store: string }
   /**
    * Bars that moved rather than vanished.
    *
@@ -73,7 +75,41 @@ export type DepthReport = {
   losses: StoreVerdict[];
 };
 
-const STORE_SUFFIX = ".rolling.json";
+/**
+ * Every store shape this corpus uses, and how a row identifies itself.
+ *
+ * KEYED PER SHAPE, because a single key field is a coverage gap wearing a
+ * passing test. `timesOf()` read only `item.time`, so `treasury-rates.rolling.json`
+ * — the one store of 290 keyed `dateMs` — produced an EMPTY key set on both
+ * sides: missing 0, share 0, and it landed in `compared` having examined
+ * nothing. A candidate gutted from 3,412 rows to one passed as depth-complete
+ * at exit 0. And `.rolling.json` alone never enumerated the 20 `cot-*.json`
+ * files, 15,697 rows, at all.
+ *
+ * The calendar needs its composite key for the opposite reason: many events
+ * share one instant, so keying on time alone collapses them and UNDER-reports.
+ * That collapse is the defect #426/#430 repaired in the live store; a checker
+ * that reproduces it cannot see the repair.
+ */
+const STORE_PATTERN = /(\.rolling\.json|^cot-[A-Z0-9]+\.json)$/;
+
+function rowKey(row: Row): string | null {
+  if (typeof row.time === "number") {
+    // Calendar rows share instants; name is what separates two releases at
+    // one time. Absent on bar rows, which makes the composite degrade to the
+    // timestamp exactly where it should.
+    const parts = [row.time, row.currency, row.impact, row.name].filter(
+      (part) => part !== undefined,
+    );
+    return parts.join("|");
+  }
+  if (typeof row.dateMs === "number") return `d${row.dateMs}`;
+  // cot-*.json rows are {date: epochMs, netPct}. `date` is a NUMBER here, not
+  // an ISO string — assuming the string form left all 20 files UNKEYED.
+  if (typeof row.date === "number") return `d${row.date}`;
+  if (typeof row.date === "string") return `s${row.date}`;
+  return null;
+}
 
 /**
  * Above this share of a store's rows differing, the two are on different
@@ -90,26 +126,37 @@ const DISPLACEMENT_SHARE = 0.5;
  */
 const MIN_COMPARED_SHARE = 0.5;
 
+/**
+ * A displaced store must still HOLD its rows, just at other instants. Below
+ * this share of the reference's row count surviving in the candidate, a
+ * wholesale key mismatch is deletion rather than displacement.
+ */
+const DISPLACEMENT_RETAINED = 0.5;
+
 /** Declared literally: tests/sweepManifest.test.ts requires every flagReader
  * consumer to name its value-taking flags where a reader can see them. */
 const VALUE_FLAGS = new Set(["--reference", "--cache-dir"]);
 
 function readStore(path: string): Store | null {
   try {
-    return JSON.parse(readFileSync(path, "utf8")) as Store;
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as unknown;
+    // cot-*.json is a bare array; the rolling stores wrap items in an object.
+    return Array.isArray(parsed) ? { items: parsed as Row[] } : (parsed as Store);
   } catch {
     return null;
   }
 }
 
-function timesOf(store: Store): Set<number> {
-  const times = new Set<number>();
-  for (const item of store.items ?? []) {
-    if (typeof item.time === "number") {
-      times.add(item.time);
+function keysOf(store: Store): { keyed: Set<string>; rows: number } {
+  const keyed = new Set<string>();
+  const items = store.items ?? [];
+  for (const item of items) {
+    const key = rowKey(item);
+    if (key !== null) {
+      keyed.add(key);
     }
   }
-  return times;
+  return { keyed, rows: items.length };
 }
 
 /**
@@ -131,7 +178,7 @@ export function compareDepth(
   let incomparable = 0;
 
   const names = readdirSync(referenceDir)
-    .filter((name) => name.endsWith(STORE_SUFFIX))
+    .filter((name) => STORE_PATTERN.test(name))
     .sort();
 
   for (const name of names) {
@@ -148,22 +195,44 @@ export function compareDepth(
     }
 
     if (!candidate) {
-      const missing = timesOf(reference).size;
+      const missing = keysOf(reference).keyed.size;
       losses.push({ kind: "absent", missing, store: name });
       lines.push(`ABSENT       ${name} — ${missing} rows present only in the reference`);
       continue;
     }
 
-    const referenceTimes = timesOf(reference);
-    const candidateTimes = timesOf(candidate);
+    const ref = keysOf(reference);
+    const cand = keysOf(candidate);
+
+    // PER-STORE NON-VACUITY. A store with rows but no recognisable key yields
+    // empty sets on both sides, so missing is 0 and share is 0 and it lands in
+    // `compared` having examined nothing — a clean pass over an unexamined
+    // store. This is the general form of the treasury-rates gap: rather than
+    // teach the checker one more field and wait for the next shape, refuse any
+    // store it cannot key.
+    if (ref.rows > 0 && ref.keyed.size === 0) {
+      losses.push({ kind: "unkeyed", missing: ref.rows, store: name });
+      lines.push(
+        `UNKEYED      ${name} — ${ref.rows} rows and no recognisable key. ` +
+          `verify-rebuild-depth cannot measure this store; teach rowKey() its shape.`,
+      );
+      continue;
+    }
+
     let missing = 0;
-    for (const time of referenceTimes) {
-      if (!candidateTimes.has(time)) {
+    for (const key of ref.keyed) {
+      if (!cand.keyed.has(key)) {
         missing += 1;
       }
     }
-    const share = referenceTimes.size > 0 ? missing / referenceTimes.size : 0;
-    if (share >= DISPLACEMENT_SHARE) {
+    const share = ref.keyed.size > 0 ? missing / ref.keyed.size : 0;
+    // DISPLACEMENT MEANS THE ROWS MOVED, WHICH MEANS THEY STILL EXIST. A
+    // candidate gutted from 3,413 rows to one also shows ~100% of keys
+    // missing, and calling that a clock shift excuses a total loss as a
+    // normalisation change. A shift preserves the row COUNT; a deletion does
+    // not. Both conditions, or it is loss.
+    const retained = ref.keyed.size > 0 ? cand.keyed.size / ref.keyed.size : 1;
+    if (share >= DISPLACEMENT_SHARE && retained >= DISPLACEMENT_RETAINED) {
       incomparable += 1;
       lines.push(
         `DISPLACED    ${name} — ${(share * 100).toFixed(1)}% of rows at different ` +
@@ -177,7 +246,7 @@ export function compareDepth(
       losses.push({ kind: "shallower", missing, store: name });
       lines.push(
         `SHALLOWER    ${name} — ${missing} rows in the reference are absent ` +
-          `from the candidate (${referenceTimes.size} -> ${candidateTimes.size})`,
+          `from the candidate (${ref.keyed.size} -> ${cand.keyed.size})`,
       );
     }
   }
