@@ -58,6 +58,7 @@
     "supabase/functions/trade-analyzer/indicators.ts",
     "supabase/functions/trade-analyzer/learning.ts",
     "supabase/functions/trade-analyzer/macroRates.ts",
+    "supabase/functions/trade-analyzer/newsContext.ts",
     "supabase/functions/trade-analyzer/newsRules.ts",
     "supabase/functions/trade-analyzer/pricePlan.ts",
     "supabase/functions/trade-analyzer/quotes.ts",

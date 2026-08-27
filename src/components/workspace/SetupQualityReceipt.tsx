@@ -195,6 +195,11 @@ function buildQualityReceipt(
   // of upcoming, not a sibling of it. Adding the two counted every headline
   // twice, so a single headline read as "2 factors".
   const newsPenaltyUnits = asNumber(newsContext.penaltyUnits) ?? 0;
+  // Absent on rows written before the provenance shipped. Those predate the
+  // field rather than reporting a bad calendar, so they keep the old reading —
+  // "read" — instead of retroactively claiming every historical setup went
+  // unchecked. A wrong refusal is still a wrong statement.
+  const calendarSource = asText(newsContext.calendarSource) || "read";
   const costRating = asText(executionQuality.label);
   const costPenalty = asNumber(executionQuality.confidencePenalty) ?? 0;
   // 1q: the number that closes the payoff arithmetic. The printed payoff is
@@ -225,6 +230,7 @@ function buildQualityReceipt(
         sessionContext,
         activeNewsEvents + upcomingNewsEvents,
         newsPenaltyUnits,
+        calendarSource,
       ),
     },
     {
@@ -297,10 +303,19 @@ export function buildTimingSentence(
   sessionContext: Record<string, unknown>,
   timingRiskCount: number,
   newsPenaltyUnits: number,
+  calendarSource: string,
 ) {
   const label = asText(sessionContext.label);
   if (!label) {
     return ABSENT;
+  }
+  // WITHHELD, not hedged. A calendar holding no future events — or one that
+  // could not be read at all — makes a zero penalty meaningless: nothing was
+  // checked, so "no event or headline penalty" is an all-clear the review never
+  // earned. The session label survives because it comes from the venue clock
+  // (sessions.ts), which is honest either way.
+  if (calendarSource !== "read") {
+    return `${label}. News could not be checked for this review.`;
   }
   if (newsPenaltyUnits <= 0) {
     return `${label} with no event or headline penalty.`;

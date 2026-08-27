@@ -33,10 +33,13 @@ import { buildTimingSentence } from "../src/components/workspace/SetupQualityRec
 const LONDON = { label: "London session" };
 
 describe("the Timing row", () => {
+  // Every case below passes "read" explicitly: they are claims about a calendar
+  // that ANSWERED, and the withholding branch is its own describe block. Left
+  // implicit, they would silently become claims about provenance instead.
   it("does not claim 'no penalty' when the engine charged one", () => {
     // THE DEFECT, as its own case. A medium print inside the active window:
     // nothing upcoming, no headlines, and 0.5 units already off the score.
-    const sentence = buildTimingSentence(LONDON, 1, 0.5);
+    const sentence = buildTimingSentence(LONDON, 1, 0.5, "read");
     assert.doesNotMatch(sentence, /no event or headline penalty/);
     assert.equal(
       sentence,
@@ -46,7 +49,7 @@ describe("the Timing row", () => {
 
   it("says no penalty only when there is no penalty", () => {
     assert.equal(
-      buildTimingSentence(LONDON, 0, 0),
+      buildTimingSentence(LONDON, 0, 0, "read"),
       "London session with no event or headline penalty.",
     );
   });
@@ -55,14 +58,14 @@ describe("the Timing row", () => {
     // One upcoming headline. Under the retired expression this was
     // upcoming(1) + headlineSubset(1) = 2.
     assert.equal(
-      buildTimingSentence(LONDON, 1, 0.25),
+      buildTimingSentence(LONDON, 1, 0.25, "read"),
       "London session with 1 event or headline factor affecting timing.",
     );
   });
 
   it("pluralises on the real count", () => {
     assert.equal(
-      buildTimingSentence(LONDON, 3, 1.5),
+      buildTimingSentence(LONDON, 3, 1.5, "read"),
       "London session with 3 event or headline factors affecting timing.",
     );
   });
@@ -72,7 +75,7 @@ describe("the Timing row", () => {
     // two can in principle disagree. When they do, the sentence drops the
     // number rather than announcing "0 factors" — a refusal to state a figure
     // it cannot stand behind, not a silent fallback to the all-clear.
-    const sentence = buildTimingSentence(LONDON, 0, 0.5);
+    const sentence = buildTimingSentence(LONDON, 0, 0.5, "read");
     assert.doesNotMatch(sentence, /\b0\b/);
     assert.doesNotMatch(sentence, /no event or headline penalty/);
     assert.equal(
@@ -82,7 +85,7 @@ describe("the Timing row", () => {
   });
 
   it("withholds the whole row without a session label", () => {
-    assert.equal(buildTimingSentence({}, 2, 1), "—");
+    assert.equal(buildTimingSentence({}, 2, 1, "read"), "—");
   });
 });
 
@@ -95,8 +98,9 @@ describe("the row reads the fields that carry the charge", () => {
   it("passes active + upcoming, and the penalty, never the headline subset", () => {
     assert.match(
       source,
-      /buildTimingSentence\(\s*sessionContext,\s*activeNewsEvents \+ upcomingNewsEvents,\s*newsPenaltyUnits,\s*\)/,
-      "the Timing row is not reading active events and the penalty",
+      /buildTimingSentence\(\s*sessionContext,\s*activeNewsEvents \+ upcomingNewsEvents,\s*newsPenaltyUnits,\s*calendarSource,\s*\)/,
+      "the Timing row is not reading active events, the penalty and the " +
+        "calendar's provenance",
     );
     assert.doesNotMatch(
       source,
@@ -105,7 +109,7 @@ describe("the row reads the fields that carry the charge", () => {
     );
   });
 
-  it("takes activeEvents and penaltyUnits off the wire the engine writes", () => {
+  it("takes activeEvents, penaltyUnits and calendarSource off the wire", () => {
     // index.ts writes confluence.newsContext as
     // { activeEvents, headlineEvents, penaltyUnits, upcomingEvents }. Reading a
     // name the engine does not write yields undefined, coerces to 0, and
@@ -117,7 +121,7 @@ describe("the row reads the fields that carry the charge", () => {
     );
     const block = engine.slice(engine.indexOf("newsContext: {"));
     const body = block.slice(0, block.indexOf("},"));
-    for (const field of ["activeEvents", "penaltyUnits"]) {
+    for (const field of ["activeEvents", "calendarSource", "penaltyUnits"]) {
       assert.ok(
         body.includes(`${field}:`),
         `the engine no longer writes newsContext.${field}`,
@@ -128,5 +132,46 @@ describe("the row reads the fields that carry the charge", () => {
         `the receipt no longer reads newsContext.${field}`,
       );
     }
+  });
+});
+
+describe("the Timing row when the calendar was not read", () => {
+  // C8. One window query returning zero rows is byte-identical whether the
+  // calendar is clear or the ingest is dead, and the dead case has happened in
+  // production (migration 20260729040000's header). A zero penalty from an
+  // empty table is not an all-clear — nothing was checked — so the row
+  // WITHHOLDS rather than hedging, which is the same call #441 made for the
+  // replay record.
+  it("withholds the all-clear on a stale calendar", () => {
+    const sentence = buildTimingSentence(LONDON, 0, 0, "stale");
+    assert.doesNotMatch(sentence, /no event or headline penalty/);
+    assert.equal(
+      sentence,
+      "London session. News could not be checked for this review.",
+    );
+  });
+
+  it("withholds it when the read failed outright", () => {
+    assert.equal(
+      buildTimingSentence(LONDON, 0, 0, "unavailable"),
+      "London session. News could not be checked for this review.",
+    );
+  });
+
+  it("keeps the session label, which the venue clock earns either way", () => {
+    // sessions.ts derives the label from the venue calendar, not from the news
+    // table, so it stays honest when the calendar does not. Withholding the
+    // whole row would throw away a true statement to avoid a false one.
+    assert.match(buildTimingSentence(LONDON, 0, 0, "stale"), /^London session/);
+  });
+
+  it("does not let a real penalty override the refusal", () => {
+    // Provenance outranks the number. If the calendar is not trustworthy, a
+    // count drawn from it is not either — reporting "2 factors" off a stale
+    // table would be a precise claim built on an unchecked source.
+    assert.equal(
+      buildTimingSentence(LONDON, 2, 1.0, "stale"),
+      "London session. News could not be checked for this review.",
+    );
   });
 });
