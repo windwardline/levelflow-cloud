@@ -304,7 +304,7 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     // that vote participated and the learning cohort scopes again.
     assert.match(
       calibrationSrc,
-      /ANALYZER_VERSION = "2026\.08\.26\.oscillator-conflict-abstains"/,
+      /ANALYZER_VERSION = "2026\.08\.26\.learning-neutral-point-withheld"/,
     );
     assert.match(src, /ANALYZER_VERSION,\n/);
 

@@ -445,7 +445,19 @@ describe("global learning weights", () => {
       wins: 20,
     });
 
-    assert.equal(clean.confidenceAdjustment > ambiguous.confidenceAdjustment, true);
+    // SUSPENDED, NOT DROPPED. This line read
+    //   clean.confidenceAdjustment > ambiguous.confidenceAdjustment
+    // and both are 0 now that the adjustment is withheld (learning.ts
+    // WITHHELD_REASON: the neutral point was 0.5 against a real break-even of
+    // 0.71-0.83, so the sign was inverted across the whole band a TP1 ladder
+    // lives in). The ORDERING claim it made is still the right claim and
+    // returns with a derived neutral point; deleting it would lose the
+    // requirement rather than pause it.
+    assert.equal(clean.confidenceAdjustment, 0);
+    assert.equal(ambiguous.confidenceAdjustment, 0);
+    // The live half, and the one this test was really protecting: ambiguity
+    // discounts the SAMPLE WEIGHT, which is computed exactly as before and is
+    // what a corrected adjustment will be scaled by.
     assert.equal(clean.sampleWeight > ambiguous.sampleWeight, true);
     assert.equal(ambiguous.ambiguityPenalty > 0, true);
   });

@@ -19,7 +19,7 @@
 > the defect and must be rebuilt (Phase 0) before anything is re-measured.
 
 
-Model version: `2026.08.26.oscillator-conflict-abstains` (**not yet deployed**
+Model version: `2026.08.26.learning-neutral-point-withheld` (**not yet deployed**
 — the desk is parked, so this version has never served a request. AXES-9:
 `voteMomentumDivergence` resolved every RSI/MACD disagreement to buy, an
 artifact of OR-chain precedence rather than a choice, and emitted those
@@ -357,7 +357,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.08.26.oscillator-conflict-abstains'
+   where o.analyzer_version = '2026.08.26.learning-neutral-point-withheld'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;
