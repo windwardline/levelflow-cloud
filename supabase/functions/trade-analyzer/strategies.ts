@@ -339,6 +339,59 @@ function voteRangeMeanReversion(
   };
 }
 
+/**
+ * What the two oscillators, together, say about direction — and nothing when
+ * they contradict each other.
+ *
+ * THE BUG THIS REPLACES was an OR chain whose BUY arm was evaluated first and
+ * satisfied by EITHER indicator:
+ *
+ *   (rsi > 55) || (macdSlope > 0) ? "buy" : (rsi < 45) || (macdSlope < 0) ? "sell" : "neutral"
+ *
+ * so every state where RSI and MACD disagreed resolved to BUY — both of the
+ * two conflict cases, with no conflict state producing sell or neutral. The
+ * sharpest instance is RSI 70 with a falling MACD: the textbook BEARISH
+ * divergence, voted BUY, out of a function named momentum_divergence.
+ *
+ * The bias was not the worst of it. Conflict never reached the neutral branch,
+ * so a contradictory-evidence state emitted a directional vote at score 18-24
+ * and confidence 0.62-0.72 instead of the abstention's 5 and 0.2. The
+ * committee was most confident exactly where its own evidence disagreed.
+ *
+ * Nobody chose that: it is an artifact of operator precedence. The abstention
+ * comment inside voteMomentumDivergence shows the author already reasoned
+ * about oscillator legs abstaining, which is what this restores.
+ *
+ * Exactly two of the sixteen enumerated (rsi, macdSlope) states change.
+ * tests/oscillatorBias.test.ts pins the whole table.
+ */
+export function resolveOscillatorBias(
+  rsi: number | null,
+  macdSlope: number | null,
+): Direction {
+  const rsiBias: Direction = rsi === null
+    ? "neutral"
+    : rsi > 55
+    ? "buy"
+    : rsi < 45
+    ? "sell"
+    : "neutral";
+  const macdBias: Direction = macdSlope === null
+    ? "neutral"
+    : macdSlope > 0
+    ? "buy"
+    : macdSlope < 0
+    ? "sell"
+    : "neutral";
+
+  if (rsiBias === macdBias) return rsiBias;
+  if (rsiBias === "neutral") return macdBias;
+  if (macdBias === "neutral") return rsiBias;
+  // They contradict. One indicator overruling the other here is a coin flip
+  // dressed as a signal, and the committee has seven other votes.
+  return "neutral";
+}
+
 function voteMomentumDivergence(market: MarketContext): StrategyVote {
   const bars = market.primary;
   const recent = bars.slice(-24);
@@ -353,12 +406,7 @@ function voteMomentumDivergence(market: MarketContext): StrategyVote {
   // simultaneous overbought sell — one degenerate input, two opposite votes.
   const macdSlope = ema12 !== null && ema26 !== null ? ema12 - ema26 : null;
   const priceBias: Direction = latest.close >= first.close ? "buy" : "sell";
-  const oscillatorBias: Direction =
-    (rsi !== null && rsi > 55) || (macdSlope !== null && macdSlope > 0)
-      ? "buy"
-      : (rsi !== null && rsi < 45) || (macdSlope !== null && macdSlope < 0)
-      ? "sell"
-      : "neutral";
+  const oscillatorBias = resolveOscillatorBias(rsi, macdSlope);
   const divergence = priceBias !== oscillatorBias &&
     oscillatorBias !== "neutral";
   const direction = oscillatorBias;

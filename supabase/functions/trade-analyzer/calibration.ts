@@ -30,7 +30,17 @@ import { isKnownSymbol } from "./symbols.ts";
 // markets the macro-roles bump corrected one layer up, for the same reason:
 // they were onboarded on 2026-08-06 into a file nobody revisited.
 // (Prior: 2026.08.25.macro-roles.)
-export const ANALYZER_VERSION = "2026.08.25.treasury-tenors";
+// 2026.08.26.oscillator-conflict-abstains: AXES-9. voteMomentumDivergence read
+// its two oscillators through an OR chain whose BUY arm was evaluated first and
+// satisfied by EITHER indicator, so every state where RSI and MACD disagreed
+// resolved to buy — both conflict cases, with no conflict producing sell or
+// neutral. The sharpest was RSI 70 against a falling MACD, a textbook bearish
+// divergence, voting buy. Conflict also never reached the abstention branch, so
+// contradictory evidence scored 18-24 at confidence 0.62-0.72 instead of 5 at
+// 0.2. Exactly two of sixteen enumerated states change, both to neutral, which
+// moves the consensus score wherever that vote participated — so the cohort
+// boundary moves with it. (Prior: 2026.08.25.treasury-tenors.)
+export const ANALYZER_VERSION = "2026.08.26.oscillator-conflict-abstains";
 
 export type AssetType =
   | "agriculture"

@@ -296,9 +296,15 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
       "supabase/functions/trade-analyzer/calibration.ts",
       "utf8",
     );
+    // oscillator-conflict-abstains (AXES-9, 2026-08-26): voteMomentumDivergence
+    // resolved every RSI/MACD disagreement to buy — an artifact of OR-chain
+    // precedence, not a choice — and emitted those contradictory states at
+    // score 18-24 rather than the abstention's 5. Two of sixteen enumerated
+    // states change, both to neutral, so the consensus score moves wherever
+    // that vote participated and the learning cohort scopes again.
     assert.match(
       calibrationSrc,
-      /ANALYZER_VERSION = "2026\.08\.25\.treasury-tenors"/,
+      /ANALYZER_VERSION = "2026\.08\.26\.oscillator-conflict-abstains"/,
     );
     assert.match(src, /ANALYZER_VERSION,\n/);
 
