@@ -1319,105 +1319,105 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
     reason:
       "measured -0.120R per setup (±0.028, n=571) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
     reprobe:
-      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+      "It stays under analysis and returns if the measurement turns positive.",
   },
   CAKEUSD: {
     measuredExpectancyR: -0.218,
     reason:
       "measured -0.218R per setup (±0.054, n=264) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
     reprobe:
-      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+      "It stays under analysis and returns if the measurement turns positive.",
   },
   DASHUSD: {
     measuredExpectancyR: -0.124,
     reason:
       "measured -0.124R per setup (±0.025, n=799) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
     reprobe:
-      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+      "It stays under analysis and returns if the measurement turns positive.",
   },
   DOGEUSD: {
     measuredExpectancyR: -0.161,
     reason:
       "measured -0.161R per setup (±0.024, n=815) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
     reprobe:
-      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+      "It stays under analysis and returns if the measurement turns positive.",
   },
   EGLDUSD: {
     measuredExpectancyR: -0.368,
     reason:
       "measured -0.368R per setup (±0.033, n=491) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
     reprobe:
-      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+      "It stays under analysis and returns if the measurement turns positive.",
   },
   ETCUSD: {
     measuredExpectancyR: -0.163,
     reason:
       "measured -0.163R per setup (±0.024, n=880) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
     reprobe:
-      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+      "It stays under analysis and returns if the measurement turns positive.",
   },
   GRTUSD: {
     measuredExpectancyR: -0.077,
     reason:
       "measured -0.077R per setup (±0.029, n=584) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
     reprobe:
-      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+      "It stays under analysis and returns if the measurement turns positive.",
   },
   HBARUSD: {
     measuredExpectancyR: -0.161,
     reason:
       "measured -0.161R per setup (±0.037, n=391) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
     reprobe:
-      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+      "It stays under analysis and returns if the measurement turns positive.",
   },
   IMXUSD: {
     measuredExpectancyR: -0.108,
     reason:
       "measured -0.108R per setup (±0.039, n=497) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
     reprobe:
-      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+      "It stays under analysis and returns if the measurement turns positive.",
   },
   LTCUSD: {
     measuredExpectancyR: -0.115,
     reason:
       "measured -0.115R per setup (±0.017, n=1388) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
     reprobe:
-      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+      "It stays under analysis and returns if the measurement turns positive.",
   },
   PAUSD: {
     measuredExpectancyR: -0.149,
     reason:
       "measured -0.149R per setup (±0.072, n=147) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
     reprobe:
-      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+      "It stays under analysis and returns if the measurement turns positive.",
   },
   UNIUSD: {
     measuredExpectancyR: -0.098,
     reason:
       "measured -0.098R per setup (±0.028, n=588) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
     reprobe:
-      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+      "It stays under analysis and returns if the measurement turns positive.",
   },
   XLMUSD: {
     measuredExpectancyR: -0.108,
     reason:
       "measured -0.108R per setup (±0.029, n=855) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
     reprobe:
-      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+      "It stays under analysis and returns if the measurement turns positive.",
   },
   XMRUSD: {
     measuredExpectancyR: -0.095,
     reason:
       "measured -0.095R per setup (±0.024, n=803) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
     reprobe:
-      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+      "It stays under analysis and returns if the measurement turns positive.",
   },
   ZCUSX: {
     measuredExpectancyR: -0.208,
     reason:
       "measured -0.208R per setup (±0.065, n=127) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
     reprobe:
-      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+      "It stays under analysis and returns if the measurement turns positive.",
   },
 };
 
