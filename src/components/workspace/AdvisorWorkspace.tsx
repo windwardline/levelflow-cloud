@@ -577,7 +577,14 @@ export function AdvisorWorkspace(
       return false;
     }
     setAnalysisState({
-      response: { advisoryOnly: true, blocked: true, reason: blocked.reason },
+      response: {
+        advisoryOnly: true,
+        blocked: true,
+        reason: blocked.reason,
+        // Widening the server alone would be a no-op: this is the boundary the
+        // field has to cross to reach the panel.
+        withheldFor: blocked.withheldFor,
+      },
       reviewedAt: Date.now(),
       symbol: shownSymbol,
     });

@@ -856,6 +856,12 @@ async function reviewCurrentMarket(
       reason:
         `A stronger closely linked setup is already active on ${strongerExisting.symbol}.`,
       symbol: normalizedSymbol,
+      // BOTH withholding paths state it. This one's sentence happened to match
+      // the panel's old regex and the collapse path's did not, which is the
+      // whole reason one of them silently read as "Nothing passed review".
+      // Fixing only the broken sentence would leave the same coin-flip in
+      // place.
+      withheldFor: strongerExisting.symbol,
     };
   }
 
@@ -988,6 +994,10 @@ function buildRelatedMarketBlockedCandidate(
     reason:
       `Showing ${winner.symbol} instead; it is the strongest current setup among closely linked markets.`,
     symbol: blockedCandidate.symbol,
+    // Stated as a field so the client never has to read the sentence to learn
+    // what happened. The wording above and the panel's branch drifted apart
+    // exactly once and the panel then told operators nothing had qualified.
+    withheldFor: winner.symbol,
   };
 }
 

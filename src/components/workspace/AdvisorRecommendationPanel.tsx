@@ -494,8 +494,12 @@ function NoSetupPanel({
   const primaryReason = reasons[0] ??
     "The current mix of direction, timing, and payoff is not strong enough.";
   const supportingReasons = reasons.slice(1, 4);
-  const relatedMarketBlocked = /stronger (?:related|closely linked) setup/i
-    .test(primaryReason);
+  // A TYPED FIELD, not a sentence match. The retired regex needed "stronger …
+  // setup"; the collapse path's sentence says "it is the STRONGEST current
+  // setup", so it never matched and a market whose setup was found and withheld
+  // was announced as "Nothing passed review". A branch that reads prose breaks
+  // silently every time the prose is improved.
+  const relatedMarketBlocked = Boolean(result.withheldFor);
 
   return (
     <div className="grid min-w-0 gap-2 px-5 py-4 text-sm leading-6 text-ink-muted max-lg:px-0">
