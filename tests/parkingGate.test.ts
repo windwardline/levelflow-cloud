@@ -16,9 +16,39 @@ describe("construction soft gate", () => {
     // the guard doing its
     // job, not an obstacle to it: the pin is the reason a flag this consequential
     // cannot move without someone saying so in a test diff.
-    assert.match(gate, /export const PARKING_GATE = true;/);
+    assert.match(
+      gate,
+      /export const PARKING_GATE = true;/,
+      "PARKING_GATE moved. RAISING IT IS STEP ONE OF TWO. App.tsx consults " +
+        "this flag inside its `!session` branch, so the flag turns away " +
+        "ARRIVALS and does nothing to VISITS already underway: every live " +
+        "session keeps the desk open until those sessions are invalidated. " +
+        "That second step runs against Supabase, so no test in this repo can " +
+        "confirm it happened — this message is the only place the pairing is " +
+        "enforced, at the one moment someone is definitely looking. The " +
+        "2026-08-07 re-park ran both. Confirm the companion step before " +
+        "updating this pin.",
+    );
     assert.match(gate, /sessionStorage/);
     assert.match(gate, /has\("enter"\)/);
+  });
+
+  it("keeps the gate on the arrivals branch, which is what makes it two steps", () => {
+    // THE PREMISE THE MESSAGE ABOVE DEPENDS ON. If the gate ever moved out of
+    // the `!session` branch it would turn away live sessions too, the second
+    // step would stop being necessary, and the guidance would become WRONG
+    // guidance — worse than none, because it would send an operator to run an
+    // invalidation the code no longer needs. Pinned so the advice and the code
+    // cannot drift apart.
+    const app = readFileSync("src/App.tsx", "utf8");
+    const signedOut = app.slice(app.indexOf("if (!session) {"));
+    const branch = signedOut.slice(0, signedOut.indexOf("\n  }"));
+    assert.ok(
+      branch.includes("PARKING_GATE && !parkingBypassActive()"),
+      "the parking gate is no longer inside the signed-out branch — if it now " +
+        "covers live sessions too, the two-step warning on the flag pin is " +
+        "stale and must be rewritten, not merely moved",
+    );
   });
 
   // Live again since the 2026-08-07 re-park: with PARKING_GATE true this
