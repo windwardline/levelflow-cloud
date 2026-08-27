@@ -186,6 +186,23 @@ export function HistoryPanel({
           label="Best market"
           value={recordBand.bestMarket ?? "Learning"}
         />
+        {/* Amendment 39 makes closing the profit gap the standing priority, and
+            the 4b geometry review located that gap in the runner: forex banked
+            +62,646R at TP1 and handed 51,696R of it back, with 44% of fills
+            exiting at breakeven AFTER touching TP1 at a median 0.92R favourable.
+            That lived in a review document nobody opens. It reads here now,
+            beside the money it came out of.
+
+            It is NOT a number anyone can drive to zero — the peak is knowable
+            only afterwards and no protection captures it. The label says
+            "given back" rather than "lost" for that reason: it is the size of
+            the prize the runner's protection competes for. */}
+        <StatBlock
+          label="Given back"
+          value={recordBand.forgoneR === null
+            ? "Learning"
+            : `${recordBand.forgoneR.toFixed(1)}R over ${recordBand.forgoneRows}`}
+        />
       </div>
     </div>
   );

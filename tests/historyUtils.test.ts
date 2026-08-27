@@ -785,3 +785,57 @@ describe("the record band's rate is gated and denominated", () => {
     assert.equal(band.moneyPositivePercent, 67);
   });
 });
+
+describe("what the ladder handed back", () => {
+  // Amendment 39 makes closing the profit gap the standing priority, and the 4b
+  // geometry review located the gap in the second leg: forex banked +62,646R at
+  // TP1 and gave 51,696R of it back, with 44% of fills exiting at breakeven
+  // after touching TP1 at a median 0.92R favourable. That lived in a review
+  // document. The band reads it now, beside the money it came out of.
+  const gave = (symbol: string, value: number | null) =>
+    buildSetup({
+      symbol,
+      trade_outcomes: [
+        buildOutcome({
+          feedback: value === null
+            ? { netRealizedR: 0.2 }
+            : { forgoneRunnerR: value, netRealizedR: 0.2 },
+          outcome: "take_profit",
+        } as never),
+      ],
+    });
+
+  it("sums it and says how many resolutions it stands on", () => {
+    const band = buildRecordBand(
+      [gave("EURUSD", 0.46), gave("GBPUSD", 0.71), gave("USDJPY", 0.13)],
+      NOW,
+    );
+    assert.equal(band.forgoneR, 1.3);
+    assert.equal(band.forgoneRows, 3);
+  });
+
+  it("counts only resolutions that had a second leg", () => {
+    // A full-size resolution never faced the question. Folding it in as 0 would
+    // dilute the figure with rows that could not have given anything back —
+    // the denominator error this whole amendment exists to stop.
+    const band = buildRecordBand([gave("EURUSD", 0.46), gave("GBPUSD", null)], NOW);
+    assert.equal(band.forgoneRows, 1, "a row with no figure must not join the denominator");
+    assert.equal(band.forgoneR, 0.5);
+  });
+
+  it("withholds rather than printing a zero it has not measured", () => {
+    // "0.0R given back" on an account that has never resolved one is a claim
+    // about the ladder. The honest answer is that it has not been measured.
+    const band = buildRecordBand([gave("EURUSD", null)], NOW);
+    assert.equal(band.forgoneR, null);
+    assert.equal(band.forgoneRows, 0);
+  });
+
+  it("reports a genuine zero as zero, not as unmeasured", () => {
+    // The other side of the same line: an exit at the high really did hand
+    // nothing back, and that is a measurement rather than an absence.
+    const band = buildRecordBand([gave("EURUSD", 0)], NOW);
+    assert.equal(band.forgoneR, 0);
+    assert.equal(band.forgoneRows, 1);
+  });
+});
