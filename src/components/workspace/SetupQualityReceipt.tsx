@@ -183,7 +183,18 @@ function buildQualityReceipt(
   const upcomingNewsEvents = Array.isArray(confluence.upcomingNewsEvents)
     ? confluence.upcomingNewsEvents.length
     : asNumber(newsContext.upcomingEvents) ?? 0;
-  const headlineNewsEvents = asNumber(newsContext.headlineEvents) ?? 0;
+  // ACTIVE events were missing from this sum, and they are charged.
+  // calculateNewsPenaltyUnits (newsRules.ts) bills every non-blocking active
+  // event — 0.5 for a medium release — while `blocking` covers only
+  // high-impact non-headlines. A medium print five minutes old therefore left
+  // upcoming empty and headlines at zero, and the Timing row announced "no
+  // event or headline penalty" over a penalty the engine had already taken off
+  // the score.
+  const activeNewsEvents = asNumber(newsContext.activeEvents) ?? 0;
+  // headlineEvents is `upcoming.filter(headline).length` (index.ts) — a SUBSET
+  // of upcoming, not a sibling of it. Adding the two counted every headline
+  // twice, so a single headline read as "2 factors".
+  const newsPenaltyUnits = asNumber(newsContext.penaltyUnits) ?? 0;
   const costRating = asText(executionQuality.label);
   const costPenalty = asNumber(executionQuality.confidencePenalty) ?? 0;
   // 1q: the number that closes the payoff arithmetic. The printed payoff is
@@ -212,7 +223,8 @@ function buildQualityReceipt(
       label: "Timing",
       sentence: buildTimingSentence(
         sessionContext,
-        upcomingNewsEvents + headlineNewsEvents,
+        activeNewsEvents + upcomingNewsEvents,
+        newsPenaltyUnits,
       ),
     },
     {
@@ -263,19 +275,42 @@ function buildLocationSentence(orderConstruction: Record<string, unknown>) {
     : `${base} of ${formatNumber(latestClose)}.`;
 }
 
-function buildTimingSentence(
+/**
+ * The Timing row.
+ *
+ * THE DECISION IS THE PENALTY, not the count. The sentence's claim is about
+ * whether the engine charged this setup for news, so it reads the charge —
+ * `newsContext.penaltyUnits`, the same figure scoring.ts subtracts. Deriving
+ * "no penalty" from a count meant every gap in the count became a false
+ * all-clear, which is exactly how active events going missing turned into the
+ * words "no event or headline penalty" on a setup that had been penalised.
+ *
+ * The COUNT is only ever the number in the sentence, never the verdict, and a
+ * charged setup with nothing to count says so without a number rather than
+ * printing "0 factors".
+ *
+ * Exported so it can be executed. It was unreachable from a test before, which
+ * is why a sentence this wrong survived: the receipt is source-pinned, and a
+ * source pin cannot notice that two summed fields overlap.
+ */
+export function buildTimingSentence(
   sessionContext: Record<string, unknown>,
   timingRiskCount: number,
+  newsPenaltyUnits: number,
 ) {
   const label = asText(sessionContext.label);
   if (!label) {
     return ABSENT;
   }
-  return timingRiskCount > 0
-    ? `${label} with ${timingRiskCount} event or headline ${
-      timingRiskCount === 1 ? "factor" : "factors"
-    } affecting timing.`
-    : `${label} with no event or headline penalty.`;
+  if (newsPenaltyUnits <= 0) {
+    return `${label} with no event or headline penalty.`;
+  }
+  if (timingRiskCount <= 0) {
+    return `${label} with an event or headline factor affecting timing.`;
+  }
+  return `${label} with ${timingRiskCount} event or headline ${
+    timingRiskCount === 1 ? "factor" : "factors"
+  } affecting timing.`;
 }
 
 function capitalizeFirst(value: string) {
