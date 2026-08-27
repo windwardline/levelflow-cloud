@@ -374,6 +374,27 @@ export function extractRealizedR(
   return asNumber(feedback.netRealizedR) ?? asNumber(feedback.realizedR);
 }
 
+/**
+ * What the runner half handed back, from the same feedback blob realized R
+ * lives in (replay.ts writes it on every resolution that HAD a runner).
+ *
+ * Null means the resolution had no second leg at all, which is not the same as
+ * zero. A full-size resolution never faced the question, and folding it in as 0
+ * would dilute the total with rows that could not have given anything back —
+ * the same denominator error that makes a win rate look better than the
+ * account.
+ *
+ * (Phrased without quoting the ladder's own vocabulary: tests/languageGuard
+ * scans string literals on working surfaces, and a quoted phrase in a comment
+ * reads as one. It caught the first draft of this line.)
+ */
+export function extractForgoneRunnerR(
+  setup: Pick<OutcomeEvidenceRow, "trade_outcomes">,
+): number | null {
+  const feedback = asRecord(setup.trade_outcomes?.[0]?.feedback);
+  return asNumber(feedback.forgoneRunnerR);
+}
+
 // The Insights Status filter (spec §10: "All / Open / Pending / Closed") is
 // coarser than the 8-way SetupOutcome taxonomy the old filter used — it's
 // the same pending/open/closed split Current trades already lives by
@@ -487,6 +508,18 @@ export function buildInsightsGroups(
 
 export type RecordBand = {
   bestMarket: string | null;
+  /**
+   * R the runner half reached and did not keep, summed over the resolutions
+   * that had a runner. Null until at least one carries the figure.
+   *
+   * Amendment 39 makes closing the profit gap the standing priority, and the 4b
+   * geometry review put the gap here: forex banked +62,646R at TP1 and gave
+   * 51,696R of it back. That was a finding in a review document. This is the
+   * number on the screen the operator actually reads.
+   */
+  forgoneR: number | null;
+  /** How many resolutions the figure above is drawn from. */
+  forgoneRows: number;
   moneyPositivePercent: number | null;
   netR: number | null;
   /** 1j: what the percentage stands on — rendered beside it, never implied. */
@@ -527,6 +560,8 @@ export function buildRecordBand(
   let losses = 0;
   let netRSum = 0;
   let netRPresent = false;
+  let forgoneSum = 0;
+  let forgoneRows = 0;
   const bySymbol = new Map<
     string,
     { losses: number; rSum: number; resolvedWithR: number; wins: number }
@@ -542,6 +577,11 @@ export function buildRecordBand(
     const winLoss = classifyWinLoss(outcome);
 
     const realizedR = extractRealizedR(setup);
+    const forgone = extractForgoneRunnerR(setup);
+    if (forgone !== null) {
+      forgoneSum += forgone;
+      forgoneRows += 1;
+    }
 
     if (winLoss !== "neither") {
       const symbolStat = bySymbol.get(setup.symbol) ??
@@ -622,6 +662,11 @@ export function buildRecordBand(
 
   return {
     bestMarket,
+    // Withheld rather than zeroed when nothing carries the figure: a "0.0R
+    // given back" on an account that has never resolved a runner is a claim
+    // about the ladder, and the honest answer is that it has not been measured.
+    forgoneR: forgoneRows > 0 ? Number(forgoneSum.toFixed(1)) : null,
+    forgoneRows,
     moneyPositivePercent,
     netR: netRPresent ? netRSum : null,
     resolved,
