@@ -1980,7 +1980,7 @@ let lastLearningRefreshAt = 0;
 let lastLearningRefresh: LearningRefreshSummary = {
   skipped: true,
   updated: 0,
-  reason: "Global learning has not refreshed in this instance yet.",
+  reason: "Shared scoring weights have not refreshed on this server yet.",
 };
 
 async function refreshGlobalStrategyWeightsThrottled(): Promise<
@@ -1998,7 +1998,10 @@ async function refreshGlobalStrategyWeightsThrottled(): Promise<
     lastLearningRefresh = {
       skipped: true,
       updated: 0,
-      reason: "Global learning refresh failed; see function logs.",
+      // States only what is known. "the last good weights were used" was the
+      // first wording and it is false on a cold start, where the refresh fails
+      // before any weights have ever loaded.
+      reason: "Shared scoring weights did not refresh on this request.",
     };
   }
   return lastLearningRefresh;
@@ -2008,11 +2011,18 @@ async function refreshGlobalStrategyWeights(): Promise<
   LearningRefreshSummary
 > {
   if (!hasSupabaseAdminConfig()) {
+    // The env var's NAME belongs here and not in `reason`: that string is
+    // rendered to the operator in the no-setup panel, and naming a server
+    // variable tells a reader who cannot set it about a machine they cannot
+    // reach. The detail is not dropped, only moved to where it is actionable.
+    console.error(
+      "global learning disabled: SUPABASE_SERVICE_ROLE_KEY is not configured",
+    );
     return {
       skipped: true,
       updated: 0,
       reason:
-        "SUPABASE_SERVICE_ROLE_KEY is not configured for global learning updates.",
+        "Shared scoring weights are not configured on this server, so they did not refresh.",
     };
   }
 
