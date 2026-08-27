@@ -74,6 +74,16 @@ function buildOutcome(overrides: Partial<OutcomeRow> = {}): OutcomeRow {
   };
 }
 
+/** A resolved setup carrying a stated realized R, which is what "best" now reads. */
+function r(symbol: string, outcome: string, netRealizedR: number) {
+  return buildSetup({
+    symbol,
+    trade_outcomes: [
+      buildOutcome({ feedback: { netRealizedR }, outcome } as never),
+    ],
+  });
+}
+
 function formattedPrice(value: number): string {
   return value.toLocaleString(undefined, {
     maximumFractionDigits: MAX_PRICE_DECIMALS,
@@ -465,19 +475,54 @@ describe("buildRecordBand", () => {
     assert.equal(band.bestMarket, null);
   });
 
-  it("picks the symbol with the highest money-positive rate as best market", () => {
-    const win = (symbol: string) =>
-      buildSetup({ symbol, trade_outcomes: [buildOutcome({ outcome: "take_profit" })] });
-    const loss = (symbol: string) =>
-      buildSetup({ symbol, trade_outcomes: [buildOutcome({ outcome: "stop_loss" })] });
+  it("picks the symbol that made the most money per setup, not the one that won most often", () => {
+    // THE CASE THAT INVERTS THE OLD RANKING, and the reason it changed. On this
+    // ladder a banked partial is worth about +0.20R and a stop costs -1.00R, so
+    // winning often and winning WELL are different questions and the account
+    // only answers the second.
+    //
+    // EURUSD wins every setup and banks partials: 3/3, +0.60R total, +0.20R each.
+    // GBPUSD wins one in three and reaches the runner: 1/3, +1.00R total.
+    // The old comparator crowned EURUSD at 100% while GBPUSD made 67% more money.
     const band = buildRecordBand(
-      // Both symbols clear §18's 3-resolved gate, so the comparison is about
-      // the rate rather than about which one happened to resolve first.
-      [win("EURUSD"), win("EURUSD"), win("EURUSD"), win("GBPUSD"), loss("GBPUSD"), loss("GBPUSD")],
+      [
+        r("EURUSD", "take_profit", 0.2),
+        r("EURUSD", "take_profit", 0.2),
+        r("EURUSD", "take_profit", 0.2),
+        r("GBPUSD", "take_profit", 3.0),
+        r("GBPUSD", "stop_loss", -1.0),
+        r("GBPUSD", "stop_loss", -1.0),
+      ],
       NOW,
     );
-    // EURUSD: 3/3 = 100%. GBPUSD: 1/3 = 33%.
-    assert.equal(band.bestMarket, "EURUSD");
+    assert.equal(band.bestMarket, "GBPUSD");
+  });
+
+  it("will not rank a symbol whose resolved rows do not all carry an R", () => {
+    // A partial sum answers a different question than a full one. Mixing a
+    // two-row R total into a three-row rate is the comparison netRForSlice
+    // already refuses in this file, and it is how a thin market outranks a
+    // measured one on arithmetic nobody checked.
+    const band = buildRecordBand(
+      [
+        r("EURUSD", "take_profit", 5.0),
+        r("EURUSD", "take_profit", 5.0),
+        buildSetup({
+          symbol: "EURUSD",
+          trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
+        }),
+        r("GBPUSD", "take_profit", 0.2),
+        r("GBPUSD", "take_profit", 0.2),
+        r("GBPUSD", "take_profit", 0.2),
+      ],
+      NOW,
+    );
+    assert.equal(
+      band.bestMarket,
+      "GBPUSD",
+      "EURUSD has the higher R on the rows that carry one, but one resolved " +
+        "row has no R at all, so it is not comparable and must not be crowned",
+    );
   });
 
   it("withholds best market below the same gate every other figure obeys", () => {
@@ -488,31 +533,20 @@ describe("buildRecordBand", () => {
     // stated rule on one screen.
     const band = buildRecordBand(
       [
-        // ZOUSX: 1/1 = 100%, below the gate.
-        buildSetup({
-          symbol: "ZOUSX",
-          trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
-        }),
-        // EURUSD: 2/3 = 67%, at the gate.
-        buildSetup({
-          symbol: "EURUSD",
-          trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
-        }),
-        buildSetup({
-          symbol: "EURUSD",
-          trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
-        }),
-        buildSetup({
-          symbol: "EURUSD",
-          trade_outcomes: [buildOutcome({ outcome: "stop_loss" })],
-        }),
+        // ZOUSX: one setup, and the best R on the screen — below the gate.
+        r("ZOUSX", "take_profit", 9.0),
+        // EURUSD: three resolved, a modest but measured +0.33R each.
+        r("EURUSD", "take_profit", 1.0),
+        r("EURUSD", "take_profit", 1.0),
+        r("EURUSD", "stop_loss", -1.0),
       ],
       NOW,
     );
     assert.equal(
       band.bestMarket,
       "EURUSD",
-      "a 100% rate on one trade must not outrank a measured one on three",
+      "one lucky trade must not outrank a measured record on three, and " +
+        "swapping the ranking metric must not have swapped the gate out with it",
     );
   });
 
@@ -533,21 +567,37 @@ describe("buildRecordBand", () => {
     assert.equal(band.bestMarket, null);
   });
 
-  it("breaks a tied win rate by resolved-count, then breaks a full tie alphabetically", () => {
+  it("breaks a tied expectancy by resolved-count, then breaks a full tie alphabetically", () => {
     const band = buildRecordBand(
       [
-        // Both symbols are 100% at 3 resolved trades each — a full tie above
-        // the gate, so the alphabetical tiebreak decides and picks BTCUSD.
-        ...["ETHUSD", "ETHUSD", "ETHUSD", "BTCUSD", "BTCUSD", "BTCUSD"].map((symbol) =>
-          buildSetup({
-            symbol,
-            trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
-          })
-        ),
+        // Identical expectancy at 3 resolved each — a full tie above the gate,
+        // so determinism decides and picks BTCUSD alphabetically. Unchanged
+        // contract; only the quantity being tied is different.
+        ...["ETHUSD", "BTCUSD"].flatMap((symbol) => [
+          r(symbol, "take_profit", 1.0),
+          r(symbol, "take_profit", 1.0),
+          r(symbol, "take_profit", 1.0),
+        ]),
       ],
       NOW,
     );
     assert.equal(band.bestMarket, "BTCUSD");
+  });
+
+  it("prefers the deeper record when expectancy ties", () => {
+    const band = buildRecordBand(
+      [
+        r("AUDUSD", "take_profit", 1.0),
+        r("AUDUSD", "take_profit", 1.0),
+        r("AUDUSD", "take_profit", 1.0),
+        r("USDCAD", "take_profit", 1.0),
+        r("USDCAD", "take_profit", 1.0),
+        r("USDCAD", "take_profit", 1.0),
+        r("USDCAD", "take_profit", 1.0),
+      ],
+      NOW,
+    );
+    assert.equal(band.bestMarket, "USDCAD", "four resolved rows outweigh three at equal R");
   });
 });
 

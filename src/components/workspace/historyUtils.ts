@@ -527,7 +527,10 @@ export function buildRecordBand(
   let losses = 0;
   let netRSum = 0;
   let netRPresent = false;
-  const bySymbol = new Map<string, { losses: number; wins: number }>();
+  const bySymbol = new Map<
+    string,
+    { losses: number; rSum: number; resolvedWithR: number; wins: number }
+  >();
 
   for (const setup of setups) {
     // classifyWinLoss (lib/outcomes.ts) is the single source of truth for
@@ -538,8 +541,11 @@ export function buildRecordBand(
     const outcome = getSetupOutcome(setup);
     const winLoss = classifyWinLoss(outcome);
 
+    const realizedR = extractRealizedR(setup);
+
     if (winLoss !== "neither") {
-      const symbolStat = bySymbol.get(setup.symbol) ?? { losses: 0, wins: 0 };
+      const symbolStat = bySymbol.get(setup.symbol) ??
+        { losses: 0, rSum: 0, resolvedWithR: 0, wins: 0 };
       if (winLoss === "win") {
         wins += 1;
         symbolStat.wins += 1;
@@ -547,10 +553,16 @@ export function buildRecordBand(
         losses += 1;
         symbolStat.losses += 1;
       }
+      // Per-symbol R, kept beside the counts so "best" can be decided on money
+      // rather than on frequency. Counted only for RESOLVED rows, so the
+      // denominator below is the same population the rate uses.
+      if (realizedR !== null) {
+        symbolStat.rSum += realizedR;
+        symbolStat.resolvedWithR += 1;
+      }
       bySymbol.set(setup.symbol, symbolStat);
     }
 
-    const realizedR = extractRealizedR(setup);
     if (realizedR !== null) {
       netRSum += realizedR;
       netRPresent = true;
@@ -567,9 +579,22 @@ export function buildRecordBand(
     ? Math.round((wins / resolved) * 100)
     : null;
 
-  // Best market: highest money-positive rate among symbols that have reached
-  // §18's gate, tie-broken by more resolved evidence, then alphabetically for a
-  // fully deterministic result.
+  // Best market: highest NET R PER RESOLVED SETUP among symbols that have
+  // reached §18's gate, tie-broken by more resolved evidence, then
+  // alphabetically for a fully deterministic result.
+  //
+  // IT RANKED ON WIN RATE UNTIL 2026-08-27, and win rate is not what makes an
+  // account grow on this ladder. A partial banks about +0.20R and a stop costs
+  // -1.00R, so a market taking 85% partials nets +0.2R per ten setups while one
+  // hitting 60% full runners nets +2.0R per ten — ten times the money, ranked
+  // below it. The superlative pointed the operator at the wrong market using
+  // the metric that is a RESULT of profit rather than the measure of it.
+  //
+  // A symbol whose resolved rows do not ALL carry an R is not eligible, rather
+  // than being ranked on a partial sum: mixing a four-row R total with a
+  // twelve-row one compares two different questions, and netRForSlice already
+  // set that precedent in this file. Below the gate, or with no eligible
+  // symbol, the panel reads "Learning" exactly as it did before.
   //
   // The gate used to be `> 0`, which crowned a market on ONE outcome — and it
   // rendered a superlative twenty lines above attribution rows that were
@@ -579,13 +604,18 @@ export function buildRecordBand(
   // threshold every other published figure here obeys.
   const bestMarket = Array.from(bySymbol.entries())
     .map(([symbol, stat]) => ({
+      expectancyR: stat.resolvedWithR > 0 ? stat.rSum / stat.resolvedWithR : null,
       resolved: stat.wins + stat.losses,
+      resolvedWithR: stat.resolvedWithR,
       symbol,
-      winRate: stat.wins / (stat.wins + stat.losses),
     }))
-    .filter((entry) => entry.resolved >= ATTRIBUTION_LEARNING_MIN_RESOLVED)
+    .filter((entry) =>
+      entry.resolved >= ATTRIBUTION_LEARNING_MIN_RESOLVED &&
+      entry.expectancyR !== null &&
+      entry.resolvedWithR === entry.resolved
+    )
     .sort((first, second) =>
-      second.winRate - first.winRate ||
+      (second.expectancyR ?? 0) - (first.expectancyR ?? 0) ||
       second.resolved - first.resolved ||
       first.symbol.localeCompare(second.symbol)
     )[0]?.symbol ?? null;
