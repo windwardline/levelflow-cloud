@@ -933,6 +933,16 @@ for (const width of [375, 1280]) {
     // state the screen would be in after a send is exactly the draft it writes, so
     // seeding that draft proves the restore renders "check your email" AND the line
     // naming the address — which comes from one definition shared with the send path.
+    // AuthScreen renders `isSupabaseConfigured ? message : "Levelflow isn't
+    // connected to the cloud yet."`, so without the client env the restored
+    // draft line is REPLACED and this can never pass. The deploy workflow's
+    // browser-test step supplies VITE_SUPABASE_URL, so this only ever stands
+    // down on a local checkout — and it stands down SAYING SO, rather than
+    // failing for the harness's reason while reading as the product's.
+    test.skip(
+      !process.env.VITE_SUPABASE_URL,
+      "needs VITE_SUPABASE_URL — the card shows the unconfigured copy instead of the draft",
+    );
     await page.setViewportSize({ width, height: 812 });
     await page.addInitScript(() => {
       window.sessionStorage.setItem(
