@@ -1497,9 +1497,24 @@ async function explainNoSetup(
         );
       }
     } else if (pricePlan.executionQuality.confidencePenalty > 0) {
-      diagnostics.push(
-        `Estimated trading costs reduced the setup score by ${pricePlan.executionQuality.confidencePenalty}.`,
-      );
+      // 1b's rule again: a distinct cause carries its own sentence. This
+      // printed the WHOLE penalty as "trading costs", and the penalty also
+      // carries missing chart intervals, provider warnings and short-term
+      // movement running hot — none of which a tighter spread would fix. A
+      // failed 5-minute fetch was being reported to the operator as a
+      // spread-and-slippage problem, which is the wrong instruction: costs say
+      // size down or wait for better pricing, coverage says the market could
+      // not be seen well enough yet.
+      if (pricePlan.executionQuality.costPenalty > 0) {
+        diagnostics.push(
+          `Estimated trading costs reduced the setup score by ${pricePlan.executionQuality.costPenalty}.`,
+        );
+      }
+      if (pricePlan.executionQuality.coveragePenalty > 0) {
+        diagnostics.push(
+          `Chart coverage gaps reduced the setup score by ${pricePlan.executionQuality.coveragePenalty}.`,
+        );
+      }
     }
     if (macroRateAdjustment.adjustment < 0) {
       diagnostics.push(

@@ -92,6 +92,14 @@ export const REVIEW_REWRITES: ReviewRewrite[] = [
       /Estimated (?:spread and slippage|trading costs) reduced the setup score by (\d+)\./i,
     to: (_match, penalty: string) => `Trading costs reduced the score by ${penalty}.`,
   },
+  {
+    // Its own sentence because it is its own instruction: costs mean size down
+    // or wait for better pricing, coverage means the market could not be seen
+    // well enough yet. The analyzer used to fold both into the costs sentence.
+    pattern: /Chart coverage gaps reduced the setup score by (\d+)\./i,
+    to: (_match, penalty: string) =>
+      `Missing chart history reduced the score by ${penalty}.`,
+  },
   { pattern: /reduced confidence\./gi, to: "reduced timing quality." },
   { pattern: /FMP/gi, to: "The chart feed" },
   { pattern: /analyzer confidence/gi, to: "review" },

@@ -26,6 +26,25 @@ export type ExecutionQualityInput = {
 
 export type ExecutionQuality = {
   confidencePenalty: number;
+  /**
+   * confidencePenalty, split by WHAT CAUSED IT.
+   *
+   * The total is charged once and is unchanged; these two say where it came
+   * from. It had to be split because the operator was told the whole number
+   * was a cost: index.ts printed "Estimated trading costs reduced the setup
+   * score by N", and `label` — the Clean/Acceptable/Thin/Poor word whose gloss
+   * says trading costs are eating the payoff — derives from
+   * `100 - confidencePenalty * 8`. So a failed 5-minute chart fetch could move
+   * the Costs label from Clean to Thin and be read as a spread problem.
+   *
+   * `cost` is the round trip against risk, plus the entry sitting inside the
+   * spread. `coverage` is everything about how well the market could be SEEN:
+   * missing chart intervals, provider warnings, and short-term movement
+   * running hot against the daily range. Neither is a judgement about the
+   * other, and the two carry different instructions to the reader.
+   */
+  costPenalty: number;
+  coveragePenalty: number;
   effectiveRewardRisk: number;
   // Round-8 CO-1/3/4: the venue's published commission for one round
   // trip, as price distance. Zero when the venue tables cannot bill the
@@ -260,28 +279,39 @@ export function estimateExecutionQuality(
   if (spreadSource === "quoted") {
     notes.push("Live bid/ask spread was used.");
   }
-  let penalty = Math.round(costToRisk * 90);
+  // Accumulated in two buckets so the total can be ATTRIBUTED, not just
+  // charged. The arithmetic below is unchanged: cost + coverage is the same
+  // number the single `penalty` accumulator produced.
+  let costPenaltyRaw = Math.round(costToRisk * 90);
+  let coveragePenaltyRaw = 0;
   if (entryCushion < estimatedSpread * 2) {
-    penalty += 3;
+    costPenaltyRaw += 3;
     notes.push("Entry is close to the current spread.");
   }
   if (input.availableTimeframes.length < 3) {
-    penalty += 2;
+    coveragePenaltyRaw += 2;
     notes.push("Fewer chart intervals were available.");
   }
   if (input.providerWarnings.length > 0) {
-    penalty += Math.min(3, input.providerWarnings.length);
+    coveragePenaltyRaw += Math.min(3, input.providerWarnings.length);
     notes.push("Chart coverage has provider warnings.");
   }
   if (dailyAtr > 0 && atr / dailyAtr > 0.5) {
-    penalty += 2;
+    coveragePenaltyRaw += 2;
     notes.push("Short-term movement is elevated versus daily range.");
   }
+  const penalty = costPenaltyRaw + coveragePenaltyRaw;
   if (effectiveRewardRisk < grossRewardRisk * 0.85) {
     notes.push("Estimated execution cost meaningfully reduces payoff.");
   }
 
   const confidencePenalty = clampInteger(penalty, 0, profile.maxPenalty);
+  // The parts must SUM to the total the score is charged, including when the
+  // cap binds. Cost is settled first because it is the one the label claims to
+  // describe, and coverage takes whatever headroom is left — so a clamped row
+  // never reports coverage the score did not actually charge.
+  const costPenalty = Math.min(costPenaltyRaw, confidencePenalty);
+  const coveragePenalty = confidencePenalty - costPenalty;
   const score = clampInteger(100 - confidencePenalty * 8, 0, 100);
   const label = score >= 84
     ? "Clean"
@@ -297,6 +327,8 @@ export function estimateExecutionQuality(
 
   return {
     confidencePenalty,
+    costPenalty,
+    coveragePenalty,
     effectiveRewardRisk: roundPrice(effectiveRewardRisk),
     estimatedCommission,
     estimatedRoundTripCost,
