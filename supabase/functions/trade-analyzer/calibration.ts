@@ -41,12 +41,16 @@ import { isKnownSymbol } from "./symbols.ts";
 // moves the consensus score wherever that vote participated — so the cohort
 // boundary moves with it. (Prior: 2026.08.25.treasury-tenors.)
 // 2026.08.26.learning-neutral-point-withheld: global learning scored markets
-// against a neutral win rate of 0.5. The ladder banks half the position at TP1
-// and runs the rest from a breakeven stop, so a tp1_partial realises
-// 0.5 * (tp1Distance / riskDistance) R against a full -1R stop, and break-even
-// is 0.71 (energies) to 0.83 (every other class) — never 0.5. At each class's
-// TRUE break-even the retired curve paid +4.29 to +6.67 of its +/-10 range, so
-// the sign was inverted across the entire band a TP1 ladder occupies.
+// against a neutral win rate of 0.5. Break-even here is NOT A CONSTANT — it is
+// 1 / (1 + avgWinR), and avgWinR depends on the mix of the two winning
+// outcomes: a tp1_partial banks ~+0.20R (the runner then exits at entry) while
+// a take_profit banks that plus a runner half carried to at least
+// minimumTargetRewardRisk, ~+1.00R. So the neutral point runs from ~0.50 for a
+// cohort that always reaches the runner target to ~0.83 for one that never
+// does; at a 65% partial share it is ~0.68. 0.5 was right at ONE END of that
+// range and wrong everywhere else, and take_profit and tp1_partial both
+// increment `wins`, so the mix that decides the pivot is not even recoverable
+// from what this layer stores.
 // confidence_adjustment is withheld (0) until the neutral point is derived per
 // market, which is blocked on setup_key carrying the symbol. Scoring input
 // changes, so the cohort scopes again. (Prior:
