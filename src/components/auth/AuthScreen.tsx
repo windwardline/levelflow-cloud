@@ -9,8 +9,11 @@ import {
   SATELLITE_FRAME_SCROLL,
 } from "../satelliteFrame";
 import { DonationOptions } from "../donations/DonationOptions";
-import { describeAuthEmailError } from "../../lib/authErrors";
 import { donateRequested } from "../../lib/donateEntry";
+import {
+  requestMagicLink,
+  UNCONFIGURED_MESSAGE,
+} from "../../lib/magicLinkRequest";
 import {
   loadSignInDraft,
   saveSignInDraft,
@@ -66,33 +69,33 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
 
   async function sendMagicLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Both this and requestMagicLink answer for a missing client, and they must
+    // answer identically — hence the shared constant rather than two literals
+    // one edit apart.
     if (!supabase) {
-      setError("Cloud connection is not configured.");
+      setError(UNCONFIGURED_MESSAGE);
       return;
     }
 
     setError("");
     setStatus("sending");
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const { error: magicLinkError } = await supabase.auth.signInWithOtp({
-      email: normalizedEmail,
-      options: {
-        emailRedirectTo: appConfig.appUrl,
-      },
-    });
+    const result = await requestMagicLink(supabase, email, appConfig.appUrl);
 
-    if (magicLinkError) {
-      console.error(
-        "[auth] magic link send failed:",
-        magicLinkError.status ?? "",
-        magicLinkError.code ?? magicLinkError.message,
-      );
+    if (result.kind === "unconfigured") {
       setStatus("idle");
-      setError(describeAuthEmailError(magicLinkError));
+      setError(result.message);
       return;
     }
 
+    if (result.kind === "failed") {
+      console.error("[auth] magic link send failed:", result.message);
+      setStatus("idle");
+      setError(result.message);
+      return;
+    }
+
+    const normalizedEmail = result.email;
     setStatus("sent");
     // Q1-I11 (§17f): the fact only, no instruction. The accent notice below the
     // form is what tells the reader to check their inbox, from this same "sent"
@@ -108,7 +111,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
     provider: Extract<Provider, "google" | "apple">,
   ) {
     if (!supabase) {
-      setError("Cloud connection is not configured.");
+      setError(UNCONFIGURED_MESSAGE);
       return;
     }
 
