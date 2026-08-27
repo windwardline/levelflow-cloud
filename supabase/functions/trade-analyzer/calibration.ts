@@ -40,7 +40,18 @@ import { isKnownSymbol } from "./symbols.ts";
 // 0.2. Exactly two of sixteen enumerated states change, both to neutral, which
 // moves the consensus score wherever that vote participated — so the cohort
 // boundary moves with it. (Prior: 2026.08.25.treasury-tenors.)
-export const ANALYZER_VERSION = "2026.08.26.oscillator-conflict-abstains";
+// 2026.08.26.learning-neutral-point-withheld: global learning scored markets
+// against a neutral win rate of 0.5. The ladder banks half the position at TP1
+// and runs the rest from a breakeven stop, so a tp1_partial realises
+// 0.5 * (tp1Distance / riskDistance) R against a full -1R stop, and break-even
+// is 0.71 (energies) to 0.83 (every other class) — never 0.5. At each class's
+// TRUE break-even the retired curve paid +4.29 to +6.67 of its +/-10 range, so
+// the sign was inverted across the entire band a TP1 ladder occupies.
+// confidence_adjustment is withheld (0) until the neutral point is derived per
+// market, which is blocked on setup_key carrying the symbol. Scoring input
+// changes, so the cohort scopes again. (Prior:
+// 2026.08.26.oscillator-conflict-abstains.)
+export const ANALYZER_VERSION = "2026.08.26.learning-neutral-point-withheld";
 
 export type AssetType =
   | "agriculture"

@@ -27,7 +27,9 @@ import {
   type ResolvedOutcome,
 } from "./replay.ts";
 import { type ExecutionQuality } from "./executionQuality.ts";
-import { calculateLearningWeight } from "./learning.ts";
+import { calculateLearningWeight,
+  WITHHELD_REASON,
+} from "./learning.ts";
 import {
   calculateMacroRateAdjustment,
   fetchMacroRateContext,
@@ -2123,6 +2125,14 @@ async function refreshGlobalStrategyWeights(): Promise<
   });
 
   if (payloads.length > 0) {
+    // Every confidence_adjustment written here is 0 by design
+    // (learning.ts WITHHELD_REASON). Said once per refresh rather than left to
+    // be inferred from a column of zeroes: a table full of zeroes looks
+    // identical to a model that measured no effect, and this one is a refusal.
+    console.log(
+      `global learning: ${payloads.length} keys updated, confidence_adjustment ` +
+        `withheld — ${WITHHELD_REASON}`,
+    );
     await adminUpsertRows("strategy_weightings_global", payloads, "setup_key");
   }
 
