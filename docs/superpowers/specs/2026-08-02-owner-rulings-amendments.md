@@ -2066,3 +2066,46 @@ Model consequence, owner-confirmed the same day: **Opus 5 in Ultracode**
 over Fable 5 at max effort, because the capability is worth more spent
 on many independent checks than on one deeper thread. Recorded in
 HANDOFF §6c.
+
+## Amendment 39 — profit is the measure; win rate is a result (owner ruling, 2026-08-27)
+
+Success is **net realized R**, not frequency. A winning trade is a
+money-positive one, so a rising win rate is evidence that the engine is
+working — never the thing the engine is aimed at. Maximize profit,
+minimize give-back, and let the rate follow.
+
+**Nothing may publish, rank, gate, or learn on a frequency where the
+underlying money is knowable.** Where realized R exists it governs;
+where it does not, the surface refuses rather than substituting a count
+(§19e). A rate may be shown BESIDE money, never instead of it, and never
+as a superlative.
+
+The ruling exists because the ladder makes the two diverge sharply. A
+banked partial is worth about +0.20R and a stop costs −1.00R, so
+break-even is not 0.5 but a range set by the outcome mix — measured
+0.50 for a cohort that always reaches the runner target, 0.83 for one
+that never does, about 0.68 at a partial-heavy mix. A market can win
+four setups in five and shrink the account. Two live consequences had
+already shipped on that confusion: global learning pushed confidence UP
+on losing markets from a pivot of 0.5 (withheld, #447/#448), and the
+Best market superlative crowned the most frequent winner over one making
+ten times the money (#449).
+
+**Profit potential must exceed loss potential structurally — and may
+never be manufactured.** Stops and targets are derived from real market
+structure and from what the window can statistically reach; the payoff
+floor is a feasibility filter, not a target-stretcher, and a setup that
+cannot reach its required distance is refused rather than decorated with
+an unreachable target. Widening a target or tightening a stop to improve
+a printed ratio is prohibited outright. Where the realized ratio is too
+thin, the repair is the ladder's own economics — the partial's size and
+the runner's protection — never the geometry's honesty.
+
+Measured at this ruling, against shipped calibration: a full win pays
+0.95R (indices) to 1.20R (energies) against a −1.00R loss, and a
+partial-only win pays 0.20R. **The engine admits setups at a 1.6:1 gate
+and the ladder converts them to about 1:1 before costs.** Closing that
+gap is the standing engineering priority, ahead of any work that does
+not move it, and it is where the 4b review already located the loss:
+the TP1 half banks positive R in every class while the runner half and
+per-trade cost take back more than it earns.
