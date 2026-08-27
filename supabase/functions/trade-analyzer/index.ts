@@ -42,9 +42,6 @@ import {
   getCorrelatedSymbols,
   getCorrelationGroup,
   getRelatedSymbols,
-  isCurrencyRelevantForSymbol,
-  isEquityCalendarSensitiveSymbol,
-  isHeadlineNewsRelevantForSymbol,
   isKnownSymbol,
   isTemporarilyUnavailableSymbol,
   noScanSymbols,
@@ -69,12 +66,9 @@ import {
 } from "./marketLoader.ts";
 import { corsHeaders, getBearerToken, jsonResponse } from "../_shared/http.ts";
 import {
-  calculateNewsPenaltyUnits,
-  isBlockingNewsEvent,
-  NEWS_ACTIVE_AFTER_MS,
-  NEWS_ACTIVE_BEFORE_MS,
-  NEWS_UPCOMING_HORIZON_MS,
-} from "./newsRules.ts";
+  buildNewsContext,
+  newsWindow,
+} from "./newsContext.ts";
 import { recordAnalyzerEvent, recordMarketDataHealth } from "./telemetry.ts";
 import {
   adminFetchRows,
@@ -1259,8 +1253,15 @@ async function analyzeSetup(
       },
       newsContext: {
         activeEvents: newsContext.active.length,
+        // Provenance rides WITH the numbers, mirroring macroRateContext's
+        // unavailableReason a few lines below. Without it a zero penalty is
+        // ambiguous on the wire in exactly the way it was ambiguous in the
+        // engine, and the receipt would go on printing an all-clear it cannot
+        // stand behind.
+        calendarSource: newsContext.calendarSource,
         headlineEvents: newsContext.headlineCount,
         penaltyUnits: Number(newsContext.penaltyUnits.toFixed(2)),
+        unavailableReason: newsContext.unavailableReason,
         upcomingEvents: newsContext.upcoming.length,
       },
       orderConstruction: {
@@ -2169,55 +2170,37 @@ function extractSetupKey(
 
 async function fetchRelevantNews(token: string, symbol: SupportedSymbol) {
   const now = Date.now();
-  const headlineStart = new Date(now - NEWS_UPCOMING_HORIZON_MS).toISOString();
-  const activeStart = new Date(now - NEWS_ACTIVE_BEFORE_MS).toISOString();
-  const activeEnd = new Date(now + NEWS_ACTIVE_AFTER_MS).toISOString();
-  const upcomingEnd = new Date(now + NEWS_UPCOMING_HORIZON_MS).toISOString();
-  const rows = await fetchRows<NewsEvent>(
-    token,
-    `economic_events?select=provider,currency,event_name,event_type,impact,scheduled_at,symbol,url&impact=in.(medium,high)&scheduled_at=gte.${
-      encodeURIComponent(headlineStart)
-    }&scheduled_at=lte.${encodeURIComponent(upcomingEnd)}`,
-  );
-  const relevant = rows.filter((event) => isNewsRelevant(symbol, event));
-  const active = relevant.filter((event) =>
-    event.event_type !== "headline" &&
-    typeof event.scheduled_at === "string" &&
-    event.scheduled_at >= activeStart && event.scheduled_at <= activeEnd
-  );
-  const blocking = active.filter(isBlockingNewsEvent);
-  const upcoming = relevant.filter((event) =>
-    typeof event.scheduled_at === "string" &&
-    (event.event_type === "headline"
-      ? event.scheduled_at >= headlineStart &&
-        event.scheduled_at <= new Date(now).toISOString()
-      : event.scheduled_at > activeEnd && event.scheduled_at <= upcomingEnd)
-  );
+  const window = newsWindow(now);
+  // TWO READS, and the second is the one that makes the first interpretable.
+  // A window query returning zero rows is byte-identical whether the calendar
+  // is clear or the ingest is dead — and the dead case has happened in
+  // production (migration 20260729040000's header). The coverage probe asks the
+  // watchdog's own question, `any event scheduled after now`, so the analyzer
+  // and the watchdog cannot drift on what stale means.
+  let rows: NewsEvent[] | null = null;
+  let hasFutureEvents = false;
+  try {
+    rows = await fetchRows<NewsEvent>(
+      token,
+      `economic_events?select=provider,currency,event_name,event_type,impact,scheduled_at,symbol,url&impact=in.(medium,high)&scheduled_at=gte.${
+        encodeURIComponent(window.headlineStart)
+      }&scheduled_at=lte.${encodeURIComponent(window.upcomingEnd)}`,
+    );
+    const future = await fetchRows<{ id: string }>(
+      token,
+      `economic_events?select=id&scheduled_at=gt.${
+        encodeURIComponent(window.now)
+      }&limit=1`,
+    );
+    hasFutureEvents = future.length > 0;
+  } catch (error) {
+    console.error("economic calendar read failed", error);
+    rows = null;
+  }
 
-  return {
-    active,
-    blocking,
-    headlineCount: upcoming.filter((event) => event.event_type === "headline")
-      .length,
-    penaltyUnits: calculateNewsPenaltyUnits(active, upcoming),
-    upcoming,
-  };
+  return buildNewsContext({ hasFutureEvents, nowMs: now, rows, symbol });
 }
 
-function isNewsRelevant(symbol: SupportedSymbol, event: NewsEvent) {
-  if (event.symbol) {
-    return isHeadlineNewsRelevantForSymbol(symbol, event.symbol);
-  }
-  if (event.provider === "fmp_earnings") {
-    return isEquityCalendarSensitiveSymbol(symbol);
-  }
-
-  const currency = event.currency?.toUpperCase();
-  if (!currency) {
-    return true;
-  }
-  return isCurrencyRelevantForSymbol(symbol, currency);
-}
 
 
 function buildSetupKey(

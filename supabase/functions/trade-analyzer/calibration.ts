@@ -55,7 +55,7 @@ import { isKnownSymbol } from "./symbols.ts";
 // market, which is blocked on setup_key carrying the symbol. Scoring input
 // changes, so the cohort scopes again. (Prior:
 // 2026.08.26.oscillator-conflict-abstains.)
-export const ANALYZER_VERSION = "2026.08.26.learning-neutral-point-withheld";
+export const ANALYZER_VERSION = "2026.08.27.calendar-provenance";
 
 export type AssetType =
   | "agriculture"
