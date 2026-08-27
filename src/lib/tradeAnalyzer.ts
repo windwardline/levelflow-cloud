@@ -40,6 +40,12 @@ export type AnalyzerResponse = {
   analysisDiagnostics?: string[];
   advisoryOnly?: boolean;
   blocked?: boolean;
+  /**
+   * Set on both correlation-withholding paths: the market this one yielded to.
+   * The panel reads THIS rather than pattern-matching the reason sentence,
+   * which is how a real withholding came to render as "Nothing passed review".
+   */
+  withheldFor?: SupportedSymbol;
   error?: string;
   // Sent by the analyzer on its blocked/error paths; no client reader today.
   // Kept because the wire actually carries it — a type that omits a field
@@ -84,6 +90,17 @@ export type MarketScanCandidate = {
   symbol: SupportedSymbol;
   takeProfit?: number;
   takeProfit1?: number;
+  /**
+   * The market this one was withheld in favour of, when the correlation filter
+   * collapsed a cluster.
+   *
+   * A TYPED DISCRIMINATOR, because the panel used to infer this from the
+   * sentence — `/stronger (?:related|closely linked) setup/i` — and the
+   * collapse sentence reads "it is the STRONGEST current setup". No match, so a
+   * market whose setup really was found and withheld was announced as "Nothing
+   * passed review". Two sentences, one regex, and only one of them ever matched.
+   */
+  withheldFor?: SupportedSymbol;
 };
 
 export type MarketScanResponse = {
