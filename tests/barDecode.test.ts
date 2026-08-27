@@ -434,18 +434,62 @@ describe("normalizeFmpBars — coherence and spike rejection (2h)", () => {
 // self-contained), so the two copies are pinned here — the same discipline as
 // every duplicated fact spanning the Deno boundary.
 describe("market-data's converter matches the analyzer's (2b, boundary pin)", () => {
+  const marketData = readFileSync(
+    "supabase/functions/market-data/index.ts",
+    "utf8",
+  );
+
   it("carries the same convention markers", () => {
-    const marketData = readFileSync(
-      "supabase/functions/market-data/index.ts",
-      "utf8",
-    );
-    assert.match(marketData, /timeZone: "America\/New_York"/);
     assert.match(marketData, /return Number\.NaN;/);
     assert.doesNotMatch(marketData, /T00:00:00Z/);
     assert.doesNotMatch(
       marketData,
       /Number\.isFinite\(timestamp\) \? timestamp : Date\.now\(\)/,
     );
+  });
+
+  it("takes the venue zone as a REQUIRED parameter, like the analyzer's", () => {
+    // THIS ASSERTION USED TO READ `assert.match(marketData, /timeZone:
+    // "America\/New_York"/)`. #395/#402 gave the analyzer's toTimestamp a
+    // required zone and did not touch this file; the guard was edited in the
+    // same commit and pinned the hard-coded zone, so the one check that
+    // existed to keep the copies in step CERTIFIED their divergence for two
+    // days. ^GDAXI, ^N225 and ^AXJO charts stamped bars 6, 13 and 14 hours
+    // from the analyzer's stamp of the same bar.
+    assert.match(marketData, /function toTimestamp\(value: string, zone: string\)/);
+    assert.match(marketData, /timeZone: zone,/);
+    assert.doesNotMatch(
+      marketData,
+      /timeZone: "America\/New_York"/,
+      "the chart converter must resolve the venue zone, never hard-code one",
+    );
+  });
+
+  it("resolves that zone per symbol from a table pinned to venues.ts", () => {
+    // The two tables are DERIVED against each other rather than eyeballed: a
+    // venue added to the analyzer and forgotten here is the defect this pins.
+    const venues = readFileSync(
+      "supabase/functions/trade-analyzer/venues.ts",
+      "utf8",
+    );
+    const zonesOf = (source: string) =>
+      [...source.matchAll(/"(\^[A-Z0-9]+)":\s*\{?\s*(?:zone:\s*)?"([A-Za-z]+\/[A-Za-z_]+)"/g)]
+        .map(([, symbol, zone]) => `${symbol}=${zone}`)
+        .sort();
+    const analyzerZones = zonesOf(venues);
+    const chartZones = zonesOf(marketData);
+    // NON-VACUITY: a regex that matched nothing would pass this by comparing
+    // two empty lists, which is the failure this repo has spent a week removing.
+    assert.ok(analyzerZones.length > 0, "no venue zones parsed from venues.ts — the probe broke");
+    assert.deepEqual(
+      chartZones,
+      analyzerZones,
+      "market-data's venue zone table has drifted from venues.ts VENUE_CLOCKS",
+    );
+  });
+
+  it("passes the resolved symbol's zone at the call site, not a constant", () => {
+    assert.match(marketData, /toTimestamp\(point\.date as string, labelZoneFor\(ticker\)\)/);
   });
 });
 

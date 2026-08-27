@@ -291,7 +291,7 @@ Deno.serve(async (req) => {
         open: typeof point.open === "number" ? point.open : null,
         time: timeframe === "1day"
           ? (point.date as string).slice(0, 10)
-          : Math.trunc(toTimestamp(point.date as string) / 1000),
+          : Math.trunc(toTimestamp(point.date as string, labelZoneFor(ticker)) / 1000),
         value: point.close as number,
         volume: typeof point.volume === "number" ? point.volume : null,
       }))
@@ -539,7 +539,37 @@ function isoDate(date: Date) {
 // copies are pinned to each other by tests/barDecode.test.ts across the
 // boundary, the same discipline every duplicated fact here follows. NaN for
 // garbage — the Date.now() fallback stamped corrupt input as the present.
-function toTimestamp(value: string): number {
+/**
+ * The zone each provider symbol's bar LABELS are written in.
+ *
+ * DUPLICATED from trade-analyzer/venues.ts VENUE_CLOCKS, deliberately — Edge
+ * Functions are self-contained — and pinned to it by
+ * tests/barDecode.test.ts's boundary guard, the same discipline every
+ * duplicated fact here follows.
+ *
+ * WHY IT EXISTS AT ALL. #395/#402 made the analyzer's toTimestamp take a
+ * REQUIRED venue zone and threaded it through the analyzer and the sweep, and
+ * did not touch this file. This endpoint serves every chart the operator
+ * looks at, so ^GDAXI, ^N225 and ^AXJO were stamped 6, 13 and 14 hours away
+ * from the analyzer's stamp of the same bar — the chart and the setup on two
+ * clocks. The boundary guard that existed to keep the copies in step had been
+ * edited in the same commit and asserted the divergence instead.
+ */
+const VENUE_LABEL_ZONES: Record<string, string> = {
+  "^GSPC": "America/New_York",
+  "^DJI": "America/New_York",
+  "^NDX": "America/New_York",
+  "^GDAXI": "Europe/Berlin",
+  "^N225": "Asia/Tokyo",
+  "^AXJO": "Australia/Sydney",
+};
+
+/** New York for everything not listed, matching venues.ts's DEFAULT_LABEL_ZONE. */
+function labelZoneFor(providerSymbol: string): string {
+  return VENUE_LABEL_ZONES[providerSymbol] ?? "America/New_York";
+}
+
+function toTimestamp(value: string, zone: string): number {
   const match = value.match(
     /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/,
   );
@@ -564,7 +594,7 @@ function toTimestamp(value: string): number {
       minute: "2-digit",
       month: "2-digit",
       second: "2-digit",
-      timeZone: "America/New_York",
+      timeZone: zone,
       year: "numeric",
     }).formatToParts(new Date(instant));
     const lookup = Object.fromEntries(parts.map((p) => [p.type, p.value]));
