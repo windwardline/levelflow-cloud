@@ -46,6 +46,8 @@ type MarketScanPanelProps = {
   // live here, so it doesn't silently advance on unrelated re-renders (the
   // workspace clock ticks every 60s).
   scanCompletedAt: Date | null;
+  /** Forwarded to MarketScanResults; see its own prop for what it means. */
+  scanDiscarded: boolean;
   scope: ScanScope;
   // The market the stage is showing, so the matching row reads as selected
   // (a-desk-v3.html:153's `.mkt.sel`). Presentation only — the rail never
@@ -81,6 +83,7 @@ export function MarketScanPanel({
   openScanSymbols,
   result,
   scanCompletedAt,
+  scanDiscarded,
   scope,
   selectedSymbol,
   status,
@@ -134,6 +137,7 @@ export function MarketScanPanel({
         onSelectCandidate={onSelectCandidate}
         result={result}
         scanCompletedAt={scanCompletedAt}
+        scanDiscarded={scanDiscarded}
         scope={scope}
         selectedSymbol={selectedSymbol}
         status={status}
@@ -152,6 +156,7 @@ export function MarketScanResults({
   onSelectCandidate,
   result,
   scanCompletedAt,
+  scanDiscarded,
   scope,
   selectedSymbol,
   status,
@@ -165,6 +170,14 @@ export function MarketScanResults({
   onSelectCandidate: (candidate: MarketScanCandidate) => void;
   result: MarketScanResponse | null;
   scanCompletedAt: Date | null;
+  /**
+   * True when a FINISHED scan's result was thrown away because the active
+   * account changed to one that sees different markets — not when no scan has
+   * been run. §17c's silent null is for a rail nobody has asked anything yet;
+   * a reader who pressed Scan, saw rows, and then saw the rail empty itself has
+   * been told nothing about where their answer went.
+   */
+  scanDiscarded: boolean;
   scope: ScanScope;
   selectedSymbol: SupportedSymbol;
   status: "idle" | "scanning";
@@ -183,6 +196,11 @@ export function MarketScanResults({
     ? "Market scan could not complete. Try again shortly."
     : result
     ? "No markets match the current scan filters."
+    : scanDiscarded
+    // §17f: the fact only. The scan really did run and its rows really are
+    // gone, because they described markets this account cannot trade — saying
+    // so costs one line and removes the disappearance.
+    ? "That scan covered markets this account does not trade. Scan again."
     : null;
 
   return (
