@@ -422,24 +422,37 @@ function GuideDeck() {
       </GuideSection>
 
       <GuideSection id="replay-record">
+        {/* The measured record is WITHHELD, not restated.
+
+            This section described a record that no longer renders. Every
+            stored row was measured by the retired pre-repair evaluator, and
+            the first repaired baseline measured the accepted stream NEGATIVE
+            in every class, so describeReplayRecord refuses all six.
+
+            Two claims here were also false against the row they described.
+            "Every figure is net of spread, slippage, and commission" — the
+            row itself ends "before costs", because the retired engine charged
+            neither. And "measured, not promised" sat above figures the repo
+            had already declared an artifact. Copy law: text says only what
+            the surface cannot show, and it must not say what is not true. */}
         <p>
-          Levelflow's history claims are measured, not promised. Every
-          market type's record comes from replaying its full available
-          price history — for the major currency pairs, more than a
-          decade — and counting setups the way a trade actually pays:
-          take-profit reached, half banked at Target 1, or a finish that
-          closed in profit. Any finish that ended in profit counts as
-          {" "}<strong className="text-ink">money-positive</strong>; every
-          other finish counts against the record. The replay fills
-          orders the way a venue fills them — a limit needs the far side
-          of the book at its level, a stop triggers when the near side
-          touches it, and a gap fills at the open, not at the level —
-          and every figure is net of spread, slippage, and commission.
-          What you see is what the trade would have paid, not a ceiling.
+          Levelflow is not showing a measured record right now. The figures it
+          used to show were produced by an evaluator that has since been
+          repaired, and they did not survive the repair. Publishing them with
+          a caveat would still be publishing them.
         </p>
         <p>
+          A full re-measurement is in progress. When it lands, each market
+          type's record returns here — counted the way a trade actually pays,
+          with the fill rules and the cost treatment stated alongside the
+          number rather than assumed.
+        </p>
+        <p>
+          {/* §7's pinned sentence, restored verbatim — tests/guideAnchors.test.ts
+              holds it and it is a spec claim, not prose. The clarification
+              belongs beside it, not in place of it. */}
           A market's record does not gate the scan. Read it and size
-          accordingly.
+          accordingly. Its absence does not gate the scan either.
         </p>
         <p>
           Finished setups across all of Levelflow feed back into future

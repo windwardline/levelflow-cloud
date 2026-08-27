@@ -124,7 +124,15 @@ export const MEASURED_POPULATION_BY_ASSET_TYPE: Record<
   Metals: new Set(["XAGUSD", "XAUUSD"]),
 };
 
-function hasOwnMeasuredRecord(
+/**
+ * Exported so the POPULATION gate stays pinned while the supersession gate
+ * hides every rendered record. The two are independent: a market outside the
+ * measured population must never inherit a sibling's record, and that must
+ * remain true through the v2 corpus landing. Testing it only through
+ * `describeReplayRecord` made it invisible the moment supersession refused
+ * everything.
+ */
+export function hasOwnMeasuredRecord(
   symbol: string,
   assetType: SecurityType,
 ): boolean {
@@ -133,11 +141,21 @@ function hasOwnMeasuredRecord(
   ) ?? false;
 }
 
-export function describeReplayRecord(symbol: string, assetType: SecurityType) {
-  const record = REPLAY_RECORD_BY_ASSET_TYPE[assetType];
-  if (!record || !hasOwnMeasuredRecord(symbol, assetType)) {
-    return null;
-  }
+
+/**
+ * The record sentence, as a pure function of a row.
+ *
+ * SEPARATED FROM THE GATE so the copy contract stays testable while every
+ * live row is superseded and renders nothing. The rules below — the bound
+ * rides with the rate, "before costs" is load-bearing, and the banned
+ * sampling vocabulary stays out — outlive the current rows and apply again the moment the v2 corpus
+ * supplies valid ones. Deleting their tests along with the rendering would
+ * have dropped the contract instead of suspending it.
+ */
+export function formatReplayRecord(
+  record: ReplayRecord,
+  assetType: SecurityType,
+): string {
   const rate = Math.round(record.moneyPositiveRate * 100);
   // 1j: the uncertainty rides with the rate — one standard error of a
   // binomial proportion, in percentage points, derived from the row rather
@@ -162,9 +180,33 @@ export function describeReplayRecord(symbol: string, assetType: SecurityType) {
   const provenance = record.superseded
     ? " under a configuration the engine has since moved past"
     : "";
-  return {
-    detail:
-      `Across ${record.sampleSize} past ${assetType} setups reserved for honest testing${provenance}, ` +
-      `filled setups ended money-positive ${rate}% (±${sePoints}pp) of the time before costs.`,
-  };
+  return (
+    `Across ${record.sampleSize} past ${assetType} setups reserved for honest testing${provenance}, ` +
+    `filled setups ended money-positive ${rate}% (±${sePoints}pp) of the time before costs.`
+  );
+}
+
+export function describeReplayRecord(symbol: string, assetType: SecurityType) {
+  const record = REPLAY_RECORD_BY_ASSET_TYPE[assetType];
+  if (!record || !hasOwnMeasuredRecord(symbol, assetType)) {
+    return null;
+  }
+  // A SUPERSEDED ROW IS NOT A RECORD, AND WE SAY NOTHING RATHER THAN SAY IT.
+  //
+  // All six rows carry `superseded` (round-8 PH-1, 2026-08-11): every figure
+  // was measured by the retired pre-repair evaluator, and the first repaired
+  // baseline measured the accepted stream NEGATIVE in every class. Until this
+  // guard, the operator read "filled setups ended money-positive 89% (±0.1pp)
+  // of the time" on forex, hedged only by "under a configuration the engine
+  // has since moved past" — which describes a CONFIGURATION change, not a
+  // measurement error, and reads as still-true-but-older. The ±SE beside it
+  // advertised three-decimal precision for a number known to be biased.
+  //
+  // §19e's rule is that a refusal beats a wrong number. The Record row now
+  // renders absent for these six until the v2 corpus re-measures them, which
+  // replaces the rows and this path together rather than restating them.
+  if (record.superseded) {
+    return null;
+  }
+  return { detail: formatReplayRecord(record, assetType) };
 }
