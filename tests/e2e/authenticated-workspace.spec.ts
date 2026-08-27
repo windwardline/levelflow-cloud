@@ -150,8 +150,29 @@ async function scanForSetupOnStage(page: Page): Promise<boolean> {
   const scanFailed = rail.getByText(
     "Market scan could not complete. Try again shortly.",
   );
-  await expect(countLine.or(scanFailed)).toBeVisible({ timeout: 150_000 });
+  // THE THIRD TERMINAL STATE, and the one that cost four deploys. If the active
+  // account's classification does not match the scan's, AdvisorWorkspace
+  // discards the finished result and the rail returns to its opening state —
+  // correct behaviour, and for a long time a completely silent one, so this
+  // wait had nothing to key on and burned its whole 150s on a state neither
+  // locator could ever match. It is intermittent because whether the guard
+  // wins the race depends on timing: #447, #451, #452 and one re-run died here
+  // while #448-#450 passed. The rail says it now, so the wait can hear it.
+  const scanDiscarded = rail.getByText(
+    "That scan covered markets this account does not trade. Scan again.",
+  );
+  await expect(countLine.or(scanFailed).or(scanDiscarded)).toBeVisible({
+    timeout: 150_000,
+  });
   if (await isVisibleWithin(scanFailed, 1_000)) {
+    return false;
+  }
+  if (await isVisibleWithin(scanDiscarded, 1_000)) {
+    // Not a product failure and not a quiet market: this pairing of scope and
+    // account cannot produce a staged setup at all, so the caller's skip path
+    // is the honest exit. The coverage reporter names every stand-down and
+    // refuses more than the ceiling, so a pairing that starts discarding on
+    // every run surfaces as lost coverage rather than as a green suite.
     return false;
   }
   const strongest = rail.getByText(/^(Buy|Sell) · confidence \d+$/).first();

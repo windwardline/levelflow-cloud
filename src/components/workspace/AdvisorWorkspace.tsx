@@ -181,6 +181,13 @@ export function AdvisorWorkspace(
     BrokerClassification | null
   >(null);
   const [scanStatus, setScanStatus] = useState<"idle" | "scanning">("idle");
+  // A scan result that was DISCARDED rather than never taken. Both guards below
+  // return the rail to null when an account switch makes a finished scan's
+  // numbers describe a universe the reader can no longer see — correct, and
+  // until now completely silent: the reader pressed Scan, got rows, and watched
+  // them vanish with the rail back at its opening state. §17c's "nothing to say"
+  // covers a rail that was never scanned, not one whose answer was taken away.
+  const [scanDiscarded, setScanDiscarded] = useState(false);
   const [clockNow, setClockNow] = useState(() => new Date());
   // Spec §17's mobile Expand chart. Owned here rather than inside MarketChart
   // because the overlay mounts a second chart of its own: a component cannot
@@ -301,6 +308,13 @@ export function AdvisorWorkspace(
         group.label === scope.assetType
       )
       : visibleAssetSymbols(activeAccount).includes(scope.symbol);
+    // No scanDiscarded flag here, deliberately. This effect also resets the
+    // SCOPE, which is a visible change the reader can see for themselves, and
+    // reading scanResult in this body would widen the effect's dependencies to
+    // include it — re-running a scope guard every time a result arrives, to say
+    // something the sibling effect below already says on the case that actually
+    // strands the reader. The block below is also pinned as a contiguous
+    // sequence by tests/marketScanFilters.test.ts, so nothing goes inside it.
     if (!stillVisible) {
       setScope({ kind: "all" });
       setScanResult(null);
@@ -340,6 +354,14 @@ export function AdvisorWorkspace(
       setScanResult(null);
       setScanCompletedAt(null);
       setScanClassification(null);
+    }
+    // Set in its own statement, AFTER the block above, because that block is
+    // pinned as one contiguous sequence by tests/marketScanFilters.test.ts —
+    // the guard that stops a future edit quietly moving those three clears
+    // apart. Reached only past the `scanResult === null` return above, so it
+    // fires exactly when a real result is being discarded.
+    if ((activeAccount?.classification ?? null) !== scanClassification) {
+      setScanDiscarded(true);
     }
   }, [activeAccount, scanClassification, scanResult]);
 
@@ -583,6 +605,7 @@ export function AdvisorWorkspace(
     // requestIdRef, and adopting a verdict about the market the reader has
     // since left is the staleness this guards against.
     const requestId = requestIdRef.current;
+    setScanDiscarded(false);
     setScanStatus("scanning");
     try {
       const nextResult = await scanMarketOpportunities(symbols);
@@ -801,6 +824,7 @@ export function AdvisorWorkspace(
               onSelectCandidate={selectCandidate}
               result={scanResult}
               scanCompletedAt={scanCompletedAt}
+              scanDiscarded={scanDiscarded}
               scope={scope}
               selectedSymbol={symbol}
               status={scanStatus}
@@ -859,6 +883,7 @@ export function AdvisorWorkspace(
           openScanSymbols={openScanSymbols}
           result={scanResult}
           scanCompletedAt={scanCompletedAt}
+          scanDiscarded={scanDiscarded}
           scope={scope}
           selectedSymbol={symbol}
           status={scanStatus}
