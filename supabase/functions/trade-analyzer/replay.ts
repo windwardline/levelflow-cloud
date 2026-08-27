@@ -242,6 +242,62 @@ export function realizedRFromLegs(input: {
   return Number((bankedR + exitR - costR).toFixed(4));
 }
 
+/**
+ * How much of the runner's best moment it handed back.
+ *
+ * WHY THIS IS MEASURED. The 4b geometry review (baseline-2026-08-10) found the
+ * ladder's two halves pointing in opposite directions in every class: the TP1
+ * half banks positive R everywhere — forex +62,646R over 323,631 fills — while
+ * the runner half loses 51,696R of it back. 44% of forex fills exited at
+ * breakeven AFTER touching TP1, with a median favourable excursion of 0.92R.
+ * The trade was up nearly a full risk unit and surrendered the runner half.
+ *
+ * That was a one-time offline finding over a corpus. Nothing measured it on a
+ * live resolution, so the largest single loss in the engine was invisible
+ * between reviews. This makes it a field.
+ *
+ * WHAT IT IS: the runner half's best available R minus what the runner half
+ * actually took. Floored at zero — a runner that exits at its high gave nothing
+ * back, and a negative here would mean the exit beat the excursion, which is
+ * only possible if the two were measured over different windows.
+ *
+ * WHAT IT IS NOT: a claim that the give-back was avoidable. The peak is
+ * knowable only afterwards, and no protection captures it. It is the SIZE OF
+ * THE PRIZE the runner's placement and protection are competing for, which is
+ * the quantity amendment 39 makes the standing priority — not a target anyone
+ * can hit.
+ *
+ * Returns null rather than 0 when there was no runner leg to give anything
+ * back: a resolution with no tp1 leg ran full size to one exit, so the question
+ * does not apply and a 0 would read as "gave nothing back" beside rows where
+ * that is a real measurement.
+ */
+export function forgoneRunnerR(input: {
+  legs: ResolutionLeg[];
+  maxFavorableMove: number;
+  riskDistance: number;
+  side: "buy" | "sell";
+}): number | null {
+  const entry = input.legs.find((leg) => leg.leg === "entry");
+  const exit = input.legs.find((leg) => leg.leg === "exit");
+  const tp1 = input.legs.find((leg) => leg.leg === "tp1");
+  if (!entry || !exit || !tp1 || input.riskDistance <= 0) {
+    return null;
+  }
+  if (!Number.isFinite(input.maxFavorableMove) || input.maxFavorableMove < 0) {
+    return null;
+  }
+  const sign = input.side === "buy" ? 1 : -1;
+  // maxFavorableMove is already a DISTANCE from entry in the favourable
+  // direction (replay's loop takes `isBuy ? bar.high - entry : entry - bar.low`),
+  // so it does not take the sign a price difference does.
+  const bestR = input.maxFavorableMove / input.riskDistance;
+  const takenR = (sign * (exit.price - entry.price)) / input.riskDistance;
+  const RUNNER_FRACTION = 0.5;
+  const forgone = RUNNER_FRACTION * (bestR - takenR);
+  return Number(Math.max(0, forgone).toFixed(4));
+}
+
 // E1 (R1a slice 2): the ONE resolution-tiering rule, shared by both live
 // writers and mirroring the sweep's own (sweep.ts, FR-5): resolve on the
 // 5-minute series when it reaches back to the setup's creation, else on
@@ -469,6 +525,15 @@ export function evaluateSetupOutcome(
   // emit charges through the same accountant. Unfilled resolutions
   // carry neither field: no position, no R.
   const realizedFields = () => ({
+    // Amendment 39: the runner's give-back is the standing priority, so it is
+    // recorded on every resolution that had a runner rather than reconstructed
+    // from a corpus review months later.
+    forgoneRunnerR: forgoneRunnerR({
+      legs,
+      maxFavorableMove,
+      riskDistance,
+      side: setup.side,
+    }),
     netRealizedR: realizedRFromLegs({
       legs,
       perLegCost: (options?.roundTripCost ?? 0) / 2,
@@ -660,15 +725,21 @@ export function evaluateSetupOutcome(
     // FR-8: the in-profit/at-loss split is a NET claim. Price drift that
     // does not clear the round trip is a loss, and the label may never
     // contradict the accountant's sign.
-    const { netRealizedR, realizedR } = realizedFields();
+    // SPREAD, not re-listed. This branch destructured two fields and named them
+    // back one by one, so any field the accountant gained was silently absent
+    // HERE while present on the other two resolution paths — and expiry-after-
+    // TP1 is one of the give-back cases forgoneRunnerR exists to measure. The
+    // repo has paid for this shape before (12 dropped emit fields, 2026-08-23).
+    // netRealizedR is still pulled out because the outcome label below reads it.
+    const resolved = realizedFields();
+    const { netRealizedR } = resolved;
     return {
       exitAt: new Date(expiresAt).toISOString(),
       feedback: {
+        ...resolved,
         legs,
         maxAdverseMove: roundPrice(maxAdverseMove),
         maxFavorableMove: roundPrice(maxFavorableMove),
-        netRealizedR,
-        realizedR,
         reason: tp1Hit
           ? "TP1 was reached, but the runner target was not hit before the review window ended."
           : "Entry filled, but neither target nor stop was reached before the setup review window ended.",
