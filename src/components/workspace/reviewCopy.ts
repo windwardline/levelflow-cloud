@@ -128,11 +128,11 @@ export const REVIEW_REWRITES: ReviewRewrite[] = [
  *     rules above, so these swapped nothing
  *   /setup family/, /resolved outcomes/, /reward-to-risk/  no emitter
  *   /ATR/  handled by formatStrategyName, which is a different surface
- *   /liquidity/ -> "price levels"  the ONE sentence carrying it is "Late
- *     Friday liquidity conditions reduce setup quality.", which the swap
- *     turned into "Late Friday price levels conditions" — a blanket noun swap
- *     inside a compound modifier. The reader here trades for a living and
- *     liquidity is their word, so the sentence is better left alone.
+ *   /liquidity/ -> "price levels"  sessions.ts carries TWO sentences with the
+ *     word (a corrected count — this said ONE), and the swap turned "Late
+ *     Friday liquidity conditions" into "Late Friday price levels conditions":
+ *     a blanket noun swap inside a compound modifier. The reader here trades
+ *     for a living and liquidity is their word, so both are left alone.
  */
 
 export function applyRewrites(

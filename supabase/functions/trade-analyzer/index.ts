@@ -2178,6 +2178,39 @@ function extractSetupKey(
     : correlationGroup || symbol;
 }
 
+/**
+ * Does the calendar hold ANY event scheduled after now — the watchdog's own
+ * coverage question (migration 20260729040000).
+ *
+ * MEMOISED, because the answer is a fact about the TABLE and not about the
+ * symbol. fetchRelevantNews runs once per market, so a 15-market scan asked
+ * this identical question fifteen times: fifteen round trips against the same
+ * row, on a function with a 2s CPU budget that has already been exceeded in
+ * production once (scanBatching.ts's header records it).
+ *
+ * The TTL is short because the failure it guards against is an ingest that
+ * stopped, which is measured in hours, not seconds. Same shape as
+ * lastLearningRefresh above: a module-scoped value with an explicit age.
+ */
+const CALENDAR_COVERAGE_TTL_MS = 60_000;
+let calendarCoverage: { at: number; hasFuture: boolean } | null = null;
+
+async function calendarHasFutureEvents(
+  token: string,
+  nowIso: string,
+): Promise<boolean> {
+  const now = Date.now();
+  if (calendarCoverage && now - calendarCoverage.at < CALENDAR_COVERAGE_TTL_MS) {
+    return calendarCoverage.hasFuture;
+  }
+  const future = await fetchRows<{ id: string }>(
+    token,
+    `economic_events?select=id&scheduled_at=gt.${encodeURIComponent(nowIso)}&limit=1`,
+  );
+  calendarCoverage = { at: now, hasFuture: future.length > 0 };
+  return calendarCoverage.hasFuture;
+}
+
 async function fetchRelevantNews(token: string, symbol: SupportedSymbol) {
   const now = Date.now();
   const window = newsWindow(now);
@@ -2196,13 +2229,7 @@ async function fetchRelevantNews(token: string, symbol: SupportedSymbol) {
         encodeURIComponent(window.headlineStart)
       }&scheduled_at=lte.${encodeURIComponent(window.upcomingEnd)}`,
     );
-    const future = await fetchRows<{ id: string }>(
-      token,
-      `economic_events?select=id&scheduled_at=gt.${
-        encodeURIComponent(window.now)
-      }&limit=1`,
-    );
-    hasFutureEvents = future.length > 0;
+    hasFutureEvents = await calendarHasFutureEvents(token, window.now);
   } catch (error) {
     console.error("economic calendar read failed", error);
     rows = null;
