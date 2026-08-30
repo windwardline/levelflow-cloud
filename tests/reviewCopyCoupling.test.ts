@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
@@ -41,6 +41,34 @@ const ANALYZER = join(
 
 /** Files that put sentences on the wire for a human to read. */
 const EMITTERS = ["index.ts", "marketLoader.ts", "sessions.ts"];
+
+/**
+ * Files that MATCH the emit shape but do not put prose in front of a reader,
+ * each with the reason it is excluded.
+ *
+ * This list is the curated half, and it is deliberately the only curated half.
+ * EMITTERS was three hardcoded filenames in a file whose whole argument is that
+ * populations must be derived — correct on the day it was written, and unable
+ * to notice a new emitter appearing, which is the exact defect this file
+ * exists to catch, committed in its own header.
+ *
+ * The population is derived below and every member must be classified. A new
+ * file that emits reader-facing text fails until someone puts it in one list or
+ * the other, and an exclusion has to carry an argument rather than a name.
+ */
+const NOT_READER_FACING: Record<string, string> = {
+  "bars.ts":
+    "`reason: \"shape\" | \"timestamp\" | ...` is a rejection TAG on a " +
+    "telemetry union, not prose — it never reaches a sentence.",
+  "calibration.ts":
+    "the decline register's `reason` is internal documentation of how each " +
+    "market was measured. Only `reprobe` reaches the wire (index.ts reads " +
+    "`declined.reprobe` and nothing else), which is what keeps the register's " +
+    "invalidated R figures off the screen.",
+  "replay.ts":
+    "`feedback.reason` is stored on the resolution row and has no client " +
+    "reader — no surface in src/ renders it.",
+};
 
 /**
  * Every literal the analyzer hands a reader: the `reason:` of a blocked or
@@ -218,6 +246,56 @@ function corpus(): string[] {
   const all = [...stems, ...declineSentences(stems)];
   return Array.from(new Set(all.flatMap(expand)));
 }
+
+describe("the emitter population is derived, not listed", () => {
+  it("classifies every file that matches the emit shape", () => {
+    // DERIVED: every .ts in the analyzer whose source has an emit site followed
+    // by a string literal. Each must be an EMITTER whose sentences are checked,
+    // or an explicit exclusion carrying its reason. Neither list may simply
+    // omit a file.
+    const dir = readdirSync(ANALYZER).filter((name) => name.endsWith(".ts")).sort();
+    const candidates = dir.filter((name) => {
+      const source = readFileSync(join(ANALYZER, name), "utf8");
+      for (const match of source.matchAll(SITE)) {
+        const after = source.slice(
+          match.index + match[0].length,
+          match.index + match[0].length + 400,
+        );
+        if (/^\s*\n?\s*["`]/.test(after)) return true;
+      }
+      return false;
+    });
+
+    // NON-VACUITY: a detector that matched nothing would classify an empty set
+    // and pass having examined none of the analyzer.
+    assert.ok(
+      candidates.length >= 4,
+      `only ${candidates.length} candidate emitters found — the detector broke`,
+    );
+
+    const unclassified = candidates.filter(
+      (name) => !EMITTERS.includes(name) && !(name in NOT_READER_FACING),
+    );
+    assert.deepEqual(
+      unclassified,
+      [],
+      "these files emit text and are in neither list, so their sentences are " +
+        "checked by nothing: " + unclassified.join(", "),
+    );
+
+    // And the exclusions must still be real: a file listed as not
+    // reader-facing that stopped matching the shape is a stale exemption.
+    const stale = Object.keys(NOT_READER_FACING).filter(
+      (name) => !candidates.includes(name),
+    );
+    assert.deepEqual(
+      stale,
+      [],
+      "these exclusions no longer match the emit shape and should be deleted: " +
+        stale.join(", "),
+    );
+  });
+});
 
 describe("review copy is coupled to the engine that feeds it", () => {
   it("extracts the analyzer's own sentences, and finds a real corpus", () => {
