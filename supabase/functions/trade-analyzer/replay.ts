@@ -275,6 +275,19 @@ export function realizedRFromLegs(input: {
 export function forgoneRunnerR(input: {
   legs: ResolutionLeg[];
   maxFavorableMove: number;
+  /**
+   * The PLANNED limit the excursion was measured from, which is not the price
+   * the position opened at.
+   *
+   * `maxFavorableMove` is `isBuy ? bar.high - entry : entry - bar.low` against
+   * the planned limit, while the entry LEG carries `fillPrice` — and a buy
+   * fills at `min(fillBar.open + halfSpread, entry)`, at or better than plan.
+   * The first version of this function read the excursion off one baseline and
+   * the exit off the other, so every price-improved fill under-reported its own
+   * give-back by half the improvement. The fixtures set the two equal, so the
+   * test could not see it.
+   */
+  plannedEntry: number;
   riskDistance: number;
   side: "buy" | "sell";
 }): number | null {
@@ -291,7 +304,13 @@ export function forgoneRunnerR(input: {
   // maxFavorableMove is already a DISTANCE from entry in the favourable
   // direction (replay's loop takes `isBuy ? bar.high - entry : entry - bar.low`),
   // so it does not take the sign a price difference does.
-  const bestR = input.maxFavorableMove / input.riskDistance;
+  // Rebased onto the FILL, so both halves of the subtraction below are measured
+  // from the price the position actually opened at. For a buy this is
+  // (high - planned) + (planned - fill) = high - fill; the sign flip makes the
+  // sell side (fill - low) by the same algebra.
+  const excursionFromFill = input.maxFavorableMove +
+    sign * (input.plannedEntry - entry.price);
+  const bestR = excursionFromFill / input.riskDistance;
   const takenR = (sign * (exit.price - entry.price)) / input.riskDistance;
   const RUNNER_FRACTION = 0.5;
   const forgone = RUNNER_FRACTION * (bestR - takenR);
@@ -531,6 +550,7 @@ export function evaluateSetupOutcome(
     forgoneRunnerR: forgoneRunnerR({
       legs,
       maxFavorableMove,
+      plannedEntry: entry,
       riskDistance,
       side: setup.side,
     }),
