@@ -284,12 +284,17 @@ describe("§17n Insights — the slimming the ruling pre-approved", () => {
       (HISTORY_SOURCE.match(/max-lg:grid-cols-(\d)/) ?? [])[1],
     );
     assert.ok(columns > 0, "the mobile column count is unreadable");
+    // CELLS, not blocks: a `wide` block occupies two columns, so counting
+    // blocks alone would under-report the rows the grid actually needs.
+    const wideBlocks = (HISTORY_SOURCE.match(/\n\s+wide\n/g) ?? []).length;
+    const cells = blocks + wideBlocks;
     assert.ok(
-      Math.ceil(blocks / columns) <= 2,
-      `${blocks} stat blocks in ${columns} mobile columns is ` +
-        `${Math.ceil(blocks / columns)} rows. Insights pinned chrome has a ` +
-        `290px ceiling (§17n) and a third row put it at 319. Either fit the ` +
-        `blocks into two rows or take the budget question to the ruling.`,
+      Math.ceil(cells / columns) <= 2,
+      `${blocks} stat blocks (${cells} cells, ${wideBlocks} wide) in ` +
+        `${columns} mobile columns is ${Math.ceil(cells / columns)} rows. ` +
+        `Insights pinned chrome has a 290px ceiling (§17n) and a third row put ` +
+        `it at 319. Either fit the cells into two rows or take the budget ` +
+        `question to the ruling.`,
     );
     assert.match(
       HISTORY_SOURCE,
@@ -297,30 +302,34 @@ describe("§17n Insights — the slimming the ruling pre-approved", () => {
     );
     assert.match(HISTORY_SOURCE, /<p className="eyebrow">/);
 
-    // A THIRD OF 375px IS ~101px, and an 18px monospace value wraps past about
-    // nine characters. A wrap costs the same row the column count just bought,
-    // so the compact form is load-bearing rather than cosmetic — and nothing
-    // pinned it until a mutation removed it and every test stayed green.
+    // ONE VALUE PER STAT, AND NO SECOND COPY.
+    //
+    // A third of 375px is ~101px and an 18px monospace value wraps past about
+    // nine characters, so the long one needs width. The first attempt rendered
+    // a full form and a compact form and let CSS hide one — which hides it
+    // only VISUALLY. Both stayed in the DOM, so every value read twice in the
+    // text content and twice to a screen reader; the deploy caught it as
+    // "100% of 84100% of 84". A fix that duplicates the accessible name to
+    // save a row is worse than the row it saved.
+    assert.doesNotMatch(
+      HISTORY_SOURCE,
+      /max-lg:hidden|compactValue/,
+      "a second copy of the value is back — it hides visually and reads twice",
+    );
+    // The one value too long for a single column takes two of them instead.
     assert.match(
       HISTORY_SOURCE,
-      /<span className="lg:hidden">\{compactValue \?\? value\}<\/span>/,
-      "the phone-width value no longer falls back to the compact form, so a " +
-        "long value wraps and takes back the row the third column bought",
+      /className=\{wide \? "max-lg:col-span-2" : undefined\}/,
+      "the wide cell is gone, so a long value wraps and takes back the row",
     );
-    assert.match(
-      HISTORY_SOURCE,
-      /<span className="max-lg:hidden">\{value\}<\/span>/,
-      "the full value is no longer shown above lg",
-    );
-    // The one value long enough to need it must actually supply one.
     const givenBack = HISTORY_SOURCE.slice(
-      HISTORY_SOURCE.indexOf('label="Given back"') - 400,
-      HISTORY_SOURCE.indexOf('label="Given back"') + 200,
+      HISTORY_SOURCE.indexOf('label="Given back"'),
+      HISTORY_SOURCE.indexOf('label="Given back"') + 300,
     );
     assert.match(
       givenBack,
-      /compactValue=\{/,
-      "Given back renders `N.NR over M`, which does not fit a third of 375px",
+      /\bwide\b/,
+      "Given back renders `N.NR over M`, which does not fit one mobile column",
     );
   });
 

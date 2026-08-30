@@ -198,13 +198,11 @@ export function HistoryPanel({
             "given back" rather than "lost" for that reason: it is the size of
             the prize the runner's protection competes for. */}
         <StatBlock
-          compactValue={recordBand.forgoneR === null
-            ? "Learning"
-            : `${recordBand.forgoneR.toFixed(1)}R`}
           label="Given back"
           value={recordBand.forgoneR === null
             ? "Learning"
             : `${recordBand.forgoneR.toFixed(1)}R over ${recordBand.forgoneRows}`}
+          wide
         />
       </div>
     </div>
@@ -563,26 +561,30 @@ function InsightsRow({ now, setup }: { now: Date; setup: TradeSetupRow }) {
 // label and legibility is what holds it there; the value is a figure with no
 // smaller legible size worth the hierarchy it would cost.
 function StatBlock(
-  { compactValue, label, value }: {
-    /**
-     * The phone-width form, when the full one cannot fit a third of 375px
-     * without wrapping — and a wrap costs a whole row of the §17n budget.
-     *
-     * §17n's ruling is that chrome yields to the content region, and the
-     * eyebrow is already the kit's smallest legible label so it may not shrink
-     * to buy the space. Shortening the VALUE is the remaining move, and only
-     * where the long form does not fit.
-     */
-    compactValue?: string;
+  { label, value, wide }: {
     label: string;
     value: string;
+    /**
+     * Takes two of the three mobile columns.
+     *
+     * A LONG VALUE NEEDS WIDTH, NOT A SECOND COPY. The first attempt rendered
+     * both a full and a compact form and let CSS hide one — which hides it
+     * only VISUALLY. Both stayed in the DOM, so every value read twice in the
+     * text content and twice to a screen reader: "100% of 84100% of 84" is
+     * what the deploy's own assertion caught. A fix that duplicates the
+     * accessible name to save a row is worse than the row.
+     *
+     * Widening the one block that needs it costs nothing: four single cells
+     * plus one double is six cells in three columns, which is the same two
+     * rows §17n's budget already allows.
+     */
+    wide?: boolean;
   },
 ) {
   return (
-    <div>
+    <div className={wide ? "max-lg:col-span-2" : undefined}>
       <p className="font-mono text-2xl font-semibold tabular-nums text-ink max-lg:text-lg">
-        <span className="max-lg:hidden">{value}</span>
-        <span className="lg:hidden">{compactValue ?? value}</span>
+        {value}
       </p>
       <p className="eyebrow">
         {label}
