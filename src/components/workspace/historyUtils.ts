@@ -514,7 +514,7 @@ export type RecordBand = {
    *
    * Amendment 39 makes closing the profit gap the standing priority, and the 4b
    * geometry review put the gap here: forex banked +62,646R at TP1 and gave
-   * 51,696R of it back. That was a finding in a review document. This is the
+   * 51,696R of it back. Those magnitudes are UNVERIFIED (from docs/research/baseline-2026-08-10, which remediation-program-2026-08-11.md lists as not to be trusted until re-measured — the direction is why this is ranked first, the magnitudes are not evidence) That was a finding in a review document. This is the
    * number on the screen the operator actually reads.
    */
   forgoneR: number | null;

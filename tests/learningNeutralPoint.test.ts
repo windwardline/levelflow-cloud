@@ -64,7 +64,16 @@ function partialR(assetType: AssetType): number {
   const cal = getClassCalibration(assetType);
   const ratio = Math.max(
     cal.tp1RiskShare,
-    cal.tp1AtrMultiplier / cal.stopAtrMultiplier,
+    // maxStopAtrMultiplier, NOT stopAtrMultiplier.
+    //
+    // A CORRECTION. The first version divided by stopAtrMultiplier, which is a
+    // BUFFER INPUT — pricePlan computes `stopBuffer = max(atr * stopAtrMultiplier,
+    // dailyAtr * dailyStopAtrMultiplier)` around a pivot and then CAPS the result
+    // at `atr * maxStopAtrMultiplier`. Risk distance therefore cannot exceed the
+    // cap, so dividing by the larger buffer constant was not merely a different
+    // choice, it was not a valid bound at all: it understated the ratio and so
+    // OVERSTATED break-even, on five of the eight classes.
+    cal.tp1AtrMultiplier / cal.maxStopAtrMultiplier,
   );
   return BANKED_FRACTION * ratio;
 }
@@ -79,7 +88,17 @@ function fullWinR(assetType: AssetType): number {
   return partialR(assetType) + BANKED_FRACTION * cal.minimumTargetRewardRisk;
 }
 
-/** `partialShare` of 1 is an all-partial cohort; 0 is an all-runner cohort. */
+/**
+ * `partialShare` of 1 is an all-partial cohort; 0 is an all-runner cohort.
+ *
+ * Recomputed with the binding constant, the per-class figures moved even though
+ * the RANGE did not: all-partial break-even is 0.800 for agriculture,
+ * livestock, crypto, forex and futures (was 0.828-0.833), and unchanged at
+ * 0.714 for energies and 0.833 for indices and metals. The published range
+ * survives because its two extremes come from classes the correction does not
+ * touch — which is exactly why a range can look right while the derivation
+ * under it is wrong.
+ */
 function breakEven(assetType: AssetType, partialShare: number): number {
   const avgWin = partialShare * partialR(assetType) +
     (1 - partialShare) * fullWinR(assetType);

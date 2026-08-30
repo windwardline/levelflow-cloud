@@ -790,7 +790,7 @@ describe("what the ladder handed back", () => {
   // Amendment 39 makes closing the profit gap the standing priority, and the 4b
   // geometry review located the gap in the second leg: forex banked +62,646R at
   // TP1 and gave 51,696R of it back, with 44% of fills exiting at breakeven
-  // after touching TP1 at a median 0.92R favourable. That lived in a review
+  // after touching TP1 at a median 0. Those magnitudes are UNVERIFIED (from docs/research/baseline-2026-08-10, which remediation-program-2026-08-11.md lists as not to be trusted until re-measured — the direction is why this is ranked first, the magnitudes are not evidence)92R favourable. That lived in a review
   // document. The band reads it now, beside the money it came out of.
   const gave = (symbol: string, value: number | null) =>
     buildSetup({

@@ -13,7 +13,7 @@ import {
  *
  * WHY. The 4b geometry review found the ladder's halves pointing in opposite
  * directions in every class: the TP1 half banks positive R everywhere — forex
- * +62,646R over 323,631 fills — while the runner half loses 51,696R of it back.
+ * +62,646R over 323,631 fills — while the runner half loses 51,696R of it back. Those magnitudes are UNVERIFIED (from docs/research/baseline-2026-08-10, which remediation-program-2026-08-11.md lists as not to be trusted until re-measured — the direction is why this is ranked first, the magnitudes are not evidence)
  * 44% of forex fills exited at breakeven AFTER touching TP1, at a median
  * favourable excursion of 0.92R. Up nearly a full risk unit, and the runner
  * half surrendered.
