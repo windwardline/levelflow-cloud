@@ -269,3 +269,89 @@ describe("one baseline, even when the fill beats the plan", () => {
     assert.equal(result, 0.46);
   });
 });
+
+describe("the give-back says which protection produced it", () => {
+  const source = readFileSync(
+    join(
+      new URL("..", import.meta.url).pathname,
+      "supabase/functions/trade-analyzer/replay.ts",
+    ),
+    "utf8",
+  );
+
+  /**
+   * Amendment 39 makes the runner leg the standing priority, and nothing on a
+   * resolution said which mode produced a given give-back.
+   *
+   * The leg `kind` encodes it only when the STOP WAS HIT — `tp1_lock`,
+   * `breakeven_stop`, `stop_loss`. A resolution that reached its target or
+   * expired carried no signal at all, so for most of the population a
+   * comparison across breakeven / trail_tp1 / hold was impossible. Choosing
+   * between them is the 4c axis; measuring them is the prerequisite, and it
+   * had to exist before any data accrues rather than after.
+   */
+  it("records the mode on every resolution, beside the R it explains", () => {
+    assert.match(
+      source,
+      /const realizedFields = \(\) => \(\{[\s\S]{0,600}?runnerProtection,/,
+      "the protection mode is not recorded beside the realized figures",
+    );
+  });
+
+  it("records the EFFECTIVE mode, so the default class is not invisible", () => {
+    // A null option means breakeven. Recording the raw option would leave the
+    // majority class as null and unattributable — the denominator error again,
+    // in the one comparison this instrumentation exists to enable.
+    assert.match(
+      source,
+      /const runnerProtection: RunnerProtection = options\?\.runnerProtection \?\?\s*\n?\s*"breakeven";/,
+      "the recorded mode is no longer defaulted",
+    );
+  });
+
+  it("defaults once inside the resolver, not twice", () => {
+    // The loop used to default separately. Two expressions of one fact is how
+    // a row comes to claim a mode the resolution did not actually apply.
+    assert.match(
+      source,
+      /const protection = runnerProtection;/,
+      "the loop defaults the mode again instead of reading the shared value",
+    );
+    const defaults = source.match(/options\?\.runnerProtection \?\?\s*\n?\s*"[a-z_]+"/g) ?? [];
+    assert.equal(
+      defaults.length,
+      1,
+      `the resolver defaults the mode ${defaults.length} times; exactly one of ` +
+        `them would rot`,
+    );
+  });
+
+  it("agrees with the default the analyzer applies when it builds the options", () => {
+    // TWO FILES DEFAULT THE SAME FACT. index.ts sets the option from
+    // calibration and the resolver defaults again when the option is absent.
+    // They agree today, and nothing said so — a drift would mean a resolution
+    // graded under one mode and recorded under another. Read out of both
+    // sources and compared, rather than restated here.
+    const engine = readFileSync(
+      join(
+        new URL("..", import.meta.url).pathname,
+        "supabase/functions/trade-analyzer/index.ts",
+      ),
+      "utf8",
+    );
+    const pick = (text: string) =>
+      (text.match(/runnerProtection ?\??\.?[a-zA-Z]* ?\?\?\s*\n?\s*"([a-z_]+)"/) ??
+        [])[1];
+    const inResolver = pick(source);
+    const inEngine = pick(engine);
+    assert.ok(inResolver, "the resolver no longer defaults the mode");
+    assert.ok(inEngine, "the analyzer no longer defaults the mode");
+    assert.equal(
+      inResolver,
+      inEngine,
+      `the resolver defaults to "${inResolver}" and the analyzer to ` +
+        `"${inEngine}" — a resolution would be graded under one and recorded ` +
+        `under the other`,
+    );
+  });
+});

@@ -543,6 +543,23 @@ export function evaluateSetupOutcome(
   // options.roundTripCost) — the same single round trip the sweep's
   // emit charges through the same accountant. Unfilled resolutions
   // carry neither field: no position, no R.
+  /**
+   * The protection actually in force, defaulted ONCE and shared with the
+   * resolution loop below so the two cannot drift.
+   *
+   * Recorded on every resolution because the runner leg is the standing
+   * priority (amendment 39) and nothing on the row said which mode produced a
+   * given give-back. The leg `kind` encodes it only when the stop was HIT — a
+   * resolution that reached target or expired carried no signal at all — so a
+   * comparison across modes was impossible for most of the population.
+   *
+   * The EFFECTIVE mode, not the raw option: a null option means breakeven, and
+   * recording null would make the majority class invisible in exactly the
+   * comparison this exists to enable.
+   */
+  const runnerProtection: RunnerProtection = options?.runnerProtection ??
+    "breakeven";
+
   const realizedFields = () => ({
     // Amendment 39: the runner's give-back is the standing priority, so it is
     // recorded on every resolution that had a runner rather than reconstructed
@@ -554,6 +571,7 @@ export function evaluateSetupOutcome(
       riskDistance,
       side: setup.side,
     }),
+    runnerProtection,
     netRealizedR: realizedRFromLegs({
       legs,
       perLegCost: (options?.roundTripCost ?? 0) / 2,
@@ -597,7 +615,7 @@ export function evaluateSetupOutcome(
     // Once TP1 is banked, the runner's protection is a MODE (4c axis):
     // breakeven jumps the stop to entry (the shipped default), hold leaves
     // the original stop, trail_tp1 locks the stop at TP1's own level.
-    const protection = options?.runnerProtection ?? "breakeven";
+    const protection = runnerProtection;
     const effectiveStop = !tp1Hit
       ? stopLoss
       : protection === "hold"
