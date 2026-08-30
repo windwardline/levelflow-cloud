@@ -116,13 +116,17 @@ describe("reading the economic calendar", () => {
   });
 });
 
-describe("the analyzer asks the watchdog's own question", () => {
+describe("the analyzer asks about the rows it actually reads", () => {
   const source = readFileSync(
     "supabase/functions/trade-analyzer/index.ts",
     "utf8",
   );
 
   it("probes for a future event rather than a recent ingest", () => {
+    // RENAMED FROM "the watchdog's own question", which is what it used to be
+    // and deliberately no longer is. The watchdog asks whether the TABLE is
+    // fed; a review needs to know whether the rows IT READS are fed, and a
+    // probe over the wider population can only ever be optimistic.
     // created_at is an INSERT default and the ingest upserts, so a healthy
     // calendar whose rows were all first seen days ago would read stale on a
     // max(created_at) probe and refuse every market. The watchdog counts
@@ -130,8 +134,9 @@ describe("the analyzer asks the watchdog's own question", () => {
     // what stale means.
     assert.match(
       source,
-      /economic_events\?select=id&scheduled_at=gt\./,
-      "the coverage probe is gone or no longer asks for a future event",
+      /economic_events\?select=id&impact=in\.\(medium,high\)&scheduled_at=gt\./,
+      "the coverage probe is gone, no longer asks for a future event, or has " +
+        "widened past the population the news check reads",
     );
     assert.doesNotMatch(
       source,
@@ -227,7 +232,55 @@ describe("the coverage probe costs one query, not one per market", () => {
     // the watchdog's predicate and it has to stay identical to it.
     const fn = source.slice(source.indexOf("async function calendarHasFutureEvents("));
     const body = fn.slice(0, fn.indexOf("\n}\n"));
-    assert.match(body, /economic_events\?select=id&scheduled_at=gt\./);
+    assert.match(
+      body,
+      /economic_events\?select=id&impact=in\.\(medium,high\)&scheduled_at=gt\./,
+    );
     assert.doesNotMatch(body, /created_at/);
+  });
+});
+
+describe("the coverage probe certifies only what it looked at", () => {
+  const source = readFileSync(
+    "supabase/functions/trade-analyzer/index.ts",
+    "utf8",
+  );
+
+  /**
+   * A PROBE OVER A WIDER POPULATION THAN THE THING IT CERTIFIES CAN ONLY BE
+   * OPTIMISTIC.
+   *
+   * The window query reads `impact=in.(medium,high)`. The first version of the
+   * probe read the whole table, so one future-dated LOW-impact row — an
+   * earnings entry — answered "covered" while the economic-calendar feed
+   * itself was dead. Any live sibling feed masked the one that had stopped,
+   * which is the exact failure mode the provenance work exists to catch.
+   *
+   * This is where it departs from the watchdog on purpose. The watchdog asks
+   * whether the TABLE is fed; a review needs to know whether the rows it reads
+   * are fed. Calling those the same question was the error.
+   */
+  it("applies the same impact filter the window query applies", () => {
+    const probe = source.slice(source.indexOf("async function calendarHasFutureEvents("));
+    const body = probe.slice(0, probe.indexOf("\n}\n"));
+    assert.match(
+      body,
+      /impact=in\.\(medium,high\)/,
+      "the probe certifies coverage over rows the news check never reads",
+    );
+    assert.match(body, /scheduled_at=gt\./);
+  });
+
+  it("uses the same impact filter as the window query it makes interpretable", () => {
+    // Derived rather than transcribed: both filters are read out of the source
+    // and compared, so a change to one that is not made to the other fails
+    // here instead of silently widening the probe again.
+    const filters = source.match(/impact=in\.\([a-z,]+\)/g) ?? [];
+    assert.ok(filters.length >= 2, `expected both queries to filter, found ${filters.length}`);
+    assert.equal(
+      new Set(filters).size,
+      1,
+      `the probe and the window query disagree on impact: ${[...new Set(filters)].join(" vs ")}`,
+    );
   });
 });

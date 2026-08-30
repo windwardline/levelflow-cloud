@@ -314,8 +314,22 @@ export function buildTimingSentence(
   // checked, so "no event or headline penalty" is an all-clear the review never
   // earned. The session label survives because it comes from the venue clock
   // (sessions.ts), which is honest either way.
-  if (calendarSource !== "read") {
+  // TWO DIFFERENT ABSENCES, and the first version printed one sentence over
+  // both. `unavailable` means the read itself failed and nothing is known.
+  // `stale` means the table answered — past headlines really were read and may
+  // really have been charged — and only FORWARD coverage is missing. Saying
+  // "News could not be checked" over a setup the news check demonstrably
+  // charged is a false statement in the other direction, which is the failure
+  // this branch was added to prevent.
+  if (calendarSource === "unavailable") {
     return `${label}. News could not be checked for this review.`;
+  }
+  if (calendarSource !== "read") {
+    return newsPenaltyUnits > 0
+      ? `${label} with ${timingRiskCount} event or headline ${
+        timingRiskCount === 1 ? "factor" : "factors"
+      } affecting timing. Upcoming events could not be checked.`
+      : `${label}. Upcoming events could not be checked for this review.`;
   }
   if (newsPenaltyUnits <= 0) {
     return `${label} with no event or headline penalty.`;
