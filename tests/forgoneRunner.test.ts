@@ -40,6 +40,11 @@ function legs(entry: number, exit: number, withTp1: boolean): ResolutionLeg[] {
 }
 
 describe("the runner's give-back", () => {
+  // Every case below fills AT the plan (plannedEntry === the entry leg), stated
+  // explicitly. Left implicit they hid a real defect: the excursion is measured
+  // from the PLANNED limit and the exit from the FILL, and equal fixtures made
+  // the two baselines indistinguishable. The price-improved case is its own
+  // describe block below.
   it("measures a breakeven exit after a 0.92R excursion", () => {
     // THE 44% CASE, at the review's own median. Entry 100, stop 10 away, so
     // 0.92R of favourable excursion is 9.2 price units. The runner exits at
@@ -47,6 +52,7 @@ describe("the runner's give-back", () => {
     const result = forgoneRunnerR({
       legs: legs(100, 100, true),
       maxFavorableMove: 9.2,
+      plannedEntry: 100,
       riskDistance: RISK,
       side: "buy",
     });
@@ -59,6 +65,7 @@ describe("the runner's give-back", () => {
     const result = forgoneRunnerR({
       legs: legs(100, 109.2, true),
       maxFavorableMove: 9.2,
+      plannedEntry: 100,
       riskDistance: RISK,
       side: "buy",
     });
@@ -71,6 +78,7 @@ describe("the runner's give-back", () => {
     const result = forgoneRunnerR({
       legs: legs(100, 95, true),
       maxFavorableMove: 9.2,
+      plannedEntry: 100,
       riskDistance: RISK,
       side: "buy",
     });
@@ -90,6 +98,7 @@ describe("the runner's give-back", () => {
     const result = forgoneRunnerR({
       legs: rows,
       maxFavorableMove: 9.2,
+      plannedEntry: 100,
       riskDistance: RISK,
       side: "sell",
     });
@@ -104,6 +113,7 @@ describe("the runner's give-back", () => {
       forgoneRunnerR({
         legs: legs(100, 95, false),
         maxFavorableMove: 9.2,
+        plannedEntry: 100,
         riskDistance: RISK,
         side: "buy",
       }),
@@ -116,6 +126,7 @@ describe("the runner's give-back", () => {
       forgoneRunnerR({
         legs: legs(100, 100, true),
         maxFavorableMove: 9.2,
+        plannedEntry: 100,
         riskDistance: 0,
         side: "buy",
       }),
@@ -125,6 +136,7 @@ describe("the runner's give-back", () => {
       forgoneRunnerR({
         legs: legs(100, 100, true),
         maxFavorableMove: Number.NaN,
+        plannedEntry: 100,
         riskDistance: RISK,
         side: "buy",
       }),
@@ -141,6 +153,7 @@ describe("the runner's give-back", () => {
     const result = forgoneRunnerR({
       legs: legs(100, 120, true),
       maxFavorableMove: 9.2,
+      plannedEntry: 100,
       riskDistance: RISK,
       side: "buy",
     });
@@ -187,5 +200,72 @@ describe("the give-back is recorded, not just computable", () => {
       "a hand-listed realizedR is back in the expiry feedback, which is the " +
         "re-listing this guard exists to prevent",
     );
+  });
+});
+
+describe("one baseline, even when the fill beats the plan", () => {
+  /**
+   * THE DEFECT THE EQUAL FIXTURES HID.
+   *
+   * `maxFavorableMove` is measured against the PLANNED limit
+   * (`isBuy ? bar.high - entry : entry - bar.low`), while the entry LEG carries
+   * `fillPrice` — and a buy fills at `min(fillBar.open + halfSpread, entry)`,
+   * at or better than plan. Reading the excursion off one baseline and the exit
+   * off the other under-reported every price-improved fill's give-back by half
+   * the improvement.
+   *
+   * Understating it is the flattering direction, which is why it needed a
+   * fixture that can tell the two apart rather than a re-read.
+   */
+  it("counts the improvement as gain reached, not as gain forgone", () => {
+    // Planned 100, filled 99.5 (half a point better), peak 9.2 above PLAN.
+    // From the fill the trade reached 9.7; the runner exits at the fill, so it
+    // handed back all of it: half of 0.97R = 0.485R.
+    const result = forgoneRunnerR({
+      legs: [
+        { leg: "entry", price: 99.5, time: 0 },
+        { leg: "tp1", price: 104, time: 1 },
+        { leg: "exit", price: 99.5, time: 3 },
+      ],
+      maxFavorableMove: 9.2,
+      plannedEntry: 100,
+      riskDistance: RISK,
+      side: "buy",
+    });
+    assert.equal(result, 0.485);
+  });
+
+  it("mirrors on a sell, where a better fill is a higher price", () => {
+    // Planned 100, filled 100.5, peak 9.2 below PLAN. From the fill the trade
+    // reached 9.7 in its favour and gave all of it back.
+    const result = forgoneRunnerR({
+      legs: [
+        { leg: "entry", price: 100.5, time: 0 },
+        { leg: "tp1", price: 96, time: 1 },
+        { leg: "exit", price: 100.5, time: 3 },
+      ],
+      maxFavorableMove: 9.2,
+      plannedEntry: 100,
+      riskDistance: RISK,
+      side: "sell",
+    });
+    assert.equal(result, 0.485);
+  });
+
+  it("is unchanged when the fill lands exactly on the plan", () => {
+    // The regression guard for the rebasing itself: adding a term that is zero
+    // in the common case must not disturb it.
+    const result = forgoneRunnerR({
+      legs: [
+        { leg: "entry", price: 100, time: 0 },
+        { leg: "tp1", price: 104, time: 1 },
+        { leg: "exit", price: 100, time: 3 },
+      ],
+      maxFavorableMove: 9.2,
+      plannedEntry: 100,
+      riskDistance: RISK,
+      side: "buy",
+    });
+    assert.equal(result, 0.46);
   });
 });
