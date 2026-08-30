@@ -92,6 +92,8 @@ export type PricePlan = {
   expectedWindowMove: number;
   futuresTickAdjustments: string[];
   grossRewardRisk: number;
+  /** What the ladder pays on a full win; null when there is no TP1 leg. */
+  ladderRewardRisk: number | null;
   rewardRisk: number;
   stopLogic: string;
   stopLoss: number;
@@ -400,6 +402,36 @@ export function buildPricePlan(
     expectedWindowMove: ladder.expectedWindowMove,
     futuresTickAdjustments: futuresTickPlan?.adjustments ?? [],
     grossRewardRisk: rewardRisk,
+    /**
+     * What the LADDER pays on a full win, which is not what the runner target
+     * pays.
+     *
+     * `rewardRisk` is the runner target's ratio on a FULL-SIZE basis. Half the
+     * position leaves at TP1, so a setup gated at 1.6x and reported as 1.6x
+     * actually realises `0.5 * tp1 + 0.5 * target` — about 1.0R against a
+     * -1.00R stop. The surface printed the first number under the words
+     * "payoff after costs" and the operator read a 60% larger edge than the
+     * ladder can deliver.
+     *
+     * Amendment 39: profit potential must exceed loss potential STRUCTURALLY,
+     * and may never be manufactured. The geometry is not touched here — the
+     * target still comes from real structure and window feasibility. What
+     * changes is that the number shown is the one the ladder pays.
+     *
+     * The round trip is charged ONCE against the blended reward, exactly as
+     * effectiveRewardRisk charges it once against the target: entry at full
+     * size plus two half-size exits is one round trip of size, and the venue
+     * bills per lot (venueCosts.ts), not per ticket.
+     *
+     * Null when there is no TP1 leg — a full-size runner IS `rewardRisk`, and
+     * repeating it under a second name would invite the two to drift.
+     */
+    ladderRewardRisk: takeProfit1 === null ? null : roundPrice(
+      (0.5 * Math.abs(takeProfit1 - entryPrice) +
+        0.5 * Math.abs(takeProfit - entryPrice) -
+        executionQuality.estimatedRoundTripCost) /
+        Math.max(riskDistance, 0.00001),
+    ),
     rewardRisk: executionQuality.effectiveRewardRisk,
     // Derived from what actually happened, never asserted. The constant this
     // replaces said "Invalidation beyond the nearest confirmed swing pivot with

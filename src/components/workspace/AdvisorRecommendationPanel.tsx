@@ -151,9 +151,26 @@ export function RecommendationPanel({
     const isBuy = setup.side === "buy";
     const hasLadder = typeof setup.takeProfit1 === "number" &&
       setup.takeProfit1 > 0;
-    const rewardRisk = Number(
-      (setup.confluence as Record<string, unknown>)?.rewardRisk ?? 0,
-    );
+    // WHAT THE LADDER PAYS, not what the far target pays.
+    //
+    // rewardRisk is the far target measured on a FULL-SIZE basis, and half the
+    // position leaves at TP1. A setup gated at 1.6x realises about 1.0R
+    // against a -1.00R stop, and this row printed the first number under the
+    // words "payoff after costs" — about 60% more than the ladder delivers,
+    // on the surface read before the trade is placed.
+    //
+    // (Written without apostrophes on purpose: tests/languageGuard scans
+    // string literals on working surfaces, and an apostrophe inside a comment
+    // opens one to the scanner. It caught the first draft of this block.)
+    //
+    // Falls back to rewardRisk when there is no TP1 leg, where the full-size
+    // runner IS the payoff. Older stored setups predate the field and fall
+    // back too rather than reading as Pending.
+    const confluence = setup.confluence as Record<string, unknown> | undefined;
+    const ladderRewardRisk = Number(confluence?.ladderRewardRisk ?? 0);
+    const rewardRisk = ladderRewardRisk > 0
+      ? ladderRewardRisk
+      : Number(confluence?.rewardRisk ?? 0);
     // 1l: expired means the review window has closed — copying these prices
     // into a platform now would place levels the engine no longer stands
     // behind. Scan-adopted setups carry expiresAt; stored reopens carry
