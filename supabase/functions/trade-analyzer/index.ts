@@ -1285,6 +1285,13 @@ async function analyzeSetup(
       },
       executionQuality: pricePlan.executionQuality,
       grossRewardRisk: Number(pricePlan.grossRewardRisk.toFixed(2)),
+      // What the ladder pays, beside what the runner target pays. The gate
+      // still reads rewardRisk; the SURFACE reads this, because half the
+      // position leaves at TP1 and a figure that ignores that overstates the
+      // edge by about 60% on every laddered setup.
+      ladderRewardRisk: pricePlan.ladderRewardRisk === null
+        ? null
+        : Number(pricePlan.ladderRewardRisk.toFixed(2)),
       rewardRisk: Number(pricePlan.rewardRisk.toFixed(2)),
       scoreBreakdown,
       macroRateContext: {
