@@ -15,10 +15,18 @@ import { sizeSetup } from "../src/lib/broker/sizing.ts";
  *   "The floor is 0.10% so the smallest ladder tier still produces a placeable
  *    size."
  *
- * That claim was tested nowhere. `RISK_PERCENT_MIN` appeared in exactly one
- * file in the repository — the one asserting it — which is the shape of every
- * other defect this week: a stated justification with no mechanism, correct
- * when written and unable to notice itself going stale.
+ * That claim was tested nowhere.
+ *
+ * A CORRECTION TO THIS FILE'S FIRST VERSION, which said `RISK_PERCENT_MIN`
+ * "appeared in exactly one file in the repository". It appears in three, and
+ * src/lib/profile.ts is a live consumer that predates this test. The claim came
+ * from a grep scoped to src/lib/broker and tests, stated as though it covered
+ * the repository — the same population error this file exists to catch, made
+ * in its own header.
+ *
+ * What survives the correction is the part that mattered: the floor had no
+ * EXECUTING test. A justification with no mechanism is correct when written and
+ * unable to notice itself going stale.
  *
  * WHAT THIS PINS is the property that makes the claim meaningful, rather than
  * the claim's arithmetic. §19e says a refusal beats a wrong number, and a size

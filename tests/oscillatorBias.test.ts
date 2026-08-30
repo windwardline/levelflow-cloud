@@ -10,8 +10,12 @@ import { resolveOscillatorBias } from "../supabase/functions/trade-analyzer/stra
  * whose BUY arm was evaluated first and satisfied by EITHER indicator, so every
  * state where RSI and MACD disagreed resolved to buy. Derived from the source
  * expression rather than reasoned about: of sixteen enumerated (rsi, macdSlope)
- * states, six voted sell and two were conflicts — and BOTH conflicts voted buy.
+ * states, FIVE voted sell and two were conflicts — and both conflicts voted buy.
  * No conflict state produced sell or neutral.
+ *
+ * (The count was written as six and is five: buy 7, sell 5, neutral 4, derived
+ * by running the retired expression over the sixteen states. The same commit's
+ * own "7 buy to 5 sell" was right and this line disagreed with it.)
  *
  * The sharpest instance is RSI 70 with a falling MACD — an overbought
  * oscillator against fading momentum, which is the textbook BEARISH divergence

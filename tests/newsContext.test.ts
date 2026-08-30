@@ -197,3 +197,37 @@ describe("an unreadable calendar cannot clear the news block", () => {
     );
   });
 });
+
+describe("the coverage probe costs one query, not one per market", () => {
+  const source = readFileSync(
+    "supabase/functions/trade-analyzer/index.ts",
+    "utf8",
+  );
+
+  it("memoises a fact about the table, not about the symbol", () => {
+    // fetchRelevantNews runs once per market, so a 15-market scan asked this
+    // identical whole-table question fifteen times — fifteen round trips
+    // against the same row, on a function whose 2s CPU budget has already been
+    // exceeded in production once (scanBatching.ts's header records it).
+    assert.match(
+      source,
+      /async function calendarHasFutureEvents\(/,
+      "the coverage probe is inline again, so it runs once per market",
+    );
+    assert.match(source, /CALENDAR_COVERAGE_TTL_MS/);
+    assert.match(
+      source,
+      /hasFutureEvents = await calendarHasFutureEvents\(token, window\.now\)/,
+      "fetchRelevantNews is not going through the memo",
+    );
+  });
+
+  it("keeps the probe's predicate unchanged behind the memo", () => {
+    // The memo must not become a place the question quietly changes. This is
+    // the watchdog's predicate and it has to stay identical to it.
+    const fn = source.slice(source.indexOf("async function calendarHasFutureEvents("));
+    const body = fn.slice(0, fn.indexOf("\n}\n"));
+    assert.match(body, /economic_events\?select=id&scheduled_at=gt\./);
+    assert.doesNotMatch(body, /created_at/);
+  });
+});
