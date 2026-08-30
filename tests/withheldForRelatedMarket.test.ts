@@ -82,11 +82,11 @@ describe("a withheld market says so as a field", () => {
   it("sets withheldFor on BOTH engine paths", () => {
     // Fixing only the sentence that failed would leave the same coin-flip in
     // place for the next wording change.
-    assert.equal(
-      (ENGINE.match(/withheldFor: /g) ?? []).length,
-      2,
-      "both the collapse path and the cross-scan path must state withheldFor",
-    );
+    //
+    // NAMED, NOT COUNTED. This asserted `=== 2` until the rebuild in
+    // scanOpportunity became a third site — and a raw count is exactly the
+    // shape that let the field be lost in transit while this file stayed
+    // green. Each producer is pinned by the expression that sets it.
     assert.match(ENGINE, /withheldFor: winner\.symbol/);
     assert.match(ENGINE, /withheldFor: strongerExisting\.symbol/);
   });
@@ -110,5 +110,45 @@ describe("a withheld market says so as a field", () => {
       /stronger \(\?:related\|closely linked\) setup/,
       "the prose-matching branch is back",
     );
+  });
+});
+
+/** scanOpportunity's blocked rebuild — the one narrowing between engine and client. */
+function rebuildBlock(): string {
+  const at = ENGINE.indexOf("const review = await reviewCurrentMarket");
+  assert.ok(at >= 0, "scanOpportunity no longer calls reviewCurrentMarket");
+  const from = ENGINE.indexOf("blocked: {", at);
+  assert.ok(from >= 0, "the blocked rebuild is gone");
+  return ENGINE.slice(from, ENGINE.indexOf("},", from) + 2);
+}
+
+describe("withheldFor survives the trip to the panel", () => {
+  // WHY THIS EXISTS SEPARATELY. The guard above counts engine sites, and it
+  // passed while the field was provably lost: scanOpportunity rebuilds the
+  // blocked candidate FIELD BY FIELD, so anything it does not name is dropped
+  // between the review and the panel. #457 set withheldFor at both engine sites
+  // and missed the rebuild, which took the cross-scan withholding from working
+  // — the panel's retired regex matched its sentence — to broken.
+  //
+  // A count of producers cannot see a value dropped in transit. This pins the
+  // hand-off itself.
+  it("is carried by scanOpportunity's rebuild", () => {
+    const block = rebuildBlock();
+    assert.match(
+      block,
+      /blocked: \{[\s\S]*?withheldFor: review\.withheldFor,[\s\S]*?\}/,
+      "scanOpportunity drops withheldFor again, so every scan-path withholding " +
+        "renders as 'Nothing passed review'",
+    );
+  });
+
+  it("names every field the panel needs, at the one place they are re-listed", () => {
+    // The general form: the panel reads `reason` and `withheldFor`, and this
+    // rebuild is the only narrowing between the engine and the client. Both
+    // must appear or the panel is reading undefined.
+    const block = rebuildBlock();
+    for (const field of ["reason: review.reason", "withheldFor: review.withheldFor"]) {
+      assert.ok(block.includes(field), `the rebuild no longer carries ${field}`);
+    }
   });
 });

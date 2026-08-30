@@ -2101,11 +2101,25 @@ a printed ratio is prohibited outright. Where the realized ratio is too
 thin, the repair is the ladder's own economics — the partial's size and
 the runner's protection — never the geometry's honesty.
 
-Measured at this ruling, against shipped calibration: a full win pays
-0.95R (indices) to 1.20R (energies) against a −1.00R loss, and a
-partial-only win pays 0.20R. **The engine admits setups at a 1.6:1 gate
-and the ladder converts them to about 1:1 before costs.** Closing that
-gap is the standing engineering priority, ahead of any work that does
-not move it, and it is where the 4b review already located the loss:
-the TP1 half banks positive R in every class while the runner half and
-per-trade cost take back more than it earns.
+Derived at this ruling from shipped calibration: a full win pays 0.95R
+(indices) to 1.20R (energies) against a −1.00R loss, and a partial-only
+win pays 0.20R to 0.40R by class. **The engine admits setups at a 1.6:1
+gate and the ladder converts them to about 1:1 before costs.** Closing
+that gap is the standing engineering priority, ahead of any work that
+does not move it.
+
+WHERE THE LOSS SITS IS A HYPOTHESIS, NOT A MEASUREMENT, and the first
+version of this ruling stated it as fact. The 4b geometry review reports
+the TP1 half banking positive R in every class while the runner half and
+per-trade cost take back more — but it is computed over
+`docs/research/baseline-2026-08-10/*`, which
+`remediation-program-2026-08-11.md` lists under "What must not be trusted
+until re-measured". Its DIRECTION is the best reading available and the
+reason the runner leg is ranked first; its MAGNITUDES are not evidence
+and may not be quoted as such until Phase 0 re-measures.
+
+The structural half of this amendment does not depend on that corpus: a
+partial banks a fraction of what a stop costs, so break-even is a range
+above 0.5, and that follows from the shipped calibration constants
+alone. tests/learningNeutralPoint.test.ts derives both ends from them
+rather than restating a number here.

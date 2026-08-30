@@ -692,6 +692,37 @@ async function reviewCurrentMarket(
   }
 
   const newsContext = await fetchRelevantNews(token, normalizedSymbol);
+  // A READ THAT FAILED CANNOT CLEAR A BLOCK. `blocking` is empty both when the
+  // calendar says there is no active high-impact event and when the calendar
+  // could not be read at all, and the gate below treats empty as permission to
+  // publish. Before the provenance work the failed read THREW and the review
+  // died; #456 caught it and let the review continue, which silently converted
+  // a safety refusal into a pass — a setup published while blind to a possible
+  // high-impact event.
+  //
+  // macroContext's precedent does not extend here, and reading it as if it did
+  // was the error: an unavailable rate curve costs a score ADJUSTMENT, while an
+  // unavailable calendar costs a BLOCK. §19e — a refusal beats a wrong number,
+  // and "no active event" from a read that never happened is a wrong number.
+  //
+  // `stale` is deliberately NOT blocked: the table answered and simply holds no
+  // future events, which is the same evidence the pre-#456 engine acted on, and
+  // refusing every market on it would be a new outage rather than a repair.
+  if (newsContext.calendarSource === "unavailable") {
+    await recordAnalyzerEvent({
+      action,
+      message: "Economic calendar unreadable",
+      status: eventStatus,
+      symbol: normalizedSymbol,
+      userId,
+    });
+    return {
+      blocked: true,
+      reason:
+        "The economic calendar could not be read, so this market was not reviewed.",
+      symbol: normalizedSymbol,
+    };
+  }
   if (newsContext.blocking.length > 0) {
     await recordAnalyzerEvent({
       action,
@@ -895,6 +926,13 @@ async function scanOpportunity(
           blocked: true,
           reason: review.reason,
           symbol,
+          // REBUILT FIELD BY FIELD, so anything not named here is dropped
+          // between the review and the panel. #457 added withheldFor at both
+          // engine sites and missed this rebuild, which took the cross-scan
+          // withholding from working (the panel's old regex matched its
+          // sentence) to broken. The guard was a count of engine sites and
+          // could not see a field lost in transit.
+          withheldFor: review.withheldFor,
         },
       };
     }

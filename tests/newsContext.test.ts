@@ -150,6 +150,54 @@ describe("the analyzer asks the watchdog's own question", () => {
   });
 });
 
+describe("an unreadable calendar cannot clear the news block", () => {
+  const source = readFileSync(
+    "supabase/functions/trade-analyzer/index.ts",
+    "utf8",
+  );
+
+  /**
+   * THE REGRESSION #456 SHIPPED, and the reason this case is separate.
+   *
+   * `blocking` is empty both when the calendar says there is no active
+   * high-impact event AND when the calendar could not be read at all, and the
+   * gate treats empty as permission to publish. Before the provenance work a
+   * failed read THREW and the review died. #456 caught it and let the review
+   * continue — silently converting a safety refusal into a pass, and
+   * publishing a setup while blind to a possible high-impact event.
+   *
+   * macroContext's precedent does not extend here, and reading it as if it did
+   * was the error: an unavailable rate curve costs a score ADJUSTMENT, an
+   * unavailable calendar costs a BLOCK.
+   */
+  it("refuses the review before the block gate is reached", () => {
+    const gate = source.indexOf('if (newsContext.blocking.length > 0)');
+    const refusal = source.indexOf('newsContext.calendarSource === "unavailable"');
+    assert.ok(refusal >= 0, "an unreadable calendar no longer refuses the review");
+    assert.ok(
+      refusal < gate,
+      "the unavailable check must come BEFORE the block gate — after it, an " +
+        "empty `blocking` has already been read as permission to publish",
+    );
+  });
+
+  it("does not refuse on a merely stale calendar", () => {
+    // The table answered and simply holds no future events, which is the same
+    // evidence the pre-#456 engine acted on. Refusing every market on it would
+    // be a new outage rather than a repair, so the refusal names `unavailable`
+    // alone.
+    const block = source.slice(
+      source.indexOf('newsContext.calendarSource === "unavailable"'),
+    );
+    const body = block.slice(0, block.indexOf("\n  }") + 4);
+    assert.doesNotMatch(
+      body,
+      /"stale"/,
+      "a stale calendar must not be refused — it is read evidence, not absent evidence",
+    );
+  });
+});
+
 describe("the coverage probe costs one query, not one per market", () => {
   const source = readFileSync(
     "supabase/functions/trade-analyzer/index.ts",
