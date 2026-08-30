@@ -256,20 +256,72 @@ describe("§17n Insights — the slimming the ruling pre-approved", () => {
   });
 
   // MEASURED: the four stat blocks wrapped into two ragged rows of 48px at a
-  // 32px row gap (128px). A 2x2 grid at an 8px row gap with 18px values is 96px
-  // and reads as a deliberate block instead of a wrap. The 12px .eyebrow label
-  // underneath does NOT shrink — it is the kit's smallest label and LEGIBLE
-  // holds it.
-  it("lays the four stats out as a 2x2 grid with an 18px value below lg", () => {
+  // 32px row gap (128px). A grid at an 8px row gap with 18px values is 96px for
+  // two rows and reads as a deliberate block instead of a wrap. The 12px
+  // .eyebrow label underneath does NOT shrink — it is the kit's smallest label
+  // and LEGIBLE holds it.
+  //
+  // THREE COLUMNS SINCE THE FIFTH STAT. "Given back" (amendment 39) made a
+  // 2-column grid three rows, and the live §17n budget test measured Insights
+  // pinned chrome at 319px against a 290 ceiling — chrome taken from the
+  // content region it is required to yield to. Five blocks in three columns is
+  // two rows again.
+  //
+  // THIS GUARD COULD NOT SEE THAT. It matches the className string and says
+  // "the four stats" in its own name, and a fifth block changed neither. The
+  // count is asserted below now, so the next block added has to come here and
+  // re-argue the budget rather than discovering it in a deploy.
+  it("lays the five stats out as a two-row grid with an 18px value below lg", () => {
     assert.match(
       HISTORY_SOURCE,
-      /className="flex flex-wrap gap-8 max-lg:grid max-lg:w-full max-lg:grid-cols-2 max-lg:gap-x-4 max-lg:gap-y-2"/,
+      /className="flex flex-wrap gap-8 max-lg:grid max-lg:w-full max-lg:grid-cols-3 max-lg:gap-x-3 max-lg:gap-y-2"/,
+    );
+    // DERIVED, not restated: the block count and the column count together are
+    // what decide the row count, and the row count is what the budget buys.
+    const blocks = (HISTORY_SOURCE.match(/<StatBlock\b/g) ?? []).length;
+    assert.ok(blocks > 0, "no StatBlocks found — the detector broke");
+    const columns = Number(
+      (HISTORY_SOURCE.match(/max-lg:grid-cols-(\d)/) ?? [])[1],
+    );
+    assert.ok(columns > 0, "the mobile column count is unreadable");
+    assert.ok(
+      Math.ceil(blocks / columns) <= 2,
+      `${blocks} stat blocks in ${columns} mobile columns is ` +
+        `${Math.ceil(blocks / columns)} rows. Insights pinned chrome has a ` +
+        `290px ceiling (§17n) and a third row put it at 319. Either fit the ` +
+        `blocks into two rows or take the budget question to the ruling.`,
     );
     assert.match(
       HISTORY_SOURCE,
       /className="font-mono text-2xl font-semibold tabular-nums text-ink max-lg:text-lg"/,
     );
     assert.match(HISTORY_SOURCE, /<p className="eyebrow">/);
+
+    // A THIRD OF 375px IS ~101px, and an 18px monospace value wraps past about
+    // nine characters. A wrap costs the same row the column count just bought,
+    // so the compact form is load-bearing rather than cosmetic — and nothing
+    // pinned it until a mutation removed it and every test stayed green.
+    assert.match(
+      HISTORY_SOURCE,
+      /<span className="lg:hidden">\{compactValue \?\? value\}<\/span>/,
+      "the phone-width value no longer falls back to the compact form, so a " +
+        "long value wraps and takes back the row the third column bought",
+    );
+    assert.match(
+      HISTORY_SOURCE,
+      /<span className="max-lg:hidden">\{value\}<\/span>/,
+      "the full value is no longer shown above lg",
+    );
+    // The one value long enough to need it must actually supply one.
+    const givenBack = HISTORY_SOURCE.slice(
+      HISTORY_SOURCE.indexOf('label="Given back"') - 400,
+      HISTORY_SOURCE.indexOf('label="Given back"') + 200,
+    );
+    assert.match(
+      givenBack,
+      /compactValue=\{/,
+      "Given back renders `N.NR over M`, which does not fit a third of 375px",
+    );
   });
 
   // MEASURED: three 48px rows → two 44px rows. The selects keep a real 44px tap

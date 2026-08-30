@@ -165,7 +165,7 @@ export function HistoryPanel({
           rows, 32px of row gap less, and columns that line up instead of
           wrapping wherever the labels happen to end. w-full is what gives the
           grid its own two columns once it has dropped below the h1. */}
-      <div className="flex flex-wrap gap-8 max-lg:grid max-lg:w-full max-lg:grid-cols-2 max-lg:gap-x-4 max-lg:gap-y-2">
+      <div className="flex flex-wrap gap-8 max-lg:grid max-lg:w-full max-lg:grid-cols-3 max-lg:gap-x-3 max-lg:gap-y-2">
         <StatBlock
           label="Setups this week"
           value={recordBand.setupsThisWeek.toString()}
@@ -198,6 +198,9 @@ export function HistoryPanel({
             "given back" rather than "lost" for that reason: it is the size of
             the prize the runner's protection competes for. */}
         <StatBlock
+          compactValue={recordBand.forgoneR === null
+            ? "Learning"
+            : `${recordBand.forgoneR.toFixed(1)}R`}
           label="Given back"
           value={recordBand.forgoneR === null
             ? "Learning"
@@ -559,11 +562,27 @@ function InsightsRow({ now, setup }: { now: Date; setup: TradeSetupRow }) {
 // rows — and the label does not move. The 12px .eyebrow is the kit's smallest
 // label and legibility is what holds it there; the value is a figure with no
 // smaller legible size worth the hierarchy it would cost.
-function StatBlock({ label, value }: { label: string; value: string }) {
+function StatBlock(
+  { compactValue, label, value }: {
+    /**
+     * The phone-width form, when the full one cannot fit a third of 375px
+     * without wrapping — and a wrap costs a whole row of the §17n budget.
+     *
+     * §17n's ruling is that chrome yields to the content region, and the
+     * eyebrow is already the kit's smallest legible label so it may not shrink
+     * to buy the space. Shortening the VALUE is the remaining move, and only
+     * where the long form does not fit.
+     */
+    compactValue?: string;
+    label: string;
+    value: string;
+  },
+) {
   return (
     <div>
       <p className="font-mono text-2xl font-semibold tabular-nums text-ink max-lg:text-lg">
-        {value}
+        <span className="max-lg:hidden">{value}</span>
+        <span className="lg:hidden">{compactValue ?? value}</span>
       </p>
       <p className="eyebrow">
         {label}
