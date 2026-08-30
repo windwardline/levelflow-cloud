@@ -2241,9 +2241,22 @@ async function calendarHasFutureEvents(
   if (calendarCoverage && now - calendarCoverage.at < CALENDAR_COVERAGE_TTL_MS) {
     return calendarCoverage.hasFuture;
   }
+  // FILTERED TO THE POPULATION THE CHECK READS, which the first version was not.
+  // The window query reads `impact=in.(medium,high)`; this probe read the whole
+  // table, so a single future-dated LOW-impact row — an earnings entry, say —
+  // answered "covered" while the economic-calendar feed itself was dead. Any
+  // live sibling feed masked the one that had stopped.
+  //
+  // This is where it departs from the watchdog deliberately, and calling the
+  // two questions the same was the error. The watchdog asks whether the TABLE
+  // is being fed; a review needs to know whether the rows IT READS are being
+  // fed. A coverage probe over a wider population than the thing it certifies
+  // can only ever be optimistic.
   const future = await fetchRows<{ id: string }>(
     token,
-    `economic_events?select=id&scheduled_at=gt.${encodeURIComponent(nowIso)}&limit=1`,
+    `economic_events?select=id&impact=in.(medium,high)&scheduled_at=gt.${
+      encodeURIComponent(nowIso)
+    }&limit=1`,
   );
   calendarCoverage = { at: now, hasFuture: future.length > 0 };
   return calendarCoverage.hasFuture;

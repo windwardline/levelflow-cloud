@@ -147,8 +147,31 @@ describe("the Timing row when the calendar was not read", () => {
     assert.doesNotMatch(sentence, /no event or headline penalty/);
     assert.equal(
       sentence,
-      "London session. News could not be checked for this review.",
+      "London session. Upcoming events could not be checked for this review.",
     );
+  });
+
+  it("separates a stale calendar from an unreadable one", () => {
+    // TWO DIFFERENT ABSENCES, and the first version printed one sentence over
+    // both. `unavailable` means the read failed and nothing is known. `stale`
+    // means the table ANSWERED — past headlines really were read — and only
+    // forward coverage is missing. They are not interchangeable.
+    assert.notEqual(
+      buildTimingSentence(LONDON, 0, 0, "stale"),
+      buildTimingSentence(LONDON, 0, 0, "unavailable"),
+    );
+  });
+
+  it("reports a real charge on a stale calendar instead of denying it", () => {
+    // THE FALSE STATEMENT IN THE OTHER DIRECTION. A stale calendar still read
+    // the past half of its window, so a charge from it is real. Printing
+    // "News could not be checked" over a setup the news check demonstrably
+    // penalised is as wrong as the all-clear this branch was added to prevent
+    // — and the earlier version did exactly that.
+    const sentence = buildTimingSentence(LONDON, 2, 1.0, "stale");
+    assert.match(sentence, /2 event or headline factors affecting timing/);
+    assert.match(sentence, /Upcoming events could not be checked/);
+    assert.doesNotMatch(sentence, /News could not be checked/);
   });
 
   it("withholds it when the read failed outright", () => {
@@ -165,12 +188,14 @@ describe("the Timing row when the calendar was not read", () => {
     assert.match(buildTimingSentence(LONDON, 0, 0, "stale"), /^London session/);
   });
 
-  it("does not let a real penalty override the refusal", () => {
-    // Provenance outranks the number. If the calendar is not trustworthy, a
-    // count drawn from it is not either — reporting "2 factors" off a stale
-    // table would be a precise claim built on an unchecked source.
+  it("still refuses everything when the read itself failed", () => {
+    // CORRECTED. This asserted that provenance outranks the number for BOTH
+    // absences, which was right for `unavailable` and wrong for `stale`: a
+    // stale calendar did read its past window, so denying a charge it really
+    // made was a false statement in the opposite direction. `unavailable` is
+    // where nothing is known and nothing may be reported.
     assert.equal(
-      buildTimingSentence(LONDON, 2, 1.0, "stale"),
+      buildTimingSentence(LONDON, 2, 1.0, "unavailable"),
       "London session. News could not be checked for this review.",
     );
   });
