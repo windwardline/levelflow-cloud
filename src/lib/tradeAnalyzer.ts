@@ -84,6 +84,22 @@ export type MarketScanCandidate = {
   blocked?: boolean;
   /** See `AnalyzerResponse.declined` — carried across BOTH rebuilds. */
   declined?: true;
+  /**
+   * Why THIS market produced no setup, in the analyzer's own words.
+   *
+   * `NoSetupPanel` was built to render these as supporting reasons and could
+   * never receive them: the server computed them, wrote them to
+   * `analyzer_events`, and both candidate rebuilds dropped the field. So every
+   * no-setup market — 45 of 50 on a live open-market scan — was answered with
+   * one flat sentence while its actual cause went only to telemetry.
+   */
+  analysisDiagnostics?: string[];
+  /**
+   * Feed problems, which are a DIFFERENT instruction from a failed review: the
+   * market could not be looked at, rather than looked at and declined. Carried
+   * for the same reason and dropped at the same two boundaries.
+   */
+  providerWarnings?: string[];
   confidenceScore?: number;
   correlationGroup?: string;
   entryPrice?: number;

@@ -960,6 +960,15 @@ async function scanOpportunity(
           assetType: getAssetType(symbol),
           blocked: true,
           ...(review.declined && { declined: true as const }),
+          // THE CAUSE, not just the verdict. This rebuild dropped both fields,
+          // so the panel's supporting-reason section had nothing to render and
+          // every no-setup market said only "No current limit setup met the
+          // review threshold." The analyzer had already computed which gate
+          // failed and by how much; it went to analyzer_events and stopped.
+          ...(review.analysisDiagnostics?.length &&
+            { analysisDiagnostics: review.analysisDiagnostics }),
+          ...(review.providerWarnings?.length &&
+            { providerWarnings: review.providerWarnings }),
           reason: review.reason,
           symbol,
           // REBUILT FIELD BY FIELD, so anything not named here is dropped

@@ -1360,6 +1360,19 @@ that fixed it.
     body does not render on a decline at all (§17f: the Primary reason already
     carries the measurement and the way back in, and restating it is what made
     this element a contradiction).
+  - **The CAUSE now reaches the reader on every no-setup market — CLOSED
+    2026-08-31 (#484).** `analysisDiagnostics` and `providerWarnings` were
+    computed on the server, written to `analyzer_events`, and dropped by BOTH
+    candidate rebuilds — so `NoSetupPanel`'s supporting-reason section could
+    never render, and every no-setup market (the engine's own figure is 45 of
+    50 on a live open-market scan) was answered with one flat sentence while
+    the analyzer had already worked out which gate failed and by how much.
+    Both fields now cross both boundaries. The guard is the GENERALISED form
+    of the #457 lesson: it derives from `NoSetupPanel`'s own reason expression
+    which response fields the panel reads, and requires each to survive both
+    rebuilds — so a fifth source added to that list fails until it is carried.
+    Bounded: diagnostics are capped at 5 and provider warnings at one per
+    intraday timeframe, and the panel renders at most three supporting lines.
   - **The score sentence — CLOSED 2026-08-30, and it was a TELEMETRY defect.**
     The decline branch had no `return`, so "scored 47; Levelflow requires 0 or
     higher" followed the decline into `analyzer_events` — a contradiction in

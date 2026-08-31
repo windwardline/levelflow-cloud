@@ -243,6 +243,60 @@ describe("the decline reaches the reader across both rebuilds", () => {
     );
   });
 
+  it("every field the panel READS survives both rebuilds", () => {
+    // THE GENERALISED FORM, and the one that would have caught this class
+    // three times. `NoSetupPanel` assembles its reasons from four sources;
+    // two of them — analysisDiagnostics and providerWarnings — were computed
+    // on the server, written to analyzer_events, and dropped by BOTH
+    // candidate rebuilds. The panel's supporting-reason section could never
+    // render, so 45 of 50 no-setup markets on a live scan were answered with
+    // one flat sentence while their actual cause went only to telemetry.
+    //
+    // Derived from the panel's own expression rather than named here: add a
+    // fifth source and it must cross both boundaries or this fails.
+    const panel = readFileSync(
+      "src/components/workspace/AdvisorRecommendationPanel.tsx",
+      "utf8",
+    );
+    const at = panel.indexOf("const reasons = uniqueReviewMessages([");
+    assert.ok(at >= 0, "NoSetupPanel no longer assembles its reasons");
+    const list = panel.slice(at, panel.indexOf("]);", at));
+    const read = Array.from(
+      new Set(
+        Array.from(list.matchAll(/result\.([a-zA-Z][a-zA-Z0-9]*)/g)).map((m) =>
+          m[1]
+        ),
+      ),
+    );
+    assert.ok(
+      read.length >= 3,
+      `the panel reads ${read.length} response fields (${read.join(", ")}) — ` +
+        `the extractor broke rather than the panel simplifying`,
+    );
+    for (
+      const [source, anchor, where] of [
+        [analyzer, "blocked: {", "the scan rebuild"],
+        [workspace, "response: {", "the workspace rebuild"],
+      ] as const
+    ) {
+      const fields = fieldsOfLiteral(source, anchor, "blocked: true");
+      const missing = read.filter((field) =>
+        !fields.has(field) &&
+        // Spread conditionally rather than listed as a key; the literal scan
+        // sees the key inside the spread, so check the source too.
+        !new RegExp(`\\{ ${field}: `).test(source) &&
+        // Set client-side only, never carried from the server.
+        field !== "learningRefresh"
+      );
+      assert.deepEqual(
+        missing,
+        [],
+        `${where} drops ${missing.join(", ")} — the panel reads them, so ` +
+          `they render as nothing and the operator is told only the verdict`,
+      );
+    }
+  });
+
   it("the panel reads reason first, so the decline is the primary sentence", () => {
     const panel = readFileSync(
       "src/components/workspace/AdvisorRecommendationPanel.tsx",
