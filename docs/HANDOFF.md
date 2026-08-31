@@ -917,15 +917,24 @@ the wall clock and ignored the bar in flight (#420) |
 | **R5** | The never-analyzed populations — 8 contract variants, dual-listed crypto per line, register gaps | after R4 |
 | **R6** | Reader-facing claims — D7 (Record rows publish a frequency as a record), D8 (tier ordering the corpus inverts) | pre-reopen |
 
-### R2b — the geometry model's fresh-eyes round, RUN 2026-08-23. Its output is a field list awaiting owner sign-off
+### R2b — the geometry model's fresh-eyes round, RUN 2026-08-23. THE EMIT HALF IS DONE; the manifest half is what still awaits sign-off
 
 Five lenses, five independent refuters, every load-bearing claim re-derived here
 before being written down. **The deliverable is the list below, not this
 prose** — R2b's exit criterion was restated as "the emit and manifest carry this
-named field list", and this is that list. **It is a PROPOSAL: it decides what
-the one re-simulate measures, which is the owner's call, not an agent's.**
-Nothing here is implemented. Implementing it is R2's pass, and it must land
-before R3.
+named field list", and this is that list.
+
+**STATUS, corrected 2026-08-30.** This block read "Nothing here is implemented"
+for five days after it had been. All NINE emit fields are on
+`SweepOutcomeRecord` and populated — seven in #382, the last three in #427 —
+and the two remaining questions it framed are closed: the ninth `riskDistance`
+field is NOT needed (#472 corrected `stopPivotDistance`'s anchor, which was the
+real defect and recovers the pre-alignment risk without a new column), and
+`ladderRewardRisk` — absent from the emit while being the figure amendment 39
+makes the measure — is the one field that genuinely still has to land.
+**What awaits the owner is the MANIFEST half below, none of which is
+implemented.** Reading this section as an open proposal is what produced a
+recommendation to "accept all eight fields" that described `main`.
 
 #### The keystone, and it came from a refuter rather than a finder
 
@@ -951,13 +960,22 @@ the tick alignment second. Every level above it is computed from the
 derive its stop from the aligned entry and land on a different number, on the
 27 futures-shaped markets where a grid applies.
 
-One level does not reconstruct exactly: TP1, on a futures-grid market whose
-`tp1Provenance` is `risk_share`. The ladder consumed the `riskDistance` from
-before alignment and only the after value is emitted, so a recovered TP1
-carries the alignment of entry and stop. It is exact under the other two
-provenances and on the 70 markets with no grid. One more number — the planned
-`riskDistance` — closes it; the R2b field list was authorised as a set, so
-that is **an open decision for the owner**, not a change to make quietly.
+One level did not reconstruct exactly: TP1, on a futures-grid market whose
+`tp1Provenance` is `risk_share`. **CLOSED 2026-08-30 (#472), and not with the
+ninth field.** The cause was not a missing number — `stopPivotDistance` was
+measured against the entry AFTER tick alignment, while the pivot it describes
+is selected against the unaligned entry and consumed against it by the entire
+stop chain. So the field meant one thing on the 70 grid-free markets and
+another on the 27 futures-shaped ones, and the error is not sub-tick: measured
+on the fixture, ZCUSX buy emitted 0.050 where the true distance is 0.294, a
+5.9x error, because ZC's 0.25 grid is comparable to the pivot distance itself.
+Re-anchored, the pivot recovers exactly, and with it the pre-alignment stop and
+risk. Proven by execution in `tests/pricePlan.test.ts` — the recovered risk
+equals the emitted one EXACTLY on a grid-free market and lands inside two ticks
+on a grid one, which is the bound alignment itself sets — and mutation-verified
+both ways. The proposed ninth field would have fixed TP1 only, spent a
+permanent column on the one corpus R3 gets to write, and left the wrong anchor
+in place for R4 to read.
 
 Five fields doing the work of twelve, on a corpus where per-row width is the
 cost. That is the shape a field list should have.
@@ -1014,9 +1032,13 @@ than merely unaggregatable. It needs a literal, or a home outside `conditions`.
 
 #### IMPLEMENTED 2026-08-23 under owner authorisation — two of the three
 
-**The emit fields (#382).** Seven landed: `latestClose`, `atr`, `dailyAtr`,
-`stopPivotDistance`, `grossRewardRisk`, `volatilityPercentile`,
-`trendStrength`. `PricePlan` exposes the three it already computed. The
+**The emit fields — ALL NINE LANDED.** #382 carried seven: `latestClose`,
+`atr`, `dailyAtr`, `stopPivotDistance`, `grossRewardRisk`,
+`volatilityPercentile`, `trendStrength`. #427 carried the last three
+(`cotSampleSize`, `unfilledApproachDistance`, `runnerNearestBeyondMinimum`),
+two of which sat in the pre-R3 register with no recorded decision to drop them.
+This paragraph said "Seven landed" for five days after that, which is how a
+closed decision came back as an open one. `PricePlan` exposes the three it already computed. The
 keystone claim is proven by execution rather than asserted —
 `tests/pricePlan.test.ts` rebuilds the entry from only `latestClose`, `atr` and
 the emitted `entryProvenance` and asserts it equals the plan's own

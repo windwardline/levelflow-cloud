@@ -5,6 +5,10 @@ import {
   buildLadderTargets,
   buildPricePlan,
 } from "../supabase/functions/trade-analyzer/pricePlan.ts";
+import {
+  findSwingPivots,
+  nearestLevelBeyond,
+} from "../supabase/functions/trade-analyzer/indicators.ts";
 import { getCategoryCalibration } from "../supabase/functions/trade-analyzer/calibration.ts";
 import type {
   Bar,
@@ -328,6 +332,168 @@ describe("price plan integration", () => {
         `${side}: entry must reconstruct from latestClose, atr and entryProvenance`,
       );
     }
+  });
+
+  /**
+   * R2b's one open gap, closed by execution rather than by a ninth emit field.
+   *
+   * `stopPivotDistance` was measured against `entryPrice` AFTER the tick step
+   * rewrote it, while the pivot it describes was selected against the
+   * unaligned entry and consumed against it by the whole stop chain. So the
+   * field meant one thing on the 70 grid-free markets and another on the 27
+   * futures-shaped ones — and the error is not sub-tick. Measured on this
+   * fixture, ZCUSX buy emitted 0.050 where the true distance is 0.294: a 5.9x
+   * error, because ZC's 0.25 grid is comparable to the pivot distance itself.
+   *
+   * The reconstruction is anchored on production's OWN pivot finder rather
+   * than on arithmetic retyped from the stop chain. A test that reimplements
+   * the subject inherits the subject's bug; this one asks the engine where its
+   * pivots are and requires the emitted distance to land exactly on the one
+   * the plan used.
+   */
+  it("the emitted pivot distance lands on the pivot the stop chain used", () => {
+    // Both grid shapes and both sides. ZCUSX is the case the HANDOFF recorded
+    // as unreconstructible (`tp1Provenance: risk_share` on a futures grid);
+    // EURUSD is the grid-free control, which must be unaffected.
+    const cases = [
+      { symbol: "ZCUSX", grid: true },
+      { symbol: "LEUSX", grid: true },
+      { symbol: "EURUSD", grid: false },
+    ] as const;
+    let checked = 0;
+    for (const { symbol, grid } of cases) {
+      const calibration = getCategoryCalibration(symbol);
+      for (const side of ["buy", "sell"] as const) {
+        const market = syntheticMarket();
+        const plan = buildPricePlan(side, symbol, market, regime, calibration);
+        assert.ok(plan, `${symbol} ${side}: plan must build`);
+        if (plan.stopPivotDistance === null) continue;
+
+        // The planned entry, from ONLY what a corpus row carries.
+        const offset = plan.atr *
+          (plan.entryProvenance === "trend_offset"
+            ? calibration.entryOffsetTrend
+            : calibration.entryOffsetDefault);
+        const plannedEntry = side === "buy"
+          ? plan.latestClose - offset
+          : plan.latestClose + offset;
+
+        // The pivot the plan actually selected, from the engine's own finder
+        // over the same bars — never retyped here.
+        const pivots = findSwingPivots(market.primary, 3);
+        const truePivot = nearestLevelBeyond(
+          side === "buy" ? "sell" : "buy",
+          plannedEntry,
+          side === "buy" ? pivots.lows : pivots.highs,
+        );
+        assert.ok(
+          truePivot !== null,
+          `${symbol} ${side}: fixture must offer a pivot for this to mean anything`,
+        );
+
+        // The recovery: sign fixed by side, because nearestLevelBeyond
+        // searches BELOW a buy entry and ABOVE a sell. Math.abs discards
+        // nothing recoverable.
+        const recovered = side === "buy"
+          ? plannedEntry - plan.stopPivotDistance
+          : plannedEntry + plan.stopPivotDistance;
+        assert.ok(
+          Math.abs(recovered - truePivot) < 1e-9,
+          `${symbol} ${side} (${grid ? "grid" : "grid-free"}): recovered ` +
+            `${recovered} is not the pivot the plan used (${truePivot}) — ` +
+            `the emitted distance is anchored to the wrong entry`,
+        );
+        checked++;
+      }
+    }
+    // NON-VACUITY: every `continue` above is a case that proved nothing, and a
+    // fixture that stopped producing pivots would pass this loop silently.
+    assert.ok(checked >= 5, `only ${checked} cases carried a pivot`);
+  });
+
+  it("recovers the PRE-ALIGNMENT risk the ladder built TP1 from", () => {
+    // The specific claim the ninth emit field was proposed to buy. Under
+    // `risk_share` on a grid market the ladder consumes the riskDistance from
+    // BEFORE alignment while only the after value is emitted, so TP1 was
+    // recorded as not reconstructing. It does — the recovered pivot gives back
+    // the planned stop, and the planned stop gives back the risk.
+    //
+    // THE ANCHOR IS THE GRID-FREE CASE, and it is what keeps this from being a
+    // shadow test. On a market with no tick grid, alignment never runs, so the
+    // recovered planned risk must equal the emitted `riskDistance` EXACTLY —
+    // any arithmetic error here shows up as a mismatch against production's
+    // own number. On a grid market the two legitimately differ, and the
+    // permitted difference is bounded BY THE GRID rather than by a tolerance
+    // chosen to make the test pass: alignment moves entry and stop by under a
+    // tick each, so their difference cannot exceed two. Measured on this
+    // fixture: 0.816 ticks and 0.200 on ZCUSX, 0.000 on LEUSX.
+    const cases = [
+      { symbol: "ZCUSX", tick: 0.25 },
+      { symbol: "LEUSX", tick: 0.025 },
+      { symbol: "EURUSD", tick: null },
+    ] as const;
+    let checked = 0;
+    for (const { symbol, tick } of cases) {
+      const calibration = getCategoryCalibration(symbol);
+      for (const side of ["buy", "sell"] as const) {
+        const plan = buildPricePlan(
+          side,
+          symbol,
+          syntheticMarket(),
+          regime,
+          calibration,
+        );
+        assert.ok(plan);
+        if (plan.stopPivotDistance === null) continue;
+        const down = side === "buy";
+
+        // Every step below reads ONLY emitted fields and pinned calibration.
+        const offset = plan.atr *
+          (plan.entryProvenance === "trend_offset"
+            ? calibration.entryOffsetTrend
+            : calibration.entryOffsetDefault);
+        const plannedEntry = down
+          ? plan.latestClose - offset
+          : plan.latestClose + offset;
+        const pivot = down
+          ? plannedEntry - plan.stopPivotDistance
+          : plannedEntry + plan.stopPivotDistance;
+        const stopBuffer = Math.max(
+          plan.atr * calibration.stopAtrMultiplier,
+          plan.dailyAtr * calibration.dailyStopAtrMultiplier,
+        );
+        const structural = down
+          ? Math.min(pivot - stopBuffer, plannedEntry - plan.atr * 1.25)
+          : Math.max(pivot + stopBuffer, plannedEntry + plan.atr * 1.25);
+        const cap = down
+          ? plannedEntry - plan.atr * calibration.maxStopAtrMultiplier
+          : plannedEntry + plan.atr * calibration.maxStopAtrMultiplier;
+        const plannedStop = down
+          ? Math.max(structural, cap)
+          : Math.min(structural, cap);
+        const recovered = Math.abs(plannedEntry - plannedStop);
+        const emitted = Math.abs(plan.entryPrice - plan.stopLoss);
+
+        assert.ok(recovered > 0, `${symbol} ${side}: risk must be a distance`);
+        if (tick === null) {
+          assert.ok(
+            Math.abs(recovered - emitted) < 1e-9,
+            `${symbol} ${side}: no grid means no alignment, so the recovered ` +
+              `risk (${recovered}) must BE the emitted one (${emitted})`,
+          );
+        } else {
+          assert.ok(
+            Math.abs(recovered - emitted) <= tick * 2 + 1e-9,
+            `${symbol} ${side}: recovered ${recovered} vs emitted ${emitted} ` +
+              `is ${(Math.abs(recovered - emitted) / tick).toFixed(3)} ticks ` +
+              `— alignment can move each level by under one tick, so a ` +
+              `difference above two means the recovery is wrong`,
+          );
+        }
+        checked++;
+      }
+    }
+    assert.ok(checked >= 5, `only ${checked} cases carried a pivot`);
   });
 
   it("exposes the second stop lever and the pivot distance the max() hid", () => {
