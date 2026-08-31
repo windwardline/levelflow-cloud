@@ -186,6 +186,7 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
     treasuryCurve?: TreasuryCurveFacts;
   } = {}) =>
     buildSweepManifest({
+      acceptance: { captureAll: false, ignoreLowEdge: false },
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-09",
       barRejections: { spike: 2 },
@@ -629,6 +630,15 @@ describe("the driver writes the manifest beside the emit", () => {
     assert.match(
       script,
       /availableTimeframeCount: "min-four-by-construction",\s*\n\s*macroAdjustment: "historical-treasury-curve",/,
+    );
+    // The acceptance mode, recorded UNCONDITIONALLY and from the args. A
+    // conditional spread would collapse "this manifest predates the field"
+    // into "this run was gated", which are different facts and which the
+    // door distinguishes.
+    assert.match(
+      script,
+      /acceptance: \{\s*\n\s*captureAll: Boolean\(args\.captureAll\),\s*\n\s*ignoreLowEdge: Boolean\(args\.ignoreLowEdge\),\s*\n\s*\},/,
+      "the driver stopped recording which acceptance mode produced the corpus",
     );
     // I3's lesson holds for the curve exactly as for the calendar: a
     // warned-and-continued hole would be pinned as the anchor day's truth

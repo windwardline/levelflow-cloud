@@ -71,6 +71,11 @@ function shardWithRows(days: number): string {
     `${emitPath}.manifest.json`,
     JSON.stringify(
       buildSweepManifest({
+        // This fixture feeds threshold-rescue, whose whole premise is a
+        // capture-all corpus — it now asserts that premise instead of
+        // stating it in a header comment, so the fixture must be honest
+        // about which sweep it stands for.
+        acceptance: { captureAll: true, ignoreLowEdge: false },
         analyzerVersion: "2026.08.09.test",
         anchor: "2026-08-11",
         barRejections: {},

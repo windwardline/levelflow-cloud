@@ -64,6 +64,7 @@ function corpusWith(rows: SweepEmitRow[]): string {
     rows.map((entry) => JSON.stringify(entry)).join("\n") + "\n",
   );
   const manifest = buildSweepManifest({
+    acceptance: { captureAll: false, ignoreLowEdge: false },
     analyzerVersion: "2026.08.09.test",
     anchor: "2026-08-10",
     barRejections: {},

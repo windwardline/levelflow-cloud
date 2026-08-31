@@ -79,6 +79,7 @@ function twoCellCorpus(days: number): string {
     `${emitPath}.manifest.json`,
     JSON.stringify(
       buildSweepManifest({
+        acceptance: { captureAll: false, ignoreLowEdge: false },
         analyzerVersion: "2026.08.09.test",
         anchor: "2026-08-11",
         barRejections: {},

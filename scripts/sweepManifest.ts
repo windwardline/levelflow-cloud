@@ -681,6 +681,32 @@ export type SweepManifest = {
    * this corpus answer my question" is asking about capability, not about
    * whether two shards are the same measurement.
    */
+  /**
+   * THE ACCEPTANCE MODE THIS CORPUS WAS PRODUCED UNDER.
+   *
+   * Neither flag reached this file before 2026-08-31 — `buildSweepManifest`
+   * took neither as an input — so two corpora with entirely different accepted
+   * populations hashed byte-identically and would pool into one verdict.
+   *
+   * `ignoreLowEdge` is the one that moves the ACCEPTED population.
+   * `sessions.ts`'s low-edge gates carry `block: true`, and `sweep.ts` rewrites
+   * the context to `{ block: false, penalty: 0 }` one line before the branch
+   * that would have rejected it — so an `--ignore-low-edge` arm grades hours
+   * the live desk refuses outright, and a normal arm does not.
+   *
+   * `captureAll` never sets `accepted: true`; it KEEPS rows that failed a
+   * gate, and skips the regime block and the acceptance-gate attribution. So
+   * it changes the denominator rather than the numerator — which is exactly
+   * the kind of difference a reader computing a rate must not be blind to.
+   *
+   * Top level, never in `conditions`: those terms are compared to a hardcoded
+   * literal, and both values here are legitimate by design, so any literal
+   * would refuse one arm on every path. It DOES join `conditionsOf` — like
+   * `days`, it is a CLI parameter constant across a legitimate shard set, so
+   * it separates two measurements without making the corpus id
+   * population-dependent.
+   */
+  acceptance?: { captureAll: boolean; ignoreLowEdge: boolean };
   emitColumns?: string[];
   /**
    * The engine revision this corpus was measured under. Optional because
@@ -786,6 +812,8 @@ export function buildSweepManifest(input: {
    * absent rows are precisely the ones that have nowhere to carry a flag.
    */
   requestedSymbols?: string[];
+  /** See `SweepManifest.acceptance`. Required on every new manifest. */
+  acceptance?: { captureAll: boolean; ignoreLowEdge: boolean };
   /** Sorted keys of the first emitted row. See `SweepManifest.emitColumns`. */
   emitColumns?: string[];
   treasuryCurve: TreasuryCurveFacts;
@@ -842,6 +870,7 @@ export function buildSweepManifest(input: {
     // Sorted at the boundary so a reordered emit cannot re-hash a corpus
     // whose columns are unchanged. Conditionally spread, so no existing
     // fixture's hash moves.
+    ...(input.acceptance && { acceptance: input.acceptance }),
     ...(input.emitColumns && { emitColumns: [...input.emitColumns].sort() }),
     treasuryCurve: input.treasuryCurve,
     warmupBars: input.warmupBars,
