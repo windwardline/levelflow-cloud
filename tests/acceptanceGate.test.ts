@@ -18,6 +18,7 @@ import {
   buildSweepManifest,
   seriesFacts,
   type SweepConditions,
+  type SweepManifest,
   type TreasuryCurveFacts,
 } from "../scripts/sweepManifest.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
@@ -777,6 +778,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     treasuryCurveOverride?: TreasuryCurveFacts,
     acceptanceOverride?: { captureAll: boolean; ignoreLowEdge: boolean },
     modeledCostScaleOverride?: number,
+    decisionsOverride?: SweepManifest["decisions"],
   ): string => {
     const dir = mkdtempSync(join(tmpdir(), "gate-shard-"));
     const emitPath = join(dir, "shard.jsonl");
@@ -789,6 +791,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
         { captureAll: false, ignoreLowEdge: false },
       ...(modeledCostScaleOverride !== undefined &&
         { modeledCostScale: modeledCostScaleOverride }),
+      ...(decisionsOverride && { decisions: decisionsOverride }),
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
@@ -1052,6 +1055,59 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       ]),
       /shards of one measurement/,
       "a gross arm pooled with a net one",
+    );
+  });
+
+  it("POOLS shards whose decisions[] differ — it is shard-local, not identity", async () => {
+    // The opposite requirement from `acceptance` and `modeledCostScale`, and
+    // the reason each field had to be decided on its own rather than as a
+    // block. Every shard holds only its OWN markets, so `decisions[]` differs
+    // between any two shards of one legitimate sweep by construction. Putting
+    // it in `conditionsOf` would throw on every multi-shard read and make the
+    // corpus id population-dependent — round 45's `anchor` mistake, which
+    // round 47 had to undo.
+    const graded = await gradeCorpus([
+      shardWith(
+        shardRows("EURUSD"),
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        [{
+          decisionPoints: 40,
+          emitted: 12,
+          rejections: { belowConfidence: 28 },
+          split: "fit",
+          symbol: "EURUSD",
+          variant: "baseline",
+        }],
+      ),
+      shardWith(
+        shardRows("GBPUSD"),
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        [{
+          decisionPoints: 91,
+          emitted: 3,
+          rejections: { sessionBlocked: 88 },
+          split: "fit",
+          symbol: "GBPUSD",
+          variant: "baseline",
+        }],
+      ),
+    ], { permutations: 50, seed: 6 });
+    const verdict = graded.verdicts.get("forex")!.get("wide")!;
+    assert.equal(
+      verdict.selectFilled,
+      24,
+      "two shards of one sweep refused each other over their own row counts, " +
+        "or pooled to a different population than the sibling test's",
     );
   });
 

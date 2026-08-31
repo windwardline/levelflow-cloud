@@ -158,6 +158,87 @@ function flatFiveMinute(firstTime: number, count: number): Bar[] {
   }));
 }
 
+describe("the manifest's denominators are the emit's own", () => {
+  const base = {
+    calibrationOverride: {
+      blockedRegimes: [],
+      runnerWindowShare: 1,
+      tp1RiskShare: 0.8,
+    },
+    dailyBars: dailyBars(80),
+    primaryBars: triangleBars(600),
+    stepBars: 16,
+    symbol: "EURUSD" as const,
+    warmupBars: 120,
+  };
+
+  it("summary.total and outcomes.length genuinely differ under capture-all", () => {
+    // THE ANCHOR for the source assertion below, and the reason it is not
+    // pedantry. `summary` is computed over `outcomes.filter(accepted)` while
+    // the emit writes every row, so wiring the manifest's `emitted` to the
+    // summary would ship a denominator SMALLER than its own numerator — the
+    // file would hold more rows than the manifest says were emitted.
+    // A gate the fixture cannot clear, so capture-all has failed rows to
+    // KEEP. Without one every row is accepted, the two counts coincide, and
+    // the comparison proves nothing — which is what the first draft did.
+    const captured = simulateSymbol({
+      ...base,
+      calibrationOverride: { ...base.calibrationOverride, minRewardRisk: 50 },
+      captureAll: true,
+    });
+    const accepted = captured.outcomes.filter((row) => row.accepted).length;
+    assert.ok(
+      captured.outcomes.length > 0,
+      "fixture produced no rows — the comparison below would be vacuous",
+    );
+    assert.ok(
+      captured.outcomes.length > accepted,
+      `capture-all emitted ${captured.outcomes.length} rows of which ` +
+        `${accepted} were accepted; if those are ever equal this fixture has ` +
+        `stopped exercising the distinction and the guard below means nothing`,
+    );
+    assert.equal(
+      captured.summary.total,
+      accepted,
+      "the summary counts accepted rows only — if that changed, the manifest " +
+        "wiring can be simplified and this test retired",
+    );
+  });
+
+  it("the driver takes emitted from the emit, not from the summary", () => {
+    const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.match(
+      driver,
+      /emitted: result\.outcomes\.length,/,
+      "the manifest's row count no longer comes from the rows",
+    );
+    const at = driver.indexOf("decisions.push({");
+    assert.ok(at >= 0, "the denominators are no longer recorded");
+    assert.doesNotMatch(
+      driver.slice(at, at + 400),
+      /summary\.total/,
+      "the summary's accepted-only total is being recorded as the emit count",
+    );
+  });
+
+  it("carries the rejection struct whole, not a chosen subset", () => {
+    // The reasons are DERIVED from the engine's counter struct rather than
+    // listed here: a new rejection reason exists the moment a counter does,
+    // and hand-listing is how the struct froze once already.
+    const result = simulateSymbol({ ...base });
+    const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.ok(
+      Object.keys(result.rejections).length >= 8,
+      "the rejection struct shrank — re-read what the corpus can still account for",
+    );
+    assert.match(
+      driver,
+      /rejections: \{ \.\.\.result\.rejections \},/,
+      "the driver is copying selected rejection reasons rather than the struct",
+    );
+  });
+});
+
 describe("replay sweep", () => {
   it("takes its resolution tier from the shared admission rule — reach-back, not non-emptiness (#362 round 3, finding 1)", () => {
     const base = {

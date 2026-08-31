@@ -325,6 +325,16 @@ async function main() {
   let emittedRecords = 0;
   // Sorted keys of the first emitted row; undefined when nothing was emitted.
   let emitColumns: string[] | undefined;
+  // One entry per (symbol, variant, split): the run's own account of what it
+  // decided and what became of it.
+  const decisions: Array<{
+    decisionPoints: number;
+    emitted: number;
+    rejections: Record<string, number>;
+    split: string;
+    symbol: string;
+    variant: string;
+  }> = [];
   const manifestSymbols: Array<{
     assetType: AssetType;
     calibration: Record<string, unknown>;
@@ -1020,6 +1030,25 @@ async function main() {
             emittedRecords += 1;
           }
         }
+        // THE DENOMINATORS, bound to the manifest instead of to stdout.
+        //
+        // Seven rejection reasons emit no row at all — a rejected decision is
+        // an incremented integer and nothing else — so a reader asking "how
+        // many decisions did this market get, and where did they go" had only
+        // the console table this loop also prints, which is scrollback.
+        //
+        // `emitted` is `result.outcomes.length`, NOT `result.summary.total`.
+        // The summary is computed over `outcomes.filter(accepted)` while the
+        // emit writes EVERY row, so under `--capture-all` the obvious wiring
+        // ships a denominator smaller than its own numerator.
+        decisions.push({
+          decisionPoints: result.decisionPoints,
+          emitted: result.outcomes.length,
+          rejections: { ...result.rejections },
+          split: split.name,
+          symbol,
+          variant,
+        });
         rows.push([
           symbol,
           variant,
@@ -1086,6 +1115,7 @@ async function main() {
       // than a second parse of the same variable — a second clamp is a second
       // thing to drift.
       modeledCostScale,
+      ...(decisions.length > 0 && { decisions }),
       analyzerVersion: ANALYZER_VERSION,
       ...(emitColumns && { emitColumns }),
       anchor: isoDate(new Date()),

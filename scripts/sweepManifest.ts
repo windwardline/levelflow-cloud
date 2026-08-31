@@ -727,6 +727,37 @@ export type SweepManifest = {
    * assert a gross-cost measurement it is not.
    */
   modeledCostScale?: number;
+  /**
+   * Every denominator behind a market's row count — one entry per (symbol,
+   * variant, split).
+   *
+   * Seven of the sweep's rejection reasons emit NO ROW: a rejected decision is
+   * an incremented integer and nothing else. That makes recoverability track
+   * DIRECTION rather than effort — a divergence where the sweep is more
+   * PERMISSIVE than live leaves rows a reader can find and prune, while one
+   * where it is more RESTRICTIVE leaves nothing at all. Four of the eleven
+   * measured divergences are sweep-restrictive, and until this landed their
+   * populations lived only in the console table the driver also prints, which
+   * is scrollback.
+   *
+   * `emitted` is the emit's own row count, never the summary's total. The
+   * summary is computed over accepted rows alone while the emit writes every
+   * row, so under `--capture-all` they are different numbers and only one of
+   * them describes the file.
+   *
+   * EXCLUDED from `conditionsOf`, for the reason `symbols` is: each shard
+   * holds only its own markets, so including it would throw on every
+   * multi-shard read and make the corpus id population-dependent — round 45's
+   * mistake, which round 47 had to undo.
+   */
+  decisions?: Array<{
+    decisionPoints: number;
+    emitted: number;
+    rejections: Record<string, number>;
+    split: string;
+    symbol: string;
+    variant: string;
+  }>;
   emitColumns?: string[];
   /**
    * The engine revision this corpus was measured under. Optional because
@@ -836,6 +867,8 @@ export function buildSweepManifest(input: {
   acceptance?: { captureAll: boolean; ignoreLowEdge: boolean };
   /** See `SweepManifest.modeledCostScale`. */
   modeledCostScale?: number;
+  /** See `SweepManifest.decisions`. */
+  decisions?: SweepManifest["decisions"];
   /** Sorted keys of the first emitted row. See `SweepManifest.emitColumns`. */
   emitColumns?: string[];
   treasuryCurve: TreasuryCurveFacts;
@@ -898,6 +931,17 @@ export function buildSweepManifest(input: {
     // of being stated.
     ...(input.modeledCostScale !== undefined &&
       { modeledCostScale: input.modeledCostScale }),
+    // Sorted at the boundary, so shard ORDER cannot re-hash a corpus whose
+    // decisions did not change. Conditionally spread, so no existing fixture
+    // hash moves.
+    ...(input.decisions && {
+      decisions: [...input.decisions].sort((first, second) =>
+        `${first.symbol}\u0000${first.variant}\u0000${first.split}`
+          .localeCompare(
+            `${second.symbol}\u0000${second.variant}\u0000${second.split}`,
+          )
+      ),
+    }),
     ...(input.emitColumns && { emitColumns: [...input.emitColumns].sort() }),
     treasuryCurve: input.treasuryCurve,
     warmupBars: input.warmupBars,
