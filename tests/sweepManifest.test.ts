@@ -194,7 +194,8 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
       clock: overrides.clock ??
         { calendar: "test-calendar-v1", normalizer: "test-clock-v1" },
       conditions: overrides.conditions ?? {
-        macroAdjustment: "historical-treasury-curve",
+        availableTimeframeCount: "min-four-by-construction",
+    macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
         weightAdjustment: "raw-engine-zero",
       },
@@ -623,9 +624,11 @@ describe("the driver writes the manifest beside the emit", () => {
     );
     assert.match(script, /treasuryRates,\s*\n\s*warmupBars: split\.warmupBars,/);
     assert.match(script, /conditions,\s*\n\s*days: args\.days,/);
+    // The driver's conditions literal, all four terms. Written as one regex
+    // rather than four so a term dropped from the middle fails here.
     assert.match(
       script,
-      /macroAdjustment: "historical-treasury-curve",/,
+      /availableTimeframeCount: "min-four-by-construction",\s*\n\s*macroAdjustment: "historical-treasury-curve",/,
     );
     // I3's lesson holds for the curve exactly as for the calendar: a
     // warned-and-continued hole would be pinned as the anchor day's truth

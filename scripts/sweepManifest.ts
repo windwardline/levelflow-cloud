@@ -270,6 +270,25 @@ export function crossSeriesDensityFacts(
 // door mechanism as the clock block, one layer up. A future variant that
 // legitimately changes a term updates the literal and the door together.
 export type SweepConditions = {
+  /**
+   * The fourth hardwired score term, named by its INPUT rather than by one of
+   * its two effects.
+   *
+   * `buildDecisionMarketContext` builds `15min`, `1day`, `1hour` and `4hour`
+   * unconditionally and admits each on `length > 0`; only `5min` carries a
+   * floor. So the count is at least four offline, always — while live it can
+   * fall below three whenever the loader is short a frame. TWO things read it
+   * and both are therefore zero-by-construction in a corpus and live in
+   * production: `scoring.ts`'s `timeframePenalty`, and
+   * `executionQuality.ts`'s coverage penalty. An earlier proposal named this
+   * term `timeframePenalty`, which is one of the two — naming the input keeps
+   * the other from hiding behind it.
+   *
+   * A STATED CONDITION, deliberately not a per-row field: it never varies
+   * within a corpus, and a column of identical values is a fact about the
+   * build wearing the costume of a measurement.
+   */
+  availableTimeframeCount: "min-four-by-construction";
   macroAdjustment: "historical-treasury-curve";
   providerWarningCount: "zero-by-construction";
   weightAdjustment: "raw-engine-zero";

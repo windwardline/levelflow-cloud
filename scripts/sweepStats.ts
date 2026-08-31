@@ -420,6 +420,7 @@ function verifyManifest(emitPath: string): SweepManifest {
       );
     }
     const expectedConditions: SweepConditions = {
+      availableTimeframeCount: "min-four-by-construction",
       macroAdjustment: "historical-treasury-curve",
       providerWarningCount: "zero-by-construction",
       weightAdjustment: "raw-engine-zero",
