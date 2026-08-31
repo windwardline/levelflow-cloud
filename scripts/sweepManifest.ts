@@ -789,6 +789,27 @@ export type SweepManifest = {
    * the one that ran.
    */
   engineDeclined?: string[];
+  /**
+   * How many rows the rejection ledger sidecar holds — `${emit}.rejections
+   * .jsonl`, one line per declined decision with its instant and reason.
+   *
+   * Seven rejection reasons emit no outcome row, so a sweep-restrictive
+   * divergence left nothing but an incremented integer. `decisions[]` records
+   * the counts; this records WHICH INSTANTS, which is what makes the
+   * divergence measurable — a reader can join the declined instants against
+   * live's behaviour at those instants and count what live would have
+   * admitted.
+   *
+   * The COUNT lives here and the rows live beside the emit, because the rows
+   * are per-decision and a full-roster sweep produces hundreds of thousands of
+   * them — too many for a single JSON, and the wrong grain for one. Recording
+   * the count is what turns a truncated or missing sidecar into a refusal
+   * instead of a smaller population read as a smaller result.
+   *
+   * Outside `conditionsOf` for the reason `decisions[]` is: shard-local by
+   * construction, so it cannot be what separates two measurements.
+   */
+  rejectionLedgerRows?: number;
   emitColumns?: string[];
   /**
    * The engine revision this corpus was measured under. Optional because
@@ -902,6 +923,8 @@ export function buildSweepManifest(input: {
   decisions?: SweepManifest["decisions"];
   /** See `SweepManifest.engineDeclined`. */
   engineDeclined?: string[];
+  /** See `SweepManifest.rejectionLedgerRows`. */
+  rejectionLedgerRows?: number;
   /** Sorted keys of the first emitted row. See `SweepManifest.emitColumns`. */
   emitColumns?: string[];
   treasuryCurve: TreasuryCurveFacts;
@@ -970,6 +993,11 @@ export function buildSweepManifest(input: {
     ...(input.engineDeclined && {
       engineDeclined: [...input.engineDeclined].sort(),
     }),
+    // Any DEFINED count, zero included: a run that declined nothing is a real
+    // and interesting corpus, and a falsy check would make it look like a run
+    // that predates the ledger.
+    ...(input.rejectionLedgerRows !== undefined &&
+      { rejectionLedgerRows: input.rejectionLedgerRows }),
     ...(input.decisions && {
       decisions: [...input.decisions].sort((first, second) =>
         `${first.symbol}\u0000${first.variant}\u0000${first.split}`
