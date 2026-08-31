@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
+import { estimateExecutionQuality } from "../supabase/functions/trade-analyzer/executionQuality.ts";
+
 /**
  * Amendment 39: profit is the measure. A figure the operator is shown as the
  * payoff must also be a column in the corpus that grades the engine.
@@ -122,6 +124,89 @@ describe("the corpus carries the figure the Desk calls the payoff", () => {
       /ladderRewardRisk:\s*\(?0\.5\s*\*/,
       "the sweep is recomputing the blend instead of copying it",
     );
+  });
+
+  /**
+   * The same omission one field over, and the reason a total is emitted rather
+   * than left to arithmetic.
+   *
+   * `estimatedRoundTripCost` LOOKS recoverable: `rewardRisk` IS
+   * `executionQuality.effectiveRewardRisk`, so the cost should fall out of
+   * `(grossRewardRisk − rewardRisk) × riskDistance`. It does — until the round
+   * trip exceeds the reward distance, where `effectiveRewardRisk` clamps at 0
+   * and the inverse silently returns the REWARD instead of the COST.
+   *
+   * That is the case where cost is the dominant fact about the setup, and
+   * under `captureAll` — how a calibration corpus keeps its gate-failing rows
+   * — those rows are in the file. The clamped value reads as a smaller,
+   * plausible cost, so nothing downstream can tell it apart from a real one.
+   */
+  it("proves the cost inverse breaks where cost matters most", () => {
+    const plan = (takeProfit: number) =>
+      estimateExecutionQuality({
+        assetType: "crypto",
+        atr: 1,
+        availableTimeframes: ["1day", "1hour", "15min", "5min"],
+        dailyAtr: 10,
+        entryPrice: 100,
+        latestClose: 100,
+        providerWarnings: [],
+        side: "buy",
+        stopLoss: 99,
+        symbol: "BTCUSD",
+        takeProfit,
+      });
+    const riskDistance = 1;
+    const inverse = (q: ReturnType<typeof plan>) =>
+      (q.grossRewardRisk - q.effectiveRewardRisk) * riskDistance;
+
+    // Wide target: the inverse is exact, which is why the gap was invisible.
+    const wide = plan(103);
+    assert.ok(
+      Math.abs(inverse(wide) - wide.estimatedRoundTripCost) < 1e-9,
+      "the inverse must hold where the clamp does not bind, or this test is " +
+        "measuring something else entirely",
+    );
+
+    // Narrow target: the clamp binds and the inverse understates the cost.
+    const narrow = plan(100.05);
+    assert.equal(
+      narrow.effectiveRewardRisk,
+      0,
+      "fixture drifted off the clamp — pick a target the round trip exceeds",
+    );
+    const understatement = 1 -
+      inverse(narrow) / narrow.estimatedRoundTripCost;
+    assert.ok(
+      understatement > 0.5,
+      `the inverse understates by ${(understatement * 100).toFixed(1)}% — if ` +
+        `this has fallen below 50% the clamp's reach changed and the ` +
+        `argument for emitting the total deserves re-reading, not deleting`,
+    );
+  });
+
+  it("carries the cost itself, and the three components that differ in remedy", () => {
+    const typeAt = SWEEP.indexOf("export type SweepOutcomeRecord = {");
+    const declaration = SWEEP.slice(typeAt, SWEEP.indexOf("\n};", typeAt));
+    for (
+      const field of [
+        "estimatedRoundTripCost",
+        "estimatedSpread",
+        "estimatedSlippage",
+        "estimatedCommission",
+      ]
+    ) {
+      assert.match(
+        declaration,
+        new RegExp(`^\\s+${field}: number;`, "m"),
+        `\`${field}\` is not a corpus column`,
+      );
+      assert.match(
+        SWEEP,
+        new RegExp(`${field}: plan\\.executionQuality\\.${field}`),
+        `\`${field}\` is declared but never populated from the plan`,
+      );
+    }
   });
 
   it("keeps the runner's ratio too — they answer different questions", () => {

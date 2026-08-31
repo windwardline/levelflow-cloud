@@ -937,6 +937,20 @@ as markets underdelivering rather than as the wrong yardstick.
 `tests/corpusCarriesTheMeasure.test.ts` now derives the coupling from the Desk
 itself: whichever field the panel prefers for the payoff must be an emitted
 column, so moving the Desk's figure again fails until the corpus follows.
+
+**#474 found the same omission one field over.** `estimatedRoundTripCost` LOOKS
+recoverable as `(grossRewardRisk − rewardRisk) × riskDistance`, since
+`rewardRisk` IS `effectiveRewardRisk` — but that is
+`max(0, rewardDistance − roundTrip) / riskDistance`, and the clamp bites
+exactly when the round trip exceeds the reward, which is where cost is the
+dominant fact. Measured on a crypto unit-risk plan with a 0.155 round trip: a
+0.20 reward recovers it exactly, 0.10 recovers 0.100 (35% understated), 0.05
+recovers 0.050 (68%). The clamped value does not announce itself — it reads as
+a smaller, plausible cost — and under `captureAll` those rows are exactly what
+the corpus keeps. Cost total plus its three components now emitted; the
+components carry different remedies (spread → size down, slippage → the window,
+commission → the venue) and the venue tables are what STANDS from the
+remediation.
 **What awaits the owner is the MANIFEST half below, none of which is
 implemented.** Reading this section as an open proposal is what produced a
 recommendation to "accept all eight fields" that described `main`.
