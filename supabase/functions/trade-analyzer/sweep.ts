@@ -4,7 +4,7 @@ import {
   getCategoryCalibration,
 } from "./calibration.ts";
 import { completedDailySeries } from "./dailyCompletion.ts";
-import { buildPricePlan } from "./pricePlan.ts";
+import { buildPricePlan, type PlanRefusal } from "./pricePlan.ts";
 import {
   GROSS_COST_SCALE,
   modeledCostScaleFromEnv,
@@ -328,8 +328,15 @@ export type SweepOutcomeRecord = {
    *     enumeration invited this check rather than assuming.
    *   - `resolutionStreamStartMs` — `time + 15min` exactly (FR-5), and the
    *     offset is pinned by `analyzerVersion`.
-   *   - `expiresAtMs` — `time` plus the review hours of the calibration this
-   *     row's `variant` names, both of which the manifest holds.
+   *   - `expiresAtMs` — derivable, but NOT by the formula this line used to
+   *     state. It said "`time` plus the review hours of the calibration this
+   *     row's `variant` names", and that is false for every non-crypto row
+   *     whose window crosses the weekly close: `getSetupExpiryTime` returns
+   *     `min(time + reviewHours, weeklyCutoff)` (replay.ts). Measured by R2b:
+   *     the clamp reaches 20% of livestock's trading week and 5-6.7% of the
+   *     rest. The clamp IS a pure function of (symbol, time), so any reader
+   *     can apply it and no column is needed — but a reader who trusts the
+   *     old sentence computes the wrong window on those rows.
    */
   frameTailMs: Record<string, number>;
   availableTimeframeCount: number;
@@ -686,9 +693,21 @@ export function simulateSymbol(input: {
    * expect it. Add a counter and the reason exists; there is no second list to
    * forget.
    */
-  const reject = (reason: keyof typeof rejections, atMs: number) => {
+  // `detail` narrows the LEDGER entry without touching the COUNTER (R2b).
+  // The counter struct is what every existing reader enumerates — the driver
+  // copies it whole and `tests/sweep.test.ts` pins that it is passed as a
+  // struct rather than a chosen subset — so a new key there would be a
+  // breaking change for a detail that belongs per decision, not per run.
+  const reject = (
+    reason: keyof typeof rejections,
+    atMs: number,
+    detail?: string,
+  ) => {
     rejections[reason] += 1;
-    rejectionLedger.push({ reason, time: atMs });
+    rejectionLedger.push({
+      reason: detail === undefined ? reason : `${reason}:${detail}`,
+      time: atMs,
+    });
   };
   const newsEvents = input.newsEvents ?? [];
   // Decision points advance chronologically, so a moving pointer keeps the
@@ -844,15 +863,30 @@ export function simulateSymbol(input: {
       reject("noConsensus", latest.time);
       continue;
     }
+    // R2b's field list, and its only entry. This call used to omit the
+    // `refusal` out-channel `buildPricePlan` already offered, so fourteen
+    // distinct geometry refusals reached the corpus as the single word
+    // `planRejected` — and a refused decision emits NO outcome row, so the
+    // ledger's {reason, time} was the entire record of the decision.
+    //
+    // The COUNTER is unchanged: `rejections.planRejected` stays the aggregate
+    // every existing reader counts, and no reader has to learn a new key. The
+    // detail rides the LEDGER, which already carried a free-form reason and
+    // was the thing saying nothing.
+    const planRefusal: PlanRefusal = {};
     const plan = buildPricePlan(
       consensus.side,
       input.symbol,
       market,
       regime,
       calibration,
+      planRefusal,
     );
     if (!plan) {
-      reject("planRejected", latest.time);
+      // `unnamed` rather than a silent fallback: a branch added later without a
+      // stamp shows up as its own bucket in the ledger instead of hiding inside
+      // one of the fourteen that do name themselves.
+      reject("planRejected", latest.time, planRefusal.reason ?? "unnamed");
       continue;
     }
 

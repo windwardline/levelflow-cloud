@@ -112,6 +112,16 @@ repo's standard is five fields doing the work of twelve.
 | --- | --- | --- | --- |
 | **rejection ledger** | `reason` widened from `"planRejected"` to the specific geometry cause | Which of `buildPricePlan`'s **13** `return null` paths fired | A refused decision emits **no outcome row at all**. The ledger's `{reason, time}` is the entire record, and the reason is one word for thirteen causes |
 
+**IMPLEMENTED 2026-08-31, the same day.** `PlanRefusalReason` names ten causes
+across fourteen `return null` sites; `buildPricePlan` and `buildLadderTargets`
+both take the channel; `sweep.ts` passes it and records
+`planRejected:<cause>` on the ledger. The ladder's merged
+`minimumRunnerDistance > runnerLimit || tp1Distance <= 0` is split, because a
+window lever and a TP1 lever are the two furthest-apart remedies in the set.
+The COUNTER is untouched — `rejections.planRejected` stays the aggregate every
+reader enumerates, and a detailed counter key would be a breaking change for a
+fact that belongs per decision.
+
 **One field, and it is not an emit column.** `buildPricePlan` already offers a
 `refusal` out-channel (`pricePlan.ts:161-166`); `sweep.ts:847-853` calls it with
 five arguments and does not pass one, so every cause collapses at

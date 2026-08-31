@@ -19,6 +19,51 @@ import type { MarketContext, Regime, Side, SupportedSymbol } from "./types.ts";
 // Which anchor set the stop: the pivot-buffered structural level, the
 // 1.25-ATR minimum width (also covers the no-pivot buffer fallback), or the
 // class volatility cap clipping the structural stop nearer.
+/**
+ * Why `buildPricePlan` declined, at the grain of the branch that fired.
+ *
+ * R2b's field list, and its only entry. Thirteen `return null` paths reached
+ * the sweep as the single string `planRejected`, and a refused decision emits
+ * NO outcome row — so the rejection ledger's `{reason, time}` was the entire
+ * record of a decision the engine declined, with one word for thirteen causes.
+ *
+ * The price of that is measured twice. Livestock's ladder refused 396 of the
+ * 416 decisions that reached its geometry — 5% survival against a healthy
+ * 73-99% — and indices refused 63%, where a 96-variant grid across four axes
+ * moved survival 37% to 38% and named the incumbent as its own best
+ * combination, while the real cause was the one axis held fixed. Correcting it
+ * took survival to 96% and out-of-sample R from +7.4 to +19.2.
+ * `docs/trade-model.md`: "planRejected — a counter that names no lever, which
+ * is why four grids walked past it."
+ *
+ * The counter struct is unchanged: `rejections.planRejected` stays the
+ * aggregate every existing reader counts. This rides the LEDGER, which already
+ * carries a free-form reason per decision.
+ */
+export type PlanRefusalReason =
+  /** The limit sits at or inside the current print — not a limit at all. */
+  | "entry_too_close"
+  /** Live only: a buy at/above the ask, or a sell at/below the bid. */
+  | "quote_crossed"
+  /** The stop landed on the wrong side of the entry. */
+  | "stop_crossed_entry"
+  /** The window cannot carry the payoff floor — the feasibility refusal. */
+  | "window_cannot_carry_payoff"
+  /** TP1 collapsed to zero or negative distance. */
+  | "tp1_not_positive"
+  /** The runner target sits at or inside TP1. */
+  | "runner_inside_tp1"
+  /** A tick-gridded symbol with no contract spec to align against. */
+  | "no_contract_spec"
+  /** After alignment, the runner target crossed the entry. */
+  | "runner_crossed_entry"
+  /** After alignment, TP1 crossed the entry. */
+  | "tp1_crossed_entry"
+  /** Non-finite reward:risk, or a risk distance of zero. */
+  | "non_finite_geometry";
+
+export type PlanRefusal = { reason?: PlanRefusalReason };
+
 export type StopProvenance = "pivot" | "volatility_floor" | "cap";
 
 // Which anchor set the RUNNER: a real structural level inside the reachable
@@ -158,12 +203,15 @@ export function buildPricePlan(
   market: MarketContext,
   regime: Regime,
   calibration: CategoryCalibration,
-  // Out-channel for the one refusal whose cause is NOT geometry (#362
-  // round 5, finding 1): 1b's rule — a distinct cause must not wear "no
-  // valid limit entry" — applies to the quote-admission gate below, and
-  // the caller that narrates refusals needs the distinction to give it
-  // its own sentence.
-  refusal?: { reason?: "quote_crossed" },
+  // Out-channel naming WHICH refusal fired (R2b, 2026-08-31). It began as the
+  // single non-geometry cause (#362 round 5, finding 1): 1b's rule — a distinct
+  // cause must not wear "no valid limit entry" — applied to the quote gate, and
+  // the caller that narrates refusals needed that one distinction.
+  //
+  // It now carries all thirteen. The sweep called this function without the
+  // channel at all, so every branch reached the corpus as `planRejected` and
+  // the ledger could say a market was starved but never by which gate.
+  refusal?: PlanRefusal,
 ): PricePlan | null {
   const bars = market.primary;
   const daily = market.daily;
@@ -257,6 +305,7 @@ export function buildPricePlan(
     side === "buy" &&
     roundPrice(entryPrice) >= roundPrice(currentClose - minimumLimitDistance)
   ) {
+    if (refusal) refusal.reason = "entry_too_close";
     return null;
   }
 
@@ -264,6 +313,7 @@ export function buildPricePlan(
     side === "sell" &&
     roundPrice(entryPrice) <= roundPrice(currentClose + minimumLimitDistance)
   ) {
+    if (refusal) refusal.reason = "entry_too_close";
     return null;
   }
 
@@ -301,10 +351,12 @@ export function buildPricePlan(
   }
 
   if (side === "buy" && roundPrice(stopLoss) >= roundPrice(entryPrice)) {
+    if (refusal) refusal.reason = "stop_crossed_entry";
     return null;
   }
 
   if (side === "sell" && roundPrice(stopLoss) <= roundPrice(entryPrice)) {
+    if (refusal) refusal.reason = "stop_crossed_entry";
     return null;
   }
 
@@ -321,9 +373,12 @@ export function buildPricePlan(
     ],
     riskDistance,
     side,
-  });
+  }, refusal);
 
   if (!ladder) {
+    // The ladder stamped its OWN cause — window feasibility, a collapsed TP1,
+    // or a runner inside TP1 — which is three of the thirteen and the group
+    // whose remedies are the furthest apart.
     return null;
   }
 
@@ -350,6 +405,7 @@ export function buildPricePlan(
   // with its own reason before any of this runs; if a future call path skips
   // the door, no off-grid plan ships from here either.
   if (needsTickGrid && !futuresTickPlan) {
+    if (refusal) refusal.reason = "no_contract_spec";
     return null;
   }
 
@@ -369,24 +425,29 @@ export function buildPricePlan(
   }
 
   if (side === "buy" && roundPrice(takeProfit) <= roundPrice(entryPrice)) {
+    if (refusal) refusal.reason = "runner_crossed_entry";
     return null;
   }
 
   if (side === "sell" && roundPrice(takeProfit) >= roundPrice(entryPrice)) {
+    if (refusal) refusal.reason = "runner_crossed_entry";
     return null;
   }
 
   if (side === "buy" && roundPrice(takeProfit1) <= roundPrice(entryPrice)) {
+    if (refusal) refusal.reason = "tp1_crossed_entry";
     return null;
   }
 
   if (side === "sell" && roundPrice(takeProfit1) >= roundPrice(entryPrice)) {
+    if (refusal) refusal.reason = "tp1_crossed_entry";
     return null;
   }
 
   const rewardRisk = Math.abs(takeProfit - entryPrice) /
     Math.max(riskDistance, 0.00001);
   if (!Number.isFinite(rewardRisk) || riskDistance <= 0) {
+    if (refusal) refusal.reason = "non_finite_geometry";
     return null;
   }
   const executionQuality = estimateExecutionQuality({
@@ -542,7 +603,7 @@ export function buildLadderTargets(input: {
   pivotLevels: number[];
   riskDistance: number;
   side: Side;
-}): LadderTargets | null {
+}, refusal?: PlanRefusal): LadderTargets | null {
   const { atr, calibration, dailyAtr, entryPrice, riskDistance, side } = input;
   // Q4's split (4c): the factor scales ONLY the sizing hat — patience and
   // expiry keep reading defaultReviewHours, which the baseline measured as
@@ -581,7 +642,17 @@ export function buildLadderTargets(input: {
   const runnerLimit = expectedWindowMove * calibration.runnerWindowShare;
   const minimumRunnerDistance = riskDistance *
     calibration.minimumTargetRewardRisk;
-  if (minimumRunnerDistance > runnerLimit || tp1Distance <= 0) {
+  // SPLIT, because the two causes share nothing. The first says the review
+  // window cannot carry the payoff floor — a window, ceiling or floor lever.
+  // The second says TP1 collapsed to nothing, which is a TP1 lever. Collapsing
+  // them is how indices spent a 96-variant grid on four axes while the binding
+  // one was held fixed.
+  if (minimumRunnerDistance > runnerLimit) {
+    if (refusal) refusal.reason = "window_cannot_carry_payoff";
+    return null;
+  }
+  if (tp1Distance <= 0) {
+    if (refusal) refusal.reason = "tp1_not_positive";
     return null;
   }
   const qualifyingLevels = input.pivotLevels.filter((level) => {
@@ -621,6 +692,7 @@ export function buildLadderTargets(input: {
 
   const runnerDistance = Math.abs(runnerTarget - entryPrice);
   if (runnerDistance <= tp1Distance) {
+    if (refusal) refusal.reason = "runner_inside_tp1";
     return null;
   }
 

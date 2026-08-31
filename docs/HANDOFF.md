@@ -1284,7 +1284,8 @@ produces a corpus R4, R5 and R6 can read. The real order is
 `docs/research/r2b-geometry-fresh-eyes-2026-08-31.md`. Six lenses, 24 findings,
 9 survivors, each then re-derived by hand on the real per-market population.
 
-**The field list is one entry**: widen the rejection ledger's `reason` from
+**The field list is one entry, and it LANDED 2026-08-31** — R2's
+implementation pass is done for it. Widen the rejection ledger's `reason` from
 `planRejected` to the specific geometry cause. `buildPricePlan` already offers
 the `refusal` out-channel (`pricePlan.ts:161-166`) and `sweep.ts:847-853` does
 not pass it, so 13 `return null` paths collapse into one word. Its absence has
