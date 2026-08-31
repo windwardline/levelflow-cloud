@@ -575,6 +575,7 @@ async function main() {
     availableTimeframeCount: "min-four-by-construction",
     macroAdjustment: "historical-treasury-curve",
     providerWarningCount: "zero-by-construction",
+    spreadSource: "modeled-by-construction",
     weightAdjustment: "raw-engine-zero",
   };
 

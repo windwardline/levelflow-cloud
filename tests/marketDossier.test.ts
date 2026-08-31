@@ -88,6 +88,7 @@ function twoCellCorpus(days: number): string {
           availableTimeframeCount: "min-four-by-construction",
     macroAdjustment: "historical-treasury-curve",
           providerWarningCount: "zero-by-construction",
+          spreadSource: "modeled-by-construction",
           weightAdjustment: "raw-engine-zero",
         },
         days: 365,

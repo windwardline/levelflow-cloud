@@ -256,6 +256,58 @@ export type SweepOutcomeRecord = {
   stopLoss: number;
   takeProfit: number;
   takeProfit1: number;
+  /**
+   * WHAT THE DECISION COULD SEE, per row.
+   *
+   * Every sweep-live divergence in the enumeration is ultimately a question
+   * about visibility — which bars had completed, which events were in scope,
+   * which curve row was published — and the corpus recorded the ANSWER (a
+   * score, an outcome) without the inputs. So a reader could not ask whether
+   * live's clock would have admitted one more daily bar, or seen one more
+   * event, and had to re-derive the whole thing by hand.
+   *
+   * `frameTailMs` is the instant each frame stood at, per frame. It is the
+   * one thing the enumeration says it had to work out by hand across fifteen
+   * consumers, and it is not derivable: the frames are resampled from a
+   * sliced history, so their tails are not a function of `time`.
+   *
+   * `availableTimeframeCount` VARIES between 4 and 5 — the manifest's
+   * `min-four-by-construction` is a floor, not a value — and the 5-minute
+   * frame is the one that can legitimately be absent, so the count says which
+   * rows were graded with it.
+   *
+   * `dailyVisibleCount` and `dailyTailCompleteAtMs` answer 429/433 directly:
+   * how many daily bars this decision could read, and when the newest of them
+   * finished. Without the completion instant a reader cannot test whether
+   * live, on a wall clock, would have admitted one more.
+   *
+   * The news counts and `nextHighImpactMs` answer 483/484/502 for the
+   * scheduled family. The loop shapes each event down to type and impact and
+   * discards the instants, so the corpus recorded a penalty with no way to
+   * ask which events produced it.
+   *
+   * `treasuryLabelMs` is the newest curve label visible at this decision. It
+   * lets the 7-day staleness predicate be applied after the fact, per row,
+   * rather than assumed for the run.
+   *
+   * DELIBERATELY NOT EMITTED, each because it is exactly derivable and a
+   * duplicate column is a second thing to be wrong:
+   *   - `symbolTailMs` — the manifest's `symbols[].series[].lastTime` already
+   *     carries it, and per row it would be a constant column. The
+   *     enumeration invited this check rather than assuming.
+   *   - `resolutionStreamStartMs` — `time + 15min` exactly (FR-5), and the
+   *     offset is pinned by `analyzerVersion`.
+   *   - `expiresAtMs` — `time` plus the review hours of the calibration this
+   *     row's `variant` names, both of which the manifest holds.
+   */
+  frameTailMs: Record<string, number>;
+  availableTimeframeCount: number;
+  dailyVisibleCount: number;
+  dailyTailCompleteAtMs: number;
+  newsActiveCount: number;
+  newsUpcomingCount: number;
+  nextHighImpactMs: number | null;
+  treasuryLabelMs: number | null;
   forgoneRunnerR: number | null;
   /**
    * Which protection the runner was under: the axis the give-back has to be
@@ -707,6 +759,11 @@ export function simulateSymbol(input: {
     }
     const activeNews = [];
     const upcomingNews = [];
+    // The instant of the soonest high-impact event still ahead. The loop
+    // shapes every event down to type and impact, so the corpus recorded a
+    // penalty with no way to ask which events produced it — 483, 484 and 502
+    // all turn on the instants, not the count.
+    let nextHighImpactMs: number | null = null;
     for (let n = newsStartIndex; n < newsEvents.length; n += 1) {
       const event = newsEvents[n];
       if (event.time > upcomingEnd) {
@@ -720,6 +777,9 @@ export function simulateSymbol(input: {
         activeNews.push(shaped);
       } else {
         upcomingNews.push(shaped);
+        if (event.impact === "high" && nextHighImpactMs === null) {
+          nextHighImpactMs = event.time;
+        }
       }
     }
     if (activeNews.some(isBlockingNewsEvent)) {
@@ -979,6 +1039,26 @@ export function simulateSymbol(input: {
       stopLoss: plan.stopLoss,
       takeProfit: plan.takeProfit,
       takeProfit1: plan.takeProfit1,
+      // Derived from the context the decision actually read, never from a
+      // list: a frame added to `buildDecisionMarketContext` appears here with
+      // no second edit.
+      frameTailMs: Object.fromEntries(
+        market.availableTimeframes.flatMap((timeframe) => {
+          const tail = market.timeframes[timeframe]?.at(-1)?.time;
+          return typeof tail === "number"
+            ? [[timeframe as string, tail] as const]
+            : [];
+        }),
+      ),
+      availableTimeframeCount: market.availableTimeframes.length,
+      dailyVisibleCount: dailyVisible,
+      dailyTailCompleteAtMs: dailySeries[dailyVisible - 1].completeAtMs,
+      newsActiveCount: activeNews.length,
+      newsUpcomingCount: upcomingNews.length,
+      nextHighImpactMs,
+      treasuryLabelMs: treasuryVisible > 0
+        ? treasuryRates[treasuryVisible - 1].dateMs
+        : null,
       estimatedRoundTripCost: plan.executionQuality.estimatedRoundTripCost,
       estimatedCommission: plan.executionQuality.estimatedCommission,
       estimatedSlippage: plan.executionQuality.estimatedSlippage,

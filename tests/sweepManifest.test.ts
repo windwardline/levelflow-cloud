@@ -198,6 +198,7 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
         availableTimeframeCount: "min-four-by-construction",
     macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
+        spreadSource: "modeled-by-construction",
         weightAdjustment: "raw-engine-zero",
       },
       days: 365,
@@ -627,10 +628,24 @@ describe("the driver writes the manifest beside the emit", () => {
     assert.match(script, /conditions,\s*\n\s*days: args\.days,/);
     // The driver's conditions literal, all four terms. Written as one regex
     // rather than four so a term dropped from the middle fails here.
-    assert.match(
-      script,
-      /availableTimeframeCount: "min-four-by-construction",\s*\n\s*macroAdjustment: "historical-treasury-curve",/,
-    );
+    // Each term asserted on its own. The first version pinned two of them as
+    // ADJACENT, and adding a third in alphabetical order broke a guard that
+    // was never about ordering.
+    for (
+      const term of [
+        'availableTimeframeCount: "min-four-by-construction"',
+        'macroAdjustment: "historical-treasury-curve"',
+        'providerWarningCount: "zero-by-construction"',
+        'spreadSource: "modeled-by-construction"',
+        'weightAdjustment: "raw-engine-zero"',
+      ]
+    ) {
+      assert.ok(
+        script.includes(term),
+        `the driver stopped stating ${term} — a corpus measured under a term ` +
+          `this build does not state is refused by every reader`,
+      );
+    }
     // The acceptance mode, recorded UNCONDITIONALLY and from the args. A
     // conditional spread would collapse "this manifest predates the field"
     // into "this run was gated", which are different facts and which the
