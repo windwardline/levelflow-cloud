@@ -274,3 +274,158 @@ describe("the driver writes it beside the emit, and says how many", () => {
     );
   });
 });
+
+/**
+ * What each decision could SEE, recorded on the row that decided.
+ *
+ * Every sweep-live divergence in the enumeration is ultimately a visibility
+ * question — which bars had completed, which events were in scope, which curve
+ * row was published — and the corpus recorded the ANSWER without the inputs.
+ * So a reader could not ask whether live's clock would have admitted one more
+ * daily bar; it had to be re-derived by hand across fifteen consumers.
+ *
+ * Asserted by EXECUTION against a real simulation, because the whole class of
+ * defect here is a field that exists on the type and is never populated — a
+ * column of undefined reads exactly like a column of data.
+ */
+describe("the row says what the decision could see", () => {
+  const result = simulateSymbol(base);
+
+  it("produces rows at all", () => {
+    assert.ok(
+      result.outcomes.length > 0,
+      "no rows — every assertion below would hold over an empty list",
+    );
+  });
+
+  it("records each frame's own tail, for every frame it admitted", () => {
+    for (const row of result.outcomes) {
+      const frames = Object.keys(row.frameTailMs);
+      assert.equal(
+        frames.length,
+        row.availableTimeframeCount,
+        "the frame tails and the frame count disagree, so one of them is not " +
+          "describing the context the decision read",
+      );
+      assert.ok(
+        row.availableTimeframeCount >= 4,
+        `${row.availableTimeframeCount} frames — the manifest states a floor ` +
+          `of four by construction, and this row contradicts it`,
+      );
+      for (const [frame, tail] of Object.entries(row.frameTailMs)) {
+        assert.ok(
+          Number.isFinite(tail) && tail > 0,
+          `${frame} carries no tail instant, which is the one thing the ` +
+            `enumeration says it had to derive by hand`,
+        );
+        assert.ok(
+          tail <= row.time,
+          `${frame}'s tail (${tail}) is AFTER the decision instant ` +
+            `(${row.time}) — the decision read a bar that had not completed`,
+        );
+      }
+    }
+  });
+
+  it("records the daily window it was allowed to read", () => {
+    for (const row of result.outcomes) {
+      assert.ok(
+        row.dailyVisibleCount >= 40,
+        `${row.dailyVisibleCount} daily bars — below the loop's own floor, so ` +
+          `this row should not exist`,
+      );
+      assert.ok(
+        row.dailyTailCompleteAtMs <= row.time,
+        "the newest daily bar completed AFTER the decision that read it, " +
+          "which is the look-ahead 2a exists to prevent",
+      );
+    }
+  });
+
+  it("records the ABSENCE of news and curve as null, not zero", () => {
+    for (const row of result.outcomes) {
+      // EXACTLY zero, not merely an integer. `Number.isInteger` is satisfied
+      // by a fabricated constant, and this fixture supplies no calendar at
+      // all, so zero is the only honest answer.
+      assert.equal(row.newsActiveCount, 0);
+      assert.equal(row.newsUpcomingCount, 0);
+      // NULL is a fact, not a gap: this fixture supplies no calendar and no
+      // curve, and a reader must be able to tell "none visible" from "not
+      // recorded". Zero would say the wrong one — it is a real instant.
+      assert.equal(row.nextHighImpactMs, null);
+      assert.equal(row.treasuryLabelMs, null);
+    }
+  });
+
+  it("records the next high-impact INSTANT when a calendar is supplied", () => {
+    // The absence test above cannot exercise the assignment at all — a
+    // fixture with no events never enters that branch, so a mutation zeroing
+    // the instant survived it. This supplies the calendar the branch needs.
+    // Anchored to a REAL decision instant from the baseline run, not to a
+    // fraction of the span. Decisions are sparse — ten rows across 150 hours
+    // at `stepBars: 16` — so a proportional placement lands between them and
+    // no row ever sees the event, which is how the first draft of this test
+    // proved nothing while looking thorough.
+    assert.ok(result.outcomes.length >= 3, "need a middle row to anchor to");
+    const eventAt = result.outcomes[2].time + 2 * 60 * 60 * 1000;
+    const withNews = simulateSymbol({
+      ...base,
+      newsEvents: [
+        { currency: "EUR", impact: "high", name: "ECB Rate Decision", time: eventAt },
+      ],
+    });
+    const sawIt = withNews.outcomes.filter((row) =>
+      row.nextHighImpactMs !== null
+    );
+    assert.ok(
+      sawIt.length > 0,
+      "no row saw the event — it sits outside every decision's upcoming " +
+        "horizon, so this fixture proves nothing about the instant",
+    );
+    for (const row of sawIt) {
+      assert.equal(
+        row.nextHighImpactMs,
+        eventAt,
+        "the row records something other than the event's own instant, which " +
+          "is the only thing 483/484/502 can be measured against",
+      );
+      assert.ok(
+        row.nextHighImpactMs! > row.time,
+        "an UPCOMING event must sit ahead of the decision that saw it",
+      );
+      // The COUNT beside the instant. `Number.isInteger` in the absence test
+      // is satisfied by zero, so nothing there could catch a hardcoded count —
+      // this is the only place a real one exists to compare against.
+      assert.ok(
+        row.newsUpcomingCount >= 1,
+        `the row records ${row.newsUpcomingCount} upcoming events while ` +
+          `carrying the instant of one, so the count is not the population`,
+      );
+    }
+  });
+
+  it("names the columns in the emit so a reader can refuse a corpus short one", () => {
+    // Ties this set to #479's capability check: the fields are only useful if
+    // a reader can tell a corpus that lacks them from one where nothing was
+    // visible.
+    const columns = Object.keys(result.outcomes[0]);
+    for (
+      const field of [
+        "frameTailMs",
+        "availableTimeframeCount",
+        "dailyVisibleCount",
+        "dailyTailCompleteAtMs",
+        "newsActiveCount",
+        "newsUpcomingCount",
+        "nextHighImpactMs",
+        "treasuryLabelMs",
+      ]
+    ) {
+      assert.ok(
+        columns.includes(field),
+        `${field} is on the type and not on the row — a column of undefined ` +
+          `reads exactly like a column of data`,
+      );
+    }
+  });
+});

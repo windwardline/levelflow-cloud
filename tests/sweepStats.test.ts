@@ -458,6 +458,7 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
         availableTimeframeCount: "min-four-by-construction",
     macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
+        spreadSource: "modeled-by-construction",
         weightAdjustment: "raw-engine-zero",
       },
       days: 365,
@@ -719,6 +720,7 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
         availableTimeframeCount: "min-four-by-construction",
     macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
+        spreadSource: "modeled-by-construction",
         weightAdjustment: "raw-engine-zero",
       },
       days: 365,
@@ -1032,6 +1034,7 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
     availableTimeframeCount: "min-four-by-construction",
     macroAdjustment: "historical-treasury-curve",
     providerWarningCount: "zero-by-construction",
+    spreadSource: "modeled-by-construction",
     weightAdjustment: "raw-engine-zero",
   };
 

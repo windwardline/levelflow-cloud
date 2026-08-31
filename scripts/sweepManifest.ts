@@ -291,6 +291,21 @@ export type SweepConditions = {
   availableTimeframeCount: "min-four-by-construction";
   macroAdjustment: "historical-treasury-curve";
   providerWarningCount: "zero-by-construction";
+  /**
+   * Every spread in this corpus is MODELLED, never quoted.
+   *
+   * `buildDecisionMarketContext` passes `quote: null` on every decision, so
+   * `estimateExecutionQuality` takes the modelled path unconditionally — while
+   * live takes the quoted path whenever a quote is present. A future
+   * live-to-corpus join on cost would be comparing two different measurements
+   * and would have nothing to warn it.
+   *
+   * The live quoted spread at a historical instant exists nowhere and cannot
+   * be recovered at any price (enumeration §2.11), so this term does not close
+   * that divergence. It records which side of it the corpus sits on, which is
+   * the honest half.
+   */
+  spreadSource: "modeled-by-construction";
   weightAdjustment: "raw-engine-zero";
 };
 

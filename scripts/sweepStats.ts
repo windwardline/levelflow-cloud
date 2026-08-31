@@ -430,6 +430,7 @@ function verifyManifest(emitPath: string): SweepManifest {
       availableTimeframeCount: "min-four-by-construction",
       macroAdjustment: "historical-treasury-curve",
       providerWarningCount: "zero-by-construction",
+      spreadSource: "modeled-by-construction",
       weightAdjustment: "raw-engine-zero",
     };
     for (const [term, expected] of Object.entries(expectedConditions)) {
