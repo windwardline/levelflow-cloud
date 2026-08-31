@@ -2123,3 +2123,35 @@ partial banks a fraction of what a stop costs, so break-even is a range
 above 0.5, and that follows from the shipped calibration constants
 alone. tests/learningNeutralPoint.test.ts derives both ends from them
 rather than restating a number here.
+
+**A worked example of what the manufacturing clause catches, added
+2026-08-30 because the agent holding the pen walked into it.** Asked how
+to make the realized payoff exceed the loss, it proposed raising
+`tp1RiskShare` from 0.4 to 0.8 — moving TP1 further out lifts the
+blended full-win figure from about 1.05R to about 1.20R — and presented
+it as the evidence-led option. It is not. `tp1RiskShare` is a pure risk
+multiple, not a structural level and not window feasibility, so moving
+it BECAUSE THE BLEND IMPROVES is the prohibited move exactly. The lever
+table it built was sorted by which knob made the number largest, which
+is the tell.
+
+It is also wrong on the merits, and that is the more useful half. A
+large share of fills bank at TP1 and hand the second leg back — a small
+win. Put TP1 twice as far away and part of that population never reaches
+it at all and takes a full −1.00R instead of about +0.19R. **The lever
+converts small wins into whole losses**, and the arithmetic direction is
+certain even though the magnitude needs a corpus. A ratio can be
+improved by making the good outcomes rarer, and the printed figure will
+not say so.
+
+THE AXES THE EVIDENCE ACTUALLY NAMED are the runner leg's
+placement/protection and the cost weight per trade (4b, Q1/Q2/Q4).
+Neither is a knob on the reported ratio. Cost is additionally the one
+input `remediation-program-2026-08-11.md` lists under "What stands" —
+the venue bill tables are E8-published facts independent of the invalid
+corpus — so it is the highest-confidence lever available and the only
+one whose inputs can be trusted today.
+
+If the realized payoff still cannot exceed the loss once those two are
+measured, the honest conclusion is that this ladder SHAPE cannot meet
+the standard, and the shape is the question rather than any knob on it.
