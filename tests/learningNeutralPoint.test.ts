@@ -6,8 +6,11 @@ import {
   getClassCalibration,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import {
+  ADJUSTMENT_CAP,
+  ADJUSTMENT_PER_R,
   calculateLearningWeight,
-  WITHHELD_REASON,
+  CONFIDENCE_Z,
+  MIN_RESOLUTIONS_FOR_ADJUSTMENT,
 } from "../supabase/functions/trade-analyzer/learning.ts";
 
 /**
@@ -105,6 +108,30 @@ function breakEven(assetType: AssetType, partialShare: number): number {
   return 1 / (1 + avgWin);
 }
 
+/**
+ * `n` resolutions of a cohort with the given win and partial shares, valued in
+ * R from SHIPPED CALIBRATION.
+ *
+ * Deliberately not a list of plausible numbers. The claim under test is that a
+ * mostly-winning cohort can lose money on THIS ladder, so the fixture has to
+ * be the ladder — if the geometry ever changes enough to make that false, the
+ * test must fail rather than keep asserting a shape the engine abandoned.
+ */
+function mixedCohort(
+  assetType: AssetType,
+  n: number,
+  winShare: number,
+  partialShare: number,
+): number[] {
+  const winners = Math.round(n * winShare);
+  const partials = Math.round(winners * partialShare);
+  return [
+    ...Array.from({ length: partials }, () => partialR(assetType)),
+    ...Array.from({ length: winners - partials }, () => fullWinR(assetType)),
+    ...Array.from({ length: n - winners }, () => -1),
+  ];
+}
+
 describe("the learning layer's neutral point", () => {
   it("moves with the outcome mix, so no single constant can be right", () => {
     // THE CORRECTED CLAIM. The old curve did not pick a bad constant; it picked
@@ -152,38 +179,158 @@ describe("the learning layer's neutral point", () => {
     }
   });
 
-  it("withholds the adjustment instead of emitting a mis-centred one", () => {
-    // §19e, and the same call this repo made for the replay record: a refusal
-    // beats a wrong number. Every win rate, including the extremes, must come
-    // back as no adjustment at all rather than a number centred on 0.5.
-    for (const wins of [0, 5, 14, 20]) {
+  it("scores a MOSTLY-WINNING cohort negative when it lost money", () => {
+    // AMENDMENT 39'S HEADLINE, as a test. The law says a market can win four
+    // in five and shrink the account; the ladder is what makes that possible.
+    // Every resolution here is derived from shipped calibration, so the
+    // fixture cannot drift away from the geometry it claims to describe.
+    for (const assetType of ["forex", "indices", "metals"] as AssetType[]) {
+      const resolutions = mixedCohort(assetType, 120, 0.65, 0.65);
+      const wins = resolutions.filter((r) => r > 0).length;
       const weight = calculateLearningWeight({
         ambiguous: 0,
-        losses: 20 - wins,
-        total: 20,
+        losses: resolutions.length - wins,
+        realizedRCount: resolutions.length,
+        realizedRSum: resolutions.reduce((sum, r) => sum + r, 0),
+        realizedRSumSq: resolutions.reduce((sum, r) => sum + r * r, 0),
+        total: resolutions.length,
         wins,
       });
-      assert.equal(
-        weight.confidenceAdjustment,
-        0,
-        `winRate ${weight.winRate} still produced an adjustment`,
+      assert.ok(
+        weight.winRate >= 0.6,
+        `${assetType}: fixture must actually be a mostly-winning cohort, ` +
+          `else this proves nothing (got ${weight.winRate})`,
       );
-      assert.equal(weight.withheld, WITHHELD_REASON);
+      assert.ok(
+        (weight.meanRealizedR ?? 0) < 0,
+        `${assetType}: wins ${weight.winRate} of the time and its mean R is ` +
+          `${weight.meanRealizedR} — if that ever goes positive the ladder ` +
+          `changed and this test's premise with it`,
+      );
+      assert.ok(
+        weight.confidenceAdjustment <= 0,
+        `${assetType}: a money-losing cohort was REWARDED ${weight.confidenceAdjustment}`,
+      );
+      // And what the retired curve would have paid it.
+      const retired = (weight.winRate - 0.5) * 20;
+      assert.ok(
+        retired > 0,
+        `${assetType}: the retired curve is supposed to reward this market — ` +
+          `if it no longer does, the comparison below is empty`,
+      );
     }
   });
 
-  it("keeps measuring what it refuses to score", () => {
-    // Withholding the ADJUSTMENT must not stop recording the win rate and
-    // sample weight: those are the inputs a corrected neutral point will need,
-    // and dropping them would turn a suspension into data loss.
+  it("is centred on zero, so break-even earns nothing in either direction", () => {
+    // The whole reason the win rate had to go: its neutral point moved with
+    // the outcome mix. In R there is nothing to derive — break-even IS zero.
+    const flat = Array.from(
+      { length: 200 },
+      (_, index) => (index % 2 === 0 ? 0.8 : -0.8),
+    );
     const weight = calculateLearningWeight({
-      ambiguous: 2,
-      losses: 6,
-      total: 20,
-      wins: 12,
+      ambiguous: 0,
+      losses: 100,
+      realizedRCount: flat.length,
+      realizedRSum: flat.reduce((sum, r) => sum + r, 0),
+      realizedRSumSq: flat.reduce((sum, r) => sum + r * r, 0),
+      total: flat.length,
+      wins: 100,
     });
-    assert.equal(weight.winRate, 0.6);
-    assert.ok(weight.sampleWeight > 0, "sample weight stopped being computed");
+    assert.equal(weight.meanRealizedR, 0);
+    assert.equal(weight.confidenceAdjustment, 0);
+  });
+
+  it("refuses a mean it cannot distinguish from zero, in both directions", () => {
+    // Amendment 36's symmetry. A reward answers to the same evidentiary bar
+    // as a penalty, or the model is optimistic by construction.
+    for (const mean of [0.15, -0.15]) {
+      const thin = Array.from(
+        { length: MIN_RESOLUTIONS_FOR_ADJUSTMENT + 5 },
+        (_, index) => mean + (index % 2 === 0 ? 0.85 : -0.85),
+      );
+      const weight = calculateLearningWeight({
+        ambiguous: 0,
+        losses: 0,
+        realizedRCount: thin.length,
+        realizedRSum: thin.reduce((sum, r) => sum + r, 0),
+        realizedRSumSq: thin.reduce((sum, r) => sum + r * r, 0),
+        total: thin.length,
+        wins: 0,
+      });
+      assert.ok(
+        Math.abs(weight.meanRealizedR ?? 0) > 0.1,
+        "fixture lost its point estimate, so the shrinkage is not being tested",
+      );
+      assert.equal(
+        weight.confidenceAdjustment,
+        0,
+        `a mean of ${mean} on ${thin.length} resolutions with sd 0.85 is not ` +
+          `distinguishable from zero, yet it scored ` +
+          `${weight.confidenceAdjustment}`,
+      );
+    }
+  });
+
+  it("needs a real sample before a normal multiplier is honest", () => {
+    // THE DEFECT THIS FLOOR EXISTS FOR. Three resolutions of +0.9/+0.1/+0.9
+    // have a mean of 0.633 and a standard error of 0.267, so 1.96 leaves a
+    // conservative mean of 0.111 and scores +2.2 off three trades. The correct
+    // multiplier at two degrees of freedom is t = 4.303, which puts the bound
+    // below zero.
+    const three = [0.9, 0.1, 0.9];
+    const weight = calculateLearningWeight({
+      ambiguous: 0,
+      losses: 0,
+      realizedRCount: three.length,
+      realizedRSum: three.reduce((sum, r) => sum + r, 0),
+      realizedRSumSq: three.reduce((sum, r) => sum + r * r, 0),
+      total: 3,
+      wins: 3,
+    });
+    assert.equal(weight.conservativeMeanR, null);
+    assert.equal(weight.confidenceAdjustment, 0);
+    // But the mean is still REPORTED. Refusing to score is not refusing to
+    // measure, and a reader looking at why a cohort scores nothing needs it.
+    assert.ok((weight.meanRealizedR ?? 0) > 0.6);
+  });
+
+  it("keeps the retired curve's authority rather than granting itself more", () => {
+    // ANCHORED, not chosen. `(winRate - 0.5) * 20` paid about +3 to a 0.65 win
+    // rate — its typical output, far from its ±10 bound. A genuinely positive
+    // cohort must land in that same band, or this change quietly hands a model
+    // that has just switched measures more influence than the one it replaced.
+    const strong = Array.from(
+      { length: 1000 },
+      (_, index) => 0.2 + (index % 2 === 0 ? 0.8 : -0.8),
+    );
+    const weight = calculateLearningWeight({
+      ambiguous: 0,
+      losses: 500,
+      realizedRCount: strong.length,
+      realizedRSum: strong.reduce((sum, r) => sum + r, 0),
+      realizedRSumSq: strong.reduce((sum, r) => sum + r * r, 0),
+      total: strong.length,
+      wins: 500,
+    });
+    assert.ok(
+      weight.confidenceAdjustment > 1 && weight.confidenceAdjustment < 5,
+      `a +0.2R cohort over 1,000 resolutions scored ` +
+        `${weight.confidenceAdjustment}; the retired curve paid ~3 at its ` +
+        `typical operating point and this must not exceed that band`,
+    );
+    assert.ok(
+      weight.confidenceAdjustment < ADJUSTMENT_CAP,
+      "the cap is a safety rail, not an operating point — if a realistic " +
+        "cohort reaches it, ADJUSTMENT_PER_R is too large",
+    );
+  });
+
+  it("states the constants it is derived from, so a change is visible", () => {
+    assert.equal(CONFIDENCE_Z, 1.96);
+    assert.equal(ADJUSTMENT_PER_R, 20);
+    assert.equal(ADJUSTMENT_CAP, 10);
+    assert.equal(MIN_RESOLUTIONS_FOR_ADJUSTMENT, 30);
   });
 
   it("names the band the old curve got backwards", () => {

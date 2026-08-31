@@ -302,9 +302,16 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     // score 18-24 rather than the abstention's 5. Two of sixteen enumerated
     // states change, both to neutral, so the consensus score moves wherever
     // that vote participated and the learning cohort scopes again.
+    // 2026.08.31.learning-on-realized-r (R2's D1): global learning derived
+    // confidence_adjustment from a win rate against a neutral point of 0.5,
+    // which is break-even only when a win and a loss are the same size. On the
+    // ladder they are not. TWO changes to what is learned from, either of
+    // which alone scopes the cohort — the quantity is mean realized R, and the
+    // population widened to include expired_in_profit and expired_at_loss,
+    // filled trades that banked or lost real money and were excluded outright.
     assert.match(
       calibrationSrc,
-      /ANALYZER_VERSION = "2026\.08\.27\.calendar-provenance"/,
+      /ANALYZER_VERSION = "2026\.08\.31\.learning-on-realized-r"/,
     );
     assert.match(src, /ANALYZER_VERSION,\n/);
 

@@ -28,8 +28,10 @@ import {
   type ResolvedOutcome,
 } from "./replay.ts";
 import { type ExecutionQuality } from "./executionQuality.ts";
-import { calculateLearningWeight,
-  WITHHELD_REASON,
+import {
+  accumulateLearningStats,
+  calculateLearningWeight,
+  CONFIDENCE_Z,
 } from "./learning.ts";
 import {
   calculateMacroRateAdjustment,
@@ -2172,11 +2174,44 @@ async function refreshGlobalStrategyWeights(): Promise<
     };
   }
 
-  const outcomes = await adminFetchRows<{ outcome: string; setup_id: string }>(
-    `trade_outcomes?select=setup_id,outcome&analyzer_version=eq.${
+  // EVERY FILLED RESOLUTION, which is four outcomes wider than this query used
+  // to be. `expired_in_profit` and `expired_at_loss` are filled trades that
+  // banked or lost real money and were excluded outright, because under a win
+  // rate they are neither a win nor a loss and there was nowhere to put them.
+  // Amendment 39 removes the excuse: where realized R exists it governs, and a
+  // review window closing on a position is not an absence of money. Only
+  // `unfilled` (no position was ever taken) and `pending` (not resolved) carry
+  // none, and neither appears here.
+  //
+  // `feedback` is pulled whole rather than through a JSON-path select. It
+  // carries the resolution's legs, so this is the heavier read — but the table
+  // holds zero rows today and a correct query beats an unverified narrower one
+  // on a population that does not exist yet. Revisit when a refresh is
+  // measurably slow, not before.
+  const OUTCOME_LIMIT = 2500;
+  const outcomes = await adminFetchRows<{
+    feedback: Record<string, unknown> | null;
+    outcome: string;
+    setup_id: string;
+  }>(
+    `trade_outcomes?select=setup_id,outcome,feedback&analyzer_version=eq.${
       encodeURIComponent(ANALYZER_VERSION)
-    }&outcome=in.(take_profit,tp1_partial,stop_loss,ambiguous)&order=reviewed_at.desc&limit=2500`,
+    }&outcome=in.(take_profit,tp1_partial,stop_loss,ambiguous,expired_in_profit,expired_at_loss)` +
+      `&order=reviewed_at.desc&limit=${OUTCOME_LIMIT}`,
   );
+  // A full page means the cohort was TRUNCATED to a recency window nobody
+  // declared, and the widened outcome filter admits more rows into the same
+  // cap. Said out loud rather than inferred from a suspiciously round number:
+  // a mean realized R computed over the most recent 2,500 resolutions is a
+  // different measurement from one computed over all of them, and silence
+  // here is what would make the two look alike.
+  if (outcomes.length === OUTCOME_LIMIT) {
+    console.warn(
+      `global learning: read the full ${OUTCOME_LIMIT}-row page, so the ` +
+        `cohort is the most RECENT resolutions at this analyzer version and ` +
+        `not all of them`,
+    );
+  }
   const setupIds = Array.from(
     new Set(outcomes.map((outcome) => outcome.setup_id).filter(Boolean)),
   );
@@ -2217,40 +2252,25 @@ async function refreshGlobalStrategyWeights(): Promise<
     })`,
   );
   const setupsById = new Map(rows.map((row) => [row.id, row]));
-  const grouped = new Map<
-    string,
-    { ambiguous: number; losses: number; total: number; wins: number }
-  >();
-
-  for (const outcomeRow of outcomes) {
-    const row = setupsById.get(outcomeRow.setup_id);
-    if (!row) {
-      continue;
-    }
-    const outcome = outcomeRow.outcome;
-    if (
-      outcome !== "take_profit" && outcome !== "tp1_partial" &&
-      outcome !== "stop_loss" && outcome !== "ambiguous"
-    ) {
-      continue;
-    }
-    const setupKey = extractSetupKey(
-      row.confluence,
-      row.correlation_group,
-      row.symbol,
-    );
-    const current = grouped.get(setupKey) ??
-      { ambiguous: 0, losses: 0, total: 0, wins: 0 };
-    current.total += 1;
-    if (outcome === "take_profit" || outcome === "tp1_partial") {
-      current.wins += 1;
-    } else if (outcome === "stop_loss") {
-      current.losses += 1;
-    } else {
-      current.ambiguous += 1;
-    }
-    grouped.set(setupKey, current);
-  }
+  // Joined to its cohort here; folded in `learning.ts`, which is pure and
+  // therefore testable without a database.
+  const grouped = accumulateLearningStats(
+    outcomes.flatMap((outcomeRow) => {
+      const row = setupsById.get(outcomeRow.setup_id);
+      if (!row) return [];
+      return [{
+        netRealizedR:
+          (outcomeRow.feedback as { netRealizedR?: unknown } | null)
+            ?.netRealizedR,
+        outcome: outcomeRow.outcome,
+        setupKey: extractSetupKey(
+          row.confluence,
+          row.correlation_group,
+          row.symbol,
+        ),
+      }];
+    }),
+  );
 
   const payloads = Array.from(grouped.entries()).map(([setupKey, stats]) => {
     const learningWeight = calculateLearningWeight(stats);
@@ -2259,8 +2279,15 @@ async function refreshGlobalStrategyWeights(): Promise<
       ambiguous: stats.ambiguous,
       analyzer_version: ANALYZER_VERSION,
       confidence_adjustment: roundPrice(learningWeight.confidenceAdjustment),
+      // BOTH the point estimate and the bound the score was derived from. A
+      // row carrying only the adjustment cannot be audited: +1.8 could be a
+      // strong cohort heavily discounted or a modest one barely discounted,
+      // and those want different responses from a reader.
+      conservative_mean_r: learningWeight.conservativeMeanR,
       last_reviewed_at: new Date().toISOString(),
       losses: stats.losses,
+      mean_realized_r: learningWeight.meanRealizedR,
+      realized_r_count: learningWeight.realizedRCount,
       sample_weight: roundPrice(learningWeight.sampleWeight),
       setup_key: setupKey,
       total_setups: stats.total,
@@ -2269,13 +2296,17 @@ async function refreshGlobalStrategyWeights(): Promise<
   });
 
   if (payloads.length > 0) {
-    // Every confidence_adjustment written here is 0 by design
-    // (learning.ts WITHHELD_REASON). Said once per refresh rather than left to
-    // be inferred from a column of zeroes: a table full of zeroes looks
-    // identical to a model that measured no effect, and this one is a refusal.
+    // A ZERO IS NOW A MEASUREMENT, NOT A REFUSAL, and the log has to say which.
+    // Until D1 every adjustment here was 0 by design and this line named the
+    // withholding. Now a 0 means the cohort's mean realized R does not clear
+    // its own 95% error bar — which for a marginal cohort is the correct and
+    // possibly permanent answer. Counting the two states apart is what keeps a
+    // column of zeroes from reading as a broken model.
+    const scored = payloads.filter((row) => row.confidence_adjustment !== 0);
     console.log(
-      `global learning: ${payloads.length} keys updated, confidence_adjustment ` +
-        `withheld — ${WITHHELD_REASON}`,
+      `global learning: ${payloads.length} keys updated, ${scored.length} ` +
+        `scored on mean realized R, ${payloads.length - scored.length} at 0 ` +
+        `(mean not distinguishable from zero at ${CONFIDENCE_Z} SE)`,
     );
     await adminUpsertRows("strategy_weightings_global", payloads, "setup_key");
   }

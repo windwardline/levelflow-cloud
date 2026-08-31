@@ -430,47 +430,69 @@ describe("FMP quote parsing", () => {
   });
 });
 
+/**
+ * Build cohort stats from the ACTUAL resolutions, not from precomputed moments.
+ *
+ * A fixture that states `realizedRSum: 7.5` asserts nothing about whether the
+ * sum matches the trades; one that states the trades cannot disagree with
+ * itself.
+ */
+function cohort(
+  realizedR: number[],
+  counts: { ambiguous: number; losses: number; total: number; wins: number },
+) {
+  return {
+    ...counts,
+    realizedRCount: realizedR.length,
+    realizedRSum: realizedR.reduce((sum, r) => sum + r, 0),
+    realizedRSumSq: realizedR.reduce((sum, r) => sum + r * r, 0),
+  };
+}
+
+/** `n` resolutions alternating around `mean`, so a real error bar exists. */
+function spread(n: number, mean: number, halfWidth = 0.4): number[] {
+  return Array.from(
+    { length: n },
+    (_, index) => mean + (index % 2 === 0 ? halfWidth : -halfWidth),
+  );
+}
+
 describe("global learning weights", () => {
   it("discounts high ambiguity before applying a confidence adjustment", () => {
-    const clean = calculateLearningWeight({
-      ambiguous: 0,
-      losses: 5,
-      total: 25,
-      wins: 20,
-    });
-    const ambiguous = calculateLearningWeight({
-      ambiguous: 25,
-      losses: 5,
-      total: 50,
-      wins: 20,
-    });
+    // THE ORDERING CLAIM IS BACK. It was suspended while the adjustment was
+    // withheld — both sides were 0 and the test could only assert that — and
+    // the note left here said it "returns with a derived neutral point".
+    // D1 derived it: in realized R the neutral point is 0.
+    const wins = spread(60, 0.3);
+    const clean = calculateLearningWeight(
+      cohort(wins, { ambiguous: 0, losses: 5, total: 25, wins: 20 }),
+    );
+    const ambiguous = calculateLearningWeight(
+      cohort(wins, { ambiguous: 25, losses: 5, total: 50, wins: 20 }),
+    );
 
-    // SUSPENDED, NOT DROPPED. This line read
-    //   clean.confidenceAdjustment > ambiguous.confidenceAdjustment
-    // and both are 0 now that the adjustment is withheld (learning.ts
-    // WITHHELD_REASON: the neutral point was 0.5 against a real break-even of
-    // 0.71-0.83, so the sign was inverted across the whole band a TP1 ladder
-    // lives in). The ORDERING claim it made is still the right claim and
-    // returns with a derived neutral point; deleting it would lose the
-    // requirement rather than pause it.
-    assert.equal(clean.confidenceAdjustment, 0);
-    assert.equal(ambiguous.confidenceAdjustment, 0);
-    // The live half, and the one this test was really protecting: ambiguity
-    // discounts the SAMPLE WEIGHT, which is computed exactly as before and is
-    // what a corrected adjustment will be scaled by.
+    assert.ok(
+      clean.confidenceAdjustment > 0,
+      `the clean cohort must actually score, or the ordering below is two ` +
+        `zeroes compared: ${clean.confidenceAdjustment}`,
+    );
+    assert.ok(
+      clean.confidenceAdjustment > ambiguous.confidenceAdjustment,
+      `identical money, more ambiguity, and the discount did not bite: ` +
+        `${clean.confidenceAdjustment} vs ${ambiguous.confidenceAdjustment}`,
+    );
     assert.equal(clean.sampleWeight > ambiguous.sampleWeight, true);
     assert.equal(ambiguous.ambiguityPenalty > 0, true);
   });
 
   it("does not learn aggressively from tiny samples", () => {
-    const weight = calculateLearningWeight({
-      ambiguous: 0,
-      losses: 0,
-      total: 3,
-      wins: 3,
-    });
+    const weight = calculateLearningWeight(
+      cohort(spread(3, 0.5), { ambiguous: 0, losses: 0, total: 3, wins: 3 }),
+    );
 
     assert.equal(weight.sampleWeight, 0);
+    // Three resolutions cannot clear their own error bar, so the mean shrinks
+    // to zero. That is the sample floor now — measured, not a threshold.
     assert.equal(weight.confidenceAdjustment, 0);
   });
 });
@@ -563,23 +585,28 @@ describe("ambiguous resolves AGAINST the trade in learning (2e, round-8 PH-7)", 
     // loss for every scoring purpose — the engine already prices its
     // exit at the stop side, and the learning layer may not quietly
     // resurrect it as a non-event. Win rate is 10/20, not 10/15.
-    const weight = calculateLearningWeight({
-      ambiguous: 5,
-      losses: 5,
-      total: 20,
-      wins: 10,
-    });
+    const weight = calculateLearningWeight(
+      cohort(spread(20, 0.1), {
+        ambiguous: 5,
+        losses: 5,
+        total: 20,
+        wins: 10,
+      }),
+    );
     assert.equal(weight.winRate, 0.5);
-    assert.equal(weight.confidenceAdjustment, 0);
   });
 
   it("a market that is half ambiguous cannot show a positive adjustment", () => {
-    const weight = calculateLearningWeight({
-      ambiguous: 10,
-      losses: 2,
-      total: 20,
-      wins: 8,
-    });
+    // The MONEY is what decides now, and this cohort lost it: eight banked
+    // partials cannot cover ten resolutions priced at the stop side.
+    const weight = calculateLearningWeight(
+      cohort([...spread(8, 0.3), ...spread(2, -1), ...spread(10, -1)], {
+        ambiguous: 10,
+        losses: 2,
+        total: 20,
+        wins: 8,
+      }),
+    );
     assert.ok(
       weight.confidenceAdjustment <= 0,
       `8W/2L/10A must not read as a winner: ${weight.confidenceAdjustment}`,

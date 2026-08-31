@@ -60,15 +60,32 @@ import { isKnownSymbol } from "./symbols.ts";
 // setup_key has nowhere to put a per-market adjustment. Derivation is open;
 // application is not.
 //
-// And amendment 39 may retire the question rather than answer it. Under
-// realized R the neutral point is 0, not a win rate whose pivot depends on the
-// outcome mix — so the per-market break-even that motivated putting the symbol
-// in the key is an artifact of learning from a frequency. Settle the R rewrite
-// (R2's D1) before changing the key; changing it first would buy a cohort
-// boundary for a quantity that is about to stop existing.
+// And amendment 39 DID retire the question rather than answer it — D1 landed
+// 2026-08-31, see below. The per-market break-even that motivated putting the
+// symbol in the key was an artifact of learning from a frequency: under
+// realized R the neutral point is 0 for every market, so a key that pools a
+// correlation group pools cohorts that share a break-even. The symbol does not
+// need to go into the key, and this line no longer defers that decision — it
+// closes it.
 // Scoring input changes, so the cohort scopes again. (Prior:
 // 2026.08.26.oscillator-conflict-abstains.)
-export const ANALYZER_VERSION = "2026.08.27.calendar-provenance";
+// 2026.08.31.learning-on-realized-r: R2's D1. Global learning derived
+// `confidence_adjustment` from a win rate against a neutral point of 0.5,
+// which is break-even only when a win and a loss are the same size. They are
+// not: a `tp1_partial` banks the partial and the runner exits at entry, a
+// `take_profit` banks that AND carries the runner half to at least
+// `minimumTargetRewardRisk`, and both increment `wins`. Derived from shipped
+// calibration — a cohort winning 65% of the time, 65% of those partials, means
+// -0.0055R on forex and -0.049R on indices, and the retired curve paid it +3.
+// The adjustment now comes from mean `netRealizedR` shrunk to the end of its
+// own 95% interval nearest zero, so a cohort too thin to distinguish its mean
+// from zero scores 0 as a MEASUREMENT rather than a withholding.
+// TWO changes to what is learned FROM, either of which alone scopes the
+// cohort: the quantity is money instead of frequency, and the population now
+// includes `expired_in_profit` and `expired_at_loss` — filled trades that
+// banked or lost real money and were excluded outright, because under a win
+// rate they were neither. (Prior: 2026.08.27.calendar-provenance.)
+export const ANALYZER_VERSION = "2026.08.31.learning-on-realized-r";
 
 export type AssetType =
   | "agriculture"

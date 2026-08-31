@@ -19,8 +19,21 @@
 > the defect and must be rebuilt (Phase 0) before anything is re-measured.
 
 
-Model version: `2026.08.27.calendar-provenance` (**not yet deployed**
-— the desk is parked, so this version has never served a request. AXES-9:
+Model version: `2026.08.31.learning-on-realized-r` (**not yet deployed**
+— the desk is parked, so this version has never served a request. R2's D1:
+global learning derived `confidence_adjustment` from a WIN RATE against a
+neutral point of 0.5, which is break-even only when a win and a loss are the
+same size. On the ladder they are not — a `tp1_partial` banks the partial and
+the runner exits at entry, a `take_profit` banks that AND carries the runner
+half to at least `minimumTargetRewardRisk`, and both increment `wins`. Derived
+from shipped calibration: a cohort winning 65% of the time, 65% of those
+partials, means -0.0055R on forex and -0.049R on indices, and the retired
+curve paid it +3 confidence. The adjustment now comes from mean `netRealizedR`
+shrunk to the end of its own 95% interval nearest zero, over a population
+widened by `expired_in_profit` and `expired_at_loss` — filled trades that
+banked or lost real money and were excluded outright. Note the accrual query
+below already counted them; the learning query was the narrow one. Before it,
+`2026.08.27.calendar-provenance`. AXES-9:
 `voteMomentumDivergence` resolved every RSI/MACD disagreement to buy, an
 artifact of OR-chain precedence rather than a choice, and emitted those
 contradictory states at score 18-24 rather than the abstention's 5. Two of
@@ -357,7 +370,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.08.27.calendar-provenance'
+   where o.analyzer_version = '2026.08.31.learning-on-realized-r'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;
