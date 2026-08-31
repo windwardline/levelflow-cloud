@@ -225,6 +225,37 @@ export type SweepOutcomeRecord = {
    * defect #462 shipped and had to fix, so it is the mistake to expect rather
    * than one to hope against.
    */
+  /**
+   * THE LEVELS THE ORDER WAS PLACED AT — entry, stop, and both targets.
+   *
+   * The corpus recorded none of them. `legs` carries FILL prices and is empty
+   * on an unfilled row, so a reader could not say where the order rested, and
+   * §2.6's back-edge shift could not be re-resolved offline against the cache
+   * without a second sweep.
+   *
+   * These are the ALIGNED levels: what the operator would actually have
+   * placed. On the 27 futures-shaped markets they differ from the planned
+   * geometry by the tick grid and the min-stop clamp, and #472 established
+   * that recovering them means running production's own `applyFuturesTickRules`
+   * — so a reader without them reimplements the tick rules and inherits
+   * whatever they have wrong.
+   *
+   * WHICH ANCHOR EACH DISTANCE USES, stated once because the emit now carries
+   * three distances on TWO anchors and the difference is invisible:
+   *   - `stopPivotDistance` and `runnerNearestBeyondMinimum` are measured
+   *     against the PLANNED (unaligned) entry. They are geometry facts about
+   *     where structure sat when the plan was built, and the stop chain and
+   *     the ladder both run before alignment.
+   *   - `unfilledApproachDistance` is measured against the RESTING order —
+   *     the aligned entry below. It is an execution fact about how close price
+   *     came to a level that actually existed in the market.
+   * Both are correct and they are not interchangeable. Mixing them is the
+   * defect #462 shipped and #472 found again one field over.
+   */
+  entryPrice: number;
+  stopLoss: number;
+  takeProfit: number;
+  takeProfit1: number;
   forgoneRunnerR: number | null;
   /**
    * Which protection the runner was under: the axis the give-back has to be
@@ -944,6 +975,10 @@ export function simulateSymbol(input: {
       dailyAtr: plan.dailyAtr,
       grossRewardRisk: plan.grossRewardRisk,
       ladderRewardRisk: plan.ladderRewardRisk,
+      entryPrice: plan.entryPrice,
+      stopLoss: plan.stopLoss,
+      takeProfit: plan.takeProfit,
+      takeProfit1: plan.takeProfit1,
       estimatedRoundTripCost: plan.executionQuality.estimatedRoundTripCost,
       estimatedCommission: plan.executionQuality.estimatedCommission,
       estimatedSlippage: plan.executionQuality.estimatedSlippage,

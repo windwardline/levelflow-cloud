@@ -214,6 +214,57 @@ describe("the corpus carries the figure the Desk calls the payoff", () => {
     }
   });
 
+  it("carries the levels the order was placed at", () => {
+    // §2.6's back-edge shift cannot be re-resolved offline without them, and
+    // `legs` is empty on an unfilled row — so the corpus recorded no price the
+    // order ever rested at. #472 established that recovering the ALIGNED
+    // levels means running production's own tick rules, which is the
+    // reimplementation hazard, so they are columns.
+    const typeAt = SWEEP.indexOf("export type SweepOutcomeRecord = {");
+    const declaration = SWEEP.slice(typeAt, SWEEP.indexOf("\n};", typeAt));
+    for (const field of ["entryPrice", "stopLoss", "takeProfit", "takeProfit1"]) {
+      assert.match(
+        declaration,
+        new RegExp(`^\\s+${field}: number;`, "m"),
+        `\`${field}\` is not a corpus column, so no reader can say where the ` +
+          `order rested`,
+      );
+      assert.match(
+        SWEEP,
+        new RegExp(`${field}: plan\\.${field},`),
+        `\`${field}\` is declared but not taken from the plan`,
+      );
+    }
+  });
+
+  it("says which anchor each of its three distances uses", () => {
+    // The emit carries three distances on TWO anchors: the two geometry
+    // distances against the planned entry, the approach distance against the
+    // resting order. Both correct, neither interchangeable, and mixing them is
+    // the defect #462 shipped and #472 found again one field over. A column of
+    // numbers cannot say which is which, so the record does.
+    const at = SWEEP.indexOf("WHICH ANCHOR EACH DISTANCE USES");
+    assert.ok(
+      at >= 0,
+      "the anchor note is gone — three distances, two anchors, and nothing " +
+        "in the file saying so",
+    );
+    const note = SWEEP.slice(at, at + 1200);
+    for (
+      const field of [
+        "stopPivotDistance",
+        "runnerNearestBeyondMinimum",
+        "unfilledApproachDistance",
+      ]
+    ) {
+      assert.ok(
+        note.includes(field),
+        `the anchor note does not mention ${field}, so a reader cannot tell ` +
+          `which anchor it is on`,
+      );
+    }
+  });
+
   it("keeps the runner's ratio too — they answer different questions", () => {
     // Not a redundancy. `rewardRisk` is what the GATE admits on
     // (`pricePlan.rewardRisk < calibration.minRewardRisk`), and R4 cannot ask
