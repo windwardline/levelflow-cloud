@@ -356,6 +356,18 @@ should measure, and Phase 3 is the ONE re-simulate. Run it after Phase 3
 and the choice is a second full re-sweep or shipping a geometry no
 adversarial pass ever probed.
 
+**RAN 2026-08-31 — `docs/research/r2b-geometry-fresh-eyes-2026-08-31.md`.**
+Six lenses, 24 findings, 9 survived refutation, then every survivor re-derived
+by hand against the shipped per-market calibration. Three dead instruments
+measured on all 98 markets: `window_cap` is unreachable everywhere,
+`tp1Provenance` is constant per market, and 27 markets can never be
+structure-stopped. The geometry budgets a nominal review window the resolver
+then clamps at the weekly close, affecting 5-20% of non-crypto decisions by
+class. **The field list is ONE entry** — widen the rejection ledger's reason
+from `planRejected` to the specific geometry cause, using the `refusal`
+out-channel `buildPricePlan` already offers and `sweep.ts` does not pass. Four
+model questions are recorded for the owner and NOT actioned.
+
 ### Phase 3 — re-sweep, once
 One corpus, one clock, one engine, with the instrument repaired. Item
 2's law still governs: **one re-simulate after the instrument changes,
