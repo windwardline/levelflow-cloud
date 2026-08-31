@@ -50,13 +50,17 @@ export const REVIEW_REWRITES: ReviewRewrite[] = [
     // three decimals would publish a false precision. The direction survives
     // and is the whole reason for the decline.
     //
-    // The wording tracks the no-trade gate's own sentence in
-    // trade-analyzer/index.ts, so a market declined at either gate says the
-    // same thing to the reader.
+    // AND WITHOUT THE COST CLAUSE. Both sides of this rule used to end "after
+    // the venue's published costs", and the claim was false on all fifteen
+    // markets: the cost scale never reached the resolver, so nothing was ever
+    // measured after those costs (docs/research/remediation-program-2026-08-11
+    // .md, and calibration.ts's own register header). The engine's sentence
+    // was corrected with `engineDeclineSentence`; this pattern tracks it,
+    // which is what keeps one wording across both surfaces.
     pattern:
-      /Levelflow does not produce setups for this market: its own measured record is negative after the venue's published costs\.\s*(.*)$/i,
+      /Levelflow does not produce setups for this market: its own measured record is negative\.\s*(.*)$/i,
     to: (_match, reprobe: string) =>
-      `Levelflow's measured record says this market does not earn setups after the venue's costs. ${reprobe}`
+      `Levelflow's measured record says this market does not earn setups. ${reprobe}`
         .trim(),
   },
   {

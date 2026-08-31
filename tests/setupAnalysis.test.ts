@@ -321,10 +321,16 @@ describe("explainNoSetup quotes no score it could not compute", () => {
     // earlier draft of this test anchored mid-template-string and failed
     // against correct code, which is a guard that cries wolf and gets
     // deleted by the next person.
+    // The guard now carries a SECOND condition — `confidenceThreshold > 0` —
+    // because 72 of the 81 calibration entries set the threshold to 0, which
+    // made this sentence read "requires 0 or higher": true of every score, and
+    // an instruction to try harder against a gate that cannot reject. Both
+    // conditions are asserted, so dropping either one fails here.
     assert.match(
       ANALYZER,
-      /if \(pricePlan\) \{\s*\n\s*diagnostics\.push\(\s*\n\s*`The current \$\{consensus\.side\} setup scored/,
-      "the score is quoted without first checking that a plan exists",
+      /if \(pricePlan && calibration\.confidenceThreshold > 0\) \{\s*\n\s*diagnostics\.push\(\s*\n\s*`The current \$\{consensus\.side\} setup scored/,
+      "the score is quoted without first checking that a plan exists and that " +
+        "the threshold can actually reject",
     );
   });
 
@@ -334,8 +340,9 @@ describe("explainNoSetup quotes no score it could not compute", () => {
     // call site cannot slip in beside the guarded one.
     const quotes = ANALYZER.match(/setup scored \$\{confidenceScore\}/g) ?? [];
     assert.equal(quotes.length, 1, "a second score quote appeared — guard it");
-    const guards = ANALYZER.match(/if \(pricePlan\) \{\s*\n\s*diagnostics\.push\(/g) ??
-      [];
+    const guards = ANALYZER.match(
+      /if \(pricePlan && calibration\.confidenceThreshold > 0\) \{\s*\n\s*diagnostics\.push\(/g,
+    ) ?? [];
     assert.equal(guards.length, quotes.length);
   });
 

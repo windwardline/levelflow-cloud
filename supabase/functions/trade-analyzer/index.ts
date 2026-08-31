@@ -1,6 +1,7 @@
 import {
   ANALYZER_VERSION,
   engineDeclines,
+  engineDeclineSentence,
   getAssetType,
   getCategoryCalibration,
 } from "./calibration.ts";
@@ -855,11 +856,30 @@ async function reviewCurrentMarket(
       symbol: normalizedSymbol,
       userId,
     });
+    // THE DECLINE SPEAKS ON `reason`, not only in analysisDiagnostics.
+    //
+    // A declined market is not a near miss and must never be answered as one.
+    // `analysisDiagnostics` carries the honest sentence, but it reaches nobody:
+    // `scanOpportunity` rebuilds the blocked candidate field by field and
+    // `AdvisorWorkspace` rebuilds it AGAIN, and neither carries the field —
+    // two boundaries, which is why widening the server type alone would have
+    // been a no-op (AdvisorWorkspace's own comment says exactly that). So all
+    // fifteen declined markets were answered "No current limit setup met the
+    // review threshold." — a transient sentence inviting a rescan that can
+    // never succeed, against an FMP quota already exhausted twice.
+    //
+    // `reason` is the channel that already crosses both rebuilds. This is the
+    // #457 lesson applied one surface over: the fix for a field lost in
+    // transit is to send it on the wire that arrives, not to widen a second
+    // type and hope.
+    const declined = engineDeclines(normalizedSymbol);
     return {
       analysisDiagnostics,
       blocked: true,
       providerWarnings: marketContext.providerWarnings,
-      reason: "No current limit setup met the review threshold.",
+      reason: declined
+        ? engineDeclineSentence(declined)
+        : "No current limit setup met the review threshold.",
       symbol: normalizedSymbol,
     };
   }
@@ -1477,21 +1497,17 @@ async function explainNoSetup(
     const declined = engineDeclines(symbol);
     if (declined) {
       // The honest sentence for a market the engine will not trade: the
-      // measurement, not a mood, and the door back in.
-      //
-      // The MAGNITUDE is withheld deliberately (SC-5, 2026-08-11). Each
-      // register entry's `measuredExpectancyR` comes from the corpus the
-      // clock defect invalidated, so quoting it to three decimals publishes
-      // a false precision. The direction survives — the defect inflates
-      // expectancy, so a market measured negative under it is very unlikely
-      // to be positive under a correct measurement — and the direction is
-      // the whole reason for the decline. Phase 4 re-derives the number
-      // before any number goes back into this sentence.
-      diagnostics.push(
-        "Levelflow does not produce setups for this market: its own measured " +
-          "record is negative after the venue's published costs. " +
-          declined.reprobe,
-      );
+      // measurement, not a mood, and the door back in. Its wording — and what
+      // it deliberately no longer claims — lives with the register in
+      // calibration.ts, because `reviewCurrentMarket` says the same thing on
+      // the channel that reaches the panel.
+      diagnostics.push(engineDeclineSentence(declined));
+      // RETURN. A decline is permanent for this corpus; everything below is
+      // near-miss reporting about a setup that was never going to be built,
+      // and the score sentence in particular CONTRADICTED this one — it
+      // invited the reader to try again at a higher score on a market whose
+      // record is the reason no score would help.
+      return diagnostics;
     }
     // Quoted ONLY when there is a plan. Without one, `buildPricePlan` returned
     // null and the `executionPenalty: ... ?? 0` above means "not computable",
@@ -1504,7 +1520,16 @@ async function explainNoSetup(
     // Nothing else consumes it: this function returns strings, so the fix is
     // to stop saying it rather than to compute it differently. The refusal
     // below already carries the real cause, and it is the actionable one.
-    if (pricePlan) {
+    // ...and only when the threshold is a BAR the score can fail against.
+    // 72 of the 81 calibration entries carry `confidenceThreshold: 0`, so on
+    // nearly every market this sentence read "scored 47; Levelflow requires 0
+    // or higher" — true of every number, and an instruction to try harder
+    // against a gate that cannot reject. The score was never why those setups
+    // were withheld; the refusals below carry the cause that was.
+    //
+    // Derived from the calibration rather than a market list: a threshold
+    // restored to a positive value starts speaking again with no edit here.
+    if (pricePlan && calibration.confidenceThreshold > 0) {
       diagnostics.push(
         `The current ${consensus.side} setup scored ${confidenceScore}; Levelflow requires ${calibration.confidenceThreshold} or higher for this market.`,
       );

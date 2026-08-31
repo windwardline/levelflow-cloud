@@ -1451,6 +1451,37 @@ export function engineDeclines(symbol: string): EngineDecline | null {
 }
 
 /**
+ * The one operator-facing sentence for a declined market.
+ *
+ * ONE definition because it now has two callers — `explainNoSetup` writes it
+ * into `analysisDiagnostics`, and `reviewCurrentMarket` writes it into
+ * `reason`, which is the only channel that survives BOTH candidate rebuilds
+ * (`index.ts` scanOpportunity and `AdvisorWorkspace` setAnalysisState). Two
+ * literals would drift and the coupling test in `tests/reviewCopyCoupling`
+ * only extracts what the analyzer actually emits.
+ *
+ * WHAT IT NO LONGER CLAIMS. It used to end "...is negative after the venue's
+ * published costs." That clause was false and this file's own header says so:
+ * amendment 36's standard is UNMET for this register, and each entry's
+ * `reason` records that the published-bill-only test "did not reach the
+ * resolver and measured nothing" (`docs/research/remediation-program-2026-08-11.md`,
+ * "the sentence shipped on all fifteen was false"). The engine's internal
+ * record was corrected on 2026-08-11; the sentence the operator reads was not,
+ * so the register and the screen disagreed for nineteen days.
+ *
+ * What survives is what the corpus supports: the record is negative. The
+ * MAGNITUDE stays withheld (SC-5) because every `measuredExpectancyR` here
+ * comes from the corpus the clock defect invalidated, and the DIRECTION
+ * survives that defect only because the defect inflates expectancy — a market
+ * measured negative under it is very unlikely to be positive under a correct
+ * measurement. The reprobe carries the way back in.
+ */
+export function engineDeclineSentence(decline: EngineDecline): string {
+  return "Levelflow does not produce setups for this market: its own " +
+    `measured record is negative. ${decline.reprobe}`.trimEnd();
+}
+
+/**
  * True when the symbol is a Levelflow roster name — the measurement paths
  * (sweep driver, fold-spec deriver) REFUSE unknown symbols instead of
  * inheriting getAssetType's forex fallback: that silent fallback is how

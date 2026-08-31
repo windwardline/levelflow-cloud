@@ -506,12 +506,21 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
       "supabase/functions/trade-analyzer/index.ts",
       "utf8",
     );
-    // The gate itself, and the sentence it gives the reader.
+    // The gate itself, and the sentence it gives the reader. The sentence now
+    // lives with the register (`engineDeclineSentence`) because it has two
+    // callers — the diagnostics writer and the `reason` writer, which is the
+    // only channel that survives both candidate rebuilds — so the assertion
+    // reads the CALL rather than a literal that would only pin one of them.
     assert.match(analyzer, /if \(engineDeclines\(symbol\)\) \{/);
     assert.match(
       analyzer,
-      /Levelflow does not produce setups for this market/,
+      /diagnostics\.push\(engineDeclineSentence\(declined\)\)/,
       "a declined market must SAY so, not fail silently",
+    );
+    assert.match(
+      analyzer,
+      /reason: declined\s*\n?\s*\? engineDeclineSentence\(declined\)/,
+      "the decline must ride `reason` — the channel that reaches the panel",
     );
   });
 
@@ -522,13 +531,21 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
   // stands (its direction is conservative); the fabricated precision does
   // not. Phase 4 re-derives the magnitude before any number goes back.
   it("the decline sentence states the direction, never the invalid magnitude", () => {
-    const analyzer = readFileSync(
-      "supabase/functions/trade-analyzer/index.ts",
+    // Read from calibration.ts, where the sentence now lives. The anchor is
+    // ASSERTED before the slice: `indexOf` returns -1 when the sentence moves,
+    // `slice(-1)` takes the last character, and `doesNotMatch` then passes on
+    // a one-character string forever. This test had that shape until the
+    // sentence actually moved and exposed it — a guard that survives the
+    // disappearance of the thing it guards is not a guard.
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/calibration.ts",
       "utf8",
     );
-    const sentence = analyzer.slice(
-      analyzer.indexOf("Levelflow does not produce setups for this market"),
-    ).slice(0, 400);
+    const at = source.indexOf(
+      "Levelflow does not produce setups for this market",
+    );
+    assert.ok(at >= 0, "the decline sentence is gone from the register");
+    const sentence = source.slice(at, at + 400);
     assert.doesNotMatch(
       sentence,
       /measuredExpectancyR/,
