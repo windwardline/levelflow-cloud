@@ -3,7 +3,14 @@ import {
   type FmpBar,
   normalizeFmpBars,
 } from "./bars.ts";
+import {
+  asStoredBar,
+  type BarStoreDeps,
+  readThrough,
+  type StoredBar,
+} from "./barStore.ts";
 import { parseFmpQuoteSnapshot, type QuoteSnapshot } from "./quotes.ts";
+import { adminFetchRows, adminUpsertRows } from "./supabaseRest.ts";
 import { labelZoneFor } from "./venues.ts";
 import {
   type Bar,
@@ -305,28 +312,19 @@ async function fetchFmpQuoteSnapshot(
   }
 }
 
-export async function fetchFmpBars(
+/**
+ * Buy one date window of raw provider rows. No store, no cache, no
+ * normalization — this is the wire call and nothing else, so the read-through
+ * above it can decide WHAT to buy without duplicating how.
+ */
+async function fetchRawWindow(
   fmpSymbol: string,
   timeframe: Timeframe,
   recordEvent: MarketDataEventRecorder,
   fetchWithTimeout: FetchWithTimeout,
-) {
-  const cacheKey = `${fmpSymbol}:${timeframe}`;
-  const cached = candleCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
-    await recordEvent({
-      action: "market_data_fetch",
-      cacheHit: true,
-      providerSymbol: fmpSymbol,
-      status: "cache_hit",
-      metadata: {
-        bars: cached.bars.length,
-        timeframe,
-      },
-    });
-    return cached.bars;
-  }
-
+  windowFrom: string,
+  windowTo: string,
+): Promise<StoredBar[]> {
   const endpoint = timeframe === "1day"
     ? new URL(
       `${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-price-eod/full`,
@@ -336,9 +334,8 @@ export async function fetchFmpBars(
     );
   endpoint.searchParams.set("symbol", fmpSymbol);
   endpoint.searchParams.set("apikey", FMP_API_KEY ?? "");
-  const window = defaultDateWindow(timeframe);
-  endpoint.searchParams.set("from", window.from);
-  endpoint.searchParams.set("to", window.to);
+  endpoint.searchParams.set("from", windowFrom);
+  endpoint.searchParams.set("to", windowTo);
 
   const startedAt = performance.now();
   let response: Response;
@@ -427,9 +424,78 @@ export async function fetchFmpBars(
     throw new Error(`FMP ${timeframe} response was not an array`);
   }
 
+  // RAW ROWS OUT, not normalized bars. Normalization happens once, above, over
+  // the window MERGED with the store — so the spike guard sees both
+  // neighbours of every bar instead of being handed a one-date chunk it
+  // cannot check, and nothing is ever persisted stamped under a BAR_CLOCK
+  // revision.
+  const rows: StoredBar[] = [];
+  for (const entry of payload) {
+    const row = asStoredBar(entry);
+    if (row !== null) rows.push(row);
+  }
+  return rows;
+}
+
+/**
+ * Bars for one series: read what the store already owns, buy only the window
+ * it does not, merge, and normalize the whole thing.
+ *
+ * The signature and the return are unchanged, so every caller — the analyzer's
+ * loader, outcome-sync, and the deploy-time E2E that exercises both — is
+ * fixed by this one function.
+ */
+export async function fetchFmpBars(
+  fmpSymbol: string,
+  timeframe: Timeframe,
+  recordEvent: MarketDataEventRecorder,
+  fetchWithTimeout: FetchWithTimeout,
+) {
+  const cacheKey = `${fmpSymbol}:${timeframe}`;
+  const cached = candleCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    await recordEvent({
+      action: "market_data_fetch",
+      cacheHit: true,
+      providerSymbol: fmpSymbol,
+      status: "cache_hit",
+      metadata: {
+        bars: cached.bars.length,
+        timeframe,
+      },
+    });
+    return cached.bars;
+  }
+
+  const limit = maxBarsForTimeframe(timeframe);
+  const coldStart = defaultDateWindow(timeframe);
+  const result = await readThrough(barStoreDeps(), {
+    coldStartFrom: coldStart.from,
+    fetchWindow: (from, to) =>
+      fetchRawWindow(fmpSymbol, timeframe, recordEvent, fetchWithTimeout, from, to),
+    limit,
+    providerSymbol: fmpSymbol,
+    timeframe,
+    today: coldStart.to,
+  });
+
+  // A store outage falls back to a full fetch rather than taking the desk
+  // down for a cache — but it is RECORDED, because a silent fallback is a
+  // cost regression that looks exactly like working software.
+  if (result.storeUnavailable) {
+    await recordEvent({
+      action: "market_data_fetch",
+      providerSymbol: fmpSymbol,
+      status: "store_unavailable",
+      message:
+        "bar store unreachable — this series was bought in full, not topped up",
+      metadata: { fetchedRows: result.fetchedRows, timeframe },
+    });
+  }
+
   const bars = normalizeFmpBars(
-    payload as FmpBar[],
-    maxBarsForTimeframe(timeframe),
+    result.rows as unknown as FmpBar[],
+    limit,
     labelZoneFor(fmpSymbol),
   );
 
@@ -441,6 +507,60 @@ export async function fetchFmpBars(
   // Shared with the cache rather than copied: every consumer reads bars and
   // builds its own arrays, and tests/barDecode.test.ts keeps it that way.
   return bars;
+}
+
+/**
+ * The store's database access, kept behind one function so `readThrough` never
+ * imports PostgREST and stays testable without a network.
+ *
+ * Reads NEWEST-FIRST and limited: the decode cap is what the engine reads, and
+ * `findSwingPivots` walks the whole array into the stop and the ladder, so the
+ * limit is a money-path input rather than a page size.
+ */
+function barStoreDeps(): BarStoreDeps {
+  return {
+    read: async (providerSymbol, timeframe, limit) => {
+      const rows = await adminFetchRows<
+        {
+          close: number;
+          high: number;
+          low: number;
+          open: number;
+          provider_date: string;
+          volume: number;
+        }
+      >(
+        `market_bars?select=provider_date,open,high,low,close,volume` +
+          `&provider_symbol=eq.${encodeURIComponent(providerSymbol)}` +
+          `&timeframe=eq.${encodeURIComponent(timeframe)}` +
+          `&order=provider_date.desc&limit=${limit}`,
+      );
+      return rows.map((row) => ({
+        close: row.close,
+        date: row.provider_date,
+        high: row.high,
+        low: row.low,
+        open: row.open,
+        volume: row.volume,
+      }));
+    },
+    write: async (providerSymbol, timeframe, rows) => {
+      await adminUpsertRows(
+        "market_bars",
+        rows.map((row) => ({
+          close: row.close,
+          high: row.high,
+          low: row.low,
+          open: row.open,
+          provider_date: row.date,
+          provider_symbol: providerSymbol,
+          timeframe,
+          volume: row.volume,
+        })),
+        "provider_symbol,timeframe,provider_date",
+      );
+    },
+  };
 }
 
 function pickPrimaryTimeframe(
