@@ -34,9 +34,21 @@ const bar = (date: string, close = 100): StoredBar => ({
 });
 
 describe("the window to buy", () => {
+  const ask = (over: Partial<Parameters<typeof windowToBuy>[0]> = {}) =>
+    windowToBuy({
+      coldStartFrom: "2022-07-19",
+      limit: 3,
+      newestStoredDate: "2026-08-30",
+      oldestStoredDate: "2026-08-28",
+      startDateIsBinding: false,
+      storedCount: 3,
+      today: "2026-08-31",
+      ...over,
+    });
+
   it("buys the full cold-start window when the store is empty", () => {
     assert.deepEqual(
-      windowToBuy(null, "2026-08-31", "2022-07-19"),
+      ask({ newestStoredDate: null, oldestStoredDate: null, storedCount: 0 }),
       { from: "2022-07-19", to: "2026-08-31" },
     );
   });
@@ -47,23 +59,46 @@ describe("the window to buy", () => {
     // was still FORMING, so the store's copy is partial by construction.
     // Skipping it would leave a permanent hole at every date boundary — the
     // afternoon's bars for a date first seen at 09:00 would never be bought.
+    assert.deepEqual(ask(), { from: "2026-08-30", to: "2026-08-31" });
     assert.deepEqual(
-      windowToBuy("2026-08-30", "2026-08-31", "2022-07-19"),
-      { from: "2026-08-30", to: "2026-08-31" },
-    );
-    // Same date: still re-bought, which is what completes today intraday.
-    assert.deepEqual(
-      windowToBuy("2026-08-31", "2026-08-31", "2022-07-19"),
+      ask({ newestStoredDate: "2026-08-31" }),
       { from: "2026-08-31", to: "2026-08-31" },
+      "today must be re-bought too, which is what completes it intraday",
+    );
+  });
+
+  it("buys the FULL window while the store is shallower than the caller needs", () => {
+    // The truncation this would otherwise cause is silent and expensive:
+    // `maxBarsForTimeframe` is what the engine decodes and `findSwingPivots`
+    // walks the whole array into the stop and the ladder, so a shallow store
+    // plus a one-date tail hands the engine fewer pivots than today and moves
+    // stops. Under-depth costs exactly today's price — a warming store never
+    // regresses anything, it has simply not started saving yet.
+    assert.deepEqual(
+      ask({ limit: 3000, storedCount: 50 }),
+      { from: "2022-07-19", to: "2026-08-31" },
+    );
+  });
+
+  it("buys the FULL window when a binding start reaches past the store", () => {
+    // A chart asking further back than the store holds cannot be served by
+    // topping up the newest end, or the series silently begins where the
+    // store happens to start rather than where the caller asked.
+    assert.deepEqual(
+      ask({ coldStartFrom: "2020-01-01", startDateIsBinding: true }),
+      { from: "2020-01-01", to: "2026-08-31" },
+    );
+    // The analyzer's lookback is NOT binding — the decode cap governs — so the
+    // same shape still takes the tail.
+    assert.deepEqual(
+      ask({ coldStartFrom: "2020-01-01", startDateIsBinding: false }),
+      { from: "2026-08-30", to: "2026-08-31" },
     );
   });
 
   it("never asks for a window that ends before it starts", () => {
-    // A store holding a date AFTER today — a provider stamping ahead, or clock
-    // skew — would otherwise produce a reversed range the provider answers
-    // unpredictably.
     assert.deepEqual(
-      windowToBuy("2026-09-05", "2026-08-31", "2022-07-19"),
+      ask({ newestStoredDate: "2026-09-05" }),
       { from: "2026-08-31", to: "2026-08-31" },
     );
   });
@@ -143,7 +178,10 @@ describe("the read-through, end to end", () => {
         asked = { from, to };
         return [bar("2026-08-31")];
       },
-      limit: 3000,
+      // Limit matches what the store holds: a store shallower than the
+      // caller needs correctly buys the FULL window, so a warm-path test must
+      // actually be warm or it measures the cold path and calls it warm.
+      limit: 1,
       providerSymbol: "EURUSD",
       timeframe: "15min",
       today: "2026-08-31",
@@ -180,7 +218,7 @@ describe("the read-through, end to end", () => {
     return readThrough(d, {
       coldStartFrom: "2022-07-19",
       fetchWindow: async () => [bar("2026-08-31")],
-      limit: 3000,
+      limit: 1,
       providerSymbol: "EURUSD",
       timeframe: "15min",
       today: "2026-08-31",
@@ -222,7 +260,7 @@ describe("the read-through, end to end", () => {
     return readThrough(d, {
       coldStartFrom: "2022-07-19",
       fetchWindow: async () => [bar("2026-08-31")],
-      limit: 3000,
+      limit: 1,
       providerSymbol: "EURUSD",
       timeframe: "15min",
       today: "2026-08-31",
@@ -334,6 +372,68 @@ describe("the store holds RAW rows, and the loader normalizes over the merge", (
       migration,
       /grant\s+(select|all)[^;]*\bto\b[^;]*\b(anon|authenticated)\b/i,
       "a client role was granted access to the price history",
+    );
+  });
+});
+
+describe("the chart feed shares the store rather than duplicating it", () => {
+  const CHART = readFileSync("supabase/functions/market-data/index.ts", "utf8");
+  const LOADER = readFileSync(
+    "supabase/functions/trade-analyzer/marketLoader.ts",
+    "utf8",
+  );
+
+  it("reads through the SAME store as the analyzer", () => {
+    // The chart feed carried an independent copy of the whole fetcher — same
+    // endpoints, same windows, same symbols — so a user opening a chart on a
+    // market the analyzer had just scanned paid for that history twice.
+    assert.match(CHART, /readThrough\(barStoreDeps\(\), \{/);
+    assert.match(LOADER, /readThrough\(barStoreDeps\(\), \{/);
+  });
+
+  it("uses ONE database wiring, not a copy in each caller", () => {
+    // Two `barStoreDeps` would be two ideas of what a stored row looks like,
+    // and they would drift the first time either changed.
+    const db = readFileSync(
+      "supabase/functions/trade-analyzer/barStoreDb.ts",
+      "utf8",
+    );
+    assert.match(db, /export function barStoreDeps\(\): BarStoreDeps \{/);
+    for (const [name, source] of [["chart", CHART], ["loader", LOADER]] as const) {
+      assert.match(
+        source,
+        /import \{ barStoreDeps \} from "[^"]*barStoreDb\.ts";/,
+        `${name} defines its own store wiring instead of importing the shared one`,
+      );
+      assert.doesNotMatch(
+        source,
+        /function barStoreDeps\(/,
+        `${name} still carries a local copy of the store wiring`,
+      );
+    }
+  });
+
+  it("treats the chart's requested start as BINDING, and the analyzer's as not", () => {
+    // A chart names a start date; serving it a series that begins where the
+    // store happens to start would silently answer a different question. The
+    // analyzer asks for a fixed lookback and the decode cap governs, so its
+    // start is not binding and it can always take the tail.
+    assert.match(CHART, /startDateIsBinding: true,/);
+    assert.doesNotMatch(
+      LOADER,
+      /startDateIsBinding: true,/,
+      "the analyzer now demands full coverage of a lookback the cap discards, " +
+        "which would buy the whole window on every scan and undo the saving",
+    );
+  });
+
+  it("still returns only the range the chart asked for", () => {
+    // The store's span is whatever has accumulated; the caller's is what it
+    // requested. Returning the store's span would widen a chart silently.
+    assert.match(
+      CHART,
+      /row\.date\.slice\(0, 10\) >= from && row\.date\.slice\(0, 10\) <= to/,
+      "the chart returns the store's whole span rather than the requested range",
     );
   });
 });
