@@ -779,6 +779,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     acceptanceOverride?: { captureAll: boolean; ignoreLowEdge: boolean },
     modeledCostScaleOverride?: number,
     decisionsOverride?: SweepManifest["decisions"],
+    engineDeclinedOverride?: string[],
   ): string => {
     const dir = mkdtempSync(join(tmpdir(), "gate-shard-"));
     const emitPath = join(dir, "shard.jsonl");
@@ -792,6 +793,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       ...(modeledCostScaleOverride !== undefined &&
         { modeledCostScale: modeledCostScaleOverride }),
       ...(decisionsOverride && { decisions: decisionsOverride }),
+      ...(engineDeclinedOverride && { engineDeclined: engineDeclinedOverride }),
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
@@ -1108,6 +1110,44 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       24,
       "two shards of one sweep refused each other over their own row counts, " +
         "or pooled to a different population than the sibling test's",
+    );
+  });
+
+  it("POOLS shards whose engineDeclined differs — the sweep never reads it", async () => {
+    // `sweep.ts` imports `getCategoryCalibration` and nothing else from
+    // `calibration.ts`, so the decline register has ZERO causal influence on
+    // the rows: two shards produced under different registers are still one
+    // measurement. Putting it in the identity would refuse a legitimate shard
+    // set over a fact that changed nothing about what was measured.
+    const graded = await gradeCorpus([
+      shardWith(
+        shardRows("EURUSD"),
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        ["AAVEUSD", "CAKEUSD"],
+      ),
+      shardWith(
+        shardRows("GBPUSD"),
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        ["DOGEUSD"],
+      ),
+    ], { permutations: 50, seed: 6 });
+    const verdict = graded.verdicts.get("forex")!.get("wide")!;
+    assert.equal(
+      verdict.selectFilled,
+      24,
+      "two shards refused each other over a register neither sweep read",
     );
   });
 

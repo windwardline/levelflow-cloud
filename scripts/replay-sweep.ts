@@ -31,6 +31,7 @@ import {
   MODELED_COST_SCALE_REACHES_RESOLVER,
   modeledCostScaleFromEnv,
 } from "../supabase/functions/trade-analyzer/executionQuality.ts";
+import { ENGINE_DECLINED_MARKETS } from "../supabase/functions/trade-analyzer/calibration.ts";
 import {
   fetchFmpJsonWithRetry,
   fetchFmpWithRetry,
@@ -1116,6 +1117,11 @@ async function main() {
       // thing to drift.
       modeledCostScale,
       ...(decisions.length > 0 && { decisions }),
+      // Which markets the engine was declining when this ran. Symbols only:
+      // the register's expectancy figures come from the corpus the 2026-08-11
+      // clock defect invalidated, and `source.revision` recovers them with
+      // their caveats for anyone who needs them.
+      engineDeclined: Object.keys(ENGINE_DECLINED_MARKETS).sort(),
       analyzerVersion: ANALYZER_VERSION,
       ...(emitColumns && { emitColumns }),
       anchor: isoDate(new Date()),
