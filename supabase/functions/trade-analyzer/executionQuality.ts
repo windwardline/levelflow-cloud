@@ -405,6 +405,17 @@ export function modeledCostScaleFromEnv(): number {
  */
 export const MODELED_COST_SCALE_REACHES_RESOLVER = true;
 
+/**
+ * Amendment 36's arm: E8's PUBLISHED bill and nothing of ours.
+ *
+ * "A market may not be withdrawn on a flawed parameter of our own making."
+ * The modelled spread and slippage are ours — for crypto they rest on a single
+ * Monday-afternoon book sample `venueCosts` itself warns "is not a cost model"
+ * — so the arm that tests a decline charges neither, while the commission,
+ * which is the venue's own number, is charged in full at every scale.
+ */
+export const GROSS_COST_SCALE = 0;
+
 /** What the resolver charges, from one execution-quality reading. */
 export type ResolverCostOptions = {
   gapExitSlippage: number;

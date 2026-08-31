@@ -6,6 +6,7 @@ import {
 import { completedDailySeries } from "./dailyCompletion.ts";
 import { buildPricePlan } from "./pricePlan.ts";
 import {
+  GROSS_COST_SCALE,
   modeledCostScaleFromEnv,
   resolverCostOptions,
 } from "./executionQuality.ts";
@@ -140,6 +141,32 @@ export type SweepOutcomeRecord = {
   noBarsInReviewWindow?: true;
   outcome: Exclude<ResolvedOutcome, "pending">;
   realizedR: number;
+  /**
+   * THE SAME DECISION, RE-PRICED AT THE PUBLISHED BILL ALONE.
+   *
+   * Amendment 36's re-decision needs a gross reading and a net one. The cost
+   * scale is a per-process environment read, so `--grid` cannot produce two
+   * arms in one run — and the sequence budgets ONE re-sweep against an
+   * exhausted FMP allowance. These two columns retire that problem: the
+   * resolver is pure given (bars, plan, options), so a second resolution at
+   * `GROSS_COST_SCALE` costs CPU and not one byte of bandwidth.
+   *
+   * PAIRED, WHICH IS WHY IT IS TWO COLUMNS AND NOT TWO CORPORA. Running the
+   * whole sweep at a second scale would also move the payoff GATE, so the two
+   * arms would carry different accepted populations and the comparison would
+   * confound the cost question with a selection effect — and systematically,
+   * since a looser gate admits MARGINAL setups, which drags the gross arm down
+   * and biases toward keeping a decline. Here the decision set is identical by
+   * construction and only the execution assumptions differ, so the comparison
+   * answers the question amendment 36 actually asks.
+   *
+   * The outcome is carried too, not just the R: a smaller half-spread changes
+   * where the limit fills, so a decision unfilled under the full model can
+   * fill under the published bill alone. That is a real consequence of the
+   * cost model, not an artifact, and a reader needs to see it.
+   */
+  grossRealizedR: number;
+  grossOutcome: Exclude<ResolvedOutcome, "pending">;
   regime: string;
   // E1's tier, per row (emit symmetry with the live writers'
   // feedback.resolutionIntervalMs): 300000 when the 5-minute series
@@ -946,43 +973,64 @@ export function simulateSymbol(input: {
     } else {
       resolutionBars = input.primaryBars.slice(index + 1);
     }
-    const evaluation = evaluateSetupOutcome(
-      {
-        created_at: new Date(latest.time).toISOString(),
-        limit_entry: plan.entryPrice,
-        side: consensus.side,
-        stop_loss: plan.stopLoss,
-        symbol: input.symbol,
-        take_profit: plan.takeProfit,
-        take_profit_1: plan.takeProfit1,
-      },
-      resolutionBars,
-      resolutionTime,
-      {
-        // Engine v2 (round-8 FR-1/3/5/7/8, LA-2): the venue's fills. The
-        // spread lives in the TRIGGERS and the expiry print, gap slippage
-        // in gapped exits — so the leg accountant charges only what the
-        // prints cannot carry: the commission.
-        //
-        // M5 (2026-08-31): through `resolverCostOptions`, so the modelled
-        // cost scale reaches the RESOLVER and a gross arm measures gross R.
-        // These three used to be written out by hand here and again in
-        // `fillOptionsFromRiskModel`, and the scale reached neither — it
-        // moved `estimatedRoundTripCost` alone, which is the payoff gate.
-        ...resolverCostOptions(plan.executionQuality, modeledCostScale),
-        barIntervalMs: resolutionIntervalMs,
-        reviewHours: calibration.defaultReviewHours,
-        runnerProtection: calibration.runnerProtection,
-        sameBarProtectionArming: true,
-        // FR-5's stream begins one decision bar after creation on BOTH
-        // tiers, and the no-bars marker's could-a-completed-bar-exist
-        // question must ask about this stream, not the decision bar's
-        // own slot (#364 round 4, finding 1 — the Friday weekly-clamp
-        // false mark).
-        streamStartsAtMs: latest.time + 15 * 60 * 1000,
-      },
-    );
-    if (evaluation.state !== "resolved") {
+    // ONE RESOLUTION SHAPE, TWO COST ARMS. Everything except the cost triple
+    // is identical by construction rather than by two call sites agreeing —
+    // which is the mistake `resolverCostOptions` was extracted to end.
+    //
+    // The side is captured OUTSIDE the closure: `consensus.side` is narrowed
+    // by a guard above, and a closure re-widens it to `Side | null`.
+    const resolvedSide = consensus.side;
+    const resolveAtScale = (scale: number) =>
+      evaluateSetupOutcome(
+        {
+          created_at: new Date(latest.time).toISOString(),
+          limit_entry: plan.entryPrice,
+          side: resolvedSide,
+          stop_loss: plan.stopLoss,
+          symbol: input.symbol,
+          take_profit: plan.takeProfit,
+          take_profit_1: plan.takeProfit1,
+        },
+        resolutionBars,
+        resolutionTime,
+        {
+          // Engine v2 (round-8 FR-1/3/5/7/8, LA-2): the venue's fills. The
+          // spread lives in the TRIGGERS and the expiry print, gap slippage
+          // in gapped exits — so the leg accountant charges only what the
+          // prints cannot carry: the commission.
+          //
+          // M5 (2026-08-31): through `resolverCostOptions`, so the modelled
+          // cost scale reaches the RESOLVER and a gross arm measures gross R.
+          // These three used to be written out by hand here and again in
+          // `fillOptionsFromRiskModel`, and the scale reached neither — it
+          // moved `estimatedRoundTripCost` alone, which is the payoff gate.
+          ...resolverCostOptions(plan.executionQuality, scale),
+          barIntervalMs: resolutionIntervalMs,
+          reviewHours: calibration.defaultReviewHours,
+          runnerProtection: calibration.runnerProtection,
+          sameBarProtectionArming: true,
+          // FR-5's stream begins one decision bar after creation on BOTH
+          // tiers, and the no-bars marker's could-a-completed-bar-exist
+          // question must ask about this stream, not the decision bar's
+          // own slot (#364 round 4, finding 1 — the Friday weekly-clamp
+          // false mark).
+          streamStartsAtMs: latest.time + 15 * 60 * 1000,
+        },
+      );
+
+    const evaluation = resolveAtScale(modeledCostScale);
+    // The gross arm: the same decision, charged E8's published commission and
+    // none of our modelled spread or slippage. Resolved unconditionally rather
+    // than behind a flag, because R3 is ONE re-sweep against an exhausted
+    // allowance and a flag nobody set is exactly how a second one gets needed.
+    const grossEvaluation = resolveAtScale(GROSS_COST_SCALE);
+
+    // BOTH ARMS OR NEITHER. The cost options are finite on both, so a plan the
+    // net arm can grade the gross arm can too — but asserting that by emitting
+    // a fabricated gross outcome would be the fabrication this file refuses
+    // everywhere else. A decision graded on one arm and guessed on the other
+    // is not a paired comparison, and the pairing is the whole point.
+    if (evaluation.state !== "resolved" || grossEvaluation.state !== "resolved") {
       // E2's sweep half (R1b): this used to wear planRejected — "no future
       // bars inside the review window" counted as a plan verdict. That
       // case now RESOLVES: the resolver's far-future clock turns every
@@ -1088,6 +1136,18 @@ export function simulateSymbol(input: {
       // `netRealizedR` beside it, which is what the Desk reads. One name, two
       // cost bases, on the measure amendment 39 governs: a reader joining the
       // corpus to a live row on `realizedR` compares net against gross.
+      // THE GROSS TWIN, on the same decision. The commission is charged in
+      // full on BOTH arms — it is E8's published number, not a parameter of
+      // ours, and amendment 36's standard is about the latter. What differs is
+      // the spread and slippage already priced into the leg prints, so the two
+      // figures subtract to exactly our modelled cost on this trade.
+      grossRealizedR: realizedRFromLegs({
+        legs: grossEvaluation.legs,
+        perLegCost: plan.executionQuality.estimatedCommission / 2,
+        riskDistance: Math.abs(plan.entryPrice - plan.stopLoss),
+        side: resolvedSide,
+      }),
+      grossOutcome: grossEvaluation.outcome,
       realizedR: realizedRFromLegs({
         legs: evaluation.legs,
         // v2: spread and slippage are IN the leg prints (bid/ask triggers,

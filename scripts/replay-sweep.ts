@@ -28,6 +28,7 @@ import {
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
+  GROSS_COST_SCALE,
   MODELED_COST_SCALE_REACHES_RESOLVER,
   modeledCostScaleFromEnv,
 } from "../supabase/functions/trade-analyzer/executionQuality.ts";
@@ -1158,6 +1159,7 @@ async function main() {
       // than a second parse of the same variable — a second clamp is a second
       // thing to drift.
       modeledCostScale,
+      grossCostScale: GROSS_COST_SCALE,
       ...(decisions.length > 0 && { decisions }),
       // Which markets the engine was declining when this ran. Symbols only:
       // the register's expectancy figures come from the corpus the 2026-08-11
