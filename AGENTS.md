@@ -42,10 +42,12 @@ commit SHA with a trailing comment naming an immutable full tag that SHA actuall
 carries — `# v7.0.1`, never a floating major such as `# v7`.
 
 An advisory Claude review runs through `claude-review.yml` on eligible same-repo PR
-events when `github.actor` — the original event actor — is not `dependabot[bot]`.
-The caller deliberately uses the fleet reusable at `@main`, so one merge updates
-every repo. Fork events and runs without `CLAUDE_CODE_OAUTH_TOKEN` skip by security
-design. Reviews bill the owner's Claude subscription, not Console credits.
+events when `github.event.pull_request.user.login` — the PR author, stable across
+manual reruns — is not `dependabot[bot]` and `github.base_ref` equals
+`github.event.repository.default_branch`. The caller deliberately uses the fleet
+reusable at `@main`, so one merge updates every repo. Fork events and runs without
+`CLAUDE_CODE_OAUTH_TOKEN` skip by security design. Reviews bill the owner's Claude
+subscription, not Console credits.
 `retry-infra-failures.yml` re-runs a workflow that died on GitHub's infrastructure,
 capped at two attempts.
 
