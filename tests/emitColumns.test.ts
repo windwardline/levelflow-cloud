@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 import { assertEmitColumns } from "../scripts/sweepStats.ts";
 import { buildDecisionMarketContext } from "../supabase/functions/trade-analyzer/sweep.ts";
+import { ENGINE_DECLINED_MARKETS } from "../supabase/functions/trade-analyzer/calibration.ts";
 
 /**
  * The corpus declares which columns it has, so a reader can refuse instead of
@@ -287,6 +288,76 @@ describe("the cost scale is stated, and refused while it is inert", () => {
       /input\.modeledCostScale !== undefined &&/,
       "a falsy check would drop scale 0 — the one arm the remediation " +
         "actually ran, and the one most in need of being stated",
+    );
+  });
+});
+
+/**
+ * The decline register, pinned to the corpus that ran under it.
+ *
+ * R4 rewrites this register by design, so a corpus produced before that has to
+ * say which markets the engine was refusing at the time — otherwise a reader
+ * grading the corpus against TODAY's register is comparing two populations and
+ * calling the difference a result.
+ */
+describe("the corpus pins which markets the engine was declining", () => {
+  const DRIVER_SRC = readFileSync("scripts/replay-sweep.ts", "utf8");
+  const MANIFEST_SRC = readFileSync("scripts/sweepManifest.ts", "utf8");
+
+  it("derives the list from the register rather than restating it", () => {
+    assert.match(
+      DRIVER_SRC,
+      /engineDeclined: Object\.keys\(ENGINE_DECLINED_MARKETS\)\.sort\(\),/,
+      "the driver keeps its own copy of the decline list, which is how a " +
+        "list goes stale against the thing it mirrors",
+    );
+  });
+
+  it("records SYMBOLS ONLY, never the invalidated expectancy", () => {
+    // Every `measuredExpectancyR` in the register comes from the corpus the
+    // 2026-08-11 clock defect invalidated. SC-5 withholds the magnitude from
+    // the operator for that reason and #471 removed the last place it leaked;
+    // writing it into a manifest would put an invalid number where provenance
+    // goes. `source.revision` recovers the figures with their caveats.
+    const at = MANIFEST_SRC.indexOf("engineDeclined?: string[];");
+    assert.ok(at >= 0, "engineDeclined is no longer a plain symbol list");
+    const declarations = MANIFEST_SRC.match(/engineDeclined\??:[^;]*/g) ?? [];
+    assert.ok(declarations.length >= 2, "the field lost a declaration");
+    for (const declaration of declarations) {
+      assert.doesNotMatch(
+        declaration,
+        /measuredExpectancyR/,
+        "the manifest is carrying a figure the repo says must not be trusted",
+      );
+    }
+    assert.doesNotMatch(
+      DRIVER_SRC,
+      /engineDeclined:[\s\S]{0,120}measuredExpectancyR/,
+      "the driver is writing the invalidated magnitude into the manifest",
+    );
+  });
+
+  it("is sorted at the boundary, so roster order cannot re-hash a corpus", () => {
+    assert.match(
+      MANIFEST_SRC,
+      /engineDeclined: \[\.\.\.input\.engineDeclined\]\.sort\(\),/,
+    );
+  });
+
+  it("covers the whole register, not a sample", () => {
+    // Executed against the real register: the list the driver writes IS its
+    // key set, so a market added to the register joins the manifest with no
+    // second edit.
+    const declined = Object.keys(ENGINE_DECLINED_MARKETS).sort();
+    assert.ok(
+      declined.length >= 15,
+      `the register holds ${declined.length} markets — if it shrank, the ` +
+        `manifest's claim shrank with it and that is worth reading`,
+    );
+    assert.deepEqual(
+      declined,
+      [...declined].sort(),
+      "the driver's sort is what makes this comparable across runs",
     );
   });
 });

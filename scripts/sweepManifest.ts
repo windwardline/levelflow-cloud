@@ -758,6 +758,37 @@ export type SweepManifest = {
     symbol: string;
     variant: string;
   }>;
+  /**
+   * The markets the ENGINE was declining when this corpus was produced.
+   *
+   * TOP LEVEL, not `symbols[].engineDecline`, for the reason `requestedSymbols`
+   * is: a declined market may produce no row at all, and a row-less market has
+   * nowhere to carry a per-symbol flag. R5 is exactly that population.
+   *
+   * SYMBOLS ONLY — deliberately NOT the `measuredExpectancyR` each decline
+   * rests on. Every figure in that register comes from the corpus the
+   * 2026-08-11 clock defect invalidated; SC-5 withholds the magnitude from the
+   * operator for that reason and #471 removed the last place it leaked. Writing
+   * it into a manifest would put an invalid number where provenance goes, and
+   * `source.revision` recovers the exact register — figures included — for
+   * anyone who needs it with its caveats attached.
+   *
+   * OUTSIDE `conditions`: R4 rewrites this register by design, and a
+   * register-derived term compared to a build literal would make the R3 corpus
+   * refuse itself the moment R4 lands.
+   *
+   * OUTSIDE `conditionsOf`: the sweep never reads the register. `sweep.ts`
+   * imports `getCategoryCalibration` and nothing else from `calibration.ts`, so
+   * the decline state has ZERO causal influence on the rows and cannot be what
+   * separates two measurements.
+   *
+   * Recorded even though `source.revision` usually recovers it, because
+   * "usually" is doing real work there: the revision recovers the register only
+   * when `source.dirty` is false. A sweep run from a dirty tree — which is how
+   * a calibration arm is often produced — pins a commit whose register is not
+   * the one that ran.
+   */
+  engineDeclined?: string[];
   emitColumns?: string[];
   /**
    * The engine revision this corpus was measured under. Optional because
@@ -869,6 +900,8 @@ export function buildSweepManifest(input: {
   modeledCostScale?: number;
   /** See `SweepManifest.decisions`. */
   decisions?: SweepManifest["decisions"];
+  /** See `SweepManifest.engineDeclined`. */
+  engineDeclined?: string[];
   /** Sorted keys of the first emitted row. See `SweepManifest.emitColumns`. */
   emitColumns?: string[];
   treasuryCurve: TreasuryCurveFacts;
@@ -934,6 +967,9 @@ export function buildSweepManifest(input: {
     // Sorted at the boundary, so shard ORDER cannot re-hash a corpus whose
     // decisions did not change. Conditionally spread, so no existing fixture
     // hash moves.
+    ...(input.engineDeclined && {
+      engineDeclined: [...input.engineDeclined].sort(),
+    }),
     ...(input.decisions && {
       decisions: [...input.decisions].sort((first, second) =>
         `${first.symbol}\u0000${first.variant}\u0000${first.split}`
