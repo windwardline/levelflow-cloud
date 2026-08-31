@@ -43,6 +43,8 @@ import {
   emptyStats,
   expectancy,
   readLinesSync,
+  rDeltaInterval95,
+  rExpectancyInterval95,
   rExpectancyLower95,
   rStandardError,
   rStdDev,
@@ -210,6 +212,31 @@ export type VariantVerdict = {
   // ever reaching the ledger, and that is the ledger's true scope.
   confirmFilled: number | null;
   confirmBaseFilled: number | null;
+  /**
+   * M3: the confirm fold's own EXPECTANCY and its 95% interval.
+   *
+   * The confirm read decided on `confirmTotalDelta > 0` — a bare inequality on
+   * a SUM, with no sample floor, no error bar and no p. A total is the wrong
+   * unit for that question twice over: it grows with the number of trades, so
+   * a thin fold and a deep one are not comparable, and a sum has no dispersion
+   * attached, so `+0.3R` over four outcomes and over four thousand read
+   * identically.
+   *
+   * Both ends are carried because a confirmation and a contradiction earn the
+   * same bar (amendment 36). An interval spanning zero is neither, and the
+   * reader must be able to say so rather than being forced into a binary the
+   * data does not support.
+   */
+  confirmExpectancy: number | null;
+  confirmExpectancyLower: number | null;
+  confirmExpectancyUpper: number | null;
+  /**
+   * The same comparison the SELECT stage makes, on the held-back fold, with
+   * its error. Reported beside the money rather than deciding: amendment 39
+   * puts a comparison next to a profit, never instead of one.
+   */
+  confirmExpectancyDelta: number | null;
+  confirmExpectancyDeltaLower: number | null;
   fitTotalDelta: number;
   // The ENFORCED statistic (LA-3/LA-4): family-wise max-T sign-flip
   // permutation over shared-day deltas, one flip pattern per iteration
@@ -863,6 +890,35 @@ function groupVerdicts(
           : null,
         confirmBaseFilled: foldNames.confirm
           ? aggregate.base.confirm.filled
+          : null,
+        // M3. GATED ON `accepted`, exactly as `confirmTotalDelta` above is,
+        // and for the reason that matters more than the arithmetic: LA-6 makes
+        // the confirm fold ONE authorized read, opened only for a pick the
+        // gate accepted. Computing it for every variant would read the
+        // held-back data for variants nobody picked — the discipline the
+        // burned log exists to enforce, defeated by a convenience.
+        //
+        // What it does drop is the BASELINE-filled requirement the total delta
+        // carries. A variant's own expectancy needs only its own outcomes, so
+        // an accepted pick whose confirm fold covered it but not its baseline
+        // now reports whether it made money, where the delta could report
+        // nothing at all.
+        confirmExpectancy: accepted && foldNames.confirm
+          ? expectancy(aggregate.variant.confirm)
+          : null,
+        confirmExpectancyLower: accepted && foldNames.confirm
+          ? rExpectancyInterval95(aggregate.variant.confirm)?.lower ?? null
+          : null,
+        confirmExpectancyUpper: accepted && foldNames.confirm
+          ? rExpectancyInterval95(aggregate.variant.confirm)?.upper ?? null
+          : null,
+        confirmExpectancyDelta: accepted && foldNames.confirm
+          ? rDeltaInterval95(aggregate.variant.confirm, aggregate.base.confirm)
+            ?.delta ?? null
+          : null,
+        confirmExpectancyDeltaLower: accepted && foldNames.confirm
+          ? rDeltaInterval95(aggregate.variant.confirm, aggregate.base.confirm)
+            ?.lower ?? null
           : null,
         fitTotalDelta,
         pairedP,

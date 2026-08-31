@@ -2347,7 +2347,14 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
 // fields the LA-6 tests above assert are the half that keeps passing
 // while the artifact drifts. These drive the real binary.
 describe("confirm-4d — the artifact names what the confirm fold could not judge", () => {
-  const MARKETS = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCHF"] as const;
+  const MARKETS = [
+    "EURUSD",
+    "GBPUSD",
+    "USDJPY",
+    "AUDUSD",
+    "USDCHF",
+    "USDCAD",
+  ] as const;
   // The market grain's absolute floor is 30 filled select-fold days, so
   // 40 puts every market except the deliberately thin one past it.
   const DAYS = 40;
@@ -2359,6 +2366,14 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
   //   USDJPY  40 filled days but only 3 nonzero deltas      → gate-could-not-judge
   //   AUDUSD  10 filled select days, under the floor        → thin
   //   USDCHF  wins fit+select, no confirm-fold rows at all  → accepted-but-unevidenced
+  //   USDCAD  wins fit+select, confirm fold POSITIVE BUT NOISY → indistinguishable
+  //
+  // USDCAD is M3's case and the one the old rule could not see. Its confirm
+  // outcomes swing +2.2/-1.6 around a mean of +0.3, so the total delta is
+  // comfortably positive — all the retired `confirmTotalDelta > 0` asked for —
+  // while the interval spans zero and confirms nothing. Every other market
+  // here has zero-variance confirm rows, which is why both rules agreed on all
+  // of them and a fixture like this one had to exist.
   const rowsFor = (symbol: string): SweepEmitRow[] => {
     const rows: SweepEmitRow[] = [];
     const days = symbol === "AUDUSD" ? 10 : DAYS;
@@ -2374,6 +2389,8 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
           ? 0.05
           : symbol === "USDJPY"
           ? (day < 3 ? 0.4 : 0.1)
+          : symbol === "USDCAD" && split === "confirm"
+          ? (day % 2 === 0 ? 2.2 : -1.6)
           : 0.4;
         rows.push({
           ...outcomeRow("baseline", day + offset, 0.1, undefined, symbol),
@@ -2520,15 +2537,49 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
     const { artifact, ledgerDir, stdout } = run(MARKETS);
     const report = artifact.confirmReport as Record<
       string,
-      { confirmTotalDelta: number | null; gateDisposition: string }
+      {
+        confirmExpectancy: number | null;
+        confirmExpectancyLower: number | null;
+        confirmTotalDelta: number | null;
+        gateDisposition: string;
+      }
     >;
 
-    assert.equal(report.EURUSD.gateDisposition, "confirmed");
+    assert.equal(report.EURUSD.gateDisposition, "confirmed-profitable");
     assert.ok((report.EURUSD.confirmTotalDelta ?? 0) > 0);
+    // M3: the disposition is decided on the MONEY, so the interval it was
+    // decided on rides in the artifact. A reader asked to trust a changed
+    // verdict is owed the figure as well as the label.
+    assert.ok((report.EURUSD.confirmExpectancyLower ?? -1) > 0);
+    // Not asserted strictly INSIDE the point estimate here: this fixture's
+    // confirm outcomes are identical, so the sample has no dispersion and the
+    // bound legitimately equals the mean. The strict case has its own fixture
+    // in tests/confirmEarnsItsVerdict.test.ts.
+    assert.ok(
+      (report.EURUSD.confirmExpectancyLower ?? 0) <=
+        (report.EURUSD.confirmExpectancy ?? 0),
+    );
     assert.equal(report.GBPUSD.gateDisposition, "refused-by-gate");
     assert.equal(report.USDJPY.gateDisposition, "gate-could-not-judge");
     assert.equal(report.AUDUSD.gateDisposition, "thin");
     assert.equal(report.USDCHF.gateDisposition, "accepted-but-unevidenced");
+    // M3'S HEADLINE, and the reason USDCAD is in this fixture at all. Its
+    // confirm total delta is positive — the WHOLE of what the retired rule
+    // asked — and the read confirms nothing, because the interval spans zero.
+    // Without this market the old rule and the new one agree on every row
+    // here, and restoring `delta > 0` passes the entire suite.
+    assert.equal(report.USDCAD.gateDisposition, "indistinguishable");
+    assert.ok(
+      (report.USDCAD.confirmTotalDelta ?? 0) > 0,
+      `the retired rule must have CONFIRMED this pick, or the case is not ` +
+        `the one M3 is about: delta ${report.USDCAD.confirmTotalDelta}`,
+    );
+    assert.ok((report.USDCAD.confirmExpectancy ?? 0) > 0, "mean is positive");
+    assert.ok(
+      (report.USDCAD.confirmExpectancyLower ?? 0) < 0,
+      `but its lower bound does not clear zero: ` +
+        `${report.USDCAD.confirmExpectancyLower}`,
+    );
     assert.equal(report.NZDUSD.gateDisposition, "missing-verdict");
     for (const symbol of ["GBPUSD", "USDJPY", "AUDUSD", "USDCHF", "NZDUSD"]) {
       assert.equal(report[symbol].confirmTotalDelta, null);
@@ -2538,8 +2589,20 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
     // three were one number called "notAccepted", read as "the gate
     // measured these and they lost" — three different remedies (the
     // corpus's depth, the pairing, the calibration) reported as one.
-    assert.equal(artifact.confirmedPositive, 1);
-    assert.equal(artifact.confirmedNegative, 0);
+    // M3 renamed these WITH the quantity. `confirmedPositive` counted
+    // positive total DELTAS under an absolute name; it now counts picks whose
+    // own confirm-fold expectancy is positive BEYOND ITS ERROR, and
+    // `indistinguishable` is the third outcome the old binary could not
+    // express — the old code called every one of them "negative".
+    assert.equal(artifact.confirmedProfitable, 1);
+    assert.equal(artifact.contradicted, 0);
+    assert.equal(artifact.indistinguishable, 1);
+    assert.equal(
+      artifact.confirmedPositive,
+      undefined,
+      "the retired key is still written, so a reader can put two different " +
+        "measurements in the same column",
+    );
     assert.equal(artifact.refusedByGate, 1);
     assert.equal(artifact.gateCouldNotJudge, 1);
     assert.equal(artifact.thin, 1);
@@ -2564,7 +2627,7 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
     assert.equal(artifact.notReadReason, null);
     assert.ok(typeof artifact.readAt === "string");
     assert.equal(readdirSync(ledgerDir).length, 1);
-    assert.match(stdout, /confirm read: 1 picks positive, 0 negative/);
+    assert.match(stdout, /confirm read: 1 picks profitable beyond error, 0 contradicted, 1 indistinguishable from zero/);
     assert.match(stdout, /1 the gate could not judge, 1 thin/);
   });
 

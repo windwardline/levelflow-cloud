@@ -204,17 +204,62 @@ export function tMultiplier95(df: number): number {
 }
 
 /**
- * The 95% lower confidence bound on expectancy over filled outcomes.
+ * The 95% confidence interval on expectancy over filled outcomes.
  *
- * What an ABSOLUTE profit claim has to clear. Null below two filled outcomes,
- * where no dispersion exists to measure — an absence of evidence, never a
- * measured zero.
+ * BOTH ENDS, because a claim and its refutation earn the same bar. A lower
+ * bound above zero is a measured profit; an upper bound below zero is a
+ * measured loss; an interval spanning zero is neither, and amendment 36
+ * forbids acting on that in either direction. A reader handed only the lower
+ * bound cannot tell the last two apart.
+ *
+ * Null below two filled outcomes, where no dispersion exists to measure — an
+ * absence of evidence, never a measured zero.
  */
-export function rExpectancyLower95(stats: SweepStats): number | null {
+export function rExpectancyInterval95(
+  stats: SweepStats,
+): { lower: number; upper: number } | null {
   const mean = expectancy(stats);
   const standardError = rStandardError(stats);
   if (mean === null || standardError === null) return null;
-  return mean - tMultiplier95(stats.filled - 1) * standardError;
+  const margin = tMultiplier95(stats.filled - 1) * standardError;
+  return { lower: mean - margin, upper: mean + margin };
+}
+
+/** The lower end alone — what an ABSOLUTE profit claim has to clear. */
+export function rExpectancyLower95(stats: SweepStats): number | null {
+  return rExpectancyInterval95(stats)?.lower ?? null;
+}
+
+/**
+ * The 95% interval on the DIFFERENCE of two independent expectancies.
+ *
+ * `variant - base`, with the standard errors combined in quadrature because
+ * the two folds' outcomes are different trades, not paired observations. The
+ * degrees of freedom are the SMALLER sample's, which is the conservative
+ * reading: Welch's exact figure is larger and would narrow the interval, and a
+ * comparison is only as well-resolved as its thinner side.
+ *
+ * Null when either side cannot state a standard error at all.
+ */
+export function rDeltaInterval95(
+  variant: SweepStats,
+  base: SweepStats,
+): { delta: number; lower: number; upper: number } | null {
+  const variantMean = expectancy(variant);
+  const baseMean = expectancy(base);
+  const variantSe = rStandardError(variant);
+  const baseSe = rStandardError(base);
+  if (
+    variantMean === null || baseMean === null || variantSe === null ||
+    baseSe === null
+  ) {
+    return null;
+  }
+  const delta = variantMean - baseMean;
+  const standardError = Math.sqrt(variantSe * variantSe + baseSe * baseSe);
+  const margin =
+    tMultiplier95(Math.min(variant.filled, base.filled) - 1) * standardError;
+  return { delta, lower: delta - margin, upper: delta + margin };
 }
 
 export function rStandardError(stats: SweepStats): number | null {
