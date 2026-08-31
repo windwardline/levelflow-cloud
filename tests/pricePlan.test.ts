@@ -918,7 +918,12 @@ describe("1b: futures-shaped classes align or refuse — nothing ships off-grid"
       "utf8",
     );
     assert.match(PLAN_SOURCE, /const needsTickGrid = needsFuturesTickGrid\(symbol\);/);
-    assert.match(PLAN_SOURCE, /if \(needsTickGrid && !futuresTickPlan\) \{\s*\n\s*return null;/);
+    // The stamp between the guard and the return is R2b's refusal channel —
+    // the branch still refuses, and now says which branch it was.
+    assert.match(
+      PLAN_SOURCE,
+      /if \(needsTickGrid && !futuresTickPlan\) \{\s*\n\s*if \(refusal\) refusal\.reason = "no_contract_spec";\s*\n\s*return null;/,
+    );
   });
 
   it("refuses at the analysis door, with the missing spec named — not a price-validation excuse", () => {

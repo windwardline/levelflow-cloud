@@ -944,8 +944,24 @@ describe("the rejection ledger (P1) — an account, not a tally", () => {
     );
     assert.match(
       source,
-      /const reject = \(reason: keyof typeof rejections, atMs: number\)/,
+      /const reject = \(\s*\n?\s*reason: keyof typeof rejections,/,
       "the reason type must stay DERIVED from the counter struct",
+    );
+    // R2b added a `detail`, and it must reach the LEDGER only. The counter
+    // struct is what every reader enumerates — the driver copies it whole —
+    // so a detail that created counter keys would be a breaking change for a
+    // fact that belongs per decision rather than per run.
+    assert.match(source, /detail\?: string,\s*\n\s*\) => \{/);
+    const rejectBody = source.slice(
+      source.indexOf("const reject = ("),
+      source.indexOf("const newsEvents ="),
+    );
+    assert.match(rejectBody, /rejections\[reason\] \+= 1;/);
+    assert.doesNotMatch(
+      rejectBody,
+      /rejections\[[^\]]*detail/,
+      "the detail is indexing the counter struct, which would mint a new key " +
+        "per geometry cause",
     );
 
     // AND THE AGGREGATE NEVER REACHES THE LEDGER. This is pinned in SOURCE
