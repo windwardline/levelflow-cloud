@@ -208,6 +208,34 @@ rather than into that table.
 
 ## 2. Owner rulings now binding — do not re-ask
 
+- **Amendment 39 (2026-08-27)** — **profit is the measure; win rate is a result.**
+  Nothing publishes, ranks, gates or learns on a frequency where the money is
+  knowable. Profit potential must exceed loss potential structurally and may
+  never be manufactured.
+
+  **The pre-registered candidates for when R3 can measure are the RUNNER LEG's
+  placement/protection and the COST WEIGHT per trade** — the two axes 4b named.
+  Runner protection is now recorded on every resolution (`runnerProtection`
+  beside `forgoneRunnerR`), so the three modes are comparable the moment
+  outcomes accrue. Cost is the higher-confidence of the two: the venue bill
+  tables are E8-published facts and `remediation-program-2026-08-11.md` lists
+  them under "What stands", so its inputs are trustworthy today while the
+  corpus is not.
+
+  **REJECTED, 2026-08-30, and recorded so it is not re-proposed:** raising
+  `tp1RiskShare` to lift the blended payoff. It is a pure risk multiple rather
+  than a structural level, so moving it because the printed figure improves is
+  the manufacturing clause exactly — and it converts small wins into whole
+  losses, because part of the population that banks at TP1 today would never
+  reach a TP1 twice as far and would take −1.00R instead of about +0.19R. The
+  amendment carries the full worked example; an agent proposed this while
+  holding the pen on the rule that forbids it.
+
+  Measured today, and the reason any of this matters: a full win pays 0.95R
+  (indices) to 1.20R (energies) against a −1.00R loss. **Indices is below 1:1.**
+  Nothing is tuned until a valid corpus exists — the calibration stopping rule
+  has not moved.
+
 - **Amendment 29** — Insights and Attribution are exempt from account segmentation.
 - **Amendment 30** — a measurable offset is *stated*, never hidden. Three states only:
   matched-plain, matched-with-basis-line, unmatched-dormant.
