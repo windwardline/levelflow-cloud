@@ -44,6 +44,8 @@ export type ExecutionQuality = {
    * other, and the two carry different instructions to the reader.
    */
   costPenalty: number;
+  /** 100 - costPenalty*8: what `label` is derived from. See the label's own note. */
+  costScore: number;
   coveragePenalty: number;
   effectiveRewardRisk: number;
   // Round-8 CO-1/3/4: the venue's published commission for one round
@@ -312,12 +314,28 @@ export function estimateExecutionQuality(
   // never reports coverage the score did not actually charge.
   const costPenalty = Math.min(costPenaltyRaw, confidencePenalty);
   const coveragePenalty = confidencePenalty - costPenalty;
+  // TWO SCORES, because two different questions are being asked of this row.
+  //
+  // `score` is overall EXECUTABILITY and keeps the whole penalty. It is not a
+  // display figure: scanCollapse.ts breaks a correlated cluster's tie on it, so
+  // it decides which market the reader is shown, and preferring the
+  // better-priced AND better-covered market there is correct.
+  //
+  // `label` is the operator-facing COST rating. Its own gloss says "trading
+  // costs are a small fraction of the risk" / "trading costs are high relative
+  // to this setup's risk" (reviewCopy describeExecutionLabel), and index.ts
+  // prints it as "{label} trading-cost check." Deriving it from a penalty that
+  // also carries missing chart intervals, provider warnings and hot short-term
+  // movement made a failed 5-minute fetch read as a pricing verdict — the same
+  // mis-attribution the diagnostics sentence was split to end, still live one
+  // row away because the split stopped at the sentence.
   const score = clampInteger(100 - confidencePenalty * 8, 0, 100);
-  const label = score >= 84
+  const costScore = clampInteger(100 - costPenalty * 8, 0, 100);
+  const label = costScore >= 84
     ? "Clean"
-    : score >= 72
+    : costScore >= 72
     ? "Acceptable"
-    : score >= 55
+    : costScore >= 55
     ? "Thin"
     : "Poor";
 
@@ -328,6 +346,7 @@ export function estimateExecutionQuality(
   return {
     confidencePenalty,
     costPenalty,
+    costScore,
     coveragePenalty,
     effectiveRewardRisk: roundPrice(effectiveRewardRisk),
     estimatedCommission,

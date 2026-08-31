@@ -180,3 +180,75 @@ describe("the analyzer names the cause it charged", () => {
     );
   });
 });
+
+describe("the cost rating rates cost", () => {
+  const source = readFileSync(
+    join(
+      new URL("..", import.meta.url).pathname,
+      "supabase/functions/trade-analyzer/executionQuality.ts",
+    ),
+    "utf8",
+  );
+
+  /**
+   * The Clean/Acceptable/Thin/Poor word is the operator's COST verdict. Its own
+   * gloss says "trading costs are a small fraction of the risk" and "trading
+   * costs are high relative to this setup's risk", and index.ts prints it as
+   * "{label} trading-cost check."
+   *
+   * It derived from `confidencePenalty`, which also carries missing chart
+   * intervals, provider warnings and hot short-term movement — so a failed
+   * 5-minute fetch could move a PRICING verdict. That is the same
+   * mis-attribution the diagnostics sentence was split to end; the split
+   * stopped at the sentence and left the rating one row away still wrong.
+   */
+  it("moves on cost and not on chart coverage", () => {
+    const clean = quality();
+    const warned = quality({
+      availableTimeframes: ["1day", "1hour"],
+      providerWarnings: ["5min: request failed", "15min: request failed"],
+    });
+    assert.ok(
+      warned.coveragePenalty > clean.coveragePenalty,
+      "the fixture did not actually add coverage penalty",
+    );
+    assert.equal(
+      warned.label,
+      clean.label,
+      "chart coverage moved the trading-cost rating",
+    );
+    assert.equal(warned.costScore, clean.costScore);
+  });
+
+  it("still moves when the cost itself moves", () => {
+    // The other direction, so the fix cannot be "make the label constant".
+    const cushioned = quality();
+    const inSpread = quality({ latestClose: 1.156, stopLoss: 1.15595 });
+    assert.ok(
+      inSpread.costPenalty > cushioned.costPenalty,
+      "the fixture did not actually add cost penalty",
+    );
+    assert.ok(
+      inSpread.costScore < cushioned.costScore,
+      "a costlier setup must score worse on cost",
+    );
+  });
+
+  it("leaves the executability score whole, because selection reads it", () => {
+    // scanCollapse.ts breaks a correlated cluster's tie on `score`, so it
+    // decides which market the reader is SHOWN. Preferring the better-priced
+    // and better-covered market there is correct, and narrowing it to cost
+    // would silently change which setup appears.
+    const warned = quality({ providerWarnings: ["a", "b", "c"] });
+    const clean = quality();
+    assert.ok(
+      warned.score < clean.score,
+      "coverage must still lower the overall executability score",
+    );
+    assert.match(
+      source,
+      /const score = clampInteger\(100 - confidencePenalty \* 8, 0, 100\)/,
+      "the executability score narrowed to cost — selection would change with it",
+    );
+  });
+});
