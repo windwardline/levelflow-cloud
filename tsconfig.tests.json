@@ -54,6 +54,7 @@
     "supabase/functions/trade-analyzer/cotContext.ts",
     "supabase/functions/trade-analyzer/dailyCompletion.ts",
     "supabase/functions/trade-analyzer/barStore.ts",
+    "supabase/functions/trade-analyzer/confidence.ts",
     "supabase/functions/trade-analyzer/executionQuality.ts",
     "supabase/functions/trade-analyzer/futures.ts",
     "supabase/functions/trade-analyzer/indicators.ts",
