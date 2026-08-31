@@ -292,6 +292,8 @@ async function main() {
   const { createWriteStream } = await import("node:fs");
   const emitStream = args.emit ? createWriteStream(args.emit) : null;
   let emittedRecords = 0;
+  // Sorted keys of the first emitted row; undefined when nothing was emitted.
+  let emitColumns: string[] | undefined;
   const manifestSymbols: Array<{
     assetType: AssetType;
     calibration: Record<string, unknown>;
@@ -963,13 +965,22 @@ async function main() {
         });
         if (emitStream) {
           for (const record of result.outcomes) {
-            emitStream.write(JSON.stringify({
+            const row = {
               holdout,
               split: split.name,
               symbol,
               variant,
               ...record,
-            }) + "\n");
+            };
+            // The corpus declares its own columns, from the FIRST row it
+            // actually writes rather than from a list kept beside the type.
+            // A hand-kept list is what goes stale — three columns were found
+            // missing from this emit in one week, and none of them moved
+            // ANALYZER_VERSION because none changed a decision, which is
+            // correct and is exactly why the version cannot answer "does this
+            // corpus have that column".
+            emitColumns ??= Object.keys(row).sort();
+            emitStream.write(JSON.stringify(row) + "\n");
             emittedRecords += 1;
           }
         }
@@ -1028,6 +1039,7 @@ async function main() {
     // 2i: the corpus describes itself, or item 3's readers refuse it.
     const manifest = buildSweepManifest({
       analyzerVersion: ANALYZER_VERSION,
+      ...(emitColumns && { emitColumns }),
       anchor: isoDate(new Date()),
       barRejections: barRejectionTally,
       // Derived from the classes this run actually loaded — never a hand-kept

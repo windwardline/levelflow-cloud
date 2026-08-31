@@ -849,6 +849,46 @@ export function fiveMinuteFloorFor(symbol: string): number | undefined {
 // historical reads. A historical corpus this refuses was measuring
 // against data the door can now prove defective; there is nothing
 // honest to read from it.
+/**
+ * Refuse a corpus that cannot answer the question being asked of it.
+ *
+ * A reader wanting the give-back, the ladder payoff or the cost breakdown has
+ * two ways to be wrong about a corpus that lacks the column: read `undefined`
+ * and coerce it to 0, or filter the rows out and report on a silently smaller
+ * population. Both produce a number. Amendment 39 and §19e both say the same
+ * thing about that — a refusal beats a wrong number — and the corpus is the
+ * one place that can tell the difference, because `analyzerVersion` cannot:
+ * none of the three columns added in the week of 2026-08-30 moved it, and
+ * correctly so, since none changed what the engine decides.
+ *
+ * ABSENT `emitColumns` is NOT a refusal. Every corpus written before the field
+ * existed genuinely lacks it, and refusing those would retire the deliberate
+ * historical reads for a capability check — the same standing the conditions
+ * block gives a legacy manifest. It returns the columns it could not confirm
+ * so a caller can say what it is missing rather than pretending it checked.
+ */
+export function assertEmitColumns(
+  emitPath: string,
+  manifest: { emitColumns?: string[] },
+  required: readonly string[],
+): { unverifiable: boolean } {
+  if (manifest.emitColumns === undefined) {
+    return { unverifiable: true };
+  }
+  const have = new Set(manifest.emitColumns);
+  const missing = required.filter((column) => !have.has(column));
+  if (missing.length > 0) {
+    throw new Error(
+      `${emitPath}: the corpus does not carry ${missing.join(", ")} — it ` +
+        `declares ${manifest.emitColumns.length} columns and this read needs ` +
+        `${required.length} of them. Reading on would grade the missing ` +
+        `quantity as zero or drop the rows, and both report a number the ` +
+        `corpus cannot support`,
+    );
+  }
+  return { unverifiable: false };
+}
+
 export function assertFiveMinuteDensity(
   emitPath: string,
   entry: {
