@@ -12,7 +12,8 @@ import { estimateExecutionQuality } from "../supabase/functions/trade-analyzer/e
  * and not by any test here. #468 corrected the Desk to print
  * `ladderRewardRisk` — what the ladder actually pays, half the position having
  * left at TP1 — because `rewardRisk`, the runner target's full-size ratio,
- * overstates the edge by roughly 60%. The Desk moved. The corpus did not: the
+ * overstates the edge by 33% to 60% by class. The Desk moved. The corpus did
+ * not: the
  * field was computed on every plan, shown on every screen, and emitted
  * nowhere.
  *
@@ -39,6 +40,10 @@ const SWEEP = readFileSync(
 );
 const PLAN = readFileSync(
   "supabase/functions/trade-analyzer/pricePlan.ts",
+  "utf8",
+);
+const REPLAY = readFileSync(
+  "supabase/functions/trade-analyzer/replay.ts",
   "utf8",
 );
 
@@ -217,5 +222,115 @@ describe("the corpus carries the figure the Desk calls the payoff", () => {
     // owner question and deliberately not settled here.
     assert.match(SWEEP, /^\s+rewardRisk: number;/m);
     assert.match(SWEEP, /^\s+grossRewardRisk: number;/m);
+  });
+});
+
+/**
+ * Every field the resolver's shared accountant writes onto a resolution.
+ *
+ * `realizedFields()` is where the money on a resolved row is computed, and it
+ * is spread into `feedback` on every resolution path. Reading its keys makes
+ * the corpus requirement DERIVED: a new quantity added there has to be
+ * emitted or explicitly excused, and neither can be forgotten quietly.
+ *
+ * Pinning `ladderRewardRisk` by name did not catch `forgoneRunnerR`, and would
+ * not have caught the next one. This is the mechanism that does.
+ */
+function accountantFields(): string[] {
+  const at = REPLAY.indexOf("const realizedFields = () => ({");
+  assert.ok(at >= 0, "the shared accountant moved — re-anchor this test");
+  let depth = 0;
+  let end = at;
+  for (let i = REPLAY.indexOf("{", at); i < REPLAY.length; i++) {
+    if (REPLAY[i] === "{") depth++;
+    else if (REPLAY[i] === "}") {
+      depth--;
+      if (depth === 0) {
+        end = i;
+        break;
+      }
+    }
+  }
+  const body = REPLAY.slice(at, end);
+  // Top-level keys only — the nested call arguments are indented deeper — and
+  // SHORTHAND properties too. The first version matched `name:` alone and so
+  // missed `runnerProtection,`, which is exactly the field this test was being
+  // written to catch: an extractor that silently skips a shape reports a
+  // smaller population and passes.
+  return Array.from(
+    new Set(
+      Array.from(body.matchAll(/^ {4}([a-zA-Z][a-zA-Z0-9]*)\s*[:,]/gm)).map((
+        m,
+      ) => m[1]),
+    ),
+  );
+}
+
+/**
+ * Accountant fields deliberately absent from the corpus, each with the reason.
+ * An entry here is an argument, not a name — the same standing the emitter
+ * exclusions carry in `tests/reviewCopyCoupling.test.ts`.
+ */
+const NOT_A_CORPUS_COLUMN: Record<string, string> = {
+  netRealizedR:
+    "the corpus's `realizedR` IS the net figure — `sweep.ts` charges " +
+    "commission through `perLegCost` and the leg prints already carry spread " +
+    "and gap slippage. Emitting a second net column under a second name would " +
+    "give the corpus two answers to one question. That `replay.ts` uses the " +
+    "bare name for its GROSS twin is a real hazard and is named in the " +
+    "record's docblock, not fixed by adding a column.",
+};
+
+describe("the corpus carries what the accountant computes", () => {
+  it("reads a real set of accountant fields", () => {
+    const fields = accountantFields();
+    assert.ok(
+      fields.length >= 4,
+      `only ${fields.length} accountant fields found (${fields.join(", ")}) — ` +
+        `the extractor broke rather than the accountant shrinking`,
+    );
+    assert.ok(
+      fields.includes("forgoneRunnerR"),
+      "the give-back left the accountant — amendment 39 names it by hand",
+    );
+  });
+
+  it("emits every one of them, or carries an argument for not doing so", () => {
+    const typeAt = SWEEP.indexOf("export type SweepOutcomeRecord = {");
+    const declaration = SWEEP.slice(typeAt, SWEEP.indexOf("\n};", typeAt));
+    const missing = accountantFields().filter((field) =>
+      !new RegExp(`^\\s+${field}[?]?:`, "m").test(declaration) &&
+      !(field in NOT_A_CORPUS_COLUMN)
+    );
+    assert.deepEqual(
+      missing,
+      [],
+      `the accountant computes these on every resolution and the corpus does ` +
+        `not carry them: ${missing.join(", ")}. R3 is the one re-sweep — ` +
+        `either emit them or add the reason to NOT_A_CORPUS_COLUMN`,
+    );
+  });
+
+  it("keeps no stale exclusion", () => {
+    // An excuse for a field the accountant no longer computes is a stale
+    // exemption, and stale exemptions are how a list stops describing the
+    // thing it guards.
+    const fields = new Set(accountantFields());
+    const stale = Object.keys(NOT_A_CORPUS_COLUMN).filter((f) => !fields.has(f));
+    assert.deepEqual(stale, [], `stale exclusions: ${stale.join(", ")}`);
+  });
+
+  it("reads the give-back and its protection mode off the resolution", () => {
+    // The mode is the axis the give-back must be compared ACROSS, and it is
+    // the one accountant value that is not a number — `Number("breakeven")` is
+    // NaN, so the numeric helper would have recorded it as null and a column
+    // of nulls reads exactly like a corpus where no runner was ever protected.
+    assert.match(SWEEP, /forgoneRunnerR: feedbackNumber\("forgoneRunnerR"\)/);
+    assert.match(SWEEP, /runnerProtection: feedbackString\("runnerProtection"\)/);
+    assert.match(
+      SWEEP,
+      /const feedbackString = \(key: string\) => \{/,
+      "the string accessor is gone, so the mode is being coerced through Number",
+    );
   });
 });

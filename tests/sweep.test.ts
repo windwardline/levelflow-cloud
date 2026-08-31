@@ -40,6 +40,8 @@ function outcomeRecord(
     executionScore: 0,
     grossRewardRisk: 0,
     ladderRewardRisk: null,
+    forgoneRunnerR: null,
+    runnerProtection: "breakeven",
     estimatedRoundTripCost: 0,
     estimatedCommission: 0,
     estimatedSlippage: 0,

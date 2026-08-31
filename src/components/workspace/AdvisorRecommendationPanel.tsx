@@ -156,7 +156,8 @@ export function RecommendationPanel({
     // rewardRisk is the far target measured on a FULL-SIZE basis, and half the
     // position leaves at TP1. A setup gated at 1.6x realises about 1.0R
     // against a -1.00R stop, and this row printed the first number under the
-    // words "payoff after costs" — about 60% more than the ladder delivers,
+    // words "payoff after costs" — 33% to 60% more than the ladder
+    // delivers, by class,
     // on the surface read before the trade is placed.
     //
     // (Written without apostrophes on purpose: tests/languageGuard scans

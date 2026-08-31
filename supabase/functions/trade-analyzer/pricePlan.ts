@@ -447,7 +447,7 @@ export function buildPricePlan(
      * position leaves at TP1, so a setup gated at 1.6x and reported as 1.6x
      * actually realises `0.5 * tp1 + 0.5 * target` — about 1.0R against a
      * -1.00R stop. The surface printed the first number under the words
-     * "payoff after costs" and the operator read a 60% larger edge than the
+     * "payoff after costs" and the operator read a larger edge than the
      * ladder can deliver.
      *
      * Amendment 39: profit potential must exceed loss potential STRUCTURALLY,

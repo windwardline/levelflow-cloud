@@ -215,8 +215,15 @@ rather than into that table.
 
   **The pre-registered candidates for when R3 can measure are the RUNNER LEG's
   placement/protection and the COST WEIGHT per trade** — the two axes 4b named.
-  Runner protection is now recorded on every resolution (`runnerProtection`
-  beside `forgoneRunnerR`), so the three modes are comparable the moment
+  Runner protection is recorded on every resolution (`runnerProtection` beside
+  `forgoneRunnerR`) and, **since #477, on every corpus row too**. Until then
+  neither field reached the sweep, so this paragraph's claim that the modes are
+  comparable was false where it mattered most: R3 is the one re-simulate, and
+  it would have produced a corpus that could answer NEITHER pre-registered
+  axis. The give-back is not reconstructible — `forgoneRunnerR` rebases the
+  excursion onto the fill and the planned entry is not a column, so a reader
+  would mix the two baselines, which is the defect #462 shipped and fixed.
+  With both emitted, the three modes are comparable the moment
   outcomes accrue. Cost is the higher-confidence of the two: the venue bill
   tables are E8-published facts and `remediation-program-2026-08-11.md` lists
   them under "What stands", so its inputs are trustworthy today while the

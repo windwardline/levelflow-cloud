@@ -171,7 +171,9 @@ export type SweepOutcomeRecord = {
    * `rewardRisk` beside it is the RUNNER TARGET's ratio on a full-size basis,
    * and half the position leaves at TP1. A setup admitted at 1.6x realises
    * `0.5 × tp1R + 0.5 × targetR ≈ 1.0R` against a −1.00R stop, so `rewardRisk`
-   * overstates the edge by roughly 60% (tests/ladderPayoff.test.ts derives it
+   * overstates the edge by 33% to 60% depending on the class — 60.0% is
+   * METALS, the maximum, and energies is 33.3%; the earlier "roughly 60%"
+   * quoted the extreme as the typical case (tests/ladderPayoff.test.ts derives it
    * per class from shipped calibration). The Desk stopped printing it in #468.
    * The corpus was still going to record it as the only ex-ante payoff — so
    * R4, grading all 97 markets, would have measured every one of them against
@@ -179,11 +181,21 @@ export type SweepOutcomeRecord = {
    * underdelivering rather than as the wrong yardstick.
    *
    * EMITTED RATHER THAN DERIVED, deliberately, and against this corpus's own
-   * "emit primitives, reconstruct the rest" rule. Two reasons override it.
-   * On an UNFILLED row the legs are empty and neither target is recorded, so
-   * there is nothing to blend — a reader would have to re-run the ladder,
-   * which means reimplementing production and inheriting whatever production
-   * has wrong. And it nets `estimatedRoundTripCost`, a cost-model output the
+   * "emit primitives, reconstruct the rest" rule.
+   *
+   * The first version of this note gave a reason that is FALSE: "on an
+   * unfilled row the legs are empty and neither target is recorded, so there
+   * is nothing to blend." A reviewer rebuilt the value from the ex-ante
+   * columns without touching the legs — exact on grid-free markets — and the
+   * keystone note in `pricePlan.ts` says the same thing two files over. The
+   * legs were never the obstacle.
+   *
+   * The real reasons, which still hold. Recovery is NOT exact on the 27
+   * futures-shaped markets, where tick alignment and the min-stop clamp move
+   * the blended targets. And recovery means re-running the ladder AND the cost
+   * model, so a reader reimplements production and inherits whatever
+   * production has wrong — the hazard, not the arithmetic, is what makes this
+   * a column. It also nets `estimatedRoundTripCost`, a cost-model output the
    * manifest pins by `analyzerVersion`: stored, it stays attributed to the
    * model that produced it.
    *
@@ -192,6 +204,41 @@ export type SweepOutcomeRecord = {
    * would give the corpus two answers to one question.
    */
   ladderRewardRisk: number | null;
+  /**
+   * THE GIVE-BACK — how much of a runner's best excursion the trade handed
+   * back, in R. Null when the row had no runner to give anything back.
+   *
+   * Amendment 39 names this quantity by hand: "minimize give-back". The
+   * HANDOFF pre-registers it as one of the TWO axes R3 exists to measure —
+   * "the RUNNER LEG's placement/protection and the COST WEIGHT per trade" —
+   * and states that "the three modes are comparable the moment" the corpus
+   * can be read. That sentence was false until this landed. `realizedFields()`
+   * writes both fields on every live resolution (`replay.ts`), the Desk prints
+   * the give-back on the History surface, and the sweep read neither: R3 would
+   * have produced a corpus that could not answer either pre-registered
+   * question, on the one re-simulate there is.
+   *
+   * NOT RECONSTRUCTIBLE, unlike the ladder payoff beside it. `forgoneRunnerR`
+   * rebases the excursion onto the FILL rather than the planned entry, and the
+   * planned entry is not a column. A reader working from `maxFavorableMove`
+   * and `riskDistance` would mix the two baselines — which is precisely the
+   * defect #462 shipped and had to fix, so it is the mistake to expect rather
+   * than one to hope against.
+   */
+  forgoneRunnerR: number | null;
+  /**
+   * Which protection the runner was under: the axis the give-back has to be
+   * compared ACROSS, and a three-value grid dimension that varies per market
+   * in shipped calibration.
+   *
+   * `replay.ts` records the EFFECTIVE mode (`?? "breakeven"`) precisely
+   * because nothing on the row said which mode produced a given give-back.
+   * The sweep passed it INTO the resolver and did not emit it, so the corpus
+   * carried the consequence without the cause. Recoverable from `variant` plus
+   * the manifest on grid runs only — which makes the mode knowable and the
+   * quantity to compare it on unknowable, the least useful of the two halves.
+   */
+  runnerProtection: string;
   /**
    * WHAT THE TRIP COST, in price — and it is NOT recoverable from the ratios
    * beside it on the rows where it matters most.
@@ -850,6 +897,15 @@ export function simulateSymbol(input: {
       );
       return Number.isFinite(value) ? value : null;
     };
+    // The protection mode is the one realizedFields() value that is not a
+    // number. Read through its own accessor rather than coerced, because
+    // `Number("breakeven")` is NaN and would have been silently recorded as
+    // null by the helper above — a column of nulls reading exactly like a
+    // corpus where no runner was ever protected.
+    const feedbackString = (key: string) => {
+      const value = (evaluation.feedback as Record<string, unknown>)[key];
+      return typeof value === "string" ? value : "unrecorded";
+    };
     outcomes.push({
       accepted,
       confidenceScore: scoreBreakdown.confidenceScore,
@@ -864,6 +920,8 @@ export function simulateSymbol(input: {
       macroStance: macroRate.stance,
       maxAdverseMove: feedbackNumber("maxAdverseMove"),
       maxFavorableMove: feedbackNumber("maxFavorableMove"),
+      forgoneRunnerR: feedbackNumber("forgoneRunnerR"),
+      runnerProtection: feedbackString("runnerProtection"),
       newsPenalty: newsPenaltyUnits,
       // The marker's claim is scoped to the resolution stream (#364
       // round 1, finding 2): here that stream starts after the decision
@@ -895,6 +953,13 @@ export function simulateSymbol(input: {
       trendStrength: regime.trendStrength,
       volatilityPercentile: regime.volatilityPercentile,
       riskDistance: Math.abs(plan.entryPrice - plan.stopLoss),
+      // NET, and the name collides. This `realizedR` charges commission
+      // through `perLegCost` while spread and gap slippage already ride in the
+      // leg prints — so the corpus's figure is fully cost-net. `replay.ts`
+      // uses the SAME NAME for its GROSS twin (`perLegCost: 0`) and carries
+      // `netRealizedR` beside it, which is what the Desk reads. One name, two
+      // cost bases, on the measure amendment 39 governs: a reader joining the
+      // corpus to a live row on `realizedR` compares net against gross.
       realizedR: realizedRFromLegs({
         legs: evaluation.legs,
         // v2: spread and slippage are IN the leg prints (bid/ask triggers,
