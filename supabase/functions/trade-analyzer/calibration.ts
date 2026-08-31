@@ -52,8 +52,21 @@ import { isKnownSymbol } from "./symbols.ts";
 // increment `wins`, so the mix that decides the pivot is not even recoverable
 // from what this layer stores.
 // confidence_adjustment is withheld (0) until the neutral point is derived per
-// market, which is blocked on setup_key carrying the symbol. Scoring input
-// changes, so the cohort scopes again. (Prior:
+// market. What that is blocked on, precisely — this line said "blocked on
+// setup_key carrying the symbol" and that is only half true. DERIVING a
+// per-market neutral point is not blocked at all: the refresh already holds
+// `row.symbol` and hands it to extractSetupKey, so it can group by market
+// today. What the symbol-less key cannot do is STORE the result — one row per
+// setup_key has nowhere to put a per-market adjustment. Derivation is open;
+// application is not.
+//
+// And amendment 39 may retire the question rather than answer it. Under
+// realized R the neutral point is 0, not a win rate whose pivot depends on the
+// outcome mix — so the per-market break-even that motivated putting the symbol
+// in the key is an artifact of learning from a frequency. Settle the R rewrite
+// (R2's D1) before changing the key; changing it first would buy a cohort
+// boundary for a quantity that is about to stop existing.
+// Scoring input changes, so the cohort scopes again. (Prior:
 // 2026.08.26.oscillator-conflict-abstains.)
 export const ANALYZER_VERSION = "2026.08.27.calendar-provenance";
 

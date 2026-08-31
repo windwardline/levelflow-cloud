@@ -65,14 +65,21 @@ export type PricePlan = {
   // functions of (symbol, latestClose, atr, tickSize) over tables the
   // manifest's analyzerVersion pins.
   //
-  // The one level that does NOT reconstruct exactly: TP1, on a futures-grid
-  // market whose `tp1Provenance` is `risk_share`. The ladder consumed the
-  // riskDistance from BEFORE alignment and only the after value is emitted,
-  // so the recovered TP1 carries the alignment of entry and stop — bounded by
-  // the grid, not unbounded, and exact under the other two provenances and on
-  // the 70 markets with no grid. Closing it takes one more number
-  // (the planned riskDistance); the R2b list was authorised as a set, so that
-  // is a decision to put rather than take.
+  // TP1 UNDER `risk_share` ON A GRID MARKET reconstructs too, and closing it
+  // took no new field. The ladder consumes the riskDistance from BEFORE
+  // alignment while only the after value is emitted, so the recovery runs
+  // backwards through the pivot: `stopPivotDistance` is measured against the
+  // PLANNED entry, which gives back `nearestStopPivot`, and from it the
+  // pre-alignment stop and the riskDistance the ladder actually used.
+  //
+  // That only works because the anchor was corrected. Until 2026-08-30 this
+  // field was measured against the ALIGNED entry — a level the stop logic
+  // never saw — so it meant one thing on the 70 grid-free markets and another
+  // on the 27, and the gap was read as needing a ninth emit field. Emitting
+  // the planned riskDistance would have fixed TP1, spent a permanent column
+  // on the one corpus R3 gets to write, and left the wrong anchor in place.
+  // `tests/pricePlan.test.ts` proves the recovery by execution, all four
+  // levels, on a grid market and a grid-free one.
   //
   // `dailyAtr` is the second stop lever — stopBuffer is the MAX of two
   // calibration levers and nothing recorded which one bound, which is the
@@ -189,6 +196,12 @@ export function buildPricePlan(
     atr * calibration.stopAtrMultiplier,
     dailyAtr * calibration.dailyStopAtrMultiplier,
   );
+  // The entry EVERY level below is derived from, held because `entryPrice`
+  // is reassigned to the aligned value at the tick step and the emitted
+  // `stopPivotDistance` was being measured against that — a different anchor
+  // from the one the pivot was selected against, three lines down. See the
+  // field's own note at the emit site.
+  const plannedEntry = entryPrice;
   const nearestStopPivot = nearestLevelBeyond(
     side === "buy" ? "sell" : "buy",
     entryPrice,
@@ -395,9 +408,29 @@ export function buildPricePlan(
     entryPrice,
     latestClose: currentClose,
     runnerNearestBeyondMinimum: ladder.runnerNearestBeyondMinimum,
+    // MEASURED AGAINST THE PLANNED ENTRY, not the aligned one.
+    //
+    // The pivot is selected against the unaligned entry and consumed against
+    // it — `pivotBufferedStop`, `structuralStop` and the whole stop chain run
+    // before `applyFuturesTickRules` touches anything. This field was measured
+    // after, against an `entryPrice` the tick step had already rewritten, so
+    // on the 27 futures-shaped markets it reported a distance from a level the
+    // stop logic never used. The same field meant one thing on 70 markets and
+    // another on 27, which is the defect this repo keeps finding under a
+    // different name: a rule correct for the population it was derived on,
+    // applied to one it was not, with nothing to notice.
+    //
+    // It also closes R2b's one open reconstruction gap. With the right anchor
+    // the pivot recovers as `plannedEntry ∓ stopPivotDistance` (the sign is
+    // fixed by `side` — `nearestLevelBeyond` searches below a buy and above a
+    // sell, so `Math.abs` discards nothing), and from it the pre-alignment
+    // stop and `riskDistance` — which is what TP1 was built from under
+    // `risk_share`. The proposed ninth emit field would have fixed TP1 only,
+    // spent a permanent column on the one corpus R3 gets to write, and left
+    // this wrong.
     stopPivotDistance: nearestStopPivot === null
       ? null
-      : Math.abs(nearestStopPivot - entryPrice),
+      : Math.abs(nearestStopPivot - plannedEntry),
     executionQuality,
     expectedWindowMove: ladder.expectedWindowMove,
     futuresTickAdjustments: futuresTickPlan?.adjustments ?? [],
