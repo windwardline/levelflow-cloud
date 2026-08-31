@@ -1,3 +1,9 @@
+import {
+  asStoredBar,
+  readThrough,
+  type StoredBar,
+} from "../trade-analyzer/barStore.ts";
+import { barStoreDeps } from "../trade-analyzer/barStoreDb.ts";
 import { corsHeaders, jsonResponse } from "../_shared/http.ts";
 import { classifyUpstreamFailure } from "./upstreamStatus.ts";
 
@@ -386,7 +392,71 @@ function resolveProviderSymbols(symbol: string) {
   return sanitized ? [sanitized] : [];
 }
 
+/**
+ * Chart bars for one series, read through the SHARED store.
+ *
+ * This function used to be a second, independent copy of the analyzer's
+ * fetcher — same endpoints, same windows, same symbols, its own cache of
+ * nothing. The two paths bought the identical bars from FMP and neither could
+ * see the other's, so a user opening a chart on a market the analyzer had just
+ * scanned paid for that history twice.
+ *
+ * The store is the same table and the same merge, so whichever path arrives
+ * first pays and the other reads. `readThrough` handles the ranged case: a
+ * chart asking further back than the store holds buys the whole range, because
+ * topping up the newest end would return a series that silently began where
+ * the store happens to start rather than where the caller asked.
+ */
 async function fetchFmpBars(
+  providerSymbol: string,
+  timeframe: ChartTimeframe,
+  from: string,
+  to: string,
+) {
+  let unavailable = false;
+  try {
+    const result = await readThrough(barStoreDeps(), {
+      coldStartFrom: from,
+      fetchWindow: async (windowFrom, windowTo) => {
+        const raw = await fetchFmpBarsDirect(
+          providerSymbol,
+          timeframe,
+          windowFrom,
+          windowTo,
+        );
+        if (!raw.ok) throw new Error(raw.status);
+        const rows: StoredBar[] = [];
+        for (const entry of raw.payload) {
+          const row = asStoredBar(entry);
+          if (row !== null) rows.push(row);
+        }
+        return rows;
+      },
+      limit: maxPointsForTimeframe(timeframe),
+      providerSymbol,
+      startDateIsBinding: true,
+      timeframe,
+      today: to,
+    });
+    unavailable = result.storeUnavailable;
+    // The chart wants the requested range, not the store's whole span.
+    const payload = result.rows.filter((row) =>
+      row.date.slice(0, 10) >= from && row.date.slice(0, 10) <= to
+    ) as unknown as FmpBar[];
+    return { ok: true, payload, status: unavailable ? "store_unavailable" : "ok" };
+  } catch (error) {
+    return {
+      ok: false,
+      payload: [] as FmpBar[],
+      status: error instanceof Error
+        ? error.message.slice(0, 120)
+        : "FMP market data request failed",
+    };
+  }
+}
+
+/** The wire call, unchanged. */
+async function fetchFmpBarsDirect(
   providerSymbol: string,
   timeframe: ChartTimeframe,
   from: string,

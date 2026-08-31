@@ -3,14 +3,9 @@ import {
   type FmpBar,
   normalizeFmpBars,
 } from "./bars.ts";
-import {
-  asStoredBar,
-  type BarStoreDeps,
-  readThrough,
-  type StoredBar,
-} from "./barStore.ts";
+import { asStoredBar, readThrough, type StoredBar } from "./barStore.ts";
 import { parseFmpQuoteSnapshot, type QuoteSnapshot } from "./quotes.ts";
-import { adminFetchRows, adminUpsertRows } from "./supabaseRest.ts";
+import { barStoreDeps } from "./barStoreDb.ts";
 import { labelZoneFor } from "./venues.ts";
 import {
   type Bar,
@@ -507,60 +502,6 @@ export async function fetchFmpBars(
   // Shared with the cache rather than copied: every consumer reads bars and
   // builds its own arrays, and tests/barDecode.test.ts keeps it that way.
   return bars;
-}
-
-/**
- * The store's database access, kept behind one function so `readThrough` never
- * imports PostgREST and stays testable without a network.
- *
- * Reads NEWEST-FIRST and limited: the decode cap is what the engine reads, and
- * `findSwingPivots` walks the whole array into the stop and the ladder, so the
- * limit is a money-path input rather than a page size.
- */
-function barStoreDeps(): BarStoreDeps {
-  return {
-    read: async (providerSymbol, timeframe, limit) => {
-      const rows = await adminFetchRows<
-        {
-          close: number;
-          high: number;
-          low: number;
-          open: number;
-          provider_date: string;
-          volume: number;
-        }
-      >(
-        `market_bars?select=provider_date,open,high,low,close,volume` +
-          `&provider_symbol=eq.${encodeURIComponent(providerSymbol)}` +
-          `&timeframe=eq.${encodeURIComponent(timeframe)}` +
-          `&order=provider_date.desc&limit=${limit}`,
-      );
-      return rows.map((row) => ({
-        close: row.close,
-        date: row.provider_date,
-        high: row.high,
-        low: row.low,
-        open: row.open,
-        volume: row.volume,
-      }));
-    },
-    write: async (providerSymbol, timeframe, rows) => {
-      await adminUpsertRows(
-        "market_bars",
-        rows.map((row) => ({
-          close: row.close,
-          high: row.high,
-          low: row.low,
-          open: row.open,
-          provider_date: row.date,
-          provider_symbol: providerSymbol,
-          timeframe,
-          volume: row.volume,
-        })),
-        "provider_symbol,timeframe,provider_date",
-      );
-    },
-  };
 }
 
 function pickPrimaryTimeframe(

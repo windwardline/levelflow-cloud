@@ -67,19 +67,60 @@ export type BarStoreDeps = {
  * a permanent hole at every date boundary — the one bug this design could
  * introduce that no test of a warm store would notice.
  */
-export function windowToBuy(
-  newestStoredDate: string | null,
-  today: string,
-  coldStartFrom: string,
-): { from: string; to: string } {
-  if (newestStoredDate === null) {
-    return { from: coldStartFrom, to: today };
+export function windowToBuy(input: {
+  coldStartFrom: string;
+  /** How many rows the caller needs. The store must hold at least this many. */
+  limit: number;
+  newestStoredDate: string | null;
+  oldestStoredDate: string | null;
+  /** True when the caller asked for a specific start, as a chart does. */
+  startDateIsBinding: boolean;
+  storedCount: number;
+  today: string;
+}): { from: string; to: string } {
+  const full = { from: input.coldStartFrom, to: input.today };
+  if (input.newestStoredDate === null) return full;
+
+  // THE STORE MUST BE DEEP ENOUGH, or its tail is not a shortcut — it is a
+  // truncation. `maxBarsForTimeframe` is what the engine decodes and
+  // `findSwingPivots` walks the WHOLE array into the stop and the ladder, so
+  // returning a shallow store plus a one-date tail would hand the engine
+  // fewer pivots than today and quietly move stops.
+  //
+  // Under-depth costs exactly today's price, so a warming store never
+  // regresses anything; it simply has not started saving yet.
+  if (input.storedCount < input.limit) return full;
+
+  // AND IT MUST COVER THE REQUESTED START when the caller named one. The
+  // analyzer never does — it asks for a fixed lookback and the decode cap
+  // governs — but a chart asking further back than the store holds cannot be
+  // served by topping up the newest end, or the series silently begins where
+  // the store happens to start rather than where the caller asked.
+  if (
+    input.startDateIsBinding && input.oldestStoredDate !== null &&
+    input.coldStartFrom < input.oldestStoredDate
+  ) {
+    return full;
   }
+
   // Never ask for a window that ends before it starts: a store holding a date
-  // AFTER today (a provider stamping ahead, or a clock skew) would otherwise
+  // AFTER today — a provider stamping ahead, or clock skew — would otherwise
   // produce a reversed range the provider answers unpredictably.
-  const from = newestStoredDate > today ? today : newestStoredDate;
-  return { from, to: today };
+  const from = input.newestStoredDate > input.today
+    ? input.today
+    : input.newestStoredDate;
+  return { from, to: input.today };
+}
+
+/** The oldest date the store holds for this series, or null when empty. */
+function oldestDateOf(rows: readonly StoredBar[]): string | null {
+  let oldest: string | null = null;
+  for (const row of rows) {
+    if (typeof row.date === "string" && (oldest === null || row.date < oldest)) {
+      oldest = row.date;
+    }
+  }
+  return oldest;
 }
 
 /** FMP serves newest-first; the store returns the same. */
@@ -164,6 +205,8 @@ export async function readThrough(
     fetchWindow: (from: string, to: string) => Promise<StoredBar[]>;
     limit: number;
     providerSymbol: string;
+    /** Charts name a start date; the analyzer's lookback is not binding. */
+    startDateIsBinding?: boolean;
     timeframe: string;
     today: string;
   },
@@ -176,7 +219,15 @@ export async function readThrough(
     storeUnavailable = true;
   }
 
-  const window = windowToBuy(newestDateOf(stored), input.today, input.coldStartFrom);
+  const window = windowToBuy({
+    coldStartFrom: input.coldStartFrom,
+    limit: input.limit,
+    newestStoredDate: newestDateOf(stored),
+    oldestStoredDate: oldestDateOf(stored),
+    startDateIsBinding: input.startDateIsBinding ?? false,
+    storedCount: stored.length,
+    today: input.today,
+  });
   const fresh = await input.fetchWindow(window.from, window.to);
   const merged = mergeRows(stored, fresh);
 
