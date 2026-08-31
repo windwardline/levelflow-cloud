@@ -451,10 +451,59 @@ async function main() {
   await mkdir(dir, { recursive: true });
   const at = new Date().toISOString();
 
+  // ONE REQUEST BEFORE 97, because the allowance drains by time and nothing
+  // else. `docs/HANDOFF.md` states the rule outright — "Do not re-run the bank
+  // into a 429 — a re-run cannot succeed against an exhausted allowance, and
+  // one whole-roster attempt burns ~485 requests" — and the job was doing
+  // exactly that, twice a day, for five days straight.
+  //
+  // THE RETRY LADDER IS THE REASON, and its own comment says so: five attempts
+  // from a 2s base "costs a doomed run only time", which was true of the
+  // failure it was written for — launchd waking the job before the network is
+  // up (2026-08-08, all 100 symbols lost in six seconds). It is not true of a
+  // quota 429, where every symbol spends its whole ladder against a wall that
+  // will not move until the trailing window drains.
+  //
+  // What this does NOT claim: that the retries made the exhaustion worse. FMP
+  // bills BYTES over a trailing 30 days, not requests
+  // (`2026-08-16-fmp-consumption-governor-design.md`), and a 429 body is a few
+  // of them. The cost is wall time, a log nobody can read, and a failure that
+  // looks identical whether the provider is exhausted or the key is revoked.
+
   let appendedTotal = 0;
   let fetchedTotal = 0;
   let failed = 0;
   let index = 0;
+
+  // THE FIRST SYMBOL IS THE SCOUT, and it is banked normally rather than
+  // probed — a separate probe would discard bars it had already paid for, and
+  // the allowance is metered in BYTES. On a healthy run this costs nothing at
+  // all; on an exhausted one it costs one symbol's ladder instead of the
+  // roster's.
+  if (targets.length > 0) {
+    const scout = targets[index++];
+    const result = await bankOne(dir, scout.fmpSymbol, scout.markets, at);
+    appendedTotal += result.appended;
+    fetchedTotal += result.fetched;
+    if (result.fetched === 0) {
+      failed += 1;
+      console.log(`  ${scout.fmpSymbol}: ${result.note || "no bars"}`);
+      console.error(
+        `The first symbol fetched nothing (${result.note || "no bars"}). ` +
+          `Standing down without attempting the remaining ${
+            targets.length - 1
+          } — HANDOFF's rule is explicit that a re-run cannot succeed against ` +
+          `an exhausted allowance, and a whole-roster attempt spends ~${
+            targets.length * RETRY_ATTEMPTS
+          } requests learning it again. The window drains by time only. ` +
+          `Recovery needs no catch-up: one successful run re-pulls each ` +
+          `symbol's full window.`,
+      );
+      process.exitCode = 1;
+      return;
+    }
+  }
+
   const workers = Array.from({ length: Math.max(1, concurrency) }, async () => {
     while (index < targets.length) {
       const target = targets[index++];
