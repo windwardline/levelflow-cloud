@@ -707,6 +707,26 @@ export type SweepManifest = {
    * population-dependent.
    */
   acceptance?: { captureAll: boolean; ignoreLowEdge: boolean };
+  /**
+   * The modelled-cost scale this corpus was measured under.
+   *
+   * `executionQuality.ts` reads it from the process environment, so it is a
+   * measurement TERM that nothing recorded: it moves the payoff gate, the cost
+   * penalty and `executionScore`.
+   *
+   * NOT in `conditions`. Those terms are compared to a hardcoded literal, and
+   * two scales are simultaneously legitimate by design — amendment 36's
+   * re-decision wants a gross arm and a net arm — so any literal would make
+   * one of them unreadable on every path rather than merely unaggregatable.
+   * It joins `conditionsOf` instead: two scales are two measurements, and a
+   * shard set runs under one.
+   *
+   * A scale other than 1 is refused at the driver while
+   * `MODELED_COST_SCALE_REACHES_RESOLVER` is false, because the scale reaches
+   * the payoff gate and not the resolver — so a corpus recording one would
+   * assert a gross-cost measurement it is not.
+   */
+  modeledCostScale?: number;
   emitColumns?: string[];
   /**
    * The engine revision this corpus was measured under. Optional because
@@ -814,6 +834,8 @@ export function buildSweepManifest(input: {
   requestedSymbols?: string[];
   /** See `SweepManifest.acceptance`. Required on every new manifest. */
   acceptance?: { captureAll: boolean; ignoreLowEdge: boolean };
+  /** See `SweepManifest.modeledCostScale`. */
+  modeledCostScale?: number;
   /** Sorted keys of the first emitted row. See `SweepManifest.emitColumns`. */
   emitColumns?: string[];
   treasuryCurve: TreasuryCurveFacts;
@@ -871,6 +893,11 @@ export function buildSweepManifest(input: {
     // whose columns are unchanged. Conditionally spread, so no existing
     // fixture's hash moves.
     ...(input.acceptance && { acceptance: input.acceptance }),
+    // Spread on any DEFINED value, including 0 — a falsy check would drop the
+    // one scale the remediation actually ran, which is the arm most in need
+    // of being stated.
+    ...(input.modeledCostScale !== undefined &&
+      { modeledCostScale: input.modeledCostScale }),
     ...(input.emitColumns && { emitColumns: [...input.emitColumns].sort() }),
     treasuryCurve: input.treasuryCurve,
     warmupBars: input.warmupBars,

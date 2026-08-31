@@ -1083,12 +1083,26 @@ reader's column check split a legitimate shard set.
 | **`acceptance: { captureAll, ignoreLowEdge }` — LANDED 2026-08-31 (#481)** | The corpus's acceptance mode. **Verified by construction**: neither flag reached `buildSweepManifest` at all, so two corpora with entirely different accepted populations hashed byte-identically and pooled. `ignoreLowEdge` is the one that moves the ACCEPTED population — `sweep.ts` rewrites a blocked session to `{ block: false, penalty: 0 }` one line before the branch that would have rejected it, so that arm grades hours the live desk refuses outright. `captureAll` never sets `accepted: true`; it keeps rows that FAILED a gate, changing the denominator. **Top level, never in `conditions`** — those are compared to a hardcoded literal and both values here are legitimate by design, so any literal refuses one arm on every path. **Joins `conditionsOf`**, like `days`: a CLI parameter constant across a legitimate shard set, so it separates two measurements without making the corpus id population-dependent. Recorded UNCONDITIONALLY, both flags, so an absent block means "predates the field" and a `false` means "this run was gated" — two different facts the door distinguishes. `confidence-bands.ts` and `threshold-rescue.ts` both OPENED by stating a capture-all premise in a header comment and checking nothing; both now assert it, because a gated sweep emits only rows that passed the confidence gate, so a band curve built from one reads every band as perfect and a rescue finds nothing to rescue — neither fails, both report |
 | `symbols[].engineDecline` | The decline state the corpus was produced under — pinned, rather than re-read from a tree R4 is going to rewrite |
 
-**One proposal needs redefining before implementation.**
-`conditions.modeledCostScale` is right to exist — the cost model's scale is an
-unstated measurement term read from the process environment — but
-`verifyManifest` compares each `conditions` term to a hardcoded build constant,
-so a numeric scale would make a gross-arm corpus unreadable on every path rather
-than merely unaggregatable. It needs a literal, or a home outside `conditions`.
+**`modeledCostScale` — LANDED 2026-08-31 (#482), outside `conditions`.** The
+flag was right: `verifyManifest` compares each `conditions` term to a hardcoded
+literal, and two scales are simultaneously legitimate by design (amendment 36
+wants a gross arm and a net arm), so any literal would make one unreadable on
+every path rather than merely unaggregatable. It sits top level and joins
+`conditionsOf`, so a gross arm and a net arm cannot pool.
+
+**And the arm is refused until M5, which is the larger finding.** Verified at
+the resolver call: the scale multiplies `estimatedRoundTripCost` only, while
+the resolver is handed `gapExitSlippage: estimatedSlippage`,
+`halfSpread: estimatedSpread / 2` and `roundTripCost: estimatedCommission` —
+none of them scaled. A gross arm therefore does not measure gross R; it
+measures net R under a LOOSENED GATE, admitting more setups and changing
+nothing about what they earn. That is the 2026-08-11 no-op with its provenance
+(eleven of twenty rows bit-identical, read at the time as agreement). The
+driver now refuses a scale not equal to 1 BEFORE fetching a byte, keyed on
+`MODELED_COST_SCALE_REACHES_RESOLVER`; landing M5 flips that constant and the
+refusal lifts with it. **Section 5's item 5 — "amendment 36's re-decision needs
+a gross corpus AND a net corpus" — cannot be satisfied by a scale flag until
+then, whatever the sequence budgets.**
 
 #### IMPLEMENTED 2026-08-23 under owner authorisation — two of the three
 

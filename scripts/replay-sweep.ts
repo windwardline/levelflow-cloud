@@ -28,6 +28,10 @@ import {
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
+  MODELED_COST_SCALE_REACHES_RESOLVER,
+  modeledCostScaleFromEnv,
+} from "../supabase/functions/trade-analyzer/executionQuality.ts";
+import {
   fetchFmpJsonWithRetry,
   fetchFmpWithRetry,
   type FmpRetryEvent,
@@ -252,6 +256,33 @@ async function main() {
   // dies at the command line rather than partway through a sweep.
   sweepBudget = createByteBudget(parseByteBudgetArg(process.argv.slice(2)));
   const args = parseArgs(process.argv.slice(2));
+  // THE COST SCALE, resolved and refused before a single byte is fetched.
+  //
+  // `LEVELFLOW_MODELED_COST_SCALE` multiplies `estimatedRoundTripCost` only.
+  // The resolver receives the RAW components — `gapExitSlippage`,
+  // `halfSpread`, `roundTripCost` from commission — so a scale below 1 does
+  // not measure gross R. It loosens the payoff gate, admits more setups, and
+  // leaves what they earn untouched. The 2026-08-11 remediation records the
+  // run that proved it: eleven of twenty rows bit-identical, read at the time
+  // as agreement.
+  //
+  // Refusing here rather than warning is the point. A corpus stating a scale
+  // it did not apply asserts a gross-cost measurement it is not, and R3 is
+  // one re-sweep against an exhausted allowance — the wrong moment to
+  // discover the arm measured nothing. The refusal lifts on its own when M5
+  // routes the scale into the resolver and
+  // `MODELED_COST_SCALE_REACHES_RESOLVER` flips.
+  const modeledCostScale = modeledCostScaleFromEnv();
+  if (modeledCostScale !== 1 && !MODELED_COST_SCALE_REACHES_RESOLVER) {
+    console.error(
+      `LEVELFLOW_MODELED_COST_SCALE=${modeledCostScale} but the scale does ` +
+        `not reach the resolver (M5): fills are handed the unscaled spread ` +
+        `and slippage and realized R charges full commission, so this run ` +
+        `would loosen the payoff gate and measure net R anyway. Set the ` +
+        `scale to 1, or land M5 first.`,
+    );
+    process.exit(1);
+  }
   // Durable by default (r17 hardening): mornings reuse the rolling store
   // and top up incrementally instead of refetching whole windows.
   args.cacheDir = args.cacheDir ?? DEFAULT_CACHE_DIR;
@@ -1051,6 +1082,10 @@ async function main() {
         captureAll: Boolean(args.captureAll),
         ignoreLowEdge: Boolean(args.ignoreLowEdge),
       },
+      // The value this run ACTUALLY used, from the engine's own reader rather
+      // than a second parse of the same variable — a second clamp is a second
+      // thing to drift.
+      modeledCostScale,
       analyzerVersion: ANALYZER_VERSION,
       ...(emitColumns && { emitColumns }),
       anchor: isoDate(new Date()),

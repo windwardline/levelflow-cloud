@@ -776,6 +776,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     conditionsOverride?: Record<string, string>,
     treasuryCurveOverride?: TreasuryCurveFacts,
     acceptanceOverride?: { captureAll: boolean; ignoreLowEdge: boolean },
+    modeledCostScaleOverride?: number,
   ): string => {
     const dir = mkdtempSync(join(tmpdir(), "gate-shard-"));
     const emitPath = join(dir, "shard.jsonl");
@@ -786,6 +787,8 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     const manifest = buildSweepManifest({
       acceptance: acceptanceOverride ??
         { captureAll: false, ignoreLowEdge: false },
+      ...(modeledCostScaleOverride !== undefined &&
+        { modeledCostScale: modeledCostScaleOverride }),
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
@@ -1033,6 +1036,22 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       ]),
       /shards of one measurement/,
       "a --capture-all arm pooled with a gated one",
+    );
+  });
+
+  it("refuses shards swept under different MODELLED COST SCALES", async () => {
+    // A gross arm and a net arm are two measurements. The scale moves the
+    // payoff gate, so the two admit different setups — and before it reached
+    // the manifest they hashed identically and pooled. Clock, conditions and
+    // acceptance are held identical so the scale is the only thing that can
+    // be carrying the refusal.
+    await assert.rejects(
+      gradeCorpus([
+        shardWith(shardRows("EURUSD"), undefined, undefined, undefined, undefined, undefined, 1),
+        shardWith(shardRows("GBPUSD"), undefined, undefined, undefined, undefined, undefined, 0),
+      ]),
+      /shards of one measurement/,
+      "a gross arm pooled with a net one",
     );
   });
 
