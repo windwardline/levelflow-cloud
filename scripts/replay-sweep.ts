@@ -259,20 +259,21 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   // THE COST SCALE, resolved and refused before a single byte is fetched.
   //
-  // `LEVELFLOW_MODELED_COST_SCALE` multiplies `estimatedRoundTripCost` only.
-  // The resolver receives the RAW components — `gapExitSlippage`,
-  // `halfSpread`, `roundTripCost` from commission — so a scale below 1 does
-  // not measure gross R. It loosens the payoff gate, admits more setups, and
-  // leaves what they earn untouched. The 2026-08-11 remediation records the
-  // run that proved it: eleven of twenty rows bit-identical, read at the time
-  // as agreement.
+  // The refusal has lifted — M5 (2026-08-31) routed the scale through
+  // `resolverCostOptions`, so a scale below 1 now genuinely charges less at
+  // the RESOLVER and a gross arm measures gross R. The branch stays anyway,
+  // reading the engine's own constant, because it is what fires if that
+  // wiring is ever broken again: until M5 the scale multiplied
+  // `estimatedRoundTripCost` alone, which loosened the payoff gate, admitted
+  // more setups, and left what they earned untouched. Eleven of twenty rows
+  // came back bit-identical and were read as agreement.
   //
-  // Refusing here rather than warning is the point. A corpus stating a scale
-  // it did not apply asserts a gross-cost measurement it is not, and R3 is
-  // one re-sweep against an exhausted allowance — the wrong moment to
-  // discover the arm measured nothing. The refusal lifts on its own when M5
-  // routes the scale into the resolver and
-  // `MODELED_COST_SCALE_REACHES_RESOLVER` flips.
+  // Refusing here rather than warning remains the point. A corpus stating a
+  // scale it did not apply asserts a gross-cost measurement it is not, and R3
+  // is one re-sweep against an exhausted allowance — the wrong moment to
+  // discover the arm measured nothing. `cost-sensitivity-verdict.ts` holds
+  // the matching door at the other end, where an inert arm is detectable from
+  // the corpus itself rather than from a constant.
   const modeledCostScale = modeledCostScaleFromEnv();
   if (modeledCostScale !== 1 && !MODELED_COST_SCALE_REACHES_RESOLVER) {
     console.error(

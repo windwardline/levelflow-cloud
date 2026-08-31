@@ -1,4 +1,5 @@
 import { getAssetType, getCategoryCalibration } from "./calibration.ts";
+import { resolverCostOptions } from "./executionQuality.ts";
 
 export type ReplayBar = {
   close: number;
@@ -198,9 +199,20 @@ export function fillOptionsFromRiskModel(
     return options;
   }
   options.barIntervalMs = 15 * 60 * 1000;
-  options.gapExitSlippage = slippage;
-  options.halfSpread = spread / 2;
-  options.roundTripCost = commission;
+  // SCALE 1, unconditionally, and stated rather than inherited.
+  //
+  // This is the LIVE bridge — outcome-sync and the analyzer's own resolver
+  // grade real setups through it. `resolverCostOptions` takes the scale as a
+  // parameter precisely so this line can refuse it: were the mapping to read
+  // `LEVELFLOW_MODELED_COST_SCALE` itself, a stray environment variable on a
+  // production deployment would silently re-grade the outcome corpus that
+  // global learning feeds on. The sweep is the instrument and passes its
+  // declared scale; production charges the full model, always.
+  Object.assign(options, resolverCostOptions({
+    estimatedCommission: commission,
+    estimatedSlippage: slippage,
+    estimatedSpread: spread,
+  }, 1));
   options.sameBarProtectionArming = true;
   return options;
 }

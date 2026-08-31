@@ -227,8 +227,24 @@ So that what is measured is what trades.
 - **M1** `roster-expectancy-audit.ts` double-counts the baseline variant;
   drop the `|| variant === "baseline"` alternative, re-run, and commit
   script and artifact together.
-- **M5/1c** make the cost scale reach the resolver, and assert that an
-  identical gross/net row emits "COST MODEL INERT" instead of a verdict.
+- ~~**M5/1c** make the cost scale reach the resolver, and assert that an
+  identical gross/net row emits "COST MODEL INERT" instead of a verdict.~~
+  **LANDED 2026-08-31.** Both halves. `resolverCostOptions` is now the one
+  mapping from a cost reading to the resolver's triple, and the sweep and the
+  live bridge share it — the duplication was the mechanism, because with the
+  mapping written out twice there was no single place where routing the scale
+  in would have fixed both. It scales the MODELLED half and never the
+  published commission, which is amendment 36's standard expressed as
+  arithmetic. The live bridge passes 1 explicitly, so a stray environment
+  variable in production cannot re-grade the outcome corpus.
+  `cost-sensitivity-verdict.ts` names an identical pair INERT and refuses the
+  run outright when every readable market comes back that way — the artifact
+  is written first, because it is the evidence of the failure.
+  `tests/costScaleReachesResolver.test.ts` proves it by RUNNING the engine at
+  two scales and comparing realized R; every source-shape assertion in it
+  would have passed throughout the three weeks the defect was live.
+  **Still open, and unchanged by this:** the two arms need two runs, because
+  the scale is a per-process environment read (section 5, item 5).
 - **D1** global learning derives `confidence_adjustment` from a win
   *rate*; derive it from mean realized R instead.
 

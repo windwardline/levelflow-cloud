@@ -245,17 +245,19 @@ export function estimateExecutionQuality(
   // modeled half to zero was MEANT to isolate the verdict the published
   // bill alone supports.
   //
-  // ⛔ IT DOES NOT — the knob is INERT for measurement (defect 1c,
-  // 2026-08-11). `estimatedRoundTripCost` is the only value it touches, and
-  // the replay resolver never reads it: fills are handed `estimatedSpread`
-  // and `estimatedSlippage` directly (`sweep.ts:568-569`) and realized R
-  // charges commission through `perLegCost`. Setting the scale to 0 removes
-  // nothing from the R accounting; it only loosens the payoff gate, so a
-  // "sensitivity run" admits MORE setups rather than costing them less.
-  // Amendment 36's standard cannot be met through this path. Phase 2 (M5)
-  // must route the scale into the resolver and assert that a bit-identical
-  // gross/net row emits "COST MODEL INERT" instead of a verdict — see
-  // docs/research/remediation-program-2026-08-11.md.
+  // AND IT NOW DOES, since M5 (2026-08-31). It did not for three weeks: this
+  // was the ONLY value the scale touched, and the replay resolver never read
+  // it — fills took `estimatedSpread` and `estimatedSlippage` straight and
+  // realized R charged commission through `perLegCost`. Setting the scale to
+  // 0 removed nothing from the R accounting and only loosened the payoff
+  // gate, so a "sensitivity run" admitted MORE setups rather than costing
+  // them less, and amendment 36's standard could not be met through this
+  // path at all (defect 1c, `remediation-program-2026-08-11.md`).
+  //
+  // The scale now reaches the resolver through `resolverCostOptions`, the
+  // single mapping the sweep and the live bridge share. This line keeps the
+  // gate and the resolver charging the SAME modelled half, which is what
+  // made the divergence invisible while it lasted.
   //
   // Defaults to 1 (full model); the live analyzer never sets it — pinned in
   // tests/executionQuality.test.ts.
@@ -374,34 +376,82 @@ export function estimateExecutionQuality(
  * the same variable is a second clamp to keep in step, and the manifest's
  * whole job is to state the term the run used.
  */
-/**
- * Does the modelled cost scale reach the RESOLVER yet?
- *
- * It does not, and that is open defect M5. The scale multiplies
- * `estimatedRoundTripCost` only — which drives the payoff gate, the cost
- * penalty and `executionScore` — while the resolver is handed the RAW
- * components: `gapExitSlippage: estimatedSlippage`, `halfSpread:
- * estimatedSpread / 2`, and `roundTripCost: estimatedCommission`. Nothing
- * there is scaled.
- *
- * So a gross arm does not measure gross R. It measures net R under a LOOSENED
- * GATE, which admits more setups and changes nothing about what they earn.
- * That is not a hypothesis: `docs/research/remediation-program-2026-08-11.md`
- * records the run — eleven of twenty rows came back bit-identical, and the
- * no-op was read at the time as agreement.
- *
- * Flip this when M5 routes the scale into the resolver, and the driver's
- * refusal lifts with it. Until then a corpus stating a scale it did not
- * actually apply is worse than one stating nothing.
- */
-export const MODELED_COST_SCALE_REACHES_RESOLVER = false;
-
 export function modeledCostScaleFromEnv(): number {
   const raw = typeof globalThis.process?.env?.LEVELFLOW_MODELED_COST_SCALE ===
       "string"
     ? Number(globalThis.process.env.LEVELFLOW_MODELED_COST_SCALE)
     : 1;
   return Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : 1;
+}
+
+/**
+ * Does the modelled cost scale reach the RESOLVER?
+ *
+ * It does, since M5. It did NOT between 2026-08-09 and 2026-08-31, and that
+ * gap is the whole reason this constant exists rather than a comment: the
+ * scale multiplied `estimatedRoundTripCost` alone — the payoff gate, the cost
+ * penalty, `executionScore` — while the resolver was handed the RAW spread,
+ * slippage and commission by two separate hand-written call sites. A "gross
+ * arm" at scale 0 therefore charged the net arm's costs and merely loosened
+ * the gate, admitting MORE setups and changing nothing about what they
+ * earned. Eleven of twenty rows came back bit-identical and the no-op was
+ * read as agreement (defect 1c, `remediation-program-2026-08-11.md`).
+ *
+ * `resolverCostOptions` below is now the only mapping from a cost reading to
+ * the resolver's triple, so the scale cannot reach one call site and miss the
+ * other. The constant stays because the sweep driver and the sensitivity
+ * verdict both branch on it, and a fact two scripts act on belongs somewhere
+ * they can read it.
+ */
+export const MODELED_COST_SCALE_REACHES_RESOLVER = true;
+
+/** What the resolver charges, from one execution-quality reading. */
+export type ResolverCostOptions = {
+  gapExitSlippage: number;
+  halfSpread: number;
+  roundTripCost: number;
+};
+
+/**
+ * The resolver's cost triple — ONE definition, because there were two.
+ *
+ * `sweep.ts` and `fillOptionsFromRiskModel` each built this mapping by hand,
+ * and that duplication is how defect 1c got written twice over. Both copies
+ * passed the raw components straight through, so there was no single place
+ * where routing the scale in would have fixed both.
+ *
+ * WHAT THE SCALE MULTIPLIES mirrors `estimatedRoundTripCost` exactly: the
+ * MODELED half — spread and slippage, which for crypto rest on the single
+ * Monday-afternoon book sample `venueCosts` itself warns "is not a cost
+ * model" — and never the PUBLISHED commission, which is the venue's own
+ * number and is charged in full at every scale. That is the entire point of
+ * amendment 36's standard: no withdrawal on a flawed parameter of our own
+ * making, and the commission is not ours.
+ *
+ * At scale 1 the arithmetic is BIT-IDENTICAL to the hand-written form it
+ * replaces — `x * 1` is exact in IEEE 754 — so the live engine and every
+ * existing corpus are unmoved. `tests/executionQuality.test.ts` pins that.
+ *
+ * `scale` is a PARAMETER, not an environment read, and the two callers pass
+ * different things on purpose. The sweep is a measurement instrument and
+ * passes the run's declared scale; the live resolver passes 1 unconditionally,
+ * so a stray environment variable in a production deployment can never
+ * quietly re-grade the outcome corpus. Reading the env in here would make
+ * that difference invisible at both call sites.
+ */
+export function resolverCostOptions(
+  quality: {
+    estimatedCommission: number;
+    estimatedSlippage: number;
+    estimatedSpread: number;
+  },
+  scale: number,
+): ResolverCostOptions {
+  return {
+    gapExitSlippage: quality.estimatedSlippage * scale,
+    halfSpread: quality.estimatedSpread * scale / 2,
+    roundTripCost: quality.estimatedCommission,
+  };
 }
 
 function clampInteger(value: number, min: number, max: number) {
