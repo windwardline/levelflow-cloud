@@ -7,28 +7,41 @@ import {
   engineDeclineSentence,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { cleanReviewMessage } from "../src/components/workspace/reviewCopy.ts";
+import { getCategoryCalibration } from "../supabase/functions/trade-analyzer/calibration.ts";
+import { knownSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 
 /**
  * The fifteen markets the engine will not build a setup for, and the sentence
  * they get.
  *
- * THREE DEFECTS SHIPPED TOGETHER HERE, all reader-facing, all live:
+ * ONE READER-FACING DEFECT, and two that were never on a screen. The first
+ * version of this docblock called all three "reader-facing, all live", and
+ * that was wrong in a way its own first item proves.
  *
- * 1. The honest sentence reached nobody. It rode `analysisDiagnostics`, and
- *    `scanOpportunity` rebuilds the blocked candidate field by field while
- *    `AdvisorWorkspace` rebuilds it AGAIN — TWO boundaries, neither carrying
- *    the field. Every declined market was answered "No current limit setup met
- *    the review threshold.": a transient sentence inviting a rescan that can
- *    never succeed, against an FMP quota already exhausted twice. This is #457
- *    one surface over, and the reason a fix that widened only the server type
- *    would have shipped and done nothing.
+ * 1. THE ONE A READER SAW. All fifteen declined markets were answered "No
+ *    current limit setup met the review threshold." — a transient sentence
+ *    inviting a rescan that can never succeed, against an FMP quota already
+ *    exhausted twice. The honest sentence rode `analysisDiagnostics`, which
+ *    `scanOpportunity` and `AdvisorWorkspace` both rebuild without: TWO
+ *    boundaries, which is why a fix widening only the server type would have
+ *    shipped and done nothing. This is #457 one surface over.
  *
- * 2. The decline branch did not return, so the score sentence printed directly
- *    beneath it — telling the reader to come back with a higher score on a
- *    market whose record is the reason no score would help.
+ * 2. `analysisDiagnostics` REACHES NO CLIENT AT ALL. The scan payload is
+ *    `{blocked, opportunities, persistence, qualified, scanned}` and none of
+ *    the four `setAnalysisState` calls sets the field, so the panel's read of
+ *    it is dead code against every path. It reaches `analyzer_events` and
+ *    stops. So the score sentence, riding the same channel, never contradicted
+ *    the decline on a screen — only in telemetry — and the dead rewrite in
+ *    `reviewCopy.ts` had no reader-facing effect either, because nothing it
+ *    rewrote ever arrived. The decline now rides `reason`, which is the
+ *    channel that does arrive.
  *
- * 3. That score sentence was a tautology anyway: 72 of the 81 calibration
- *    entries carry `confidenceThreshold: 0`, so it read "requires 0 or higher".
+ * 3. The score sentence was a tautology on most markets: 72 of the 98 markets
+ *    in the symbol map resolve to `confidenceThreshold: 0` through
+ *    `getCategoryCalibration`, so it read "requires 0 or higher". 26 carry a
+ *    positive threshold and still get it. (An earlier note said "72 of the 81
+ *    calibration entries" — the table holds 80, and a per-entry census answers
+ *    a different question from a per-market one.)
  *
  * And the sentence itself claimed something false. It ended "after the venue's
  * published costs" while `remediation-program-2026-08-11.md` records that the
@@ -202,15 +215,35 @@ describe("a decline is not answered as a near miss", () => {
     "utf8",
   );
 
-  it("explainNoSetup stops after the decline", () => {
+  it("explainNoSetup stops after the decline, but keeps the instrument", () => {
     const at = analyzer.indexOf("diagnostics.push(engineDeclineSentence(declined))");
     assert.ok(at >= 0, "the decline diagnostic is gone");
-    const after = analyzer.slice(at, at + 700);
+    // Bounded by the next branch rather than by a character count: the window
+    // was 700 characters and the comment explaining WHY the return is there
+    // grew past it, so the test failed on prose.
+    const branchEnd = analyzer.indexOf("\n    }", at);
+    assert.ok(branchEnd > at, "the decline branch no longer closes");
+    const branch = analyzer.slice(at, branchEnd);
     assert.match(
-      after,
+      branch,
       /return diagnostics;/,
-      "without the return, the score sentence prints beneath the decline and " +
-        "contradicts it",
+      "without the return, the score sentence follows the decline into " +
+        "analyzer_events and contradicts it there",
+    );
+    // The instrument is recorded BEFORE the branch, which is the only way an
+    // early return can keep it. Asserted by position, because "the push
+    // exists somewhere in the file" would pass with it stranded after the
+    // return.
+    const refusalAt = analyzer.indexOf(
+      "The live market has already crossed the computed limit entry",
+    );
+    assert.ok(refusalAt >= 0, "the crossed-limit reading is gone");
+    assert.ok(
+      refusalAt < at,
+      "the plan-refusal reading sits AFTER the decline's early return, so 15 " +
+        "markets stopped contributing to the through-market instrument while " +
+        "still paying to compute it — the population would be 82 of 97, " +
+        "narrowed as a side effect of a copy fix",
     );
   });
 
@@ -222,22 +255,35 @@ describe("a decline is not answered as a near miss", () => {
     );
   });
 
-  it("and that gate is not cosmetic — most markets carry a zero threshold", () => {
-    // The number that makes the gate load-bearing, DERIVED rather than
-    // asserted: if thresholds are restored the sentence starts speaking again
-    // on its own, and this assertion is what would notice the premise moving.
-    const calibration = readFileSync(
-      "supabase/functions/trade-analyzer/calibration.ts",
-      "utf8",
+  it("and that gate is not cosmetic — most MARKETS carry a zero threshold", () => {
+    // THE POPULATION IS THE MARKETS, and this assertion used to count source
+    // lines instead. A regex census over `calibration.ts` counts table
+    // ENTRIES, which answers a different question: every zero is a per-symbol
+    // override while the positive values are category bases covering many
+    // markets each, so the two only coincided at 72 by accident. Counting the
+    // wrong population is the failure this repo names by name, and it was
+    // sitting inside the guard written to stop exactly that.
+    //
+    // Resolved through `getCategoryCalibration`, which is the function the
+    // engine itself calls, so a base/override merge cannot drift from it.
+    const thresholds = knownSymbols.map(
+      (symbol) => getCategoryCalibration(symbol).confidenceThreshold,
     );
-    const all = calibration.match(/confidenceThreshold: \d+/g) ?? [];
-    const zero = all.filter((entry) => entry.endsWith(" 0")).length;
-    assert.ok(all.length > 0, "no thresholds found — the census is vacuous");
+    const zero = thresholds.filter((value) => value === 0).length;
     assert.ok(
-      zero > all.length / 2,
-      `only ${zero} of ${all.length} thresholds are zero; if this has fallen ` +
-        `below half, the tautology is no longer the common case and the gate ` +
-        `above deserves re-reading rather than assuming`,
+      thresholds.length >= 90,
+      `only ${thresholds.length} markets resolved — the census is vacuous`,
+    );
+    assert.ok(
+      zero > thresholds.length / 2,
+      `only ${zero} of ${thresholds.length} MARKETS carry a zero threshold; ` +
+        `if this has fallen below half the tautology is no longer the common ` +
+        `case and the gate above deserves re-reading rather than assuming`,
+    );
+    assert.ok(
+      zero < thresholds.length,
+      `every market carries a zero threshold, so the gate silences the score ` +
+        `sentence everywhere — at that point it is a deletion, not a gate`,
     );
   });
 });

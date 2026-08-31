@@ -9,6 +9,7 @@ import {
   findSwingPivots,
   nearestLevelBeyond,
 } from "../supabase/functions/trade-analyzer/indicators.ts";
+import { applyFuturesTickRules } from "../supabase/functions/trade-analyzer/futures.ts";
 import { getCategoryCalibration } from "../supabase/functions/trade-analyzer/calibration.ts";
 import type {
   Bar,
@@ -267,6 +268,30 @@ const regime: Regime = {
   volatilityPercentile: 0.5,
 };
 
+/**
+ * `syntheticMarket` with every price multiplied, so a fixed tick grid stops
+ * absorbing differences the test needs to see. Volumes and times are
+ * untouched: only the price axis scales.
+ */
+function scaledMarket(scale: number): MarketContext {
+  const base = syntheticMarket();
+  const scaleBar = (bar: Bar): Bar => ({
+    close: bar.close * scale,
+    high: bar.high * scale,
+    low: bar.low * scale,
+    open: bar.open * scale,
+    time: bar.time,
+    volume: bar.volume,
+  });
+  const primary = base.primary.map(scaleBar);
+  return {
+    ...base,
+    daily: base.daily.map(scaleBar),
+    latest: primary.at(-1)!,
+    primary,
+  };
+}
+
 describe("price plan integration", () => {
 
   it("construction is single-anchor: a divergent market.latest changes nothing (#362 review, finding 1)", () => {
@@ -411,89 +436,106 @@ describe("price plan integration", () => {
     assert.ok(checked >= 5, `only ${checked} cases carried a pivot`);
   });
 
-  it("recovers the PRE-ALIGNMENT risk the ladder built TP1 from", () => {
-    // The specific claim the ninth emit field was proposed to buy. Under
-    // `risk_share` on a grid market the ladder consumes the riskDistance from
-    // BEFORE alignment while only the after value is emitted, so TP1 was
-    // recorded as not reconstructing. It does — the recovered pivot gives back
-    // the planned stop, and the planned stop gives back the risk.
+  it("recovers the PRE-ALIGNMENT risk, exactly, on the grid market that needs it", () => {
+    // The specific claim the ninth emit field was proposed to buy: under
+    // `risk_share` on a futures grid the ladder consumes the riskDistance from
+    // BEFORE alignment while only the after value is emitted.
     //
-    // THE ANCHOR IS THE GRID-FREE CASE, and it is what keeps this from being a
-    // shadow test. On a market with no tick grid, alignment never runs, so the
-    // recovered planned risk must equal the emitted `riskDistance` EXACTLY —
-    // any arithmetic error here shows up as a mismatch against production's
-    // own number. On a grid market the two legitimately differ, and the
-    // permitted difference is bounded BY THE GRID rather than by a tolerance
-    // chosen to make the test pass: alignment moves entry and stop by under a
-    // tick each, so their difference cannot exceed two. Measured on this
-    // fixture: 0.816 ticks and 0.200 on ZCUSX, 0.000 on LEUSX.
-    const cases = [
-      { symbol: "ZCUSX", tick: 0.25 },
-      { symbol: "LEUSX", tick: 0.025 },
-      { symbol: "EURUSD", tick: null },
-    ] as const;
-    let checked = 0;
-    for (const { symbol, tick } of cases) {
-      const calibration = getCategoryCalibration(symbol);
-      for (const side of ["buy", "sell"] as const) {
-        const plan = buildPricePlan(
-          side,
-          symbol,
-          syntheticMarket(),
-          regime,
-          calibration,
-        );
-        assert.ok(plan);
-        if (plan.stopPivotDistance === null) continue;
-        const down = side === "buy";
+    // THIS TEST WAS BLIND TO THE DEFECT IT NAMED. Its first version compared
+    // the recovered risk to the emitted POST-alignment `riskDistance`, exact
+    // on a grid-free market and inside a `tick * 2` tolerance on a grid one.
+    // Both arms survived reverting the anchor: the exact arm ran only on
+    // EURUSD, where there is no grid and so `plannedEntry === entryPrice` and
+    // the defect cannot exist, and on ZCUSX the anchor error moves the
+    // recovered risk by 0.040 — 0.16 ticks, far inside the tolerance. The
+    // pivot test above was carrying the whole mutation result while this one
+    // read as a second guard.
+    //
+    // The tolerance is gone rather than widened, and its stated derivation was
+    // wrong anyway: "alignment moves entry and stop by under a tick each"
+    // ignores the min-stop and min-target clamps in `applyFuturesTickRules`,
+    // which rewrite the stop to `entry ∓ tickSize × minStopTicks` and can move
+    // it by many ticks.
+    //
+    // What replaces it needs no tolerance at all. Push the RECOVERED planned
+    // entry and stop back through production's own tick rules and they must
+    // reproduce the plan's own aligned levels bit-for-bit; then the recovered
+    // pre-alignment risk must drive TP1 to the plan's own `takeProfit1`. That
+    // is an exact assertion, on the grid market the gap was recorded against,
+    // and it dies when the anchor moves.
+    // THE FIXTURE IS SCALED x5, and that is load-bearing rather than
+    // incidental. At the unscaled price the anchor error is 0.244 against
+    // ZC's 0.25 tick, so the grid and the min-stop clamp both round the two
+    // recoveries into the SAME aligned levels — the arithmetic differs
+    // (unaligned TP1 98.4756 vs 98.3780) and the assertion cannot see it.
+    // Scaling the prices raises the ATR against a fixed tick until the
+    // difference survives alignment, which is what makes this test die when
+    // the anchor moves instead of merely passing beside the pivot test.
+    const calibration = getCategoryCalibration("ZCUSX");
+    const plan = buildPricePlan(
+      "buy",
+      "ZCUSX",
+      scaledMarket(5),
+      regime,
+      calibration,
+    );
+    assert.ok(plan);
+    assert.equal(
+      plan.tp1Provenance,
+      "risk_share",
+      "fixture drifted off the branch this test exists for",
+    );
+    assert.ok(plan.stopPivotDistance !== null, "this case needs a pivot");
+    assert.ok(plan.contractSpec, "ZCUSX must resolve a tick grid");
 
-        // Every step below reads ONLY emitted fields and pinned calibration.
-        const offset = plan.atr *
-          (plan.entryProvenance === "trend_offset"
-            ? calibration.entryOffsetTrend
-            : calibration.entryOffsetDefault);
-        const plannedEntry = down
-          ? plan.latestClose - offset
-          : plan.latestClose + offset;
-        const pivot = down
-          ? plannedEntry - plan.stopPivotDistance
-          : plannedEntry + plan.stopPivotDistance;
-        const stopBuffer = Math.max(
-          plan.atr * calibration.stopAtrMultiplier,
-          plan.dailyAtr * calibration.dailyStopAtrMultiplier,
-        );
-        const structural = down
-          ? Math.min(pivot - stopBuffer, plannedEntry - plan.atr * 1.25)
-          : Math.max(pivot + stopBuffer, plannedEntry + plan.atr * 1.25);
-        const cap = down
-          ? plannedEntry - plan.atr * calibration.maxStopAtrMultiplier
-          : plannedEntry + plan.atr * calibration.maxStopAtrMultiplier;
-        const plannedStop = down
-          ? Math.max(structural, cap)
-          : Math.min(structural, cap);
-        const recovered = Math.abs(plannedEntry - plannedStop);
-        const emitted = Math.abs(plan.entryPrice - plan.stopLoss);
+    // Recovery, from emitted fields and pinned calibration only.
+    const offset = plan.atr *
+      (plan.entryProvenance === "trend_offset"
+        ? calibration.entryOffsetTrend
+        : calibration.entryOffsetDefault);
+    const plannedEntry = plan.latestClose - offset;
+    const pivot = plannedEntry - plan.stopPivotDistance;
+    const stopBuffer = Math.max(
+      plan.atr * calibration.stopAtrMultiplier,
+      plan.dailyAtr * calibration.dailyStopAtrMultiplier,
+    );
+    const structural = Math.min(
+      pivot - stopBuffer,
+      plannedEntry - plan.atr * 1.25,
+    );
+    const cap = plannedEntry - plan.atr * calibration.maxStopAtrMultiplier;
+    const plannedStop = Math.max(structural, cap);
+    const plannedRisk = Math.abs(plannedEntry - plannedStop);
+    const tp1 = plannedEntry + plannedRisk * calibration.tp1RiskShare;
 
-        assert.ok(recovered > 0, `${symbol} ${side}: risk must be a distance`);
-        if (tick === null) {
-          assert.ok(
-            Math.abs(recovered - emitted) < 1e-9,
-            `${symbol} ${side}: no grid means no alignment, so the recovered ` +
-              `risk (${recovered}) must BE the emitted one (${emitted})`,
-          );
-        } else {
-          assert.ok(
-            Math.abs(recovered - emitted) <= tick * 2 + 1e-9,
-            `${symbol} ${side}: recovered ${recovered} vs emitted ${emitted} ` +
-              `is ${(Math.abs(recovered - emitted) / tick).toFixed(3)} ticks ` +
-              `— alignment can move each level by under one tick, so a ` +
-              `difference above two means the recovery is wrong`,
-          );
-        }
-        checked++;
-      }
-    }
-    assert.ok(checked >= 5, `only ${checked} cases carried a pivot`);
+    // Production's own alignment, over the recovered levels. Reimplementing it
+    // would inherit whatever it has wrong; calling it is what makes the
+    // comparison meaningful.
+    const realigned = applyFuturesTickRules({
+      entryPrice: plannedEntry,
+      side: "buy",
+      stopLoss: plannedStop,
+      symbol: "ZCUSX",
+      takeProfit: plan.takeProfit,
+      takeProfit1: tp1,
+    });
+    assert.ok(realigned, "the recovered levels must survive the tick rules");
+    assert.equal(
+      realigned.entryPrice,
+      plan.entryPrice,
+      "recovered entry does not realign onto the plan's own entry",
+    );
+    assert.equal(
+      realigned.stopLoss,
+      plan.stopLoss,
+      "recovered stop does not realign onto the plan's own stop",
+    );
+    assert.equal(
+      realigned.takeProfit1,
+      plan.takeProfit1,
+      "the recovered PRE-alignment risk does not reproduce TP1 — which is " +
+        "the exact reconstruction the ninth emit field was proposed to buy",
+    );
   });
 
   it("exposes the second stop lever and the pivot distance the max() hid", () => {
