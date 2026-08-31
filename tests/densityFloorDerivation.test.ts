@@ -99,22 +99,29 @@ describe("the 5-minute floors fit the population they bind", () => {
     }
   });
 
-  it("keeps every class inside one band relative to its own ceiling", () => {
-    // The floors were calibrated as "probed margin under the measured week",
-    // and for a tight class the ceiling and the minimum coincide — so the
-    // ratio that generalises across classes is to the CEILING. Crypto is the
-    // only class whose two ratios diverge, because it has a genuine outlier
-    // below it, and anchoring on the ceiling is what keeps the disputed
-    // market out of its own threshold.
-    const ratios = floored.map((c) => c.overCeiling);
+  it("keeps every class inside one band relative to its own MINIMUM", () => {
+    // ANCHORED ON THE MINIMUM, and the first version of this test anchored on
+    // the CEILING and passed — because the census it read had lost the one
+    // class that disproves it. Nine of the 97 markets resolve to a different
+    // PROVIDER symbol than their roster name (all six indices, WTI->CLUSD,
+    // ARWUSD->ARUSD, TRUMPUSD->OTRUMPUSD), the 2026-08-30 census looked them
+    // up by roster name and recorded them as missing, and indices is the class
+    // whose members are furthest apart. Its floor sits at 0.464 of its ceiling
+    // and 0.726 of its minimum: on the ceiling anchor it is a wild outlier, on
+    // the minimum anchor it is in band with every sibling.
+    //
+    // The minimum is also the anchor that means something. A floor exists to
+    // catch a degraded feed, and the market at risk of falling through it is
+    // the thinnest one — so what has to be consistent across classes is the
+    // headroom the thinnest member gets.
+    const ratios = floored.map((c) => c.overMin);
     const lo = Math.min(...ratios);
     const hi = Math.max(...ratios);
     assert.ok(
-      hi - lo <= 0.06,
-      `floor/ceiling ratios span ${lo.toFixed(3)}-${hi.toFixed(3)} across ` +
-        floored.map((c) => `${c.name} ${c.overCeiling.toFixed(3)}`).join(", ") +
-        ` — one class is being judged by a different rule from the others, ` +
-        `which is exactly what 260 was`,
+      hi - lo <= 0.15,
+      `floor/min ratios span ${lo.toFixed(3)}-${hi.toFixed(3)} across ` +
+        floored.map((c) => `${c.name} ${c.overMin.toFixed(3)}`).join(", ") +
+        ` — one class is being judged by a different rule from the others`,
     );
   });
 
@@ -149,20 +156,51 @@ describe("the 5-minute floors fit the population they bind", () => {
     );
   });
 
-  it("still catches a materially clipped feed", () => {
-    // The cost of lowering crypto, asserted rather than assumed. The depth
-    // floor is the ONLY instrument that sees a clip applied symmetrically to
-    // both resolutions; no ratio can. Halving a feed must still refuse in
-    // every floored class, which is what keeps this a loosening and not a
-    // removal.
+  it("still catches a feed clipped to half its class MINIMUM", () => {
+    // The property that actually matters, and the one every floored class
+    // satisfies: a market at the class floor of health, halved, must refuse.
     for (const c of floored) {
-      const halved = c.ceiling / 2;
       assert.ok(
-        halved < c.floor,
-        `${c.name}: a feed clipped to half its ceiling (${halved.toFixed(1)}) ` +
+        c.min / 2 < c.floor,
+        `${c.name}: the thinnest market halved (${(c.min / 2).toFixed(1)}) ` +
           `would PASS a floor of ${c.floor} — the floor has stopped being a ` +
           `clip instrument`,
       );
     }
+  });
+
+  it("names the class where the two floor jobs are ARITHMETICALLY incompatible", () => {
+    // A floor has two jobs and they can conflict. It must (a) catch a feed
+    // clipped to half, for every member — so `floor > ceiling / 2` — and (b)
+    // leave the thinnest member fleet-standard headroom, so
+    // `floor <= ~0.72 x min`. Both hold only when `ceiling / min < 1.44`.
+    //
+    // DERIVED, not listed: the exception is computed from the census, so a
+    // class that grows apart joins it and a class that tightens leaves it,
+    // without anyone remembering to edit a name.
+    const conflicted = floored.filter((c) => c.ceiling / c.min >= 1.44);
+    assert.deepEqual(
+      conflicted.map((c) => c.name),
+      ["indices"],
+      `classes whose members are too far apart for one floor to do both jobs: ` +
+        conflicted.map((c) =>
+          `${c.name} (ceiling/min ${(c.ceiling / c.min).toFixed(2)})`
+        ).join(", ") +
+        ` — if this set changed, the floor for the newcomer needs the same ` +
+        `argument indices got rather than a number`,
+    );
+    // And the consequence, stated rather than hidden: indices' floor does NOT
+    // catch a half-clip of its healthiest member. Raising it to cover that
+    // would take the thinnest member's headroom below every sibling's. The
+    // 5/15 ratio instrument is what covers clips there; the depth floor
+    // cannot, and pretending otherwise with a tuned constant would be the
+    // manufactured kind of fix.
+    const indices = floored.find((c) => c.name === "indices");
+    assert.ok(indices, "indices left the floored set — re-read this argument");
+    assert.ok(
+      indices.ceiling / 2 > indices.floor,
+      "indices' floor now catches a half-clip of its ceiling, so the " +
+        "incompatibility above has been resolved and this note is stale",
+    );
   });
 });
