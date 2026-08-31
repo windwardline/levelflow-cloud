@@ -79,6 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - uses: windwardline/windwardline/actions/verify-live-headers@7e6d53cdf02944bf21cab73e13104386e9a4735a # v1.1.1
+      - name: Assert the seven security headers on production
+        uses: windwardline/windwardline/actions/verify-live-headers@7e6d53cdf02944bf21cab73e13104386e9a4735a # v1.1.1
         with:
           url: https://levelflow.windwardline.com
