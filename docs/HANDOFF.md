@@ -140,6 +140,37 @@ step leaves every signed-in operator working behind a closed door.
 > recoverable tail. The R0 cache rebuild is UNBLOCKED and waits only on
 > the studio machine's operator.
 
+**THE CEILING IS 250 GB, NOT 150 — and usage stood at 259 on 2026-08-31
+(owner).** Ultimate plus a purchased 100 GB block. Every budget in the §21
+governor design is a share of 150 and is understated by a third; the
+reservations and the precedence order are unaffected, since both are about who
+yields to whom. The next block is another 100 GB, not a tier change.
+
+**WHAT WAS ACTUALLY BLEEDING, measured 2026-08-31.** Six consumers, none able
+to tell another, because there is no usage endpoint — §21's whole premise:
+
+| consumer | cadence | state |
+| --- | --- | --- |
+| minute bank | launchd, TWICE daily (07:20 and 19:20) | 97 symbols x 5 retries per run against the refusal. **Fixed #492** (scout) and **#493** (breaker) |
+| cache top-up | launchd, twice daily | seven-step ladder, ~11 minutes per run. **Fixed #493** at the shared retry |
+| `levelflow-news-calendar-sync` | pg_cron, hourly | 24 FMP-touching calls/day for a PARKED desk. **PAUSED 2026-08-31** |
+| `levelflow-outcome-sync` | pg_cron, hourly | 24 FMP-touching calls/day resolving setups nobody is creating. **PAUSED 2026-08-31** |
+| `levelflow-sync-watchdog` | pg_cron, hourly | no FMP call — writes `analyzer_events`. LEFT ACTIVE deliberately, so the pause above is recorded rather than silent |
+| deploy-time E2E | every merge | **the unbounded one.** 19 deploys on 2026-08-31, each running Playwright against production: ~100 `trade-analyzer` + ~90 `market-data` calls per deploy, every one of them an FMP fetch. The governor sizes this as "bounded, small" — true per run, false per day |
+
+**UNPARK REQUIREMENT — the two paused jobs must be re-enabled**, or the desk
+comes back with a stale calendar and unresolved outcomes:
+
+```sql
+select cron.alter_job(jobid, active := true) from cron.job
+where jobname in ('levelflow-news-calendar-sync', 'levelflow-outcome-sync');
+```
+
+Re-enable them AFTER the minute bank has had one clean run, never before:
+§21c says the bank is the only consumer whose loss is permanent and dated, so
+it takes the door first when the window drains. This is the §17p shape again —
+a park is two steps, and the second one is the one that gets forgotten.
+
 The account's trailing-30-day bandwidth allowance was exhausted on 2026-08-13 by
 the rebuild's **replay sweeps** — not by the minute bank, whose steady draw is
 ~2.2 GB against 150 GB. Every request since has returned `HTTP 429`, on both the

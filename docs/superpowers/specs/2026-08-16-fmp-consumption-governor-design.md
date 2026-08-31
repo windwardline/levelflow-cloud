@@ -9,6 +9,20 @@ back-end tasks. Ever."*
 (`.minute-bank`, 2026-08-16) and the FMP published plan table. Where a
 figure is an estimate, it says so and gives its method. The account's plan
 is Ultimate: **150 GB per trailing 30 days, 3,000 API calls per minute**
+
+> **CORRECTED 2026-08-31 (owner).** The account's actual ceiling is **250 GB**,
+> not 150 — Ultimate plus a purchased 100 GB block — and trailing-30-day usage
+> stood at **259 GB, nine over**, on 2026-08-31. Every budget below is a share
+> of 150 and is therefore understated by a third; the RESERVATIONS and the
+> precedence order are unaffected, because both are about who yields to whom
+> rather than about the absolute number. The next block is another 100 GB, not
+> a tier change: Enterprise is not the upgrade path from here.
+>
+> This matters more than a stale figure usually would. Nothing in the system
+> can read the meter — there is no usage endpoint, which is §21's whole
+> premise — so the ceiling written here IS the number every estimate in this
+> file is checked against, and it was wrong by 100 GB while three consumers
+> were sized against it.
 (owner, 2026-08-16).
 
 The precedence rule of `fmp-bandwidth-allowance` binds and is restated as
@@ -59,7 +73,7 @@ Five consumers share one key across three runtimes. Bytes per 30 days:
 | Minute bank | local Node, launchd | ~2.2 GB (est.) | 1.5% |
 | news-calendar + outcome-sync | Supabase Edge, hourly | ~1.2 GB (est.) | 0.8% |
 | trade-analyzer | Supabase Edge, user-facing | usage-dependent | — |
-| E2E at deploy | GitHub Actions | bounded, small | — |
+| E2E at deploy | GitHub Actions | bounded per run, UNBOUNDED per day | — |
 
 **Bank method.** Measured: 110 bytes/bar for BTCUSD, 102 for EURUSD as
 stored JSONL. Wire JSON repeats field names, so ~150 bytes/bar. Each run

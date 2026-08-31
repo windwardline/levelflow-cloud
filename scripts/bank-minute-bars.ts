@@ -57,6 +57,13 @@ const KEY = process.env.FMP_API_KEY;
 // Bars carry no timezone and FMP's window is ~3 days, so a key is only ever
 // compared against keys from the same provider and endpoint. Recording both
 // makes that assumption checkable rather than assumed.
+import {
+  closeCircuit,
+  isBandwidthRefusal,
+  mayCall,
+  openCircuit,
+} from "./fmpCircuit.ts";
+
 const PROVIDER = "fmp";
 const ENDPOINT = "historical-chart/1min";
 
@@ -352,7 +359,15 @@ export async function withRetry<T>(
     try {
       return await operation();
     } catch (error) {
-      if (attempt >= options.attempts || !isRetryable(error)) {
+      // A bandwidth refusal is FINAL within a run: the window drains by the
+      // day, so the remaining attempts cannot succeed and exist only to make
+      // the failure slower. The rate-limit 429 keeps its ladder, which is the
+      // failure the ladder was written for.
+      if (
+        attempt >= options.attempts ||
+        !isRetryable(error) ||
+        isBandwidthRefusal(error instanceof Error ? error.message : "")
+      ) {
         throw error;
       }
       await options.sleep(options.baseDelayMs * 2 ** (attempt - 1));
@@ -369,7 +384,15 @@ async function fetchMinuteBars(fmpSymbol: string): Promise<RawBar[]> {
   url.searchParams.set("apikey", KEY!);
   const res = await fetch(url, { headers: { accept: "application/json" } });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
+    // THE BODY, not just the status. FMP returns 429 for two different walls —
+    // the 3,000/minute rate limit, which a backoff ladder is exactly right for
+    // and which clears in seconds, and the trailing-30-day bandwidth ceiling,
+    // which clears in DAYS and against which a ladder is pure noise. The code
+    // cannot carry that difference; only the provider's own words can
+    // ("Bandwidth Limit Reach . Please upgrade your plan"). Throwing the bare
+    // status is what left every consumer unable to tell them apart.
+    const detail = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status}${detail ? ` ${detail.trim()}` : ""}`);
   }
   const payload = await res.json();
   if (!Array.isArray(payload)) {
@@ -475,6 +498,18 @@ async function main() {
   let failed = 0;
   let index = 0;
 
+  // THE SHARED BREAKER, checked before the scout. Six consumers were each
+  // rediscovering the same wall independently; this one asks whether anybody
+  // already found it. An open breaker still lets ONE probe through per
+  // cool-off window, so recovery is noticed without the roster being spent to
+  // notice it.
+  const gate = mayCall(Date.now());
+  if (!gate.allowed) {
+    console.error(`Standing down: ${gate.reason}`);
+    process.exitCode = 1;
+    return;
+  }
+
   // THE FIRST SYMBOL IS THE SCOUT, and it is banked normally rather than
   // probed — a separate probe would discard bars it had already paid for, and
   // the allowance is metered in BYTES. On a healthy run this costs nothing at
@@ -488,6 +523,11 @@ async function main() {
     if (result.fetched === 0) {
       failed += 1;
       console.log(`  ${scout.fmpSymbol}: ${result.note || "no bars"}`);
+      // Tell every other consumer what this one just learned, so the cache
+      // top-up and the sweeps do not each spend a roster finding out.
+      if (isBandwidthRefusal(result.note)) {
+        openCircuit(result.note, Date.now());
+      }
       console.error(
         `The first symbol fetched nothing (${result.note || "no bars"}). ` +
           `Standing down without attempting the remaining ${
@@ -502,6 +542,8 @@ async function main() {
       process.exitCode = 1;
       return;
     }
+    // The provider answered. Whatever any other consumer recorded is stale.
+    closeCircuit();
   }
 
   const workers = Array.from({ length: Math.max(1, concurrency) }, async () => {
