@@ -24,3 +24,6 @@ test-results
 # in docs/HANDOFF.md §6b-i, where `git add -A` swept a background
 # agent's edit into a commit.
 .claude/worktrees/
+
+# The shared FMP circuit breaker's marker — machine state, never committed.
+.fmp-circuit.json
