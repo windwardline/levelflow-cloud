@@ -43,6 +43,8 @@ import {
   emptyStats,
   expectancy,
   readLinesSync,
+  rExpectancyLower95,
+  rStandardError,
   rStdDev,
   type SweepEmitRow,
   type SweepStats,
@@ -218,6 +220,22 @@ export type VariantVerdict = {
   permutationP: number;
   breachDayShare: number | null;
   selectExpectancyDelta: number;
+  /**
+   * D4: the variant's OWN select-fold expectancy, its standard error, and the
+   * 95% lower bound acceptance is decided on.
+   *
+   * On the verdict as well as in the rule, because a reader owed a reason
+   * cannot get one from a boolean. A refusal at -0.02R over 4,000 decisions
+   * and one at +0.30R over 31 are opposite findings and both printed "fails".
+   *
+   * `selectExpectancyLower` is NULL when the variant has fewer than
+   * `MIN_FILLED_FOR_EXPECTANCY` filled select-fold decisions — an absence of
+   * evidence rather than a measured zero, and the distinction the file already
+   * makes for `confirmTotalDelta`.
+   */
+  selectExpectancy: number | null;
+  selectExpectancySe: number | null;
+  selectExpectancyLower: number | null;
   // Censoring readout (LA-10): expiries / filled on the select fold, so a
   // sizing-factor cell carries its own license.
   selectExpiryShare: number | null;
@@ -309,6 +327,32 @@ function seedFrom(base: number, text: string): number {
 // tests/acceptanceGate.test.ts (accept at exactly five, refuse at
 // four — sparse and dense).
 const MIN_EFFECTIVE_PAIRS = 5;
+
+/**
+ * D4: the gate had NO ABSOLUTE EXPECTANCY TERM, and that is what let a losing
+ * market pass.
+ *
+ * `accepted` was four delta conditions and a thinness check — every one of
+ * them a comparison against the BASELINE. A variant can beat its baseline on
+ * fit R, select R, the paired p and the expectancy delta while both of them
+ * lose money, and the gate called that an accept: the best of a losing set,
+ * reported as a pick. Amendment 39 states the rule this violates — profit is
+ * the measure, and a market may not be ranked on a quantity where the money is
+ * knowable.
+ *
+ * BEYOND ITS OWN ERROR, not merely above zero. A variant at +0.001R over 30
+ * filled decisions is not a measured profit, and amendment 36 refuses acting
+ * on that in either direction — accepting one is as consequential as declining
+ * one and earns the same bar.
+ *
+ * NO SAMPLE FLOOR SITS BESIDE THIS, deliberately. The first draft carried one
+ * at 30 and it refused a fixture earning +1.2R over 24 trades whose 95% lower
+ * bound was +1.08 — the floor was doing the rejecting, not the statistics.
+ * `rExpectancyLower95` uses a Student-t multiplier, so the small-n problem the
+ * floor was guarding is answered where it belongs: two observations carry
+ * t = 12.706, which nothing realistic clears. "Too few to judge" is a
+ * consequence rather than a constant somebody chose.
+ */
 
 /**
  * The support of a delta vector — days whose delta is NONZERO, the one
@@ -678,6 +722,17 @@ function groupVerdicts(
       const baseExpectancy = expectancy(aggregate.base.select) ?? 0;
       const variantExpectancy = expectancy(aggregate.variant.select) ?? 0;
       const selectExpectancyDelta = variantExpectancy - baseExpectancy;
+      // D4: the variant's OWN select-fold expectancy, kept rather than
+      // discarded into the delta. It was computed here all along and thrown
+      // away one line later, which is exactly how a gate ends up with four
+      // comparisons and no measurement.
+      const selectExpectancy = expectancy(aggregate.variant.select);
+      const selectExpectancySe = rStandardError(aggregate.variant.select);
+      const selectExpectancyLower = rExpectancyLower95(
+        aggregate.variant.select,
+      );
+      const earnsMoney = selectExpectancyLower !== null &&
+        selectExpectancyLower > 0;
       const thin = aggregate.variant.select.filled <
           aggregate.base.select.filled * 0.5 ||
         aggregate.variant.select.filled < minFilled;
@@ -727,9 +782,16 @@ function groupVerdicts(
       // the baseline R it forwent, carries an acceptance whose p
       // speaks for its pairing alone. Sigma and the pooled p remain
       // printed, descriptive only.
-      const accepted = !thin && fitTotalDelta > 0 && selectTotalDelta > 0 &&
+      // NAMED, not inlined. This conjunction is the WHOLE of what the gate
+      // used to be, and every term in it is a comparison against the baseline
+      // — which is the defect, stated as code: a variant can satisfy all five
+      // while losing money, and the gate called that an accept.
+      const beatsBaseline = !thin && fitTotalDelta > 0 &&
+        selectTotalDelta > 0 &&
         effectivePairs >= MIN_EFFECTIVE_PAIRS && pairedP <= 0.05 &&
         selectExpectancyDelta >= 0;
+      // D4: beating the baseline is necessary and was never sufficient.
+      const accepted = beatsBaseline && earnsMoney;
       const selectStats = aggregate.variant.select;
       const expiries = selectStats.filled - selectStats.wins -
         selectStats.stops - selectStats.ambiguous;
@@ -762,6 +824,21 @@ function groupVerdicts(
           ? `NO VERDICT — pairing ${effectivePairs} nonzero of ` +
             `${sharedDays} shared days is below the statistic's ` +
             `floor (${MIN_EFFECTIVE_PAIRS})`
+          : beatsBaseline && !earnsMoney
+          // THE DEFECT'S OWN CASE, named so it can never again be read as an
+          // ordinary failure. This variant cleared every comparison the gate
+          // used to make and still does not demonstrate a profit — which
+          // before D4 was an ACCEPT.
+          ? selectExpectancyLower === null
+            ? `NO PROFIT SHOWN — beat the baseline on every delta, but ` +
+              `${aggregate.variant.select.filled} filled select-fold ` +
+              `decisions carry no dispersion to measure an absolute ` +
+              `expectancy against`
+            : `LOSES MONEY — beat the baseline on every delta, but its own ` +
+              `select-fold expectancy ${selectExpectancy?.toFixed(4)}R is ` +
+              `not positive beyond its error (95% lower ` +
+              `${selectExpectancyLower.toFixed(4)}R over ` +
+              `${aggregate.variant.select.filled} filled)`
           : accepted
           ? "accept"
           : "fails",
@@ -794,6 +871,9 @@ function groupVerdicts(
           ? breachDays / variantDays.size
           : null,
         selectExpectancyDelta,
+        selectExpectancy,
+        selectExpectancySe,
+        selectExpectancyLower,
         selectExpiryShare: selectStats.filled > 0
           ? Number((expiries / selectStats.filled).toFixed(4))
           : null,
@@ -1698,7 +1778,7 @@ async function main(): Promise<void> {
   for (const [assetClass, classMap] of verdicts) {
     console.log(`\n=== ${assetClass.toUpperCase()} ===`);
     console.log(
-      `${"variant".padEnd(28)}${"ΔR fit".padStart(10)}${"ΔR sel".padStart(9)}${"pairedP".padStart(9)}${"pairs".padStart(10)}${"ΔE sel".padStart(9)}${"comp".padStart(10)}${"drop".padStart(10)}${"expry".padStart(7)}${"worstDay".padStart(10)}  verdict`,
+      `${"variant".padEnd(28)}${"ΔR fit".padStart(10)}${"ΔR sel".padStart(9)}${"pairedP".padStart(9)}${"pairs".padStart(10)}${"ΔE sel".padStart(9)}${"E sel".padStart(9)}${"E lo95".padStart(9)}${"comp".padStart(10)}${"drop".padStart(10)}${"expry".padStart(7)}${"worstDay".padStart(10)}  verdict`,
     );
     for (const [variant, verdict] of classMap) {
       // #364 round 39, finding 2: the pairing prints beside the p it
@@ -1713,7 +1793,9 @@ async function main(): Promise<void> {
         : verdict.noVerdict
         ? verdict.reason
         : verdict.accepted
-        ? "ACCEPT — fit+select, paired p, expectancy holds"
+        ? `ACCEPT — fit+select, paired p, and its OWN expectancy ` +
+          `${verdict.selectExpectancy?.toFixed(3)}R positive beyond error ` +
+          `(95% lower ${verdict.selectExpectancyLower?.toFixed(3)}R)`
         : "fails";
       // The confirm figure states its own two denominators, and an
       // accepted variant whose confirm read found no evidence says so
@@ -1736,6 +1818,14 @@ async function main(): Promise<void> {
           `${verdict.effectivePairs}/${verdict.sharedDays}`.padStart(10)
         }${
           verdict.selectExpectancyDelta.toFixed(3).padStart(9)
+        }${
+          (verdict.selectExpectancy === null
+            ? "—"
+            : verdict.selectExpectancy.toFixed(3)).padStart(9)
+        }${
+          (verdict.selectExpectancyLower === null
+            ? "—"
+            : verdict.selectExpectancyLower.toFixed(3)).padStart(9)
         }${(verdict.compositionR ?? 0).toFixed(1).padStart(10)}${
           (verdict.droppedR ?? 0).toFixed(1).padStart(10)
         }${
