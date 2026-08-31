@@ -192,6 +192,40 @@ export type SweepOutcomeRecord = {
    * would give the corpus two answers to one question.
    */
   ladderRewardRisk: number | null;
+  /**
+   * WHAT THE TRIP COST, in price — and it is NOT recoverable from the ratios
+   * beside it on the rows where it matters most.
+   *
+   * The inverse looks exact: `estimatedRoundTripCost = (grossRewardRisk −
+   * rewardRisk) × riskDistance`, since `rewardRisk` IS
+   * `executionQuality.effectiveRewardRisk`. But that quantity is
+   * `max(0, rewardDistance − roundTrip) / riskDistance`, and the clamp bites
+   * exactly when the round trip exceeds the reward — the case where cost is
+   * the dominant fact about the setup. Measured on a crypto unit-risk plan
+   * with a 0.155 round trip: a 0.20 reward recovers 0.155 exactly, 0.10
+   * recovers 0.100 (35% understated), 0.05 recovers 0.050 (68% understated).
+   *
+   * The clamped value does not announce itself. It reads as a smaller, wholly
+   * plausible cost, so a reader cannot tell the two apart — and under
+   * `captureAll`, which is how a calibration corpus keeps its gate-failing
+   * rows, those are exactly the rows in the file. R4 asking "how much of this
+   * market's edge do costs eat" would have been answered with a systematic
+   * UNDERSTATEMENT on the most expensive markets, which biases toward keeping
+   * markets that should be declined. Amendment 39 makes that the wrong
+   * direction on the measure that governs.
+   *
+   * The three components ride beside it because they carry different
+   * remedies, not for completeness: spread says size down or wait for better
+   * pricing, slippage says the window is wrong, commission says the venue is.
+   * A total alone cannot separate them, and the venue cost tables are what
+   * STANDS from the 2026-08-11 remediation — the one cost input R4 may lean
+   * on. `modeledCostScale` is folded into the total and is a manifest-level
+   * measurement term, not a per-row one.
+   */
+  estimatedRoundTripCost: number;
+  estimatedCommission: number;
+  estimatedSlippage: number;
+  estimatedSpread: number;
   latestClose: number;
   stopPivotDistance: number | null;
   trendStrength: number;
@@ -852,6 +886,10 @@ export function simulateSymbol(input: {
       dailyAtr: plan.dailyAtr,
       grossRewardRisk: plan.grossRewardRisk,
       ladderRewardRisk: plan.ladderRewardRisk,
+      estimatedRoundTripCost: plan.executionQuality.estimatedRoundTripCost,
+      estimatedCommission: plan.executionQuality.estimatedCommission,
+      estimatedSlippage: plan.executionQuality.estimatedSlippage,
+      estimatedSpread: plan.executionQuality.estimatedSpread,
       latestClose: plan.latestClose,
       stopPivotDistance: plan.stopPivotDistance,
       trendStrength: regime.trendStrength,
