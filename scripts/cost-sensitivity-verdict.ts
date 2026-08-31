@@ -1,18 +1,21 @@
-// ⛔ THIS SCRIPT'S MECHANISM DOES NOT WORK. Do not run it, and do not
-// treat any artifact it has written as evidence. `LEVELFLOW_MODELED_COST_SCALE`
-// scales `estimatedRoundTripCost` only, and the replay resolver never reads
-// that value — fills take `estimatedSpread`/`estimatedSlippage` directly and
-// realized R charges commission through `perLegCost`. So the "gross" corpus
-// below charges the SAME costs as the net one; setting the scale to 0 removes
-// nothing from the R accounting and only loosens the payoff gate, admitting
-// more setups. Eleven of twenty rows came back bit-identical, which is proof
-// the switch did nothing, read at the time as agreement.
+// THE MECHANISM WORKS SINCE M5 (2026-08-31), AND DID NOT BEFORE IT.
 //
-// Amendment 36's standard therefore was never met for the 15 declines. The
-// repair is Phase 2 / M5 in docs/research/remediation-program-2026-08-11.md:
-// route the scale into the resolver, and assert that a bit-identical
-// gross/net row emits "COST MODEL INERT" instead of a verdict. Everything
-// below describes the INTENT, which is still correct; only the wiring failed.
+// `LEVELFLOW_MODELED_COST_SCALE` used to scale `estimatedRoundTripCost` alone,
+// which the replay resolver never reads. Fills took `estimatedSpread` and
+// `estimatedSlippage` straight, and realized R charged commission through
+// `perLegCost`, so the "gross" corpus charged the SAME costs as the net one:
+// setting the scale to 0 removed nothing from the R accounting and only
+// loosened the payoff gate, admitting more setups. Eleven of twenty rows came
+// back bit-identical — proof the switch did nothing, read at the time as
+// agreement between the arms.
+//
+// M5 routed the scale through `resolverCostOptions`, the single mapping both
+// the sweep and the live bridge now use. The INERT door below is the other
+// half of that repair and the half that outlives it: a market whose two arms
+// produce IDENTICAL sufficient statistics has not been measured, and this
+// script now says so instead of computing a verdict over a switch that did
+// nothing. Any future re-break of the wiring lands there rather than in an
+// artifact that reads like agreement.
 //
 // Does a market's negative verdict survive charging ONLY the venue's
 // published bill? (Owner standard 2026-08-11: no withdrawal on a flawed
@@ -136,6 +139,27 @@ function collect(
   return acc;
 }
 
+/**
+ * Did the cost model move ANYTHING on this market?
+ *
+ * Compared on the sufficient statistics rather than row by row, because the
+ * corpora are tens of GB and these five scalars are what every figure in the
+ * artifact is computed from. If they agree, every derived number agrees, and
+ * the arms are indistinguishable no matter how the rows are ordered.
+ *
+ * EXACT equality, not a tolerance. The question is "did the switch do
+ * anything", and a tolerance would answer "not much" — which is precisely the
+ * reading that let eleven bit-identical rows pass as agreement in the
+ * 2026-08-11 run. A real difference of one ULP is still a real difference,
+ * and the confirm interval downstream is what decides whether it matters.
+ */
+function identical(a: Acc | undefined, b: Acc | undefined): boolean {
+  if (!a || !b) return false;
+  return a.confirmN === b.confirmN && a.confirmSum === b.confirmSum &&
+    a.confirmSumSq === b.confirmSumSq && a.selectN === b.selectN &&
+    a.selectSum === b.selectSum;
+}
+
 function read(acc: Acc | undefined) {
   if (!acc) {
     return {
@@ -232,13 +256,31 @@ async function main() {
 
   const verdicts: Record<string, unknown> = {};
   let withdrawable = 0, costDependent = 0, unreadable = 0, indistinguishable = 0;
+  let inert = 0;
   for (const symbol of [...cells.keys()].sort()) {
-    const n = read(net.get(symbol));
-    const g = read(gross.get(symbol));
+    const netAcc = net.get(symbol);
+    const grossAcc = gross.get(symbol);
+    const n = read(netAcc);
+    const g = read(grossAcc);
     let verdict: string;
     if (g.confirm === null) {
       verdict = "unreadable — the gross run has no confirm sample";
       unreadable += 1;
+    } else if (identical(netAcc, grossAcc)) {
+      // THE M5 DOOR. Checked after `unreadable` on purpose: two empty
+      // accumulators are trivially identical, and calling that an inert cost
+      // model would blame the instrument for what is simply no data. Reaching
+      // here means there IS a confirm sample and the two arms agree on every
+      // sufficient statistic to the bit — so the cost model moved nothing on
+      // this market and there is no sensitivity to report.
+      //
+      // Legitimate when a market's modelled spread and slippage are already
+      // zero; a defect when the scale has stopped reaching the resolver. The
+      // verdict is the same either way, because the two are indistinguishable
+      // from here and both mean the comparison cannot decide anything.
+      verdict =
+        "COST MODEL INERT — both arms produced identical statistics; no comparison exists, no decision";
+      inert += 1;
     } else if (g.confirm > 0) {
       verdict = "COST-DEPENDENT — positive at the published bill alone; DO NOT withdraw";
       costDependent += 1;
@@ -266,22 +308,47 @@ async function main() {
       verdict,
     };
   }
+  const readable = cells.size - unreadable;
   writeResearchArtifact(outPath, {
     derivedAt: new Date().toISOString(),
-    note:
-      "INVALID — the 'gross' arm charged the same costs as the net arm. " +
-      "LEVELFLOW_MODELED_COST_SCALE never reaches the replay resolver " +
-      "(defect 1c, 2026-08-11), so this file measures nothing. Do not use " +
-      "these numbers to withdraw, defend, or ship a market. See " +
-      "docs/research/remediation-program-2026-08-11.md.",
-    summary: { costDependent, indistinguishable, unreadable, withdrawable },
+    note: inert > 0
+      ? `${inert} of ${readable} readable markets produced IDENTICAL ` +
+        `statistics in both arms; those carry no sensitivity finding and no ` +
+        `decision. See docs/research/remediation-program-2026-08-11.md.`
+      : "The gross arm charges the venue's published commission alone; the " +
+        "net arm adds our modelled spread and slippage. Both reach the " +
+        "resolver since M5 (2026-08-31).",
+    summary: {
+      costDependent,
+      indistinguishable,
+      inert,
+      unreadable,
+      withdrawable,
+    },
     verdicts,
   });
   console.log(
     `cost sensitivity: ${withdrawable} data-negative beyond error (decline), ` +
       `${costDependent} cost-dependent (keep), ${indistinguishable} indistinguishable from zero (keep), ` +
-      `${unreadable} unreadable -> ${outPath}`,
+      `${inert} cost model inert, ${unreadable} unreadable -> ${outPath}`,
   );
+  // WRITTEN FIRST, THEN REFUSED. The artifact is the evidence of the failure
+  // and has to survive it; throwing before the write would leave an operator
+  // with a non-zero exit and nothing to read.
+  //
+  // Every market we could read came back identical, which is the exact
+  // signature of the 2026-08-11 defect: a scale that reaches the payoff gate
+  // and not the resolver. A summary of all-zero verdicts is indistinguishable
+  // from a clean run at a glance, and that glance is what happened last time.
+  if (inert > 0 && inert === readable) {
+    throw new Error(
+      `cost-sensitivity-verdict: all ${readable} readable markets came back ` +
+        `INERT — the two arms charged the same costs, so this run compared ` +
+        `nothing. Check that LEVELFLOW_MODELED_COST_SCALE was actually set ` +
+        `for the gross sweep and that MODELED_COST_SCALE_REACHES_RESOLVER is ` +
+        `still true. The artifact was written to ${outPath} as evidence.`,
+    );
+  }
 }
 
 main().catch((error) => {

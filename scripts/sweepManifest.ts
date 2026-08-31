@@ -736,10 +736,12 @@ export type SweepManifest = {
    * It joins `conditionsOf` instead: two scales are two measurements, and a
    * shard set runs under one.
    *
-   * A scale other than 1 is refused at the driver while
-   * `MODELED_COST_SCALE_REACHES_RESOLVER` is false, because the scale reaches
-   * the payoff gate and not the resolver — so a corpus recording one would
-   * assert a gross-cost measurement it is not.
+   * Since M5 (2026-08-31) the scale reaches the RESOLVER as well as the
+   * payoff gate, so a corpus recording one describes a real measurement. The
+   * driver still refuses a scale other than 1 whenever
+   * `MODELED_COST_SCALE_REACHES_RESOLVER` is false, which is what fires if
+   * that wiring is ever broken again — a corpus recording a scale it did not
+   * apply asserts a gross-cost measurement it is not.
    */
   modeledCostScale?: number;
   /**

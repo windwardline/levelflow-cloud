@@ -6,6 +6,10 @@ import {
 import { completedDailySeries } from "./dailyCompletion.ts";
 import { buildPricePlan } from "./pricePlan.ts";
 import {
+  modeledCostScaleFromEnv,
+  resolverCostOptions,
+} from "./executionQuality.ts";
+import {
   evaluateSetupOutcome,
   realizedRFromLegs,
   type ReplayBar,
@@ -605,6 +609,11 @@ export function simulateSymbol(input: {
     ...getCategoryCalibration(input.symbol),
     ...input.calibrationOverride,
   };
+  // Read ONCE per symbol, not per decision: the resolve call below runs on
+  // every decision point and this is a measurement term that cannot change
+  // mid-run. The sweep is the instrument, so it passes the declared scale;
+  // the live resolver passes 1 (see `resolverCostOptions`).
+  const modeledCostScale = modeledCostScaleFromEnv();
   const outcomes: SweepOutcomeRecord[] = [];
   // Force every simulated setup past its review window so outcomes resolve.
   const resolutionTime = (input.primaryBars.at(-1)?.time ?? 0) +
@@ -954,11 +963,15 @@ export function simulateSymbol(input: {
         // spread lives in the TRIGGERS and the expiry print, gap slippage
         // in gapped exits — so the leg accountant charges only what the
         // prints cannot carry: the commission.
+        //
+        // M5 (2026-08-31): through `resolverCostOptions`, so the modelled
+        // cost scale reaches the RESOLVER and a gross arm measures gross R.
+        // These three used to be written out by hand here and again in
+        // `fillOptionsFromRiskModel`, and the scale reached neither — it
+        // moved `estimatedRoundTripCost` alone, which is the payoff gate.
+        ...resolverCostOptions(plan.executionQuality, modeledCostScale),
         barIntervalMs: resolutionIntervalMs,
-        gapExitSlippage: plan.executionQuality.estimatedSlippage,
-        halfSpread: plan.executionQuality.estimatedSpread / 2,
         reviewHours: calibration.defaultReviewHours,
-        roundTripCost: plan.executionQuality.estimatedCommission,
         runnerProtection: calibration.runnerProtection,
         sameBarProtectionArming: true,
         // FR-5's stream begins one decision bar after creation on BOTH

@@ -209,60 +209,35 @@ describe("the four-frame floor is a property of the code, not a belief", () => {
 });
 
 /**
- * The modelled cost scale is a measurement term, and until M5 it is an INERT
- * one — which is worse than an unrecorded one if the manifest states it.
+ * The modelled cost scale is a measurement term, and the manifest states it.
  *
- * The scale multiplies `estimatedRoundTripCost` only. That figure drives the
- * payoff gate, the cost penalty and `executionScore`. The RESOLVER is handed
- * the raw components — `gapExitSlippage: estimatedSlippage`,
- * `halfSpread: estimatedSpread / 2`, `roundTripCost: estimatedCommission` —
- * and none of them is scaled.
+ * Whether it REACHES the resolver is a different claim, proved end-to-end in
+ * `tests/costScaleReachesResolver.test.ts` by running the engine at two scales
+ * and comparing realized R. It is not re-asserted here: a source match is the
+ * weaker instrument, and between 2026-08-09 and 2026-08-31 exactly such a
+ * match passed over a scale that moved the payoff gate and nothing else.
  *
- * So a "gross arm" does not measure gross R. It measures net R under a
- * loosened gate, admitting more setups and changing nothing about what they
- * earn. `remediation-program-2026-08-11.md` records the run that proved it:
- * eleven of twenty rows bit-identical, read at the time as agreement.
+ * What belongs here is the DRIVER's half — that a scale it cannot honour is
+ * refused, and refused before the run spends bandwidth.
  */
-describe("the cost scale is stated, and refused while it is inert", () => {
+describe("the cost scale is stated, and refused if it ever goes inert again", () => {
   const QUALITY = readFileSync(
     "supabase/functions/trade-analyzer/executionQuality.ts",
     "utf8",
   );
-  const SWEEP_SRC = readFileSync(
-    "supabase/functions/trade-analyzer/sweep.ts",
-    "utf8",
-  );
   const DRIVER_SRC = readFileSync("scripts/replay-sweep.ts", "utf8");
-
-  it("the scale genuinely does not reach the resolver", () => {
-    // The premise, read from the resolver call itself rather than believed.
-    // Each of these is the RAW component; a scaled one would be the field
-    // `estimatedRoundTripCost`, which appears nowhere in this call.
-    const at = SWEEP_SRC.indexOf("gapExitSlippage:");
-    assert.ok(at >= 0, "the resolver call moved — re-anchor this assertion");
-    const call = SWEEP_SRC.slice(at - 200, at + 400);
-    assert.match(call, /gapExitSlippage: plan\.executionQuality\.estimatedSlippage/);
-    assert.match(call, /halfSpread: plan\.executionQuality\.estimatedSpread \/ 2/);
-    assert.match(call, /roundTripCost: plan\.executionQuality\.estimatedCommission/);
-    assert.doesNotMatch(
-      call,
-      /estimatedRoundTripCost/,
-      "the resolver now receives the SCALED cost — M5 has landed, so " +
-        "MODELED_COST_SCALE_REACHES_RESOLVER should flip and this test's " +
-        "premise with it",
-    );
-  });
 
   it("says so in a constant the driver reads, not in prose", () => {
     assert.match(
       QUALITY,
-      /export const MODELED_COST_SCALE_REACHES_RESOLVER = false;/,
-      "the inertness is no longer a stated fact the driver can act on",
+      /export const MODELED_COST_SCALE_REACHES_RESOLVER = true;/,
+      "M5's wiring is no longer stated as a fact the driver can act on",
     );
     assert.match(
       DRIVER_SRC,
       /if \(modeledCostScale !== 1 && !MODELED_COST_SCALE_REACHES_RESOLVER\) \{/,
-      "the driver stopped refusing a scale it cannot honour",
+      "the driver stopped refusing a scale it cannot honour — the branch is " +
+        "dead code today and the guard that fires if the wiring regresses",
     );
     // Refused BEFORE the provider is touched. R3 is one re-sweep against an
     // exhausted allowance; discovering the arm measured nothing afterwards is
