@@ -323,6 +323,24 @@ async function main() {
   // and died at the 4GB default heap ~48 minutes in.
   const { createWriteStream } = await import("node:fs");
   const emitStream = args.emit ? createWriteStream(args.emit) : null;
+  // THE REJECTION LEDGER, in a file of its own beside the emit.
+  //
+  // `simulateSymbol` has built this since 2026-08-24 and the driver never read
+  // it, so every run assembled a per-decision account of what the engine
+  // declined and threw it away — the field lost in transit again, one layer
+  // below the ones #457, #471 and #484 each found.
+  //
+  // A SIDECAR rather than extra lines in the emit. Every reader of the emit
+  // does `JSON.parse(line) as Row` and would treat a rejection line as an
+  // outcome with undefined fields — a silent wrong answer, on a dozen scripts,
+  // to buy nothing the join key cannot give. The path follows the same
+  // convention `${emit}.manifest.json` already uses, and the manifest records
+  // the row count so a truncated or missing sidecar is a refusal rather than a
+  // smaller population read as a smaller result.
+  const rejectionStream = args.emit
+    ? createWriteStream(`${args.emit}.rejections.jsonl`)
+    : null;
+  let rejectionRows = 0;
   let emittedRecords = 0;
   // Sorted keys of the first emitted row; undefined when nothing was emitted.
   let emitColumns: string[] | undefined;
@@ -1031,6 +1049,21 @@ async function main() {
             emittedRecords += 1;
           }
         }
+        if (rejectionStream) {
+          for (const entry of result.rejectionLedger) {
+            rejectionStream.write(
+              JSON.stringify({
+                holdout,
+                reason: entry.reason,
+                split: split.name,
+                symbol,
+                time: entry.time,
+                variant,
+              }) + "\n",
+            );
+            rejectionRows += 1;
+          }
+        }
         // THE DENOMINATORS, bound to the manifest instead of to stdout.
         //
         // Seven rejection reasons emit no row at all — a rejected decision is
@@ -1101,6 +1134,13 @@ async function main() {
     await new Promise<void>((resolve, reject) => {
       emitStream.end((error: unknown) => error ? reject(error) : resolve());
     });
+    if (rejectionStream) {
+      await new Promise<void>((resolve, reject) => {
+        rejectionStream.end((error: unknown) =>
+          error ? reject(error) : resolve()
+        );
+      });
+    }
     const { writeFile } = await import("node:fs/promises");
     // 2i: the corpus describes itself, or item 3's readers refuse it.
     const manifest = buildSweepManifest({
@@ -1122,6 +1162,7 @@ async function main() {
       // clock defect invalidated, and `source.revision` recovers them with
       // their caveats for anyone who needs them.
       engineDeclined: Object.keys(ENGINE_DECLINED_MARKETS).sort(),
+      rejectionLedgerRows: rejectionRows,
       analyzerVersion: ANALYZER_VERSION,
       ...(emitColumns && { emitColumns }),
       anchor: isoDate(new Date()),

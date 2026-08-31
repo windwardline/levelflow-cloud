@@ -17,7 +17,14 @@
 //   an emit whose conditions were edited, or that never recorded them, is
 //   refused instead of averaged.
 
-import { closeSync, createReadStream, openSync, readFileSync, readSync } from "node:fs";
+import {
+  closeSync,
+  createReadStream,
+  existsSync,
+  openSync,
+  readFileSync,
+  readSync,
+} from "node:fs";
 import { createInterface } from "node:readline";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import {
@@ -910,6 +917,56 @@ export function fiveMinuteFloorFor(symbol: string): number | undefined {
  * here is a deliberate historical read, and the honest answer is that the
  * premise is unverifiable rather than satisfied.
  */
+/**
+ * Read the rejection ledger beside a corpus, refusing a sidecar that does not
+ * match what the manifest says it wrote.
+ *
+ * The ledger is the only record of a decision the sweep DECLINED — seven
+ * rejection reasons emit no outcome row — so it is the population every
+ * sweep-restrictive divergence has to be measured against. A short read there
+ * does not look like an error; it looks like a sweep that declined less, which
+ * is the answer a reader is usually hoping for.
+ *
+ * Absence is NOT a refusal when the manifest never claimed one: a corpus
+ * predating the ledger genuinely has no sidecar, and refusing it would retire
+ * the deliberate historical reads. A manifest that CLAIMS rows and cannot
+ * produce them is a different thing, and refuses.
+ */
+export function readRejectionLedger(
+  emitPath: string,
+  manifest: { rejectionLedgerRows?: number },
+): {
+  rows: Array<{ reason: string; symbol: string; time: number }>;
+  unverifiable: boolean;
+} {
+  if (manifest.rejectionLedgerRows === undefined) {
+    return { rows: [], unverifiable: true };
+  }
+  const path = `${emitPath}.rejections.jsonl`;
+  if (!existsSync(path)) {
+    throw new Error(
+      `${emitPath}: the manifest records ${manifest.rejectionLedgerRows} ` +
+        `rejection-ledger rows and ${path} does not exist — every ` +
+        `sweep-restrictive divergence is measured against that population, ` +
+        `and reading without it reports a sweep that declined nothing`,
+    );
+  }
+  const rows: Array<{ reason: string; symbol: string; time: number }> = [];
+  readLinesSync(path, (line) => {
+    if (!line) return;
+    rows.push(JSON.parse(line));
+  });
+  if (rows.length !== manifest.rejectionLedgerRows) {
+    throw new Error(
+      `${path}: holds ${rows.length} rows and the manifest records ` +
+        `${manifest.rejectionLedgerRows} — a truncated ledger reads as a ` +
+        `sweep that declined less, which is exactly the direction a reader ` +
+        `will not question`,
+    );
+  }
+  return { rows, unverifiable: false };
+}
+
 export function assertAcceptanceMode(
   emitPath: string,
   manifest: { acceptance?: { captureAll: boolean; ignoreLowEdge: boolean } },
