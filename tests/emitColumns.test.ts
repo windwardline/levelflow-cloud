@@ -206,3 +206,87 @@ describe("the four-frame floor is a property of the code, not a belief", () => {
     );
   });
 });
+
+/**
+ * The modelled cost scale is a measurement term, and until M5 it is an INERT
+ * one — which is worse than an unrecorded one if the manifest states it.
+ *
+ * The scale multiplies `estimatedRoundTripCost` only. That figure drives the
+ * payoff gate, the cost penalty and `executionScore`. The RESOLVER is handed
+ * the raw components — `gapExitSlippage: estimatedSlippage`,
+ * `halfSpread: estimatedSpread / 2`, `roundTripCost: estimatedCommission` —
+ * and none of them is scaled.
+ *
+ * So a "gross arm" does not measure gross R. It measures net R under a
+ * loosened gate, admitting more setups and changing nothing about what they
+ * earn. `remediation-program-2026-08-11.md` records the run that proved it:
+ * eleven of twenty rows bit-identical, read at the time as agreement.
+ */
+describe("the cost scale is stated, and refused while it is inert", () => {
+  const QUALITY = readFileSync(
+    "supabase/functions/trade-analyzer/executionQuality.ts",
+    "utf8",
+  );
+  const SWEEP_SRC = readFileSync(
+    "supabase/functions/trade-analyzer/sweep.ts",
+    "utf8",
+  );
+  const DRIVER_SRC = readFileSync("scripts/replay-sweep.ts", "utf8");
+
+  it("the scale genuinely does not reach the resolver", () => {
+    // The premise, read from the resolver call itself rather than believed.
+    // Each of these is the RAW component; a scaled one would be the field
+    // `estimatedRoundTripCost`, which appears nowhere in this call.
+    const at = SWEEP_SRC.indexOf("gapExitSlippage:");
+    assert.ok(at >= 0, "the resolver call moved — re-anchor this assertion");
+    const call = SWEEP_SRC.slice(at - 200, at + 400);
+    assert.match(call, /gapExitSlippage: plan\.executionQuality\.estimatedSlippage/);
+    assert.match(call, /halfSpread: plan\.executionQuality\.estimatedSpread \/ 2/);
+    assert.match(call, /roundTripCost: plan\.executionQuality\.estimatedCommission/);
+    assert.doesNotMatch(
+      call,
+      /estimatedRoundTripCost/,
+      "the resolver now receives the SCALED cost — M5 has landed, so " +
+        "MODELED_COST_SCALE_REACHES_RESOLVER should flip and this test's " +
+        "premise with it",
+    );
+  });
+
+  it("says so in a constant the driver reads, not in prose", () => {
+    assert.match(
+      QUALITY,
+      /export const MODELED_COST_SCALE_REACHES_RESOLVER = false;/,
+      "the inertness is no longer a stated fact the driver can act on",
+    );
+    assert.match(
+      DRIVER_SRC,
+      /if \(modeledCostScale !== 1 && !MODELED_COST_SCALE_REACHES_RESOLVER\) \{/,
+      "the driver stopped refusing a scale it cannot honour",
+    );
+    // Refused BEFORE the provider is touched. R3 is one re-sweep against an
+    // exhausted allowance; discovering the arm measured nothing afterwards is
+    // the expensive way to learn it.
+    const refusalAt = DRIVER_SRC.indexOf("MODELED_COST_SCALE_REACHES_RESOLVER)");
+    const fetchAt = DRIVER_SRC.indexOf("args.cacheDir = args.cacheDir ??");
+    assert.ok(
+      refusalAt > 0 && refusalAt < fetchAt,
+      "the refusal sits after the run has started spending bandwidth",
+    );
+  });
+
+  it("records the value the run actually used, zero included", () => {
+    assert.match(
+      DRIVER_SRC,
+      /const modeledCostScale = modeledCostScaleFromEnv\(\);/,
+      "the driver re-parses the env instead of asking the engine's reader, " +
+        "so the two clamps can drift",
+    );
+    const manifest = readFileSync("scripts/sweepManifest.ts", "utf8");
+    assert.match(
+      manifest,
+      /input\.modeledCostScale !== undefined &&/,
+      "a falsy check would drop scale 0 — the one arm the remediation " +
+        "actually ran, and the one most in need of being stated",
+    );
+  });
+});

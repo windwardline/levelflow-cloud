@@ -368,8 +368,35 @@ export function estimateExecutionQuality(
  * through every call site: a sweep sets it once for a whole run, and no
  * production path can pass it by accident. Anything outside [0,1] is
  * refused back to 1 — a scale above 1 would be inventing cost.
+ *
+ * EXPORTED so the sweep driver records the value it will actually run under,
+ * rather than re-parsing the env and clamping differently. A second reader of
+ * the same variable is a second clamp to keep in step, and the manifest's
+ * whole job is to state the term the run used.
  */
-function modeledCostScaleFromEnv(): number {
+/**
+ * Does the modelled cost scale reach the RESOLVER yet?
+ *
+ * It does not, and that is open defect M5. The scale multiplies
+ * `estimatedRoundTripCost` only — which drives the payoff gate, the cost
+ * penalty and `executionScore` — while the resolver is handed the RAW
+ * components: `gapExitSlippage: estimatedSlippage`, `halfSpread:
+ * estimatedSpread / 2`, and `roundTripCost: estimatedCommission`. Nothing
+ * there is scaled.
+ *
+ * So a gross arm does not measure gross R. It measures net R under a LOOSENED
+ * GATE, which admits more setups and changes nothing about what they earn.
+ * That is not a hypothesis: `docs/research/remediation-program-2026-08-11.md`
+ * records the run — eleven of twenty rows came back bit-identical, and the
+ * no-op was read at the time as agreement.
+ *
+ * Flip this when M5 routes the scale into the resolver, and the driver's
+ * refusal lifts with it. Until then a corpus stating a scale it did not
+ * actually apply is worse than one stating nothing.
+ */
+export const MODELED_COST_SCALE_REACHES_RESOLVER = false;
+
+export function modeledCostScaleFromEnv(): number {
   const raw = typeof globalThis.process?.env?.LEVELFLOW_MODELED_COST_SCALE ===
       "string"
     ? Number(globalThis.process.env.LEVELFLOW_MODELED_COST_SCALE)

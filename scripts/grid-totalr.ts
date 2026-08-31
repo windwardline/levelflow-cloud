@@ -930,6 +930,10 @@ export async function gradeCorpus(
       // keeps its existing identity rather than every historical read
       // re-hashing.
       acceptance: candidate.acceptance ?? null,
+      // Two scales are two measurements. Not in `conditions` — both values
+      // are legitimate by design, so a literal there would refuse one arm on
+      // every path — but a gross arm and a net arm must not pool.
+      modeledCostScale: candidate.modeledCostScale ?? null,
       folds: candidate.folds ?? null,
       foldsByClass: candidate.foldsByClass ?? null,
       grid: candidate.grid,
