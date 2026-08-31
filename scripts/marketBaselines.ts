@@ -95,6 +95,18 @@ export const BASELINE_ARTIFACT_VERSION = 1;
  * binds. Crypto alone sits at 96%, which is the anomaly this baseline exists
  * to retire rather than a fifth data point.
  */
+// NOT THE DOOR'S THRESHOLD, and it must not become one. R0d — the crypto
+// floor this module was written to retire — was closed on 2026-08-30 by
+// re-deriving the CLASS floor from the measured population
+// (docs/research/five-minute-density-census-2026-08-30.json), not by adopting
+// a per-symbol baseline. The per-symbol route needed three unmeasured
+// constants and replaced the door's only non-ratio instrument with a second
+// ratio computed from the store it judges.
+//
+// This constant is consumed only by `derive-baselines.ts`, which produces a
+// reviewed artifact that does not yet exist. It has no consumer in the door
+// and no test standing over it; anyone wiring it into `assertFiveMinuteDensity`
+// is re-opening a question that was answered with measurement.
 export const BASELINE_DEGRADATION_LIMIT = 0.7;
 
 /**

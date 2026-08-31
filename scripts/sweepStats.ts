@@ -754,10 +754,51 @@ const DENSITY_MIN_SPAN_DAYS = 5;
 export const DENSITY_RATIO_PRIMARY_FLOOR = 60;
 const DENSITY_RATIO_MIN = 2.7;
 const DENSITY_RATIO_MAX = 3.25;
+// CRYPTO WAS 260, AND 260 WAS THE DEFECT — corrected 2026-08-30, R0d.
+//
+// It was derived from two probes (BTCUSD 288.0, THETAUSD 287.9) that both sat
+// AT the class ceiling, then generalised to 33 symbols on a homogeneity
+// assumption. The census now beside it
+// (docs/research/five-minute-density-census-2026-08-30.json, measured off the
+// warm stores) settles what that produced:
+//
+//   class     floor  ceiling  floor/ceiling  floor/min  refuses
+//   forex       150    204.7          0.733      0.734        0
+//   metals      140    196.5          0.712      0.717        0
+//   crypto      260    288.0          0.903      1.042        1
+//
+// Crypto's floor sat ABOVE the thinnest market it binds. A floor above its own
+// population cannot do anything except refuse a healthy member, and it was
+// refusing exactly one: DYDXUSD at 249.6 rows/day, whose health was verified
+// five independent ways before this change and which reads 86.7% of a perfect
+// 24/7 grid. Under amendment 31 a matched market leaves the offering on a
+// calibration verdict, never on an instrument that cannot see straight.
+//
+// The replacement is the SAME RULE the siblings already encode, applied to
+// crypto's own measured ceiling: 0.733 (forex — the tightest ratio any sibling
+// carries, so the conservative choice of the two) x 288.0 = 211, taken as 210
+// to match the round constants beside it. That is a re-derivation, not a new
+// number picked to admit a symbol — anchored on the CEILING rather than on
+// DYDXUSD, so the disputed market is nowhere in its own threshold.
+//
+// WHAT IT COSTS, stated rather than buried: the depth floor is the only
+// instrument here that can see a clip applied symmetrically to both
+// resolutions — no ratio can. At 260 that band began at a 10% clip; at 210 it
+// begins at 27%. Forex and metals have always lived at 27-29%, so this makes
+// crypto consistent with the fleet rather than more permissive than it, and
+// the alternative was refusing a market the evidence says is healthy.
+//
+// The HANDOFF's premise for the per-symbol baseline — "the only class whose
+// homogeneity is empirically false" — is the reverse of what the stores say.
+// 28 of the 31 measured crypto markets sit at exactly 288.0 and the class CV
+// is 2.5%, making crypto one of the MOST homogeneous classes on the roster.
+// The defect was under-sampling (two probes), not heterogeneity, which is why
+// re-deriving the constant closes R0d and no per-symbol baseline, new manifest
+// fact, or R2b dependency is needed.
 const FIVE_MIN_CLASS_FLOORS: Partial<
   Record<ReturnType<typeof getAssetType>, number>
 > = {
-  crypto: 260,
+  crypto: 210,
   energies: 140,
   forex: 150,
   indices: 34,

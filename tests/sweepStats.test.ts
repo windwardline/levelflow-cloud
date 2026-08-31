@@ -1129,7 +1129,11 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
           series: { "15min": facts(670, 10), "5min": facts(2_000, 10) },
           symbol: "BTCUSD",
         })),
-      /BTCUSD 5-minute series runs 200\.0 rows\/day.*under the crypto floor of 260/s,
+      new RegExp(
+        `BTCUSD 5-minute series runs 200\\.0 rows/day.*under the crypto floor ` +
+          `of ${fiveMinuteFloorFor("BTCUSD")}`,
+        "s",
+      ),
     );
   });
 
@@ -1139,7 +1143,7 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
     // in the codebase measures holes in a bar series at all — largestGapMs is
     // read only for the Treasury curve. The wording was borrowed from the
     // ratio check, which a symbol refused here may be passing: DYDXUSD read
-    // 249.4 against crypto's 260 while its 5/15 ratio sat at 2.83, inside
+    // 249.4 against crypto's then-260 while its 5/15 ratio sat at 2.83, inside
     // [2.7, 3.25]. An operator sent to find a clip would have found none.
     let message = "";
     try {
@@ -1151,7 +1155,10 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
     } catch (error) {
       message = (error as Error).message;
     }
-    assert.ok(message.includes("under the crypto floor of 260"), message);
+    assert.ok(
+      message.includes(`under the crypto floor of ${fiveMinuteFloorFor("BTCUSD")}`),
+      message,
+    );
     assert.doesNotMatch(
       message,
       /the series is clipped, holed, or not this symbol's feed/,
@@ -1244,7 +1251,7 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
     // override, the own-window ratio 3.89 would refuse, but the windows
     // diverge, so the fallback self-excludes rather than comparing
     // across eras; the crypto absolute floor still binds the 5-minute
-    // series over its own span (288 >= 260) and admits.
+    // series over its own span (288 >= the crypto floor) and admits.
     process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK = "1";
     const realWarn = console.warn;
     console.warn = () => {};
@@ -1267,7 +1274,8 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
   // The depth-blindness fix (2026-08-23). Both density predicates judged a
   // series' WHOLE span against floors that are "probed margin under the
   // measured week" — a recent seven-day sample. That penalised depth: LTCUSD
-  // measured 216.6 rows/day whole-span against the crypto floor of 260, and
+  // measured 216.6 rows/day whole-span against the crypto floor of the day
+  // (260), and
   // 288.0 over its last 90 days, which is the theoretical maximum for a 24/7
   // 5-minute series. BTCUSD 235.9 -> 288.0. PAUSD's ratio 2.678 -> 2.916. All
   // four were forecast REFUSED at R3's max depth by a gate reading the wrong
@@ -1295,7 +1303,8 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
 
   it("admits a DEEP series whose recent feed is perfect and whose early years are sparse", () => {
     // LTCUSD's real shape: 288/day now, thin early, 4,675 days of history.
-    // Whole-span this averages ~217 and the crypto floor of 260 refuses it.
+    // Whole-span this averages ~217, which the crypto floor refuses at 260 and
+    // still refuses at 210 — the recent window is what admits it.
     assertManifestedCorpus(writeCorpus({
       conditions: goodConditions,
       crossSeriesDensity: {
@@ -1333,7 +1342,10 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
           },
           symbol: "LTCUSD",
         })),
-      /LTCUSD 5-minute series runs 144\.0 rows\/day over its last 90 days — under the crypto floor of 260/,
+      new RegExp(
+        `LTCUSD 5-minute series runs 144\\.0 rows/day over its last 90 days — ` +
+          `under the crypto floor of ${fiveMinuteFloorFor("LTCUSD")}`,
+      ),
       "a series clipped NOW must refuse even though its whole-span average is healthy",
     );
   });
@@ -1493,7 +1505,12 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
     // through getAssetType to forex and must get NO floor — the class
     // list is incomplete, not the series defective — and a 6-char name
     // whose halves are not currencies gets none either.
-    assert.equal(fiveMinuteFloorFor("BTCUSD"), 260);
+    // 210 since 2026-08-30 (R0d): 260 was derived from two ceiling probes and
+    // sat ABOVE the thinnest crypto market it bound, refusing a healthy
+    // DYDXUSD. Re-derived as forex's floor/ceiling ratio applied to crypto's
+    // own measured ceiling — tests/densityFloorDerivation.test.ts holds the
+    // relationship; this line holds the attribution path.
+    assert.equal(fiveMinuteFloorFor("BTCUSD"), 210);
     assert.equal(fiveMinuteFloorFor("EURUSD"), 150);
     assert.equal(fiveMinuteFloorFor("XAUUSD"), 140);
     assert.equal(fiveMinuteFloorFor("WTI"), 140);
