@@ -7,6 +7,10 @@ import {
   applyRewrites,
   REVIEW_REWRITES,
 } from "../src/components/workspace/reviewCopy.ts";
+import {
+  ENGINE_DECLINED_MARKETS,
+  engineDeclineSentence,
+} from "../supabase/functions/trade-analyzer/calibration.ts";
 
 /**
  * Couples the copy layer to the engine that feeds it.
@@ -62,9 +66,11 @@ const NOT_READER_FACING: Record<string, string> = {
     "telemetry union, not prose — it never reaches a sentence.",
   "calibration.ts":
     "the decline register's `reason` is internal documentation of how each " +
-    "market was measured. Only `reprobe` reaches the wire (index.ts reads " +
-    "`declined.reprobe` and nothing else), which is what keeps the register's " +
-    "invalidated R figures off the screen.",
+    "market was measured, and it is what keeps the register's invalidated R " +
+    "figures off the screen. The ONE reader-facing sentence here is " +
+    "`engineDeclineSentence`, which is not at a `reason:`/push site and so is " +
+    "invisible to the scan — `declineSentences()` calls it directly over the " +
+    "register instead. Excluded from the SITE scan, covered by execution.",
   "replay.ts":
     "`feedback.reason` is stored on the resolution row and has no client " +
     "reader — no surface in src/ renders it.",
@@ -195,27 +201,31 @@ function extractEngineSentences(): string[] {
 }
 
 /**
- * The decline diagnostic is built as `stem + declined.reprobe`, so the stem is
- * the only half a literal scan can see. The reprobe lives in the register, and
- * the sentence the reader gets is the two joined — so join them here rather
- * than testing half a sentence.
+ * The decline sentence, taken by EXECUTION rather than by scanning.
+ *
+ * It used to be assembled here from a stem scraped out of index.ts's
+ * `diagnostics.push(` site plus reprobes regexed out of the register. That
+ * worked while the sentence was one inline literal at one site. It now has two
+ * callers — the diagnostics writer and the `reason` writer, the latter being
+ * the only channel that survives both candidate rebuilds — so it lives in one
+ * function beside the register, and a literal scan of the emit sites can no
+ * longer see it.
+ *
+ * Calling the real function over the real register is strictly stronger than
+ * either: no stem to drift, no pattern to rot, and the corpus is by
+ * construction what the analyzer actually produces. That is the opposite of
+ * the shadow test this file exists to prevent — a shadow test REIMPLEMENTS the
+ * subject; this one runs it.
  */
-function declineSentences(stems: string[]): string[] {
-  const register = readFileSync(join(ANALYZER, "calibration.ts"), "utf8");
-  const reprobes = Array.from(
-    new Set(
-      (register.match(/reprobe:\s*\n?\s*"((?:[^"\\]|\\.)*)"/g) ?? []).map((raw) =>
-        (raw.match(/"((?:[^"\\]|\\.)*)"/) ?? ["", ""])[1]
-      ),
-    ),
+function declineSentences(): string[] {
+  const sentences = Object.values(ENGINE_DECLINED_MARKETS).map(
+    engineDeclineSentence,
   );
   assert.ok(
-    reprobes.length > 0,
-    "no reprobe found in the decline register — the extractor broke",
+    sentences.length > 0,
+    "the decline register is empty — the corpus lost a whole surface",
   );
-  const stem = stems.find((s) => /does not produce setups for this market/.test(s));
-  if (!stem) return [];
-  return reprobes.map((reprobe) => `${stem}${reprobe}`);
+  return Array.from(new Set(sentences));
 }
 
 /**
@@ -243,7 +253,7 @@ function expand(sentence: string): string[] {
 
 function corpus(): string[] {
   const stems = extractEngineSentences();
-  const all = [...stems, ...declineSentences(stems)];
+  const all = [...stems, ...declineSentences()];
   return Array.from(new Set(all.flatMap(expand)));
 }
 
@@ -308,9 +318,15 @@ describe("review copy is coupled to the engine that feeds it", () => {
       sentences.length >= 25,
       `extractor found only ${sentences.length} engine sentences — it broke rather than the analyzer going quiet`,
     );
+    // The decline is checked against the CORPUS, not the site scan. It is no
+    // longer an inline literal at an emit site — it is composed by
+    // `engineDeclineSentence` for two callers — so a scan of `reason:` and
+    // `push(` sites cannot see it and `declineSentences()` runs it instead.
+    // Asserted here rather than dropped, because it is the one sentence whose
+    // rewrite has already rotted once.
     assert.ok(
-      sentences.some((s) => /does not produce setups for this market/.test(s)),
-      "the decline sentence is missing from the extract — the pattern drifted",
+      corpus().some((s) => /does not produce setups for this market/.test(s)),
+      "the decline sentence is missing from the corpus — the extractor broke",
     );
   });
 

@@ -1230,14 +1230,30 @@ that fixed it.
   - **The Desk's Record row publishes the condemned money-positive rates** as
     measured fact, behind a caveat that reads as an improvement notice rather
     than an invalidation.
-  - **`reviewCopy.ts`'s decline rewrite is DEAD.** It requires
-    `its own measured record is (-?[0-9.]+)R per setup`; the engine emits
-    `its own measured record is negative after the venue's published costs`
-    (index.ts:1426). Verified: the regex matches nothing. So the raw engine
-    sentence reaches the reader — an unqualified MEASURED claim from the
-    condemned corpus, weaker on honesty than the Record row beside it. A
-    rewriter that matches nothing is indistinguishable from one that works,
-    which is #374's class exactly, and no test covers this rule.
+  - **The decline sentence — CLOSED 2026-08-30.** Three defects, one surface.
+    (1) `reviewCopy.ts`'s rewrite was DEAD: its pattern demanded a numeric
+    `-0.12R per setup` the analyzer had deliberately stopped emitting, so the
+    raw engine sentence reached the reader. (2) The sentence itself claimed
+    `after the venue's published costs` — the exact claim
+    `remediation-program-2026-08-11.md` records as never measured ("the
+    sentence shipped on all fifteen was false"); the register's internal
+    `reason` was corrected that day and the operator-facing sentence was not,
+    so the two disagreed for nineteen days. (3) It reached nobody anyway:
+    it rode `analysisDiagnostics`, and **two** rebuilds drop that field —
+    `scanOpportunity` and `AdvisorWorkspace` — so all fifteen were answered
+    "No current limit setup met the review threshold.", a transient sentence
+    inviting a rescan that can never succeed against an exhausted FMP quota.
+    Now one `engineDeclineSentence` beside the register, carried on `reason`
+    (the only channel that survives both rebuilds), with the cost clause gone.
+    `tests/engineDecline.test.ts` reads the fields each rebuild actually
+    carries rather than counting engine sites — the #457 lesson, which is why
+    the first attempt at this fix would have shipped and done nothing.
+  - **The score sentence no longer contradicts a decline — CLOSED 2026-08-30.**
+    The decline branch had no `return`, so `The current buy setup scored 47;
+    Levelflow requires 0 or higher for this market.` printed directly beneath
+    it: an instruction to try harder, on a market whose record is the reason no
+    score would help. It is now gated on `confidenceThreshold > 0`, which is
+    also what retires the tautology on the 72 zero-threshold entries above.
   - **Guide §5's own amendment-34 remedy is sourced from the condemned
     corpus** — the ρ ≤ 0.06 finding measured on the repaired corpus that the
     programme invalidated. The fix deleted an unearned claim and replaced it
