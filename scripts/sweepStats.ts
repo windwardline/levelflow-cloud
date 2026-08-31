@@ -27,6 +27,7 @@ import {
 } from "node:fs";
 import { createInterface } from "node:readline";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
+import { tMultiplier95 } from "../supabase/functions/trade-analyzer/confidence.ts";
 import {
   getAssetType,
   hasKnownAssetType,
@@ -161,47 +162,15 @@ export function rStdDev(stats: SweepStats): number | null {
 }
 
 /**
- * Two-sided 95% Student-t multipliers by degrees of freedom.
+ * The t table lives on the ENGINE side and is re-exported here.
  *
- * A NORMAL MULTIPLIER LIES AT SMALL n, and the lie is not small: at two
- * degrees of freedom the true multiplier is 4.303 against 1.96, so three
- * resolutions of +0.9/+0.1/+0.9 read as a measured profit under z and as
- * nothing under t. The learning layer met exactly that and answered it with a
- * 30-resolution floor, which is a fine POLICY floor and a poor statistical
- * one: it refuses a genuinely decisive 24-trade result to avoid a bad
- * approximation, when the approximation is the thing that was wrong.
- *
- * With the right multiplier no arbitrary floor is needed at all — the
- * statistics floor themselves. Two observations carry t = 12.706, which no
- * realistic expectancy clears, so "too few to judge" stops being a constant
- * somebody chose and becomes a consequence.
- *
- * Exact to df 30, then anchored at the conventional steps and out to the
- * asymptote. A df BETWEEN anchors takes the multiplier of the largest anchor
- * at or below it — the WIDER interval, the direction that refuses. The first
- * draft did the reverse and charged df 50 the df-60 multiplier, crediting
- * evidence the sample does not have; its own test caught it.
+ * `learning.ts` needs the same multiplier, and importing it FROM here would
+ * pull `node:readline` into the Deno deployment graph through an Edge module —
+ * breaking the live analyzer with every local gate green, since `npm run check`
+ * type-checks both trees and `npm run build` builds only the frontend. The
+ * dependency runs scripts -> functions, as it already does for `BAR_CLOCK`.
  */
-const T_95: ReadonlyArray<readonly [number, number]> = [
-  [1, 12.706], [2, 4.303], [3, 3.182], [4, 2.776], [5, 2.571],
-  [6, 2.447], [7, 2.365], [8, 2.306], [9, 2.262], [10, 2.228],
-  [11, 2.201], [12, 2.179], [13, 2.160], [14, 2.145], [15, 2.131],
-  [16, 2.120], [17, 2.110], [18, 2.101], [19, 2.093], [20, 2.086],
-  [21, 2.080], [22, 2.074], [23, 2.069], [24, 2.064], [25, 2.060],
-  [26, 2.056], [27, 2.052], [28, 2.048], [29, 2.045], [30, 2.042],
-  [40, 2.021], [60, 2.000], [80, 1.990], [100, 1.984], [120, 1.980],
-  [200, 1.972], [500, 1.965], [1000, 1.962], [10_000, 1.960],
-];
-
-/** The 95% two-sided t multiplier for `df` degrees of freedom. */
-export function tMultiplier95(df: number): number {
-  if (!Number.isFinite(df) || df < 1) return Number.POSITIVE_INFINITY;
-  let chosen = T_95[0][1];
-  for (const [threshold, multiplier] of T_95) {
-    if (df >= threshold) chosen = multiplier;
-  }
-  return chosen;
-}
+export { tMultiplier95 };
 
 /**
  * The 95% confidence interval on expectancy over filled outcomes.

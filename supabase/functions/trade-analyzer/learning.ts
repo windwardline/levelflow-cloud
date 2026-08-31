@@ -29,6 +29,8 @@
  * win-rate curve.
  */
 
+import { tMultiplier95 } from "./confidence.ts";
+
 /**
  * One cohort's resolutions.
  *
@@ -66,9 +68,20 @@ export type LearningWeight = {
 /**
  * How many standard errors a cohort's mean must clear before it is acted on.
  *
- * 1.96 — the same 95% bound `cost-sensitivity-verdict.ts` already applies when
- * deciding whether a market's expectancy is distinguishable from zero. One bar
- * for "is this real", not one per consumer.
+ * STUDENT-T, BY DEGREES OF FREEDOM — corrected 2026-08-31, hours after this
+ * file shipped, by the review that landed `tMultiplier95`.
+ *
+ * This constant was justified as "one statistical standard in the repo, not one
+ * per consumer", which was true when D1 merged and false by the end of the same
+ * day: D4 and M3 put a Student-t table in `scripts/sweepStats.ts` and used it
+ * for exactly this question. A fixed 1.96 was then the second standard, and the
+ * looser one — at every n below 10,000 the t multiplier is wider. The second
+ * justification, "rather than carry a t table into the engine", is moot for the
+ * same reason: the table exists.
+ *
+ * Kept as a NAMED export because the driver and the tests read it, and because
+ * an asymptotic bound is still the right thing to describe. It is now the
+ * limit the multiplier approaches, not the multiplier used.
  *
  * THE CONSEQUENCE IS INTENDED AND IS THE POINT. Realized R has a standard
  * deviation near 0.8 on every class, because it is dominated by the gap
@@ -82,6 +95,16 @@ export type LearningWeight = {
 export const CONFIDENCE_Z = 1.96;
 
 /**
+ * The multiplier actually applied, widened for the sample's own size.
+ *
+ * Imported rather than reimplemented: two tables would be the divergence this
+ * correction exists to remove.
+ */
+export function confidenceMultiplier(resolutions: number): number {
+  return tMultiplier95(resolutions - 1);
+}
+
+/**
  * Resolutions required before a mean is computed at all.
  *
  * 30, the same floor `cost-sensitivity-verdict.ts` applies before it will read
@@ -89,14 +112,16 @@ export const CONFIDENCE_Z = 1.96;
  * consumer — and the floor is what makes `CONFIDENCE_Z` defensible rather than
  * a decoration.
  *
- * A NORMAL MULTIPLIER IS WRONG AT SMALL n, which is the specific failure this
- * guards. Three resolutions of +0.9, +0.1, +0.9 have a mean of 0.633 and a
- * standard error of 0.267, so 1.96 leaves a conservative mean of 0.111 and
- * scored +2.2 confidence off three trades — while the correct multiplier at
- * two degrees of freedom is t = 4.303, which puts the bound below zero. Rather
- * than carry a t table into the engine, the floor moves n to where the normal
- * approximation holds: t at 29 degrees of freedom is 2.045, about 4% wider
- * than 1.96 and narrowing from there.
+ * A POLICY floor, and now only that. It began as a statistical one — a normal
+ * multiplier is badly wrong at small n, and three resolutions of +0.9/+0.1/+0.9
+ * scored +2.2 confidence under 1.96 where t at two degrees of freedom (4.303)
+ * puts the bound below zero. `confidenceMultiplier` answers that directly now,
+ * so the floor is no longer load-bearing for the arithmetic.
+ *
+ * It stays because a cohort of five resolutions should not move what every
+ * operator is told to trade even when its interval clears zero, and because
+ * removing it would LOOSEN the layer — which is not a change to make on the
+ * argument that something else got stricter.
  */
 export const MIN_RESOLUTIONS_FOR_ADJUSTMENT = 30;
 
@@ -147,7 +172,7 @@ export function conservativeMeanR(stats: LearningStats): number | null {
       (n - 1),
   );
   const standardError = Math.sqrt(variance / n);
-  const margin = CONFIDENCE_Z * standardError;
+  const margin = confidenceMultiplier(n) * standardError;
   if (mean > 0) return Math.max(0, mean - margin);
   if (mean < 0) return Math.min(0, mean + margin);
   return 0;
