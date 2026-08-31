@@ -146,6 +146,23 @@ governor design is a share of 150 and is understated by a third; the
 reservations and the precedence order are unaffected, since both are about who
 yields to whom. The next block is another 100 GB, not a tier change.
 
+**THE PRODUCTION BLEED WAS THE BARS, AND IT IS FIXED (#495, #496).** Every scan
+re-bought the entire window from FMP — 11,470 bars per market across the five
+decision frames, ~1.72 MB, **~167 MB for a full 97-market scan** — and the bars
+are immutable, so the account re-bought the same four years of daily history
+every time. `market_bars` holds RAW provider rows and `fetchFmpBars` buys only
+the date window the store lacks: **~6 MB per full scan, a 96% reduction**,
+shared by the analyzer, the chart feed, outcome-sync and the deploy-time E2E.
+Cost now scales with TIME instead of USAGE, which is the property production
+needs whatever ceiling is bought.
+
+**The remainder was measured and is not a bleeder**, so nothing else was built:
+the quote is 47 KB per full scan (0.03% of the old bar cost) and is a live
+price that cannot be cached; the economic calendar is 507 events x 482 bytes =
+239 KB per fetch, **176 MB / 30 days, 0.12% of the base plan**, over a window
+whose contents genuinely change inside it. Building stores for those would
+optimise a tenth of a percent and add a second invalidation story.
+
 **WHAT WAS ACTUALLY BLEEDING, measured 2026-08-31.** Six consumers, none able
 to tell another, because there is no usage endpoint — §21's whole premise:
 

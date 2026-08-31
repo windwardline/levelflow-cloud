@@ -75,6 +75,39 @@ Five consumers share one key across three runtimes. Bytes per 30 days:
 | trade-analyzer | Supabase Edge, user-facing | usage-dependent | — |
 | E2E at deploy | GitHub Actions | bounded per run, UNBOUNDED per day | — |
 
+> **MEASURED 2026-08-31, and the "usage-dependent" row was the production
+> bleeder this table could not see.** `trade-analyzer` fetched 6 FMP calls per
+> market per scan and every miss re-bought the WHOLE window, not the tail:
+>
+> | frame | bars per market per scan |
+> | --- | --- |
+> | 1day | 1,030 |
+> | 4hour | 1,080 |
+> | 1hour | 2,160 |
+> | 15min | 4,320 |
+> | 5min | 2,880 |
+> | **total** | **11,470 (~1.72 MB)** |
+>
+> **~167 MB for a full 97-market scan**, and the bars are immutable — the
+> account re-bought the same four years of daily history every time. Cost
+> scaled with USAGE. `market_bars` (#495, #496) makes it scale with TIME:
+> ~415 bars per market, **~6 MB per full scan, a 96% reduction**, shared by
+> the analyzer, the chart feed, outcome-sync and the deploy-time E2E.
+>
+> **Everything else was measured and is not a bleeder**, which is why nothing
+> else was built:
+>
+> | consumer | measured | share |
+> | --- | --- | --- |
+> | quote (1 per market per scan) | 47 KB per full scan | 0.03% of the old bar cost |
+> | economic calendar (9-day window, hourly) | 507 events x 482 B = 239 KB per fetch | **176 MB / 30d, 0.12% of the base plan** |
+>
+> The calendar's window is re-bought hourly and genuinely changes inside it —
+> yesterday's events gain their `actual` — so the re-fetch is justified rather
+> than wasteful, and a store for it would optimise 0.12% while adding a second
+> invalidation story. The quote is a live price and is not cacheable at all.
+> Both were left alone deliberately.
+
 **Bank method.** Measured: 110 bytes/bar for BTCUSD, 102 for EURUSD as
 stored JSONL. Wire JSON repeats field names, so ~150 bytes/bar. Each run
 re-pulls every symbol's full ~3-day window regardless of what is new;
