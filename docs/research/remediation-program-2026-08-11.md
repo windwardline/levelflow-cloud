@@ -248,8 +248,35 @@ So that what is measured is what trades.
   repaired gate, not merely on repaired data.
   Five mutations, each verified applied and each killed by the intended test,
   including the pre-D4 rule restored verbatim.
-- **M3** the confirm read decides on a bare `delta > 0` with no sample
-  floor, no error bar, no p — give it the select stage's own bar.
+- ~~**M3** the confirm read decides on a bare `delta > 0` with no sample
+  floor, no error bar, no p — give it the select stage's own bar.~~
+  **LANDED 2026-08-31.** The bar is now the select stage's, which since D4
+  means the MONEY: the pick's own confirm-fold expectancy with a 95% interval,
+  and the delta reported beside it rather than deciding (amendment 39).
+  **THREE outcomes, where the binary could hold two.** `confirmed-profitable`
+  (lower bound above zero), `contradicted` (upper bound below zero), and
+  `indistinguishable` — which the old code called "negative" along with every
+  genuine loss. A total is the wrong unit for the question twice over: it grows
+  with the number of trades, and it carries no dispersion, so +0.3R over four
+  outcomes and over four thousand printed identically.
+  **The artifact keys changed with the quantity** — `confirmedPositive` and
+  `confirmedNegative` are gone, replaced by `confirmedProfitable`,
+  `contradicted` and `indistinguishable`. The 2026-08-11 completeness pass had
+  already recorded that `confirmedPositive` was "a bucket of positive DELTAS
+  wearing an absolute name" and killed it as cosmetic; it stops being cosmetic
+  once the quantity changes, and a reader must not be able to put two different
+  measurements in the same column. The existing artifacts keep their old keys
+  and their old meaning.
+  The p is delivered as an INTERVAL rather than a separate statistic: a 95%
+  interval excluding zero is exactly p < 0.05 for that expectancy, and a
+  permutation p over confirm-fold days would be a second heavier instrument
+  answering the same question on a fold LA-6 rations.
+  **A mutation caught a real gap before this shipped.** Restoring the bare
+  `delta > 0` passed all 90 tests, because every market in the confirm fixture
+  had zero-variance outcomes and the two rules agreed on all of them. The
+  fixture gained USDCAD — confirm outcomes swinging +2.2/-1.6 around a mean of
+  +0.3, so the total is positive and the interval spans zero — and the mutation
+  then died. Three mutations, each verified applied and each killed.
 - **M1** `roster-expectancy-audit.ts` double-counts the baseline variant;
   drop the `|| variant === "baseline"` alternative, re-run, and commit
   script and artifact together.

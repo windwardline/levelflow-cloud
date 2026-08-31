@@ -276,6 +276,15 @@ async function main() {
       // could not judge it", and these are what tell them apart.
       confirmFilled: number | null;
       confirmBaseFilled: number | null;
+      // M3: the MONEY on the held-back fold, with the interval the
+      // disposition is decided on. `confirmTotalDelta` stays beside it — a
+      // reader asked to trust a changed verdict is owed the figure it
+      // replaces as well as the one that replaced it.
+      confirmExpectancy: number | null;
+      confirmExpectancyLower: number | null;
+      confirmExpectancyUpper: number | null;
+      confirmExpectancyDelta: number | null;
+      confirmExpectancyDeltaLower: number | null;
       // Which of the gate's dispositions this pick carries, so a null
       // delta names its own cause per market rather than only in the
       // rollup counts (#364 round 45, finding 2).
@@ -284,8 +293,24 @@ async function main() {
       variant: string;
     }
   > = {};
-  let confirmedPositive = 0;
-  let confirmedNegative = 0;
+  // M3: THREE OUTCOMES, and the two names changed with the quantity.
+  //
+  // The read decided `confirmTotalDelta > 0` — a bare inequality on a SUM,
+  // with no sample floor, no error bar and no p. `confirmedPositive` was
+  // therefore a bucket of positive DELTAS wearing an absolute name, which the
+  // 2026-08-11 completeness pass recorded and killed as cosmetic. It is not
+  // cosmetic once the quantity changes, so the keys change with it: a reader
+  // comparing a new artifact to `4d-confirm-read.json` must not be able to put
+  // two different measurements in the same column. The old artifacts keep
+  // their old keys and their old meaning.
+  //
+  // `indistinguishable` is the outcome the binary could not express at all.
+  // A fold whose interval spans zero has neither confirmed nor contradicted
+  // the pick, and amendment 36 refuses acting on that in either direction —
+  // the old code called every one of them "negative".
+  let confirmedProfitable = 0;
+  let contradicted = 0;
+  let indistinguishable = 0;
   // "unreadable" meant one thing when confirmTotalDelta was non-null
   // exactly for accepted variants: the pick did not clear the 4c gate.
   // #364 round 43 gave a null delta a SECOND cause — accepted, but the
@@ -313,28 +338,50 @@ async function main() {
   for (const [symbol, pick] of Object.entries(finalPicks)) {
     const verdict = verdicts.get(symbol)?.get(pick.variant);
     const delta = verdict?.confirmTotalDelta ?? null;
+    // The MONEY. Present only for a pick the gate ACCEPTED — LA-6's one
+    // authorized read — but unlike the total delta it does not also require
+    // the baseline to have filled in the confirm fold. A fold that covered the
+    // pick and not its baseline can still say whether the pick earned
+    // anything, and that case used to report no figure at all.
+    const lower = verdict?.confirmExpectancyLower ?? null;
+    const upper = verdict?.confirmExpectancyUpper ?? null;
+    const measured = lower !== null && upper !== null;
+    const disposition = !verdict
+      ? "missing-verdict"
+      : measured && lower > 0
+      ? "confirmed-profitable"
+      : measured && upper < 0
+      ? "contradicted"
+      : measured
+      ? "indistinguishable"
+      : verdict.thin
+      ? "thin"
+      : verdict.noVerdict
+      ? "gate-could-not-judge"
+      : verdict.accepted
+      ? "accepted-but-unevidenced"
+      : "refused-by-gate";
     confirmReport[symbol] = {
       confirmTotalDelta: delta,
       confirmFilled: verdict?.confirmFilled ?? null,
       confirmBaseFilled: verdict?.confirmBaseFilled ?? null,
-      gateDisposition: !verdict
-        ? "missing-verdict"
-        : delta !== null
-        ? "confirmed"
-        : verdict.thin
-        ? "thin"
-        : verdict.noVerdict
-        ? "gate-could-not-judge"
-        : verdict.accepted
-        ? "accepted-but-unevidenced"
-        : "refused-by-gate",
+      // The figure the disposition was decided on, beside the figure it
+      // replaces. A reader asked to trust a changed verdict is owed both.
+      confirmExpectancy: verdict?.confirmExpectancy ?? null,
+      confirmExpectancyLower: lower,
+      confirmExpectancyUpper: upper,
+      // The comparison, REPORTED and not deciding (amendment 39: a rate or a
+      // delta may sit beside money, never instead of it).
+      confirmExpectancyDelta: verdict?.confirmExpectancyDelta ?? null,
+      confirmExpectancyDeltaLower: verdict?.confirmExpectancyDeltaLower ?? null,
+      gateDisposition: disposition,
       gateReason: verdict?.reason ?? null,
       variant: pick.variant,
     };
-    if (delta !== null) {
-      if (delta > 0) confirmedPositive += 1;
-      else confirmedNegative += 1;
-    } else if (!verdict) missingVerdict += 1;
+    if (disposition === "confirmed-profitable") confirmedProfitable += 1;
+    else if (disposition === "contradicted") contradicted += 1;
+    else if (disposition === "indistinguishable") indistinguishable += 1;
+    else if (!verdict) missingVerdict += 1;
     else if (verdict.thin) thin += 1;
     else if (verdict.noVerdict) gateCouldNotJudge += 1;
     else if (!verdict.accepted) refusedByGate += 1;
@@ -374,9 +421,10 @@ async function main() {
   writeResearchArtifact(`${dir}/${prefix}-confirm-read.json`, {
     confirmRead,
     confirmReport,
-    confirmedNegative,
-    confirmedPositive,
+    confirmedProfitable,
+    contradicted,
     gateCouldNotJudge,
+    indistinguishable,
     missingVerdict,
     notReadReason: confirmRead
       ? null
@@ -391,10 +439,12 @@ async function main() {
   });
   console.log(
     (confirmRead
-      ? `confirm read: ${confirmedPositive} picks positive, ` +
-        `${confirmedNegative} negative`
-      : `confirm NOT READ (nothing burned): ${confirmedPositive} positive, ` +
-        `${confirmedNegative} negative`) +
+      ? `confirm read: ${confirmedProfitable} picks profitable beyond error, ` +
+        `${contradicted} contradicted, ${indistinguishable} indistinguishable ` +
+        `from zero`
+      : `confirm NOT READ (nothing burned): ${confirmedProfitable} ` +
+        `profitable, ${contradicted} contradicted, ${indistinguishable} ` +
+        `indistinguishable`) +
       `, ${unreadable} without a figure ` +
       `(${refusedByGate} refused by the gate, ${gateCouldNotJudge} the ` +
       `gate could not judge, ${thin} thin, ${unevidenced} accepted but ` +
