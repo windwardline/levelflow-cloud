@@ -1280,6 +1280,38 @@ item whose exit criterion is "the emit and manifest carry this named field list"
 produces a corpus R4, R5 and R6 can read. The real order is
 **R2 → R2b → R2's implementation pass → R3**.
 
+**R2b RAN 2026-08-31 and met the restated criterion** —
+`docs/research/r2b-geometry-fresh-eyes-2026-08-31.md`. Six lenses, 24 findings,
+9 survivors, each then re-derived by hand on the real per-market population.
+
+**The field list is one entry**: widen the rejection ledger's `reason` from
+`planRejected` to the specific geometry cause. `buildPricePlan` already offers
+the `refusal` out-channel (`pricePlan.ts:161-166`) and `sweep.ts:847-853` does
+not pass it, so 13 `return null` paths collapse into one word. Its absence has
+a measured price twice over — indices went 37% to 96% survival when the real
+axis was finally found, after a 96-variant grid over four other axes moved it
+37% to 38%.
+
+**Three dead instruments, measured on all 98 markets.** `window_cap` is
+unreachable on every one; `tp1Provenance` is constant per market and carries
+zero per-row information; and 27 markets can never be structure-stopped
+because `maxStopAtrMultiplier <= 1.25` sits at or below the structural floor
+of 1.25 ATR — all three livestock, twelve crypto, seven futures. On those,
+`stopPivotDistance` describes a level that never influenced the stop.
+
+**Four model questions are recorded for the owner and were NOT actioned** —
+the banked fraction is a literal `0.5` with no calibration field, a plan
+without a partial cannot be built though the resolver can price one, TP1 never
+consults structure, and the stop consults intraday pivots while targets consult
+daily ones.
+
+**And the round's own error is recorded** (section 5): the first derivation ran
+against class calibration, which governs ~18 markets while 79 carry derived
+cells with 4x stops. Two findings survived re-derivation unchanged; the third
+changed completely. `roster-expectancy-audit.ts` states that population rule in
+terms and it was read the same day — a stated rule does not protect the next
+derivation.
+
 #### The Treasury curve is ~25% covered, and the paths that build it never look — measured 2026-08-23
 
 Found by the converge and re-derived here against the store the R0 rebuild
