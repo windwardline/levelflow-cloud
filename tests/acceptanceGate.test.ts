@@ -418,7 +418,14 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     for (let day = 0; day < 6; day += 1) {
       rows.push(trainRow("baseline", day, 0.2));
       rows.push(outcomeRow("baseline", day, 0.2));
-      const aEdge = day === 0 ? 5.0 : 0.2;
+      // D4 reshaped this. The edge used to be a single +5.0 spike on day 0
+      // and +0.2 elsewhere, which still gives A six positive deltas and the
+      // ~1/64 null this test is about — but its select-fold expectancy is then
+      // ONE DAY, and the absolute term correctly refuses it (mean +1.2R, 95%
+      // lower −0.86R). A consistent edge keeps every claim this test makes
+      // about PAIRING intact while letting A clear a gate that now also asks
+      // whether the variant actually earns money.
+      const aEdge = day % 2 === 0 ? 1.0 : 0.8;
       rows.push(trainRow("A", day, 0.2 + aEdge));
       rows.push(outcomeRow("A", day, 0.2 + aEdge));
       const bEdge = day < 2 ? 1.0 : 0;

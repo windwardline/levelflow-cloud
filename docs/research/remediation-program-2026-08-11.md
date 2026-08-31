@@ -218,10 +218,36 @@ So that what is measured is what trades.
   R sum is a sum over expiries alone.
 
 ### Phase 2 — repair the instrument
-- **D4** the gate's `accepted` is four delta conditions and a thinness
+- ~~**D4** the gate's `accepted` is four delta conditions and a thinness
   check with **no absolute expectancy term** — the defect that let a
   losing market pass. Add select-fold expectancy and its error to the
-  verdict and to the rule.
+  verdict and to the rule.~~ **LANDED 2026-08-31.**
+  The old conjunction is now named `beatsBaseline`, which states the defect as
+  code: every term in it is a comparison, and a variant can satisfy all five
+  while losing money. `accepted = beatsBaseline && earnsMoney`, where
+  `earnsMoney` is the variant's OWN select-fold expectancy positive beyond its
+  95% lower bound. The verdict carries the expectancy, its standard error and
+  that bound, and a variant that clears every delta and still cannot show a
+  profit gets its own reason — `LOSES MONEY — beat the baseline on every
+  delta…` — rather than the bare `fails` that made it indistinguishable from a
+  variant that lost outright.
+  **No sample floor sits beside it, deliberately.** The first draft carried one
+  at 30 and refused a fixture earning +1.2R over 24 trades whose lower bound
+  was +1.08 — the floor was doing the rejecting, not the statistics. The bound
+  uses a Student-t multiplier (`rExpectancyLower95` in `sweepStats.ts`), so the
+  small-n problem is answered where it belongs: two observations carry
+  t = 12.706 and "too few to judge" becomes a consequence rather than a
+  constant somebody chose.
+  Found while landing it: a variant beating its baseline on all six days with
+  +5.0 of its +7.2 total on ONE of them has a mean of +1.2R and a 95% lower
+  bound of −0.86R, and the old gate accepted it. That was this repo's own
+  fixture.
+  **The 4d picks now fail on two independent grounds.** The corpus was already
+  invalid (the clock defect); D4 says the CRITERION was also wrong, so a
+  re-sweep alone would not have rescued them — R3 must re-run under the
+  repaired gate, not merely on repaired data.
+  Five mutations, each verified applied and each killed by the intended test,
+  including the pre-D4 rule restored verbatim.
 - **M3** the confirm read decides on a bare `delta > 0` with no sample
   floor, no error bar, no p — give it the select stage's own bar.
 - **M1** `roster-expectancy-audit.ts` double-counts the baseline variant;
