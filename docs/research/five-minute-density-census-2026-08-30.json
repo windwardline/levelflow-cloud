@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-08-30",
+  "generatedAt": "2026-08-31",
   "method": "recent 90 days of each symbol's 5min rolling store, rows / min(90, spanDays)",
-  "note": "MEASUREMENT ONLY. No floor or derived ratio is recorded here on purpose: tests/densityFloorDerivation.test.ts reads the SHIPPED floors and computes the ratios against this evidence, so regenerating the census cannot make a floor agree with itself. energies and indices carry no 5min store in this cache and are not measurable from it.",
-  "source": ".calibration-cache/<SYMBOL>-5min-7000.rolling.json",
+  "note": "MEASUREMENT ONLY — no floor or derived ratio is recorded here, so regenerating this artifact cannot make a floor agree with itself; tests/densityFloorDerivation.test.ts reads the SHIPPED floors and computes the ratios against this evidence. Stores are looked up by PROVIDER symbol via resolveProviderSymbols: 9 of the 97 roster names differ from their provider name (all 6 indices, WTI->CLUSD, ARWUSD->ARUSD, TRUMPUSD->OTRUMPUSD), and the 2026-08-30 generation looked them up by roster name and recorded them as missing.",
+  "source": ".calibration-cache/<PROVIDER_SYMBOL>-5min-7000.rolling.json",
   "window": "recent-90",
   "classes": {
     "agriculture": {
@@ -11,26 +11,32 @@
       "rosterSize": 6,
       "symbols": {
         "ZCUSX": {
+          "provider": "ZCUSX",
           "rowsPerDay": 144.03,
           "spanDays": 90
         },
         "ZLUSX": {
+          "provider": "ZLUSX",
           "rowsPerDay": 145.19,
           "spanDays": 90
         },
         "ZMUSD": {
+          "provider": "ZMUSD",
           "rowsPerDay": 147.17,
           "spanDays": 90
         },
         "ZOUSX": {
+          "provider": "ZOUSX",
           "rowsPerDay": 38.4,
           "spanDays": 90
         },
         "ZRUSD": {
+          "provider": "ZRUSD",
           "rowsPerDay": 40.68,
           "spanDays": 90
         },
         "ZSUSX": {
+          "provider": "ZSUSX",
           "rowsPerDay": 145.64,
           "spanDays": 90
         }
@@ -41,134 +47,172 @@
       "secondLowest": 40.68
     },
     "crypto": {
-      "measured": 31,
-      "missingStores": [
-        "ARWUSD",
-        "TRUMPUSD"
-      ],
+      "measured": 33,
+      "missingStores": [],
       "rosterSize": 33,
       "symbols": {
         "AAVEUSD": {
+          "provider": "AAVEUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "ADAUSD": {
+          "provider": "ADAUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "ALGOUSD": {
+          "provider": "ALGOUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
+        "ARWUSD": {
+          "provider": "ARUSD",
+          "rowsPerDay": 287.93,
+          "spanDays": 90
+        },
         "ATOMUSD": {
+          "provider": "ATOMUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "AVAXUSD": {
+          "provider": "AVAXUSD",
           "rowsPerDay": 287.98,
           "spanDays": 90
         },
         "BCHUSD": {
+          "provider": "BCHUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "BNBUSD": {
+          "provider": "BNBUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "BTCUSD": {
+          "provider": "BTCUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "CAKEUSD": {
+          "provider": "CAKEUSD",
           "rowsPerDay": 275.94,
           "spanDays": 90
         },
         "DASHUSD": {
+          "provider": "DASHUSD",
           "rowsPerDay": 288,
           "spanDays": 90
         },
         "DOGEUSD": {
+          "provider": "DOGEUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "DOTUSD": {
+          "provider": "DOTUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "DYDXUSD": {
+          "provider": "DYDXUSD",
           "rowsPerDay": 249.6,
           "spanDays": 90
         },
         "EGLDUSD": {
+          "provider": "EGLDUSD",
           "rowsPerDay": 284.83,
           "spanDays": 90
         },
         "ETCUSD": {
+          "provider": "ETCUSD",
           "rowsPerDay": 287.96,
           "spanDays": 90
         },
         "ETHUSD": {
+          "provider": "ETHUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "FILUSD": {
+          "provider": "FILUSD",
           "rowsPerDay": 287.99,
           "spanDays": 90
         },
         "GRTUSD": {
+          "provider": "GRTUSD",
           "rowsPerDay": 286.79,
           "spanDays": 90
         },
         "HBARUSD": {
+          "provider": "HBARUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "IMXUSD": {
+          "provider": "IMXUSD",
           "rowsPerDay": 287.89,
           "spanDays": 90
         },
         "LINKUSD": {
+          "provider": "LINKUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "LTCUSD": {
+          "provider": "LTCUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "NEARUSD": {
+          "provider": "NEARUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "SOLUSD": {
+          "provider": "SOLUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "THETAUSD": {
+          "provider": "THETAUSD",
+          "rowsPerDay": 287.97,
+          "spanDays": 90
+        },
+        "TRUMPUSD": {
+          "provider": "OTRUMPUSD",
           "rowsPerDay": 287.97,
           "spanDays": 90
         },
         "TRXUSD": {
+          "provider": "TRXUSD",
           "rowsPerDay": 288,
           "spanDays": 90
         },
         "UNIUSD": {
+          "provider": "UNIUSD",
           "rowsPerDay": 288,
           "spanDays": 90
         },
         "XLMUSD": {
+          "provider": "XLMUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "XMRUSD": {
+          "provider": "XMRUSD",
           "rowsPerDay": 288.01,
           "spanDays": 90
         },
         "XRPUSD": {
+          "provider": "XRPUSD",
           "rowsPerDay": 287.97,
           "spanDays": 90
         },
         "XTZUSD": {
+          "provider": "XTZUSD",
           "rowsPerDay": 287.96,
           "spanDays": 90
         }
@@ -179,12 +223,20 @@
       "secondLowest": 275.94
     },
     "energies": {
-      "measured": 0,
-      "missingStores": [
-        "WTI"
-      ],
+      "measured": 1,
+      "missingStores": [],
       "rosterSize": 1,
-      "symbols": {}
+      "symbols": {
+        "WTI": {
+          "provider": "CLUSD",
+          "rowsPerDay": 195.79,
+          "spanDays": 90
+        }
+      },
+      "ceiling": 195.79,
+      "median": 195.79,
+      "min": 195.79,
+      "secondLowest": 195.79
     },
     "forex": {
       "measured": 28,
@@ -192,114 +244,142 @@
       "rosterSize": 28,
       "symbols": {
         "AUDCAD": {
+          "provider": "AUDCAD",
           "rowsPerDay": 204.67,
           "spanDays": 90
         },
         "AUDCHF": {
+          "provider": "AUDCHF",
           "rowsPerDay": 204.67,
           "spanDays": 90
         },
         "AUDJPY": {
+          "provider": "AUDJPY",
           "rowsPerDay": 204.67,
           "spanDays": 90
         },
         "AUDNZD": {
+          "provider": "AUDNZD",
           "rowsPerDay": 204.6,
           "spanDays": 90
         },
         "AUDUSD": {
+          "provider": "AUDUSD",
           "rowsPerDay": 204.67,
           "spanDays": 90
         },
         "CADCHF": {
+          "provider": "CADCHF",
           "rowsPerDay": 204.53,
           "spanDays": 90
         },
         "CADJPY": {
+          "provider": "CADJPY",
           "rowsPerDay": 204.66,
           "spanDays": 90
         },
         "CHFJPY": {
+          "provider": "CHFJPY",
           "rowsPerDay": 204.67,
           "spanDays": 90
         },
         "EURAUD": {
+          "provider": "EURAUD",
           "rowsPerDay": 204.67,
           "spanDays": 90
         },
         "EURCAD": {
+          "provider": "EURCAD",
           "rowsPerDay": 204.67,
           "spanDays": 90
         },
         "EURCHF": {
+          "provider": "EURCHF",
           "rowsPerDay": 204.63,
           "spanDays": 90
         },
         "EURGBP": {
+          "provider": "EURGBP",
           "rowsPerDay": 204.67,
           "spanDays": 90
         },
         "EURJPY": {
+          "provider": "EURJPY",
           "rowsPerDay": 204.66,
           "spanDays": 90
         },
         "EURNZD": {
+          "provider": "EURNZD",
           "rowsPerDay": 204.67,
           "spanDays": 90
         },
         "EURUSD": {
+          "provider": "EURUSD",
           "rowsPerDay": 204.67,
           "spanDays": 90
         },
         "GBPAUD": {
+          "provider": "GBPAUD",
           "rowsPerDay": 204.64,
           "spanDays": 90
         },
         "GBPCAD": {
+          "provider": "GBPCAD",
           "rowsPerDay": 204.66,
           "spanDays": 90
         },
         "GBPCHF": {
+          "provider": "GBPCHF",
           "rowsPerDay": 204.67,
           "spanDays": 90
         },
         "GBPJPY": {
+          "provider": "GBPJPY",
           "rowsPerDay": 204.64,
           "spanDays": 90
         },
         "GBPNZD": {
+          "provider": "GBPNZD",
           "rowsPerDay": 204.66,
           "spanDays": 90
         },
         "GBPUSD": {
+          "provider": "GBPUSD",
           "rowsPerDay": 204.49,
           "spanDays": 90
         },
         "NZDCAD": {
+          "provider": "NZDCAD",
           "rowsPerDay": 204.67,
           "spanDays": 90
         },
         "NZDCHF": {
+          "provider": "NZDCHF",
           "rowsPerDay": 204.46,
           "spanDays": 90
         },
         "NZDJPY": {
+          "provider": "NZDJPY",
           "rowsPerDay": 204.62,
           "spanDays": 90
         },
         "NZDUSD": {
+          "provider": "NZDUSD",
           "rowsPerDay": 204.64,
           "spanDays": 90
         },
         "USDCAD": {
+          "provider": "USDCAD",
           "rowsPerDay": 204.31,
           "spanDays": 90
         },
         "USDCHF": {
+          "provider": "USDCHF",
           "rowsPerDay": 204.64,
           "spanDays": 90
         },
         "USDJPY": {
+          "provider": "USDJPY",
           "rowsPerDay": 204.67,
           "spanDays": 90
         }
@@ -315,74 +395,92 @@
       "rosterSize": 18,
       "symbols": {
         "BZUSD": {
+          "provider": "BZUSD",
           "rowsPerDay": 194.23,
           "spanDays": 90
         },
         "CLUSD": {
+          "provider": "CLUSD",
           "rowsPerDay": 195.79,
           "spanDays": 90
         },
         "ESUSD": {
+          "provider": "ESUSD",
           "rowsPerDay": 195.77,
           "spanDays": 90
         },
         "GCUSD": {
+          "provider": "GCUSD",
           "rowsPerDay": 195.67,
           "spanDays": 90
         },
         "HGUSD": {
+          "provider": "HGUSD",
           "rowsPerDay": 196.41,
           "spanDays": 90
         },
         "HOUSD": {
+          "provider": "HOUSD",
           "rowsPerDay": 190,
           "spanDays": 90
         },
         "NGUSD": {
+          "provider": "NGUSD",
           "rowsPerDay": 195.19,
           "spanDays": 90
         },
         "NQUSD": {
+          "provider": "NQUSD",
           "rowsPerDay": 195.79,
           "spanDays": 90
         },
         "PAUSD": {
+          "provider": "PAUSD",
           "rowsPerDay": 192.09,
           "spanDays": 90
         },
         "PLUSD": {
+          "provider": "PLUSD",
           "rowsPerDay": 196.03,
           "spanDays": 90
         },
         "RBUSD": {
+          "provider": "RBUSD",
           "rowsPerDay": 176.3,
           "spanDays": 90
         },
         "RTYUSD": {
+          "provider": "RTYUSD",
           "rowsPerDay": 195.79,
           "spanDays": 90
         },
         "SIUSD": {
+          "provider": "SIUSD",
           "rowsPerDay": 195.61,
           "spanDays": 90
         },
         "YMUSD": {
+          "provider": "YMUSD",
           "rowsPerDay": 195.76,
           "spanDays": 90
         },
         "ZBUSD": {
+          "provider": "ZBUSD",
           "rowsPerDay": 192.37,
           "spanDays": 90
         },
         "ZFUSD": {
+          "provider": "ZFUSD",
           "rowsPerDay": 193.74,
           "spanDays": 90
         },
         "ZNUSD": {
+          "provider": "ZNUSD",
           "rowsPerDay": 194.74,
           "spanDays": 90
         },
         "ZTUSD": {
+          "provider": "ZTUSD",
           "rowsPerDay": 193.77,
           "spanDays": 90
         }
@@ -393,17 +491,45 @@
       "secondLowest": 190
     },
     "indices": {
-      "measured": 0,
-      "missingStores": [
-        "ASX",
-        "DAX",
-        "DOW",
-        "NIKKEI",
-        "NSDQ",
-        "SP"
-      ],
+      "measured": 6,
+      "missingStores": [],
       "rosterSize": 6,
-      "symbols": {}
+      "symbols": {
+        "ASX": {
+          "provider": "^AXJO",
+          "rowsPerDay": 51.11,
+          "spanDays": 90
+        },
+        "DAX": {
+          "provider": "^GDAXI",
+          "rowsPerDay": 73.26,
+          "spanDays": 90
+        },
+        "DOW": {
+          "provider": "^DJI",
+          "rowsPerDay": 53.74,
+          "spanDays": 90
+        },
+        "NIKKEI": {
+          "provider": "^N225",
+          "rowsPerDay": 46.82,
+          "spanDays": 90
+        },
+        "NSDQ": {
+          "provider": "^NDX",
+          "rowsPerDay": 53.74,
+          "spanDays": 90
+        },
+        "SP": {
+          "provider": "^GSPC",
+          "rowsPerDay": 53.73,
+          "spanDays": 90
+        }
+      },
+      "ceiling": 73.26,
+      "median": 53.74,
+      "min": 46.82,
+      "secondLowest": 51.11
     },
     "livestock": {
       "measured": 3,
@@ -411,14 +537,17 @@
       "rosterSize": 3,
       "symbols": {
         "GFUSX": {
+          "provider": "GFUSX",
           "rowsPerDay": 37.92,
           "spanDays": 90
         },
         "HEUSX": {
+          "provider": "HEUSX",
           "rowsPerDay": 38.54,
           "spanDays": 90
         },
         "LEUSX": {
+          "provider": "LEUSX",
           "rowsPerDay": 38.44,
           "spanDays": 90
         }
@@ -434,10 +563,12 @@
       "rosterSize": 2,
       "symbols": {
         "XAGUSD": {
+          "provider": "XAGUSD",
           "rowsPerDay": 196.5,
           "spanDays": 90
         },
         "XAUUSD": {
+          "provider": "XAUUSD",
           "rowsPerDay": 195.21,
           "spanDays": 90
         }
