@@ -164,6 +164,34 @@ export type SweepOutcomeRecord = {
   atr: number;
   dailyAtr: number;
   grossRewardRisk: number;
+  /**
+   * WHAT THE LADDER PAYS ON A FULL WIN — the figure amendment 39 makes the
+   * measure, and the one this corpus did not carry.
+   *
+   * `rewardRisk` beside it is the RUNNER TARGET's ratio on a full-size basis,
+   * and half the position leaves at TP1. A setup admitted at 1.6x realises
+   * `0.5 × tp1R + 0.5 × targetR ≈ 1.0R` against a −1.00R stop, so `rewardRisk`
+   * overstates the edge by roughly 60% (tests/ladderPayoff.test.ts derives it
+   * per class from shipped calibration). The Desk stopped printing it in #468.
+   * The corpus was still going to record it as the only ex-ante payoff — so
+   * R4, grading all 97 markets, would have measured every one of them against
+   * a promise the ladder never makes, and read the shortfall as the markets
+   * underdelivering rather than as the wrong yardstick.
+   *
+   * EMITTED RATHER THAN DERIVED, deliberately, and against this corpus's own
+   * "emit primitives, reconstruct the rest" rule. Two reasons override it.
+   * On an UNFILLED row the legs are empty and neither target is recorded, so
+   * there is nothing to blend — a reader would have to re-run the ladder,
+   * which means reimplementing production and inheriting whatever production
+   * has wrong. And it nets `estimatedRoundTripCost`, a cost-model output the
+   * manifest pins by `analyzerVersion`: stored, it stays attributed to the
+   * model that produced it.
+   *
+   * Null when there is no TP1 leg, exactly as `PricePlan` reports it: a
+   * full-size runner IS `rewardRisk`, and duplicating it under a second name
+   * would give the corpus two answers to one question.
+   */
+  ladderRewardRisk: number | null;
   latestClose: number;
   stopPivotDistance: number | null;
   trendStrength: number;
@@ -823,6 +851,7 @@ export function simulateSymbol(input: {
       atr: plan.atr,
       dailyAtr: plan.dailyAtr,
       grossRewardRisk: plan.grossRewardRisk,
+      ladderRewardRisk: plan.ladderRewardRisk,
       latestClose: plan.latestClose,
       stopPivotDistance: plan.stopPivotDistance,
       trendStrength: regime.trendStrength,

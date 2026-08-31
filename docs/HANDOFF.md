@@ -930,8 +930,13 @@ for five days after it had been. All NINE emit fields are on
 and the two remaining questions it framed are closed: the ninth `riskDistance`
 field is NOT needed (#472 corrected `stopPivotDistance`'s anchor, which was the
 real defect and recovers the pre-alignment risk without a new column), and
-`ladderRewardRisk` — absent from the emit while being the figure amendment 39
-makes the measure — is the one field that genuinely still has to land.
+`ladderRewardRisk` LANDED in #473 — it was absent from the emit while being the
+figure amendment 39 makes the measure, so R4 would have graded all 97 markets
+against `rewardRisk`, a promise the ladder never makes, and read the shortfall
+as markets underdelivering rather than as the wrong yardstick.
+`tests/corpusCarriesTheMeasure.test.ts` now derives the coupling from the Desk
+itself: whichever field the panel prefers for the payoff must be an emitted
+column, so moving the Desk's figure again fails until the corpus follows.
 **What awaits the owner is the MANIFEST half below, none of which is
 implemented.** Reading this section as an open proposal is what produced a
 recommendation to "accept all eight fields" that described `main`.
