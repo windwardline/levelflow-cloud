@@ -452,6 +452,32 @@ function verifyManifest(emitPath: string): SweepManifest {
           `evidence is refused; re-sweep with the curve store intact`,
       );
     }
+    // The acceptance mode, with the conditions block's standing and for the
+    // same reason: it is a measurement TERM, not evidence. Two corpora with
+    // entirely different accepted populations hashed identically before this
+    // field existed, and `--ignore-low-edge` grades hours the live desk
+    // refuses outright. Checked at runtime because `JSON.parse(...) as
+    // SweepManifest` is a cast and buys nothing.
+    //
+    // Absence refuses on the CURRENT path and is exempt under the
+    // historical-read override — the standing every other stated term has.
+    // A manifest predating the field was measured under an unrecorded mode,
+    // and the remedy is the re-sweep, not a default.
+    const acceptance = manifest.acceptance as
+      | { captureAll?: unknown; ignoreLowEdge?: unknown }
+      | undefined;
+    if (
+      !acceptance || typeof acceptance.captureAll !== "boolean" ||
+      typeof acceptance.ignoreLowEdge !== "boolean"
+    ) {
+      throw new Error(
+        `${emitPath}: manifest carries no acceptance block — the corpus does ` +
+          `not say whether it was swept with --capture-all or ` +
+          `--ignore-low-edge, and those produce different ACCEPTED ` +
+          `populations that would pool into one verdict; re-sweep with the ` +
+          `current driver`,
+      );
+    }
     // #364 round 11, finding 2: crossSeriesDensity is evidence like the
     // curve facts — the driver writes it whenever both series have bars
     // and their windows meet, so on the current path its absence means
@@ -868,6 +894,45 @@ export function fiveMinuteFloorFor(symbol: string): number | undefined {
  * block gives a legacy manifest. It returns the columns it could not confirm
  * so a caller can say what it is missing rather than pretending it checked.
  */
+/**
+ * Refuse a corpus whose acceptance mode contradicts the reader's premise.
+ *
+ * `confidence-bands.ts` and `threshold-rescue.ts` both open by stating that
+ * the corpus was swept with `--capture-all` — in prose, in a header comment,
+ * checking nothing. That premise is load-bearing for both: a gated sweep emits
+ * only rows that PASSED the confidence gate, so a band curve built from one
+ * reads every band as perfect and a threshold rescue finds nothing to rescue.
+ * Neither fails; both report.
+ *
+ * The mode is now a manifest fact, so the premise can be asserted instead of
+ * assumed. Absence is handled by the door (`verifyManifest` refuses a manifest
+ * with no acceptance block on the current path), so an absent block reaching
+ * here is a deliberate historical read, and the honest answer is that the
+ * premise is unverifiable rather than satisfied.
+ */
+export function assertAcceptanceMode(
+  emitPath: string,
+  manifest: { acceptance?: { captureAll: boolean; ignoreLowEdge: boolean } },
+  required: Partial<{ captureAll: boolean; ignoreLowEdge: boolean }>,
+): { unverifiable: boolean } {
+  const acceptance = manifest.acceptance;
+  if (!acceptance) {
+    return { unverifiable: true };
+  }
+  for (const [flag, expected] of Object.entries(required)) {
+    const actual = acceptance[flag as keyof typeof acceptance];
+    if (actual !== expected) {
+      throw new Error(
+        `${emitPath}: this read requires ${flag}=${expected} and the corpus ` +
+          `was swept with ${flag}=${actual} — the two produce different ` +
+          `ACCEPTED populations, so the figures would describe a corpus this ` +
+          `reader is not built for`,
+      );
+    }
+  }
+  return { unverifiable: false };
+}
+
 export function assertEmitColumns(
   emitPath: string,
   manifest: { emitColumns?: string[] },

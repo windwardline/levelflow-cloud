@@ -94,6 +94,7 @@ function corpusWith(rows: SweepEmitRow[]): string {
     rows.map((row) => JSON.stringify(row)).join("\n") + "\n",
   );
   const manifest = buildSweepManifest({
+    acceptance: { captureAll: false, ignoreLowEdge: false },
     analyzerVersion: "2026.08.09.test",
     anchor: "2026-08-10",
     barRejections: {},
@@ -722,6 +723,7 @@ describe("a folded corpus names its own partition (3c/3d)", () => {
       rows.map((row) => JSON.stringify(row)).join("\n") + "\n",
     );
     const manifest = buildSweepManifest({
+      acceptance: { captureAll: false, ignoreLowEdge: false },
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
@@ -773,6 +775,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     clockOverride?: { calendar: string; normalizer: string },
     conditionsOverride?: Record<string, string>,
     treasuryCurveOverride?: TreasuryCurveFacts,
+    acceptanceOverride?: { captureAll: boolean; ignoreLowEdge: boolean },
   ): string => {
     const dir = mkdtempSync(join(tmpdir(), "gate-shard-"));
     const emitPath = join(dir, "shard.jsonl");
@@ -781,6 +784,8 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       rows.map((row) => JSON.stringify(row)).join("\n") + "\n",
     );
     const manifest = buildSweepManifest({
+      acceptance: acceptanceOverride ??
+        { captureAll: false, ignoreLowEdge: false },
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
@@ -985,6 +990,50 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       console.warn = warned;
       delete process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK;
     }
+  });
+
+  it("refuses shards swept under different ACCEPTANCE modes", async () => {
+    // `--ignore-low-edge` rewrites a blocked session to `{ block: false,
+    // penalty: 0 }` one line before the branch that would have rejected it,
+    // so that arm grades hours the live desk refuses outright. `--capture-all`
+    // keeps rows that failed a gate, changing the denominator.
+    //
+    // Neither flag reached the manifest before 2026-08-31 — `buildSweepManifest`
+    // took neither as an input — so two arms with entirely different ACCEPTED
+    // populations hashed byte-identically and pooled into one verdict. The
+    // clock and conditions are identical here on purpose: the acceptance mode
+    // is the only thing separating these shards, so nothing else can be
+    // carrying the refusal.
+    await assert.rejects(
+      gradeCorpus([
+        shardWith(shardRows("EURUSD")),
+        shardWith(
+          shardRows("GBPUSD"),
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          { captureAll: false, ignoreLowEdge: true },
+        ),
+      ]),
+      /shards of one measurement/,
+      "an --ignore-low-edge arm pooled with a gated one",
+    );
+    await assert.rejects(
+      gradeCorpus([
+        shardWith(shardRows("EURUSD")),
+        shardWith(
+          shardRows("GBPUSD"),
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          { captureAll: true, ignoreLowEdge: false },
+        ),
+      ]),
+      /shards of one measurement/,
+      "a --capture-all arm pooled with a gated one",
+    );
   });
 
   it("pools shards whose curves differ only in the day-variant facts — count and lastTime (#364 round 8)", async () => {
@@ -1218,6 +1267,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       rows.map((row) => JSON.stringify(row)).join("\n") + "\n",
     );
     const manifest = buildSweepManifest({
+      acceptance: { captureAll: false, ignoreLowEdge: false },
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-11",
       barRejections: {},
@@ -1423,6 +1473,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       rows.map((row) => JSON.stringify(row)).join("\n") + "\n",
     );
     const manifest = buildSweepManifest({
+      acceptance: { captureAll: false, ignoreLowEdge: false },
       analyzerVersion: "2026.08.09.test",
       anchor: shard.anchor ?? "2026-08-11",
       barRejections: {},
@@ -2229,6 +2280,7 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
       `${corpus}.manifest.json`,
       JSON.stringify(
         buildSweepManifest({
+          acceptance: { captureAll: false, ignoreLowEdge: false },
           analyzerVersion: "2026.08.09.test",
           anchor: "2026-08-11",
           barRejections: {},

@@ -449,6 +449,7 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
       rows.map((entry) => JSON.stringify(entry)).join("\n") + "\n",
     );
     const manifest = buildSweepManifest({
+      acceptance: { captureAll: false, ignoreLowEdge: false },
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
@@ -690,6 +691,11 @@ describe("sweep-analysis adopts the shared vocabulary too", () => {
 describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's door)", () => {
   const writeCorpus = (
     tamper?: (manifest: Record<string, unknown>) => void,
+    // Passed to the BUILDER, not tampered in afterwards: the hash covers the
+    // acceptance block, so editing it post-hoc trips the hash refusal first
+    // and never reaches the check under test. `unknown` so a half-typed block
+    // — the shape the door exists to catch — can be built at all.
+    acceptance?: unknown,
   ) => {
     const dir = mkdtempSync(join(tmpdir(), "sweepstats-"));
     const emitPath = join(dir, "run.jsonl");
@@ -702,6 +708,9 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
       rows.map((entry) => JSON.stringify(entry)).join("\n") + "\n",
     );
     const manifest = buildSweepManifest({
+      acceptance: (acceptance === undefined
+        ? { captureAll: false, ignoreLowEdge: false }
+        : acceptance) as { captureAll: boolean; ignoreLowEdge: boolean },
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
@@ -754,6 +763,33 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
       /manifest hash/,
     );
   });
+
+  it("refuses a manifest whose acceptance block is absent or half-typed", () => {
+    // Both flags, both booleans. A block carrying only `captureAll` says
+    // nothing about whether low-edge hours were graded, and reading it as
+    // "false by omission" is the default this door exists to refuse.
+    for (
+      const [label, acceptance] of [
+        ["absent", null],
+        ["empty", {}],
+        ["captureAll only", { captureAll: true }],
+        ["ignoreLowEdge only", { ignoreLowEdge: true }],
+        ["non-boolean", { captureAll: "yes", ignoreLowEdge: false }],
+      ] as const
+    ) {
+      assert.throws(
+        () =>
+          // `null` is passed THROUGH, not translated: the builder's
+          // conditional spread drops a falsy value, which reproduces the
+          // pre-2026-08-31 shape exactly. `undefined` would mean "use the
+          // valid default" and test nothing.
+          assertManifestedCorpus(writeCorpus(undefined, acceptance)),
+        /carries no acceptance block/,
+        `${label}: the corpus does not state its acceptance mode and was read`,
+      );
+    }
+  });
+
 
   // #364 round 28, finding 2: the streaming door's try wrapped the
   // READER callback, so any reader defect was reported as "line N
@@ -1025,7 +1061,14 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
       anchor: "2026-08-18",
       barRejections: {},
       clock: input.clock ?? { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
-      ...(input.conditions && { conditions: input.conditions }),
+      // Tied to `conditions` deliberately: the door checks the acceptance
+      // block on the same !historicalRead branch, and the conditions-absence
+      // refusal fires first — so a fixture written to exercise "no conditions
+      // block" must not gain an acceptance block it never had.
+      ...(input.conditions && {
+        acceptance: { captureAll: false, ignoreLowEdge: false },
+        conditions: input.conditions,
+      }),
       days: 365,
       generatedAt: "2026-08-18T04:00:00.000Z",
       grid: [{}],
@@ -1854,9 +1897,34 @@ describe("every emit reader passes the one-clock door (R0) — the population, n
     it(`${script} asserts the manifest before reading a line`, () => {
       const source = readFileSync(script, "utf8");
       assert.match(source, /assertManifest\((path|file)\);/);
+      // The NAME must come from this module; its POSITION in the braces is
+      // not the point. The first version anchored on `import { assertManifest`
+      // and failed the day a lexically earlier import joined it — pinning the
+      // lint rule's alphabetical ordering rather than the dependency.
       assert.match(
         source,
-        /import \{ assertManifest[^}]*\} from "\.\/sweepStats\.ts";/,
+        /import \{[^}]*\bassertManifest\b[^}]*\} from "\.\/sweepStats\.ts";/,
+      );
+    });
+  }
+
+  // The two readers whose HEADERS state a capture-all premise must assert it.
+  // A gated sweep emits only rows that passed the confidence gate, so a band
+  // curve built from one reads every band as perfect and a threshold rescue
+  // finds nothing to rescue. Neither fails; both report — which is the shape
+  // this repo keeps removing.
+  for (
+    const script of [
+      "scripts/confidence-bands.ts",
+      "scripts/threshold-rescue.ts",
+    ]
+  ) {
+    it(`${script} asserts the capture-all premise it states`, () => {
+      const source = readFileSync(script, "utf8");
+      assert.match(
+        source,
+        /assertAcceptanceMode\(\s*(path|file),[\s\S]{0,80}?\{ captureAll: true \}\)/,
+        "the header claims a capture-all corpus and nothing checks it",
       );
     });
   }

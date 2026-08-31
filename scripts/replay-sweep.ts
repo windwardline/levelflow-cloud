@@ -1043,6 +1043,14 @@ async function main() {
     const { writeFile } = await import("node:fs/promises");
     // 2i: the corpus describes itself, or item 3's readers refuse it.
     const manifest = buildSweepManifest({
+      // Recorded unconditionally, both flags, whatever their values: an
+      // ABSENT block means "this manifest predates the field", and a present
+      // one saying `false` means "this run was gated". Spreading only the
+      // true flags would collapse those two into the same shape.
+      acceptance: {
+        captureAll: Boolean(args.captureAll),
+        ignoreLowEdge: Boolean(args.ignoreLowEdge),
+      },
       analyzerVersion: ANALYZER_VERSION,
       ...(emitColumns && { emitColumns }),
       anchor: isoDate(new Date()),

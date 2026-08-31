@@ -23,7 +23,7 @@
  */
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
-import { assertManifest } from "./sweepStats.ts";
+import { assertAcceptanceMode, assertManifest } from "./sweepStats.ts";
 import {
   getAssetType,
   getCategoryCalibration,
@@ -227,7 +227,11 @@ async function main(): Promise<void> {
   for (const file of files) {
     // R0: the one-clock door — no corpus aggregates without proving its
     // clock (#358 round 3: this reader decides a shipped scoring input).
-    assertManifest(file);
+    const corpusManifest = assertManifest(file);
+    // The premise this reader opens by STATING, now asserted. A gated sweep
+    // emits only rows that passed the confidence gate, so reading one here
+    // reports a curve built from survivors and calls it the population.
+    assertAcceptanceMode(file, corpusManifest, { captureAll: true });
     const stream = createInterface({
       crlfDelay: Number.POSITIVE_INFINITY,
       input: createReadStream(file),

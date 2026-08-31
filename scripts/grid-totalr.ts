@@ -921,6 +921,15 @@ export async function gradeCorpus(
       // loop refuses a set that disagrees, which is what makes the id
       // derived from this predicate invariant to subsets.
       days: candidate.days,
+      // The acceptance mode is measurement identity for the same reason
+      // `days` is: a CLI parameter every shard of one sweep is invoked with,
+      // constant across a legitimate shard set by construction — unlike
+      // `anchor`, which round 45 mistook for sweep-level. Two arms with
+      // different accepted populations are two measurements, and before this
+      // they hashed identically and pooled. `?? null` so a legacy manifest
+      // keeps its existing identity rather than every historical read
+      // re-hashing.
+      acceptance: candidate.acceptance ?? null,
       folds: candidate.folds ?? null,
       foldsByClass: candidate.foldsByClass ?? null,
       grid: candidate.grid,

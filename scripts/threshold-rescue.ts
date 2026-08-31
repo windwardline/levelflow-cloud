@@ -15,7 +15,7 @@
 //
 //   npx tsx scripts/threshold-rescue.ts sweeps/4c/shard-*.jsonl \
 //     --markets EGLDUSD,ZCUSX,... --out docs/research/.../4d-threshold-rescue.json
-import { assertManifest, readLinesSync } from "./sweepStats.ts";
+import { assertAcceptanceMode, assertManifest, readLinesSync } from "./sweepStats.ts";
 import { flagReader } from "./flagReader.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 
@@ -88,7 +88,11 @@ async function main() {
     // whose witnesses condemn it) is refused here too, not only in the
     // aggregation readers. These five scripts produced the invalidated
     // 4d-era figures by reading emits bare.
-    assertManifest(path);
+    const corpusManifest = assertManifest(path);
+    // The premise this reader opens by STATING, now asserted. A gated sweep
+    // emits only rows that passed the confidence gate, so reading one here
+    // reports a curve built from survivors and calls it the population.
+    assertAcceptanceMode(path, corpusManifest, { captureAll: true });
     readLinesSync(path, (line) => {
       if (!line) return;
       const row = JSON.parse(line) as {
