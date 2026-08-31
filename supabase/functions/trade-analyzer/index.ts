@@ -299,6 +299,20 @@ type CurrentMarketReview =
   | {
     analysisDiagnostics?: string[];
     blocked: true;
+    /**
+     * A TYPED DISCRIMINATOR, for the same reason `withheldFor` is one.
+     *
+     * The panel's heading has to tell a PERMANENT decline from a near miss,
+     * and the only thing distinguishing them was the wording of `reason` —
+     * so the heading read "Nothing passed review" and the body "did not find
+     * a CURRENT limit setup strong enough to show" directly above a sentence
+     * saying the market's measured record is negative. Two of the three
+     * elements invited a retry the third had just ruled out. Matching the
+     * sentence instead would break the moment the sentence improves, which
+     * is exactly how the collapse path came to render as "Nothing passed
+     * review" before #457 typed it.
+     */
+    declined?: true;
     correlationGroup?: string;
     newsEvents?: NewsEvent[];
     providerWarnings?: string[];
@@ -876,6 +890,7 @@ async function reviewCurrentMarket(
     return {
       analysisDiagnostics,
       blocked: true,
+      ...(declined && { declined: true as const }),
       providerWarnings: marketContext.providerWarnings,
       reason: declined
         ? engineDeclineSentence(declined)
@@ -944,6 +959,7 @@ async function scanOpportunity(
         blocked: {
           assetType: getAssetType(symbol),
           blocked: true,
+          ...(review.declined && { declined: true as const }),
           reason: review.reason,
           symbol,
           // REBUILT FIELD BY FIELD, so anything not named here is dropped

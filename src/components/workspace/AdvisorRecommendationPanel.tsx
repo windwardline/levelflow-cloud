@@ -518,6 +518,17 @@ function NoSetupPanel({
   // was announced as "Nothing passed review". A branch that reads prose breaks
   // silently every time the prose is improved.
   const relatedMarketBlocked = Boolean(result.withheldFor);
+  // THE THIRD STATE, and it was rendering as the first. A declined market is
+  // not a near miss: the heading said "Nothing passed review" and the body
+  // "did not find a CURRENT limit setup strong enough to show" directly above
+  // the sentence declaring the market's measured record negative. Two of the
+  // three elements invited a retry the third had ruled out.
+  //
+  // Typed, never matched. The comment above says why: a branch that reads
+  // prose breaks silently every time the prose is improved, which is how the
+  // collapse path came to render as "Nothing passed review" in the first
+  // place.
+  const marketDeclined = Boolean(result.declined);
 
   return (
     <div className="grid min-w-0 gap-2 px-5 py-4 text-sm leading-6 text-ink-muted max-lg:px-0">
@@ -526,19 +537,31 @@ function NoSetupPanel({
         No trade setup
       </p>
       <h3 className="text-base font-semibold text-ink">
-        {relatedMarketBlocked ? "Related market is stronger" : "Nothing passed review"}
+        {marketDeclined
+          ? "Levelflow does not trade this market"
+          : relatedMarketBlocked
+          ? "Related market is stronger"
+          : "Nothing passed review"}
       </h3>
-      <p>
-        {relatedMarketBlocked
-          ? `${formatSecurityLabel(symbol)} is not shown because a closely linked market has the better current setup.`
-          : (
-            <>
-              Levelflow cleared the prior display for{" "}
-              {formatSecurityLabel(symbol)} and did not find a current limit
-              setup strong enough to show.
-            </>
-          )}
-      </p>
+      {/*
+        No body sentence on a decline. §17f: text says only what the surface
+        cannot show, and the Primary reason below already carries both the
+        measurement and the way back in. A paragraph here could only restate
+        it — and restating is what turned this element into a contradiction.
+      */}
+      {marketDeclined ? null : (
+        <p>
+          {relatedMarketBlocked
+            ? `${formatSecurityLabel(symbol)} is not shown because a closely linked market has the better current setup.`
+            : (
+              <>
+                Levelflow cleared the prior display for{" "}
+                {formatSecurityLabel(symbol)} and did not find a current limit
+                setup strong enough to show.
+              </>
+            )}
+        </p>
+      )}
       <div className="mt-1 border-t border-hairline pt-2">
         <p className="eyebrow">
           Primary reason

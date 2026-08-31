@@ -580,6 +580,7 @@ export function AdvisorWorkspace(
       response: {
         advisoryOnly: true,
         blocked: true,
+        ...(blocked.declined && { declined: true as const }),
         reason: blocked.reason,
         // Widening the server alone would be a no-op: this is the boundary the
         // field has to cross to reach the panel.
