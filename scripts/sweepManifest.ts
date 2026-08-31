@@ -745,6 +745,26 @@ export type SweepManifest = {
    */
   modeledCostScale?: number;
   /**
+   * The scale the corpus's PAIRED GROSS ARM was priced at (item 5).
+   *
+   * Every emitted row carries `grossRealizedR` and `grossOutcome` beside its
+   * net figures — the same decision re-resolved charging E8's published
+   * commission and none of our modelled spread or slippage. This term states
+   * what that second arm charged, so a reader is never left inferring it from
+   * a column's existence.
+   *
+   * It exists because amendment 36's re-decision needs both arms and the cost
+   * scale is a per-process environment read: `--grid` cannot produce two arms
+   * in one run, and the sequence budgets ONE re-sweep against an exhausted
+   * allowance. Two columns cost one extra resolution per emitted row and not
+   * one byte of bandwidth.
+   *
+   * JOINS `conditionsOf`, like `modeledCostScale`. Two corpora whose gross
+   * arms charged different things are two measurements of the gross question,
+   * and pooling them would report one market's sensitivity from both.
+   */
+  grossCostScale?: number;
+  /**
    * Every denominator behind a market's row count — one entry per (symbol,
    * variant, split).
    *
@@ -936,6 +956,8 @@ export function buildSweepManifest(input: {
   acceptance?: { captureAll: boolean; ignoreLowEdge: boolean };
   /** See `SweepManifest.modeledCostScale`. */
   modeledCostScale?: number;
+  /** See `SweepManifest.grossCostScale`. */
+  grossCostScale?: number;
   /** See `SweepManifest.decisions`. */
   decisions?: SweepManifest["decisions"];
   /** See `SweepManifest.engineDeclined`. */
@@ -1004,6 +1026,8 @@ export function buildSweepManifest(input: {
     // of being stated.
     ...(input.modeledCostScale !== undefined &&
       { modeledCostScale: input.modeledCostScale }),
+    ...(input.grossCostScale !== undefined &&
+      { grossCostScale: input.grossCostScale }),
     // Sorted at the boundary, so shard ORDER cannot re-hash a corpus whose
     // decisions did not change. Conditionally spread, so no existing fixture
     // hash moves.

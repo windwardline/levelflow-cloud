@@ -28,6 +28,12 @@ function outcomeRecord(
 ): SweepOutcomeRecord {
   return {
     accepted: true,
+    // The gross twin travels with the net figure on every row (item 5). Set
+    // equal here because this fixture only feeds `summarizeSweepOutcomes`,
+    // which reads `.outcome` and `.realizedR`; a different value would imply a
+    // cost difference the fixture is not modelling.
+    grossOutcome: outcome,
+    grossRealizedR: realizedR,
     confidenceScore: 0,
     cotPercentile: null,
     cotSampleSize: 0,

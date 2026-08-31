@@ -85,6 +85,12 @@ function collect(
   paths: string[],
   cells: Map<string, string>,
   spans: Map<string, { first: number; last: number }>,
+  /**
+   * Which R column to accumulate. `realizedR` is the net arm; `grossRealizedR`
+   * is the PAIRED gross twin every row has carried since item 5 — the same
+   * decision re-resolved at the published bill alone.
+   */
+  column: "grossRealizedR" | "realizedR" = "realizedR",
 ): Map<string, Acc> {
   const acc = new Map<string, Acc>();
   for (const path of paths) {
@@ -99,6 +105,7 @@ function collect(
         accepted?: boolean;
         exitAtMs?: number;
         outcome?: string;
+        grossRealizedR?: number;
         realizedR?: number;
         symbol?: string;
         time?: number;
@@ -109,7 +116,7 @@ function collect(
       if (row.accepted !== true || row.outcome === "unfilled") return;
       const span = spans.get(symbol);
       const time = Number(row.time);
-      const r = Number(row.realizedR);
+      const r = Number(row[column]);
       if (!span || !Number.isFinite(time) || !Number.isFinite(r)) return;
       const fitEnd = span.first + (span.last - span.first) * 0.5;
       const selectEnd = span.first + (span.last - span.first) * 0.75;
@@ -200,10 +207,34 @@ function read(acc: Acc | undefined) {
 
 async function main() {
   const argv = process.argv.slice(2);
-  const VALUE_FLAGS = new Set(["--net", "--gross", "--cells", "--out"]);
+  const VALUE_FLAGS = new Set([
+    "--net",
+    "--gross",
+    "--paired",
+    "--cells",
+    "--out",
+  ]);
   const { str } = flagReader(argv, VALUE_FLAGS);
-  const netPaths = (str("--net") ?? "").split(",").filter(Boolean);
-  const grossPaths = (str("--gross") ?? "").split(",").filter(Boolean);
+  // ONE CORPUS, BOTH ARMS (item 5). Every emitted row carries
+  // `grossRealizedR` beside `realizedR` — the same decision re-resolved at the
+  // published bill alone — so the comparison no longer needs two sweeps.
+  //
+  // PAIRED IS THE BETTER INSTRUMENT, not merely the cheaper one. Two separate
+  // runs also move the payoff GATE, so their accepted populations differ and
+  // the comparison confounds cost with selection — systematically, since a
+  // looser gate admits MARGINAL setups and drags the gross arm down. Here the
+  // decision set is identical by construction.
+  //
+  // `--net`/`--gross` stay for the historical two-corpus artifacts, which
+  // cannot be re-derived: their emits are gone and their corpus is the one the
+  // clock defect invalidated.
+  const pairedPaths = (str("--paired") ?? "").split(",").filter(Boolean);
+  const netPaths = pairedPaths.length > 0
+    ? pairedPaths
+    : (str("--net") ?? "").split(",").filter(Boolean);
+  const grossPaths = pairedPaths.length > 0
+    ? pairedPaths
+    : (str("--gross") ?? "").split(",").filter(Boolean);
   const cells = new Map<string, string>();
   for (const pair of (str("--cells") ?? "").split(";")) {
     const [symbol, variant] = pair.split("|");
@@ -237,7 +268,9 @@ async function main() {
       throw new Error(
         `cost-sensitivity-verdict: ${flag} named no shard. Both arms are ` +
           `read and compared, so a missing one cannot be reported as a ` +
-          `verdict; pass ${flag} shard-a.jsonl,shard-b.jsonl .`,
+          `verdict. Pass --paired shard-a.jsonl,shard-b.jsonl for a corpus ` +
+          `carrying both arms per row (every corpus since item 5), or ` +
+          `${flag} for the historical two-corpus artifacts.`,
       );
     }
   }
@@ -252,7 +285,15 @@ async function main() {
   // Spans from each corpus's OWN manifests; the same symbols were swept
   // both times, so the folds land identically.
   const net = collect(netPaths, cells, spansFrom(netPaths));
-  const gross = collect(grossPaths, cells, spansFrom(grossPaths));
+  // In paired mode both arms come from the SAME rows, differing only in which
+  // R column is read — which is what makes the INERT door below exact rather
+  // than approximate.
+  const gross = collect(
+    grossPaths,
+    cells,
+    spansFrom(grossPaths),
+    pairedPaths.length > 0 ? "grossRealizedR" : "realizedR",
+  );
 
   const verdicts: Record<string, unknown> = {};
   let withdrawable = 0, costDependent = 0, unreadable = 0, indistinguishable = 0;

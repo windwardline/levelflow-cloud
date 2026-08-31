@@ -1070,6 +1070,11 @@ export async function gradeCorpus(
       // are legitimate by design, so a literal there would refuse one arm on
       // every path — but a gross arm and a net arm must not pool.
       modeledCostScale: candidate.modeledCostScale ?? null,
+      // The PAIRED arm's scale, for the same reason. A corpus whose gross
+      // column charged the published bill and one whose gross column charged
+      // half of our model answer different questions, and their net rows are
+      // identical — so nothing else in this identity would tell them apart.
+      grossCostScale: candidate.grossCostScale ?? null,
       folds: candidate.folds ?? null,
       foldsByClass: candidate.foldsByClass ?? null,
       grid: candidate.grid,
