@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -356,5 +357,108 @@ describe("minute bank — retrying a fetch", () => {
     );
     assert.equal(calls, 1);
     assert.deepEqual(delays, []);
+  });
+});
+
+/**
+ * The roster does not get attempted when the provider is refusing.
+ *
+ * `docs/HANDOFF.md` states the rule outright — "Do not re-run the bank into a
+ * 429 — a re-run cannot succeed against an exhausted allowance, and one
+ * whole-roster attempt burns ~485 requests" — and the scheduled job did
+ * exactly that, twice a day, for five consecutive days. Every run logged 97
+ * HTTP 429s and banked zero bars.
+ *
+ * THE RETRY LADDER IS WHY, and its own comment explains the mismatch: five
+ * attempts from a 2s base "costs a doomed run only time", which was true of
+ * the failure it was written for — launchd waking the job before the network
+ * is up, which on 2026-08-08 cost all 100 symbols in six seconds. It is not
+ * true of a quota 429, where the wall does not move until the trailing window
+ * drains.
+ *
+ * WHAT THIS DOES NOT CLAIM, because it was checked and is false: that the
+ * retries made the exhaustion worse. FMP bills BYTES over a trailing 30 days,
+ * not requests, so a 429 body is a few of them. The cost is wall time and a
+ * failure indistinguishable from a revoked key.
+ */
+describe("a refusing provider costs one symbol, not the roster", () => {
+  const SOURCE = readFileSync("scripts/bank-minute-bars.ts", "utf8");
+
+  it("banks the first symbol as a SCOUT rather than probing separately", () => {
+    // A separate probe would discard bars it had already paid for, and the
+    // allowance is metered in bytes — so the scout is a real banking call
+    // whose result is kept.
+    assert.match(
+      SOURCE,
+      /const scout = targets\[index\+\+\];\s*\n\s*const result = await bankOne\(/,
+      "the scout is gone, so the roster is attempted before anything knows " +
+        "whether the provider is answering",
+    );
+    assert.doesNotMatch(
+      SOURCE,
+      /probeProvider/,
+      "a discard-the-result probe is back; it spends bytes on a healthy run " +
+        "for a question the first banking call already answers",
+    );
+    // Its bars must COUNT — a scout whose result is thrown away is the probe
+    // wearing a different name.
+    const at = SOURCE.indexOf("const scout = targets[index++];");
+    const body = SOURCE.slice(at, at + 400);
+    assert.match(body, /appendedTotal \+= result\.appended;/);
+    assert.match(body, /fetchedTotal \+= result\.fetched;/);
+  });
+
+  it("stands down before the rest of the roster when the scout fetches nothing", () => {
+    const at = SOURCE.indexOf("const scout = targets[index++];");
+    const body = SOURCE.slice(at, at + 1400);
+    assert.match(
+      body,
+      /if \(result\.fetched === 0\) \{/,
+      "nothing checks the scout's result, so it is just the first symbol",
+    );
+    assert.match(
+      body,
+      /process\.exitCode = 1;\s*\n\s*return;/,
+      "the run continues into the remaining symbols after the scout failed",
+    );
+  });
+
+  it("says what it did not attempt, and that recovery needs no catch-up", () => {
+    // The five silent days were the real defect. A stand-down that does not
+    // explain itself reads the same as a clean quiet day in a log nobody
+    // opens.
+    const at = SOURCE.indexOf("Standing down without attempting");
+    assert.ok(at >= 0, "the stand-down no longer says what it skipped");
+    // Joined across the template-literal breaks before matching. The message
+    // is assembled from concatenated fragments, so a phrase that reads as one
+    // sentence in the log is not contiguous in the source — matching the raw
+    // text tests the line wrapping rather than the wording.
+    const raw = SOURCE.slice(at - 200, at + 900);
+    // The COUNT is checked on the raw slice, where the interpolation is still
+    // an expression. The PROSE is checked on a normalized copy: the message is
+    // assembled from concatenated fragments, so a phrase that reads as one
+    // sentence in the log is not contiguous in the source, and matching the
+    // raw text would test the line wrapping rather than the wording.
+    const message = raw
+      .replace(/`\s*\+\s*\n\s*`/g, "")
+      .replace(/\$\{[^}]*\}/gs, "N")
+      .replace(/\s+/g, " ");
+    assert.match(
+      raw,
+      /targets\.length - 1/,
+      "the message does not name how many symbols went unattempted",
+    );
+    assert.match(
+      message,
+      /drains by time only/,
+      "the message does not say the wall cannot be hurried, so the next " +
+        "reader will try to hurry it",
+    );
+    assert.match(
+      message,
+      /re-pulls each symbol's full window/,
+      "the message does not say recovery needs no catch-up, which is the " +
+        "fact that makes standing down safe rather than lossy",
+    );
   });
 });
