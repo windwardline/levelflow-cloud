@@ -277,9 +277,32 @@ So that what is measured is what trades.
   fixture gained USDCAD — confirm outcomes swinging +2.2/-1.6 around a mean of
   +0.3, so the total is positive and the interval spans zero — and the mutation
   then died. Three mutations, each verified applied and each killed.
-- **M1** `roster-expectancy-audit.ts` double-counts the baseline variant;
+- ~~**M1** `roster-expectancy-audit.ts` double-counts the baseline variant;
   drop the `|| variant === "baseline"` alternative, re-run, and commit
-  script and artifact together.
+  script and artifact together.~~ **CLOSED 2026-08-31 — and this item named
+  the wrong file.**
+  `roster-expectancy-audit.ts` never carried that alternative. `git log -S`
+  over the full history of that path returns nothing; the `||` lived in
+  **`scripts/market-dossier.ts`**, was introduced by #330 and removed by #364.
+  The audit reads ONE cell per market and, since #494, REFUSES a corpus
+  carrying both the named baseline and the empty grid cell rather than
+  choosing between them.
+  **Both files are guarded, and the guards were verified by mutation rather
+  than by having the right names.** Restoring
+  `variant === BASELINE || variant === "baseline"` in `market-dossier.ts` kills
+  two tests in `tests/marketDossier.test.ts` — including the one that catches
+  the sample doubling, where every outcome was counted twice and the standard
+  error ran a factor of √2 low, clearing the MIN_FILLED floor on a doubled n.
+  Removing the refusal from `roster-expectancy-audit.ts` kills
+  `tests/rosterExpectancyAudit.test.ts`'s "refuses the EMPTY grid cell" case.
+  **"Re-run and commit the artifact" is BLOCKED, and must not be attempted
+  here.** The 4c emits are not present in the working tree — only logs and
+  manifests survive — so there is nothing to re-run against. Even with them the
+  run would be wrong: that corpus is the one the clock defect invalidated, and
+  `roster-expectancy-audit.json` already carries the quarantine banner. A fresh
+  run would replace quarantined figures with equally invalid ones that look
+  like progress. The artifact is re-derived after R3 produces a valid corpus,
+  under the gate D4 and M3 repaired — it belongs to R3/R4, not to R2.
 - ~~**M5/1c** make the cost scale reach the resolver, and assert that an
   identical gross/net row emits "COST MODEL INERT" instead of a verdict.~~
   **LANDED 2026-08-31.** Both halves. `resolverCostOptions` is now the one
