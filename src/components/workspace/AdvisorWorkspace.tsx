@@ -581,6 +581,13 @@ export function AdvisorWorkspace(
         advisoryOnly: true,
         blocked: true,
         ...(blocked.declined && { declined: true as const }),
+        // The second boundary. Widening the server alone is a no-op — this
+        // rebuild's own comment has said so since #457, and it is why the
+        // cause never arrived even after the server carried it.
+        ...(blocked.analysisDiagnostics?.length &&
+          { analysisDiagnostics: blocked.analysisDiagnostics }),
+        ...(blocked.providerWarnings?.length &&
+          { providerWarnings: blocked.providerWarnings }),
         reason: blocked.reason,
         // Widening the server alone would be a no-op: this is the boundary the
         // field has to cross to reach the panel.
