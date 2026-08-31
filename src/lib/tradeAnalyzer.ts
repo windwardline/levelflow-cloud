@@ -46,6 +46,14 @@ export type AnalyzerResponse = {
    * which is how a real withholding came to render as "Nothing passed review".
    */
   withheldFor?: SupportedSymbol;
+  /**
+   * The engine will not build setups for this market at all — a permanent
+   * verdict for this corpus, not a near miss. Typed for the same reason
+   * `withheldFor` is: the heading and body both said "current" and "nothing
+   * passed review" above a sentence declaring the opposite, and a branch that
+   * reads the sentence breaks every time the sentence improves.
+   */
+  declined?: true;
   error?: string;
   // Sent by the analyzer on its blocked/error paths; no client reader today.
   // Kept because the wire actually carries it — a type that omits a field
@@ -74,6 +82,8 @@ export type AnalyzerResponse = {
 export type MarketScanCandidate = {
   assetType: string;
   blocked?: boolean;
+  /** See `AnalyzerResponse.declined` — carried across BOTH rebuilds. */
+  declined?: true;
   confidenceScore?: number;
   correlationGroup?: string;
   entryPrice?: number;

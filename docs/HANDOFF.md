@@ -1313,6 +1313,17 @@ that fixed it.
     server type alone would have shipped and done nothing — #457 one surface
     over). `tests/engineDecline.test.ts` reads the fields each rebuild actually
     carries rather than counting engine sites.
+    **The heading was still contradicting it — CLOSED 2026-08-31 (#478).** With
+    the sentence corrected, `NoSetupPanel` still headed a declined market
+    "Nothing passed review" and bodied it "did not find a CURRENT limit setup
+    strong enough to show", directly above the permanent verdict: two of the
+    three elements invited a retry the third had ruled out. The decline now
+    carries a TYPED `declined: true` across both rebuilds — the standing
+    `withheldFor` got in #457, and for the same stated reason, since a branch
+    reading the sentence breaks every time the sentence improves. The near-miss
+    body does not render on a decline at all (§17f: the Primary reason already
+    carries the measurement and the way back in, and restating it is what made
+    this element a contradiction).
   - **The score sentence — CLOSED 2026-08-30, and it was a TELEMETRY defect.**
     The decline branch had no `return`, so "scored 47; Levelflow requires 0 or
     higher" followed the decline into `analyzer_events` — a contradiction in

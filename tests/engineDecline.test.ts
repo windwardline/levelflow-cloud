@@ -193,6 +193,56 @@ describe("the decline reaches the reader across both rebuilds", () => {
     );
   });
 
+  it("carries the typed decline across BOTH rebuilds, like withheldFor", () => {
+    // The heading needs to tell a permanent decline from a near miss, and the
+    // only thing separating them was the wording of `reason`. #457 typed the
+    // collapse path for exactly this reason and the decline did not get the
+    // same treatment, so the same two rebuilds are checked the same way.
+    for (
+      const [source, anchor, where] of [
+        [analyzer, "blocked: {", "the scan rebuild"],
+        [workspace, "response: {", "the workspace rebuild"],
+      ] as const
+    ) {
+      const fields = fieldsOfLiteral(source, anchor, "blocked: true");
+      assert.ok(
+        fields.has("declined") ||
+          /\.\.\.\((review|blocked)\.declined && \{ declined: true as const \}\)/
+            .test(source),
+        `${where} drops the typed decline — it carries ${
+          [...fields].join(", ")
+        }`,
+      );
+    }
+  });
+
+  it("the panel heading tells a decline from a near miss", () => {
+    const panel = readFileSync(
+      "src/components/workspace/AdvisorRecommendationPanel.tsx",
+      "utf8",
+    );
+    assert.match(
+      panel,
+      /const marketDeclined = Boolean\(result\.declined\)/,
+      "the panel is not reading the typed field",
+    );
+    assert.match(
+      panel,
+      /marketDeclined\s*\n?\s*\? "Levelflow does not trade this market"/,
+      "the heading no longer distinguishes a declined market",
+    );
+    // The contradiction that started this: "current" and "nothing passed
+    // review" must not be reachable on a declined market.
+    const headingAt = panel.indexOf("Levelflow does not trade this market");
+    assert.ok(headingAt >= 0, "the decline heading is gone");
+    assert.match(
+      panel,
+      /\{marketDeclined \? null : \(/,
+      "the near-miss body still renders on a decline, and it says " +
+        `"did not find a current limit setup" above a permanent verdict`,
+    );
+  });
+
   it("the panel reads reason first, so the decline is the primary sentence", () => {
     const panel = readFileSync(
       "src/components/workspace/AdvisorRecommendationPanel.tsx",
