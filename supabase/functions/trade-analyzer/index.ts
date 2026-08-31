@@ -1308,7 +1308,8 @@ async function analyzeSetup(
       // What the ladder pays, beside what the runner target pays. The gate
       // still reads rewardRisk; the SURFACE reads this, because half the
       // position leaves at TP1 and a figure that ignores that overstates the
-      // edge by about 60% on every laddered setup.
+      // edge by 33% to 60% on every laddered setup, depending on the
+      // class — 60.0% is metals, the maximum, not the typical case.
       ladderRewardRisk: pricePlan.ladderRewardRisk === null
         ? null
         : Number(pricePlan.ladderRewardRisk.toFixed(2)),

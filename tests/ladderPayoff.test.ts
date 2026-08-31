@@ -20,7 +20,8 @@ import {
  *   0.5 * tp1R + 0.5 * targetR  ~=  1.0R
  *
  * against a −1.00R stop, while the surface said 1.6x. The operator read an edge
- * about 60% larger than the ladder can deliver, on the screen they read before
+ * materially larger than the ladder can deliver (33% to 60% by class), on
+ * the screen they read before
  * placing the trade.
  *
  * AMENDMENT 39: profit potential must exceed loss potential STRUCTURALLY and
@@ -86,6 +87,37 @@ describe("what the ladder pays is not what the gate admits", () => {
     }
     // NON-VACUITY: an empty class list passes a loop that never runs.
     assert.equal(checked, CLASSES.length);
+  });
+
+  it("overstates by 33% to 60%, and 60% is the MAXIMUM not the typical case", () => {
+    // The figure four comments quoted as "roughly 60%" is metals alone.
+    // DERIVED per class from shipped calibration rather than restated, because
+    // a prose constant is exactly what went stale: energies overstates by
+    // 33.3%, and four classes sit at 52.4%. Quoting the extreme as the norm
+    // is the same shape as counting the wrong population — it makes a real
+    // finding sound like a bigger one than the evidence carries.
+    const over = CLASSES.map((assetType) => ({
+      assetType,
+      pct: (gateRatioOf(assetType) / ladderRatioOf(assetType) - 1) * 100,
+    })).sort((first, second) => second.pct - first.pct);
+    const worst = over[0];
+    const best = over.at(-1)!;
+    assert.ok(
+      worst.pct <= 62 && worst.pct >= 55,
+      `the worst class now overstates by ${worst.pct.toFixed(1)}% ` +
+        `(${worst.assetType}) — outside the band the record states`,
+    );
+    assert.ok(
+      best.pct <= 40 && best.pct >= 28,
+      `the best class now overstates by ${best.pct.toFixed(1)}% ` +
+        `(${best.assetType}) — outside the band the record states`,
+    );
+    assert.ok(
+      worst.pct - best.pct > 15,
+      `the classes now span only ${(worst.pct - best.pct).toFixed(1)} points, ` +
+        `so a single figure would no longer be misleading and the four ` +
+        `comments citing a RANGE should be simplified rather than left`,
+    );
   });
 
   it("lands near 1:1 against a full risk unit, which is the finding", () => {
