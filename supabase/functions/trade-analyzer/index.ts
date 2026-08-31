@@ -1494,6 +1494,32 @@ async function explainNoSetup(
     });
     const confidenceScore = scoreBreakdown.confidenceScore;
 
+    // THE PLAN REFUSAL RUNS FIRST, and above the decline for a reason.
+    //
+    // 1b's rule applied to the quote-admission gate (#362 round 5, finding 1):
+    // a distinct cause carries its own sentence — geometry failing to place a
+    // limit and the market having already crossed a placed one are different
+    // facts and different instructions.
+    //
+    // It is also the anchor-latency instrument. `analyzer_events` carries
+    // `analysisDiagnostics` verbatim, so this sentence's frequency is the one
+    // measurable read on the through-market rate before §21's minute bank, and
+    // a run of them on one symbol is the un-de-spiked bad-quote signal the
+    // admission gate otherwise lacks. The decline below returns early, and
+    // returning above this push silently narrowed that instrument's population
+    // from 97 markets to 82 while still paying to compute the reading — a
+    // measurement dropped as a side effect of a copy fix.
+    if (!pricePlan) {
+      if (planRefusal.reason === "quote_crossed") {
+        diagnostics.push(
+          "The live market has already crossed the computed limit entry, so the setup was withheld rather than shown as a resting order.",
+        );
+      } else {
+        diagnostics.push(
+          "Limit entry failed price validation, so no limit setup was shown.",
+        );
+      }
+    }
     const declined = engineDeclines(symbol);
     if (declined) {
       // The honest sentence for a market the engine will not trade: the
@@ -1502,11 +1528,14 @@ async function explainNoSetup(
       // calibration.ts, because `reviewCurrentMarket` says the same thing on
       // the channel that reaches the panel.
       diagnostics.push(engineDeclineSentence(declined));
-      // RETURN. A decline is permanent for this corpus; everything below is
-      // near-miss reporting about a setup that was never going to be built,
-      // and the score sentence in particular CONTRADICTED this one — it
-      // invited the reader to try again at a higher score on a market whose
-      // record is the reason no score would help.
+      // RETURN, but not before the anchor-latency reading. A decline is
+      // permanent for this corpus, so the near-miss reporting below is about a
+      // setup that was never going to be built — the score sentence most of
+      // all, which invited the reader to try again at a higher score on a
+      // market whose record is the reason no score would help.
+      //
+      // The plan-refusal reading above is NOT near-miss reporting and has
+      // already been recorded, which is why it sits before this branch.
       return diagnostics;
     }
     // Quoted ONLY when there is a plan. Without one, `buildPricePlan` returned
@@ -1521,11 +1550,23 @@ async function explainNoSetup(
     // to stop saying it rather than to compute it differently. The refusal
     // below already carries the real cause, and it is the actionable one.
     // ...and only when the threshold is a BAR the score can fail against.
-    // 72 of the 81 calibration entries carry `confidenceThreshold: 0`, so on
-    // nearly every market this sentence read "scored 47; Levelflow requires 0
-    // or higher" — true of every number, and an instruction to try harder
-    // against a gate that cannot reject. The score was never why those setups
-    // were withheld; the refusals below carry the cause that was.
+    //
+    // 72 of the 98 markets in the symbol map resolve to
+    // `confidenceThreshold: 0` through `getCategoryCalibration`, so on those
+    // this sentence read "scored 47; Levelflow requires 0 or higher" — true of
+    // every number, and an instruction to try harder against a gate that
+    // cannot reject (scoring.ts clamps the score to [0,100], so zero rejects
+    // nothing). 26 markets carry a positive threshold (25:18, 30:2, 40:3,
+    // 68:3) and still get the sentence, which is why this is a gate and not a
+    // deletion.
+    //
+    // THE POPULATION IS THE MARKETS, not the table. An earlier version of this
+    // comment said "72 of the 81 calibration entries": the table holds 80
+    // entries (the 81st match was the type declaration), and a per-entry
+    // census answers a different question from a per-market one — the two
+    // agree at 72 only because every zero is a per-symbol override while the
+    // positive values are category bases covering many markets each. Counting
+    // the wrong population is the failure this repo names by name.
     //
     // Derived from the calibration rather than a market list: a threshold
     // restored to a positive value starts speaking again with no edit here.
@@ -1534,26 +1575,7 @@ async function explainNoSetup(
         `The current ${consensus.side} setup scored ${confidenceScore}; Levelflow requires ${calibration.confidenceThreshold} or higher for this market.`,
       );
     }
-    if (!pricePlan) {
-      // 1b's rule applied to the quote-admission gate (#362 round 5,
-      // finding 1): a distinct cause carries its own sentence — geometry
-      // failing to place a limit and the market having already crossed a
-      // placed one are different facts and different instructions. This
-      // sentence is also the anchor-latency instrument: analyzer_events
-      // carries analysisDiagnostics verbatim, so its frequency is the
-      // one measurable read on the through-market rate before §21's
-      // minute bank — and a run of them on one symbol is the un-de-spiked
-      // bad-quote signal the admission gate otherwise lacks.
-      if (planRefusal.reason === "quote_crossed") {
-        diagnostics.push(
-          "The live market has already crossed the computed limit entry, so the setup was withheld rather than shown as a resting order.",
-        );
-      } else {
-        diagnostics.push(
-          "Limit entry failed price validation, so no limit setup was shown.",
-        );
-      }
-    } else if (pricePlan.rewardRisk < calibration.minRewardRisk) {
+    if (pricePlan && pricePlan.rewardRisk < calibration.minRewardRisk) {
       // PH-9: the refusal names its cause. A payoff that cleared the bar
       // gross and lost it to the round trip is a COST story, not a
       // geometry story — and under the venue's real bill they are very

@@ -989,10 +989,22 @@ another on the 27 futures-shaped ones, and the error is not sub-tick: measured
 on the fixture, ZCUSX buy emitted 0.050 where the true distance is 0.294, a
 5.9x error, because ZC's 0.25 grid is comparable to the pivot distance itself.
 Re-anchored, the pivot recovers exactly, and with it the pre-alignment stop and
-risk. Proven by execution in `tests/pricePlan.test.ts` — the recovered risk
-equals the emitted one EXACTLY on a grid-free market and lands inside two ticks
-on a grid one, which is the bound alignment itself sets — and mutation-verified
-both ways. The proposed ninth field would have fixed TP1 only, spent a
+risk. Proven by execution in `tests/pricePlan.test.ts`: the emitted distance
+lands exactly on the pivot the stop chain selected, and the recovered planned
+entry and stop, pushed back through production's own tick rules, reproduce the
+plan's entry, stop and TP1 bit-for-bit on a grid market.
+
+**The evidence claim was corrected in #476.** As first shipped, only the pivot
+test died when the anchor was reverted; the risk test passed with the defect
+restored, because its exact arm ran on grid-free EURUSD — where alignment never
+runs, so the defect cannot exist — and its grid arm used a `tick × 2` tolerance
+that the 0.16-tick error sat inside. That tolerance's stated derivation was also
+wrong: `applyFuturesTickRules` can move a stop by `minStopTicks`, measured at up
+to 9.2 ticks across the spec'd symbols. The tolerance is deleted rather than
+widened, the grid assertion is now exact, and the fixture is scaled ×5 so the
+tick grid stops absorbing the very difference the test exists to see. Both tests
+now fail under the anchor revert, which is what "mutation-verified both ways"
+had claimed of a pair where only one did. The proposed ninth field would have fixed TP1 only, spent a
 permanent column on the one corpus R3 gets to write, and left the wrong anchor
 in place for R4 to read.
 
@@ -1271,30 +1283,41 @@ that fixed it.
   - **The Desk's Record row publishes the condemned money-positive rates** as
     measured fact, behind a caveat that reads as an improvement notice rather
     than an invalidation.
-  - **The decline sentence — CLOSED 2026-08-30.** Three defects, one surface.
-    (1) `reviewCopy.ts`'s rewrite was DEAD: its pattern demanded a numeric
-    `-0.12R per setup` the analyzer had deliberately stopped emitting, so the
-    raw engine sentence reached the reader. (2) The sentence itself claimed
-    `after the venue's published costs` — the exact claim
-    `remediation-program-2026-08-11.md` records as never measured ("the
-    sentence shipped on all fifteen was false"); the register's internal
-    `reason` was corrected that day and the operator-facing sentence was not,
-    so the two disagreed for nineteen days. (3) It reached nobody anyway:
-    it rode `analysisDiagnostics`, and **two** rebuilds drop that field —
-    `scanOpportunity` and `AdvisorWorkspace` — so all fifteen were answered
-    "No current limit setup met the review threshold.", a transient sentence
-    inviting a rescan that can never succeed against an exhausted FMP quota.
-    Now one `engineDeclineSentence` beside the register, carried on `reason`
-    (the only channel that survives both rebuilds), with the cost clause gone.
-    `tests/engineDecline.test.ts` reads the fields each rebuild actually
-    carries rather than counting engine sites — the #457 lesson, which is why
-    the first attempt at this fix would have shipped and done nothing.
-  - **The score sentence no longer contradicts a decline — CLOSED 2026-08-30.**
-    The decline branch had no `return`, so `The current buy setup scored 47;
-    Levelflow requires 0 or higher for this market.` printed directly beneath
-    it: an instruction to try harder, on a market whose record is the reason no
-    score would help. It is now gated on `confidenceThreshold > 0`, which is
-    also what retires the tautology on the 72 zero-threshold entries above.
+  - **The decline sentence — CLOSED 2026-08-30 (#471), record corrected
+    (#476).** `analysisDiagnostics` reaches NO CLIENT: the scan payload is
+    `{blocked, opportunities, persistence, qualified, scanned}`, and none of
+    the four `setAnalysisState` calls sets the field, so the panel's read of it
+    is dead against every path. It reaches `analyzer_events` and stops. That
+    one fact resolves what the bullets above used to claim in two directions at
+    once. **The only symptom a reader ever saw** was all fifteen declined
+    markets answered "No current limit setup met the review threshold." — a
+    transient sentence inviting a rescan that can never succeed against an
+    exhausted FMP quota. The dead `reviewCopy.ts` rewrite had no reader-facing
+    effect either, because nothing it rewrote ever arrived; the earlier claim
+    that "the raw engine sentence reaches the reader" was wrong on the same
+    fact. The sentence's `after the venue's published costs` clause was ALSO
+    false — `remediation-program-2026-08-11.md` records that the cost scale
+    never reached the resolver and "the sentence shipped on all fifteen was
+    false" — and the register's internal `reason` was corrected on 2026-08-11
+    while the operator-facing sentence was not. Now one
+    `engineDeclineSentence` beside the register, carried on `reason`, the
+    channel that survives both rebuilds (`scanOpportunity` and
+    `AdvisorWorkspace` each rebuild field-by-field, which is why widening the
+    server type alone would have shipped and done nothing — #457 one surface
+    over). `tests/engineDecline.test.ts` reads the fields each rebuild actually
+    carries rather than counting engine sites.
+  - **The score sentence — CLOSED 2026-08-30, and it was a TELEMETRY defect.**
+    The decline branch had no `return`, so "scored 47; Levelflow requires 0 or
+    higher" followed the decline into `analyzer_events` — a contradiction in
+    the record, not on a screen. It is now gated on `confidenceThreshold > 0`.
+    **The census, corrected:** 72 of the 98 markets in the symbol map resolve
+    to a zero threshold through `getCategoryCalibration`; 26 carry a positive
+    one (25:18, 30:2, 40:3, 68:3). The earlier "72 of 81 calibration entries"
+    counted table lines (there are 80; the 81st match was the type
+    declaration) — a per-entry census answering a per-market question, and the
+    two coincided at 72 only because every zero is a per-symbol override. The
+    early return also silently narrowed the through-market instrument from 97
+    markets to 82; the plan-refusal reading is now kept before returning.
   - **Guide §5's own amendment-34 remedy is sourced from the condemned
     corpus** — the ρ ≤ 0.06 finding measured on the repaired corpus that the
     programme invalidated. The fix deleted an unearned claim and replaced it

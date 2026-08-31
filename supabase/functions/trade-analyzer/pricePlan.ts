@@ -78,8 +78,12 @@ export type PricePlan = {
   // on the 27, and the gap was read as needing a ninth emit field. Emitting
   // the planned riskDistance would have fixed TP1, spent a permanent column
   // on the one corpus R3 gets to write, and left the wrong anchor in place.
-  // `tests/pricePlan.test.ts` proves the recovery by execution, all four
-  // levels, on a grid market and a grid-free one.
+  // `tests/pricePlan.test.ts` proves it by execution: the emitted distance
+  // lands exactly on the pivot the stop chain selected, and the recovered
+  // planned entry and stop, pushed back through production's own tick rules,
+  // reproduce the plan's entry, stop and TP1 bit-for-bit on a grid market.
+  // Both die when the anchor moves — which an earlier version of this comment
+  // claimed of a pair where only one did.
   //
   // `dailyAtr` is the second stop lever — stopBuffer is the MAX of two
   // calibration levers and nothing recorded which one bound, which is the
