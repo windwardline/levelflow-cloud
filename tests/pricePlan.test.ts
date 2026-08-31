@@ -538,6 +538,58 @@ describe("price plan integration", () => {
     );
   });
 
+  it("measures its two geometry distances against the SAME anchor", () => {
+    // The emit carries three distances on two anchors, and the difference is
+    // invisible in a column of numbers. `stopPivotDistance` and
+    // `runnerNearestBeyondMinimum` are both geometry facts about where
+    // structure sat when the plan was built, so both must be measured against
+    // the PLANNED entry — the stop chain and the ladder both run before tick
+    // alignment. `unfilledApproachDistance` is the odd one out by design: it
+    // is an execution fact about the RESTING order.
+    //
+    // Asserted on a grid market, because on a grid-free one the two anchors
+    // coincide and the test would pass over the defect it exists for.
+    const calibration = getCategoryCalibration("ZCUSX");
+    const market = scaledMarket(5);
+    const plan = buildPricePlan("buy", "ZCUSX", market, regime, calibration);
+    assert.ok(plan);
+    assert.ok(plan.entryPrice !== plan.latestClose, "fixture must offset");
+    assert.ok(
+      plan.stopPivotDistance !== null && plan.runnerNearestBeyondMinimum !== null,
+      "this fixture must produce both distances or it proves nothing",
+    );
+
+    const offset = plan.atr *
+      (plan.entryProvenance === "trend_offset"
+        ? calibration.entryOffsetTrend
+        : calibration.entryOffsetDefault);
+    const plannedEntry = plan.latestClose - offset;
+    assert.notEqual(
+      plannedEntry,
+      plan.entryPrice,
+      "alignment moved nothing on this fixture, so the two anchors coincide " +
+        "and this test cannot discriminate",
+    );
+
+    // Both distances must land on a real pivot when applied to the PLANNED
+    // entry — production's own finder, never retyped.
+    const pivots = findSwingPivots(market.primary, 3);
+    const levels = [...pivots.lows, ...pivots.highs];
+    for (
+      const [name, distance, direction] of [
+        ["stopPivotDistance", plan.stopPivotDistance, -1],
+        ["runnerNearestBeyondMinimum", plan.runnerNearestBeyondMinimum, 1],
+      ] as const
+    ) {
+      const recovered = plannedEntry + direction * distance;
+      assert.ok(
+        levels.some((level) => Math.abs(level - recovered) < 1e-9),
+        `${name} recovers ${recovered} from the planned entry, which is not ` +
+          `one of this market's pivots — it is anchored somewhere else`,
+      );
+    }
+  });
+
   it("exposes the second stop lever and the pivot distance the max() hid", () => {
     const plan = buildPricePlan(
       "buy",
