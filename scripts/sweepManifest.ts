@@ -641,6 +641,29 @@ export type SweepManifest = {
    */
   requestedSymbols?: string[];
   /**
+   * THE COLUMNS THIS CORPUS ACTUALLY HAS, sorted, taken from the first row
+   * written.
+   *
+   * Three columns were found missing from the emit inside a single week —
+   * `ladderRewardRisk` (#473), the cost decomposition (#474), and
+   * `forgoneRunnerR`, the give-back amendment 39 names by hand (#477). Each
+   * was caught by a person looking, and each would have cost a second full
+   * sweep against an exhausted FMP allowance had R3 run first.
+   *
+   * None of them moved `ANALYZER_VERSION`, correctly: none changed what the
+   * engine decides. But that leaves two corpora stamped with the same version
+   * differing in which columns exist, and NOTHING in the file saying which.
+   * A reader that finds no `forgoneRunnerR` cannot tell a corpus that predates
+   * the column from one where every runner gave back nothing — so it grades
+   * the give-back as zero and reports a result.
+   *
+   * Recording the columns turns that into a refusal. It is not an identity
+   * term and deliberately not part of `conditionsOf`: a reader asking "can
+   * this corpus answer my question" is asking about capability, not about
+   * whether two shards are the same measurement.
+   */
+  emitColumns?: string[];
+  /**
    * The engine revision this corpus was measured under. Optional because
    * every pre-#409 corpus on disk genuinely lacks it — not because a new
    * sweep may omit it.
@@ -744,6 +767,8 @@ export function buildSweepManifest(input: {
    * absent rows are precisely the ones that have nowhere to carry a flag.
    */
   requestedSymbols?: string[];
+  /** Sorted keys of the first emitted row. See `SweepManifest.emitColumns`. */
+  emitColumns?: string[];
   treasuryCurve: TreasuryCurveFacts;
   warmupBars: number;
 }): SweepManifest {
@@ -795,6 +820,10 @@ export function buildSweepManifest(input: {
     ...(input.calendarCensus && { calendarCensus: input.calendarCensus }),
     ...(input.requestedSymbols &&
       { requestedSymbols: [...input.requestedSymbols].sort() }),
+    // Sorted at the boundary so a reordered emit cannot re-hash a corpus
+    // whose columns are unchanged. Conditionally spread, so no existing
+    // fixture's hash moves.
+    ...(input.emitColumns && { emitColumns: [...input.emitColumns].sort() }),
     treasuryCurve: input.treasuryCurve,
     warmupBars: input.warmupBars,
   };

@@ -1052,6 +1052,28 @@ proposal's own framing is "a corpus where per-row width is the cost" — that
 framing is what justified collapsing twelve proposals into five, and it should
 not be read as a reason to trim the five.
 
+#### LANDED 2026-08-31 (#479) — the manifest declares its own columns
+
+Not one of the five proposed fields; it is the check that would have caught
+three of this week's omissions and did not exist. `ladderRewardRisk` (#473),
+the cost decomposition (#474) and `forgoneRunnerR` (#477) were each found by a
+person looking, and none of them moved `ANALYZER_VERSION` — correctly, since
+none changed what the engine decides. Which is the problem: two corpora
+stamped with the same version can differ in which columns exist, and nothing
+in either file said which. A reader finding no `forgoneRunnerR` cannot tell a
+corpus that predates the column from one where every runner gave back nothing,
+so it grades the give-back as zero and reports a result.
+
+`emitColumns` is derived from the first row the driver actually writes — never
+a list kept beside the type, which would have been stale three times already —
+and `assertEmitColumns` refuses a read whose column the corpus lacks, naming
+every missing one. An ABSENT list is not a refusal: every corpus written
+before the field genuinely lacks it, and refusing those would retire the
+deliberate historical reads for a capability check. The caller is told it
+could not verify rather than told it did. Deliberately OUTSIDE `conditionsOf`:
+capability is not measurement identity, and putting it there would let a
+reader's column check split a legitimate shard set.
+
 #### PROPOSED — manifest
 
 | field | what it recovers |
