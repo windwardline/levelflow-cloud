@@ -99,6 +99,7 @@ function corpusWith(rows: SweepEmitRow[]): string {
     barRejections: {},
     clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
     conditions: {
+      availableTimeframeCount: "min-four-by-construction",
       macroAdjustment: "historical-treasury-curve",
       providerWarningCount: "zero-by-construction",
       weightAdjustment: "raw-engine-zero",
@@ -726,6 +727,7 @@ describe("a folded corpus names its own partition (3c/3d)", () => {
       barRejections: {},
       clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       conditions: {
+        availableTimeframeCount: "min-four-by-construction",
         macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
         weightAdjustment: "raw-engine-zero",
@@ -785,6 +787,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       clock: clockOverride ??
         { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       conditions: (conditionsOverride ?? {
+        availableTimeframeCount: "min-four-by-construction",
         macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
         weightAdjustment: "raw-engine-zero",
@@ -1220,6 +1223,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       barRejections: {},
       clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       conditions: {
+        availableTimeframeCount: "min-four-by-construction",
         macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
         weightAdjustment: "raw-engine-zero",
@@ -1424,6 +1428,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       barRejections: {},
       clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       conditions: {
+        availableTimeframeCount: "min-four-by-construction",
         macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
         weightAdjustment: "raw-engine-zero",
@@ -2229,6 +2234,7 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
           barRejections: {},
           clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
           conditions: {
+            availableTimeframeCount: "min-four-by-construction",
             macroAdjustment: "historical-treasury-curve",
             providerWarningCount: "zero-by-construction",
             weightAdjustment: "raw-engine-zero",

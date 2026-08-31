@@ -76,6 +76,7 @@ function shardWithRows(days: number): string {
         barRejections: {},
         clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
         conditions: {
+          availableTimeframeCount: "min-four-by-construction",
           macroAdjustment: "historical-treasury-curve",
           providerWarningCount: "zero-by-construction",
           weightAdjustment: "raw-engine-zero",

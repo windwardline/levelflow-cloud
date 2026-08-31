@@ -454,7 +454,8 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
       barRejections: {},
       clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       conditions: {
-        macroAdjustment: "historical-treasury-curve",
+        availableTimeframeCount: "min-four-by-construction",
+    macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
         weightAdjustment: "raw-engine-zero",
       },
@@ -706,7 +707,8 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
       barRejections: {},
       clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       conditions: {
-        macroAdjustment: "historical-treasury-curve",
+        availableTimeframeCount: "min-four-by-construction",
+    macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
         weightAdjustment: "raw-engine-zero",
       },
@@ -991,6 +993,7 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
   });
 
   const goodConditions = {
+    availableTimeframeCount: "min-four-by-construction",
     macroAdjustment: "historical-treasury-curve",
     providerWarningCount: "zero-by-construction",
     weightAdjustment: "raw-engine-zero",

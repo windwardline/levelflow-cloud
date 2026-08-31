@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import { assertEmitColumns } from "../scripts/sweepStats.ts";
+import { buildDecisionMarketContext } from "../supabase/functions/trade-analyzer/sweep.ts";
 
 /**
  * The corpus declares which columns it has, so a reader can refuse instead of
@@ -117,6 +118,91 @@ describe("the columns are derived from the corpus, not from a list", () => {
       /emitColumns/,
       "emitColumns joined the corpus identity; it is a capability fact, not " +
         "a measurement term",
+    );
+  });
+});
+
+/**
+ * `conditions.availableTimeframeCount` is a CLAIM, and this is its evidence.
+ *
+ * The term says the sweep supplies at least four frames on every decision, so
+ * both readers of the count — `scoring.ts`'s `timeframePenalty` and
+ * `executionQuality.ts`'s coverage penalty — are zero-by-construction offline
+ * while they can still fire live. Nothing executed pinned that: the claim
+ * rested on reading `buildDecisionMarketContext` and believing it.
+ *
+ * It matters because the term is now in `expectedConditions`, and
+ * `verifyManifest` compares each term to a hardcoded literal with `!==`. A
+ * corpus carrying the claim while the construction moved underneath it would
+ * be read as if two live score terms had been held at zero when they had not.
+ */
+describe("the four-frame floor is a property of the code, not a belief", () => {
+  const bars = (count: number) =>
+    Array.from({ length: count }, (_, index) => ({
+      close: 100 + (index % 5),
+      high: 101 + (index % 5),
+      low: 99 + (index % 5),
+      open: 100 + (index % 5),
+      time: index * 900_000,
+      volume: 1_000,
+    }));
+
+  it("builds at least four frames from any history the loop will decide on", () => {
+    // The decision loop refuses until the daily series is 40 deep and warmup
+    // is satisfied, so these are the THINNEST inputs that can reach this
+    // function — not a comfortable fixture chosen to pass.
+    let checked = 0;
+    for (const history of [240, 960, 3_840, 12_000]) {
+      for (const daily of [40, 80]) {
+        const context = buildDecisionMarketContext({
+          daily: bars(daily),
+          history: bars(history),
+        });
+        assert.ok(
+          context.availableTimeframes.length >= 4,
+          `history ${history} / daily ${daily} yielded ` +
+            `${context.availableTimeframes.length} frames ` +
+            `(${context.availableTimeframes.join(", ")}) — the manifest's ` +
+            `"min-four-by-construction" claim is false, and two score terms ` +
+            `it holds at zero can now fire inside a corpus`,
+        );
+        checked++;
+      }
+    }
+    assert.equal(checked, 8);
+  });
+
+  it("adds the fifth frame only when the 5-minute series clears its floor", () => {
+    // The asymmetry is why the floor is FOUR and not five: the 5-minute frame
+    // is the one that can legitimately be absent.
+    assert.equal(
+      buildDecisionMarketContext({
+        daily: bars(80),
+        fiveMin: bars(240),
+        history: bars(960),
+      }).availableTimeframes.length,
+      5,
+    );
+    assert.equal(
+      buildDecisionMarketContext({
+        daily: bars(80),
+        fiveMin: bars(39),
+        history: bars(960),
+      }).availableTimeframes.length,
+      4,
+      "a sub-floor 5-minute series must be dropped, not admitted thin",
+    );
+  });
+
+  it("is the term the driver states and the reader requires", () => {
+    const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
+    const reader = readFileSync("scripts/sweepStats.ts", "utf8");
+    assert.match(driver, /availableTimeframeCount: "min-four-by-construction",/);
+    assert.match(
+      reader,
+      /availableTimeframeCount: "min-four-by-construction",/,
+      "the reader stopped requiring the term, so a corpus measured under " +
+        "other terms would aggregate instead of being refused",
     );
   });
 });

@@ -84,7 +84,8 @@ function twoCellCorpus(days: number): string {
         barRejections: {},
         clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
         conditions: {
-          macroAdjustment: "historical-treasury-curve",
+          availableTimeframeCount: "min-four-by-construction",
+    macroAdjustment: "historical-treasury-curve",
           providerWarningCount: "zero-by-construction",
           weightAdjustment: "raw-engine-zero",
         },

@@ -505,9 +505,14 @@ async function main() {
       );
     }
   }
-  // The three E6 terms this corpus is measured under — hashed into the
-  // manifest so readers can refuse a corpus measured under other terms.
+  // The terms this corpus is measured under — hashed into the manifest so
+  // readers can refuse a corpus measured under other terms. Three are E6's;
+  // `availableTimeframeCount` is the fourth hardwired score term, added
+  // 2026-08-31 before R3 because `verifyManifest` refuses on a term's ABSENCE:
+  // adding it after the one re-sweep would make that corpus unreadable on
+  // every path, and it cannot be re-swept.
   const conditions: SweepConditions = {
+    availableTimeframeCount: "min-four-by-construction",
     macroAdjustment: "historical-treasury-curve",
     providerWarningCount: "zero-by-construction",
     weightAdjustment: "raw-engine-zero",
