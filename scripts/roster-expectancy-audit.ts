@@ -1,10 +1,11 @@
 // Every offered market, at its TRUE effective configuration, measured
 // for absolute expectancy on the held-back fold.
 //
-// The 4d cycles measured the 72 markets that earned derived cells. The
-// other 25 trade on CLASS calibration and were never measured in
-// absolute terms at all — the same blind spot that hid fifteen losing
-// markets, one population over. This closes it for the whole roster.
+// The 4d cycles measured the markets that earned derived cells — 79 of the
+// 97-market roster, DERIVED from the three picks artifacts rather than the
+// 72 this comment used to state. The other 18 trade on CLASS calibration and
+// were never measured in absolute terms at all — the same blind spot that hid
+// fifteen losing markets, one population over. This closes it for the roster.
 //
 // The effective configuration of a market is:
 //   derived cell  -> its variant, threshold 0 (the cell sets it)
@@ -25,7 +26,7 @@ import { assertManifest, readLinesSync } from "./sweepStats.ts";
 import { flagReader } from "./flagReader.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 
-const BASELINE =
+export const BASELINE =
   "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1,sizingHoursFactor=1";
 const MIN_FILLED = 30;
 
@@ -170,10 +171,43 @@ async function main() {
       // A derived market is read at its own cell; every other market is
       // read at the grid baseline, gated by its CLASS threshold — which
       // is what the shipped engine does.
+      //
+      // VERIFIED 2026-08-31, because the claim reads like the kind that rots.
+      // For all 18 markets that actually reach this branch, the named
+      // baseline cell IS their shipped geometry: `maxStopAtrMultiplier` 1,
+      // `sizingHoursFactor` 1, and `runnerProtection` undefined — which
+      // `replay.ts` resolves to "breakeven" via `?? "breakeven"`, the cell's
+      // value. `confidenceThreshold` differs (cell 0, shipped 25/40/68) and
+      // that is exactly why the class threshold is re-applied three lines
+      // down rather than inherited from the cell.
+      //
+      // The check is worth stating because the OBVIOUS way to test it is
+      // wrong: measured across all 97 markets, ZERO match this cell — the 79
+      // derived markets ship 4x stops and trail_tp1 and never reach here.
+      // Judge the branch on the population that reaches it.
       if (cell !== undefined) {
         if (variant !== cell) return;
       } else {
-        if (variant !== BASELINE && variant !== "baseline") return;
+        // ONE CELL, NOT EITHER OF TWO. `BASELINE` is a named grid cell;
+        // `"baseline"` is what `describeOverride({})` emits for an EMPTY
+        // override, which is a DIFFERENT cell. Admitting both with `||` would
+        // pool two calibrations into one market's expectancy the day a grid
+        // included the empty cell — and no tracked corpus does today (all 25
+        // distinct cells across `sweeps/**` carry explicit overrides), so the
+        // second arm has never fired and its hazard has never shown.
+        //
+        // Refused rather than silently accepted: pooling two cells is a wrong
+        // number, and §19e prefers the refusal.
+        if (variant === "baseline") {
+          throw new Error(
+            `roster-expectancy-audit: ${symbol} carries a row from the EMPTY ` +
+              `grid cell ("baseline") as well as the named baseline ` +
+              `("${BASELINE}"). Those are two different calibrations and ` +
+              `pooling them would report one market's expectancy from both. ` +
+              `Name which cell this audit should read.`,
+          );
+        }
+        if (variant !== BASELINE) return;
         const threshold = getCategoryCalibration(symbol).confidenceThreshold;
         const score = Number(row.confidenceScore);
         if (!Number.isFinite(score) || score < threshold) return;
