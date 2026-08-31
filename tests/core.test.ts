@@ -9,6 +9,7 @@ import {
   resolveConfidenceTier,
 } from "../src/lib/confidenceTiers";
 import { normalizeSetupOutcome, OUTCOME_COPY } from "../src/lib/outcomes";
+import { LEARNED_OUTCOMES } from "../supabase/functions/trade-analyzer/learning.ts";
 import { deriveTradeState } from "../src/lib/tradeState";
 import {
   getAssetType,
@@ -363,14 +364,24 @@ describe("trade analyzer category handling", () => {
     // the same replay engine from the same live bars.
     assert.equal(weightsSource.includes("trade_setups?select="), true);
     assert.equal(weightsSource.includes("origin=eq.review"), false);
-    // The outcome filter is what scopes the cohort, and it stays exactly as it
-    // was — only resolved, measured outcomes train the weights.
-    assert.equal(
-      weightsSource.includes(
-        "outcome=in.(take_profit,tp1_partial,stop_loss,ambiguous)",
-      ),
-      true,
-    );
+    // The outcome filter is what scopes the cohort, and D1 WIDENED IT by two.
+    // `expired_in_profit` and `expired_at_loss` are filled trades that banked
+    // or lost real money and were excluded outright, because under a win rate
+    // they are neither a win nor a loss and there was nowhere to put them.
+    // Amendment 39: where realized R exists it governs.
+    //
+    // Derived from the engine's own set rather than transcribed, so the query
+    // and the fold cannot drift apart — a row the query never returns is one
+    // the fold can never see, and that half is invisible to a unit test.
+    for (const outcome of LEARNED_OUTCOMES) {
+      assert.ok(
+        weightsSource.includes(`,${outcome},`) ||
+          weightsSource.includes(`(${outcome},`) ||
+          weightsSource.includes(`,${outcome})`),
+        `the learning query does not request ${outcome}`,
+      );
+    }
+    assert.equal(weightsSource.includes("outcome=in.("), true);
   });
 
   it("loads Ultimate intraday data without replacing the signal timeframes", () => {

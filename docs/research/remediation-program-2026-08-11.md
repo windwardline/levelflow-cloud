@@ -245,8 +245,28 @@ So that what is measured is what trades.
   would have passed throughout the three weeks the defect was live.
   **Still open, and unchanged by this:** the two arms need two runs, because
   the scale is a per-process environment read (section 5, item 5).
-- **D1** global learning derives `confidence_adjustment` from a win
-  *rate*; derive it from mean realized R instead.
+- ~~**D1** global learning derives `confidence_adjustment` from a win
+  *rate*; derive it from mean realized R instead.~~ **LANDED 2026-08-31**,
+  and it turned out to be two changes rather than one.
+  **The quantity.** Mean `netRealizedR`, shrunk to the end of its own 95%
+  interval nearest zero, so a cohort is scored on the least flattering reading
+  its data supports in BOTH directions — amendment 36's symmetry, because a
+  reward should not answer to a weaker bar than a penalty. In R the neutral
+  point is 0 by definition, which retires the mix-dependent break-even that
+  forced the withholding rather than solving it.
+  **The population.** `expired_in_profit` and `expired_at_loss` were excluded
+  outright — filled trades that banked or lost real money, dropped because
+  under a win rate they were neither a win nor a loss and there was nowhere to
+  put them. `docs/trade-model.md`'s accrual query had counted them all along;
+  the learning query was the narrow one.
+  Every constant is anchored rather than chosen: z = 1.96 and a 30-resolution
+  floor are `cost-sensitivity-verdict.ts`'s existing bar, the ±10 cap is the
+  retired curve's own range, and 20 points per R lands a good cohort in the
+  same ±3 band the retired curve typically paid. `MIN_RESOLUTIONS_FOR_ADJUSTMENT`
+  exists because a normal multiplier lies at small n — three resolutions scored
+  +2.2 under 1.96 where t at two degrees of freedom puts the bound below zero.
+  Six mutations, including the retired curve restored verbatim, each killed by
+  the intended test.
 
 ### Phase 2b — the geometry model's own fresh-eyes round
 
