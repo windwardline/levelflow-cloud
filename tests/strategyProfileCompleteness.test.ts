@@ -71,10 +71,17 @@ const strategyNames = [...new Set(voters.flatMap(namesEmittedBy))].sort();
  * Recorded rather than filled. Writing an explicit `1` here would be a
  * provenance claim, not a restatement: the commit that created the table gave
  * forex four explicit `1`s while omitting this one, in the same commit that
- * gave futures `1.08`, so silence has never meant 1 — and every stated value
- * sits at 1.04-1.08, so a written `1.00` would make these the only sub-band
- * cells and read as measured de-emphasis. §6b-1 decision C is the owner ruling
- * that settles it.
+ * gave futures `1.08`, so silence has never meant 1. §6b-1 decision C is the
+ * owner ruling that settles it.
+ *
+ * A second reason once stood here and is STRUCK, 2026-09-01: that every stated
+ * value sits at 1.04-1.08, so a written `1.00` would be the only sub-band cell
+ * and would read as measured de-emphasis. It is false. Derived from the live
+ * table: 48 of the 86 cells sit below 1.04, all eight classes hold at least
+ * one, and an explicit `1` already appears eight times across five classes
+ * (energies, forex x4, futures, agriculture, livestock). A `1` here would be
+ * unremarkable. The reason above needs no help and does not depend on it; this
+ * one is kept visible as struck so it is not re-derived and believed.
  */
 const KNOWN_ABSENCES: ReadonlyArray<{ assetType: string; strategy: string }> = [
   { assetType: "crypto", strategy: "trend_pullback_to_value" },

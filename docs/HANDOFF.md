@@ -3317,14 +3317,21 @@ eleven — both omit `trend_pullback_to_value`, whose voter runs
 unconditionally, and `getStrategyProfileWeight` ends in
 `?? DEFAULT_PROFILE_WEIGHT`, so a renamed strategy would silently neutralise
 its weight in all eight classes with no error and no failing test. A
-completeness guard is ~~written~~ **SPECIFIED BUT NOT WRITTEN — corrected
-2026-09-01.** No such guard exists anywhere: `git log --all -S
-"trend_pullback_to_value" -- tests/` is empty, no branch or stash carries it,
-and `tests/strategyProfiles.test.ts` holds four pairwise weight comparisons and
-nothing else. The sentence was read as fact by a 2026-09-01 pass, which
-proposed clearing a red test that was never red. It is additive when written,
-and it cannot land until this is answered because it would fail on those two
-classes.
+completeness guard is ~~written~~ ~~SPECIFIED BUT NOT WRITTEN~~ **WRITTEN, and
+this entry has now been wrong in both directions — third correction,
+2026-09-01.** It first claimed a guard that did not exist. The correction said
+no guard existed anywhere, which was true when written. `be04104` (#535) then
+wrote it: `tests/strategyProfileCompleteness.test.ts`, green at 15/0. It derives
+the strategy population from the committee rather than hardcoding it, and asserts
+BOTH directions — every class carries every strategy the committee can emit, and
+no class carries a weight for a strategy the committee cannot. The second
+direction is the rename hazard this entry raised, and it is closed.
+
+The clause that followed — that the guard "cannot land until this is answered
+because it would fail on those two classes" — was the reasoning error. It landed
+by RECORDING the two absences in `KNOWN_ABSENCES` rather than filling them, so
+the guard now fails if anyone writes the `1`. The open question did not block the
+guard; the guard became the place the open question is enforced.
 
 **And the obvious remedy is a provenance claim, not a restatement — recorded so
 it is not proposed again.** Writing an explicit `trend_pullback_to_value: 1`
@@ -3333,10 +3340,17 @@ by fingerprinting four markets' emitted rows before and after) and therefore
 looks free. It is not. The commit that created the table gave forex four
 explicit `1`s while omitting this one, in the same commit that gave futures
 `1.08` — so silence in this table has never meant 1, and the author had the
-notation and did not use it. Every stated value sits at 1.04–1.08, so a written
+notation and did not use it. That is exactly what the agriculture and livestock
+notes exist to prevent. ~~Every stated value sits at 1.04–1.08, so a written
 `1.00` would make crypto and forex the only sub-band cells and read to the next
-reader as measured de-emphasis. That is exactly what the agriculture and
-livestock notes exist to prevent.
+reader as measured de-emphasis.~~ **STRUCK 2026-09-01 — false, and it had been
+copied into a merged CI guard.** Derived from the live table: 48 of the 86
+cells sit below 1.04, all eight classes hold at least one, and an explicit `1`
+already appears eight times across five classes (energies, forex ×4, futures,
+agriculture, livestock). A written `1` would be unremarkable, not singular. The
+sentence before it carries the ruling on its own and is untouched; this one is
+struck rather than deleted because a reader who checks it and finds it false
+would have reason to distrust the whole entry.
 
 **D. macroRates' 4bp band, 8bp line and −1 energy penalty — mark them
 underived now, or wait for R3?** ~~Three distinct decisions, none documented~~
