@@ -1509,12 +1509,37 @@ one invisible to the gate before it.
 Not a proposal. This exact shape was run on two markets with the grid, behind an
 open breaker, and produced a manifested corpus:
 
+**TWO RUNS AT ONE ANCHOR** (register entry H). Both spend zero provider bytes —
+pins do not deplete — so the second arm costs CPU and disk, nothing else.
+
 ```bash
+# Arm 1 — gated. Keeps the rejection accounting: regimeBlocked, belowConfidence,
+# belowPayoff and belowThreshold are tallied in the manifest's decisions[] here
+# and ONLY here, and starvation-audit reads this table.
 npx tsx scripts/replay-sweep.ts \
   --anchor 2026-08-26 --days 7000 --symbols roster \
   --grid "runnerProtection=breakeven,hold,trail_tp1;stopStructureSource=intraday,intraday_and_daily" \
-  --byte-budget 1MB --emit docs/research/r3/emit.jsonl
+  --byte-budget 1MB --emit docs/research/r3/gated.jsonl
+
+# Arm 2 — capture-all. Keeps the below-threshold population, which the gated arm
+# discards forever and which confidence-bands, threshold-rescue and
+# ag-class-derivation all REFUSE a corpus without.
+npx tsx scripts/replay-sweep.ts \
+  --anchor 2026-08-26 --days 7000 --symbols roster --capture-all \
+  --grid "runnerProtection=breakeven,hold,trail_tp1;stopStructureSource=intraday,intraday_and_daily" \
+  --byte-budget 1MB --emit docs/research/r3/capture-all.jsonl
 ```
+
+**VERIFIED END TO END 2026-09-01 on EURUSD + BTCUSD at step 256, both arms, zero
+bytes.** 7 variants each; gated 13,477 rows, capture-all 15,404; **the
+capture-all arm filtered to `accepted: true` reproduces the gated corpus exactly
+— same decision keys, ZERO rows differing field for field**; all 71 columns
+present including every pre-R3 field; the manifests carry
+`acceptance.captureAll` false and true and both record `anchor: 2026-08-26`; and
+the rejection counters the capture-all arm zeroes (`regimeBlocked` 2,317,
+`belowPayoff` 31, `belowThreshold` 31) are preserved intact in the gated one.
+That is the whole case for two runs: neither arm alone carries both halves, and
+together they cost nothing but time.
 
 Every term is load-bearing and each was established by a failure:
 
