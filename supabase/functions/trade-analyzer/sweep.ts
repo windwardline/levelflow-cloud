@@ -923,7 +923,15 @@ export function simulateSymbol(input: {
       reject("regimeBlocked", latest.time);
       continue;
     }
-    const votes = runStrategyCommittee(input.symbol, market, regime);
+    // The EFFECTIVE calibration, so a grid override on a voter-side field
+    // reaches the voter. Without this argument the committee looked the cell
+    // up itself and any such axis was declared and inert.
+    const votes = runStrategyCommittee(
+      input.symbol,
+      market,
+      regime,
+      calibration,
+    );
     const consensus = scoreConsensus(votes, regime);
     if (!consensus.side) {
       reject("noConsensus", latest.time);

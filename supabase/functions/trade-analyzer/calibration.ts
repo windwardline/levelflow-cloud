@@ -162,6 +162,24 @@ export type CategoryCalibration = {
    */
   pivotStrengthIntraday?: number;
   pivotStrengthDaily?: number;
+  /**
+   * The RSI levels the momentum voter reads as directional — AXES-9.
+   *
+   * `resolveOscillatorBias` compared against the literals 55 and 45, so this is
+   * the other half of pre-R3 register item 4: the momentum voter's own
+   * thresholds could not be varied by the grid.
+   *
+   * They decide when the RSI leg votes at all. Between the two it ABSTAINS, and
+   * abstention is load-bearing here — the OR-chain fix exists because a
+   * contradicting pair used to emit a directional vote at score 18-24 and
+   * confidence 0.62-0.72 instead of neutral at 5 and 0.2. Widening the band
+   * abstains more; narrowing it votes more. Nothing has measured which pays.
+   *
+   * Undefined — every shipped cell — takes 55 and 45, so this changes no
+   * behaviour and costs R3 nothing unless the run card names it.
+   */
+  rsiBuyThreshold?: number;
+  rsiSellThreshold?: number;
   // Q4's split: multiplies ONLY the geometry-sizing hours
   // (expectedWindowMove) — patience/expiry keeps reading
   // defaultReviewHours untouched, because the baseline measured the
