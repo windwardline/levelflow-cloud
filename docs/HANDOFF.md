@@ -3217,6 +3217,14 @@ manufacturing another.
 
 ### 6b-1. Owner decisions owed — raised by the 2026-08-25 converge
 
+**THIS LIST WAS CURATED, NOT DERIVED — found 2026-09-01, and it is the register's
+own defect rather than a defect in any entry.** It holds what one converge
+surfaced, not every question the record flags for the owner. A sweep of the
+repository on 2026-09-01 found four more, each verified against live code, and
+the reason none of them was here is that nothing derives this population. The
+count below is therefore a floor, and the next pass should build the derivation
+rather than append to the list again.
+
 Four questions that need a ruling rather than a repair. Each is stated with
 its options and what each option implies; none was decided, because deciding
 them from inside the code would be inventing a criterion and calling it a
@@ -3302,6 +3310,62 @@ rate LEVEL: 4bp is a large daily move at a 0.5% ten-year and routine at 4.3%,
 and nothing ties the band to level or realised volatility. Options: extend
 #415's treatment to the other two numbers now, or leave all three until a
 valid corpus can measure them.
+
+**E. ZO and ZR's CME-official alignment ticks — the second of the two flags
+raised at the BRENT/WTI header, and it never reached this list.** It shipped on
+the ZB/ZN precedent with the boundary preserved (`futures.ts:225-234`: "§20i
+ruling 5 still bars exchange values from the SIZING table; alignment is a
+price-grid fact, not a money fact"), grounded as the price-delta gcd of the
+banked minute series and pinned at `tests/futuresRules.test.ts:208,229`. Its
+companion flag closed the same day it was raised. This one did not, and the
+header that carries it routes the owner to a question settled three weeks ago —
+so the one live item in it has been invisible ever since. Options: ratify the
+exchange-spec precedent for alignment as a standing rule, or re-derive both
+ticks from the banked series alone and drop the exchange source.
+
+**F. The E8 captures nobody can take from inside the repo.** The standing ruling
+of 2026-08-07 is that every E8 tradable market with an FMP data match must be
+visible and usable on Levelflow — "nonnegotiable". Three gaps stand against it
+and each needs the owner at the platform: the **Softs and Stocks watchlist tabs
+were never captured** (eight captured tabs produced 20 instruments E8 documents
+nowhere, so these plausibly hold more — two frames closes it); **MC, BIT and
+SIC** appear on the frames and no E8 source identifies them, so they are
+unmatchable by construction; and **live order tickets for ZB, ZN and 6J** carry
+tick sizes and values no published source has. `tests/e8RosterConformance.test.ts`
+records the first as a coverage gap in terms. Blocks R5, not R3.
+
+**G. The minute bank's only copies are on one disk — NEW 2026-09-01, and it was
+recorded nowhere.** `scripts/ops/backup-minute-bank.sh` runs daily and verifies
+its own snapshots, and R0b is closed on that. But bank and snapshots both live on
+`/dev/disk3s5`: measured 219 MB, 2,067,013 bars across 100 symbols, and FMP
+re-serves 1-minute bars only ~3 days deep, so roughly 84% is unrecoverable. The
+mechanism protects against corruption and accidental deletion; it does not
+protect against losing the machine. Options: send the daily snapshot off-box, or
+record the acceptance of a single point of failure as a decision rather than as
+an omission. Blocks nothing.
+
+**H. R3's acceptance mode — and this one is the only entry that touches R3.**
+The run card carries no `--capture-all`, and the flag is not free in either
+direction. Without it `sweep.ts:984` drops every gate-failing decision, so the
+below-threshold population is absent forever and `confidence-bands.ts:234` and
+`threshold-rescue.ts:95` refuse the corpus outright — they call
+`assertAcceptanceMode(..., { captureAll: true })`, and nothing requires the
+opposite. With it, four rejection counters read zero **in the manifest's
+`decisions[]`**, not merely in stdout — measured on BTCUSD: `regimeBlocked
+431 → 0`, `belowPayoff 28 → 0`, `belowThreshold 28 → 0` — which partially
+re-opens the hole pre-R3 register item 3 closed. And the loss is not recoverable
+from the capture-all corpus alone: a decision that would have been
+`regimeBlocked` walks on and dies at `noConsensus`, which emits no row, and the
+ledger records `{reason, time}` with no regime.
+
+**Recommended: run R3 twice at the 2026-08-26 anchor, gated and capture-all.**
+Both cost zero provider bytes — pins do not deplete, verified across six
+anchored sweeps on 2026-09-01 with the census unchanged at 290 stores — so the
+cost is CPU and roughly 29 GB of disk against 265 GB free. The accepted subset
+is bit-identical between the arms (measured: same decision keys, zero rows
+differing field for field), so the two corpora reconcile exactly, and
+`acceptance.captureAll` in the manifest plus `assertAcceptanceMode` keeps a
+reader from mixing them.
 
 ### 6b-0. The diminished-returns register — what is closed, and what re-opens it
 
