@@ -1411,9 +1411,32 @@ three, 12 hold four. Enough further anchor-day writes and 08-26 is evicted — c
 free to metered, silently. **Any top-up, warm run or repin between now and R3 spends R3's free
 ride**, and the nightly `com.windwardline.levelflow-cache-topup` agent is currently LOADED.
 
+**AND UNTIL 2026-09-01 THE DRIVER COULD NOT BE ANCHORED AT ALL.** The block above,
+`PROTECTED_ANCHORS`, the pin census, the argument against a third grid axis — all
+of it rested on a capability `replay-sweep.ts` did not have. The anchor was
+`isoDate(new Date())` at five separate call sites (the warm loop, the simulate
+loop, the economic calendar, the Treasury curve, and the manifest), so the driver
+could only ever read the run day. The spend gate's own comment stated the
+capability in terms — "R3 is the reason this matters now: anchored at a pinned day
+the sweep fetches nothing" — describing something nothing implemented. Re-measured
+the same day over all 290 stores: 08-25 and 08-26 pinned in every store, 08-27 in
+13, **the current day in none**. R3 launched as written would have refetched the
+entire roster against an exhausted allowance and reported success.
+
+`--anchor YYYY-MM-DD` closes it, defaulting to today so every existing invocation
+is unchanged. It refuses a malformed token (an unmatched pin is a full refetch,
+not a typo the run absorbs), refuses a future day, and refuses `--repin` with a
+past anchor — those two are opposites, and together they spend exactly the
+bandwidth the anchor was chosen to avoid while rolling the tail past the day the
+run names. The manifest records the anchor the run USED, since a corpus is a
+measurement of the bars visible at one instant. `tests/sweepAnchor.test.ts` also
+fails if any call site reverts to the run day: five sites agreeing with each other
+and with nothing else was the defect, and ONE missed site is the most expensive
+shape, because the run still looks anchored.
+
 Two things follow, and neither is optional:
-1. **R3's run-card names the anchor**, alongside the `--byte-budget` the driver refuses to start
-   without (`replay-sweep.ts`).
+1. **R3's run-card names the anchor** — `--anchor 2026-08-26` — alongside the
+   `--byte-budget` the driver refuses to start without (`replay-sweep.ts`).
 2. **The pin population is re-measured immediately before the sweep**, not assumed from this
    table. This block is a measurement dated 2026-08-31, not a guarantee.
 
