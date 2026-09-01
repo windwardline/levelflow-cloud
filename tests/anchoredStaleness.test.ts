@@ -76,6 +76,31 @@ describe("staleness is judged at the anchor, not at the wall clock", () => {
 });
 
 describe("the guard reads the anchored bound", () => {
+  it("anchors the interior-hole window too, not just the staleness bound", () => {
+    // The CLASS, not the instance. This guard's window stands in for "every
+    // possible corpus this run could produce", and an anchored run's corpus
+    // ends at its anchor — so read from the wall clock it slides forward every
+    // day the run is deferred, and a hole could enter or leave it with nothing
+    // about the corpus having changed.
+    //
+    // It did not fire on the R3 dry run and would not at --days 7000, where
+    // the window reaches back to 2007 against a store beginning in 2013. It
+    // bites at small depths, where six days of drift is a real share of the
+    // window — which is exactly the kind of instance that gets fixed only
+    // after it costs a run.
+    const source = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.match(source, /const holeWindowEndMs = staleAsOf\(args\.anchor, Date\.now\(\)\)/);
+    assert.match(
+      source,
+      /const windowStartMs = holeWindowEndMs - \(args\.days \+ 7\) \* 86_400_000/,
+    );
+    assert.doesNotMatch(
+      source,
+      /treasuryGapTouching\([^)]*Date\.now\(\)/s,
+      "the hole window still reads the wall clock somewhere",
+    );
+  });
+
   it("no longer passes Date.now() straight into the staleness check", () => {
     // The defect was ONE expression inside a hundred-line guard, which is
     // exactly where a wall-clock read hides. Extracting it made the rule
