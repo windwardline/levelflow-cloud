@@ -46,6 +46,7 @@ import {
   readJsonWithBudget,
 } from "./fmpByteBudget.ts";
 import { execFileSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import {
   buildSweepManifest,
   resolveSweepSource,
@@ -95,6 +96,7 @@ import { parseGridSpec } from "./sweepGrid.ts";
 import {
   DEFAULT_CACHE_DIR,
   loadRollingSeries,
+  readPinnedDays,
 } from "./calibrationCache.ts";
 import {
   combineCotSeries,
@@ -271,6 +273,69 @@ type SweepArgs = {
   symbols: string[];
 };
 
+/**
+ * Every cache artifact a run will read, and whether the anchor is already in it.
+ *
+ * DERIVED FROM THE RUN, never a curated list: the same `--days` and `--symbols`
+ * the loaders use, the same provider-symbol resolution, and the COT contracts
+ * the roster's own mapping produces. A pre-flight that checked a hand-kept set
+ * would pass while the run fetched something nobody listed — which is the
+ * failure it exists to prevent, one layer up.
+ */
+export async function anchoredPreflight(input: {
+  anchor: string;
+  cacheDir: string;
+  days: number;
+  symbols: string[];
+}): Promise<{ checked: number; missing: string[] }> {
+  const missing: string[] = [];
+  let checked = 0;
+  const check = async (key: string) => {
+    checked += 1;
+    const pins = await readPinnedDays(`${input.cacheDir}/${key}.rolling.json`);
+    if (pins === null) {
+      missing.push(`${key} (no store)`);
+    } else if (pins[input.anchor] === undefined) {
+      const held = Object.keys(pins).sort();
+      missing.push(
+        `${key} (holds ${held.length > 0 ? held.join(", ") : "no pins"})`,
+      );
+    }
+  };
+  for (const symbol of input.symbols) {
+    const providerSymbol = resolveProviderSymbols(symbol)[0];
+    if (!providerSymbol) continue;
+    for (const frame of ["15min", "daily", "5min"]) {
+      await check(`${providerSymbol}-${frame}-${input.days}`);
+    }
+  }
+  await check("econ-calendar");
+  await check("treasury-rates");
+  // COT caches BY CONTRACT rather than by run day — a plain array, no pins —
+  // so the question there is only whether the file is present and parses.
+  // Omitting it would leave the one artifact that fetches on a cache miss
+  // unexamined, and it is shared across every symbol that maps to it.
+  const contracts = new Set<string>();
+  for (const symbol of input.symbols) {
+    const mapping = getCotContractMapping(symbol);
+    if (!mapping) continue;
+    contracts.add(mapping.primary);
+    if (mapping.secondary) contracts.add(mapping.secondary);
+  }
+  for (const contract of [...contracts].sort()) {
+    checked += 1;
+    try {
+      const raw = await readFile(`${input.cacheDir}/cot-${contract}.json`, "utf8");
+      if (!Array.isArray(JSON.parse(raw))) {
+        missing.push(`cot-${contract} (not an array)`);
+      }
+    } catch {
+      missing.push(`cot-${contract} (absent or unreadable)`);
+    }
+  }
+  return { checked, missing };
+}
+
 async function main() {
   // ARGUMENTS FIRST, before the credential check and before the budget.
   //
@@ -310,7 +375,59 @@ async function main() {
   // R3 is the reason this matters now: anchored at a pinned day the sweep
   // fetches nothing, and the ledger is what will PROVE that rather than
   // assume it.
-  const sweepGate = maySpend({
+  //
+  // AND A RUN THAT PROVABLY SPENDS NOTHING IS NOT SUBJECT TO IT.
+  //
+  // Measured 2026-09-01: the breaker is OPEN on the bandwidth wall, which
+  // drains by time over days, and it re-arms every six hours as probes fail.
+  // A gate on the RUN therefore refuses a run that would fetch nothing — the
+  // exact run the anchor exists to make possible, blocked by a guard on bytes
+  // it will not spend. That is not a conservative default; it is the free ride
+  // being unreachable for as long as the wall stands.
+  //
+  // The exemption is EARNED, not asserted, and never blanket: an anchored run
+  // still fetches any series whose store lacks that pin, and a blanket
+  // exemption would spend the roster behind an open breaker while claiming to
+  // be free. So a past anchor must first PROVE the whole read set is pinned —
+  // three frames per symbol, the calendar, the Treasury curve, and every COT
+  // contract the roster maps to. All present, and the run cannot reach the
+  // provider. One absent, and it is refused with the artifact named, because
+  // that run would fetch and the breaker is open.
+  //
+  // This also mechanizes the HANDOFF's standing instruction to re-measure the
+  // pin population immediately before the sweep. An instruction to remember
+  // something is not a guard against forgetting it.
+  const today = isoDate(new Date());
+  let preflight: { checked: number; missing: string[] } | null = null;
+  if (args.anchor !== today) {
+    preflight = await anchoredPreflight({
+      anchor: args.anchor,
+      cacheDir: args.cacheDir ?? DEFAULT_CACHE_DIR,
+      days: args.days,
+      symbols: args.symbols,
+    });
+    if (preflight.missing.length > 0) {
+      console.error(
+        `anchoredPreflightFailed: ${preflight.missing.length} of ` +
+          `${preflight.checked} cache artifacts do not carry the ` +
+          `${args.anchor} pin, so this run WOULD reach the provider. Anchor ` +
+          `at a day the whole read set holds, or warm these first:`,
+      );
+      for (const entry of preflight.missing.slice(0, 40)) {
+        console.error(`  ${entry}`);
+      }
+      if (preflight.missing.length > 40) {
+        console.error(`  ... and ${preflight.missing.length - 40} more`);
+      }
+      process.exit(1);
+    }
+    console.log(
+      `anchored at ${args.anchor}: ${preflight.checked} cache artifacts all ` +
+        `carry the pin, so this run cannot reach the provider — the shared ` +
+        `spend gate is not consulted`,
+    );
+  }
+  const sweepGate = preflight !== null ? { allowed: true, reason: "" } : maySpend({
     atMs: Date.now(),
     dailyLimitBytes: 8 * 1024 * 1024 * 1024,
     label: "replay-sweep",

@@ -24,10 +24,83 @@
 // every date-keyed file predates the clock stamp by definition, so seeding
 // from one imports the defect this guard exists to stop.
 
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, rename, stat, writeFile } from "node:fs/promises";
 import { CALENDAR_CLOCK, ECON_CALENDAR_CLOCK } from "./clockWitness.ts";
 
 export const DEFAULT_CACHE_DIR = ".calibration-cache";
+
+/**
+ * Which anchor days a store carries a pin for, WITHOUT parsing the store.
+ *
+ * A pre-flight has to ask this of every series a run will read, and the stores
+ * are up to 121 MB each — 16 GB across the cache. Parsing them to look at a
+ * four-key object is minutes of work and gigabytes of heap to answer a
+ * question the last 200 bytes of each file already answer.
+ *
+ * `JSON.stringify` preserves insertion order and every store here is built as
+ * `{ clock, items, pinned }`, so `pinned` is the final key. That is a fact
+ * about this module's own writes, not about JSON — so the tail read PROVES it
+ * rather than assuming it: the candidate object must be the last thing in the
+ * file save its closing brace, and anything else falls through to a full
+ * parse. A `"pinned":` appearing inside an item's data cannot be mistaken for
+ * the store's own, because the remainder after it would not be `}`.
+ *
+ * Returns null when the store does not exist. An unreadable store throws:
+ * "no pins" and "cannot tell" are different answers, and a pre-flight that
+ * conflated them would report a market unpinned and send someone to refetch a
+ * store that is merely unreadable.
+ */
+export async function readPinnedDays(
+  path: string,
+): Promise<Record<string, number> | null> {
+  let size: number;
+  try {
+    size = (await stat(path)).size;
+  } catch {
+    return null;
+  }
+  const TAIL_BYTES = 64 * 1024;
+  const length = Math.min(size, TAIL_BYTES);
+  const handle = await open(path, "r");
+  let tail: string;
+  try {
+    const buffer = Buffer.alloc(length);
+    await handle.read(buffer, 0, length, size - length);
+    tail = buffer.toString("utf8");
+  } finally {
+    await handle.close();
+  }
+  const at = tail.lastIndexOf('"pinned":');
+  if (at !== -1) {
+    const open_ = tail.indexOf("{", at);
+    if (open_ !== -1) {
+      let depth = 0;
+      let end = -1;
+      for (let index = open_; index < tail.length; index += 1) {
+        if (tail[index] === "{") depth += 1;
+        else if (tail[index] === "}") {
+          depth -= 1;
+          if (depth === 0) {
+            end = index;
+            break;
+          }
+        }
+      }
+      // The store's own closing brace, and nothing else, must follow.
+      if (end !== -1 && tail.slice(end + 1).trim() === "}") {
+        try {
+          return JSON.parse(tail.slice(open_, end + 1)) as Record<string, number>;
+        } catch {
+          // Fall through to the full parse.
+        }
+      }
+    }
+  }
+  const store = JSON.parse(await readFile(path, "utf8")) as {
+    pinned?: Record<string, number>;
+  };
+  return store.pinned ?? {};
+}
 
 // Overlap re-fetched on every top-up so a partially-formed final bar or a
 // late-arriving revision in the previous pin never survives as truth.
