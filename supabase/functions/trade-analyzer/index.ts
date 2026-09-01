@@ -214,8 +214,18 @@ type NewsEvent = {
 type NewsContext = {
   active: NewsEvent[];
   blocking: NewsEvent[];
+  /**
+   * Where the calendar reading came from, and why it might be absent.
+   *
+   * Both are read at the diagnostics sites and neither was declared. They
+   * belong to the calendar-provenance work that made "an empty calendar" and
+   * "no calendar" separable (#456) — the distinction is the whole point, and
+   * it was carried on an undeclared property.
+   */
+  calendarSource?: string | null;
   headlineCount: number;
   penaltyUnits: number;
+  unavailableReason?: string | null;
   upcoming: NewsEvent[];
 };
 
@@ -268,6 +278,16 @@ type UpsertedSetupResult = {
 type MarketScanCandidate = {
   assetType: string;
   blocked?: boolean;
+  /**
+   * The market this one was held back FOR — #457's correlation sibling.
+   *
+   * Shipped since #457, read by the client at
+   * `src/components/workspace/AdvisorWorkspace.tsx`, and never declared on
+   * this type. It compiled because nothing type-checks these files: they sit
+   * outside `tsconfig.tests.json` for their Deno globals, so `npm run check`
+   * never sees them. `deno check` had reported it as TS2353 all along.
+   */
+  withheldFor?: string;
   confidenceScore?: number;
   correlationGroup?: string;
   entryPrice?: number;
@@ -301,6 +321,12 @@ type CurrentMarketReview =
   | {
     analysisDiagnostics?: string[];
     blocked: true;
+    /**
+     * The sibling this market was held back for (#457). Set on this branch and
+     * read from it; declared on `MarketScanCandidate` and not here, so the
+     * read was untyped on the union that actually carries it.
+     */
+    withheldFor?: string;
     /**
      * A TYPED DISCRIMINATOR, for the same reason `withheldFor` is one.
      *
@@ -1627,7 +1653,17 @@ async function explainNoSetup(
           }x for this market.`,
         );
       }
-    } else if (pricePlan.executionQuality.confidencePenalty > 0) {
+      // GUARDED, and it was not. `if (pricePlan && ...)` above sends the
+      // null case here, where every line dereferences it — so a market whose
+      // geometry refused and which the engine has NOT declined reached
+      // `pricePlan.executionQuality` on null. The refusal sentence pushed a
+      // few lines up does not return; it falls through to exactly this branch.
+      //
+      // `deno check` has reported it as TS18047 five times over, and nothing
+      // read that output: these files are outside `tsconfig.tests.json`
+      // because of their Deno globals, so `npm run check` never sees them and
+      // ESLint does not flag an undefined dereference in them either.
+    } else if (pricePlan && pricePlan.executionQuality.confidencePenalty > 0) {
       // 1b's rule again: a distinct cause carries its own sentence. This
       // printed the WHOLE penalty as "trading costs", and the penalty also
       // carries missing chart intervals, provider warnings and short-term

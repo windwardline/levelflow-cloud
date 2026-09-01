@@ -324,7 +324,7 @@ Deno.serve(async (req) => {
         volume: typeof point.volume === "number" ? point.volume : null,
       }))
       .sort((first, second) =>
-        sortableTime(first.time) - sortableTime(second.time)
+        compareChartTime(first.time, second.time)
       )
       .slice(-maxPointsForTimeframe(timeframe));
 
@@ -781,8 +781,24 @@ function toTimestamp(value: string, zone: string): number {
   return corrected - (read(corrected) - utcGuess);
 }
 
-function sortableTime(value: string | number) {
-  return typeof value === "number" ? value : toTimestamp(value);
+/**
+ * Order two chart points, whichever shape `time` has.
+ *
+ * `time` is a `YYYY-MM-DD` STRING on the 1day path and epoch SECONDS on every
+ * other timeframe, and it is uniform within one response — a series is one
+ * timeframe. The old helper coerced the string through `toTimestamp(value)`
+ * with no `zone` argument, which the function requires: on daily charts the
+ * comparator ran with an undefined timezone.
+ *
+ * An ISO date needs no timezone to order. `"2026-08-30" < "2026-08-31"` is
+ * chronological by construction, which is the property the format was chosen
+ * for, so the string case compares directly and the numeric case subtracts.
+ */
+function compareChartTime(first: string | number, second: string | number) {
+  if (typeof first === "string" && typeof second === "string") {
+    return first < second ? -1 : first > second ? 1 : 0;
+  }
+  return Number(first) - Number(second);
 }
 
 function fetchWithTimeout(
