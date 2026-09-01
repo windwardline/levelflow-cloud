@@ -1909,6 +1909,48 @@ are matches and amendment 30 stands unchanged. If BRENT tracks a different month
 it goes dormant under this ruling and amendment 30's BRENT clause is superseded.
 Until that frame exists, neither is asserted as settled.
 
+### The frame exists — transcribed 2026-09-01, decided 2026-08-09
+
+**This settles the paragraph above by its own conditional, and it is a
+transcription rather than a new ruling.** The owner supplied the frame on
+2026-08-09 and the amendment already stated what each outcome would mean; what
+was missing was that the answer never reached this file. Read on its own, the
+text above still sends a reader to ask a question that was answered three weeks
+ago — and because §-numbered specs outrank HANDOFF prose, this was the
+highest-authority copy still saying "open" while three passages in
+`docs/HANDOFF.md` (`:248`, `:358`, `:550`) recorded it settled.
+
+**Frame F13** (`docs/research/e8-feed-verification-2026-08-02.md:768-793`), owner
+capture, 2026-08-09 21:44:53/21:45:00 EDT, mid-month and post-roll, platform
+clock visible:
+
+| | E8 mid | FMP exact-minute bar | offset | verdict |
+| --- | --- | --- | --- | --- |
+| WTI.C | 79.152 | CLUSD 21:44 close 79.02 | **+0.10 (~13bp)**, inside E8's own 0.120 spread | **MATCH** |
+| BRENT.C | 85.8205 | BZUSD 21:43 close 84.72 | **+1.10 (~130bp)**, nine spreads | **NOT the same series** |
+
+Against F4/F6's +1.61/+1.675 a week earlier, BRENT's gap moved ~0.55 in seven
+days with no roll boundary near — a contract-month spread decaying, not a venue
+offset. So the antecedent of this amendment's own conditional is established:
+**BRENT tracks a different month, goes dormant under this ruling, and amendment
+30's BRENT clause is superseded. WTI is a match and stays served.**
+
+The code agrees and has since that day: BRENT is absent from `knownSymbols`
+(`supabase/functions/trade-analyzer/symbols.ts`), its row is dormant with
+`fmpSymbol: null` (`src/lib/broker/masterList.ts:511-521`), and WTI, BZUSD and
+CLUSD all scan. That row's own comment cites **this amendment** as already
+decided — "Amendment 32 (2026-08-09, decided on the owner's live frame)" — so
+the shipped engine has been operating under the settled reading for three weeks
+while the amendment that settles it still read "undecided". The spec was the
+stale copy, not the code.
+
+*Corrected rather than deleted, and the paragraph above is left standing, for
+the reason `docs/HANDOFF.md:560` gives: the record of a sentence that misled is
+worth more than its absence. Flagged for the owner's confirmation on the same
+principle — an agent transcribing "the owner decided" from a research file is
+one step from an agent-authored amendment, and this note is only as good as F13's
+attribution.*
+
 ## Amendment 33 — the calibration mandate (owner ruling, 2026-08-07)
 
 **The standard.** Everything between here and the resumption of hedge-mind work
