@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.windwardline.levelflow-minute-bank-backup</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-lc</string>
+    <string>/Users/peacock/Projects/levelflow-cloud/scripts/ops/backup-minute-bank.sh</string>
+  </array>
+  <!-- 20:10 UTC-local, fifty minutes after the evening bank run at 19:20, so a
+       day's fetch is on disk before it is copied. Once daily rather than twice:
+       the bank only grows, and a second copy of the same day would capture the
+       same bars for the same reason the morning run's would already be held. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>20</integer>
+    <key>Minute</key>
+    <integer>10</integer>
+  </dict>
+  <!-- RunAtLoad, deliberately: a machine that was asleep at 20:10 has missed
+       the window, and the bars it missed are the ones no money buys back. The
+       copy is an APFS clone and costs about a second, so there is no reason to
+       be shy about an extra one. -->
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/Users/peacock/Library/Logs/levelflow-minute-bank-backup.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/peacock/Library/Logs/levelflow-minute-bank-backup.log</string>
+</dict>
+</plist>
