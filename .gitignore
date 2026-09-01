@@ -27,3 +27,4 @@ test-results
 
 # The shared FMP circuit breaker's marker — machine state, never committed.
 .fmp-circuit.json
+.fmp-usage.json

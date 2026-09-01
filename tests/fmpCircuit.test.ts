@@ -149,9 +149,14 @@ describe("the bank consults it, records to it, and clears it", () => {
   });
 
   it("tells the other consumers what it learned", () => {
+    // Through the GOVERNOR since 2026-08-31: `noteRefusal` classifies on the
+    // provider's words and opens the breaker, and routing every spender
+    // through it is what took breaker coverage from one of four to four of
+    // four. The claim is unchanged — a bandwidth refusal must become every
+    // consumer's knowledge rather than this one's private discovery.
     assert.match(
       SOURCE,
-      /if \(isBandwidthRefusal\(result\.note\)\) \{\s*\n\s*openCircuit\(/,
+      /if \(isBandwidthRefusal\(result\.note\)\) \{\s*\n\s*noteRefusal\(/,
       "a bandwidth refusal is not recorded, so the cache top-up and the " +
         "sweeps each spend a roster rediscovering it",
     );

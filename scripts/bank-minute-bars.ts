@@ -50,6 +50,7 @@ import {
 } from "node:fs/promises";
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
 import { flagReader } from "./flagReader.ts";
+import { maySpend, noteRefusal, recordUsage } from "./fmpGovernor.ts";
 
 const BASE = "https://financialmodelingprep.com/stable";
 const KEY = process.env.FMP_API_KEY;
@@ -61,7 +62,6 @@ import {
   closeCircuit,
   isBandwidthRefusal,
   mayCall,
-  openCircuit,
 } from "./fmpCircuit.ts";
 
 const PROVIDER = "fmp";
@@ -394,7 +394,13 @@ async function fetchMinuteBars(fmpSymbol: string): Promise<RawBar[]> {
     const detail = await res.text().catch(() => "");
     throw new Error(`HTTP ${res.status}${detail ? ` ${detail.trim()}` : ""}`);
   }
-  const payload = await res.json();
+  // Measured at the only moment the real cost is knowable: FMP publishes no
+  // usage endpoint and Content-Length is absent on chunked responses, so the
+  // body's own size IS the bill. Written through to the shared daily ledger,
+  // so the next process starts from the truth rather than from zero.
+  const body = await res.text();
+  recordUsage(new TextEncoder().encode(body).length, Date.now());
+  const payload = JSON.parse(body);
   if (!Array.isArray(payload)) {
     throw new Error("payload was not an array");
   }
@@ -503,6 +509,20 @@ async function main() {
   // already found it. An open breaker still lets ONE probe through per
   // cool-off window, so recovery is noticed without the roster being spent to
   // notice it.
+  // The bank is §21c's protected consumer — 1-minute bars are re-served only
+  // ~3 days deep, so its loss alone is permanent — and it still asks. A
+  // ceiling it cannot exceed is not a demotion: it is what lets every other
+  // consumer be refused HARDER, because the bank's share is reserved rather
+  // than merely hoped for.
+  const governed = maySpend({
+    atMs: Date.now(),
+    dailyLimitBytes: 512 * 1024 * 1024,
+    label: "bank-minute-bars",
+  });
+  if (!governed.allowed) {
+    console.error(governed.reason);
+    return;
+  }
   const gate = mayCall(Date.now());
   if (!gate.allowed) {
     console.error(`Standing down: ${gate.reason}`);
@@ -526,7 +546,7 @@ async function main() {
       // Tell every other consumer what this one just learned, so the cache
       // top-up and the sweeps do not each spend a roster finding out.
       if (isBandwidthRefusal(result.note)) {
-        openCircuit(result.note, Date.now());
+        noteRefusal(result.note, Date.now());
       }
       console.error(
         `The first symbol fetched nothing (${result.note || "no bars"}). ` +

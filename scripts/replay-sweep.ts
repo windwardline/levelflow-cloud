@@ -113,6 +113,7 @@ import {
 } from "../supabase/functions/trade-analyzer/bars.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 import { flagReader } from "./flagReader.ts";
+import { governedBudget, maySpend, noteRefusal } from "./fmpGovernor.ts";
 import { fileURLToPath } from "node:url";
 
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
@@ -256,8 +257,38 @@ async function main() {
   }
   // Declared before anything reaches the provider, so a run without a ceiling
   // dies at the command line rather than partway through a sweep.
-  sweepBudget = createByteBudget(parseByteBudgetArg(process.argv.slice(2)));
+  sweepBudget = governedBudget(
+    createByteBudget(parseByteBudgetArg(process.argv.slice(2))),
+    () => Date.now(),
+  );
   const args = parseArgs(process.argv.slice(2));
+  // THE GOVERNOR'S DOOR — AFTER the dials are validated, deliberately.
+  //
+  // The first placement put it before `parseArgs`, and three tests caught
+  // it: a malformed `--step abc` reported the breaker instead of the bad
+  // flag. That inverts the rule #364 round 52 established — arguments are
+  // refused BEFORE the metered run, and a typo must never be reported as a
+  // provider condition. Nothing has been spent by this line either way, so
+  // the gate loses nothing by asking second. The `--byte-budget`
+  // this driver already refuses to start without is a PER-PROCESS ceiling: it
+  // bounds one sweep and knows nothing about what the day has already spent.
+  // The governor supplies the missing half — the shared breaker, and a ceiling
+  // per UTC day that a re-run cannot reset — and `governedBudget` writes every
+  // byte this run counts through to the shared ledger, so the next process
+  // starts from the truth.
+  //
+  // R3 is the reason this matters now: anchored at a pinned day the sweep
+  // fetches nothing, and the ledger is what will PROVE that rather than
+  // assume it.
+  const sweepGate = maySpend({
+    atMs: Date.now(),
+    dailyLimitBytes: 8 * 1024 * 1024 * 1024,
+    label: "replay-sweep",
+  });
+  if (!sweepGate.allowed) {
+    console.error(sweepGate.reason);
+    process.exit(1);
+  }
   // THE COST SCALE, resolved and refused before a single byte is fetched.
   //
   // The refusal has lifted — M5 (2026-08-31) routed the scale through
@@ -1267,6 +1298,10 @@ async function fetchCalendarEvents(
     endpoint.searchParams.set("apikey", API_KEY!);
     const response = await fetchFmpWithRetry(() => fetch(endpoint), FMP_RETRY);
     if (!response.ok) {
+      // The provider's own words reach the shared breaker before this throws.
+      // Without it a bandwidth wall discovered mid-sweep stays this run's
+      // private knowledge, and the bank and the top-up each rediscover it.
+      noteRefusal(await response.clone().text().catch(() => ""), Date.now());
       // I3: this used to warn and `continue`. loadRollingSeries then merged the
       // holed result and pinned it as the anchor day's truth, and because later
       // runs only top up from the last stored time, the dropped 90-day window
@@ -1412,6 +1447,10 @@ async function fetchTreasuryRates(
     endpoint.searchParams.set("apikey", API_KEY!);
     const response = await fetchFmpWithRetry(() => fetch(endpoint), FMP_RETRY);
     if (!response.ok) {
+      // The provider's own words reach the shared breaker before this throws.
+      // Without it a bandwidth wall discovered mid-sweep stays this run's
+      // private knowledge, and the bank and the top-up each rediscover it.
+      noteRefusal(await response.clone().text().catch(() => ""), Date.now());
       // I3, verbatim from the calendar: a warned-and-continued hole would
       // be merged and pinned as the anchor day's truth, and later top-ups
       // never revisit it — one transient failure would permanently hole

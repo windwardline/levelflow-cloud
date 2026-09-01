@@ -20,6 +20,7 @@
  */
 import { MASTER_LIST_ROWS, type MasterListRow } from "../src/lib/broker/masterList.ts";
 import { flagReader } from "./flagReader.ts";
+import { maySpend, noteRefusal, recordUsage } from "./fmpGovernor.ts";
 
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
 const API_KEY = process.env.FMP_API_KEY;
@@ -48,9 +49,16 @@ type Probe = {
 async function fetchJson(url: URL): Promise<unknown> {
   const response = await fetch(url, { headers: { accept: "application/json" } });
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    // The provider's own words reach the classifier, not just the status:
+    // a bare `HTTP 429` cannot be told from the per-minute rate limit, and
+    // the shared breaker would never open on the wall that matters.
+    const detail = await response.text().catch(() => "");
+    noteRefusal(detail, Date.now());
+    throw new Error(`HTTP ${response.status}${detail ? ` ${detail}` : ""}`);
   }
-  return await response.json();
+  const body = await response.text();
+  recordUsage(new TextEncoder().encode(body).length, Date.now());
+  return JSON.parse(body) as unknown;
 }
 
 type EodBar = { date?: string; close?: number };
@@ -240,6 +248,19 @@ async function main(): Promise<void> {
   const jsonPath = str("--json");
   if (!API_KEY) {
     console.error("FMP_API_KEY is required.");
+    process.exit(1);
+  }
+  // THE GOVERNOR'S DOOR. Background diagnostics ask before they spend: the
+  // shared breaker, then a DAILY ceiling that a re-run cannot reset. This
+  // script probes the whole roster on EOD and 15-minute series, so it is the
+  // largest ad-hoc spender in the tree and had no guard of any kind.
+  const gate = maySpend({
+    atMs: Date.now(),
+    dailyLimitBytes: 256 * 1024 * 1024,
+    label: "verify-fmp-matches",
+  });
+  if (!gate.allowed) {
+    console.error(gate.reason);
     process.exit(1);
   }
   const mapped = MASTER_LIST_ROWS.filter((row) => row.fmpSymbol !== null);
