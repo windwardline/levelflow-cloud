@@ -87,3 +87,23 @@ cannot be re-run; `docs/ci-recovery.md` records the remedies.
 - Frontend that depends on a new migration lands one push after the migration — Vercel builds independently of `deploy.yml`.
 - **Never copy this repo into scratch by hand.** Use `scripts/scratch-clone.sh <dest>` — the fleet helper, byte-identical across every repo and blob-verified by the conformance checker. A `cp -R` or a `git clone` of the working tree carries `.calibration-cache` with it: on 2026-08-25 a fan-out left 23 copies under `/private/tmp`, 148.8 GiB of a cache no test reads, alongside 20 copies of a live `.env.local`. The helper asks git what to exclude rather than keeping its own list, because a private list rots unnoticed until a copy is already gigabytes.
 - **`--no-git` costs four test files.** `scripts/scratch-clone.sh` ships `.git` by default; `--no-git` opts out and is right for a copy that will not shell out to git. Four test files here do — `emptyCorpusRefusals`, `feedSource`, `securityHardening` and `scratchClone` itself — and without `.git` they fail with `Command failed: git status --porcelain` and `git ls-files -z`, 19 failures that read as missing DATA rather than a missing directory. Those 19 are why the fleet inverted the default (windwardline#84). `tests/scratchClone.test.ts` pins the set, so a fifth git-dependent test fails there and this line gets updated rather than the next agent rediscovering it. Measured: 8.2 GB working tree → 171 MB by default, 12 MB with `--no-git`, and the suite is 2734/0 from a copy holding no `.calibration-cache` at all.
+
+## Declared gates
+
+The machine-readable gate set. `scripts/fleet-conformance.sh` requires this block
+and the workspace done-gate hook runs every `gate:` line before a session may
+finish, so what runs is what is written here rather than what a hook guessed from
+`package.json`. Each key states its own boundary: `gate:` runs at session end and
+must be local and quick; `release:` runs before a pull request and may be slow;
+`cadence:` is scheduled or needs the live machine and is run by neither.
+
+```fleet-gates
+gate: npm run check
+gate: npm run lint
+gate: npm run check:migrations
+gate: npm audit --audit-level=high
+gate: npm test
+gate: npm run build
+gate: npm run check:bundle
+release: npm run test:e2e
+```
