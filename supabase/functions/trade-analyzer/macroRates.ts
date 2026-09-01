@@ -231,6 +231,14 @@ export function calculateMacroRateAdjustment(
   if (
     context.source === "unavailable" ||
     context.tenYearChangeBps === null ||
+    // 4 bp: UNDERIVED. Nothing in this repo measured it, and it is the dead
+    // band that decides whether the macro term participates at all. It is also
+    // the number most exposed to rate LEVEL — a large daily move at a 0.5%
+    // ten-year and routine at 4.3% — and nothing ties it to level or to
+    // realised volatility. `tenYearYield` now rides on every emitted row so a
+    // valid corpus can say which regime each decision sat in; no fix shape is
+    // pre-registered here, because pre-registering one is how an unmeasured
+    // mechanism becomes a finding (amendment 39).
     Math.abs(context.tenYearChangeBps) < 4
   ) {
     return {
@@ -248,6 +256,11 @@ export function calculateMacroRateAdjustment(
     context.tenYearChangeBps,
   );
   if (!preferredSide) {
+    // 8 bp: UNDERIVED, and the same line appears again below. The -1 beside it
+    // is NOT a fifth undocumented number — it already carries #415's treatment
+    // twice in this file, in the HOUSD and RBUSD role entries above, each of
+    // which says in terms that the magnitude was never measured here. Quoting
+    // that sentence a third time would make it look like a third market.
     const shockPenalty =
       getMacroRateRole(normalizedSymbol).role === "energy-shock" &&
         Math.abs(context.tenYearChangeBps) >= 8
@@ -262,6 +275,13 @@ export function calculateMacroRateAdjustment(
     };
   }
 
+  // 8 bp AND the 2:1 pair: both UNDERIVED, and the pair was the one this file's
+  // own register entry never named while calling the surface handled. It is
+  // also the source of the "plus or minus 2" bound that entry leans on — and
+  // that bound is misleading as a low-stakes argument: this addend feeds the
+  // acceptance gate, the scan's primary sort and the correlated-sibling
+  // suppressor, so within two points of a class threshold it is publish-or-
+  // refuse rather than a nudge. Class thresholds run 20 to 85.
   const magnitude = Math.abs(context.tenYearChangeBps) >= 8 ? 2 : 1;
   const aligned = side === preferredSide;
   return {
