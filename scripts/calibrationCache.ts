@@ -36,6 +36,46 @@ export const TOP_UP_OVERLAP_MS = 3 * 86_400_000;
 // Anchor pins kept per store; older days' pins are useless once past.
 const PINS_KEPT = 5;
 
+/**
+ * Anchor days pruning must NEVER evict, however old they get.
+ *
+ * A pinned anchor is what makes a sweep free: `loadRollingSeries` returns
+ * straight from the store when `store.pinned[anchor]` exists, with zero
+ * provider requests. Measured 2026-09-01 across all 290 stores in
+ * `.calibration-cache`, every one of them pins 2026-08-26 and only 13 pin
+ * 2026-08-27 — so R3, the ONE re-sweep the remediation program allows, costs
+ * NOTHING at that anchor and makes 277 stores fetch at any later one.
+ *
+ * That free ride is perishable, and the ordinary prune is what spends it.
+ * Pins are dropped oldest-first once a store holds more than `PINS_KEPT`;
+ * stores currently hold two to four, so a few nightly top-ups take them past
+ * five and 2026-08-26 goes after 2026-08-24 and 2026-08-25. The top-up is
+ * standing down on the provider's 429 today, which means the eviction begins
+ * the moment the allowance recovers — precisely when a sweep becomes possible
+ * and precisely when nobody would think to check.
+ *
+ * A COMMENT IN THE HANDOFF CANNOT STOP A LAUNCHD TIMER. This list can, and it
+ * is deliberately a repository constant rather than an environment variable:
+ * the agent that would evict the pin runs from a plist with its own
+ * environment, and a guard that depends on a shell being right is not a guard.
+ *
+ * REMOVE AN ENTRY ONCE ITS SWEEP HAS RUN. A protected anchor that outlives its
+ * purpose is a store that never prunes, and `tests/calibrationCache.test.ts`
+ * requires every entry to carry a reason so the list cannot quietly become
+ * permanent.
+ */
+export const PROTECTED_ANCHORS: ReadonlyArray<{ day: string; why: string }> = [
+  {
+    day: "2026-08-26",
+    why:
+      "R3's zero-fetch anchor. All 290 stores pin it (measured 2026-09-01); " +
+      "at any later anchor 277 of them fetch against an allowance the owner " +
+      "is deliberately not topping up. Remove once R3 has run.",
+  },
+];
+
+const PROTECTED_DAYS = new Set(PROTECTED_ANCHORS.map((entry) => entry.day));
+
 type RollingStore<T> = {
   clock?: string;
   items: T[];
@@ -233,8 +273,15 @@ export async function loadRollingSeries<T>(input: {
   }
   store.pinned[anchor] = timeOf(store.items.at(-1)!);
 
-  const pins = Object.keys(store.pinned).sort();
-  for (const stale of pins.slice(0, Math.max(0, pins.length - PINS_KEPT))) {
+  // Protected anchors are held out of the prune ENTIRELY rather than counted
+  // against `PINS_KEPT`: counting them would let a run of ordinary top-ups
+  // push the protected day out of the keep-window and evict it anyway, which
+  // is the failure this exists to prevent. Growth stays bounded because the
+  // protected list is a handful of declared days, not an accumulation.
+  const prunable = Object.keys(store.pinned)
+    .filter((day) => !PROTECTED_DAYS.has(day))
+    .sort();
+  for (const stale of prunable.slice(0, Math.max(0, prunable.length - PINS_KEPT))) {
     delete store.pinned[stale];
   }
 

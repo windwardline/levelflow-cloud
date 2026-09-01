@@ -1360,6 +1360,18 @@ So the one re-sweep can run against an exhausted allowance for free, at either 0
 Anchored at 08-27 instead, 277 stores fetch. **Nothing in the record said this**, and every
 prior estimate of "R3's real draw" was unanchored guesswork.
 
+**PROTECTED IN CODE 2026-09-01.** `PROTECTED_ANCHORS` in
+`scripts/calibrationCache.ts` holds 2026-08-26 out of the prune entirely — not
+merely early in it, because counting a protected day against `PINS_KEPT` lets a
+run of ordinary top-ups push it out of the keep-window and evict it anyway. It
+is a repository constant rather than an environment variable, because the agent
+that would evict it runs from a launchd plist with its own environment and a
+guard that depends on a shell being right is not a guard against that agent.
+`tests/protectedAnchor.test.ts` proves it by execution over ten later anchors,
+requires every entry to state when it stops being needed, and reads the live
+cache to confirm the pin is still there. **Remove the entry once R3 has run** —
+a protected anchor that outlives its sweep is a store that never prunes.
+
 **AND THE FREE RIDE IS PERISHABLE.** `PINS_KEPT = 5` (`calibrationCache.ts:37`) and pins are
 pruned OLDEST-FIRST on every write (`:236-238`). 210 stores currently hold two pins, 68 hold
 three, 12 hold four. Enough further anchor-day writes and 08-26 is evicted — converting R3 from
