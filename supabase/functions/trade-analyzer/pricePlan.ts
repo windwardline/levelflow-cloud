@@ -229,8 +229,15 @@ export function buildPricePlan(
   const currentClose = latest.close;
   const atr = averageTrueRange(bars, 14);
   const dailyAtr = averageTrueRange(daily, 14);
-  const pivots = findSwingPivots(bars, 3);
-  const dailyPivots = findSwingPivots(daily, 2);
+  // AXES-3, expressible since 2026-09-01. The literals stay the defaults, so
+  // every shipped cell produces the pivots it always did; only a grid variant
+  // moves them. Pivot depth is upstream of the stop's chosen level, the
+  // runner's structural target and `nearestStructureDistance` alike.
+  const pivots = findSwingPivots(bars, calibration.pivotStrengthIntraday ?? 3);
+  const dailyPivots = findSwingPivots(
+    daily,
+    calibration.pivotStrengthDaily ?? 2,
+  );
   // Recorded, not just applied: trend and non-trend regimes carry different
   // entry offsets in every class, and until now nothing said which one a setup
   // used — so an entry-offset grid could not tell which half of the corpus it

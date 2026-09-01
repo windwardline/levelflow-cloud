@@ -142,6 +142,26 @@ export type CategoryCalibration = {
    * version exists to prevent. This PR does not, because no cell sets it.
    */
   stopStructureSource?: "intraday" | "intraday_and_daily";
+  /**
+   * How many bars either side a swing pivot must dominate — AXES-3.
+   *
+   * `findSwingPivots(bars, 3)` and `findSwingPivots(daily, 2)` were literals at
+   * two call sites in `pricePlan.ts`, which is why the pre-R3 register recorded
+   * that this axis "cannot be expressed as grid overrides" and that R3's one
+   * re-sweep therefore could not produce the corpus R4 is defined to read.
+   *
+   * Pivot depth is upstream of everything structural: it decides which levels
+   * exist at all, and from there the stop's chosen pivot, the runner's
+   * structural target and `nearestStructureDistance`. A shallower strength
+   * admits more, noisier levels; a deeper one admits fewer, more significant
+   * ones. Nothing has measured which pays.
+   *
+   * EXPRESSIBLE IS NOT THE SAME AS CROSSED. Undefined — every shipped cell —
+   * takes the literals that have always shipped, so this changes no behaviour
+   * and costs R3 nothing unless the run card names it in `--grid`.
+   */
+  pivotStrengthIntraday?: number;
+  pivotStrengthDaily?: number;
   // Q4's split: multiplies ONLY the geometry-sizing hours
   // (expectedWindowMove) — patience/expiry keeps reading
   // defaultReviewHours untouched, because the baseline measured the
