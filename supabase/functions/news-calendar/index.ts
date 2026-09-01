@@ -1,4 +1,6 @@
 import { recordAnalyzerEvent } from "../trade-analyzer/telemetry.ts";
+import { recordFetch } from "../trade-analyzer/fmpBudget.ts";
+import { fmpBudgetDeps } from "../trade-analyzer/fmpBudgetDb.ts";
 import { getAssetType } from "../trade-analyzer/calibration.ts";
 import {
   defaultScanSymbols,
@@ -288,6 +290,16 @@ async function fetchFmpEconomicEvents(
 
   const response = await fetchWithTimeout(url, {}, PROVIDER_FETCH_TIMEOUT_MS);
   const responseText = await response.text();
+  // BACKGROUND, and that word is the whole design. Nobody is waiting on the
+  // calendar sync: it runs on a schedule to keep the event table warm. Under
+  // the standing rule it therefore hits its ceiling first when the day is
+  // contested, so a live operator's scan is still served when the background
+  // work has already been refused.
+  void recordFetch(
+    fmpBudgetDeps(),
+    "background",
+    new TextEncoder().encode(responseText).length,
+  );
   if (!response.ok) {
     throw new Error(
       `FMP economic calendar request failed (${response.status}): ${

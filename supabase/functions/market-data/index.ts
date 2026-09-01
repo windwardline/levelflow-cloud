@@ -5,6 +5,8 @@ import {
 } from "../trade-analyzer/barStore.ts";
 import { barStoreDeps } from "../trade-analyzer/barStoreDb.ts";
 import { adminRpcRows } from "../trade-analyzer/supabaseRest.ts";
+import { recordFetch } from "../trade-analyzer/fmpBudget.ts";
+import { fmpBudgetDeps } from "../trade-analyzer/fmpBudgetDb.ts";
 import { corsHeaders, jsonResponse } from "../_shared/http.ts";
 import { classifyUpstreamFailure } from "./upstreamStatus.ts";
 
@@ -555,6 +557,14 @@ async function fetchFmpBarsDirect(
     MARKET_DATA_FETCH_TIMEOUT_MS,
   );
   const responseText = await response.text();
+  // Charged to `user`: this is a chart an operator opened and is waiting on.
+  // Never awaited into the response path — accounting must not add latency to
+  // an answer already in hand.
+  void recordFetch(
+    fmpBudgetDeps(),
+    "user",
+    new TextEncoder().encode(responseText).length,
+  );
   if (!response.ok) {
     return {
       ok: false,

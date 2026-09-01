@@ -6,6 +6,8 @@ import {
 import { asStoredBar, readThrough, type StoredBar } from "./barStore.ts";
 import { parseFmpQuoteSnapshot, type QuoteSnapshot } from "./quotes.ts";
 import { barStoreDeps } from "./barStoreDb.ts";
+import { recordFetch } from "./fmpBudget.ts";
+import { fmpBudgetDeps } from "./fmpBudgetDb.ts";
 import { labelZoneFor } from "./venues.ts";
 import {
   type Bar,
@@ -250,6 +252,17 @@ async function fetchFmpQuoteSnapshot(
     );
     const durationMs = Math.round(performance.now() - startedAt);
     const responseText = await response.text();
+    // THE LEDGER (2026-09-01). Measured at the only moment the real cost is
+    // knowable: the provider publishes no usage endpoint and Content-Length is
+    // absent on chunked responses, so the body's own size IS the bill. Charged
+    // to `user` because this path serves an operator who is waiting — a scan
+    // they asked for, or a market they opened. Never awaited into the response
+    // path: accounting must not add latency to an answer already in hand.
+    void recordFetch(
+      fmpBudgetDeps(),
+      "user",
+      new TextEncoder().encode(responseText).length,
+    );
 
     if (!response.ok) {
       await recordEvent({
@@ -342,6 +355,17 @@ async function fetchRawWindow(
       MARKET_DATA_FETCH_TIMEOUT_MS,
     );
     responseText = await response.text();
+    // THE LEDGER (2026-09-01). Measured at the only moment the real cost is
+    // knowable: the provider publishes no usage endpoint and Content-Length is
+    // absent on chunked responses, so the body's own size IS the bill. Charged
+    // to `user` because this path serves an operator who is waiting — a scan
+    // they asked for, or a market they opened. Never awaited into the response
+    // path: accounting must not add latency to an answer already in hand.
+    void recordFetch(
+      fmpBudgetDeps(),
+      "user",
+      new TextEncoder().encode(responseText).length,
+    );
   } catch (error) {
     const durationMs = Math.round(performance.now() - startedAt);
     await recordEvent({

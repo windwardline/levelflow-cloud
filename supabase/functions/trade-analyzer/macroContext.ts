@@ -19,6 +19,8 @@ import {
   treasuryCurveStaleMs,
   unavailableContext,
 } from "./macroRates.ts";
+import { recordFetch } from "./fmpBudget.ts";
+import { fmpBudgetDeps } from "./fmpBudgetDb.ts";
 
 export {
   calculateMacroRateAdjustment,
@@ -98,6 +100,13 @@ async function requestMacroRateContext(
     url.searchParams.set("apikey", FMP_API_KEY);
     const response = await fetcher(url, {}, PROVIDER_FETCH_TIMEOUT_MS);
     const responseText = await response.text();
+    // Charged to `user`: the Treasury curve is context for a scan an operator
+    // asked for, fetched on that request's path.
+    void recordFetch(
+      fmpBudgetDeps(),
+      "user",
+      new TextEncoder().encode(responseText).length,
+    );
     if (!response.ok) {
       return unavailableContext(
         `FMP Treasury-rate request failed (${response.status}).`,

@@ -61,6 +61,12 @@ const EMITTERS = ["index.ts", "marketLoader.ts", "sessions.ts"];
  * the other, and an exclusion has to carry an argument rather than a name.
  */
 const NOT_READER_FACING: Record<string, string> = {
+  "fmpBudget.ts":
+    "the FMP budget's `reason` is a diagnostic for a log line and a refusal " +
+    "the desk turns into its own sentence — it names byte totals and a " +
+    "consumer class, which are engine vocabulary. Nothing here reaches an " +
+    "operator: the chart feed's 429 carries its own copy, and the analyzer " +
+    "path records rather than refuses.",
   "bars.ts":
     "`reason: \"shape\" | \"timestamp\" | ...` is a rejection TAG on a " +
     "telemetry union, not prose — it never reaches a sentence.",
