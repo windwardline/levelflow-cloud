@@ -4,6 +4,7 @@ import {
   type StoredBar,
 } from "../trade-analyzer/barStore.ts";
 import { barStoreDeps } from "../trade-analyzer/barStoreDb.ts";
+import { adminRpcRows } from "../trade-analyzer/supabaseRest.ts";
 import { corsHeaders, jsonResponse } from "../_shared/http.ts";
 import { classifyUpstreamFailure } from "./upstreamStatus.ts";
 
@@ -197,6 +198,25 @@ Deno.serve(async (req) => {
       }, 401);
     }
 
+    // A BUDGET UNIT PER REQUEST, exactly as `trade-analyzer` claims one. This
+    // was the only FMP-reaching Edge function whose sole check was that the
+    // caller was authenticated, and the arithmetic is why that mattered: a
+    // 15-minute crypto chart is ~648 KB, so one signed-in tab requesting one
+    // per second draws ~56 GB in a day — the whole 30-day allowance in under
+    // five, with nothing able to refuse it.
+    //
+    // The limiter is the analyzer's own, widened by one action rather than
+    // duplicated: same table, same atomic claim, same window, and the
+    // analyzer-abuse suite already exercises it at deploy time.
+    const claim = await claimMarketDataRequest(user.id);
+    if (!claim.allowed) {
+      return jsonResponse(req, {
+        error: "Chart requests are rate limited. Try again shortly.",
+        limit: claim.limit,
+        resetAt: claim.resetAt,
+      }, 429);
+    }
+
     let body: MarketDataRequest;
     try {
       body = await req.json();
@@ -356,6 +376,61 @@ async function getAuthenticatedUser(req: Request) {
 
   const user = await response.json();
   return typeof user?.id === "string" ? user : null;
+}
+
+/**
+ * The chart feed's per-user budget.
+ *
+ * 120 per minute, and the number is derived rather than chosen. A chart view
+ * legitimately re-requests on symbol change, timeframe change and window pan,
+ * and the workspace can hold several panes — so a real session bursts. 120/min
+ * leaves that untouched while capping the worst case at ~78 MB/minute instead
+ * of an open tap, and it sits an order of magnitude below the rate that
+ * exhausts a 30-day allowance in a working week.
+ *
+ * SIXTY-SECOND WINDOW, matching the analyzer's, because the two budgets are
+ * spent by the same person in the same session and a reader comparing them
+ * should not have to convert units.
+ */
+const MARKET_DATA_RATE_LIMIT = 120;
+const MARKET_DATA_WINDOW_SECONDS = 60;
+
+async function claimMarketDataRequest(userId: string): Promise<{
+  allowed: boolean;
+  limit: number;
+  resetAt: string | null;
+}> {
+  try {
+    const rows = await adminRpcRows<{
+      allowed: boolean;
+      limit_count: number;
+      request_count: number;
+      reset_at: string;
+    }>("claim_analyzer_request", {
+      p_action: "market_data",
+      p_limit: MARKET_DATA_RATE_LIMIT,
+      p_user_id: userId,
+      p_window_seconds: MARKET_DATA_WINDOW_SECONDS,
+    });
+    const result = rows[0];
+    if (!result) {
+      // NO RESULT IS A REFUSAL, not a pass. A limiter that cannot answer has
+      // not said yes, and the failure this guards against is the one where an
+      // unavailable meter silently becomes an unmetered path.
+      return { allowed: false, limit: MARKET_DATA_RATE_LIMIT, resetAt: null };
+    }
+    return {
+      allowed: Boolean(result.allowed),
+      limit: Number(result.limit_count) || MARKET_DATA_RATE_LIMIT,
+      resetAt: result.reset_at ?? null,
+    };
+  } catch {
+    // Same direction as above, and deliberately the opposite of the bar
+    // store's outage fallback: a store that cannot be read costs a re-fetch
+    // and the desk keeps working, while a METER that cannot be read is the
+    // only thing standing between one browser tab and the whole allowance.
+    return { allowed: false, limit: MARKET_DATA_RATE_LIMIT, resetAt: null };
+  }
 }
 
 function normalizeSymbol(value: string) {
@@ -530,7 +605,21 @@ function resolveDateWindow(body: MarketDataRequest, timeframe: ChartTimeframe) {
   );
   const defaultFromDate = new Date(`${to}T00:00:00.000Z`);
   defaultFromDate.setUTCDate(defaultFromDate.getUTCDate() - dayCount);
-  const from = isIsoDate(body.from) ? body.from : isoDate(defaultFromDate);
+
+  // THE CALLER'S `from` IS CLAMPED THE WAY `days` ALREADY IS. It was not, and
+  // that made the clamp one line above decorative: `days` could not exceed
+  // `maxDayCount(timeframe)`, while a hand-built request naming
+  // `from: "1990-01-01"` bought every byte the provider would serve. Only the
+  // DEFAULT path was bounded.
+  //
+  // The floor is the same ceiling, expressed as a date: no earlier than
+  // `maxDayCount` before `to`. A request asking for less still gets less —
+  // this only refuses asking for more than the timeframe's own window.
+  const earliest = new Date(`${to}T00:00:00.000Z`);
+  earliest.setUTCDate(earliest.getUTCDate() - maxDayCount(timeframe));
+  const earliestIso = isoDate(earliest);
+  const requested = isIsoDate(body.from) ? body.from : isoDate(defaultFromDate);
+  const from = requested < earliestIso ? earliestIso : requested;
 
   return { from, to };
 }
