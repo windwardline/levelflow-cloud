@@ -30,6 +30,7 @@ const SUSPECTS = new Set([
 ]);
 
 type Row = {
+  accepted?: boolean;
   symbol: string; outcome: string; realizedR: number | null;
   split: string; stopProvenance?: string; variant?: string;
 };
@@ -64,6 +65,13 @@ async function main(): Promise<void> {
       let row: Row;
       try { row = JSON.parse(line) as Row; } catch { continue; }
       if (row.variant && row.variant !== "baseline") continue;
+      // SHIPPED DECISIONS ONLY. This ranks markets for REINSTATEMENT, so the
+      // population has to be what the engine would actually place. A
+      // `--capture-all` corpus carries the gate-failing decisions flagged
+      // `accepted: false`, and folding them in would build a reinstatement case
+      // out of setups that would never reach an operator. A no-op on a gated
+      // corpus, where every emitted row is `accepted: true`.
+      if (row.accepted === false) continue;
       if (!SUSPECTS.has(row.symbol) || !row.stopProvenance) continue;
       if (row.outcome === "unfilled") continue;
       for (const key of [k(row.symbol, row.stopProvenance), k(row.symbol, "ALL")]) {
