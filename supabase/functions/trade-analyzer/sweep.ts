@@ -152,6 +152,40 @@ export type SweepOutcomeRecord = {
   // makes the curve's tolerated leading edge honestly VISIBLE downstream.
   macroAdjustment: number;
   macroStance: string;
+  /**
+   * The Treasury curve the macro verdict was read off, at the decision instant.
+   *
+   * The corpus carried the VERDICT (`macroAdjustment`, `macroStance`) and threw
+   * away the STATE, which makes every threshold in `macroRates.ts`
+   * unre-derivable at any value other than the one that shipped: the 4bp dead
+   * band (`:234`), the 8bp large-move line (`:253`, `:265`) and the 2:1
+   * magnitude pair (`:265`). R3 is the one re-sweep, so a state nobody kept is
+   * a threshold nobody can ever move on evidence.
+   *
+   * THREE FIELDS, NOT ONE AND NOT SEVEN — `MacroRateContext` is enumerated
+   * rather than sampled, and the other four are exactly derivable from these
+   * plus what the emit already has. `curveSpreadBps` is
+   * `roundBps((tenYear - twoYear) * 100)` (`macroRates.ts:342`); `latestDate`
+   * is `treasuryLabelMs`; `previousDate` is the row before it in the same
+   * store; and `source` is already visible as `macroStance: "unavailable"`.
+   * Adding a redundant column would be storage, and adding only
+   * `tenYearChangeBps` would leave the reopener this exists for unanswerable —
+   * 4bp is a large daily move at a 0.5% ten-year and routine at 4.3%, and only
+   * the LEVEL can say which regime a row sat in.
+   *
+   * It also resolves a collision without a new stance value.
+   * `macroRates.ts:241` returns `"neutral"` for "rates were steady" and `:258`
+   * returns `"neutral"` for "no rate-aligned side for this market" — two
+   * different facts under one word. With the change in hand a reader separates
+   * them exactly: `|tenYearChangeBps| < 4` is the first, anything else is the
+   * second.
+   *
+   * Null on a decision with fewer than two visible Treasury rows, which is the
+   * same condition `macroStance: "unavailable"` reports.
+   */
+  tenYearChangeBps: number | null;
+  tenYearYield: number | null;
+  twoYearYield: number | null;
   maxAdverseMove: number | null;
   maxFavorableMove: number | null;
   newsPenalty: number;
@@ -941,17 +975,22 @@ export function simulateSymbol(input: {
       input.cotReports ?? [],
       latest.time,
     );
+    // HOISTED so the STATE reaches the emit, not only the verdict. The corpus
+    // recorded `macroAdjustment` and `macroStance` and discarded the curve the
+    // engine read them off, which makes every threshold in `macroRates.ts`
+    // unre-derivable at any value other than the one that shipped.
+    const macroContext = treasuryVisible >= 2
+      ? treasuryContextFromRows(
+        treasuryRates[treasuryVisible - 1],
+        treasuryRates[treasuryVisible - 2],
+      )
+      : unavailableContext(
+        "No Treasury rows were visible at this decision instant.",
+      );
     const macroRate = calculateMacroRateAdjustment(
       input.symbol,
       consensus.side,
-      treasuryVisible >= 2
-        ? treasuryContextFromRows(
-          treasuryRates[treasuryVisible - 1],
-          treasuryRates[treasuryVisible - 2],
-        )
-        : unavailableContext(
-          "No Treasury rows were visible at this decision instant.",
-        ),
+      macroContext,
     );
     const scoreBreakdown = scoreSetupConfidence({
       availableTimeframeCount: market.availableTimeframes.length,
@@ -1136,6 +1175,9 @@ export function simulateSymbol(input: {
       legs: evaluation.legs,
       macroAdjustment: macroRate.adjustment,
       macroStance: macroRate.stance,
+      tenYearChangeBps: macroContext.tenYearChangeBps,
+      tenYearYield: macroContext.tenYearYield,
+      twoYearYield: macroContext.twoYearYield,
       maxAdverseMove: feedbackNumber("maxAdverseMove"),
       maxFavorableMove: feedbackNumber("maxFavorableMove"),
       forgoneRunnerR: feedbackNumber("forgoneRunnerR"),
