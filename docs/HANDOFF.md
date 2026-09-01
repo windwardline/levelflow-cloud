@@ -3235,10 +3235,34 @@ the macro-rate role, where they sit at `none` with an OPEN marker rather than
 a settled reason. The old `RATE_SENSITIVE_METALS` set admitted every precious
 metal and excluded copper, which is a decision written into its composition
 but never stated as a criterion. Admitting the platinum group means stating
-that criterion. *The same two symbols are also 2 of the 15 unmapped COT
-markets*, so one ruling closes two layers. Options: rule once and apply to
-both in one change set, or leave both open and accept that two parts of the
-engine wait on one question.
+that criterion. ~~*The same two symbols are also 2 of the 15 unmapped COT
+markets*, so one ruling closes two layers.~~ **REFUTED 2026-09-01 — there is no
+second layer, and there never was.** COT mapping is by CFTC contract code
+(`cotContext.ts:65-87`, a plain symbol→code map); the macro role is by the
+monetary/industrial question. The repo carries its own counter-example:
+`HGUSD` is `role: "none"` because "Copper is industrial, not monetary"
+(`macroRates.ts:145`) **and** COT-mapped as `"HG"` (`cotContext.ts:73`).
+
+Derived over all 97 scan markets rather than argued — if the two were coupled
+the cross-tab would be diagonal, and it is fully populated:
+
+| macro role | COT-mapped | COT-unmapped |
+| --- | --- | --- |
+| `none` | 22 | 11 |
+| `rate-inverse` | 14 | 37 |
+| `energy-shock` | 4 | 2 |
+| `usd-base` / `usd-quote` | 7 | 0 |
+
+That PLUSD and PAUSD appear in both places is a coincidence of symbols, not a
+dependency. Mapping their contract codes is decision B's agent work and needs no
+criterion; this ruling is only about the macro role.
+
+Options: **rule it, or leave it open** — there is no "apply to both". And the
+live blast radius of leaving it is one market, not two: PAUSD is engine-declined
+(`calibration.ts:1477-1480`, `measuredExpectancyR: -0.149`, ±0.072 over n=147)
+and builds no setup at all. That figure comes from the corpus the 2026-08-11
+clock defect invalidated, so it is the DECLINE that is live here, not the
+number — and the decline is what makes the market silent either way.
 
 **B. The COT contract table before R3 — fill it, or declare it partial?**
 `DIRECT_CONTRACTS` maps 20 of 98 symbols; `getCotContractMapping` returns null
