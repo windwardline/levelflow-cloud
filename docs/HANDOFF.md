@@ -1434,9 +1434,44 @@ fails if any call site reverts to the run day: five sites agreeing with each oth
 and with nothing else was the defect, and ONE missed site is the most expensive
 shape, because the run still looks anchored.
 
+**AND THE SPEND GATE REFUSED THE FREE RUN — closed the same day.** With
+`--anchor` landed, the run still could not start: `maySpend` sits on the RUN, the
+shared breaker is OPEN on the bandwidth wall, and that wall drains by time over
+days while re-arming every six hours as probes fail. A guard on bytes was
+blocking a run that spends none — the free ride unreachable for as long as the
+wall stands.
+
+The exemption is **earned, never asserted**. An anchored run still fetches any
+series whose store lacks that pin, so a blanket exemption would spend the roster
+behind an open breaker while claiming to be free. A past anchor now runs a
+pre-flight over the artifacts the run will actually read — three frames per
+symbol, `econ-calendar`, `treasury-rates`, and every COT contract the roster's
+own mapping produces (COT caches by contract, carries no pins, and fetches on a
+miss, so a census of rolling stores alone would miss the one artifact that could
+still reach the provider). All present and the run cannot fetch, so the gate is
+not consulted; one absent and it refuses, naming the artifact and the pins that
+store does hold. `readPinnedDays` reads the last 64 KB rather than parsing 16 GB
+— 3 ms for five stores, one of them 121 MB — and PROVES the key order rather
+than assuming it, falling back to a full parse otherwise.
+
+This mechanizes point 2 below rather than restating it: an instruction to
+remember something is not a guard against forgetting it.
+
+**Verified end to end 2026-09-01**, behind the open breaker:
+
+```
+anchored at 2026-08-26: 313 cache artifacts all carry the pin, so this run
+cannot reach the provider — the shared spend gate is not consulted
+EURUSD  warm  411599 intraday bars through 2026-08-26  spent 0.00GiB of 0.00GiB
+```
+
 Two things follow, and neither is optional:
-1. **R3's run-card names the anchor** — `--anchor 2026-08-26` — alongside the
-   `--byte-budget` the driver refuses to start without (`replay-sweep.ts`).
+1. **R3's run-card names the anchor AND the depth** — `--anchor 2026-08-26
+   --days 7000`, alongside the `--byte-budget` the driver refuses to start
+   without (`replay-sweep.ts`). The depth is not optional and was found by
+   running it: `--days` defaults to 60, the cache holds 7000, and at the default
+   the pre-flight refuses all 291 bar stores as unpinned — correctly, since
+   `EURUSD-15min-60` does not exist and the run would have bought it.
 2. **The pin population is re-measured immediately before the sweep**, not assumed from this
    table. This block is a measurement dated 2026-08-31, not a guarantee.
 
