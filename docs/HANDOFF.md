@@ -3317,14 +3317,21 @@ eleven — both omit `trend_pullback_to_value`, whose voter runs
 unconditionally, and `getStrategyProfileWeight` ends in
 `?? DEFAULT_PROFILE_WEIGHT`, so a renamed strategy would silently neutralise
 its weight in all eight classes with no error and no failing test. A
-completeness guard is ~~written~~ **SPECIFIED BUT NOT WRITTEN — corrected
-2026-09-01.** No such guard exists anywhere: `git log --all -S
-"trend_pullback_to_value" -- tests/` is empty, no branch or stash carries it,
-and `tests/strategyProfiles.test.ts` holds four pairwise weight comparisons and
-nothing else. The sentence was read as fact by a 2026-09-01 pass, which
-proposed clearing a red test that was never red. It is additive when written,
-and it cannot land until this is answered because it would fail on those two
-classes.
+completeness guard is ~~written~~ ~~SPECIFIED BUT NOT WRITTEN~~ **WRITTEN, and
+this entry has now been wrong in both directions — third correction,
+2026-09-01.** It first claimed a guard that did not exist. The correction said
+no guard existed anywhere, which was true when written. `be04104` (#535) then
+wrote it: `tests/strategyProfileCompleteness.test.ts`, green at 15/0. It derives
+the strategy population from the committee rather than hardcoding it, and asserts
+BOTH directions — every class carries every strategy the committee can emit, and
+no class carries a weight for a strategy the committee cannot. The second
+direction is the rename hazard this entry raised, and it is closed.
+
+The clause that followed — that the guard "cannot land until this is answered
+because it would fail on those two classes" — was the reasoning error. It landed
+by RECORDING the two absences in `KNOWN_ABSENCES` rather than filling them, so
+the guard now fails if anyone writes the `1`. The open question did not block the
+guard; the guard became the place the open question is enforced.
 
 **And the obvious remedy is a provenance claim, not a restatement — recorded so
 it is not proposed again.** Writing an explicit `trend_pullback_to_value: 1`
@@ -3344,10 +3351,6 @@ agriculture, livestock). A written `1` would be unremarkable, not singular. The
 sentence before it carries the ruling on its own and is untouched; this one is
 struck rather than deleted because a reader who checks it and finds it false
 would have reason to distrust the whole entry.
-
-*Also stale above*: the completeness guard is no longer unwritten. It landed as
-`tests/strategyProfileCompleteness.test.ts` in #535, is green at 15/0, and
-records these two cells in `KNOWN_ABSENCES` rather than filling them.
 
 **D. macroRates' 4bp band, 8bp line and −1 energy penalty — mark them
 underived now, or wait for R3?** ~~Three distinct decisions, none documented~~
