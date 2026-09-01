@@ -58,6 +58,33 @@ export default class CoverageReporter implements Reporter {
       console.log(line);
     }
 
+    // A WHOLE PROJECT ABSENT IS THE SAME DEFECT AS A SILENT SKIP, one level up.
+    //
+    // The deploy runs the FMP-spending projects — `workspace`, `visual-proof`,
+    // `analyzer-abuse` — only when the push changed `src/`,
+    // `supabase/functions/` or `supabase/migrations/`, because 45% of merges
+    // change none of them and spent a full live scan matrix proving a
+    // documentation edit. That saving is only safe while the narrowing is
+    // VISIBLE: this file's whole reason for existing is that "115 passed, 0
+    // skipped" and "101 passed, 14 skipped" are different runs, and a
+    // narrowed suite reporting a clean 40-of-40 is that same confusion with a
+    // smaller denominator.
+    const fmpProjects = process.env.LEVELFLOW_E2E_FMP_PROJECTS;
+    if (fmpProjects === "stood-down") {
+      console.log(
+        "E2E SCOPE — the FMP-spending projects (workspace, visual-proof, " +
+          "analyzer-abuse) did NOT run: this push changed nothing under src/, " +
+          "supabase/functions/ or supabase/migrations/, so no commit in it " +
+          "could have moved the scan or chart paths. The market data they " +
+          "verify costs provider bandwidth, and the allowance is the " +
+          "constraint the desk scales into.",
+      );
+    } else if (fmpProjects === "ran") {
+      console.log(
+        "E2E SCOPE — the FMP-spending projects ran: this push touched the app.",
+      );
+    }
+
     if (verdict.ok) {
       return;
     }

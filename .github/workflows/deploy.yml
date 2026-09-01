@@ -101,6 +101,12 @@ jobs:
 
       - name: Checkout source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Two commits, so the step below can diff this push against its base.
+          # Not fetch-depth 0: the history is large and only the boundary is
+          # needed. `github.event.before` is still preferred when it is a real
+          # SHA; this is the fallback that makes the diff possible at all.
+          fetch-depth: 2
 
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -184,9 +190,59 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
+      # WHICH E2E PROJECTS SPEND FMP BANDWIDTH, and whether this push earns them.
+      #
+      # `workspace`, `visual-proof` and `analyzer-abuse` drive live scans
+      # against the deployed Edge functions, which reach the provider.
+      # `public-auth` and `public-auth-built` touch no market data at all.
+      #
+      # Measured 2026-09-01 over the last 80 first-parent merges: 36 of them —
+      # 45% — changed nothing under `src/`, `supabase/functions/` or
+      # `supabase/migrations/`. Those runs spent a full live scan matrix
+      # verifying a documentation change.
+      #
+      # THE DEPLOY STILL HAPPENS EVERY TIME. This gates the FMP-SPENDING
+      # VERIFICATION, not the release: a docs merge still builds, still
+      # migrates, still deploys the functions, and still runs the auth suites.
+      # What it does not do is re-prove the chart and scan paths that no commit
+      # in it could have changed.
+      #
+      # A missing or unresolvable base runs EVERYTHING. The failure to avoid is
+      # a silent narrowing, so the ambiguous case buys coverage rather than
+      # saving bytes.
+      - name: Decide whether the E2E may spend bandwidth
+        id: e2e-scope
+        run: |
+          base='${{ github.event.before }}'
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]              || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "base '$base' is not resolvable here — running the full suite"
+            echo "full=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed=$(git diff --name-only "$base" '${{ github.sha }}')
+          echo "$changed" | sed 's/^/  changed: /'
+          if echo "$changed" | grep -qE '^(src/|supabase/functions/|supabase/migrations/)'; then
+            echo "full=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "full=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run browser tests
-        run: npm run test:e2e
+        run: |
+          if [ '${{ steps.e2e-scope.outputs.full }}' = 'true' ]; then
+            npm run test:e2e
+          else
+            # Named projects rather than a grep: the FMP-spending set is a
+            # property of the config, and selecting the two that do NOT spend
+            # states which they are.
+            npm run test:e2e -- --project=public-auth --project=public-auth-built
+          fi
         env:
+          # Read by tests/e2e/coverageReporter.ts, which prints what stood down
+          # and why. A narrowed run that says nothing is the failure this repo
+          # already refuses for individual tests; a whole project silently
+          # absent is the same defect one level up.
+          LEVELFLOW_E2E_FMP_PROJECTS: ${{ steps.e2e-scope.outputs.full == 'true' && 'ran' || 'stood-down' }}
           LEVELFLOW_E2E_EMAIL: ${{ secrets.LEVELFLOW_E2E_EMAIL }}
           LEVELFLOW_E2E_PASSWORD: ${{ secrets.LEVELFLOW_E2E_PASSWORD }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
