@@ -39,16 +39,14 @@ describe("the window to buy", () => {
       coldStartFrom: "2022-07-19",
       limit: 3,
       newestStoredDate: "2026-08-30",
-      oldestStoredDate: "2026-08-28",
-      startDateIsBinding: false,
-      storedCount: 3,
+      oldestStoredDate: "2022-07-19",
       today: "2026-08-31",
       ...over,
     });
 
   it("buys the full cold-start window when the store is empty", () => {
     assert.deepEqual(
-      ask({ newestStoredDate: null, oldestStoredDate: null, storedCount: 0 }),
+      ask({ newestStoredDate: null, oldestStoredDate: null }),
       { from: "2022-07-19", to: "2026-08-31" },
     );
   });
@@ -67,32 +65,44 @@ describe("the window to buy", () => {
     );
   });
 
-  it("buys the FULL window while the store is shallower than the caller needs", () => {
-    // The truncation this would otherwise cause is silent and expensive:
-    // `maxBarsForTimeframe` is what the engine decodes and `findSwingPivots`
-    // walks the whole array into the stop and the ladder, so a shallow store
-    // plus a one-date tail hands the engine fewer pivots than today and moves
-    // stops. Under-depth costs exactly today's price — a warming store never
-    // regresses anything, it has simply not started saving yet.
+  it("buys the FULL window when the store does not SPAN it", () => {
+    // The truncation this prevents is silent and expensive: `findSwingPivots`
+    // walks the whole array into the stop and the ladder, so a store that
+    // begins after the window does, plus a one-date tail, hands the engine
+    // fewer pivots than a full buy and moves stops.
     assert.deepEqual(
-      ask({ limit: 3000, storedCount: 50 }),
+      ask({ oldestStoredDate: "2026-08-28" }),
       { from: "2022-07-19", to: "2026-08-31" },
     );
   });
 
-  it("buys the FULL window when a binding start reaches past the store", () => {
-    // A chart asking further back than the store holds cannot be served by
-    // topping up the newest end, or the series silently begins where the
-    // store happens to start rather than where the caller asked.
+  it("takes the TAIL when the store spans the window, however few rows it holds", () => {
+    // THE DEFECT THIS REPLACES, and the reason the count version cost money.
+    // The first form asked `storedCount < limit` — what the store HOLDS
+    // against what the engine DECODES — and on three of the five frames the
+    // window cannot physically supply the cap:
+    //
+    //   4hour  180d x 6/day   = 1,080 against a 1,200 cap, failing even 24/7
+    //   1hour   90d x 24/day  = 1,543 on a 24/5 market against 2,000
+    //   5min    10d x 288/day = 2,057 on a 24/5 market against 2,400
+    //
+    // So the test was permanently true, the store was never consulted, and the
+    // fix that removed ~167 MB per scan kept re-buying those frames forever.
+    // A store holding fewer rows than the cap is a fact about the DATA; no
+    // amount of buying changes it, and it is not a reason to re-buy.
     assert.deepEqual(
-      ask({ coldStartFrom: "2020-01-01", startDateIsBinding: true }),
-      { from: "2020-01-01", to: "2026-08-31" },
-    );
-    // The analyzer's lookback is NOT binding — the decode cap governs — so the
-    // same shape still takes the tail.
-    assert.deepEqual(
-      ask({ coldStartFrom: "2020-01-01", startDateIsBinding: false }),
+      ask({ limit: 3000 }),
       { from: "2026-08-30", to: "2026-08-31" },
+    );
+  });
+
+  it("a chart reaching further back than the store spans buys the full window", () => {
+    // Coverage subsumes the binding-start case the count version handled
+    // separately: a chart asking past the store's start and an analyzer whose
+    // window the store does not span are the SAME condition.
+    assert.deepEqual(
+      ask({ coldStartFrom: "2020-01-01" }),
+      { from: "2020-01-01", to: "2026-08-31" },
     );
   });
 
@@ -156,6 +166,14 @@ describe("the read-through, end to end", () => {
     return {
       written,
       deps: {
+        // DERIVED from the rows this fake store holds, not stubbed. A stub of
+        // null makes coverage fail for every case and turns every warm-path
+        // assertion into a cold-path one — the exact mistake that let the
+        // count gate ship looking tested.
+        oldestDate: async () =>
+          stored.length === 0
+            ? null
+            : stored.map((row) => row.date).sort()[0],
         read: async () => {
           if (fail === "read") throw new Error("store down");
           return stored;
@@ -171,23 +189,29 @@ describe("the read-through, end to end", () => {
   it("buys ONE date when the store is warm, not the whole window", () => {
     // The saving, asserted rather than described.
     let asked: { from: string; to: string } | null = null;
-    const { deps: d } = deps([bar("2026-08-30")]);
+    // The store SPANS the window — a bar at the cold-start date and one at the
+    // newest. The first version held a single 2026 bar against a 2022 window,
+    // which does not span it, so a full buy was correct and this test asserted
+    // the warm path while exercising the cold one.
+    const { deps: d } = deps([bar("2022-07-19"), bar("2026-08-30")]);
     return readThrough(d, {
       coldStartFrom: "2022-07-19",
       fetchWindow: async (from, to) => {
         asked = { from, to };
         return [bar("2026-08-31")];
       },
-      // Limit matches what the store holds: a store shallower than the
-      // caller needs correctly buys the FULL window, so a warm-path test must
-      // actually be warm or it measures the cold path and calls it warm.
-      limit: 1,
+      // A LARGE limit, deliberately. Under the retired count gate this bought
+      // the whole window and the warm path was never exercised; under coverage
+      // the store spans the request and the tail is correct however many rows
+      // it holds. That inversion is the fix, asserted.
+      limit: 3000,
       providerSymbol: "EURUSD",
       timeframe: "15min",
       today: "2026-08-31",
     }).then((result) => {
       assert.deepEqual(asked, { from: "2026-08-30", to: "2026-08-31" });
       assert.deepEqual(result.rows.map((row) => row.date), [
+        "2022-07-19",
         "2026-08-30",
         "2026-08-31",
       ]);
@@ -413,17 +437,25 @@ describe("the chart feed shares the store rather than duplicating it", () => {
     }
   });
 
-  it("treats the chart's requested start as BINDING, and the analyzer's as not", () => {
-    // A chart names a start date; serving it a series that begins where the
-    // store happens to start would silently answer a different question. The
-    // analyzer asks for a fixed lookback and the decode cap governs, so its
-    // start is not binding and it can always take the tail.
-    assert.match(CHART, /startDateIsBinding: true,/);
+  it("asks one coverage question for both callers", () => {
+    // The chart and the analyzer used to take different branches — a binding
+    // start for one, a row count for the other. They are the same question:
+    // does the store reach back to where the caller starts? One predicate
+    // cannot disagree with itself, and the count half of the old pair was
+    // permanently true on three frames.
+    const store = readFileSync(
+      "supabase/functions/trade-analyzer/barStore.ts",
+      "utf8",
+    );
+    assert.match(
+      store,
+      /input\.oldestStoredDate === null \|\|\s*\n\s*input\.oldestStoredDate > input\.coldStartFrom/,
+    );
     assert.doesNotMatch(
-      LOADER,
-      /startDateIsBinding: true,/,
-      "the analyzer now demands full coverage of a lookback the cap discards, " +
-        "which would buy the whole window on every scan and undo the saving",
+      store,
+      /storedCount < input\.limit/,
+      "the count gate is back — it compares rows held against rows decoded, " +
+        "which is permanently true wherever the window cannot supply the cap",
     );
   });
 
