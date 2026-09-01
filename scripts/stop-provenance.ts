@@ -26,12 +26,15 @@ import { assertManifest } from "./sweepStats.ts";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 
 type Row = {
+  accepted?: boolean;
   symbol: string; outcome: string; realizedR: number | null;
   split: string; stopProvenance?: string; rewardRisk: number; variant?: string;
 };
 type S = { filled: number; wins: number; stops: number; rSum: number };
 const key = (c: string, p: string, s: string) => `${c}|${p}|${s}`;
 const acc = new Map<string, S>();
+/** Every split name the corpus actually carried, derived while reading. */
+const splitsSeen = new Set<string>();
 
 function add(k: string, row: Row): void {
   let s = acc.get(k);
@@ -70,7 +73,26 @@ for (const file of files) {
     let row: Row;
     try { row = JSON.parse(line) as Row; } catch { continue; }
     if (row.variant && row.variant !== "baseline") continue;
+    // SHIPPED DECISIONS ONLY, and this reader had no such filter.
+    //
+    // A `--capture-all` corpus emits the rows that FAILED the confidence,
+    // payoff and regime gates alongside the ones that passed, flagged
+    // `accepted: false` — measured on BTCUSD at the 2026-08-26 anchor, 351 of
+    // 2,966 rows, 13.4%. Without this line every one of them was folded into
+    // the provenance tallies, so the question this reader asks — do cap-clipped
+    // stops out-earn structural ones — would have been answered over a
+    // population including setups the engine would never ship.
+    //
+    // A NO-OP ON A GATED CORPUS, which is why it is a filter rather than an
+    // `assertAcceptanceMode` refusal: a gated sweep emits `accepted: true` on
+    // every row (verified: 2,615 of 2,615), so this reader now reads the same
+    // population from either mode and needs no mode declaration at all. Two
+    // readers already REQUIRE captureAll: true (`confidence-bands.ts:234`,
+    // `threshold-rescue.ts:95`) and none requires false, so a corpus this
+    // reader refused would be one the others need.
+    if (row.accepted === false) continue;
     if (!row.stopProvenance) continue;
+    splitsSeen.add(row.split);
     add(key(getAssetType(row.symbol), row.stopProvenance, row.split), row);
   }
 }
@@ -78,17 +100,77 @@ for (const file of files) {
 const E = (s: S) => s.filled ? s.rSum / s.filled : null;
 const pct = (a: number, b: number) => b ? `${((a / b) * 100).toFixed(0)}%` : "—";
 const classes = [...new Set([...acc.keys()].map((k) => k.split("|")[0]))].sort();
-console.log(`${"class".padEnd(10)}${"stop set by".padEnd(18)}${"train E".padStart(9)}${"test E".padStart(9)}${"test fill".padStart(10)}${"win".padStart(6)}${"stop".padStart(6)}`);
+
+/**
+ * THE FOLD NAMES, TAKEN FROM THE CORPUS RATHER THAN ASSUMED.
+ *
+ * This reader looked up splits called "train" and "test". The fold vocabulary
+ * became `fit` / `select` / `confirm` (`sweepFolds.ts:21`), and nothing
+ * updated here — so `acc.get(key(c, p, "test"))` was undefined on every row of
+ * every modern corpus, the `!te` guard skipped all of them, and the script
+ * printed its column header and exited 0. Measured on a 322 MB three-market
+ * emit: 2,966 rows read, nine tallies built, ZERO rows printed.
+ *
+ * The file's own door comment named this exact shape — "the table prints its
+ * column header alone under exit 0, which is exactly what a real corpus
+ * holding no qualifying row also prints" — and the door it installed only
+ * covered the zero-FILES case. The zero-MATCHED-ROWS case is the one that had
+ * been firing.
+ *
+ * `grid-totalr.ts:1521` already carries the legacy map (`{fit: "train",
+ * select: "test"}`), so both vocabularies are live in the corpus population
+ * and neither may be hardcoded here.
+ */
+const FOLD_ORDER = ["fit", "select", "confirm", "train", "test"];
+const folds = FOLD_ORDER.filter((name) => splitsSeen.has(name));
+const unknown = [...splitsSeen].filter((name) => !FOLD_ORDER.includes(name));
+if (unknown.length > 0) {
+  console.error(
+    `stop-provenance: the corpus carries split name(s) this reader does not ` +
+      `know: ${unknown.join(", ")}. It would silently omit them rather than ` +
+      `report a partial table.`,
+  );
+  process.exit(1);
+}
+
+console.log(
+  `${"class".padEnd(10)}${"stop set by".padEnd(18)}` +
+    folds.map((f) => `${f} E`.padStart(11)).join("") +
+    `${"filled".padStart(10)}${"win".padStart(6)}${"stop".padStart(6)}` +
+    `   (win/stop/filled on ${folds[folds.length - 1]})`,
+);
+let printed = 0;
 for (const c of classes) {
   for (const p of ["pivot", "cap", "volatility_floor"]) {
-    const tr = acc.get(key(c, p, "train")), te = acc.get(key(c, p, "test"));
-    if (!te || te.filled < 30) continue;
+    // The LAST fold is the held-out one, and it carries the row's counts.
+    const held = acc.get(key(c, p, folds[folds.length - 1]));
+    if (!held || held.filled < 30) continue;
+    printed += 1;
     console.log(
       `${c.padEnd(10)}${p.padEnd(18)}` +
-      `${(tr && E(tr) !== null ? E(tr)!.toFixed(3) : "—").padStart(9)}` +
-      `${E(te)!.toFixed(3).padStart(9)}${String(te.filled).padStart(10)}` +
-      `${pct(te.wins, te.filled).padStart(6)}${pct(te.stops, te.filled).padStart(6)}`,
+        folds.map((f) => {
+          const cell = acc.get(key(c, p, f));
+          return (cell && E(cell) !== null ? E(cell)!.toFixed(3) : "—")
+            .padStart(11);
+        }).join("") +
+        `${String(held.filled).padStart(10)}` +
+        `${pct(held.wins, held.filled).padStart(6)}` +
+        `${pct(held.stops, held.filled).padStart(6)}`,
     );
   }
-  console.log();
+  if (printed > 0) console.log();
+}
+
+// The door the zero-files check was half of. A table that printed nothing is
+// indistinguishable from one nobody ran, and this reader spent two months in
+// exactly that state.
+if (printed === 0) {
+  console.error(
+    `stop-provenance: read ${acc.size} tallies across ` +
+      `${splitsSeen.size} split(s) [${[...splitsSeen].sort().join(", ")}] and ` +
+      `printed NO rows — every class/provenance cell was missing or under the ` +
+      `30-filled floor. That is a refusal, not a result: a header-only table ` +
+      `is what a wrong path prints too.`,
+  );
+  process.exit(1);
 }
