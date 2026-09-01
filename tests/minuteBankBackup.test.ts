@@ -184,7 +184,22 @@ describe("it spends no provider bandwidth, by construction", () => {
   it("reaches the network nowhere", () => {
     // The bank is frozen precisely BECAUSE the allowance is exhausted, so a
     // backup that needed the provider could never run when it matters most.
-    assert.doesNotMatch(SOURCE, /financialmodelingprep|curl |wget |FMP_API_KEY/);
+    //
+    // COMMENTS STRIPPED FIRST. The first version scanned the whole file and
+    // failed on a comment that mentioned `curl` while explaining a different
+    // guard — the same flaw, in the same change, as the sweep that comment was
+    // about. The claim is that the CODE reaches no network; prose describing
+    // the network is not a network call.
+    const code = SOURCE.split("\n")
+      .map((line) => line.replace(/(^|\s)#.*$/, "$1"))
+      .join("\n");
+    assert.doesNotMatch(code, /financialmodelingprep|\bcurl\b|\bwget\b|FMP_API_KEY/);
+    // Non-vacuity: a stripper that ate everything would pass having read
+    // nothing.
+    assert.ok(
+      code.includes("cp -R") && code.includes("VERIFY FAILED"),
+      "comment stripping removed the script's own code",
+    );
   });
 });
 

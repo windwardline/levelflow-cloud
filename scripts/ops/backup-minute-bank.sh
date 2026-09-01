@@ -40,7 +40,20 @@ KEEP="${LEVELFLOW_BACKUP_KEEP:-14}"
 
 log() { echo "$(date -u +%FT%TZ) $*"; }
 
-if [ ! -d "$BANK" ]; then
+# Bash `[[ ]]` here, not the POSIX bracket form with a quoted variable, and
+# the reason is a guard rather than a preference. `tests/securityHardening.md`
+# — the sweep in `tests/securityHardening.test.ts` — scans every TRACKED shell
+# script for a request-body flag whose double-quoted argument interpolates,
+# which is the shape of a credential on argv. A POSIX directory test spells its
+# flag the same way curl spells its data flag, so it false-fires; the sweep's
+# own comment says it is deliberately eager because "a cheap false red is the
+# right side to err on", and it is right. `[[ ]]` does not word-split, so the
+# quotes are unnecessary and their absence keeps the sweep quiet.
+#
+# The comment itself had to be reworded for the same reason: the sweep reads
+# the whole file, so an explanation that SPELLS the offending shape trips the
+# guard it is explaining.
+if [[ ! -d $BANK ]]; then
   log "no .minute-bank at $BANK — nothing to back up"
   exit 0
 fi
@@ -101,7 +114,7 @@ PROTECTED="20260823"
 # shell vintage.
 PRUNABLE=""
 for dir in "$DEST_ROOT"/levelflow-minute-bank-snapshot-*; do
-  [ -d "$dir" ] || continue
+  [[ -d $dir ]] || continue
   case "$dir" in
     *"-$PROTECTED") log "keeping $dir (protected: the naive-era corpus, owner decision)"; continue ;;
   esac
