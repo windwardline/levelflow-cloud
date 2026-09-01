@@ -1336,6 +1336,39 @@ without a partial cannot be built though the resolver can price one, TP1 never
 consults structure, and the stop consults intraday pivots while targets consult
 daily ones.
 
+**Two of the four are now MEASURABLE from R3's corpus, and that landed
+2026-09-01 because R3 is the last chance to add a column.** The questions stay
+the owner's; what changed is that answering them no longer needs a sweep that
+does not exist.
+
+- **The banked fraction (question 1).** Net R at any allocation was already
+  exact arithmetic on the emitted `legs`. The GROSS arm's legs were computed in
+  `simulateSymbol` and thrown away, so `grossEntryPrice`, `grossTp1Price` and
+  `grossExitPrice` now ride beside `grossRealizedR`, which is blended at 0.5
+  and cannot be un-blended. They are not copies: a different half-spread fills
+  the limit elsewhere and can land a different outcome, which is why
+  `grossOutcome` was already its own column. What no column can give is the
+  fraction's effect on the runner's EXIT PATH — banking a different size does
+  not move the protection trigger in an emitted resolution.
+- **TP1's band (question 3).** `nearestStructureDistance` is the runner's own
+  structural search with NO floor and NO cap, anchored to the planned entry
+  like the two distances beside it. Every distance the corpus carried was
+  floored at `minimumRunnerDistance`, so the band the partial sits in had no
+  level in it at all. Unfloored rather than clipped to the band deliberately: a
+  clipped field is null on most rows and cannot separate "no structure at these
+  distances" from "structure just outside the band" — the conflation
+  `runnerNearestBeyondMinimum` exists to end, reintroduced one field over.
+
+Neither column costs a provider byte; both values were already computed and
+discarded. **A packet figure was wrong and is corrected in place**: question 3
+read "0.80 against a floor of 1.50, at least 1.875x", which crosses two cells
+belonging to different markets. The real per-market minimum
+`minimumTargetRewardRisk / tp1RiskShare` is **2.00** (WTI, the roster's only
+1.6/0.8 cell), and it bounds the risk-share branch alone — the ATR floor is a
+multiple of ATR, not of risk, so no ratio of calibration cells bounds it.
+`tests/preR3Fields.test.ts` re-derives that 2.00 over `defaultScanSymbols` and
+fails naming the market if a calibration edit takes it below 2.
+
 **And the round's own error is recorded** (section 5): the first derivation ran
 against class calibration, which governs ~18 markets while 79 carry derived
 cells with 4x stops. Two findings survived re-derivation unchanged; the third
