@@ -79,13 +79,53 @@ export default class CoverageReporter implements Reporter {
           "verify costs provider bandwidth, and the allowance is the " +
           "constraint the desk scales into.",
       );
+    } else if (fmpProjects === "stood-down-parked") {
+      // A DIFFERENT REASON, AND IT MUST READ AS ONE. This push DID touch the
+      // app — reusing the sentence above would print a claim that is false of
+      // this run, which is the failure this reporter exists to prevent rather
+      // than commit.
+      //
+      // THE COST IS REAL AND IS STATED HERE. While the desk is parked these
+      // three projects are the only live verification of the authenticated
+      // surfaces, so an app change now ships without them. The trade is that
+      // each of their runs costs ~190 live provider calls to prove a desk no
+      // operator can reach: PARKING_GATE turns every arrival away, so the
+      // surfaces under test are unreachable in production for as long as this
+      // holds. The moment the desk unparks, this branch stops firing and the
+      // full matrix returns on the next app-touching push.
+      console.log(
+        "E2E SCOPE — the FMP-spending projects (workspace, visual-proof, " +
+          "analyzer-abuse) did NOT run, and this push DID touch the app: the " +
+          "desk is PARKED (src/lib/parkingGate.ts), so the authenticated " +
+          "surfaces they verify are unreachable in production and their ~190 " +
+          "live provider calls would prove a desk nobody can open. THE COST: " +
+          "this app change ships without live-desk verification. It returns " +
+          "automatically on the first app-touching push after unparking.",
+      );
     } else if (fmpProjects === "ran") {
       console.log(
         "E2E SCOPE — the FMP-spending projects ran: this push touched the app.",
       );
     }
 
-    if (verdict.ok) {
+    // Unset is a local run and says nothing. A value the reporter does not
+    // recognise is a WIRING error, and a scope decision nobody can read is the
+    // silent narrowing this file exists to refuse — so it goes red.
+    //
+    // Handled on its own rather than appended to `verdict.problems`, because
+    // the early return on `verdict.ok` below would swallow it on exactly the
+    // runs where it matters: a clean suite under a scope nobody can state.
+    const scopeUnreadable = fmpProjects !== undefined &&
+      !["ran", "stood-down", "stood-down-parked"].includes(fmpProjects);
+    if (scopeUnreadable) {
+      console.error(
+        `COVERAGE REFUSED: LEVELFLOW_E2E_FMP_PROJECTS is "${fmpProjects}", ` +
+          "which this reporter does not recognise — the run's scope cannot be " +
+          "stated, so it cannot be certified",
+      );
+    }
+
+    if (verdict.ok && !scopeUnreadable) {
       return;
     }
 

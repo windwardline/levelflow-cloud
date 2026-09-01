@@ -101,9 +101,24 @@ describe("a narrowed run says so", () => {
   it("passes the flag from the same step that decided it", () => {
     // Two places deciding the same fact is how they drift; the env var is
     // derived from the step's own output.
+    //
+    // The OUTPUT NAME is not the claim. This pinned `outputs.full`, a boolean,
+    // which stopped being enough on 2026-09-01: the scope has three states
+    // now — ran, stood-down, and stood-down-parked — because a parked
+    // app-touching push stands the FMP projects down for a reason the
+    // docs-only sentence would state falsely. The env var carries the state
+    // directly rather than a boolean the reporter would have to re-interpret.
     assert.match(
       DEPLOY,
-      /LEVELFLOW_E2E_FMP_PROJECTS: \$\{\{ steps\.e2e-scope\.outputs\.full/,
+      /LEVELFLOW_E2E_FMP_PROJECTS: \$\{\{ steps\.e2e-scope\.outputs\.\w+ \}\}/,
+      "the flag no longer comes from the deciding step's own output",
+    );
+    // And it must be the state, not a re-derivation: no ternary rebuilding
+    // the answer at the env line, which is where two places start to drift.
+    assert.doesNotMatch(
+      DEPLOY,
+      /LEVELFLOW_E2E_FMP_PROJECTS:[^\n]*&&[^\n]*\|\|/,
+      "the env line re-derives the scope instead of carrying it",
     );
   });
 });
