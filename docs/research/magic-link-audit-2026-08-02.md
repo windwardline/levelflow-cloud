@@ -87,19 +87,19 @@ template. Auth logs across the retention window carry no `mail_from` telltale.
 
 Fetched from `GET /v1/projects/usrtpoftuvhpmyhlhqlg/config/auth`.
 
-| Field | Live value | Standard | |
-|---|---|---|---|
-| `smtp_sender_name` | `Levelflow` | `{App}` | ✓ |
-| `smtp_admin_email` | `login@windwardline.com` | same | ✓ |
-| `mailer_subjects_magic_link` | `Your Levelflow sign-in link` | `Your {App} sign-in link` | ✓ |
-| `h2` | `Sign in to Levelflow` | `Sign in to {App}` | ✓ |
-| expiry line | `Click the button below to sign in. This link expires in 15 minutes.` | same | ✓ |
-| button label | `Sign in` | same | ✓ |
-| button accent | `#2244FF` | Levelflow accent of record | ✓ |
-| footer | `If you didn't request this, you can ignore it.` | same | ✓ |
-| `mailer_otp_exp` | `900` | exactly 15 minutes | ✓ |
-| transport | `smtp.resend.com:465`, user `resend` | same | ✓ |
-| link host | `site_url` = `https://levelflow.windwardline.com/`; `redirect_to` constrained by `uri_allow_list` | server config, never the request | ✓ |
+| Field | Live value | |
+|---|---|---|
+| `smtp_sender_name` | `Levelflow` | ✓ |
+| `smtp_admin_email` | `login@windwardline.com` | ✓ |
+| `mailer_subjects_magic_link` | `Your Levelflow sign-in link` | ✓ |
+| `h2` | `Sign in to Levelflow` | ✓ |
+| expiry line | `Click the button below to sign in. This link expires in 15 minutes.` | ✓ |
+| button label | `Sign in` | ✓ |
+| button accent | `#2244FF` | ✓ |
+| footer | `If you didn't request this, you can ignore it.` | ✓ |
+| `mailer_otp_exp` | `900` | ✓ |
+| transport | `smtp.resend.com:465`, user `resend` | ✓ |
+| link host | `site_url` = `https://levelflow.windwardline.com/`; `redirect_to` constrained by `uri_allow_list` | ✓ |
 
 No drift. **No PATCH was made** — the config already matches the standard, and
 touching it would have risked the partial-update hazard for no gain.
@@ -132,9 +132,9 @@ Clients that auto-invert do so unguided. Four consequences, in severity order:
 4. **No `color-scheme` declaration**, which is what would stop the inversion in
    Apple Mail and let the declared colors stand.
 
-Not applied, deliberately. This template is shared law across three apps — the
+Not applied, deliberately. This template is shared law across two apps — the
 standard opens "Every project's passwordless sign-in follows one design." Any
-hardening belongs in `~/AGENTS.md` first and then in all three senders in one
+hardening belongs in `~/AGENTS.md` first and then in both senders in one
 change set. Hardening Levelflow alone would fork the design to fix a rendering
 risk that is not the fault the owner reported.
 
@@ -143,33 +143,20 @@ risk that is not the fault the owner reported.
 Each row checked against the delivered email in Resend's log, not only against
 the source.
 
-| | Levelflow | TimeShift | Pathfinder |
-|---|---|---|---|
-| Sender | `Levelflow <login@windwardline.com>` ✓ | `TimeShift <login@windwardline.com>` ✓ | `Pathfinder <login@windwardline.com>` ✓ |
-| Subject | ✓ | ✓ | ✓ |
-| `h2` / expiry / label / footer | ✓ | ✓ | ✓ (HTML) |
-| Accent | `#2244FF` ✓ | `#7c5cff` ✓ | `#17594e` ✓ |
-| Transport | Supabase SMTP → Resend ✓ | Resend REST ✓ | Resend REST ✓ |
-| 15-minute expiry | `mailer_otp_exp` 900 ✓ | `15 * 60 * 1000` ✓ | `maxAge: 15 * 60` ✓ |
-| Single-use, atomic | GoTrue ✓ | race — **fixed**, timeshift#34 | `DELETE … RETURNING` ✓ |
-| Link host from server config | `site_url` ✓ | `APP_URL`, hard-fails if unset ✓ | **request headers** |
-| Scanner-safe link | n/a | n/a | **bypassed live** |
+| | Levelflow | Pathfinder |
+|---|---|---|
+| Sender | `Levelflow <login@windwardline.com>` ✓ | `Pathfinder <login@windwardline.com>` ✓ |
+| Subject | ✓ | ✓ |
+| `h2` / expiry / label / footer | ✓ | ✓ (HTML) |
+| Accent | `#2244FF` ✓ | `#17594e` ✓ |
+| Transport | Supabase SMTP → Resend ✓ | Resend REST ✓ |
+| 15-minute expiry | `mailer_otp_exp` 900 ✓ | `maxAge: 15 * 60` ✓ |
+| Single-use, atomic | GoTrue ✓ | `DELETE … RETURNING` ✓ |
+| Link host from server config | `site_url` ✓ | **request headers** |
+| Scanner-safe link | n/a | **bypassed live** |
 
-All three send the correct sender, subject, accent, and body copy. Every accent
+Both send the correct sender, subject, accent, and body copy. Every accent
 of record is intact. The drift is entirely in the auth layers.
-
-**TimeShift** — copy verbatim compliant on every row, and `#7c5cff` still equals
-the live `--violet` token. `consumeLoginToken` checked `usedAt` and then wrote it
-in a separate statement, so two concurrent verifies both minted a session; a
-scanner prefetch racing a click was enough to reach it. Eight concurrent consumes
-of one token won eight times against that code. **Fixed in timeshift#34**: every
-validity condition moved into the WHERE of one conditional write, with `count`
-as the answer to whether this caller consumed the token — the scoped-write shape
-`lib/db/trips.ts` already uses for ownership. Branches back to 100% (204/204).
-
-Still open there: no rate limiting, one error string for every send failure
-(`app/api/auth/request-link/route.ts:29-32`), and a request-origin redirect
-fallback when `APP_URL` is unset (`app/api/auth/verify/route.ts:11`).
 
 **Pathfinder** — the `/verify` rewrite the standard requires is dead code in
 production. `apps/web/src/lib/magic-link.ts` implements
@@ -218,8 +205,7 @@ from the app directory, which has none — but if it ever reached the runtime,
 Pathfinder's plain-text part also drops "Click the button below to sign in." and
 merges the expiry into the footer line. Minor next to the above.
 
-TimeShift's atomicity fix landed in its own repo (timeshift#34); Pathfinder's two
-findings are filed there. Neither repo is touched from here.
+Pathfinder's two findings are filed in its own repo, which is not touched from here.
 
 Resend's log also shows Pathfinder's own pre-standard era: subjects
 `Sign in to pathfinder.windwardline.com` through 2026-07-26 01:33, then
@@ -263,5 +249,5 @@ fragment carries its own declaration), backs the wrapper table and the button
 cell with `bgcolor` attributes, and names every text color explicitly — body
 `#111111`, footer `#555555` (7.5:1 on white; the old `#667` fell to ~3.1:1
 under client inversion). Copy, casing, accent and layout are unchanged.
-TimeShift and pathfinder receive the identical hardening in their own
-change sets, queued behind each repo's in-flight auth fixes.
+Pathfinder receives the identical hardening in its own
+change set, queued behind that repo's in-flight auth fixes.
