@@ -3260,12 +3260,40 @@ eleven — both omit `trend_pullback_to_value`, whose voter runs
 unconditionally, and `getStrategyProfileWeight` ends in
 `?? DEFAULT_PROFILE_WEIGHT`, so a renamed strategy would silently neutralise
 its weight in all eight classes with no error and no failing test. A
-completeness guard is written and additive, and cannot land until this is
-answered because it fails today on those two classes.
+completeness guard is ~~written~~ **SPECIFIED BUT NOT WRITTEN — corrected
+2026-09-01.** No such guard exists anywhere: `git log --all -S
+"trend_pullback_to_value" -- tests/` is empty, no branch or stash carries it,
+and `tests/strategyProfiles.test.ts` holds four pairwise weight comparisons and
+nothing else. The sentence was read as fact by a 2026-09-01 pass, which
+proposed clearing a red test that was never red. It is additive when written,
+and it cannot land until this is answered because it would fail on those two
+classes.
+
+**And the obvious remedy is a provenance claim, not a restatement — recorded so
+it is not proposed again.** Writing an explicit `trend_pullback_to_value: 1`
+into crypto and forex is bit-identical (`DEFAULT_PROFILE_WEIGHT = 1`, verified
+by fingerprinting four markets' emitted rows before and after) and therefore
+looks free. It is not. The commit that created the table gave forex four
+explicit `1`s while omitting this one, in the same commit that gave futures
+`1.08` — so silence in this table has never meant 1, and the author had the
+notation and did not use it. Every stated value sits at 1.04–1.08, so a written
+`1.00` would make crypto and forex the only sub-band cells and read to the next
+reader as measured de-emphasis. That is exactly what the agriculture and
+livestock notes exist to prevent.
 
 **D. macroRates' 4bp band, 8bp line and −1 energy penalty — mark them
-underived now, or wait for R3?** Three distinct decisions, none documented, in
-a file that derives `TREASURY_MAX_STALE_MS` over fifteen lines and gives all
+underived now, or wait for R3?** ~~Three distinct decisions, none documented~~
+**FOUR, and one of the three is already documented — corrected 2026-09-01.**
+The −1 already carries #415's treatment twice in this same file
+(`macroRates.ts:149` HOUSD, `:170` RBUSD, both reading that the magnitude "has
+never been measured anywhere in this repo"), so "extend #415's treatment to it"
+restates what is there. Meanwhile `const magnitude = ... >= 8 ? 2 : 1` (`:265`)
+carries an underived **2:1 pair** that this entry never named — and that pair is
+the source of the "±2" bound the entry leans on. Marking three of five and
+calling the surface handled is the curated-population failure. The −1 itself is
+at `:254`, not `:255`.
+
+In a file that derives `TREASURY_MAX_STALE_MS` over sixteen lines and gives all
 98 role entries a `why`. #415 already shipped HOUSD and RBUSD with an in-code
 note that the −1 "has never been measured anywhere in this repo". Effect is
 bounded at ±2 on a 0–100 score. Not the staleness shape — these are absolute
