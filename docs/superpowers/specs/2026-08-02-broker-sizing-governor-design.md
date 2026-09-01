@@ -1811,10 +1811,18 @@ and every item names the section it closes.
    closed the account-level walk and, with it, both rows' TRADABILITY**
    (owner, 2026-08-05, confirming both print live on the F9 watchlists):
    `ZB`/`ZN` ship `confirmed` under amendment 19, sourced to that sighting.
-   Tick size and value remain absent everywhere E8 publishes them, so this
-   item is **still open for SIZING** — a live order ticket, not a watchlist
-   price, is what this item originally asked for, and amendment 22 is now
-   the named reason the gap withholds only the Size layer.
+   ~~Tick size and value remain absent everywhere E8 publishes them, so this
+   item is **still open for SIZING**~~ — **CLOSED 2026-09-01 on the owner's
+   own tickets (frame F14, `docs/research/e8-feed-verification-2026-08-02.md`).**
+   A live order ticket, not a watchlist price, is what this item asked for, and
+   that is what settled it: a symmetric 100-tick bracket read twice through the
+   Order Ticket's `SHOW IN` selector, once as `Ticks` and once as `$ Value`.
+   **ZB: 1/32 point, $31.25 per tick. ZN: 1/64 point, $15.625 per tick.** Both
+   platform-computed, neither taken from an exchange spec, so §20i ruling 5's
+   boundary holds. Three checks agree: every bracket symmetric to the tick on
+   both legs, ZB's value exactly twice ZN's matching their tick-size ratio, and
+   both implying $1,000.00 per point. Amendment 22's named reason for
+   withholding the Size layer no longer applies to these two.
 6. **On the futures account: `6J`'s tick and value as the platform computes
    them** — the one number the boundary explicitly refused to fix with an
    exchange notional (§20i ruling 5). E8's own table gives `6J` a derived

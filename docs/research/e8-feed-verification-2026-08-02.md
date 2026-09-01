@@ -790,3 +790,52 @@ constant. Identity-safe (inside spread), but the printed basis-line
 number deserves a multi-session re-measurement pass before it moves —
 one Sunday-night frame does not re-derive a constant. Flagged in
 HANDOFF; the F-series protocol is the instrument for it.
+
+### F14 — 2026-09-01 17:57–18:05 CDT · ZB and ZN tick size AND value, from the platform's own arithmetic (owner capture)
+
+The frame sizing queue item 5 has been waiting for since 2026-08-05, and it
+closes that item outright. E8 Signature Futures on Tradovate, account
+E61855833256, equity $25,000.00, platform clock visible in every frame. Draft
+tickets only — nothing was submitted, and both margin meters read 0% throughout.
+
+**Method — F6's, with the platform doing the arithmetic twice.** A draft ticket,
+quantity 1, with a symmetric bracket the platform parameterises itself. The
+Order Ticket's `SHOW IN` selector expresses that bracket in either `Ticks` or
+`$ Value`, so the same bracket was read both ways: the tick reading gives the
+tick SIZE from the resulting prices, and the dollar reading gives the tick
+VALUE. Neither number is inferred, and neither comes from an exchange spec —
+which is what §20i ruling 5 requires.
+
+| | Entry | Stop | Target | Bracket, `SHOW IN: Ticks` | Bracket, `SHOW IN: $ Value` | **Tick size** | **Tick value** |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **ZBU6** · US Treasury Bond | 108 22 | 111 26 | 105 18 | 100 / 100 | 3125.00 / 3125.00 | **1/32 point** | **$31.25** |
+| **ZNU6** · 10-Year T-Note | 107 205 | 109 065 | 106 025 | 100 / 100 | 1562.500 / 1562.500 | **1/64 point** | **$15.625** |
+
+Quote convention: `108 22` is 108 + 22/32; a trailing `5` is a half-32nd, so
+`107 205` is 107 + 20.5/32.
+
+    ZB   stop 111.8125 − 108.6875 = 3.125   target 108.6875 − 105.5625 = 3.125
+         3.125 ÷ 100 = 0.03125 = 1/32       $3125.00 ÷ 100 = $31.25/tick
+    ZN   stop 109.203125 − 107.640625 = 1.5625   target 107.640625 − 106.078125 = 1.5625
+         1.5625 ÷ 100 = 0.015625 = 1/64     $1562.500 ÷ 100 = $15.625/tick
+
+**Three independent consistency checks, all passing.** Every bracket is
+symmetric to the tick on both legs, which is its own proof that the platform
+computed rather than rounded. ZB's tick value is exactly twice ZN's, matching
+their tick-size ratio of exactly two. And both instruments independently imply
+**$1,000.00 per full point** — so both carry $100,000 face, since a point is one
+percent of face. Three quantities derived from four screenshots agree without
+any of them being assumed.
+
+**Corroborated by the quoted spreads** in the same session: ZB `108 21 / 108 22`
+is one 32nd, ZN `107 200 / 107 205` is one half-32nd. The spreads were read
+before the brackets and predicted both tick sizes.
+
+**What this closes.** Sizing queue item 5
+(`docs/superpowers/specs/2026-08-02-broker-sizing-governor-design.md`) asked for
+"a live order ticket, not a watchlist price", and withheld only the Size layer
+on two markets Levelflow already serves. Both numbers are now platform-sourced.
+Amendment 22's named reason for the withholding no longer applies to ZB or ZN.
+
+**What it does not close.** `6J` (queue item 6) is untouched: amendment 32 left
+its FMP match null, so no ticket makes it usable until FMP publishes a series.
