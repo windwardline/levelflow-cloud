@@ -1417,6 +1417,25 @@ Two things follow, and neither is optional:
 2. **The pin population is re-measured immediately before the sweep**, not assumed from this
    table. This block is a measurement dated 2026-08-31, not a guarantee.
 
+**And a third, added 2026-09-01: R3's run card must carry the `runnerProtection`
+AXIS, not the roster at rest.** The axis overrides each market's own cell
+(`sweepGrid.ts` `GRID_STRING_KEYS`), so `runnerProtection=breakeven,hold,trail_tp1`
+measures all three modes on every market. Run at rest instead, R3 measures
+whatever each cell already says — and that is not a comparison, it is three
+unequal samples. Derived over `defaultScanSymbols`, the resting distribution is
+**trail_tp1 65, breakeven 25 (all of them via the unset cell's resolver
+fallback), hold 7**. The 7 are SP, BNBUSD, ZOUSX, CAKEUSD, IMXUSD, LINKUSD and
+XLMUSD, in three classes.
+
+`hold` is the arm with no protection at all — the full runner — and amendment 39
+makes the runner's give-back the standing priority, so it is precisely the arm a
+seven-market sample cannot answer for. `tests/runnerProtectionCoverage.test.ts`
+pins the RELATIONSHIP rather than these counts: it fails if the axis and the
+roster ever disagree about which modes exist, and it fails if a calibration edit
+ever balances the roster — which would dissolve this instruction's premise and
+should send someone back here rather than leave a stale "must run the axis"
+standing.
+
 **What R3 can answer for free, both of amendment 39's pre-registered axes.** `runnerProtection`
 is already a validated string grid axis (breakeven/hold/trail_tp1); and the cost-weight question
 no longer needs a second run at all, because every emitted row now carries `grossRealizedR` and
