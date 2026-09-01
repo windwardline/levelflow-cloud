@@ -1512,7 +1512,7 @@ open breaker, and produced a manifested corpus:
 ```bash
 npx tsx scripts/replay-sweep.ts \
   --anchor 2026-08-26 --days 7000 --symbols roster \
-  --grid "runnerProtection=breakeven,hold,trail_tp1" \
+  --grid "runnerProtection=breakeven,hold,trail_tp1;stopStructureSource=intraday,intraday_and_daily" \
   --byte-budget 1MB --emit docs/research/r3/emit.jsonl
 ```
 
@@ -1570,6 +1570,28 @@ structural floor can never be structure-stopped: 26 markets carry
 **No R consequence is derivable from it** and none is claimed: a moved stop
 moves `riskDistance`, which moves TP1, the payoff gate and admission, so the
 accepted population would differ. That is a grid arm, not an arithmetic.
+
+**SO IT IS A GRID ARM NOW.** `stopStructureSource` (`intraday` |
+`intraday_and_daily`) is a validated string axis beside `runnerProtection`, and
+`undefined` — every shipped cell — is bit-identical to what has always shipped.
+R3 prices both arms on all 97 markets in one run at zero additional bytes, and
+the geometry is decided on realized R rather than on placement. Adopting it on
+the placement table would have been manufacturing a ratio: a tighter stop
+mechanically improves every printed reward-to-risk with no structural reason to
+believe the money improves, which amendment 39 names by name.
+
+**Measured on three markets, full history, all splits, zero bytes:** the arms
+are bit-identical at `baseline` vs `intraday` (44,006 rows, −1396.0R both);
+`intraday_and_daily` admits 638 more decisions and loses none; same-bar
+ambiguity rises only 0.21% → 0.22% of filled rows, so the resolution limit does
+not bind; and the daily arm returns **less** money (−1438.1R total, −0.0389R per
+filled row against −0.0382R). Three markets are not a verdict, but the sign is
+opposite to what the placement table alone suggests — which is exactly why
+placement was never allowed to decide it.
+
+**R3's run card therefore crosses two axes:**
+`--grid "runnerProtection=breakeven,hold,trail_tp1;stopStructureSource=intraday,intraday_and_daily"`
+— six variants plus the baseline, still zero provider bytes, CPU only.
 
 Two things follow, and neither is optional:
 1. **R3's run-card names the anchor AND the depth** — `--anchor 2026-08-26

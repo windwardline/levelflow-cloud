@@ -86,15 +86,59 @@ derivable from this table** (amendment 39), and none is claimed here. The
 counterfactual R of a structure-stopped ladder is not recoverable from any
 emitted column, because a different stop changes which setups exist.
 
+## Does the change limit R3 with the data we already have? Measured: no
+
+The bars are the bars. Moving the stop changes which price LEVEL the simulation
+tests against the same cached bars; it needs no deeper history, no finer frames
+and no fetch. Two limits were worth checking, and both were measured rather than
+reasoned about — a two-arm run on EURUSD, BTCUSD and XAUUSD, full history, all
+three splits, anchored at 2026-08-26 and spending nothing:
+
+| arm | rows | filled | ambiguous | share of filled | total R |
+| --- | --- | --- | --- | --- | --- |
+| `baseline` | 44,006 | 36,580 | 75 | 0.21% | −1396.0 |
+| `stopStructureSource=intraday` | 44,006 | 36,580 | 75 | 0.21% | −1396.0 |
+| `stopStructureSource=intraday_and_daily` | 44,644 | 37,007 | 81 | 0.22% | −1438.1 |
+
+**Same-bar ambiguity does not grow meaningfully.** A nearer stop is touched
+sooner, so more resolutions risk having the stop and TP1 touched inside one bar,
+which the resolver must call `ambiguous`. Measured: 0.21% to 0.22% of filled
+rows — six rows in 37,007. It is not a constraint on R3.
+
+**The arms carry different populations, by construction.** The tighter stop
+admits 638 more decisions and loses none: a smaller `riskDistance` shrinks the
+payoff floor, so setups the current geometry refuses become admissible. This is
+the opposite of the gross/net cost arms, where the decision set was deliberately
+held identical so the comparison could not confound cost with selection. Here
+admission MUST move, because that is part of what the change does. So the
+verdict is total realized R per arm over each arm's own population with
+denominators stated, never a per-row delta — which is what `grid-totalr.ts`
+already computes, and its acceptance gate is absolute expectancy rather than a
+bare delta (D4).
+
+**`baseline` and the explicit `intraday` arm are bit-identical** on all 44,006
+rows and to the tenth of an R. The default is untouched.
+
+**And the direction, on three markets, is against adoption.** The daily arm
+returns −1438.1R against −1396.0R, and −0.0389R per filled row against
+−0.0382R. Both readings agree. Three markets at one anchor are not a verdict and
+this corpus is negative everywhere, so the magnitude is not evidence — but the
+sign is the opposite of what the placement table alone would suggest, which is
+precisely why placement was never allowed to decide it.
+
 ## What follows
 
 The decision is the owner's. Two things about its timing are not:
 
-1. **This is not expressible as a grid axis.** `--grid` overrides calibration
-   numbers (`GRID_OVERRIDE_KEYS`) and the one validated string axis; it cannot
-   change which pivot arrays the stop search reads. So a decision to change the
-   stop lands the way R2b's field list did — **before** the one re-sweep, not
-   after.
+1. ~~**This is not expressible as a grid axis.**~~ **It is now.**
+   `stopStructureSource` is a validated string axis alongside
+   `runnerProtection`, with `undefined` — every shipped cell — bit-identical to
+   the behaviour that has always shipped. R3 prices both arms on all 97 markets
+   in one run at zero additional provider bytes, and the decision is taken on
+   realized R rather than on placement. Adopting it on the placement table would
+   have been manufacturing a ratio: a tighter stop mechanically improves every
+   printed reward-to-risk with no structural reason to believe the money
+   improves, which amendment 39 names by name.
 2. **The 26 capped markets are unaffected either way.** Whatever is decided,
    their stops do not move, so the change's population is 71 markets rather
    than the roster.

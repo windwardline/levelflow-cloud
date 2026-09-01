@@ -107,6 +107,41 @@ export type CategoryCalibration = {
   // shipped jump-to-entry; "hold" leaves the original stop; "trail_tp1"
   // locks the stop at TP1's level.
   runnerProtection?: "breakeven" | "hold" | "trail_tp1";
+  /**
+   * Which pivot arrays the STOP's structural search reads.
+   *
+   * The ladder already reads all four — intraday highs, intraday lows, daily
+   * highs, daily lows (`pricePlan.ts`, the `pivotLevels` argument) — while the
+   * stop reads the intraday pair alone. Targets see daily structure; stops do
+   * not. No ruling chose that; it is simply what the two call sites do.
+   *
+   * MEASURED, NOT ASSUMED (2026-09-01, `docs/research/q4-daily-structure-2026-09-01.md`):
+   * over 1,908,189 planned decisions on all 97 markets, a daily level sits in
+   * the stop's own direction on 96.6%-100% of decisions, and on 32.0% of them
+   * across the 71 markets that can be structure-stopped it would move the
+   * shipped stop — median tightening ~0.6 ATR. On 2.6%-4.7% the intraday
+   * search found no pivot at all while a daily one existed.
+   *
+   * THIS FIELD EXISTS TO BE MEASURED, NOT TO BE SET. It is a crossable grid
+   * axis so R3 can price both arms in one run at zero additional provider
+   * bytes, the same way the gross/net cost question was closed. Undefined —
+   * every shipped cell today — is bit-identical to the behaviour that has
+   * always shipped.
+   *
+   * WHY IT IS NOT SIMPLY ADOPTED. Adding levels to a nearest-beyond search can
+   * only find a nearer level, so this always tightens the stop and never
+   * widens it. A tighter stop shrinks `riskDistance`, which shrinks the payoff
+   * floor, admits more marginal setups, moves TP1 nearer and stops out more
+   * often — and it mechanically improves every printed reward-to-risk with no
+   * structural reason to believe the money improves. Amendment 39 names that
+   * manufacture by name. Placement is not profit; R3 answers in realized R.
+   *
+   * The day a calibration CELL sets this, that is a behaviour-changing
+   * analyzer PR and must bump `ANALYZER_VERSION` — global learning is scoped
+   * by it, and two stop geometries pooled under one version is the defect the
+   * version exists to prevent. This PR does not, because no cell sets it.
+   */
+  stopStructureSource?: "intraday" | "intraday_and_daily";
   // Q4's split: multiplies ONLY the geometry-sizing hours
   // (expectedWindowMove) — patience/expiry keeps reading
   // defaultReviewHours untouched, because the baseline measured the

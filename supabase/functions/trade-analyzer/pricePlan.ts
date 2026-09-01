@@ -256,10 +256,23 @@ export function buildPricePlan(
   // from the one the pivot was selected against, three lines down. See the
   // field's own note at the emit site.
   const plannedEntry = entryPrice;
+  // WHICH ARRAYS THE STOP MAY SEE — a grid axis, defaulting to what has always
+  // shipped. The ladder below reads all four pivot arrays; this search reads
+  // the intraday pair unless a variant says otherwise. R2b question 4 measured
+  // the difference (32.0% of decisions move on the 71 markets that can be
+  // structure-stopped); R3 prices it. Nothing sets this in a shipped cell, so
+  // `intraday` is the only value production ever takes.
+  const stopStructure = side === "buy"
+    ? (calibration.stopStructureSource === "intraday_and_daily"
+      ? [...pivots.lows, ...dailyPivots.lows]
+      : pivots.lows)
+    : (calibration.stopStructureSource === "intraday_and_daily"
+      ? [...pivots.highs, ...dailyPivots.highs]
+      : pivots.highs);
   const nearestStopPivot = nearestLevelBeyond(
     side === "buy" ? "sell" : "buy",
     entryPrice,
-    side === "buy" ? pivots.lows : pivots.highs,
+    stopStructure,
   );
   // Structure may pull the stop nearer than the volatility ceiling, never
   // beyond it: a stop the review window cannot defend is a swing-trade stop
