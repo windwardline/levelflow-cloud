@@ -161,26 +161,33 @@ Each survived refutation. None is a tuning suggestion, and none may be actioned
 by widening a target or tightening a stop to improve a printed ratio
 (amendment 39).
 
-1. **The banked fraction is the literal `0.5`, in four places** (`replay.ts:247-249`,
-   `:327`, `pricePlan.ts:467-468`), and `CategoryCalibration` has no field for
-   it. Realized R is linear in that allocation and it has never been varied,
-   measured, or represented — while `forgoneRunnerR` already measures the
-   give-back with nothing upstream able to act on it.
+**CITATIONS RE-ANCHORED 2026-09-01.** The line numbers below were correct when
+written and were shifted about 48 lines the same day by #507, which added the
+refusal out-channel to this very file. A packet that sends a reader to a line
+resolving to unrelated code is worse than one with no line at all, so these are
+the current ones — and the lesson is that a citation into a file the same change
+set is editing needs re-checking before the packet leaves.
+
+1. **The banked fraction is the literal `0.5`** — three expressions engine-wide
+   (`replay.ts:247`, `:249`, `:327`) plus `pricePlan.ts:528-529`, and
+   `CategoryCalibration` has no field for it. Realized R is linear in that
+   allocation and it has never been varied, measured, or represented.
 2. **A plan without a partial cannot be built.** `takeProfit1` is typed
-   `number` (`pricePlan.ts:117, :531, :633-635`) so the null branch at `:466`
-   is dead, while the resolver handles a null TP1 on every path — it can price
-   a full-size plan the builder cannot produce.
+   `number` (`pricePlan.ts:162`, `:592`) so the null branch at `:527` is dead,
+   while the resolver handles a null TP1 on every path — it can price a
+   full-size plan the builder cannot produce.
 3. **TP1 never consults structure.** `pivotLevels` reaches
-   `buildLadderTargets` and is spent entirely on the runner (`:587-593`,
-   `:605-609`, both floored at `minimumRunnerDistance`). Since
-   `tp1RiskShare` (0.4-0.8) is always below `minimumTargetRewardRisk`
-   (1.5-1.7), TP1 is always strictly nearer than the nearest recorded
-   structural distance — so the partial is parked in a band the corpus
-   describes with no level at all.
-4. **The stop consults intraday structure only.** `dailyPivots`
-   (`pricePlan.ts:183`) reaches the ladder's `pivotLevels` (`:319-320`) and
-   never `nearestStopPivot` (`:208-212`). Targets see daily structure; stops do
-   not.
+   `buildLadderTargets` (`pricePlan.ts:368-373`) and is read at exactly two
+   sites, `:658` and `:676`, both floored at `minimumRunnerDistance` (`:643`).
+   TP1 at `:625-628` comes from risk share, ATR floor and window cap only.
+   Derived over all 98 markets: the worst-case `tp1Distance / riskDistance` is
+   0.80 against a floor of 1.50, so TP1 is strictly nearer than the nearest
+   recorded structural distance on every market by at least 1.875x — the
+   partial is parked in a band the corpus describes with no level at all.
+4. **The stop consults intraday structure only.** `pricePlan.ts:230` builds the
+   intraday pivots and `:231` the daily ones; `nearestStopPivot` (`:257-261`)
+   reads the intraday arrays alone, while `pivotLevels` (`:368-373`) spreads
+   all four into the ladder. Targets see daily structure; stops do not.
 
 ## 5. The error this round made, recorded because it is the archetype
 
