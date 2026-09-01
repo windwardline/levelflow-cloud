@@ -230,8 +230,22 @@ describe("Treasury curve staleness (C6) — a 200 is not freshness", () => {
     // The sweep refused on this bound inline, twice, before the live path had
     // any bound at all. Moving the number to macroRates without making the
     // sweep call it would have minted a third copy to keep in step.
+    //
+    // The AS-OF instant is the driver's own business and differs by design
+    // (2026-09-01): live is now, and an anchored replay's decisions end at its
+    // anchor, so the driver passes `staleAsOf(args.anchor, Date.now())`.
+    // Judged against the wall clock, the 2026-08-26 anchor's curve read seven
+    // days stale and refused the one free sweep the program is sequenced
+    // around. This assertion is about there being ONE bound, never about which
+    // instant each caller judges it at — pinning `Date.now()` here made it
+    // look like both.
     const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
-    assert.match(driver, /treasuryCurveIsStale\(lastRow\.dateMs, Date\.now\(\)\)/);
+    assert.match(driver, /treasuryCurveIsStale\(lastRow\.dateMs, asOfMs\)/);
+    assert.match(
+      driver,
+      /const asOfMs = staleAsOf\(args\.anchor, Date\.now\(\)\)/,
+      "the driver's as-of instant must still be derived, not a bare literal",
+    );
     assert.doesNotMatch(
       driver,
       /lastRow\.dateMs < Date\.now\(\) - 7 \* 86_400_000/,

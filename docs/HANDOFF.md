@@ -1465,6 +1465,45 @@ cannot reach the provider — the shared spend gate is not consulted
 EURUSD  warm  411599 intraday bars through 2026-08-26  spent 0.00GiB of 0.00GiB
 ```
 
+**AND THE TREASURY STALENESS BOUND REFUSED IT TOO — closed the same day, and
+this one had a deadline nobody knew about.** With the anchor landed and the
+spend gate earned, the first non-`--warm-only` run still died:
+
+```
+Treasury curve ends 2026-08-25T00:00:00.000Z — more than 7 days stale;
+decisions past its end would score against stale rows as if fresh;
+refusing to sweep
+```
+
+The guard protects a real thing — a decision past the curve's end scores against
+stale rows as if fresh — but "past the curve's end" is a question about the
+DECISIONS, and an anchored run's decisions end at its anchor, because every
+pinned series is truncated there. Judged against `Date.now()` the same corpus
+grows staler every day it is not run: the 08-26 anchor's curve ends 08-25, so
+the free sweep became unusable on 2026-09-01 and **was already refused when this
+was found**. R0c's refetch had made the curve 95.9% complete and it made no
+difference — the store was fine; the clock the guard read was not.
+
+Same shape the rebuild already shipped once — "a staleness bound that judged
+against the wall clock and ignored the bar in flight" (#420) — but the anchor
+makes it structural rather than incidental. The driver now judges at
+`staleAsOf(args.anchor, Date.now())`, a `min` so today's anchor keeps the wall
+clock exactly as before and a past anchor is the only case that changes.
+
+**VERIFIED: the anchored sweep runs end to end at zero bytes**, folds, density,
+Treasury, simulation and summary:
+
+```
+anchored at 2026-08-26: 6 cache artifacts all carry the pin ...
+fit: 2009-09-25 .. 2018-03-11 (decisions to 2018-03-06)
+select: 2018-03-11 .. 2022-06-03 (decisions to 2022-05-29)
+confirm: 2022-06-03 .. 2026-08-26 (decisions to 2026-08-21)
+EURUSD  baseline  fit  513 decisions ... 378 setups ... expectancyR -0.066
+```
+
+Three blockers, all found by trying to run it rather than by reading it, and each
+one invisible to the gate before it.
+
 Two things follow, and neither is optional:
 1. **R3's run-card names the anchor AND the depth** — `--anchor 2026-08-26
    --days 7000`, alongside the `--byte-budget` the driver refuses to start

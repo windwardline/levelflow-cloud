@@ -336,6 +336,18 @@ export async function anchoredPreflight(input: {
   return { checked, missing };
 }
 
+/**
+ * The instant a staleness bound should be judged at, for a run at `anchor`.
+ *
+ * `min`, so the default anchor (today) keeps judging against the wall clock
+ * exactly as before and a past anchor is the only case that changes. Extracted
+ * rather than inlined so the rule is executable: the defect was one expression
+ * inside a hundred-line guard, which is precisely where a wall-clock read hides.
+ */
+export function staleAsOf(anchor: string, nowMs: number): number {
+  return Math.min(nowMs, Date.parse(`${anchor}T23:59:59.999Z`));
+}
+
 async function main() {
   // ARGUMENTS FIRST, before the credential check and before the budget.
   //
@@ -667,11 +679,32 @@ async function main() {
           "historical-treasury-curve over zero rows; refusing to sweep",
       );
     }
-    if (treasuryCurveIsStale(lastRow.dateMs, Date.now())) {
+    // AS OF THE RUN'S ANCHOR, NOT THE WALL CLOCK.
+    //
+    // The guard protects a real thing: a decision past the curve's end scores
+    // against stale rows as if they were fresh. But "past the curve's end" is
+    // a question about the DECISIONS, and an anchored run's decisions end at
+    // its anchor — every pinned series is truncated there. Judged against
+    // `Date.now()` the same corpus grows staler every day it is not run, and
+    // an anchor whose curve ends the day before becomes unusable exactly seven
+    // days later. Measured 2026-09-01: the 08-26 anchor's curve ends 08-25, so
+    // the free run this program is sequenced around was already refused.
+    //
+    // This repo has shipped the same shape once — "a staleness bound that
+    // judged against the wall clock and ignored the bar in flight" (#420) —
+    // and the anchor makes it structural rather than incidental.
+    //
+    // `min` rather than the anchor outright, so the default anchor (today)
+    // keeps judging against the wall clock exactly as before. A past anchor is
+    // the only case that changes.
+    const asOfMs = staleAsOf(args.anchor, Date.now());
+    if (treasuryCurveIsStale(lastRow.dateMs, asOfMs)) {
       throw new Error(
         `Treasury curve ends ${new Date(lastRow.dateMs).toISOString()} — ` +
-          `more than 7 days stale; decisions past its end would score ` +
-          `against stale rows as if fresh; refusing to sweep`,
+          `more than 7 days stale as of ${
+            new Date(asOfMs).toISOString()
+          }; decisions past its end would score against stale rows as if ` +
+          `fresh; refusing to sweep`,
       );
     }
     // #364 round 18, finding 2: deepening TREASURY_FETCH_START_MS does
