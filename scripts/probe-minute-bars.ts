@@ -20,6 +20,7 @@
  */
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
 import { flagReader } from "./flagReader.ts";
+import { maySpend, noteRefusal, recordUsage } from "./fmpGovernor.ts";
 
 const BASE = "https://financialmodelingprep.com/stable";
 const KEY = process.env.FMP_API_KEY;
@@ -50,8 +51,18 @@ async function probe(fmpSymbol: string, markets: string[]): Promise<Probe> {
     url.searchParams.set("symbol", fmpSymbol);
     url.searchParams.set("apikey", KEY!);
     const res = await fetch(url, { headers: { accept: "application/json" } });
-    if (!res.ok) return { ...base, note: `HTTP ${res.status}` };
-    const payload = await res.json();
+    if (!res.ok) {
+      // The BODY, not just the status. `noteRefusal` classifies on the
+      // provider's own words — a bare "HTTP 429" makes the bandwidth wall
+      // indistinguishable from the per-minute rate limit, and the breaker
+      // would never open.
+      const detail = await res.text().catch(() => "");
+      noteRefusal(detail, Date.now());
+      return { ...base, note: `HTTP ${res.status}${detail ? ` ${detail}` : ""}` };
+    }
+    const body = await res.text();
+    recordUsage(new TextEncoder().encode(body).length, Date.now());
+    const payload = JSON.parse(body);
     if (!Array.isArray(payload) || payload.length === 0) {
       return { ...base, note: "zero 1-minute bars" };
     }
@@ -95,6 +106,21 @@ async function main(): Promise<void> {
   const jsonPath = str("--json");
   if (!KEY) {
     console.error("FMP_API_KEY is required.");
+    process.exit(1);
+  }
+  // THE GOVERNOR'S DOOR (2026-08-31). Every FMP spender asks before it spends:
+  // the shared breaker first, then the DAILY byte ceiling — a ceiling per UTC
+  // day, not per process, so re-running does not hand the run a fresh one.
+  // A ceiling declared here rather than passed in, because this is background
+  // work: the owner's rule is that background functions do not touch the
+  // allowance unless the app needs them to, and a probe is diagnostics.
+  const gate = maySpend({
+    atMs: Date.now(),
+    dailyLimitBytes: 128 * 1024 * 1024,
+    label: "probe-minute-bars",
+  });
+  if (!gate.allowed) {
+    console.error(gate.reason);
     process.exit(1);
   }
   // Distinct FMP symbols only — WTI/CLUSD and BRENT/BZUSD each share one.

@@ -25,9 +25,22 @@
 // consumers x M symbols x R retries into one probe per cool-off window, and it
 // makes "are we still refused?" a question anything can answer for free.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-export const FMP_CIRCUIT_PATH = ".fmp-circuit.json";
+/**
+ * Anchored to THIS MODULE, not the process cwd.
+ *
+ * The marker is gitignored, so `scripts/scratch-clone.sh` excludes it — and a
+ * scratch copy resolving it against its own cwd reads a CLOSED breaker and
+ * believes the allowance is untouched. That matters most exactly when it is
+ * most expensive: a sweep launched from a scratch clone.
+ */
+export const FMP_CIRCUIT_PATH = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  ".fmp-circuit.json",
+);
 
 /**
  * How long the breaker stays open before it will let ONE consumer probe again.
