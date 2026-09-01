@@ -25,6 +25,8 @@ export const GRID_OVERRIDE_KEYS = [
   "minRewardRisk",
   "newsPenaltyPerEvent",
   "providerWarningPenalty",
+  "rsiBuyThreshold",
+  "rsiSellThreshold",
   "runnerWindowShare",
   "sizingHoursFactor",
   "stopAtrMultiplier",

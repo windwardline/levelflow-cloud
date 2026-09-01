@@ -1,4 +1,8 @@
-import { getAssetType } from "./calibration.ts";
+import {
+  type CategoryCalibration,
+  getAssetType,
+  getCategoryCalibration,
+} from "./calibration.ts";
 import {
   averageTrueRange,
   directionalBias,
@@ -21,6 +25,21 @@ export function runStrategyCommittee(
   symbol: string,
   market: MarketContext,
   regime: Regime,
+  /**
+   * The EFFECTIVE calibration, passed in rather than looked up.
+   *
+   * The sweep merges its grid override onto the market's cell
+   * (`sweep.ts:708-711`) and this function used to call
+   * `getCategoryCalibration(symbol)` for itself — so a `--grid` value for any
+   * voter-side field would have been silently discarded here, and the variant
+   * would have reported the baseline's numbers back as if it had varied. That
+   * is the exact hazard `sweepGrid.ts` names for a typo'd axis value, reached
+   * by a different route.
+   *
+   * Optional so the live path (`index.ts:1217`) is unchanged: omitted, it
+   * looks the cell up exactly as before.
+   */
+  calibration: CategoryCalibration = getCategoryCalibration(symbol),
 ) {
   const votes: StrategyVote[] = [
     voteMultiTimeframeAlignment(market, regime),
@@ -28,7 +47,7 @@ export function runStrategyCommittee(
     voteTrendPullback(market, regime),
     voteBreakoutFailure(market),
     voteRangeMeanReversion(market, regime),
-    voteMomentumDivergence(market),
+    voteMomentumDivergence(market, calibration),
     voteVolatilityExpansion(market, regime),
     voteVolumeProfile(market),
   ];
@@ -368,12 +387,19 @@ function voteRangeMeanReversion(
 export function resolveOscillatorBias(
   rsi: number | null,
   macdSlope: number | null,
+  // AXES-9, expressible since 2026-09-01. The literals stay the defaults, so
+  // every shipped cell reads the band it always did; only a grid variant moves
+  // it. Between the two levels the RSI leg ABSTAINS, and that abstention is
+  // what the OR-chain fix restored — so moving the band is not cosmetic, it
+  // moves votes into and out of neutral.
+  buyThreshold = 55,
+  sellThreshold = 45,
 ): Direction {
   const rsiBias: Direction = rsi === null
     ? "neutral"
-    : rsi > 55
+    : rsi > buyThreshold
     ? "buy"
-    : rsi < 45
+    : rsi < sellThreshold
     ? "sell"
     : "neutral";
   const macdBias: Direction = macdSlope === null
@@ -392,7 +418,10 @@ export function resolveOscillatorBias(
   return "neutral";
 }
 
-function voteMomentumDivergence(market: MarketContext): StrategyVote {
+function voteMomentumDivergence(
+  market: MarketContext,
+  calibration: CategoryCalibration,
+): StrategyVote {
   const bars = market.primary;
   const recent = bars.slice(-24);
   const first = recent[0];
@@ -406,7 +435,12 @@ function voteMomentumDivergence(market: MarketContext): StrategyVote {
   // simultaneous overbought sell — one degenerate input, two opposite votes.
   const macdSlope = ema12 !== null && ema26 !== null ? ema12 - ema26 : null;
   const priceBias: Direction = latest.close >= first.close ? "buy" : "sell";
-  const oscillatorBias = resolveOscillatorBias(rsi, macdSlope);
+  const oscillatorBias = resolveOscillatorBias(
+    rsi,
+    macdSlope,
+    calibration.rsiBuyThreshold,
+    calibration.rsiSellThreshold,
+  );
   const divergence = priceBias !== oscillatorBias &&
     oscillatorBias !== "neutral";
   const direction = oscillatorBias;
