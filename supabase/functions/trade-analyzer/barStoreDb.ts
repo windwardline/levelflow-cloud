@@ -44,6 +44,19 @@ export function barStoreDeps(): BarStoreDeps {
         volume: row.volume,
       }));
     },
+    // ONE ROW, ASCENDING — the store's true minimum, which the newest-first
+    // page above cannot answer. `market_bars_prune_idx` is
+    // (provider_symbol, timeframe, provider_date desc), so this is an index
+    // scan from the far end, not a table scan.
+    oldestDate: async (providerSymbol, timeframe) => {
+      const rows = await adminFetchRows<{ provider_date: string }>(
+        `market_bars?select=provider_date` +
+          `&provider_symbol=eq.${encodeURIComponent(providerSymbol)}` +
+          `&timeframe=eq.${encodeURIComponent(timeframe)}` +
+          `&order=provider_date.asc&limit=1`,
+      );
+      return rows[0]?.provider_date ?? null;
+    },
     write: async (providerSymbol, timeframe, rows) => {
       await adminUpsertRows(
         "market_bars",

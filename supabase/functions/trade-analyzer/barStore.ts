@@ -44,6 +44,17 @@ export type BarStoreDeps = {
     timeframe: string,
     limit: number,
   ) => Promise<StoredBar[]>;
+  /**
+   * The oldest `provider_date` held for one series, or null when empty.
+   *
+   * Separate from `read` because `read` is a newest-first PAGE: asking it for
+   * the oldest date answers about the page, not the store. That distinction is
+   * what the coverage gate turns on.
+   */
+  oldestDate: (
+    providerSymbol: string,
+    timeframe: string,
+  ) => Promise<string | null>;
   /** Upsert on (provider_symbol, timeframe, provider_date). */
   write: (
     providerSymbol: string,
@@ -69,36 +80,52 @@ export type BarStoreDeps = {
  */
 export function windowToBuy(input: {
   coldStartFrom: string;
-  /** How many rows the caller needs. The store must hold at least this many. */
+  /** How many rows the caller needs; the read page size. */
   limit: number;
   newestStoredDate: string | null;
+  /**
+   * The OLDEST date the store holds for this series — the true minimum, not
+   * the oldest row on a limit-capped page. `read` returns the newest `limit`
+   * rows, so a store deeper than the cap would report an oldest date far
+   * newer than its real one and re-buy a window it already spans.
+   */
   oldestStoredDate: string | null;
-  /** True when the caller asked for a specific start, as a chart does. */
-  startDateIsBinding: boolean;
-  storedCount: number;
   today: string;
 }): { from: string; to: string } {
   const full = { from: input.coldStartFrom, to: input.today };
   if (input.newestStoredDate === null) return full;
 
-  // THE STORE MUST BE DEEP ENOUGH, or its tail is not a shortcut — it is a
-  // truncation. `maxBarsForTimeframe` is what the engine decodes and
-  // `findSwingPivots` walks the WHOLE array into the stop and the ladder, so
-  // returning a shallow store plus a one-date tail would hand the engine
-  // fewer pivots than today and quietly move stops.
+  // THE STORE MUST SPAN THE WINDOW, or its tail is not a shortcut — it is a
+  // truncation. `findSwingPivots` walks the WHOLE array into the stop and the
+  // ladder, so a store that begins after the window does and a one-date tail
+  // would hand the engine fewer pivots than a full buy and quietly move stops.
   //
-  // Under-depth costs exactly today's price, so a warming store never
-  // regresses anything; it simply has not started saving yet.
-  if (input.storedCount < input.limit) return full;
-
-  // AND IT MUST COVER THE REQUESTED START when the caller named one. The
-  // analyzer never does — it asks for a fixed lookback and the decode cap
-  // governs — but a chart asking further back than the store holds cannot be
-  // served by topping up the newest end, or the series silently begins where
-  // the store happens to start rather than where the caller asked.
+  // COVERAGE, NOT COUNT — corrected 2026-08-31, the same day the count version
+  // shipped. The first form asked `storedCount < limit`, comparing what the
+  // store HOLDS against `maxBarsForTimeframe`, which is what the engine
+  // DECODES. Those are different quantities and on three of the five frames
+  // the window cannot physically supply the cap, so the test was permanently
+  // true and the store was never consulted at all:
+  //
+  //   4hour  180d x 6/day  = 1,080 against a 1,200 cap — fails even 24/7
+  //   1hour   90d x 24/day = 1,543 on a 24/5 market against 2,000
+  //   5min    10d x 288/day = 2,057 on a 24/5 market against 2,400
+  //
+  // So the fix that removed ~167 MB per scan kept re-buying those three frames
+  // on every scan, for every market, forever — measured at ~44 MB per full
+  // 97-market scan of pure excess. A shallow store is only a truncation when it
+  // fails to REACH BACK far enough; holding fewer rows than the decode cap
+  // because the window is shorter than the cap is a fact about the data, and
+  // no amount of buying changes it.
+  //
+  // The predicate below is the honest question: does the store already reach
+  // `coldStartFrom`? It also subsumes the binding-start case a chart needs,
+  // which the count version handled separately — a chart asking further back
+  // than the store holds and an analyzer whose window the store does not span
+  // are the same condition.
   if (
-    input.startDateIsBinding && input.oldestStoredDate !== null &&
-    input.coldStartFrom < input.oldestStoredDate
+    input.oldestStoredDate === null ||
+    input.oldestStoredDate > input.coldStartFrom
   ) {
     return full;
   }
@@ -110,17 +137,6 @@ export function windowToBuy(input: {
     ? input.today
     : input.newestStoredDate;
   return { from, to: input.today };
-}
-
-/** The oldest date the store holds for this series, or null when empty. */
-function oldestDateOf(rows: readonly StoredBar[]): string | null {
-  let oldest: string | null = null;
-  for (const row of rows) {
-    if (typeof row.date === "string" && (oldest === null || row.date < oldest)) {
-      oldest = row.date;
-    }
-  }
-  return oldest;
 }
 
 /** FMP serves newest-first; the store returns the same. */
@@ -212,9 +228,14 @@ export async function readThrough(
   },
 ): Promise<ReadThroughResult> {
   let stored: StoredBar[] = [];
+  let oldestStoredDate: string | null = null;
   let storeUnavailable = false;
   try {
     stored = await deps.read(input.providerSymbol, input.timeframe, input.limit);
+    oldestStoredDate = await deps.oldestDate(
+      input.providerSymbol,
+      input.timeframe,
+    );
   } catch {
     storeUnavailable = true;
   }
@@ -223,9 +244,7 @@ export async function readThrough(
     coldStartFrom: input.coldStartFrom,
     limit: input.limit,
     newestStoredDate: newestDateOf(stored),
-    oldestStoredDate: oldestDateOf(stored),
-    startDateIsBinding: input.startDateIsBinding ?? false,
-    storedCount: stored.length,
+    oldestStoredDate,
     today: input.today,
   });
   const fresh = await input.fetchWindow(window.from, window.to);
