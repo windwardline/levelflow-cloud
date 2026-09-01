@@ -112,7 +112,7 @@ import {
   normalizeFmpBars,
 } from "../supabase/functions/trade-analyzer/bars.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
-import { flagReader } from "./flagReader.ts";
+import { flagReader, OperatorInputError } from "./flagReader.ts";
 import { governedBudget, maySpend, noteRefusal } from "./fmpGovernor.ts";
 import { fileURLToPath } from "node:url";
 
@@ -241,6 +241,27 @@ type SweepArgs = {
    * corpus one snapshot.
    */
   repin: boolean;
+  /**
+   * The cache-pin day every series is read at, defaulting to today.
+   *
+   * THE WHOLE OF R3's BANDWIDTH PLAN LIVES ON THIS FLAG, and until 2026-09-01
+   * it did not exist: the anchor was `isoDate(new Date())` at five separate
+   * call sites, so the driver could only ever read the run day. The comment
+   * above the spend gate already said "anchored at a pinned day the sweep
+   * fetches nothing" — describing a capability nothing implemented.
+   *
+   * The measured stakes, re-derived over all 290 rolling stores on
+   * 2026-09-01: 2026-08-25 and 2026-08-26 are pinned in EVERY store,
+   * 2026-08-27 in 13, and the current day in NONE. An unanchored R3 refetches
+   * the entire roster against an exhausted trailing-30 allowance; anchored at
+   * 08-26 it fetches nothing at all.
+   *
+   * A past anchor also makes the corpus reproducible in the sense that
+   * matters: a pinned store returns the same tail on every read, so two runs
+   * a week apart measure the same bars rather than two different windows
+   * wearing one name.
+   */
+  anchor: string;
   warmOnly: boolean;
   days: number;
   discover: boolean;
@@ -251,6 +272,16 @@ type SweepArgs = {
 };
 
 async function main() {
+  // ARGUMENTS FIRST, before the credential check and before the budget.
+  //
+  // The rule is already stated below the governor's door — "a typo must never
+  // be reported as a provider condition" — and the two lines that used to sit
+  // here broke it in the same way, one layer up. A mistyped `--anchor` on a
+  // machine without the key printed "FMP_API_KEY is required", sending an
+  // operator to their credentials for a flag they got wrong; the anchor is
+  // exactly the flag where that misdirection is expensive, since the whole
+  // point of it is to avoid spending bandwidth.
+  const args = parseArgs(process.argv.slice(2));
   if (!API_KEY) {
     console.error("FMP_API_KEY is required.");
     process.exit(1);
@@ -261,7 +292,6 @@ async function main() {
     createByteBudget(parseByteBudgetArg(process.argv.slice(2))),
     () => Date.now(),
   );
-  const args = parseArgs(process.argv.slice(2));
   // THE GOVERNOR'S DOOR — AFTER the dials are validated, deliberately.
   //
   // The first placement put it before `parseArgs`, and three tests caught
@@ -405,7 +435,7 @@ async function main() {
   }> = [];
   const newsEvents = args.discover
     ? []
-    : await loadEconomicCalendar(args.cacheDir, args.repin);
+    : await loadEconomicCalendar(args.cacheDir, args.repin, args.anchor);
   // E6 (R1b): the historical Treasury curve, one rolling store shared by
   // every symbol — each decision instant scores under the two most recent
   // rows visible at that instant (macroRates.ts), the same arithmetic the
@@ -422,7 +452,11 @@ async function main() {
   let deferredTreasuryRefusal: Error | null = null;
   if (!args.discover) {
     try {
-      treasuryRates = await loadTreasuryRates(args.cacheDir, args.repin);
+      treasuryRates = await loadTreasuryRates(
+        args.cacheDir,
+        args.repin,
+        args.anchor,
+      );
     } catch (error) {
       const message = (error as Error).message;
       // The sweep path always throws — tolerance exists only for the
@@ -656,7 +690,7 @@ async function main() {
   } else if (!args.discover && !args.warmOnly) {
     let spanStart = Number.POSITIVE_INFINITY;
     let spanEnd = Number.NEGATIVE_INFINITY;
-    const anchor = isoDate(new Date());
+    const anchor = args.anchor;
     for (const symbol of args.symbols) {
       const providerSymbol = resolveProviderSymbols(symbol)[0];
       if (!providerSymbol) continue;
@@ -715,10 +749,11 @@ async function main() {
       console.warn(`Skipping ${symbol}: no provider symbol.`);
       continue;
     }
-    // Cache keys carry the run-day anchor: the replay window is always
-    // relative to now, so a later day's run refetches the rolled-forward
-    // window while same-day runs stay pinned for drift-free A/B.
-    const anchor = isoDate(new Date());
+    // Cache keys carry the anchor DAY, `--anchor` or today: the replay window
+    // is relative to that day, so a later day's run refetches the
+    // rolled-forward window while runs at one anchor stay pinned for
+    // drift-free A/B — and a run at a PAST pinned anchor fetches nothing.
+    const anchor = args.anchor;
     const [primaryBars, dailyBars, fiveMinuteBars] = await Promise.all([
       loadRollingSeries<Bar>({
         anchor,
@@ -1200,7 +1235,7 @@ async function main() {
       rejectionLedgerRows: rejectionRows,
       analyzerVersion: ANALYZER_VERSION,
       ...(emitColumns && { emitColumns }),
-      anchor: isoDate(new Date()),
+      anchor: args.anchor,
       barRejections: barRejectionTally,
       // Derived from the classes this run actually loaded — never a hand-kept
       // list, which would go stale the day a class joins the roster.
@@ -1261,8 +1296,8 @@ async function main() {
 async function loadEconomicCalendar(
   cacheDir: string | undefined,
   repin: boolean,
+  anchor: string,
 ): Promise<SweepNewsEvent[]> {
-  const anchor = isoDate(new Date());
   return loadRollingSeries<SweepNewsEvent>({
     anchor,
     cacheDir: cacheDir ?? DEFAULT_CACHE_DIR,
@@ -1384,8 +1419,8 @@ async function fetchCalendarEvents(
 async function loadTreasuryRates(
   cacheDir: string | undefined,
   repin: boolean,
+  anchor: string,
 ): Promise<DatedTreasuryRow[]> {
-  const anchor = isoDate(new Date());
   return loadRollingSeries<DatedTreasuryRow>({
     anchor,
     cacheDir: cacheDir ?? DEFAULT_CACHE_DIR,
@@ -1597,6 +1632,7 @@ async function fetchCotContract(
 
 export function parseArgs(argv: string[]): SweepArgs {
   const VALUE_FLAGS = new Set([
+    "--anchor",
     "--cache-dir",
     "--days",
     "--emit",
@@ -1680,7 +1716,36 @@ export function parseArgs(argv: string[]): SweepArgs {
   }
   const foldStartRaw = str("--fold-start");
   const foldEndRaw = str("--fold-end");
+  const today = isoDate(new Date());
+  const anchor = str("--anchor") ?? today;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(anchor)) {
+    throw new OperatorInputError(
+      `--anchor must be YYYY-MM-DD and got "${anchor}" — the anchor selects ` +
+        `which cache pin every series is read at, and a token the store ` +
+        `cannot match is a full refetch, not a typo`,
+    );
+  }
+  if (anchor > today) {
+    throw new OperatorInputError(
+      `--anchor ${anchor} is in the future (today is ${today}) — no store ` +
+        `can hold that pin, so the run would refetch the entire roster`,
+    );
+  }
+  // REPIN AND A PAST ANCHOR ARE OPPOSITES. `--repin` deletes the anchor's pin
+  // and refetches every series to a common instant; a past anchor exists to
+  // read a pin that is already there. Together they spend the exact bandwidth
+  // the anchor was chosen to avoid, and the refetch would also roll the tail
+  // forward to now — so the run would not even measure the day it names.
+  if (argv.includes("--repin") && anchor !== today) {
+    throw new OperatorInputError(
+      `--repin with --anchor ${anchor} would delete that day's pins and ` +
+        `refetch to now — spending the bandwidth the anchor was chosen to ` +
+        `avoid, and rolling the tail past the day it names. Pass one or the ` +
+        `other`,
+    );
+  }
   return {
+    anchor,
     cacheDir: str("--cache-dir"),
     // The fallback is unreachable — the raw read above already
     // established the flag is present — but num() is what refuses an
@@ -1872,6 +1937,17 @@ function sleep(ms: number) {
 // why a 6x depth change landed silently (#364 round 52, finding 1).
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   main().catch((error) => {
+    // The discriminator `OperatorInputError` was introduced for, finally read
+    // here: a refusal caused by what the operator typed prints as one clean
+    // line, and a real fault keeps its stack. Printing the error object for
+    // both buried a TypeError's frames under a wall of text on one hand, and
+    // dressed a mistyped flag up as a crash on the other — and an operator
+    // who reads a crash goes looking for a defect in the driver instead of
+    // re-reading their own command line.
+    if (error instanceof OperatorInputError) {
+      console.error(error.message);
+      process.exit(1);
+    }
     console.error(error);
     process.exit(1);
   });
