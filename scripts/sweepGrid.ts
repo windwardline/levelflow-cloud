@@ -34,6 +34,14 @@ export const GRID_OVERRIDE_KEYS = [
 
 export const GRID_STRING_KEYS = {
   runnerProtection: ["breakeven", "hold", "trail_tp1"],
+  // R2b question 4's axis. The stop's structural search reads the intraday
+  // pivots alone while the ladder reads all four arrays, and no ruling chose
+  // that. Measured 2026-09-01 it would move the shipped stop on 32.0% of
+  // decisions across the 71 markets that can be structure-stopped — but
+  // placement is not profit, and adopting it on that evidence would be
+  // manufacturing a ratio (amendment 39). An axis lets R3 price both arms in
+  // one run at zero additional provider bytes.
+  stopStructureSource: ["intraday", "intraday_and_daily"],
 } as const satisfies Partial<
   { [K in keyof CategoryCalibration]: ReadonlyArray<CategoryCalibration[K]> }
 >;
