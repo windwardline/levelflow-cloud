@@ -748,11 +748,23 @@ async function main() {
     // the requested window is store damage to repair regardless of
     // where this corpus starts. Same predicate as the door; the two
     // cannot drift.
-    const windowStartMs = Date.now() - (args.days + 7) * 86_400_000;
+    // ANCHORED, for the same reason the staleness bound above is: this window
+    // stands in for "every possible corpus this run could produce", and an
+    // anchored run's corpus ends at its anchor. Read from the wall clock the
+    // window slides forward every day the run is deferred, so a hole could
+    // enter or leave it with nothing about the corpus having changed — the
+    // same defect as the staleness bound, one guard down, and the reason to
+    // fix the CLASS rather than the instance that happened to fire.
+    //
+    // It did not fire on the R3 dry run and would not at `--days 7000`, where
+    // the window reaches back to 2007 and the store begins in 2013. It bites
+    // at small depths, where six days of drift is a real share of the window.
+    const holeWindowEndMs = staleAsOf(args.anchor, Date.now());
+    const windowStartMs = holeWindowEndMs - (args.days + 7) * 86_400_000;
     const holeTouching = treasuryGapTouching(
       treasuryCurveFacts(treasuryRates).gapsOverWeekMs,
       windowStartMs,
-      Date.now(),
+      holeWindowEndMs,
     );
     if (holeTouching) {
       throw new Error(
