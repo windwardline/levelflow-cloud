@@ -1545,8 +1545,31 @@ rejection sidecar the manifest's `rejectionLedgerRows` agrees with.
 asks whether the stop should consult daily structure. That is NOT expressible as
 a grid axis — the grid overrides calibration numbers, never the pivot set — so a
 decision to change it lands the same way R2b did: before the one re-sweep, not
-after. `scripts/q4-daily-structure-stop.ts` produces the evidence at zero bytes;
-the decision is the owner's; R3 waits on it.
+after. The decision is the owner's; R3 waits on it.
+
+**THE EVIDENCE IS IN — measured 2026-09-01, 97 markets, 1,908,189 planned
+decisions, zero provider bytes.** Full reading:
+`docs/research/q4-daily-structure-2026-09-01.md`; artifact
+`docs/research/q4-daily-structure-anchor-2026-08-26.json`.
+
+Daily structure sits in the stop's own direction on **96.6%-100%** of decisions
+in every class, and across the 71 markets that can be structure-stopped it would
+move the shipped stop on **32.0%** of them — median tightening ~0.6 ATR, p90
+above 2 ATR. On 2.6%-4.7% the intraday search found no pivot at all while a
+daily one existed, so the stop fell to the volatility floor with structure
+available. Adding levels to a nearest-beyond search can only find a nearer
+level, so the stop always tightens and never widens.
+
+**Livestock reads 0.0% and that is the instrument checking itself.** The reader
+predicted before the run that a market whose cap sits at or under the 1.25-ATR
+structural floor can never be structure-stopped: 26 markets carry
+`maxStopAtrMultiplier <= 1.25` and not one moved on a single decision. Zero of
+1,908,189 plans failed the reproduction anchor against production's own
+`stopPivotDistance`.
+
+**No R consequence is derivable from it** and none is claimed: a moved stop
+moves `riskDistance`, which moves TP1, the payoff gate and admission, so the
+accepted population would differ. That is a grid arm, not an arithmetic.
 
 Two things follow, and neither is optional:
 1. **R3's run-card names the anchor AND the depth** — `--anchor 2026-08-26
