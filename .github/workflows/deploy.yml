@@ -217,14 +217,31 @@ jobs:
           if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]              || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
             echo "base '$base' is not resolvable here — running the full suite"
             echo "full=true" >> "$GITHUB_OUTPUT"
+            # `scope` must be set on EVERY path: the reporter refuses a value
+            # it cannot read, and an unset output arrives as the empty string.
+            echo "scope=ran" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           changed=$(git diff --name-only "$base" '${{ github.sha }}')
           echo "$changed" | sed 's/^/  changed: /'
-          if echo "$changed" | grep -qE '^(src/|supabase/functions/|supabase/migrations/)'; then
-            echo "full=true" >> "$GITHUB_OUTPUT"
-          else
+          # THE DESK'S OWN CONSTANT, imported rather than grepped. A regex over
+          # the source would drift the day the file is reformatted, and this
+          # decides whether ~190 live provider calls go out.
+          parked=$(npx tsx -e "import { PARKING_GATE } from './src/lib/parkingGate.ts'; process.stdout.write(String(PARKING_GATE));")
+          echo "  desk parked: $parked"
+          if ! echo "$changed" | grep -qE '^(src/|supabase/functions/|supabase/migrations/)'; then
             echo "full=false" >> "$GITHUB_OUTPUT"
+            echo "scope=stood-down" >> "$GITHUB_OUTPUT"
+          elif [ "$parked" = "true" ]; then
+            # The push touched the app, but the surfaces these projects drive
+            # are unreachable in production while PARKING_GATE holds — so the
+            # calls would price a desk nobody can open. Stated as its own scope
+            # so the reason printed is the true one.
+            echo "full=false" >> "$GITHUB_OUTPUT"
+            echo "scope=stood-down-parked" >> "$GITHUB_OUTPUT"
+          else
+            echo "full=true" >> "$GITHUB_OUTPUT"
+            echo "scope=ran" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run browser tests
@@ -242,7 +259,7 @@ jobs:
           # and why. A narrowed run that says nothing is the failure this repo
           # already refuses for individual tests; a whole project silently
           # absent is the same defect one level up.
-          LEVELFLOW_E2E_FMP_PROJECTS: ${{ steps.e2e-scope.outputs.full == 'true' && 'ran' || 'stood-down' }}
+          LEVELFLOW_E2E_FMP_PROJECTS: ${{ steps.e2e-scope.outputs.scope }}
           LEVELFLOW_E2E_EMAIL: ${{ secrets.LEVELFLOW_E2E_EMAIL }}
           LEVELFLOW_E2E_PASSWORD: ${{ secrets.LEVELFLOW_E2E_PASSWORD }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
