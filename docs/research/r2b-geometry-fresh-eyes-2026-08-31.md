@@ -172,6 +172,16 @@ set is editing needs re-checking before the packet leaves.
    (`replay.ts:247`, `:249`, `:327`) plus `pricePlan.ts:528-529`, and
    `CategoryCalibration` has no field for it. Realized R is linear in that
    allocation and it has never been varied, measured, or represented.
+
+   **Answerable from R3's corpus without a second sweep, both arms.** Net R at
+   any fraction is exact arithmetic on `legs`, which was already emitted. The
+   gross arm's legs were computed and discarded, so `grossEntryPrice`,
+   `grossTp1Price` and `grossExitPrice` now ride out beside `grossRealizedR` —
+   which is blended at 0.5 and cannot be un-blended. Zero provider bytes; the
+   values were already in hand. What the corpus still cannot answer is a
+   fraction's effect on the runner's EXIT PATH: banking a different size does
+   not move the protection trigger in the emitted resolution, so R(f) is the
+   allocation question alone.
 2. **A plan without a partial cannot be built.** `takeProfit1` is typed
    `number` (`pricePlan.ts:162`, `:592`) so the null branch at `:527` is dead,
    while the resolver handles a null TP1 on every path — it can price a
@@ -180,10 +190,29 @@ set is editing needs re-checking before the packet leaves.
    `buildLadderTargets` (`pricePlan.ts:368-373`) and is read at exactly two
    sites, `:658` and `:676`, both floored at `minimumRunnerDistance` (`:643`).
    TP1 at `:625-628` comes from risk share, ATR floor and window cap only.
-   Derived over all 98 markets: the worst-case `tp1Distance / riskDistance` is
-   0.80 against a floor of 1.50, so TP1 is strictly nearer than the nearest
-   recorded structural distance on every market by at least 1.875x — the
-   partial is parked in a band the corpus describes with no level at all.
+   Derived over all 98 `knownSymbols`: the smallest
+   `minimumTargetRewardRisk / tp1RiskShare` is **2.00** (WTI, the roster's only
+   1.6/0.8 cell), so wherever the risk share places TP1 it lands at most HALF
+   the nearest distance `runnerNearestBeyondMinimum` can report — the partial
+   is parked in a band the corpus described with no level at all.
+
+   **Corrected 2026-09-01, and the correction is the same archetype as §5.**
+   This read "0.80 against a floor of 1.50, at least 1.875x". Those two cells
+   belong to different markets: 0.80 is WTI's share and 1.50 is a floor no
+   market pairs it with, so 1.875x described a market that does not exist. The
+   population was right and the arithmetic crossed rows inside it. The bound
+   also covers the RISK-SHARE branch only — the ATR floor is a multiple of ATR
+   rather than of risk, so no ratio of calibration cells bounds it at all.
+
+   **The measurement gap is now closed regardless of the answer.**
+   `nearestStructureDistance` ships on every emitted row (the same search,
+   unfloored and uncapped), so R3's corpus can say where structure actually sat
+   relative to the partial. `tests/preR3Fields.test.ts` re-derives the 2.00 over
+   `defaultScanSymbols` and fails naming the market if a calibration edit takes
+   it below 2. The QUESTION — whether TP1 should consult structure — is still
+   the owner's, and the counterfactual R of a structure-placed TP1 is NOT
+   derivable from the column: banking earlier re-arms protection earlier and
+   changes the runner's exit path, which no emitted column reproduces.
 4. **The stop consults intraday structure only.** `pricePlan.ts:230` builds the
    intraday pivots and `:231` the daily ones; `nearestStopPivot` (`:257-261`)
    reads the intraday arrays alone, while `pivotLevels` (`:368-373`) spreads

@@ -32,8 +32,12 @@ function outcomeRecord(
     // equal here because this fixture only feeds `summarizeSweepOutcomes`,
     // which reads `.outcome` and `.realizedR`; a different value would imply a
     // cost difference the fixture is not modelling.
+    grossEntryPrice: null,
+    grossExitPrice: null,
     grossOutcome: outcome,
     grossRealizedR: realizedR,
+    grossTp1Price: null,
+    nearestStructureDistance: null,
     confidenceScore: 0,
     cotPercentile: null,
     cotSampleSize: 0,

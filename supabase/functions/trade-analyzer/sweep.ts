@@ -102,6 +102,26 @@ export type SweepOutcomeRecord = {
    * — which are different findings with different remedies.
    */
   runnerNearestBeyondMinimum: number | null;
+  /**
+   * R2b question 3: the nearest structural level in the trade's direction,
+   * unfloored and uncapped, as a distance from the PLANNED entry.
+   *
+   * Every other structural distance here is floored at
+   * `minimumRunnerDistance`, and wherever the risk share places TP1 it lands
+   * at most HALF that floor on every market on the scan roster. Whether
+   * structure sits where the partial is parked was a question the corpus
+   * could not answer at all.
+   *
+   * A column rather than an offline recomputation, and the reason is
+   * DURABILITY rather than unanswerability. The pivots are reconstructible
+   * from `.calibration-cache` given `time` and `dailyVisibleCount` — but that
+   * cache is gitignored, untracked, has no backup mechanism, is mutated
+   * nightly by a loaded top-up agent, prunes oldest-first, and the anchor
+   * protecting it is scheduled for removal once R3 has run. A recomputation
+   * answers today and may not in six months; the column answers for as long
+   * as the corpus exists.
+   */
+  nearestStructureDistance: number | null;
   // The resolver's evidence, carried whole (4b's input — the map's
   // "captured and simply never read"): the gap-aware execution legs, the
   // exit and fill instants, both excursion statistics against the nominal
@@ -167,6 +187,18 @@ export type SweepOutcomeRecord = {
    */
   grossRealizedR: number;
   grossOutcome: Exclude<ResolvedOutcome, "pending">;
+  /**
+   * The gross arm's own execution prints, so its R can be re-apportioned.
+   *
+   * `grossRealizedR` is blended at the banked fraction 0.5 and cannot be
+   * un-blended. The NET arm needs no such field — `legs` is already emitted,
+   * so R(f) is exact arithmetic there — but the gross legs were computed and
+   * discarded, leaving the same question unanswerable under the published bill
+   * without a second sweep against an exhausted allowance.
+   */
+  grossEntryPrice: number | null;
+  grossExitPrice: number | null;
+  grossTp1Price: number | null;
   regime: string;
   // E1's tier, per row (emit symmetry with the live writers'
   // feedback.resolutionIntervalMs): 300000 when the 5-minute series
@@ -1119,6 +1151,7 @@ export function simulateSymbol(input: {
       ...(evaluation.feedback.noBarsInReviewWindow === true &&
         { noBarsInReviewWindow: true as const }),
       outcome: evaluation.outcome,
+      nearestStructureDistance: plan.nearestStructureDistance,
       runnerNearestBeyondMinimum: plan.runnerNearestBeyondMinimum,
       unfilledApproachDistance:
         evaluation.state === "resolved" &&
@@ -1182,6 +1215,31 @@ export function simulateSymbol(input: {
         side: resolvedSide,
       }),
       grossOutcome: grossEvaluation.outcome,
+      // R2b question 1: THE GROSS ARM'S OWN LEG PRICES.
+      //
+      // `grossRealizedR` beside them is one BLENDED number, frozen at the
+      // banked fraction 0.5 — and it cannot be un-blended. Realized R at any
+      // other allocation is exact arithmetic on the net arm's `legs`, which
+      // the emit already carries, so the net question needs no field at all.
+      // The gross arm's legs were computed here and thrown away, so the same
+      // question under E8's published bill was unanswerable without a second
+      // full sweep.
+      //
+      // Nor are they derivable from the net legs: the gross resolution prints
+      // different fills and exits because the half-spread differs, and it can
+      // land a different outcome entirely — which is exactly why
+      // `grossOutcome` is a separate column.
+      //
+      // Register item 5's shape precisely: already computed, discarded, and
+      // zero additional provider bytes to keep.
+      grossEntryPrice:
+        grossEvaluation.legs.find((leg) => leg.leg === "entry")?.price ?? null,
+      // Null where no partial banked — an unfilled row, and the same-bar
+      // `ambiguous` branch, which grants no tp1 leg by design.
+      grossTp1Price:
+        grossEvaluation.legs.find((leg) => leg.leg === "tp1")?.price ?? null,
+      grossExitPrice:
+        grossEvaluation.legs.find((leg) => leg.leg === "exit")?.price ?? null,
       realizedR: realizedRFromLegs({
         legs: evaluation.legs,
         // v2: spread and slippage are IN the leg prints (bid/ask triggers,

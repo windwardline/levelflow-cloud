@@ -140,6 +140,8 @@ export type PricePlan = {
   // was there.
   dailyAtr: number;
   latestClose: number;
+  /** R2b question 3: nearest structure in the trade's direction, unfloored. */
+  nearestStructureDistance: number | null;
   runnerNearestBeyondMinimum: number | null;
   stopPivotDistance: number | null;
   contractSpec: FuturesContractSpec | null;
@@ -472,6 +474,7 @@ export function buildPricePlan(
     dailyAtr,
     entryPrice,
     latestClose: currentClose,
+    nearestStructureDistance: ladder.nearestStructureDistance,
     runnerNearestBeyondMinimum: ladder.runnerNearestBeyondMinimum,
     // MEASURED AGAINST THE PLANNED ENTRY, not the aligned one.
     //
@@ -578,6 +581,16 @@ export type LadderCalibration = {
 export type LadderTargets = {
   expectedWindowMove: number;
   /**
+   * Distance to the nearest structural level in the trade's direction, with NO
+   * floor and NO cap — null when the market has no pivot beyond the entry.
+   *
+   * R2b question 3. Every other structural distance the corpus carries is
+   * floored at `minimumRunnerDistance`, and wherever the risk share places
+   * TP1 it lands at most HALF that floor on every market on the scan roster,
+   * so nothing describes the band the partial is parked in.
+   */
+  nearestStructureDistance: number | null;
+  /**
    * Distance to the nearest structural level clearing the minimum payoff,
    * IGNORING the window cap — null when no level clears it at all.
    *
@@ -681,6 +694,49 @@ export function buildLadderTargets(input: {
   const runnerNearestBeyondMinimum = nearestBeyondMinimum === null
     ? null
     : Math.abs(nearestBeyondMinimum - entryPrice);
+  // R2b question 3: the SAME search with NO floor and NO cap.
+  //
+  // TP1 is placed from risk share, ATR floor and window cap and never consults
+  // `pivotLevels` at all — the levels are spent entirely on the runner, at the
+  // two sites above, both floored at `minimumRunnerDistance`.
+  //
+  // Derived over `defaultScanSymbols` rather than asserted, and pinned by
+  // `tests/preR3Fields.test.ts` so a calibration edit cannot quietly retire
+  // it: the smallest `minimumTargetRewardRisk / tp1RiskShare` on the roster is
+  // 2.00, so wherever the RISK SHARE places TP1 it lands at most half the
+  // nearest distance `runnerNearestBeyondMinimum` is able to report. That
+  // covers the risk-share branch only — the ATR floor is a multiple of ATR
+  // rather than of risk, so no ratio of calibration cells bounds it, which is
+  // itself a reason to record the distance rather than reason about it.
+  //
+  // UNFLOORED RATHER THAN BAND-RESTRICTED, and that is the whole design. A
+  // field clipped to TP1's band is null on most rows and cannot separate "this
+  // market has no structure at these distances" from "the structure sits just
+  // outside the band" — the exact two-opposite-causes conflation
+  // `runnerNearestBeyondMinimum` was created to end, reintroduced one field
+  // over. Where this lands at or inside `tp1Distance` it IS the nearest level
+  // in TP1's band; where it lands beyond, it says how far structure actually
+  // was. Strictly more information for the same column.
+  //
+  // ANCHORED TO THE PLANNED (UNALIGNED) ENTRY, like `stopPivotDistance` and
+  // `runnerNearestBeyondMinimum` beside it. Inside this function `entryPrice`
+  // is still the planned one — tick alignment runs later in `buildPricePlan` —
+  // so the anchor comes free, and mixing anchors is the defect #462 shipped
+  // and #472 found again one field over.
+  //
+  // It answers EXISTENCE, not placement. Whether structure sits in TP1's band,
+  // on what share of rows, at what distance. The counterfactual R of a
+  // structure-placed TP1 is NOT derivable from it: banking earlier re-arms
+  // protection earlier and changes the runner's exit path, which no emitted
+  // column reproduces.
+  const nearestStructure = nearestLevelBeyond(
+    side,
+    entryPrice,
+    input.pivotLevels,
+  );
+  const nearestStructureDistance = nearestStructure === null
+    ? null
+    : Math.abs(nearestStructure - entryPrice);
   // The fallback is a pure formula with no structure in it. Recording which
   // happened is the whole point: "the runner is the nearest structural level the
   // window can reach" described the corpus without ever being measured on it.
@@ -698,6 +754,7 @@ export function buildLadderTargets(input: {
 
   return {
     expectedWindowMove,
+    nearestStructureDistance,
     runnerNearestBeyondMinimum,
     runnerProvenance,
     runnerTarget,
