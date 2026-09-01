@@ -193,16 +193,26 @@ describe("the Edge graph type-checks against its REAL runtime", () => {
   // therefore passes typecheck, lint and every test, and fails at runtime in
   // the deployed analyzer. It happened twice inside one change.
   //
-  // A BASELINE RATHER THAN ZERO, stated honestly: the graph carries 14
-  // pre-existing errors that nothing has ever checked. Gating at zero would
-  // mean fixing fourteen type errors on the money path in the same change set
-  // that adds a budget, which is how a careful change becomes a risky one.
-  // The gate is "no NEW errors", and it would have caught both of mine.
+  // ZERO, since 2026-09-01. This shipped as a BASELINE of 14 — the errors the
+  // graph carried when nothing had ever checked it — deliberately, because
+  // fixing fourteen type errors on the money path inside the change set that
+  // added a budget is how a careful change becomes a risky one.
+  //
+  // They were then fixed on their own, and two were live defects rather than
+  // type noise: a `pricePlan` dereference reachable whenever geometry refused
+  // on a market the engine had not declined, and a daily-chart comparator
+  // calling `toTimestamp` without the timezone it requires. A third, the
+  // `store_unavailable` telemetry status, was rejected by the table's own
+  // check constraint — so the event built to make a silent fallback visible
+  // could not be written.
+  //
+  // The gate is zero now. A baseline that never returns to zero is a number
+  // people stop reading.
   const BASELINE: Record<string, number> = {
-    "market-data": 1,
+    "market-data": 0,
     "news-calendar": 0,
-    "outcome-sync": 1,
-    "trade-analyzer": 12,
+    "outcome-sync": 0,
+    "trade-analyzer": 0,
   };
 
   const hasDeno = (() => {

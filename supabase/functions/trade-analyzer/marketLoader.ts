@@ -6,6 +6,7 @@ import {
 import { asStoredBar, readThrough, type StoredBar } from "./barStore.ts";
 import { parseFmpQuoteSnapshot, type QuoteSnapshot } from "./quotes.ts";
 import { barStoreDeps } from "./barStoreDb.ts";
+import type { AnalyzerEventStatus } from "./telemetry.ts";
 import { recordFetch } from "./fmpBudget.ts";
 import { fmpBudgetDeps } from "./fmpBudgetDb.ts";
 import { labelZoneFor } from "./venues.ts";
@@ -39,7 +40,15 @@ type MarketDataEventPayload = {
   message?: string | null;
   metadata?: Record<string, unknown>;
   providerSymbol?: string | null;
-  status: "cache_hit" | "error" | "slow_provider" | "success";
+  /**
+   * THE SHARED TYPE, not a second copy of the union.
+   *
+   * This field used to restate four of the six statuses inline, so it could
+   * drift from what the recorder accepts and from what the table allows — and
+   * it did: `store_unavailable` was emitted here, absent from both, and the
+   * insert failed at runtime with nothing type-checking these files to say so.
+   */
+  status: AnalyzerEventStatus;
 };
 
 type MarketDataEventRecorder = (

@@ -12,6 +12,19 @@ export type AnalyzerEventStatus =
   | "error"
   | "scan_failure"
   | "slow_provider"
+  /**
+   * The bar store could not be reached and the fetch ran unassisted (#495).
+   *
+   * It exists so a cost regression that looks exactly like working software
+   * cannot hide: the read-through falls back to a full provider fetch on a
+   * store outage, and without this the run is indistinguishable from a normal
+   * one. It was emitted from `marketLoader.ts` from the day the store landed
+   * and was never added HERE or to the table's check constraint — so the event
+   * whose whole job is making a silent fallback visible could not be written.
+   * Nothing caught it: these files are outside `tsconfig.tests.json`, so the
+   * type error was invisible, and the insert failed at runtime.
+   */
+  | "store_unavailable"
   | "success";
 
 export type AnalyzerEventPayload = {
