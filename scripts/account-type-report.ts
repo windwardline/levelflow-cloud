@@ -81,8 +81,26 @@ type Row = {
   variant?: string;
 };
 
+/**
+ * The acceptance gates, re-applied at READ time by the CURRENT calibration.
+ *
+ * THE CONFIDENCE GATE WAS MISSING, and `confidenceScore` sat on the `Row` type
+ * unread — declared for this and never used. On a gated corpus the omission is
+ * invisible, because the sweep already dropped every below-threshold decision
+ * before the emit. On a `--capture-all` corpus those rows are present and
+ * flagged, and without this line every one of them entered `bySymbol` and drove
+ * per-market expectancy, the clustered category rollup and the amendment-24
+ * EXCLUDE verdicts. Below-threshold setups are the weakest by construction, so
+ * the bias had a known direction: toward excluding markets.
+ *
+ * Judged by the current calibration rather than by the row's `accepted` flag,
+ * deliberately and for the reason the call site already states — a threshold
+ * that moved between the sweep and this read must bind here. The flag records
+ * what the sweep decided; this asks what the engine would decide today.
+ */
 function passesOtherGates(row: Row): boolean {
   const calibration = getCategoryCalibration(row.symbol);
+  if (row.confidenceScore < calibration.confidenceThreshold) return false;
   if (row.rewardRisk < calibration.minRewardRisk) return false;
   return !(calibration.blockedRegimes ?? []).includes(row.regime as RegimeName);
 }

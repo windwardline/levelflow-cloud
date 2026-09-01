@@ -17,7 +17,7 @@
  */
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
-import { assertManifest } from "./sweepStats.ts";
+import { assertAcceptanceMode, assertManifest } from "./sweepStats.ts";
 
 // SYMBOLS: external the grain complex | 6 of 6 vs agriculture
 const GRAINS = new Set(["ZCUSX", "ZSUSX", "ZLUSX", "ZMUSD", "ZOUSX", "ZRUSD"]);
@@ -68,7 +68,21 @@ async function main(): Promise<void> {
   }
   for (const file of files) {
     // R0: the one-clock door (#358 round 3).
-    assertManifest(file);
+    const corpusManifest = assertManifest(file);
+    // THE PREMISE THIS READER OPENS BY STATING, now asserted.
+    //
+    // Its header promises "the monotone-survival confidence floor", and a
+    // floor cannot be derived from a corpus that already applied one: a gated
+    // sweep emits only rows that passed the confidence gate, so every band
+    // below the shipped threshold is empty and every band above it reads as
+    // surviving. The curve would be built from survivors and called the
+    // population — the same words `confidence-bands.ts:234` and
+    // `threshold-rescue.ts:95` use for the same failure.
+    //
+    // A refusal rather than a filter, unlike the readers that want only
+    // shipped decisions: this one needs the rows the gate rejected, so a gated
+    // corpus is not a narrower answer, it is no answer.
+    assertAcceptanceMode(file, corpusManifest, { captureAll: true });
     const stream = createInterface({ crlfDelay: Infinity, input: createReadStream(file) });
     for await (const line of stream) {
       if (!line) continue;
