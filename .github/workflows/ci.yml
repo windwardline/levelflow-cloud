@@ -40,33 +40,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # `check` is the project's typecheck entry point (tsc -b --noEmit).
-      - name: Run Typecheck
-        run: npm run check
-
-      - name: Run Lint
-        run: npm run lint
-
-      - name: Check Migrations
-        run: npm run check:migrations
-
-      - name: Audit Dependencies
-        run: npm audit --audit-level=high
-
-      # Deliberate coverage split: unit/integration tests gate PRs here;
-      # the Playwright e2e specs need production credentials and the live
-      # Supabase project, so they run in deploy.yml after Edge Functions
-      # deploy — the public specs against both a dev server and a local
-      # `vite build` artifact, the authed specs against the dev server;
-      # never against the Vercel-shipped build itself.
-      # Vercel builds and deploys the frontend independently on the same
-      # push (README.md), so a failing e2e does not halt or gate it; it
-      # fails the deploy workflow run, which is the loud signal.
-      - name: Run Tests
-        run: npm run test
-
-      - name: Build
-        run: npm run build
-
-      - name: Check Bundle Budget
-        run: npm run check:bundle
+      # Runs exactly the gates AGENTS.md declares in its fleet-gates block, so the
+      # contract's gate list is executable rather than prose. Byte-identical in
+      # every fleet repository with CI; the conformance checker compares it.
+      - name: Run declared gates
+        run: |
+          gates=$(awk '/^```fleet-gates$/{o=1;next} o&&/^```$/{o=0;next} o&&/^gate: /{sub(/^gate: /,"");print}' AGENTS.md)
+          [ -n "$gates" ] || { echo "AGENTS.md declares no gate: entry in its fleet-gates block" >&2; exit 1; }
+          n=0
+          while IFS= read -r gate; do
+            [ -n "$gate" ] || continue
+            echo "::group::$gate"
+            sh -c "$gate"
+            echo "::endgroup::"
+            n=$((n + 1))
+          done <<< "$gates"
+          echo "$n declared gate(s) executed."
