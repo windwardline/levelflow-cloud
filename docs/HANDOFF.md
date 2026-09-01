@@ -1504,6 +1504,50 @@ EURUSD  baseline  fit  513 decisions ... 378 setups ... expectancyR -0.066
 Three blockers, all found by trying to run it rather than by reading it, and each
 one invisible to the gate before it.
 
+#### R3's run card — PROVEN END TO END 2026-09-01, at zero provider bytes
+
+Not a proposal. This exact shape was run on two markets with the grid, behind an
+open breaker, and produced a manifested corpus:
+
+```bash
+npx tsx scripts/replay-sweep.ts \
+  --anchor 2026-08-26 --days 7000 --symbols roster \
+  --grid "runnerProtection=breakeven,hold,trail_tp1" \
+  --byte-budget 1MB --emit docs/research/r3/emit.jsonl
+```
+
+Every term is load-bearing and each was established by a failure:
+
+| term | why it is there |
+| --- | --- |
+| `--anchor 2026-08-26` | the only two days pinned in all 290 stores are 08-25 and 08-26; today is pinned in none. Without it the run refetches the roster |
+| `--days 7000` | the cache's actual depth. At the default 60 the pre-flight refuses all 291 bar stores, correctly — `EURUSD-15min-60` does not exist |
+| `--grid runnerProtection=...` | the axis overrides each market's own cell. Run at rest, `hold` is measured on 7 markets in 3 classes and cannot answer for the arm amendment 39 cares most about |
+| `--byte-budget 1MB` | the driver refuses to start without one. An anchored run spends nothing, so the ceiling is a formality — and a formality that would catch a pre-flight bug |
+
+**The dry run's evidence, two markets, four variants:**
+
+```
+anchored at 2026-08-26: 10 cache artifacts all carry the pin ...
+BTCUSD  runnerProtection=breakeven  fit  ... expectancyR 0.030
+BTCUSD  runnerProtection=hold       fit  ... expectancyR 0.159
+BTCUSD  runnerProtection=trail_tp1  fit  ... expectancyR 0.110
+Emitted 4836 setup records (manifest 4808405fb89a)
+```
+
+The three arms genuinely differ, and `baseline` matches `trail_tp1` exactly on
+BTCUSD because that is the market's resting cell — the axis is live, not inert.
+The emit carries all 68 columns including `nearestStructureDistance`, the three
+gross leg prices, `anchor: 2026-08-26` in the manifest, and a 3,108-row
+rejection sidecar the manifest's `rejectionLedgerRows` agrees with.
+
+**One sequencing consequence, and it is not optional either.** R2b's question 4
+asks whether the stop should consult daily structure. That is NOT expressible as
+a grid axis — the grid overrides calibration numbers, never the pivot set — so a
+decision to change it lands the same way R2b did: before the one re-sweep, not
+after. `scripts/q4-daily-structure-stop.ts` produces the evidence at zero bytes;
+the decision is the owner's; R3 waits on it.
+
 Two things follow, and neither is optional:
 1. **R3's run-card names the anchor AND the depth** — `--anchor 2026-08-26
    --days 7000`, alongside the `--byte-budget` the driver refuses to start
