@@ -94,3 +94,24 @@ anyway over an empty one.
 The retry workflow catches runs that **failed**. It cannot catch runs that were never
 **created** — nothing fires when nothing happened. `workflow_dispatch` on every required
 workflow is the other half of the mechanism, and both belong in the fleet standard together.
+
+## A commit message on `main` that is not true
+
+`686d063` reads `docs: drop the retired third app from the magic-link audit` and states
+`No behaviour change: this file is a dated research record`. It changed
+`.github/workflows/deploy.yml`, `tests/e2e/coverageReporter.ts`, and two test files. The
+docs change named in that message is a different commit, `49713ff`.
+
+Two sessions worked one checkout. PR #542 was opened for the magic-link docs edit; the
+same edit landed first through #544, and #542's branch was then reused for the deploy
+E2E scope work. Nothing in the flow re-reads a PR's title against its final diff, so the
+squash merge stamped the original title onto the new contents.
+
+The commit message cannot be repaired — `main` is linear-history-enforced and force-push
+is barred. PR #542's title and body now describe the real change and carry the
+discrepancy explicitly. Reach the truth about `686d063` through the PR, not the log.
+
+Two things follow. A squash title is written when a PR opens and read when it merges,
+and the diff in between is unpinned — so re-read the title against the diff at merge
+time, not at open time. And a branch is cheaper than it looks: reusing one for unrelated
+work is what let a stale title outlive the change it described.
