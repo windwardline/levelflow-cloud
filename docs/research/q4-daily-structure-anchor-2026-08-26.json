@@ -1,0 +1,1068 @@
+{
+  "anchor": "2026-08-26",
+  "days": 7000,
+  "byClass": {
+    "forex": {
+      "planned": 1187237,
+      "unanchored": 0,
+      "dailyPresent": 1183240,
+      "dailyOnly": 43737,
+      "dailyNearer": 395145,
+      "stopMoves": 424253,
+      "provenanceFlips": 134093,
+      "moveAtrMedian": 0.6164645820037337,
+      "moveAtrP90": 2.022445302445441
+    },
+    "metals": {
+      "planned": 38269,
+      "unanchored": 0,
+      "dailyPresent": 37811,
+      "dailyOnly": 1343,
+      "dailyNearer": 9617,
+      "stopMoves": 10174,
+      "provenanceFlips": 3549,
+      "moveAtrMedian": 0.624334713187467,
+      "moveAtrP90": 1.8611358574609915
+    },
+    "futures": {
+      "planned": 86352,
+      "unanchored": 0,
+      "dailyPresent": 85113,
+      "dailyOnly": 3105,
+      "dailyNearer": 35801,
+      "stopMoves": 17232,
+      "provenanceFlips": 9114,
+      "moveAtrMedian": 0.7875000000000292,
+      "moveAtrP90": 2.009811320754721
+    },
+    "indices": {
+      "planned": 8690,
+      "unanchored": 0,
+      "dailyPresent": 8396,
+      "dailyOnly": 260,
+      "dailyNearer": 1740,
+      "stopMoves": 821,
+      "provenanceFlips": 337,
+      "moveAtrMedian": 0.8529036358250901,
+      "moveAtrP90": 2.334627933154003
+    },
+    "energies": {
+      "planned": 3625,
+      "unanchored": 0,
+      "dailyPresent": 3625,
+      "dailyOnly": 169,
+      "dailyNearer": 1663,
+      "stopMoves": 1275,
+      "provenanceFlips": 494,
+      "moveAtrMedian": 0.32407407407405403,
+      "moveAtrP90": 0.8917197452230099
+    },
+    "crypto": {
+      "planned": 555310,
+      "unanchored": 0,
+      "dailyPresent": 553682,
+      "dailyOnly": 14235,
+      "dailyNearer": 131249,
+      "stopMoves": 79917,
+      "provenanceFlips": 32477,
+      "moveAtrMedian": 0.5303541738976733,
+      "moveAtrP90": 1.6771207891942774
+    },
+    "agriculture": {
+      "planned": 24851,
+      "unanchored": 0,
+      "dailyPresent": 24851,
+      "dailyOnly": 886,
+      "dailyNearer": 14154,
+      "stopMoves": 8624,
+      "provenanceFlips": 3752,
+      "moveAtrMedian": 0.6942148760330579,
+      "moveAtrP90": 1.9754601226993824
+    },
+    "livestock": {
+      "planned": 3855,
+      "unanchored": 0,
+      "dailyPresent": 3780,
+      "dailyOnly": 112,
+      "dailyNearer": 1555,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null,
+      "moveAtrP90": null
+    }
+  },
+  "byMarket": {
+    "EURUSD": {
+      "planned": 43386,
+      "unanchored": 0,
+      "dailyPresent": 43249,
+      "dailyOnly": 1570,
+      "dailyNearer": 13827,
+      "stopMoves": 14568,
+      "provenanceFlips": 5050,
+      "moveAtrMedian": 0.6899383983570162
+    },
+    "GBPUSD": {
+      "planned": 43053,
+      "unanchored": 0,
+      "dailyPresent": 43005,
+      "dailyOnly": 1561,
+      "dailyNearer": 13969,
+      "stopMoves": 14745,
+      "provenanceFlips": 5234,
+      "moveAtrMedian": 0.690506329113915
+    },
+    "USDJPY": {
+      "planned": 42431,
+      "unanchored": 0,
+      "dailyPresent": 42170,
+      "dailyOnly": 1489,
+      "dailyNearer": 10059,
+      "stopMoves": 10929,
+      "provenanceFlips": 4011,
+      "moveAtrMedian": 0.708362614195248
+    },
+    "AUDUSD": {
+      "planned": 43358,
+      "unanchored": 0,
+      "dailyPresent": 42995,
+      "dailyOnly": 1696,
+      "dailyNearer": 13550,
+      "stopMoves": 14703,
+      "provenanceFlips": 4891,
+      "moveAtrMedian": 0.6912621359224054
+    },
+    "USDCAD": {
+      "planned": 38209,
+      "unanchored": 0,
+      "dailyPresent": 37923,
+      "dailyOnly": 1520,
+      "dailyNearer": 9424,
+      "stopMoves": 10413,
+      "provenanceFlips": 3461,
+      "moveAtrMedian": 0.5526315789473875
+    },
+    "USDCHF": {
+      "planned": 41977,
+      "unanchored": 0,
+      "dailyPresent": 41807,
+      "dailyOnly": 1445,
+      "dailyNearer": 15305,
+      "stopMoves": 15875,
+      "provenanceFlips": 5179,
+      "moveAtrMedian": 0.6325802615934256
+    },
+    "NZDUSD": {
+      "planned": 42662,
+      "unanchored": 0,
+      "dailyPresent": 42620,
+      "dailyOnly": 1594,
+      "dailyNearer": 15665,
+      "stopMoves": 16756,
+      "provenanceFlips": 5274,
+      "moveAtrMedian": 0.6777609682299152
+    },
+    "NZDJPY": {
+      "planned": 42409,
+      "unanchored": 0,
+      "dailyPresent": 42347,
+      "dailyOnly": 1633,
+      "dailyNearer": 14438,
+      "stopMoves": 15658,
+      "provenanceFlips": 4901,
+      "moveAtrMedian": 0.6463852287781563
+    },
+    "NZDCHF": {
+      "planned": 41579,
+      "unanchored": 0,
+      "dailyPresent": 41489,
+      "dailyOnly": 1654,
+      "dailyNearer": 13241,
+      "stopMoves": 14528,
+      "provenanceFlips": 4506,
+      "moveAtrMedian": 0.614540466392301
+    },
+    "NZDCAD": {
+      "planned": 42331,
+      "unanchored": 0,
+      "dailyPresent": 42187,
+      "dailyOnly": 1564,
+      "dailyNearer": 17117,
+      "stopMoves": 18334,
+      "provenanceFlips": 5240,
+      "moveAtrMedian": 0.5754504504504607
+    },
+    "GBPNZD": {
+      "planned": 42596,
+      "unanchored": 0,
+      "dailyPresent": 42465,
+      "dailyOnly": 1577,
+      "dailyNearer": 15818,
+      "stopMoves": 16959,
+      "provenanceFlips": 5006,
+      "moveAtrMedian": 0.5654661730057746
+    },
+    "GBPJPY": {
+      "planned": 42984,
+      "unanchored": 0,
+      "dailyPresent": 42971,
+      "dailyOnly": 1578,
+      "dailyNearer": 12957,
+      "stopMoves": 14052,
+      "provenanceFlips": 4616,
+      "moveAtrMedian": 0.6701196642257508
+    },
+    "GBPCHF": {
+      "planned": 42400,
+      "unanchored": 0,
+      "dailyPresent": 42243,
+      "dailyOnly": 1467,
+      "dailyNearer": 11098,
+      "stopMoves": 12036,
+      "provenanceFlips": 3905,
+      "moveAtrMedian": 0.6266375545852122
+    },
+    "GBPCAD": {
+      "planned": 42601,
+      "unanchored": 0,
+      "dailyPresent": 42559,
+      "dailyOnly": 1418,
+      "dailyNearer": 16234,
+      "stopMoves": 16993,
+      "provenanceFlips": 5134,
+      "moveAtrMedian": 0.5736585365855043
+    },
+    "GBPAUD": {
+      "planned": 43172,
+      "unanchored": 0,
+      "dailyPresent": 43022,
+      "dailyOnly": 1529,
+      "dailyNearer": 15072,
+      "stopMoves": 16170,
+      "provenanceFlips": 4847,
+      "moveAtrMedian": 0.6213101285597086
+    },
+    "EURNZD": {
+      "planned": 42628,
+      "unanchored": 0,
+      "dailyPresent": 42415,
+      "dailyOnly": 1678,
+      "dailyNearer": 15700,
+      "stopMoves": 16953,
+      "provenanceFlips": 4903,
+      "moveAtrMedian": 0.5757322175733323
+    },
+    "EURJPY": {
+      "planned": 43299,
+      "unanchored": 0,
+      "dailyPresent": 43110,
+      "dailyOnly": 1591,
+      "dailyNearer": 13047,
+      "stopMoves": 14117,
+      "provenanceFlips": 4642,
+      "moveAtrMedian": 0.6693989071037553
+    },
+    "EURGBP": {
+      "planned": 42104,
+      "unanchored": 0,
+      "dailyPresent": 42090,
+      "dailyOnly": 1414,
+      "dailyNearer": 18637,
+      "stopMoves": 19254,
+      "provenanceFlips": 6046,
+      "moveAtrMedian": 0.6045723962742252
+    },
+    "EURCHF": {
+      "planned": 40512,
+      "unanchored": 0,
+      "dailyPresent": 40288,
+      "dailyOnly": 1265,
+      "dailyNearer": 8148,
+      "stopMoves": 9005,
+      "provenanceFlips": 3012,
+      "moveAtrMedian": 0.6472361809045442
+    },
+    "EURCAD": {
+      "planned": 43019,
+      "unanchored": 0,
+      "dailyPresent": 42958,
+      "dailyOnly": 1619,
+      "dailyNearer": 16859,
+      "stopMoves": 17889,
+      "provenanceFlips": 5380,
+      "moveAtrMedian": 0.5807174887893077
+    },
+    "EURAUD": {
+      "planned": 43082,
+      "unanchored": 0,
+      "dailyPresent": 42784,
+      "dailyOnly": 1715,
+      "dailyNearer": 15203,
+      "stopMoves": 16464,
+      "provenanceFlips": 5092,
+      "moveAtrMedian": 0.6256038647342632
+    },
+    "CHFJPY": {
+      "planned": 42971,
+      "unanchored": 0,
+      "dailyPresent": 42504,
+      "dailyOnly": 1439,
+      "dailyNearer": 9828,
+      "stopMoves": 10938,
+      "provenanceFlips": 3618,
+      "moveAtrMedian": 0.6535008976661076
+    },
+    "CADJPY": {
+      "planned": 43328,
+      "unanchored": 0,
+      "dailyPresent": 43328,
+      "dailyOnly": 1779,
+      "dailyNearer": 14947,
+      "stopMoves": 16230,
+      "provenanceFlips": 5376,
+      "moveAtrMedian": 0.688503932916274
+    },
+    "CADCHF": {
+      "planned": 42050,
+      "unanchored": 0,
+      "dailyPresent": 41925,
+      "dailyOnly": 1507,
+      "dailyNearer": 11993,
+      "stopMoves": 12944,
+      "provenanceFlips": 4367,
+      "moveAtrMedian": 0.5723300970873776
+    },
+    "AUDNZD": {
+      "planned": 40781,
+      "unanchored": 0,
+      "dailyPresent": 40669,
+      "dailyOnly": 1463,
+      "dailyNearer": 15538,
+      "stopMoves": 16531,
+      "provenanceFlips": 5103,
+      "moveAtrMedian": 0.46666666666712714
+    },
+    "AUDJPY": {
+      "planned": 43089,
+      "unanchored": 0,
+      "dailyPresent": 43036,
+      "dailyOnly": 1672,
+      "dailyNearer": 16192,
+      "stopMoves": 17411,
+      "provenanceFlips": 5349,
+      "moveAtrMedian": 0.6750241080038242
+    },
+    "AUDCHF": {
+      "planned": 42485,
+      "unanchored": 0,
+      "dailyPresent": 42410,
+      "dailyOnly": 1707,
+      "dailyNearer": 12506,
+      "stopMoves": 13778,
+      "provenanceFlips": 4493,
+      "moveAtrMedian": 0.5783153347731387
+    },
+    "AUDCAD": {
+      "planned": 42741,
+      "unanchored": 0,
+      "dailyPresent": 42671,
+      "dailyOnly": 1593,
+      "dailyNearer": 18773,
+      "stopMoves": 20020,
+      "provenanceFlips": 5457,
+      "moveAtrMedian": 0.5487179487179321
+    },
+    "XAUUSD": {
+      "planned": 31065,
+      "unanchored": 0,
+      "dailyPresent": 30703,
+      "dailyOnly": 1084,
+      "dailyNearer": 7643,
+      "stopMoves": 8193,
+      "provenanceFlips": 2764,
+      "moveAtrMedian": 0.6176470588235724
+    },
+    "XAGUSD": {
+      "planned": 7204,
+      "unanchored": 0,
+      "dailyPresent": 7108,
+      "dailyOnly": 259,
+      "dailyNearer": 1974,
+      "stopMoves": 1981,
+      "provenanceFlips": 785,
+      "moveAtrMedian": 0.6538615446178532
+    },
+    "BZUSD": {
+      "planned": 4609,
+      "unanchored": 0,
+      "dailyPresent": 4609,
+      "dailyOnly": 150,
+      "dailyNearer": 2517,
+      "stopMoves": 2121,
+      "provenanceFlips": 801,
+      "moveAtrMedian": 0.6327683615820161
+    },
+    "CLUSD": {
+      "planned": 4014,
+      "unanchored": 0,
+      "dailyPresent": 4014,
+      "dailyOnly": 125,
+      "dailyNearer": 1952,
+      "stopMoves": 1584,
+      "provenanceFlips": 593,
+      "moveAtrMedian": 0.4206008583691033
+    },
+    "ESUSD": {
+      "planned": 5349,
+      "unanchored": 0,
+      "dailyPresent": 5054,
+      "dailyOnly": 156,
+      "dailyNearer": 449,
+      "stopMoves": 451,
+      "provenanceFlips": 256,
+      "moveAtrMedian": 0.8329853862212944
+    },
+    "GCUSD": {
+      "planned": 5322,
+      "unanchored": 0,
+      "dailyPresent": 5069,
+      "dailyOnly": 127,
+      "dailyNearer": 427,
+      "stopMoves": 475,
+      "provenanceFlips": 280,
+      "moveAtrMedian": 0.9762068965516456
+    },
+    "HGUSD": {
+      "planned": 5144,
+      "unanchored": 0,
+      "dailyPresent": 5126,
+      "dailyOnly": 306,
+      "dailyNearer": 2595,
+      "stopMoves": 2086,
+      "provenanceFlips": 1458,
+      "moveAtrMedian": 1.1200000000000248
+    },
+    "NGUSD": {
+      "planned": 5119,
+      "unanchored": 0,
+      "dailyPresent": 5119,
+      "dailyOnly": 188,
+      "dailyNearer": 4177,
+      "stopMoves": 3026,
+      "provenanceFlips": 1944,
+      "moveAtrMedian": 1.0248333333333994
+    },
+    "NQUSD": {
+      "planned": 4819,
+      "unanchored": 0,
+      "dailyPresent": 4557,
+      "dailyOnly": 145,
+      "dailyNearer": 345,
+      "stopMoves": 369,
+      "provenanceFlips": 208,
+      "moveAtrMedian": 0.7626436781608861
+    },
+    "RTYUSD": {
+      "planned": 4791,
+      "unanchored": 0,
+      "dailyPresent": 4728,
+      "dailyOnly": 132,
+      "dailyNearer": 972,
+      "stopMoves": 755,
+      "provenanceFlips": 370,
+      "moveAtrMedian": 0.6054838709677675
+    },
+    "SIUSD": {
+      "planned": 5197,
+      "unanchored": 0,
+      "dailyPresent": 5123,
+      "dailyOnly": 160,
+      "dailyNearer": 1509,
+      "stopMoves": 1417,
+      "provenanceFlips": 684,
+      "moveAtrMedian": 0.7699999999999932
+    },
+    "YMUSD": {
+      "planned": 5311,
+      "unanchored": 0,
+      "dailyPresent": 5050,
+      "dailyOnly": 140,
+      "dailyNearer": 515,
+      "stopMoves": 468,
+      "provenanceFlips": 233,
+      "moveAtrMedian": 0.7131828978621981
+    },
+    "ZBUSD": {
+      "planned": 5198,
+      "unanchored": 0,
+      "dailyPresent": 5198,
+      "dailyOnly": 135,
+      "dailyNearer": 2788,
+      "stopMoves": 2452,
+      "provenanceFlips": 1273,
+      "moveAtrMedian": 0.828947368421063
+    },
+    "ZNUSD": {
+      "planned": 5091,
+      "unanchored": 0,
+      "dailyPresent": 5091,
+      "dailyOnly": 124,
+      "dailyNearer": 2311,
+      "stopMoves": 2028,
+      "provenanceFlips": 1014,
+      "moveAtrMedian": 0.8422750000000109
+    },
+    "SP": {
+      "planned": 1560,
+      "unanchored": 0,
+      "dailyPresent": 1493,
+      "dailyOnly": 47,
+      "dailyNearer": 273,
+      "stopMoves": 294,
+      "provenanceFlips": 126,
+      "moveAtrMedian": 1.0001933488012769
+    },
+    "NSDQ": {
+      "planned": 1445,
+      "unanchored": 0,
+      "dailyPresent": 1392,
+      "dailyOnly": 38,
+      "dailyNearer": 270,
+      "stopMoves": 276,
+      "provenanceFlips": 128,
+      "moveAtrMedian": 0.8657819921445674
+    },
+    "NIKKEI": {
+      "planned": 1710,
+      "unanchored": 0,
+      "dailyPresent": 1649,
+      "dailyOnly": 43,
+      "dailyNearer": 365,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "DOW": {
+      "planned": 726,
+      "unanchored": 0,
+      "dailyPresent": 697,
+      "dailyOnly": 18,
+      "dailyNearer": 124,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "DAX": {
+      "planned": 1344,
+      "unanchored": 0,
+      "dailyPresent": 1293,
+      "dailyOnly": 41,
+      "dailyNearer": 227,
+      "stopMoves": 251,
+      "provenanceFlips": 83,
+      "moveAtrMedian": 0.6941505673106109
+    },
+    "ASX": {
+      "planned": 1905,
+      "unanchored": 0,
+      "dailyPresent": 1872,
+      "dailyOnly": 73,
+      "dailyNearer": 481,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "WTI": {
+      "planned": 3625,
+      "unanchored": 0,
+      "dailyPresent": 3625,
+      "dailyOnly": 169,
+      "dailyNearer": 1663,
+      "stopMoves": 1275,
+      "provenanceFlips": 494,
+      "moveAtrMedian": 0.32407407407405403
+    },
+    "XRPUSD": {
+      "planned": 22961,
+      "unanchored": 0,
+      "dailyPresent": 22930,
+      "dailyOnly": 472,
+      "dailyNearer": 5147,
+      "stopMoves": 5334,
+      "provenanceFlips": 1294,
+      "moveAtrMedian": 0.5126213592232959
+    },
+    "SOLUSD": {
+      "planned": 13775,
+      "unanchored": 0,
+      "dailyPresent": 13699,
+      "dailyOnly": 349,
+      "dailyNearer": 2325,
+      "stopMoves": 2362,
+      "provenanceFlips": 833,
+      "moveAtrMedian": 0.5517419354838343
+    },
+    "LTCUSD": {
+      "planned": 24481,
+      "unanchored": 0,
+      "dailyPresent": 24478,
+      "dailyOnly": 538,
+      "dailyNearer": 7932,
+      "stopMoves": 8021,
+      "provenanceFlips": 2056,
+      "moveAtrMedian": 0.5390539053905399
+    },
+    "ETHUSD": {
+      "planned": 26163,
+      "unanchored": 0,
+      "dailyPresent": 26003,
+      "dailyOnly": 598,
+      "dailyNearer": 4771,
+      "stopMoves": 5009,
+      "provenanceFlips": 1536,
+      "moveAtrMedian": 0.5362037674447648
+    },
+    "BTCUSD": {
+      "planned": 26829,
+      "unanchored": 0,
+      "dailyPresent": 26597,
+      "dailyOnly": 570,
+      "dailyNearer": 3857,
+      "stopMoves": 4122,
+      "provenanceFlips": 1347,
+      "moveAtrMedian": 0.5591626733398076
+    },
+    "BNBUSD": {
+      "planned": 8020,
+      "unanchored": 0,
+      "dailyPresent": 7975,
+      "dailyOnly": 210,
+      "dailyNearer": 1997,
+      "stopMoves": 1587,
+      "provenanceFlips": 841,
+      "moveAtrMedian": 0.6651754954156218
+    },
+    "BCHUSD": {
+      "planned": 23002,
+      "unanchored": 0,
+      "dailyPresent": 22973,
+      "dailyOnly": 515,
+      "dailyNearer": 6550,
+      "stopMoves": 6321,
+      "provenanceFlips": 2107,
+      "moveAtrMedian": 0.5674244813278051
+    },
+    "ADAUSD": {
+      "planned": 22019,
+      "unanchored": 0,
+      "dailyPresent": 21999,
+      "dailyOnly": 525,
+      "dailyNearer": 4549,
+      "stopMoves": 4568,
+      "provenanceFlips": 1608,
+      "moveAtrMedian": 0.6363636363636525
+    },
+    "ZFUSD": {
+      "planned": 5118,
+      "unanchored": 0,
+      "dailyPresent": 5118,
+      "dailyOnly": 105,
+      "dailyNearer": 2334,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "ZTUSD": {
+      "planned": 2487,
+      "unanchored": 0,
+      "dailyPresent": 2485,
+      "dailyOnly": 88,
+      "dailyNearer": 1288,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "HOUSD": {
+      "planned": 4329,
+      "unanchored": 0,
+      "dailyPresent": 4329,
+      "dailyOnly": 395,
+      "dailyNearer": 3334,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "RBUSD": {
+      "planned": 4085,
+      "unanchored": 0,
+      "dailyPresent": 4085,
+      "dailyOnly": 315,
+      "dailyNearer": 3079,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "PLUSD": {
+      "planned": 5308,
+      "unanchored": 0,
+      "dailyPresent": 5297,
+      "dailyOnly": 182,
+      "dailyNearer": 2994,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "PAUSD": {
+      "planned": 5061,
+      "unanchored": 0,
+      "dailyPresent": 5061,
+      "dailyOnly": 132,
+      "dailyNearer": 2215,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "ZCUSX": {
+      "planned": 5210,
+      "unanchored": 0,
+      "dailyPresent": 5210,
+      "dailyOnly": 183,
+      "dailyNearer": 2697,
+      "stopMoves": 2416,
+      "provenanceFlips": 1123,
+      "moveAtrMedian": 0.9466666666666393
+    },
+    "ZSUSX": {
+      "planned": 5384,
+      "unanchored": 0,
+      "dailyPresent": 5384,
+      "dailyOnly": 183,
+      "dailyNearer": 2861,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "ZLUSX": {
+      "planned": 4869,
+      "unanchored": 0,
+      "dailyPresent": 4869,
+      "dailyOnly": 180,
+      "dailyNearer": 2176,
+      "stopMoves": 2138,
+      "provenanceFlips": 743,
+      "moveAtrMedian": 0.6194690265487318
+    },
+    "ZMUSD": {
+      "planned": 5138,
+      "unanchored": 0,
+      "dailyPresent": 5138,
+      "dailyOnly": 201,
+      "dailyNearer": 3493,
+      "stopMoves": 2227,
+      "provenanceFlips": 1310,
+      "moveAtrMedian": 0.44908301886804425
+    },
+    "ZOUSX": {
+      "planned": 2547,
+      "unanchored": 0,
+      "dailyPresent": 2547,
+      "dailyOnly": 87,
+      "dailyNearer": 1786,
+      "stopMoves": 1843,
+      "provenanceFlips": 576,
+      "moveAtrMedian": 0.9929078014184397
+    },
+    "ZRUSD": {
+      "planned": 1703,
+      "unanchored": 0,
+      "dailyPresent": 1703,
+      "dailyOnly": 52,
+      "dailyNearer": 1141,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "LEUSX": {
+      "planned": 1278,
+      "unanchored": 0,
+      "dailyPresent": 1247,
+      "dailyOnly": 34,
+      "dailyNearer": 361,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "GFUSX": {
+      "planned": 1311,
+      "unanchored": 0,
+      "dailyPresent": 1267,
+      "dailyOnly": 33,
+      "dailyNearer": 355,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "HEUSX": {
+      "planned": 1266,
+      "unanchored": 0,
+      "dailyPresent": 1266,
+      "dailyOnly": 45,
+      "dailyNearer": 839,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "AAVEUSD": {
+      "planned": 14529,
+      "unanchored": 0,
+      "dailyPresent": 14494,
+      "dailyOnly": 425,
+      "dailyNearer": 3327,
+      "stopMoves": 3241,
+      "provenanceFlips": 1241,
+      "moveAtrMedian": 0.5678310316815643
+    },
+    "ALGOUSD": {
+      "planned": 19241,
+      "unanchored": 0,
+      "dailyPresent": 19197,
+      "dailyOnly": 564,
+      "dailyNearer": 5068,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "ARWUSD": {
+      "planned": 8280,
+      "unanchored": 0,
+      "dailyPresent": 8280,
+      "dailyOnly": 280,
+      "dailyNearer": 2613,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "ATOMUSD": {
+      "planned": 18208,
+      "unanchored": 0,
+      "dailyPresent": 18152,
+      "dailyOnly": 523,
+      "dailyNearer": 4725,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "AVAXUSD": {
+      "planned": 13413,
+      "unanchored": 0,
+      "dailyPresent": 13398,
+      "dailyOnly": 388,
+      "dailyNearer": 3263,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "CAKEUSD": {
+      "planned": 7574,
+      "unanchored": 0,
+      "dailyPresent": 7574,
+      "dailyOnly": 397,
+      "dailyNearer": 2339,
+      "stopMoves": 1383,
+      "provenanceFlips": 868,
+      "moveAtrMedian": 0.6946283448959824
+    },
+    "DASHUSD": {
+      "planned": 24550,
+      "unanchored": 0,
+      "dailyPresent": 24494,
+      "dailyOnly": 585,
+      "dailyNearer": 6283,
+      "stopMoves": 5930,
+      "provenanceFlips": 2258,
+      "moveAtrMedian": 0.5957446808510624
+    },
+    "DOGEUSD": {
+      "planned": 20112,
+      "unanchored": 0,
+      "dailyPresent": 20106,
+      "dailyOnly": 438,
+      "dailyNearer": 4254,
+      "stopMoves": 2729,
+      "provenanceFlips": 1784,
+      "moveAtrMedian": 0.3881652448579005
+    },
+    "DOTUSD": {
+      "planned": 14112,
+      "unanchored": 0,
+      "dailyPresent": 13956,
+      "dailyOnly": 372,
+      "dailyNearer": 2487,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "DYDXUSD": {
+      "planned": 9358,
+      "unanchored": 0,
+      "dailyPresent": 9324,
+      "dailyOnly": 195,
+      "dailyNearer": 1637,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "EGLDUSD": {
+      "planned": 13169,
+      "unanchored": 0,
+      "dailyPresent": 13096,
+      "dailyOnly": 341,
+      "dailyNearer": 2399,
+      "stopMoves": 2137,
+      "provenanceFlips": 1080,
+      "moveAtrMedian": 0.7209090909091164
+    },
+    "ETCUSD": {
+      "planned": 19077,
+      "unanchored": 0,
+      "dailyPresent": 19075,
+      "dailyOnly": 427,
+      "dailyNearer": 4948,
+      "stopMoves": 4538,
+      "provenanceFlips": 1612,
+      "moveAtrMedian": 0.4999999999999841
+    },
+    "FILUSD": {
+      "planned": 16023,
+      "unanchored": 0,
+      "dailyPresent": 15968,
+      "dailyOnly": 324,
+      "dailyNearer": 4332,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "GRTUSD": {
+      "planned": 15705,
+      "unanchored": 0,
+      "dailyPresent": 15529,
+      "dailyOnly": 408,
+      "dailyNearer": 2751,
+      "stopMoves": 2673,
+      "provenanceFlips": 1330,
+      "moveAtrMedian": 0.7652733118970957
+    },
+    "HBARUSD": {
+      "planned": 10617,
+      "unanchored": 0,
+      "dailyPresent": 10617,
+      "dailyOnly": 302,
+      "dailyNearer": 3138,
+      "stopMoves": 1687,
+      "provenanceFlips": 1224,
+      "moveAtrMedian": 0.40319327731091126
+    },
+    "IMXUSD": {
+      "planned": 11281,
+      "unanchored": 0,
+      "dailyPresent": 11281,
+      "dailyOnly": 266,
+      "dailyNearer": 2248,
+      "stopMoves": 2012,
+      "provenanceFlips": 853,
+      "moveAtrMedian": 0.5857740585774207
+    },
+    "LINKUSD": {
+      "planned": 19553,
+      "unanchored": 0,
+      "dailyPresent": 19434,
+      "dailyOnly": 525,
+      "dailyNearer": 4539,
+      "stopMoves": 2908,
+      "provenanceFlips": 2028,
+      "moveAtrMedian": 0.4169500674763438
+    },
+    "NEARUSD": {
+      "planned": 12797,
+      "unanchored": 0,
+      "dailyPresent": 12781,
+      "dailyOnly": 382,
+      "dailyNearer": 3483,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "THETAUSD": {
+      "planned": 8229,
+      "unanchored": 0,
+      "dailyPresent": 8229,
+      "dailyOnly": 322,
+      "dailyNearer": 2571,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "TRUMPUSD": {
+      "planned": 4191,
+      "unanchored": 0,
+      "dailyPresent": 4154,
+      "dailyOnly": 65,
+      "dailyNearer": 305,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "TRXUSD": {
+      "planned": 23421,
+      "unanchored": 0,
+      "dailyPresent": 23409,
+      "dailyOnly": 582,
+      "dailyNearer": 4226,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    },
+    "UNIUSD": {
+      "planned": 16056,
+      "unanchored": 0,
+      "dailyPresent": 16008,
+      "dailyOnly": 469,
+      "dailyNearer": 4066,
+      "stopMoves": 2309,
+      "provenanceFlips": 1657,
+      "moveAtrMedian": 0.3799101169851477
+    },
+    "XLMUSD": {
+      "planned": 22072,
+      "unanchored": 0,
+      "dailyPresent": 22072,
+      "dailyOnly": 590,
+      "dailyNearer": 6125,
+      "stopMoves": 4171,
+      "provenanceFlips": 2633,
+      "moveAtrMedian": 0.3665236051502136
+    },
+    "XMRUSD": {
+      "planned": 24480,
+      "unanchored": 0,
+      "dailyPresent": 24437,
+      "dailyOnly": 727,
+      "dailyNearer": 6711,
+      "stopMoves": 6875,
+      "provenanceFlips": 2287,
+      "moveAtrMedian": 0.5871294287780303
+    },
+    "XTZUSD": {
+      "planned": 22012,
+      "unanchored": 0,
+      "dailyPresent": 21963,
+      "dailyOnly": 561,
+      "dailyNearer": 6283,
+      "stopMoves": 0,
+      "provenanceFlips": 0,
+      "moveAtrMedian": null
+    }
+  },
+  "skipped": [],
+  "unpinned": []
+}
