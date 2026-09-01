@@ -530,6 +530,14 @@ export async function runQ4(argv: string[]): Promise<number> {
       }
     }
     byMarket.set(symbol, row);
+    // Progress to STDERR, so a roster walk is distinguishable from a hang and
+    // the table on stdout stays pipeable. Tens of minutes of silence is what
+    // makes an operator kill a run that was working.
+    process.stderr.write(
+      `${String(byMarket.size).padStart(3)}/${args.symbols.length} ` +
+        `${symbol.padEnd(10)} ${String(row.planned).padStart(6)} plans, ` +
+        `${share(row.stopMoves, row.planned)} move\n`,
+    );
   }
 
   const measured = [...byMarket.entries()].filter(([, r]) => r.planned > 0);
