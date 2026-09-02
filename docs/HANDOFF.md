@@ -1000,7 +1000,7 @@ the wall clock and ignored the bar in flight (#420) |
 | **R2b** | ~~**The geometry model's own fresh-eyes round**~~ **RAN 2026-08-31 — `docs/research/r2b-geometry-fresh-eyes-2026-08-31.md`; its one-entry field list LANDED the same day (#507).** The row below is the original statement of the item.
 | **R2b (original)** | **The geometry model's own fresh-eyes round** — the old item 4b, re-ranked here 2026-08-19 rather than left in §5's prose. Several lenses, each asked what the MODEL is missing rather than how to tune it; the one surface the adversarial protocol has never been pointed at. **Its rank is load-bearing and was never stated:** its output changes what the sweep should measure, and R3 is `re-sweep ONCE` under item 2's law — one re-simulate after the instrument changes, never one per fix. Run after R3 and the choice is a second full re-sweep or shipping a geometry nobody probed. It must clear before R3 opens. | after R2, **before R3** |
 | **R3** | Re-sweep ONCE — item 2's law: one re-simulate after the instrument changes, never one per fix | **RAN 2026-09-02, 06:12Z–08:48Z, both arms of the run card at anchor 2026-08-26, zero provider bytes.** Gated 5,232,445 rows / capture-all 6,660,138, both from `e51e742`, engine `2026.09.01.platinum-group-rate-inverse`, 97 of 97 markets, 71 columns. The capture-all arm filtered to `accepted: true` IS the gated corpus — 5,232,445 of 5,232,445 rows byte-identical (item H, closed). Record: `docs/research/r3-one-resweep-2026-09-02.md`; artifacts `docs/research/r3/`. **What it found about itself:** the card's global folds put every futures, energies, agriculture and livestock market — and four of six indices — entirely inside the sealed confirm fold (their intraday history begins 2023-09/10), so the class-grain gate returned NO VERDICT for four of eight classes — **and the per-class arm RAN 15:07–17:40Z from merged main `886fdf1`** (`--fold-spec docs/research/r3/fold-spec-2026-08-26.json`, zero bytes, gated 5,216,341 rows / capture-all 6,634,732, reconciled byte-identical with `dirty: false, untracked: 0`). Every class now has a class-grain reading and it is uniform: **no grid variant is accepted in any class**; at rest only forex is net-positive on the tuning folds; futures, energies, indices and livestock lose before modelled spread and slippage are charged at all; the intraday `trail_tp1` arm beats mixed baselines at p = 0.001 in crypto, futures and indices and still fails D4's absolute term. Record §10. At rest, forex is net-positive on both tuning folds (+0.013R ±0.006 per filled trade, +2,896.9R over fit+select); crypto, metals, indices are not; against baseline, `breakeven` and `hold` fail the paired test at p = 1.000 in forex, crypto and metals, and `trail_tp1` is the best pooled net mode in every class with rows. No reader opened the confirm fold; the driver's stdout table prints that split's outcome columns by design, so the raw logs stay local and the tracked tables are redacted. *Earlier state:* after R2b, not merely after R2 — R2b changes what should be measured and there is only one re-sweep. Anchor at 2026-08-26 and R3 costs zero FMP bytes (it did) |
-| **R4** | The per-market program — every matched market individually, against its own shipped configuration, absolute expectancy as the criterion | after R3 — **and R3 RAN 2026-09-02.** R4's first act is to seal the reader population (6b-0's reopened corpus-readers row): twelve readers open the confirm fold unrecorded, and a per-market grade read through any of them burns the one confirmation read without a ledger line. The corpus is `docs/research/r3/`; the anchor is protected so R4's supplementary arms are free |
+| **R4** | The per-market program — every matched market individually, against its own shipped configuration, absolute expectancy as the criterion | after R3 — **and R3 RAN 2026-09-02.** **R4 act 1 RAN 2026-09-02**: the reader population is sealed at the door and proven so by execution (`docs/research/r4-act1-seal-readers-2026-09-02.md`; 6b-0's corpus-readers row CLOSED). Next: act 2 — per-market grading on fit and select, then the vetted confirm-read design (owner item: three purpose-confirm readers; ledger term for per-market folds; one holdout population). The corpus is `docs/research/r3/` (capture-all arms only); the anchor is protected so R4's supplementary arms are free |
 | **R5** | The never-analyzed populations — 8 contract variants, dual-listed crypto per line, register gaps | after R4 |
 | **R6** | Reader-facing claims — D7 (Record rows publish a frequency as a record), D8 (tier ordering the corpus inverts) | pre-reopen |
 
@@ -1551,8 +1551,12 @@ is derived and tracked (`docs/research/r3/fold-spec-2026-08-26.json`;
 `derive-fold-spec.ts` gained `--anchor`, since it pinned itself to the run
 day); the per-class arm runs at the same anchor for zero bytes and is the
 class-grain instrument for those classes. The global-fold corpus stays: it
-is the card as written, and R4's per-market folds (`grid-totalr
---per-market-folds`) re-cut at read time from row instants.
+is the card as written. R4's per-market folds (`grid-totalr
+--per-market-folds`) re-cut at read time from row instants — but only over
+the rows the sealed door hands out, so a market whose every row sits in the
+global-fold corpus's confirm fold is invisible to that re-cut (R4 act 1's
+refuter, 2026-09-02); the per-class corpus is the only instrument for those
+markets.
 
 **VERIFIED END TO END 2026-09-01 on EURUSD + BTCUSD at step 256, both arms, zero
 bytes.** 7 variants each; gated 13,477 rows, capture-all 15,404; **the
@@ -1907,7 +1911,54 @@ that fixed it.
   and belongs beside R6; the capture branch can wait, but say which is deferred
   rather than leaving both unranked.
 
-### ▶ RESUME HERE — 2026-09-02 13:30 UTC
+### ▶ RESUME HERE — 2026-09-02 21:30 UTC
+
+**R4 act 1 RAN: the confirm fold is sealed at the door.** Owner-approved
+2026-09-02 ("Recommendations are approved… fan out, adversarial passes,
+mutation testing, fresh eyes — non-negotiable"). Record:
+`docs/research/r4-act1-seal-readers-2026-09-02.md`. What changed:
+
+- `scripts/sweepStats.ts` withholds `split === "confirm"` rows from every
+  reader unless it passes `{ confirm: "read" }`; only `grid-totalr` (under
+  `--confirm-final`, the ledgered read) and `feasibility-4d` (planned prices
+  only, premise pinned) may. `tuningFolds(manifest)` names the folds a reader
+  may tune on; no reader spells a fold name in code. Nineteen readers were
+  migrated; the four 50/75% re-cutters now classify rows by the emitted
+  split and judge on select; `threshold-rescue` no longer selects on confirm.
+- The driver prints `sealed` in the confirm rows' `unfilled` and three
+  outcome columns unless `--print-confirm-table` (the tracked R3 tables were
+  re-redacted to match; both starvation audits reproduce from them); it
+  refuses a grid whose review window the fold embargo cannot cover
+  (`assertEmbargoCoversReview`). The sync corpus door now decodes across
+  chunk edges (a review found it splitting multi-byte characters).
+- `tests/confirmFoldSealed.test.ts` is the executed, population-derived
+  guard: three corpora differing only in the confirm fold's outcomes, every
+  reader run on each, byte-identical output beyond a learned volatility mask.
+  Mutation-tested: an unsealed door fails twelve readers; one reader asking
+  for the fold fails the source law and its run.
+- Deleted: the four raw R3 stdout logs. Released earlier the same day: the
+  two gated R3 emits (derivable from capture-all, proven). `docs/research/r3/`
+  holds the two capture-all arms and sidecars.
+
+**What a resuming session must know first:**
+
+- **Owner item (vetted recommendation in the record, §6.1):** three readers'
+  purposes are confirm decisions — the roster audit's absolute confirm E, the
+  cost-sensitivity withdrawal verdict (amendment 36) and threshold-rescue's
+  both-folds rule. Recommendation: extend the ONE ledgered read to carry
+  per-market absolute net and gross confirm expectancy under the shipped
+  configuration, with the corpus hash, and make the three consume that
+  artifact. No second door. Until ruled, they judge on select and say so.
+- **Next: R4 act 2** — per-market grading on fit and select
+  (`grid-totalr --per-market-folds`, derive-4d), then the confirm-read design
+  (ledger term for per-market folds; one holdout population — stamped 19 vs
+  stratified 20; the roster audit's named-baseline refusal on R3's empty
+  grid cell). The one confirm read stays the owner's to authorize.
+- **Do not** run a reader with `{ confirm: "read" }`, add a flag naming the
+  fold, or run `confirm-4d` / `grid-totalr --confirm-final`: the guard fails
+  the first two in both directions; the third is the read.
+
+### ▶ RESUME HERE — 2026-09-02 13:30 UTC (superseded by the block above)
 
 **R3 RAN.** Both arms of the run card at anchor 2026-08-26, zero provider
 bytes, from `e51e742`: gated 5,232,445 rows (13.2 GB), capture-all 6,660,138
@@ -1922,11 +1973,14 @@ reading are tracked beside them. Full record:
 
 - **The confirm fold is SEALED.** No reader opened it: `grid-totalr` ran
   without `--confirm-final` and `docs/research/confirm-reads/` is unchanged.
-  The driver's own stdout table prints per-(market, variant, split) outcome
-  columns, confirm included, on every run — so the raw logs stay local and
-  the tracked `*.stdout-redacted.txt` carry `sealed` in those columns. Twelve
-  readers would read the fold unrecorded — 6b-0's corpus-readers row names
-  them — so do not point them at this corpus.
+  The driver's stdout table printed per-(market, variant, split) outcome
+  columns, confirm included, on every run; since R4 act 1 (same day) it
+  prints `sealed` in those cells and in `unfilled` unless
+  `--print-confirm-table` is passed,
+  the four raw logs that held the unsealed cells are deleted, and the
+  tracked `*.stdout-redacted.txt` carry `sealed`. Every reader is sealed at
+  the door (`docs/research/r4-act1-seal-readers-2026-09-02.md`); pointing
+  one at this corpus reads fit and select only.
 - **Every class has a class-grain reading now.** The card's global folds put
   every 2023-era market inside the confirm fold, so the per-class arm ran
   the same day from merged main (`--fold-spec
@@ -1970,9 +2024,8 @@ reading are tracked beside them. Full record:
   starting (12:56Z), unexplained.** Not sleep — `kern.sleeptime` is zero
   since boot and `pmset` logs none; the session simply did not resume. A
   session-long `caffeinate` runs anyway; it is not the explanation.
-- **Next is R4**, whose first act is sealing the twelve readers so its one
-  confirm read is a recorded one. The anchor stays protected for R4's free
-  arms.
+- **R4 act 1 — the seal — RAN the same day** (the resume block above).
+  The anchor stays protected for R4's free arms.
 
 ### ▶ RESUME HERE — 2026-08-23 20:00 UTC
 
@@ -3882,7 +3935,7 @@ statement about measured yield, never about fatigue with the subject.
 | surface | rounds | last yield | enumerated? | status | REOPENER |
 |---|---|---|---|---|---|
 | **News join** (live event families vs the corpus) | 2 (2026-08-11 E5, 2026-08-24) | 1 → 0 | yes — the arms are enumerable from `eventRows.ts` | **CLOSED** | a new event family reaching the live gate; or the null-currency asymmetry becoming measurable once R3's corpus exists (`remediation-program-2026-08-11.md:58`) |
-| **Corpus readers / manifest reporting** | ~57 (R1b's life + 2026-08-24), + 2026-09-02 | 1 → 0, then **12 → 12 on 2026-09-02** | yes — and the 2026-09-02 enumeration walked the whole door population | **REOPENED 2026-09-02 — the reopener fired (R3 ran; two readers joined), and the enumeration found TWELVE readers that open the CONFIRM fold with no opt-in and no LA-6 entry**: `sweep-analysis`, `stop-provenance`, `roster-expectancy-audit`, `market-dossier`, `cost-sensitivity-verdict` (both modes), `threshold-rescue`, `account-type-report`, `ag-class-derivation`, `confidence-bands`, `exclusion-suspects`, `geometry-evidence`, `e4-collapse` — five of them re-cut the folds themselves at 50/75% of the span and never read `row.split`. Only `data-limits`, `derive-4d`, `feasibility-4d` and `grid-totalr` without `--confirm-final` are sealed. Named rather than counted, because the audit that found them counted eleven. Record: `docs/research/r3-one-resweep-2026-09-02.md` §7 | **seal the population before R4 reads a per-market grade**: every reader fold-scoped by default with confirm behind a flag that writes the ledger, guarded by an EXECUTED differential test — two corpora identical but for the confirm rows' R, a sealed reader's output byte-identical across them — carrying a known-exposed list that fails in both directions. `scripts/tuning-folds-summary.ts` is the sealed shape |
+| **Corpus readers / manifest reporting** | ~57 (R1b's life + 2026-08-24), + 2026-09-02 | 1 → 0, then **12 → 12 on 2026-09-02, then 19 → 0 the same day** | yes — and the 2026-09-02 enumeration walked the whole door population | **CLOSED 2026-09-02 by R4 act 1** (`docs/research/r4-act1-seal-readers-2026-09-02.md`): the door seals the confirm fold by default, the population (nineteen, derived) is migrated, and `tests/confirmFoldSealed.test.ts` proves the seal by execution and fails in both directions; mutation-tested. Residue stated in the record §6. History — **REOPENED 2026-09-02 — the reopener fired (R3 ran; two readers joined), and the enumeration found TWELVE readers that open the CONFIRM fold with no opt-in and no LA-6 entry**: `sweep-analysis`, `stop-provenance`, `roster-expectancy-audit`, `market-dossier`, `cost-sensitivity-verdict` (both modes), `threshold-rescue`, `account-type-report`, `ag-class-derivation`, `confidence-bands`, `exclusion-suspects`, `geometry-evidence`, `e4-collapse` — five of them re-cut the folds themselves at 50/75% of the span and never read `row.split`. Only `data-limits`, `derive-4d`, `feasibility-4d` and `grid-totalr` without `--confirm-final` are sealed. Named rather than counted, because the audit that found them counted eleven. Record: `docs/research/r3-one-resweep-2026-09-02.md` §7 | **seal the population before R4 reads a per-market grade**: every reader fold-scoped by default with confirm behind a flag that writes the ledger, guarded by an EXECUTED differential test — two corpora identical but for the confirm rows' R, a sealed reader's output byte-identical across them — carrying a known-exposed list that fails in both directions. `scripts/tuning-folds-summary.ts` is the sealed shape |
 | **Security & secret handling** | several + 2026-08-24 | 2 → 2, both config-surface gaps with no live wrongness | partly — `src/` is pinned both ways; the config surface was NOT walked | **CLOSED after the C7/C8 PR merges** | a new external host; a new configuration surface that can set a provider base URL; any change to `CODE_ROOTS` or the allowlists |
 | **Clock & registration instruments** | 3 (#358, #384, 2026-08-24) | 3 → 3, incl. C2, the deepest defect since the 2026-08-11 clock defect | **no** | **RISING — keep lensing** | — |
 | **Sweep↔live convention** | ~58 (R1's life + two 2026-08-24 rounds) | 15 `latest.time` consumers enumerated — **11 diverge**, 3 offline-only, 1 agrees — PLUS 11 more divergent consumers that never touch `latest.time` | **the `latest.time` grep: YES. The SURFACE: no** | **RISING — the precondition itself was too narrow** | `docs/research/decision-instant-enumeration-2026-08-24.md` is the record. **The old precondition is satisfied and was WRONG**: "every consumer of `latest.time`" is a strict subset of "every place the two disagree about the decision instant", and a grep-derived population is a curated population wearing a derivation's clothes. **The corrected precondition**: every construction of a `MarketContext` field, every gate that admits or refuses a decision, and every argument handed to the resolver — each stated against its live counterpart. Plus one resolvable blocker (the FX Sunday-open bar stamp, needs the cache) and **three permanent residues no re-sweep can close** — live's scan phase δ, the historical quoted spread, and FMP's Treasury publication minute — which must be carried as STATED BOUNDS, never as closures |

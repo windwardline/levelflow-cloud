@@ -12,6 +12,14 @@
 // number is not wrong; an inherited number nobody has ever tested for
 // this market is the defect.
 //
+// THE CONFIRM FOLD IS SEALED AT THE DOOR (R4 act 1, 2026-09-02): the corpus
+// is read through the sealed door and each row is classified by its EMITTED
+// split against the manifest's fold vocabulary — this reader used to re-cut
+// folds at 50%/75% of each market's span and rank alternatives by a
+// "confirm" expectancy nobody ledgered. It reads the select tuning fold, and
+// the only confirm figures it carries are the RECORDED reads
+// (`4d-*-confirm-read.json`), as the tranche notes it already carried.
+//
 //   npx tsx scripts/market-dossier.ts --net <shards> --gross <shards> \
 //     --out docs/research/market-review-2026-08-11/dossiers.json
 import { readFileSync } from "node:fs";
@@ -30,7 +38,12 @@ import {
 } from "../supabase/functions/trade-analyzer/symbols.ts";
 import { getFuturesContractSpec } from "../supabase/functions/trade-analyzer/futures.ts";
 import { SECURITY_OPTIONS } from "../src/lib/symbolMap.ts";
-import { assertManifest, readLinesSync } from "./sweepStats.ts";
+import {
+  assertManifest,
+  assertManifestedCorpusSync,
+  SEALED_FOLD,
+  tuningFolds,
+} from "./sweepStats.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 import { flagReader } from "./flagReader.ts";
 
@@ -57,7 +70,7 @@ const MIN_FILLED = 30;
  */
 export const RECONSTRUCTED = "PINNED BASELINE re-gated at this market's threshold";
 
-type Acc = { n: number; sum: number; sumSq: number };
+export type Acc = { n: number; sum: number; sumSq: number };
 const empty = (): Acc => ({ n: 0, sum: 0, sumSq: 0 });
 
 function stats(acc: Acc) {
@@ -153,38 +166,72 @@ export function pinDivergence(
   return differing;
 }
 
-/** Every cell's per-fold accumulation, so a market's ALTERNATIVES are visible too. */
+/** Per market, per cell: the select-fold accumulation, plus what the door did. */
+export type Collected = {
+  byMarket: Map<string, Map<string, { select: Acc }>>;
+  folds: { fit: string; select: string };
+  rows: { fit: number; sealed: number; select: number };
+};
+
+/**
+ * Every cell's SELECT-fold accumulation, so a market's ALTERNATIVES are
+ * visible too. Rows are classified by the split the SWEEP emitted against
+ * the manifest's fold vocabulary (`tuningFolds`): fit is dropped, select is
+ * kept, and a split this reader cannot name is refused rather than skipped.
+ * Confirm rows never arrive — the door withholds them and counts them.
+ */
 export function collect(
   paths: string[],
-  spans: Map<string, { first: number; last: number }>,
   thresholdOf: (symbol: string) => number,
-) {
-  const byMarket = new Map<string, Map<string, { confirm: Acc; select: Acc }>>();
+): Collected {
+  const byMarket = new Map<string, Map<string, { select: Acc }>>();
+  const rows = { fit: 0, sealed: 0, select: 0 };
+  let folds: { fit: string; select: string } | undefined;
   for (const path of paths) {
     // R0: the one-clock door — a corpus that cannot state its clock (or
     // whose witnesses condemn it) is refused here too, not only in the
-    // aggregation readers. These five scripts produced the invalidated
-    // 4d-era figures by reading emits bare.
-    assertManifest(path);
-    readLinesSync(path, (line) => {
-      if (!line) return;
-      const row = JSON.parse(line) as {
-        accepted?: boolean;
-        confidenceScore?: number;
-        exitAtMs?: number;
-        outcome?: string;
-        realizedR?: number;
-        symbol?: string;
-        time?: number;
-        variant?: string;
-      };
+    // aggregation readers. The manifest half is opened first for its fold
+    // vocabulary, so every row is classified as it streams; the row door
+    // below verifies the same manifest again before it hands over a line,
+    // which costs one hash and keeps the door the only source of rows.
+    const manifest = assertManifest(path);
+    const named = tuningFolds(manifest);
+    if (folds === undefined) {
+      folds = named;
+    } else if (folds.fit !== named.fit || folds.select !== named.select) {
+      throw new Error(
+        `market-dossier: ${path} names its tuning folds ` +
+          `${named.fit}/${named.select} while the first shard named ` +
+          `${folds.fit}/${folds.select} — a legacy two-split shard and a ` +
+          `folded one are two measurements and cannot be pooled as one.`,
+      );
+    }
+    const vocabulary = folds;
+    const read = assertManifestedCorpusSync(path, (row) => {
       const symbol = row.symbol;
-      if (!symbol || row.accepted !== true || row.outcome === "unfilled") return;
-      const span = spans.get(symbol);
-      const time = Number(row.time);
+      if (!symbol) return;
+      // Classified by the split the sweep EMITTED, never by where the row's
+      // time falls in the span. A fold this reader cannot name is refused,
+      // not skipped; the sealed fold never arrives.
+      const split = String(row.split);
+      if (split === vocabulary.fit) {
+        rows.fit += 1;
+        return;
+      }
+      if (split !== vocabulary.select) {
+        throw new Error(
+          `market-dossier: ${path}: ${symbol} carries a row in split ` +
+            `"${split}", which this reader does not know. It reads the ` +
+            `"${vocabulary.select}" fold and drops "${vocabulary.fit}"; the ` +
+            `"${SEALED_FOLD}" fold is sealed at the door. A fold this reader ` +
+            `cannot name is refused, not skipped.`,
+        );
+      }
+      rows.select += 1;
+      if (row.accepted !== true || row.outcome === "unfilled") return;
       const r = Number(row.realizedR);
-      if (!span || !Number.isFinite(time) || !Number.isFinite(r)) return;
-      let variant = row.variant ?? "baseline";
+      if (!Number.isFinite(r)) return;
+      let variant = typeof row.variant === "string" ? row.variant : "baseline";
       // The grid's PINNED threshold-0 cell opened the confidence gate;
       // the SHIPPED engine gates at the market's own threshold, so that
       // cell — and only that cell — is re-read the way production reads
@@ -220,28 +267,25 @@ export function collect(
           variant = RECONSTRUCTED;
         }
       }
-      const fitEnd = span.first + (span.last - span.first) * 0.5;
-      const selectEnd = span.first + (span.last - span.first) * 0.75;
       if (!byMarket.has(symbol)) byMarket.set(symbol, new Map());
       const cells = byMarket.get(symbol)!;
       if (!cells.has(variant)) {
-        cells.set(variant, { confirm: empty(), select: empty() });
+        cells.set(variant, { select: empty() });
       }
-      const cell = cells.get(variant)!;
-      const exit = Number(row.exitAtMs);
-      if (time >= fitEnd && time < selectEnd) {
-        if (Number.isFinite(exit) && exit > selectEnd) return;
-        cell.select.n += 1;
-        cell.select.sum += r;
-        cell.select.sumSq += r * r;
-      } else if (time >= selectEnd) {
-        cell.confirm.n += 1;
-        cell.confirm.sum += r;
-        cell.confirm.sumSq += r * r;
-      }
+      const cell = cells.get(variant)!.select;
+      cell.n += 1;
+      cell.sum += r;
+      cell.sumSq += r * r;
     });
+    rows.sealed += read.sealedRows;
   }
-  return byMarket;
+  if (folds === undefined) {
+    throw new Error(
+      "market-dossier: collect() was given no shard — a measurement over " +
+        "zero rows cannot be written as one.",
+    );
+  }
+  return { byMarket, folds, rows };
 }
 
 // The ONE declaration of which flags own the token after them — the
@@ -309,10 +353,19 @@ function main() {
   const thresholdOf = (symbol: string) =>
     getCategoryCalibration(symbol).confidenceThreshold;
   const netSpans = spansFrom(netPaths);
-  const net = collect(netPaths, netSpans, thresholdOf);
-  const gross = grossPaths.length > 0
-    ? collect(grossPaths, spansFrom(grossPaths), thresholdOf)
-    : new Map();
+  const net = collect(netPaths, thresholdOf);
+  const gross = grossPaths.length > 0 ? collect(grossPaths, thresholdOf) : null;
+  if (
+    gross !== null &&
+    (gross.folds.fit !== net.folds.fit || gross.folds.select !== net.folds.select)
+  ) {
+    throw new Error(
+      `market-dossier: the gross corpus names its tuning folds ` +
+        `${gross.folds.fit}/${gross.folds.select} and the net corpus ` +
+        `${net.folds.fit}/${net.folds.select} — one dossier cannot read two ` +
+        `fold vocabularies as one measurement.`,
+    );
+  }
 
   const menuBySymbol = new Map(SECURITY_OPTIONS.map((o) => [o.symbol, o]));
   const population = [
@@ -340,29 +393,21 @@ function main() {
     // assumed to represent.
     const diverging = pinDivergence(effective);
     const effectiveVariant = cell?.variant ?? RECONSTRUCTED;
-    const netCells = net.get(symbol);
-    const grossCells = gross.get(symbol);
+    const netCells = net.byMarket.get(symbol);
+    const grossCells = gross?.byMarket.get(symbol);
     const readCell = (
-      source: Map<string, { confirm: Acc; select: Acc }> | undefined,
+      source: Map<string, { select: Acc }> | undefined,
       variant: string,
-    ) => {
-      const found = source?.get(variant);
-      return {
-        confirm: stats(found?.confirm ?? empty()),
-        select: stats(found?.select ?? empty()),
-      };
-    };
+    ) => ({ select: stats(source?.get(variant)?.select ?? empty()) });
     // Every alternative cell this market was measured under, best first
-    // by confirm expectancy — so "was a better configuration available?"
-    // is answerable per market instead of assumed.
+    // by SELECT expectancy — so "was a better configuration available?"
+    // is answerable per market instead of assumed. What a RECORDED confirm
+    // read said about the pick rides trancheHistory; the fold itself is
+    // sealed.
     const alternatives = [...(netCells?.entries() ?? [])]
-      .map(([variant, cells]) => ({
-        confirm: stats(cells.confirm),
-        select: stats(cells.select),
-        variant,
-      }))
-      .filter((row) => row.confirm.expectancy !== null)
-      .sort((a, b) => (b.confirm.expectancy ?? 0) - (a.confirm.expectancy ?? 0));
+      .map(([variant, cells]) => ({ select: stats(cells.select), variant }))
+      .filter((row) => row.select.expectancy !== null)
+      .sort((a, b) => (b.select.expectancy ?? 0) - (a.select.expectancy ?? 0));
 
     const spec = getFuturesContractSpec(symbol);
     const span = netSpans.get(symbol);
@@ -413,13 +458,18 @@ function main() {
     };
   }
 
-  writeResearchArtifact(outPath, { dossiers });
+  writeResearchArtifact(outPath, {
+    dossiers,
+    folds: { dropped: net.folds.fit, judgedOn: net.folds.select, sealed: SEALED_FOLD },
+    rows: { gross: gross?.rows ?? null, net: net.rows },
+  });
   const inheritedOnly = Object.values(dossiers).filter((d) => {
     const p = (d as { provenance: Record<string, string> }).provenance;
     return Object.values(p).every((value) => value.startsWith("inherited"));
   }).length;
   console.log(
-    `dossiers: ${population.length} markets -> ${outPath} ` +
+    `dossiers: ${population.length} markets on the ${net.folds.select} fold ` +
+      `(${net.rows.sealed} ${SEALED_FOLD} rows withheld at the door) -> ${outPath} ` +
       `(${inheritedOnly} run entirely inherited calibration)`,
   );
 }

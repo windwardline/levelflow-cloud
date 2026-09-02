@@ -426,7 +426,11 @@ livestock fold end, the "status and log" wording, and three minor figures.
   `--per-market-folds` path) — and none writes the LA-6 ledger. A confirm read
   through any of them is an unrecorded one. R3's report used none of them;
   the sealed summary reader exists because of this. Ranked in
-  `docs/HANDOFF.md` (6b-0's reopened corpus-readers row).
+  `docs/HANDOFF.md` (6b-0's reopened corpus-readers row). **CLOSED the same
+  day by R4 act 1** (`r4-act1-seal-readers-2026-09-02.md`): the door seals
+  the fold by default, the population — nineteen once derived rather than
+  listed, two more exposures than this audit found — is migrated, and an
+  executed differential guard fails in both directions.
 - **The driver's own stdout table prints the confirm split's outcome columns
   — FOUND, contained.** `replay-sweep.ts` prints one row per (market,
   variant, split) with `tp1HitRate`, `stopRate` and `expectancyR`, the
@@ -436,8 +440,9 @@ livestock fold end, the "status and log" wording, and three minor figures.
   evidence is `*.stdout-redacted.txt`, in which the three outcome columns of
   every confirm row read `sealed` and the gate tallies are untouched —
   `starvation-audit --report` produces byte-identical output from the
-  redacted table. The driver's table should withhold those columns unless
-  asked; that is R4's instrument work, beside the twelve readers.
+  redacted table. **CLOSED the same day by R4 act 1**: the driver prints
+  `sealed` in those cells unless `--print-confirm-table` is passed, and the
+  four raw logs that held the unsealed cells were deleted.
 - **The nightly cache top-up read the shared breaker's refusal as "a real
   failure" — CLOSED.** Its 11:00Z run was refused by the open breaker (the
   intended stand-down: "FMP circuit open for 35.7h … Next probe in 0.8h"),
@@ -512,6 +517,15 @@ modelled spread and slippage are charged at all.
 | `docs/research/r3/` corpora + sidecars + raw stdout logs (gitignored) | — | 61.95 GB across the four arms |
 | tracked artifacts in `docs/research/r3/` | — | ~5 MB (manifests, redacted stdout tables, reader outputs, fold spec) |
 | strays under `/private/tmp` | none | none (the probe corpora were removed; scratch holds 3 MB of refuter scripts) |
+
+**Later the same day (R4 act 1).** The two gated emits were released after
+proving them derivable: `grid-totalr` and the sealed summary produce
+identical output from the capture-all arms filtered to `accepted: true`,
+so the gated files carried no information the capture-all arms do not.
+Free space 249 GB after the release (from 284 GB with all four corpora on
+disk). The four raw stdout logs were deleted (§7). `docs/research/r3/` now
+holds the two capture-all arms (33.5 GB) with their sidecars; the tracked
+evidence is unchanged.
 
 ## 10. The per-class arm — the class-grain instrument for all eight classes
 

@@ -14,17 +14,26 @@
  * settle: the monotone-survival confidence floor, and the outcome split by
  * session hour. Stop cap comes from the running grid; TP1 and the runner need
  * their own.
+ *
+ * The confirm fold is sealed at the door (R4 act 1, 2026-09-02): this reads
+ * the fit and select folds — train and test on a legacy corpus — and never
+ * sees a confirm row.
  */
-import { createReadStream } from "node:fs";
-import { createInterface } from "node:readline";
-import { assertAcceptanceMode, assertManifest } from "./sweepStats.ts";
+import {
+  assertAcceptanceMode,
+  assertManifest,
+  assertManifestedCorpusStreaming,
+  SEALED_FOLD,
+  tuningFolds,
+} from "./sweepStats.ts";
 
 // SYMBOLS: external the grain complex | 6 of 6 vs agriculture
 const GRAINS = new Set(["ZCUSX", "ZSUSX", "ZLUSX", "ZMUSD", "ZOUSX", "ZRUSD"]);
 // SYMBOLS: external the livestock complex | 3 of 3 vs livestock
 const LIVESTOCK = new Set(["LEUSX", "GFUSX", "HEUSX"]);
 const BUCKET = 5;
-const MIN_TEST_FILLS = 30;
+/** The select fold judges a band; a thinner bucket cannot support a floor. */
+const MIN_SELECT_FILLS = 30;
 
 type Row = {
   symbol: string; confidenceScore: number; outcome: string;
@@ -66,8 +75,16 @@ async function main(): Promise<void> {
     );
     process.exit(1);
   }
+  /** Rows the door handed over, before any filter here — zero is a refusal. */
+  let handed = 0;
+  /** Rows the door withheld as the sealed fold, summed across shards. */
+  let sealed = 0;
+  // The fold names come from the manifest, never from this file; keyed by
+  // vocabulary so shards of two shapes are refused as two corpora.
+  const tunings = new Map<string, ReturnType<typeof tuningFolds>>();
   for (const file of files) {
-    // R0: the one-clock door (#358 round 3).
+    // R0: the one-clock door (#358 round 3) — the manifest half first, so
+    // the premise below is refused before a single row is read.
     const corpusManifest = assertManifest(file);
     // THE PREMISE THIS READER OPENS BY STATING, now asserted.
     //
@@ -76,22 +93,33 @@ async function main(): Promise<void> {
     // sweep emits only rows that passed the confidence gate, so every band
     // below the shipped threshold is empty and every band above it reads as
     // surviving. The curve would be built from survivors and called the
-    // population — the same words `confidence-bands.ts:234` and
-    // `threshold-rescue.ts:95` use for the same failure.
+    // population — the same words `confidence-bands.ts` and
+    // `threshold-rescue.ts` use for the same failure.
     //
     // A refusal rather than a filter, unlike the readers that want only
     // shipped decisions: this one needs the rows the gate rejected, so a gated
     // corpus is not a narrower answer, it is no answer.
     assertAcceptanceMode(file, corpusManifest, { captureAll: true });
-    const stream = createInterface({ crlfDelay: Infinity, input: createReadStream(file) });
-    for await (const line of stream) {
-      if (!line) continue;
-      let r: Row;
-      try { r = JSON.parse(line) as Row; } catch { continue; }
-      if (r.variant && r.variant !== "baseline") continue;
+    const vocabulary = tuningFolds(corpusManifest);
+    tunings.set(`${vocabulary.fit}/${vocabulary.select}`, vocabulary);
+    // The row half is SEALED (R4 act 1): a confirm row never reaches this
+    // callback, and a holed line refuses the corpus instead of being skipped.
+    const manifest = await assertManifestedCorpusStreaming(file, (raw) => {
+      const r = raw as unknown as Row;
+      handed += 1;
+      // The door seals confirm; any other split is a vocabulary this reader
+      // does not know, refused by name rather than tallied and never printed.
+      if (r.split !== vocabulary.fit && r.split !== vocabulary.select) {
+        throw new Error(
+          `${file}: row carries split "${r.split}", which is neither ` +
+            `${vocabulary.fit} nor ${vocabulary.select} — an unknown fold ` +
+            `is refused, not pooled`,
+        );
+      }
+      if (r.variant && r.variant !== "baseline") return;
       const cohort = GRAINS.has(r.symbol) ? "agriculture"
         : LIVESTOCK.has(r.symbol) ? "livestock" : null;
-      if (!cohort) continue;
+      if (!cohort) return;
       const floor = Math.floor(r.confidenceScore / BUCKET) * BUCKET;
       for (const [m, k] of [
         [bands, `${cohort}|${floor}|${r.split}`],
@@ -101,7 +129,38 @@ async function main(): Promise<void> {
         let s = m.get(k); if (!s) { s = blank(); m.set(k, s); }
         add(s, r);
       }
-    }
+    });
+    sealed += manifest.sealedRows;
+  }
+
+  if (tunings.size !== 1) {
+    console.error(
+      `ag-class-derivation: the shards name ${tunings.size} fold vocabularies ` +
+        `[${[...tunings.keys()].join(", ")}] — two vocabularies are two ` +
+        `corpora, not one`,
+    );
+    process.exit(1);
+  }
+  const [tuning] = tunings.values();
+  // The door handed nothing: a class derived from zero rows is not derived,
+  // and when every row sat in the sealed fold the operator needs to hear that
+  // the seal, not the corpus, is why.
+  if (handed === 0) {
+    console.error(
+      `ag-class-derivation: the door handed this reader NO rows` +
+        (sealed > 0
+          ? ` — all ${sealed} sit in the sealed ${SEALED_FOLD} fold and were ` +
+            `withheld at the door (R4 act 1); nothing readable remains`
+          : ` — the corpus holds none`) +
+        `. That is a refusal, not a result.`,
+    );
+    process.exit(1);
+  }
+  if (sealed > 0) {
+    console.error(
+      `ag-class-derivation: ${sealed} ${SEALED_FOLD} row(s) withheld at the ` +
+        `door — sealed, not read`,
+    );
   }
 
   for (const cohort of ["agriculture", "livestock"]) {
@@ -113,19 +172,25 @@ async function main(): Promise<void> {
     const floors = [...bands.keys()].filter((k) => k.startsWith(`${cohort}|`))
       .map((k) => Number(k.split("|")[1]));
     const uniq = [...new Set(floors)].sort((a, b) => a - b);
-    const judgeable = uniq.filter((f) => (bands.get(`${cohort}|${f}|test`)?.filled ?? 0) >= MIN_TEST_FILLS);
+    // The SELECT tuning fold judges: it carries the fills floor and the
+    // monotone-survival verdict; the fit fold is printed beside it.
+    const selectBand = (f: number) => bands.get(`${cohort}|${f}|${tuning.select}`);
+    const judgeable = uniq.filter((f) => (selectBand(f)?.filled ?? 0) >= MIN_SELECT_FILLS);
     let verdict: number | null = null;
     for (const cand of judgeable) {
-      if (judgeable.filter((f) => f >= cand).every((f) => (E(bands.get(`${cohort}|${f}|test`)!) ?? -1) > 0)) {
+      if (judgeable.filter((f) => f >= cand).every((f) => (E(selectBand(f)!) ?? -1) > 0)) {
         verdict = cand; break;
       }
     }
-    console.log(`  band   train E    test E   test fills`);
+    console.log(
+      `  band  ${`${tuning.fit} E`.padStart(10)}  ${`${tuning.select} E`.padStart(10)}` +
+        `  ${`${tuning.select} fills`.padStart(14)}`,
+    );
     for (const f of uniq) {
-      const tr = bands.get(`${cohort}|${f}|train`), te = bands.get(`${cohort}|${f}|test`);
-      if (!te || te.filled < 10) continue;
-      console.log(`  ${String(f).padStart(4)}  ${(tr && E(tr) !== null ? E(tr)!.toFixed(3) : "—").padStart(8)}` +
-        `  ${E(te)!.toFixed(3).padStart(8)}  ${String(te.filled).padStart(8)}` +
+      const fit = bands.get(`${cohort}|${f}|${tuning.fit}`), sel = selectBand(f);
+      if (!sel || sel.filled < 10) continue;
+      console.log(`  ${String(f).padStart(4)}  ${(fit && E(fit) !== null ? E(fit)!.toFixed(3) : "—").padStart(10)}` +
+        `  ${E(sel)!.toFixed(3).padStart(10)}  ${String(sel.filled).padStart(14)}` +
         (f === verdict ? "  <- derived floor" : ""));
     }
     console.log(`  CONFIDENCE FLOOR: ${verdict ?? "none survives"}`);

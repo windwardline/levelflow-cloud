@@ -197,9 +197,9 @@ describe("the 4c/4d consumers refuse a run that examined nothing", () => {
       /names no accepted candidate on any market/,
       "a candidate file with no accepts poses no feasibility question",
     );
-    // Rows exist under the named cell, and carry no entry leg or
-    // riskDistance — the geometry pass collects nothing. Only the corpus
-    // can show this, which is why it is a third door rather than a
+    // Rows exist under the named cell, and carry no planned entry price
+    // or riskDistance — the geometry pass collects nothing. Only the
+    // corpus can show this, which is why it is a third door rather than a
     // stricter reading of the first two.
     const shard = shardWithRows(40);
     const accepts = join(dir, "accepts.json");
@@ -227,7 +227,7 @@ describe("the 4c/4d consumers refuse a run that examined nothing", () => {
     refuses(
       "scripts/feasibility-4d.ts",
       [shard, "--candidates", accepts],
-      /found a filled row with an entry price and a positive riskDistance/,
+      /found a row with a planned entry price and a positive riskDistance/,
       "a join that collected no geometry must not be written as a result",
     );
   });
@@ -252,7 +252,9 @@ describe("every corpus reader refuses a run that names no corpus", () => {
   // A reader is anything that opens the one-clock door. That is the same
   // definition the door's own derived scan uses (tests/sweepStats.test.ts),
   // and it is a fact about the file rather than a list someone maintains.
-  const DOOR = /assertManifest(?:edCorpus(?:Streaming)?)?\(/;
+  // All four forms, the sync door included (R4 act 1): a reader migrated
+  // onto it must stay in this population, or the law stops executing it.
+  const DOOR = /assertManifest(?:edCorpus(?:Sync|Streaming)?)?\(/;
   const DEFINES_THE_DOOR = "scripts/sweepStats.ts";
   const repoRoot = process.cwd();
 

@@ -19,10 +19,17 @@
  * the two groups differ in the setups they contain, not only in how they were
  * treated. This measures an association, and the grid measures the causal
  * effect — this is how you know which grid to run and what to expect from it.
+ *
+ * The confirm fold is sealed at the door (R4 act 1, 2026-09-02): this reads
+ * only the two tuning folds the manifest names — fit and select, or train and
+ * test on a legacy corpus — and never sees a confirm row.
  */
-import { createReadStream } from "node:fs";
-import { createInterface } from "node:readline";
-import { assertManifest } from "./sweepStats.ts";
+import {
+  assertManifest,
+  assertManifestedCorpusStreaming,
+  SEALED_FOLD,
+  tuningFolds,
+} from "./sweepStats.ts";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 
 type Row = {
@@ -35,6 +42,25 @@ const key = (c: string, p: string, s: string) => `${c}|${p}|${s}`;
 const acc = new Map<string, S>();
 /** Every split name the corpus actually carried, derived while reading. */
 const splitsSeen = new Set<string>();
+/** Rows the door handed over, before any filter here — zero is a refusal. */
+let handed = 0;
+/** Rows the door withheld as the sealed fold, summed across shards. */
+let sealed = 0;
+/**
+ * THE FOLD NAMES, TAKEN FROM THE MANIFEST RATHER THAN ASSUMED.
+ *
+ * This reader once looked up splits called "train" and "test" after the
+ * vocabulary had become fit / select / confirm (`sweepFolds.ts`), so every
+ * lookup was undefined and it printed its column header at exit 0 — measured
+ * on a 322 MB three-market emit: 2,966 rows read, nine tallies built, ZERO
+ * rows printed. The file's own door comment had named that exact shape and
+ * covered only the zero-FILES case; the zero-MATCHED-ROWS case was the one
+ * firing. The names now come from `tuningFolds(manifest)`, one law for both
+ * corpus shapes (`grid-totalr.ts` still carries the legacy map), and this
+ * file spells none of them. Keyed by vocabulary so a run over shards of two
+ * shapes is refused as two corpora rather than read as one.
+ */
+const tunings = new Map<string, ReturnType<typeof tuningFolds>>();
 
 function add(k: string, row: Row): void {
   let s = acc.get(k);
@@ -65,14 +91,17 @@ if (files.length === 0) {
   process.exit(1);
 }
 for (const file of files) {
-  // R0: the one-clock door (#358 round 3).
-  assertManifest(file);
-  const stream = createInterface({ crlfDelay: Infinity, input: createReadStream(file) });
-  for await (const line of stream) {
-    if (!line) continue;
-    let row: Row;
-    try { row = JSON.parse(line) as Row; } catch { continue; }
-    if (row.variant && row.variant !== "baseline") continue;
+  // R0: the one-clock door (#358 round 3) — the manifest half first, so the
+  // fold vocabulary is known before a row is read.
+  const manifest = assertManifest(file);
+  const vocabulary = tuningFolds(manifest);
+  tunings.set(`${vocabulary.fit}/${vocabulary.select}`, vocabulary);
+  // The row half is SEALED (R4 act 1): a confirm row never reaches this
+  // callback, and a holed line refuses the corpus instead of being skipped.
+  const read = await assertManifestedCorpusStreaming(file, (raw) => {
+    const row = raw as unknown as Row;
+    handed += 1;
+    if (row.variant && row.variant !== "baseline") return;
     // SHIPPED DECISIONS ONLY, and this reader had no such filter.
     //
     // A `--capture-all` corpus emits the rows that FAILED the confidence,
@@ -87,43 +116,57 @@ for (const file of files) {
     // `assertAcceptanceMode` refusal: a gated sweep emits `accepted: true` on
     // every row (verified: 2,615 of 2,615), so this reader now reads the same
     // population from either mode and needs no mode declaration at all. Two
-    // readers already REQUIRE captureAll: true (`confidence-bands.ts:234`,
-    // `threshold-rescue.ts:95`) and none requires false, so a corpus this
+    // readers already REQUIRE captureAll: true (`confidence-bands.ts`,
+    // `threshold-rescue.ts`) and none requires false, so a corpus this
     // reader refused would be one the others need.
-    if (row.accepted === false) continue;
-    if (!row.stopProvenance) continue;
+    if (row.accepted === false) return;
+    if (!row.stopProvenance) return;
     splitsSeen.add(row.split);
     add(key(getAssetType(row.symbol), row.stopProvenance, row.split), row);
-  }
+  });
+  sealed += read.sealedRows;
+}
+
+if (tunings.size !== 1) {
+  console.error(
+    `stop-provenance: the shards name ${tunings.size} fold vocabularies ` +
+      `[${[...tunings.keys()].join(", ")}] — two vocabularies are two ` +
+      `corpora, not one`,
+  );
+  process.exit(1);
+}
+const [tuning] = tunings.values();
+
+// The door handed nothing: a table over zero rows is not a table. Kept apart
+// from the under-floor refusal below because the cause differs — when every
+// row sat in the sealed fold, the operator needs to hear that the seal, not
+// the corpus, is why.
+if (handed === 0) {
+  console.error(
+    `stop-provenance: the door handed this reader NO rows` +
+      (sealed > 0
+        ? ` — all ${sealed} sit in the sealed ${SEALED_FOLD} fold and were ` +
+          `withheld at the door (R4 act 1); nothing readable remains`
+        : ` — the corpus holds none`) +
+      `. That is a refusal, not a result.`,
+  );
+  process.exit(1);
+}
+if (sealed > 0) {
+  console.error(
+    `stop-provenance: ${sealed} ${SEALED_FOLD} row(s) withheld at the door ` +
+      `— sealed, not read`,
+  );
 }
 
 const E = (s: S) => s.filled ? s.rSum / s.filled : null;
 const pct = (a: number, b: number) => b ? `${((a / b) * 100).toFixed(0)}%` : "—";
 const classes = [...new Set([...acc.keys()].map((k) => k.split("|")[0]))].sort();
 
-/**
- * THE FOLD NAMES, TAKEN FROM THE CORPUS RATHER THAN ASSUMED.
- *
- * This reader looked up splits called "train" and "test". The fold vocabulary
- * became `fit` / `select` / `confirm` (`sweepFolds.ts:21`), and nothing
- * updated here — so `acc.get(key(c, p, "test"))` was undefined on every row of
- * every modern corpus, the `!te` guard skipped all of them, and the script
- * printed its column header and exited 0. Measured on a 322 MB three-market
- * emit: 2,966 rows read, nine tallies built, ZERO rows printed.
- *
- * The file's own door comment named this exact shape — "the table prints its
- * column header alone under exit 0, which is exactly what a real corpus
- * holding no qualifying row also prints" — and the door it installed only
- * covered the zero-FILES case. The zero-MATCHED-ROWS case is the one that had
- * been firing.
- *
- * `grid-totalr.ts:1521` already carries the legacy map (`{fit: "train",
- * select: "test"}`), so both vocabularies are live in the corpus population
- * and neither may be hardcoded here.
- */
-const FOLD_ORDER = ["fit", "select", "confirm", "train", "test"];
-const folds = FOLD_ORDER.filter((name) => splitsSeen.has(name));
-const unknown = [...splitsSeen].filter((name) => !FOLD_ORDER.includes(name));
+// The two tuning folds are the only splits this reader knows; anything else
+// the corpus carries is refused rather than silently omitted from the table.
+const folds = [tuning.fit, tuning.select];
+const unknown = [...splitsSeen].filter((name) => !folds.includes(name));
 if (unknown.length > 0) {
   console.error(
     `stop-provenance: the corpus carries split name(s) this reader does not ` +
@@ -137,13 +180,15 @@ console.log(
   `${"class".padEnd(10)}${"stop set by".padEnd(18)}` +
     folds.map((f) => `${f} E`.padStart(11)).join("") +
     `${"filled".padStart(10)}${"win".padStart(6)}${"stop".padStart(6)}` +
-    `   (win/stop/filled on ${folds[folds.length - 1]})`,
+    `   (win/stop/filled on ${tuning.select})`,
 );
 let printed = 0;
 for (const c of classes) {
   for (const p of ["pivot", "cap", "volatility_floor"]) {
-    // The LAST fold is the held-out one, and it carries the row's counts.
-    const held = acc.get(key(c, p, folds[folds.length - 1]));
+    // The SELECT tuning fold is the held one: it carries the row's counts and
+    // the 30-filled floor. Not "the last fold in the corpus" — that was the
+    // confirm fold, and it is sealed.
+    const held = acc.get(key(c, p, tuning.select));
     if (!held || held.filled < 30) continue;
     printed += 1;
     console.log(

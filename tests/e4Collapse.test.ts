@@ -12,7 +12,7 @@ import {
 } from "../scripts/sweepManifest.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
-import type { SweepEmitRow } from "../scripts/sweepStats.ts";
+import { SEALED_FOLD, type SweepEmitRow } from "../scripts/sweepStats.ts";
 import { getCorrelationGroup } from "../supabase/functions/trade-analyzer/symbols.ts";
 
 // The repo's OWN tsx by absolute path, never npx — #364 round 55. These spawns
@@ -30,6 +30,15 @@ const TEST_TREASURY_CURVE = {
 };
 
 const HOUR = 3_600_000;
+
+// Calendar folds for a FOLDED fixture (R4 act 1). The tuning rows below sit
+// in fit; a confirm row sits a year later, inside the sealed fold. A legacy
+// two-split corpus has no confirm fold at all, so the seal is proven on the
+// shape that carries one.
+const FIT_START = Date.UTC(2024, 6, 1);
+const SELECT_START = Date.UTC(2025, 6, 1);
+const CONFIRM_START = Date.UTC(2026, 0, 1);
+const FOLDS_END = Date.UTC(2026, 6, 1);
 
 // EURUSD and GBPUSD share the primary group `majors_usd`-style membership via
 // symbols.ts; the fixtures below assert against whatever getCorrelationGroup
@@ -56,7 +65,10 @@ function row(
   };
 }
 
-function corpusWith(rows: SweepEmitRow[]): string {
+function corpusWith(
+  rows: SweepEmitRow[],
+  shape: "legacy" | "folded" = "legacy",
+): string {
   const dir = mkdtempSync(join(tmpdir(), "e4-"));
   const emitPath = join(dir, "shard.jsonl");
   writeFileSync(
@@ -77,6 +89,30 @@ function corpusWith(rows: SweepEmitRow[]): string {
       weightAdjustment: "raw-engine-zero",
     },
     days: 365,
+    ...(shape === "folded"
+      ? {
+        folds: [
+          {
+            decisionEndMs: SELECT_START - 5 * 86_400_000,
+            endMs: SELECT_START,
+            name: "fit",
+            startMs: FIT_START,
+          },
+          {
+            decisionEndMs: CONFIRM_START - 5 * 86_400_000,
+            endMs: CONFIRM_START,
+            name: "select",
+            startMs: SELECT_START,
+          },
+          {
+            decisionEndMs: FOLDS_END - 5 * 86_400_000,
+            endMs: FOLDS_END,
+            name: SEALED_FOLD,
+            startMs: CONFIRM_START,
+          },
+        ],
+      }
+      : {}),
     generatedAt: "2026-08-10T05:00:00.000Z",
     grid: [{}],
     stepBars: 16,
@@ -579,5 +615,74 @@ describe("e4-collapse — the statistic, actually executed", () => {
     const { code, out } = run([emit, "--bucket-minutes", "0"]);
     assert.equal(code, 1);
     assert.match(out, /--bucket-minutes must be at least 1/);
+  });
+});
+
+// R4 act 1: the door seals the confirm fold, and this reader must not be able
+// to tell the difference. Proven by EXECUTION rather than by reading the call
+// site: the seal lives in sweepStats, and a reader that passed
+// `{ confirm: "read" }` — or projected around the door — would satisfy every
+// source pin above and still print the held-back fold's money.
+describe("e4-collapse — the confirm fold is sealed at the door", () => {
+  // One contested group in fit: EURUSD (80) beats EURJPY (60), +1 against −1,
+  // so the paired delta is exactly +1. The confirm rows would form a SECOND
+  // contested group a year later whose winner carries +1,000,000 — read, they
+  // double the group count and swamp the delta; sealed, they change nothing.
+  const tuning = [
+    row("EURUSD", 0, 1, { confidenceScore: 80 }),
+    row("EURJPY", 0, -1, { confidenceScore: 60 }),
+  ];
+  const confirm = [
+    row("EURUSD", 0, 1_000_000, {
+      confidenceScore: 80,
+      split: SEALED_FOLD,
+      time: CONFIRM_START,
+    }),
+    row("EURJPY", 0, -1_000_000, {
+      confidenceScore: 60,
+      split: SEALED_FOLD,
+      time: CONFIRM_START,
+    }),
+  ];
+  const dials = ["--bucket-minutes", "60", "--min-groups", "1"];
+
+  it("prints the same measurement with confirm rows present as without them — executed", () => {
+    const sealed = run([corpusWith([...tuning, ...confirm], "folded"), ...dials]);
+    const bare = run([corpusWith(tuning, "folded"), ...dials]);
+    assert.equal(sealed.code, 0, sealed.out);
+    assert.equal(bare.code, 0, bare.out);
+    // The withheld count is stated on the rows line — the population is
+    // never silent — and it is the one figure allowed to differ.
+    assert.match(
+      sealed.out,
+      /rows 2 → in-variant 2 → accepted 2 \(dataAbsent 0 held out, graded 2\) · confirm fold sealed at the door: 2 rows withheld/,
+    );
+    assert.match(bare.out, /confirm fold sealed at the door: 0 rows withheld/);
+    assert.match(sealed.out, /contested 1 /);
+    assert.match(
+      sealed.out,
+      /paired delta \+1\.0000R per contested group over 1 groups/,
+    );
+    assert.doesNotMatch(sealed.out, /1000000|1e\+6/);
+    // Line by line. The corpus line differs by construction — the manifest
+    // describes a sweep that emitted a confirm period, so its hash differs —
+    // and the withheld count differs by design. Nothing else may.
+    const measurements = (out: string) =>
+      out.split("\n")
+        .filter((line) => !line.startsWith("corpus "))
+        .map((line) =>
+          line.replace(
+            /sealed at the door: \d+ rows withheld/,
+            "sealed at the door: N rows withheld",
+          )
+        );
+    assert.deepEqual(measurements(sealed.out), measurements(bare.out));
+  });
+
+  it("refuses a shard holding only the confirm fold, and says so rather than calling it empty", () => {
+    const { code, out } = run([corpusWith(confirm, "folded"), ...dials]);
+    assert.equal(code, 1);
+    assert.match(out, /carried no rows/);
+    assert.match(out, /holds only the confirm fold \(2 rows sealed at the door\)/);
   });
 });

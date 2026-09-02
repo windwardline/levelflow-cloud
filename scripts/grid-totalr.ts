@@ -1006,6 +1006,8 @@ export async function gradeCorpus(
   // three members, and the stamp is one shard's class-blind 1-in-5).
   heldOutMarkets: number;
   manifest: SweepManifest;
+  /** Rows the door withheld — the confirm fold unless this was the recorded read. */
+  sealedRows: number;
   verdicts: Map<string, Map<string, VariantVerdict>>;
   // Whether the confirm fold was actually READ — the same boolean the
   // burned-log keys on, returned so the report cannot claim a read the
@@ -1218,8 +1220,14 @@ export async function gradeCorpus(
     }
     return { ...row, split: fold };
   };
+  // Rows the door withheld (the confirm fold, unless this is the recorded
+  // read) — stated in the label so the population read is explicit.
+  let sealedRows = 0;
   for (const path of paths) {
-    await assertManifestedCorpusStreaming(path, (row) => {
+    // THE ONE READ. The door seals the confirm fold by default (R4 act 1);
+    // this is the only call in the repository allowed to open it, and only
+    // when the read will be recorded in the LA-6 ledger below.
+    const read = await assertManifestedCorpusStreaming(path, (row) => {
       if (held.has(row.symbol)) return;
       if (options.symbolFilter && !options.symbolFilter.has(row.symbol)) {
         return;
@@ -1227,7 +1235,14 @@ export async function gradeCorpus(
       const refolded = refold(row);
       if (refolded === null) return;
       addRowToCube(cube, refolded, { includeHoldout: true });
+    }, {
+      // Sealed unless this read is the recorded one. Under --per-market-folds
+      // without confirmFinal, the re-cut therefore sees only the corpus's
+      // tuning rows: nothing from the emitted confirm period may be consumed,
+      // even re-labelled into a market's own select third.
+      confirm: options.confirmFinal ? "read" : "sealed",
     });
+    sealedRows += read.sealedRows;
   }
 
   // Confirm-fold discipline by mechanism (LA-6): without confirmFinal the
@@ -1626,6 +1641,7 @@ export async function gradeCorpus(
     foldNames,
     heldOutMarkets: held.size,
     manifest,
+    sealedRows,
     verdicts,
   };
 }
@@ -1754,6 +1770,7 @@ async function main(): Promise<void> {
     foldNames,
     heldOutMarkets,
     manifest,
+    sealedRows,
     verdicts,
   } = await gradeCorpus(paths, {
     acknowledgePriorReads: args.includes("--acknowledge-prior-reads"),
@@ -1800,7 +1817,7 @@ async function main(): Promise<void> {
           // corpus on 2026-09-02 and would have stood in a tracked report.
           // Legacy is reserved for a manifest that declares no folds at all.
           : manifest.folds || manifest.foldsByClass
-          ? " confirm=confirm SEALED (not derived: no --confirm-final — nothing burned)"
+          ? ` confirm=confirm SEALED (not derived: no --confirm-final — nothing burned; ${sealedRows} rows withheld at the door)`
           : " (legacy two-split corpus)"
       }` +
       `${

@@ -193,3 +193,38 @@ export function stratifiedHoldout(
   }
   return held;
 }
+
+/**
+ * The embargo must cover the longest review window any arm can carry.
+ *
+ * `calendarFolds` stops a fold's decisions `embargoMs` before it closes so
+ * every resolution lands inside the fold — look-ahead by construction. The
+ * resolver's horizon is `reviewHours + 24h` (sweep.ts), and
+ * `defaultReviewHours` is a grid axis, so an arm with a long enough window
+ * would read the NEXT fold's bars from inside this one. Nothing asserted the
+ * constant against the axis until the 2026-09-02 design review of the seal.
+ * Called by the driver with every review window the run can produce: each
+ * roster symbol's shipped cell and each grid override.
+ */
+export function assertEmbargoCoversReview(
+  embargoMs: number,
+  reviewHours: readonly number[],
+): void {
+  if (reviewHours.length === 0) {
+    throw new Error(
+      "assertEmbargoCoversReview: no review windows to check — an empty list " +
+        "would pass any embargo vacuously",
+    );
+  }
+  const longest = Math.max(...reviewHours);
+  const horizonMs = (longest + 24) * 3_600_000;
+  if (horizonMs > embargoMs) {
+    throw new Error(
+      `foldEmbargoTooShort: reviewHours ${longest} + 24h resolution horizon = ${
+        longest + 24
+      }h exceeds the ${Math.round(embargoMs / 3_600_000)}h fold embargo — a ` +
+        `decision at a fold's embargoed edge would resolve against the next ` +
+        `fold's bars; lengthen FOLD_EMBARGO_MS or drop the window from the grid`,
+    );
+  }
+}

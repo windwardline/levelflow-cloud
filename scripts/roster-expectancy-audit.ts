@@ -1,5 +1,13 @@
 // Every offered market, at its TRUE effective configuration, measured
-// for absolute expectancy on the held-back fold.
+// for absolute expectancy on the SELECT tuning fold.
+//
+// THE CONFIRM FOLD IS SEALED AT THE DOOR (R4 act 1, 2026-09-02): this reader
+// opens the corpus through the sealed door, which withholds the held-back
+// fold, and classifies each row by the split the sweep EMITTED against the
+// manifest's own fold vocabulary — until then it re-cut folds itself at
+// 50%/75% of every market's span and pooled a "confirm" cell no ledger
+// recorded. The only confirm figures it may carry are the RECORDED reads
+// (`4d-*-confirm-read.json`), which decide which markets own a derived cell.
 //
 // The 4d cycles measured the markets that earned derived cells — 79 of the
 // 97-market roster, DERIVED from the three picks artifacts rather than the
@@ -22,7 +30,12 @@ import {
   getCategoryCalibration,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
-import { assertManifest, readLinesSync } from "./sweepStats.ts";
+import {
+  assertManifest,
+  assertManifestedCorpusSync,
+  SEALED_FOLD,
+  tuningFolds,
+} from "./sweepStats.ts";
 import { flagReader } from "./flagReader.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 
@@ -30,15 +43,30 @@ export const BASELINE =
   "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1,sizingHoursFactor=1";
 const MIN_FILLED = 30;
 
-type Acc = { n: number; sum: number; sumSq: number };
+export type Acc = { n: number; sum: number; sumSq: number };
+
+/** One fold's interval; every field null under the fill floor. */
+export type FoldStats = {
+  ci95Lower: number | null;
+  ci95Upper: number | null;
+  expectancy: number | null;
+  n: number;
+  se: number | null;
+};
 
 function empty(): Acc {
   return { n: 0, sum: 0, sumSq: 0 };
 }
 
-function stats(acc: Acc) {
+export function stats(acc: Acc): FoldStats {
   if (acc.n < MIN_FILLED) {
-    return { ci95Upper: null, expectancy: null, n: acc.n, se: null };
+    return {
+      ci95Lower: null,
+      ci95Upper: null,
+      expectancy: null,
+      n: acc.n,
+      se: null,
+    };
   }
   const expectancy = acc.sum / acc.n;
   const variance = Math.max(
@@ -47,6 +75,7 @@ function stats(acc: Acc) {
   );
   const se = Math.sqrt(variance / acc.n);
   return {
+    ci95Lower: expectancy - 1.96 * se,
     ci95Upper: expectancy + 1.96 * se,
     expectancy,
     n: acc.n,
@@ -87,86 +116,76 @@ export function shardPathsFromArgv(argv: string[]): string[] {
   return paths;
 }
 
-async function main() {
-  const argv = process.argv.slice(2);
-  const paths = shardPathsFromArgv(argv);
-  const { str } = flagReader(argv, VALUE_FLAGS);
-  const outPath = str("--out") ??
-    "docs/research/baseline-2026-08-10/roster-expectancy-audit.json";
-  const picksDir = "docs/research/baseline-2026-08-10";
+/** What the door handed over, by fold, and what it withheld. */
+export type CollectedSelect = {
+  folds: { fit: string; select: string };
+  rows: { fit: number; sealed: number; select: number };
+  select: Map<string, Acc>;
+};
 
-  // Which markets carry a derived cell, and which variant.
-  const derived = new Map<string, string>();
-  for (
-    const [picksFile, confirmFile] of [
-      ["4d-final-picks.json", "4d-confirm-read.json"],
-      ["4d-holdout-final-picks.json", "4d-holdout-confirm-read.json"],
-      ["4d-totality-final-picks.json", "4d-totality-confirm-read.json"],
-    ]
-  ) {
-    const picks = JSON.parse(
-      readFileSync(`${picksDir}/${picksFile}`, "utf8"),
-    ) as { finalPicks: Record<string, { variant: string }> };
-    const confirm = JSON.parse(
-      readFileSync(`${picksDir}/${confirmFile}`, "utf8"),
-    ) as {
-      confirmReport: Record<string, { confirmTotalDelta: number | null }>;
-    };
-    for (const [symbol, row] of Object.entries(confirm.confirmReport)) {
-      if ((row.confirmTotalDelta ?? 0) > 0) {
-        derived.set(symbol, picks.finalPicks[symbol].variant);
-      }
-    }
-  }
-
-  // Spans for per-market folds, from the manifests.
-  const spans = new Map<string, { first: number; last: number }>();
-  for (const path of paths) {
-    const manifest = JSON.parse(
-      readFileSync(`${path}.manifest.json`, "utf8"),
-    ) as {
-      symbols: Array<
-        {
-          symbol: string;
-          series?: Record<string, { firstTime?: number; lastTime?: number }>;
-        }
-      >;
-    };
-    for (const entry of manifest.symbols) {
-      const series = entry.series?.["15min"];
-      if (
-        !Number.isFinite(series?.firstTime) || !Number.isFinite(series?.lastTime)
-      ) continue;
-      const current = spans.get(entry.symbol);
-      spans.set(entry.symbol, {
-        first: Math.min(current?.first ?? Infinity, series!.firstTime!),
-        last: Math.max(current?.last ?? -Infinity, series!.lastTime!),
-      });
-    }
-  }
-
-  const acc = new Map<string, { confirm: Acc; select: Acc }>();
+/**
+ * The SELECT-fold accumulation per market, read through the sealed door.
+ *
+ * Rows are classified by the split the SWEEP emitted, against the fold
+ * vocabulary the manifest declares (`tuningFolds`: fit/select on a folded
+ * corpus, train/test on a legacy one). The fit fold is dropped — this audit
+ * judges on select, as it always did — and a split the reader cannot name is
+ * refused rather than skipped: a corpus carrying a fold this audit does not
+ * know is not a corpus it can report on. Confirm rows never reach the
+ * callback; the door withholds them and counts them on the manifest.
+ *
+ * `derived` names the markets that own a derived cell (from the RECORDED
+ * confirm reads) and the variant that cell pins.
+ */
+export function collect(
+  paths: string[],
+  derived: Map<string, string>,
+): CollectedSelect {
+  const select = new Map<string, Acc>();
+  const rows = { fit: 0, sealed: 0, select: 0 };
+  let folds: { fit: string; select: string } | undefined;
   for (const path of paths) {
     // R0: the one-clock door — a corpus that cannot state its clock (or
     // whose witnesses condemn it) is refused here too, not only in the
-    // aggregation readers. These five scripts produced the invalidated
-    // 4d-era figures by reading emits bare.
-    assertManifest(path);
-    readLinesSync(path, (line) => {
-      if (!line) return;
-      const row = JSON.parse(line) as {
-        accepted?: boolean;
-        confidenceScore?: number;
-        exitAtMs?: number;
-        outcome?: string;
-        realizedR?: number;
-        symbol?: string;
-        time?: number;
-        variant?: string;
-      };
+    // aggregation readers. The manifest half is opened first for its fold
+    // vocabulary, so every row is classified as it streams; the row door
+    // below verifies the same manifest again before it hands over a line,
+    // which costs one hash and keeps the door the only source of rows.
+    const manifest = assertManifest(path);
+    const named = tuningFolds(manifest);
+    if (folds === undefined) {
+      folds = named;
+    } else if (folds.fit !== named.fit || folds.select !== named.select) {
+      throw new Error(
+        `roster-expectancy-audit: ${path} names its tuning folds ` +
+          `${named.fit}/${named.select} while the first shard named ` +
+          `${folds.fit}/${folds.select} — a legacy two-split shard and a ` +
+          `folded one are two measurements and cannot be pooled as one.`,
+      );
+    }
+    const vocabulary = folds;
+    const read = assertManifestedCorpusSync(path, (row) => {
       const symbol = row.symbol;
       if (!symbol) return;
-      const variant = row.variant ?? "baseline";
+      // Classified by the split the sweep EMITTED, never by where the row's
+      // time falls in the span. A fold this reader cannot name is refused,
+      // not skipped; the sealed fold never arrives.
+      const split = String(row.split);
+      if (split === vocabulary.fit) {
+        rows.fit += 1;
+        return;
+      }
+      if (split !== vocabulary.select) {
+        throw new Error(
+          `roster-expectancy-audit: ${path}: ${symbol} carries a row in split ` +
+            `"${split}", which this reader does not know. It reads the ` +
+            `"${vocabulary.select}" fold and drops "${vocabulary.fit}"; the ` +
+            `"${SEALED_FOLD}" fold is sealed at the door. A fold this audit ` +
+            `cannot name is refused, not skipped.`,
+        );
+      }
+      rows.select += 1;
+      const variant = typeof row.variant === "string" ? row.variant : "baseline";
       const cell = derived.get(symbol);
       // A derived market is read at its own cell; every other market is
       // read at the grid baseline, gated by its CLASS threshold — which
@@ -213,32 +232,114 @@ async function main() {
         if (!Number.isFinite(score) || score < threshold) return;
       }
       if (row.accepted !== true || row.outcome === "unfilled") return;
-      const span = spans.get(symbol);
-      const time = Number(row.time);
       const r = Number(row.realizedR);
-      if (!span || !Number.isFinite(time) || !Number.isFinite(r)) return;
-      const fitEnd = span.first + (span.last - span.first) * 0.5;
-      const selectEnd = span.first + (span.last - span.first) * 0.75;
-      if (!acc.has(symbol)) {
-        acc.set(symbol, { confirm: empty(), select: empty() });
+      if (!Number.isFinite(r)) return;
+      let acc = select.get(symbol);
+      if (!acc) {
+        acc = empty();
+        select.set(symbol, acc);
       }
-      const cells = acc.get(symbol)!;
-      const exit = Number(row.exitAtMs);
-      if (time >= fitEnd && time < selectEnd) {
-        if (Number.isFinite(exit) && exit > selectEnd) return;
-        cells.select.n += 1;
-        cells.select.sum += r;
-        cells.select.sumSq += r * r;
-      } else if (time >= selectEnd) {
-        cells.confirm.n += 1;
-        cells.confirm.sum += r;
-        cells.confirm.sumSq += r * r;
-      }
+      acc.n += 1;
+      acc.sum += r;
+      acc.sumSq += r * r;
     });
+    rows.sealed += read.sealedRows;
+  }
+  if (folds === undefined) {
+    throw new Error(
+      "roster-expectancy-audit: collect() was given no shard paths — a run " +
+        "over zero rows cannot report a verdict.",
+    );
+  }
+  return { folds, rows, select };
+}
+
+export type Tally = {
+  declined: number;
+  measurablyNegative: number;
+  measurablyPositive: number;
+  unmeasurable: number;
+  zeroSpanning: number;
+};
+
+/**
+ * The verdict, from the SELECT fold's interval — the thresholds the confirm
+ * cell carried until the door sealed it: measurably negative when the upper
+ * bound sits below zero, measurably positive when the lower bound clears it,
+ * zero-spanning between, and unmeasurable under the fill floor.
+ */
+export function verdictFor(
+  select: FoldStats,
+  isDeclined: boolean,
+): { key: keyof Tally; verdict: string } {
+  if (isDeclined) {
+    return {
+      key: "declined",
+      verdict: "DECLINED — the engine already refuses this market",
+    };
+  }
+  if (
+    select.expectancy === null || select.ci95Upper === null ||
+    select.ci95Lower === null
+  ) {
+    return {
+      key: "unmeasurable",
+      verdict: "UNMEASURABLE — under the fill floor at its shipped settings",
+    };
+  }
+  if (select.ci95Upper < 0) {
+    return {
+      key: "measurablyNegative",
+      verdict:
+        "MEASURABLY NEGATIVE — loses beyond its own error, and the engine still trades it",
+    };
+  }
+  if (select.ci95Lower > 0) {
+    return { key: "measurablyPositive", verdict: "MEASURABLY POSITIVE" };
+  }
+  return {
+    key: "zeroSpanning",
+    verdict: "ZERO-SPANNING — no measured edge, no measured loss",
+  };
+}
+
+async function main() {
+  const argv = process.argv.slice(2);
+  const paths = shardPathsFromArgv(argv);
+  const { str } = flagReader(argv, VALUE_FLAGS);
+  const outPath = str("--out") ??
+    "docs/research/baseline-2026-08-10/roster-expectancy-audit.json";
+  const picksDir = "docs/research/baseline-2026-08-10";
+
+  // Which markets carry a derived cell, and which variant — from the
+  // RECORDED confirm reads, the only confirm figures this audit may use.
+  const derived = new Map<string, string>();
+  for (
+    const [picksFile, confirmFile] of [
+      ["4d-final-picks.json", "4d-confirm-read.json"],
+      ["4d-holdout-final-picks.json", "4d-holdout-confirm-read.json"],
+      ["4d-totality-final-picks.json", "4d-totality-confirm-read.json"],
+    ]
+  ) {
+    const picks = JSON.parse(
+      readFileSync(`${picksDir}/${picksFile}`, "utf8"),
+    ) as { finalPicks: Record<string, { variant: string }> };
+    const confirm = JSON.parse(
+      readFileSync(`${picksDir}/${confirmFile}`, "utf8"),
+    ) as {
+      confirmReport: Record<string, { confirmTotalDelta: number | null }>;
+    };
+    for (const [symbol, row] of Object.entries(confirm.confirmReport)) {
+      if ((row.confirmTotalDelta ?? 0) > 0) {
+        derived.set(symbol, picks.finalPicks[symbol].variant);
+      }
+    }
   }
 
+  const { folds, rows, select } = collect(paths, derived);
+
   const report: Record<string, unknown> = {};
-  const tally = {
+  const tally: Tally = {
     declined: 0,
     measurablyNegative: 0,
     measurablyPositive: 0,
@@ -246,40 +347,33 @@ async function main() {
     zeroSpanning: 0,
   };
   for (const symbol of [...defaultScanSymbols].sort()) {
-    const cells = acc.get(symbol);
-    const confirm = stats(cells?.confirm ?? empty());
-    const select = stats(cells?.select ?? empty());
-    const isDeclined = symbol in ENGINE_DECLINED_MARKETS;
-    let verdict: string;
-    if (isDeclined) {
-      verdict = "DECLINED — the engine already refuses this market";
-      tally.declined += 1;
-    } else if (confirm.expectancy === null || confirm.ci95Upper === null) {
-      verdict = "UNMEASURABLE — under the fill floor at its shipped settings";
-      tally.unmeasurable += 1;
-    } else if (confirm.ci95Upper < 0) {
-      verdict =
-        "MEASURABLY NEGATIVE — loses beyond its own error, and the engine still trades it";
-      tally.measurablyNegative += 1;
-    } else if (confirm.expectancy - 1.96 * (confirm.se ?? 0) > 0) {
-      verdict = "MEASURABLY POSITIVE";
-      tally.measurablyPositive += 1;
-    } else {
-      verdict = "ZERO-SPANNING — no measured edge, no measured loss";
-      tally.zeroSpanning += 1;
-    }
+    const fold = stats(select.get(symbol) ?? empty());
+    const { key, verdict } = verdictFor(fold, symbol in ENGINE_DECLINED_MARKETS);
+    tally[key] += 1;
+    // Every figure carries its fold in its name, so a reader of the JSON
+    // cannot take a select interval for a confirm one.
     report[symbol] = {
       confidenceThreshold: getCategoryCalibration(symbol).confidenceThreshold,
-      confirm,
       configuration: derived.get(symbol) ?? "class calibration (no derived cell)",
-      select,
+      selectCi95Lower: fold.ci95Lower,
+      selectCi95Upper: fold.ci95Upper,
+      selectExpectancy: fold.expectancy,
+      selectN: fold.n,
+      selectSe: fold.se,
       verdict,
     };
   }
 
-  writeResearchArtifact(outPath, { report, tally });
+  writeResearchArtifact(outPath, {
+    folds: { dropped: folds.fit, judgedOn: folds.select, sealed: SEALED_FOLD },
+    report,
+    rows,
+    tally,
+  });
   console.log(
-    `roster expectancy: ${tally.measurablyPositive} positive, ` +
+    `roster expectancy on the ${folds.select} fold ` +
+      `(${rows.sealed} ${SEALED_FOLD} rows withheld at the door): ` +
+      `${tally.measurablyPositive} positive, ` +
       `${tally.zeroSpanning} zero-spanning, ` +
       `${tally.measurablyNegative} MEASURABLY NEGATIVE AND STILL TRADED, ` +
       `${tally.declined} already declined, ${tally.unmeasurable} unmeasurable -> ${outPath}`,

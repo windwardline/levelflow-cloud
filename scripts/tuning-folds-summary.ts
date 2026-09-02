@@ -256,6 +256,12 @@ export async function summarizeTuningFolds(input: {
     }).catch((error: unknown) => {
       throw error;
     });
+    // The door withholds the confirm fold before a row reaches this reader
+    // (R4 act 1): those rows still sit in the file, so the denominator
+    // line counts them as rows in other folds, not read — the statement an
+    // operator checks against the manifest's row count stays true.
+    summary.rows.total += manifest.sealedRows;
+    summary.rows.otherFolds += manifest.sealedRows;
     // The checks below run AFTER the stream for the door's sake, but they
     // are about the manifest alone; a shard refused here has contributed
     // rows to nothing a caller can read, since the throw abandons the summary.
@@ -330,7 +336,9 @@ export function formatSummary(summary: TuningSummary): string {
     `rows: ${summary.rows.total} total · ${summary.rows.accepted} accepted in ` +
       `the folds read · ${summary.rows.notAccepted} not accepted (skipped) · ${
         summary.rows.otherFolds
-      } in other folds (not read) · ${summary.rows.heldOut} on held-out ` +
+      } in other folds (not read; ${SEALED_FOLD} sealed at the door) · ${
+        summary.rows.heldOut
+      } on held-out ` +
       `markets (per-market lines only)`,
     `thin floor: ${summary.minFilled} filled` +
       (summary.columnsUnverifiable

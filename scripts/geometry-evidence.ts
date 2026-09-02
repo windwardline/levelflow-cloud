@@ -7,6 +7,8 @@
  * questions' measurements per class. Baseline variant only; holdout
  * markets excluded (3e); capture-all rows kept where a question needs the
  * full score range (Q3) and split out where it needs the accepted stream.
+ * The confirm fold is sealed at the door (R4 act 1): its rows are withheld
+ * before this file sees them, and the headline states how many.
  *
  *   npx tsx scripts/geometry-evidence.ts <emit.jsonl>
  */
@@ -183,7 +185,8 @@ async function main(): Promise<void> {
   // vocabularyRow FIRST (round 6's law: a field the partition reads
   // cannot be dropped by a reader's narrowing), then exactly the
   // evidence fields the five questions read; the baseline/holdout
-  // filter runs inside the callback so filtered rows are never held.
+  // filter runs inside the callback so filtered rows are never held, and
+  // the confirm fold never reaches it — the door seals that and counts it.
   const rows: EvidenceRow[] = [];
   let dataAbsentRows = 0;
   const manifest = await assertManifestedCorpusStreaming(paths[0], (raw) => {
@@ -210,10 +213,25 @@ async function main(): Promise<void> {
   // quotes, and R1b inflates exactly it (no-bars decisions that
   // previously emitted nothing now emit baseline rows, in bulk for the
   // sparse floorless classes).
+  // A corpus whose readable baseline rows number zero is a refusal, not
+  // five empty tables at exit 0: with the confirm fold sealed at the door
+  // (R4 act 1) a shard holding only that fold reaches here with nothing,
+  // and a header-only report is what a wrong path prints too.
+  if (rows.length - dataAbsentRows === 0) {
+    throw new Error(
+      `geometry-evidence: no readable baseline market-evidence row — ` +
+        `${manifest.sealedRows} confirm row(s) sealed at the door, ` +
+        `${dataAbsentRows} data-absent; the five questions would print ` +
+        `empty tables under a success code. Pass shards holding fit or ` +
+        `select rows.`,
+    );
+  }
   console.log(
     `corpus ${manifest.manifestHash.slice(0, 12)} · engine ${manifest.analyzerVersion} · ${
       rows.length - dataAbsentRows
-    } baseline market-evidence rows (holdout excluded by the emit's stamped flag)`,
+    } baseline market-evidence rows (holdout excluded by the emit's stamped ` +
+      `flag; confirm fold sealed at the door: ${manifest.sealedRows} rows ` +
+      `withheld)`,
   );
   if (dataAbsentRows > 0) {
     console.log(

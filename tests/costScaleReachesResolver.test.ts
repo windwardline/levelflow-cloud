@@ -9,7 +9,7 @@ import {
   seriesFacts,
   type TreasuryCurveFacts,
 } from "../scripts/sweepManifest.ts";
-import type { SweepEmitRow } from "../scripts/sweepStats.ts";
+import { SEALED_FOLD, type SweepEmitRow } from "../scripts/sweepStats.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import {
@@ -293,6 +293,7 @@ describe("both call sites share ONE mapping", () => {
 describe("a comparison of two identical arms is refused, not scored", () => {
   const TSX = join(process.cwd(), "node_modules", ".bin", "tsx");
   const DAY = 86_400_000;
+  const HOUR = 3_600_000;
   const SYMBOL = "EURUSD";
   const CURVE: TreasuryCurveFacts = {
     count: 3_000,
@@ -300,22 +301,74 @@ describe("a comparison of two identical arms is refused, not scored", () => {
     largestGapMs: 4 * 86_400_000,
     lastTime: Date.UTC(2027, 0, 1),
   };
+  // A FOLDED corpus, so every row carries the split the door seals on. The
+  // windows are the fixture's own; the reader sees only their names.
+  const FIT_START = Date.UTC(2024, 0, 1);
+  const SELECT_START = Date.UTC(2025, 0, 1);
+  const CONFIRM_START = Date.UTC(2026, 0, 1);
+  const END = Date.UTC(2026, 8, 1);
+  const FOLDS = [
+    {
+      decisionEndMs: SELECT_START - 5 * DAY,
+      endMs: SELECT_START,
+      name: "fit",
+      startMs: FIT_START,
+    },
+    {
+      decisionEndMs: CONFIRM_START - 5 * DAY,
+      endMs: CONFIRM_START,
+      name: "select",
+      startMs: SELECT_START,
+    },
+    {
+      decisionEndMs: END - 5 * DAY,
+      endMs: END,
+      name: SEALED_FOLD,
+      startMs: CONFIRM_START,
+    },
+  ];
 
-  /** One arm's corpus: `days` filled rows, each earning `r`. */
-  function arm(days: number, r: (day: number) => number): string {
-    const rows = Array.from({ length: days }, (_, day) => ({
+  type Fold = { count: number; r: (index: number) => number };
+
+  /**
+   * One arm's corpus: `select.count` filled SELECT rows earning `select.r`,
+   * plus `confirm.count` filled rows in the SEALED fold earning `confirm.r`.
+   *
+   * Until R4 act 1 (2026-09-02) this fixture put every row in confirm — a
+   * one-bar series span made the script's own 75% cut fall at time 0, so
+   * `time >= selectEnd` held for all of them — and the three verdicts below
+   * had only ever been reached through the fold the door now withholds.
+   * They are reached through select now, and every case chooses sealed
+   * rows that would CHANGE its verdict if a reader still pooled them: the
+   * assertion is that the sealed reader answers as a confirm-blind one.
+   */
+  function arm(select: Fold, confirm: Fold): string {
+    const row = (split: string, start: number, index: number, r: number) => ({
       accepted: true,
       confidenceScore: 80,
-      outcome: "take_profit",
-      realizedR: r(day),
-      split: "test",
+      outcome: r < 0 ? "stop_loss" : "take_profit",
+      realizedR: r,
+      split,
       symbol: SYMBOL,
-      time: Date.UTC(2025, 0, 6) + day * DAY + 12 * 3_600_000,
+      time: start + index * HOUR,
       variant: "baseline",
-    })) as SweepEmitRow[];
+    });
+    const rows = [
+      ...Array.from(
+        { length: select.count },
+        (_, index) => row("select", SELECT_START, index, select.r(index)),
+      ),
+      ...Array.from(
+        { length: confirm.count },
+        (_, index) => row(SEALED_FOLD, CONFIRM_START, index, confirm.r(index)),
+      ),
+    ] as SweepEmitRow[];
     const dir = mkdtempSync(join(tmpdir(), "cost-scale-arm-"));
     const emitPath = join(dir, "shard.jsonl");
-    writeFileSync(emitPath, rows.map((row) => JSON.stringify(row)).join("\n") + "\n");
+    writeFileSync(
+      emitPath,
+      rows.map((entry) => JSON.stringify(entry)).join("\n") + "\n",
+    );
     writeFileSync(
       `${emitPath}.manifest.json`,
       JSON.stringify(buildSweepManifest({
@@ -332,13 +385,19 @@ describe("a comparison of two identical arms is refused, not scored", () => {
           weightAdjustment: "raw-engine-zero",
         },
         days: 365,
+        folds: FOLDS,
         generatedAt: "2026-08-31T05:00:00.000Z",
         grid: [{}],
         stepBars: 16,
         symbols: [{
           calibration: {},
           providerSymbol: SYMBOL,
-          series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
+          series: {
+            "15min": seriesFacts(
+              rows.map((entry) => ({ time: Number(entry.time) })),
+              "intraday",
+            ),
+          },
           symbol: SYMBOL,
         }],
         trainShare: 0.6,
@@ -348,6 +407,15 @@ describe("a comparison of two identical arms is refused, not scored", () => {
     );
     return emitPath;
   }
+
+  type Artifact = {
+    sealed: { fold: string; grossRowsWithheld: number; netRowsWithheld: number };
+    summary: { inert: number; unreadable: number };
+    verdicts: Record<
+      string,
+      { grossSelectE: number | null; grossSelectN: number; verdict: string }
+    >;
+  };
 
   /** Always an explicit --out: the default is a TRACKED research artifact. */
   function run(net: string, gross: string) {
@@ -378,22 +446,35 @@ describe("a comparison of two identical arms is refused, not scored", () => {
     }
   }
 
-  it("names the market INERT and refuses the run when every arm agrees", () => {
-    const rows = (day: number) => (day % 3 === 0 ? -1 : 0.5);
-    const result = run(arm(40, rows), arm(40, rows));
+  function artifactOf(result: { out: string }): Artifact {
+    return JSON.parse(readFileSync(result.out, "utf8")) as Artifact;
+  }
+
+  it("names the market INERT and refuses the run when every arm agrees on the tuning folds", () => {
+    const rows = (index: number) => (index % 3 === 0 ? -1 : 0.5);
+    // The two arms differ ONLY in the sealed fold — 40 rows at -9R against
+    // 40 at +9R. A reader that still pooled confirm would see two different
+    // corpora and score them; the sealed reader sees identical select
+    // statistics and refuses. This is the differential the seal is
+    // measured by, in the direction a pooled read would get wrong.
+    const result = run(
+      arm({ count: 40, r: rows }, { count: 40, r: () => -9 }),
+      arm({ count: 40, r: rows }, { count: 40, r: () => 9 }),
+    );
     assert.ok(
       result.threw,
-      "two identical corpora produced a VERDICT — this is the 2026-08-11 " +
-        "failure exactly: a switch that did nothing, scored as agreement",
+      "two arms identical on the tuning folds produced a VERDICT — either " +
+        "the 2026-08-11 failure exactly (a switch that did nothing, scored " +
+        "as agreement) or the sealed fold reached the statistics",
     );
     assert.match(result.stderr, /all 1 readable markets came back\s+INERT/);
     // The artifact is the evidence OF the failure and must survive it.
-    const artifact = JSON.parse(readFileSync(result.out, "utf8")) as {
-      summary: { inert: number };
-      verdicts: Record<string, { verdict: string }>;
-    };
+    const artifact = artifactOf(result);
     assert.equal(artifact.summary.inert, 1);
     assert.match(artifact.verdicts[SYMBOL].verdict, /^COST MODEL INERT/);
+    assert.equal(artifact.sealed.fold, SEALED_FOLD);
+    assert.equal(artifact.sealed.grossRowsWithheld, 40);
+    assert.equal(artifact.sealed.netRowsWithheld, 40);
   });
 
   it("scores normally the moment the two arms genuinely differ", () => {
@@ -401,32 +482,47 @@ describe("a comparison of two identical arms is refused, not scored", () => {
     // modelled spread and slippage and pays at the venue's published bill
     // alone. Amendment 36 forbids withdrawing on that, which is the verdict
     // the door must not swallow.
-    const net = arm(40, (day) => (day % 3 === 0 ? -1 : 0.5));
-    const gross = arm(40, () => 0.5);
+    const net = arm(
+      { count: 40, r: (index) => (index % 3 === 0 ? -1 : 0.5) },
+      { count: 40, r: () => 0.5 },
+    );
+    // Gross pays +0.5R on every select row. Its 40 sealed rows at -9R would
+    // drag a pooled read to DATA-NEGATIVE beyond its own error; the sealed
+    // reader never sees them.
+    const gross = arm({ count: 40, r: () => 0.5 }, { count: 40, r: () => -9 });
     const result = run(net, gross);
     assert.ok(
       !result.threw,
       `a genuine difference was refused as inert: ${result.stderr}`,
     );
-    const artifact = JSON.parse(readFileSync(result.out, "utf8")) as {
-      summary: { inert: number };
-      verdicts: Record<string, { verdict: string }>;
-    };
+    const artifact = artifactOf(result);
     assert.equal(artifact.summary.inert, 0);
-    assert.match(artifact.verdicts[SYMBOL].verdict, /COST-DEPENDENT/);
+    const verdict = artifact.verdicts[SYMBOL];
+    assert.match(verdict.verdict, /COST-DEPENDENT/);
+    assert.equal(verdict.grossSelectN, 40);
+    assert.equal(verdict.grossSelectE, 0.5);
+    // Decided on select, and SAID so: no select figure wears a confirm name,
+    // and no confirm figure exists to be named.
+    assert.deepEqual(
+      Object.keys(verdict).filter((key) => /confirm/i.test(key)),
+      [],
+      "a verdict key carries the sealed fold's name",
+    );
   });
 
   it("reports NO SAMPLE as unreadable, never as an inert cost model", () => {
     // Two empty accumulators are trivially identical. Calling that an inert
     // cost model would blame the instrument for what is simply no data, and
     // would fire the refusal on every thin corpus.
-    const thin = () => arm(5, () => 0.5);
+    //
+    // Five select rows sit below the 30-fill floor. The 40 sealed rows would
+    // clear it — and did, before the door withheld them.
+    const thin = () => arm({ count: 5, r: () => 0.5 }, { count: 40, r: () => 0.5 });
     const result = run(thin(), thin());
     assert.ok(!result.threw, `a no-sample run was refused as inert: ${result.stderr}`);
-    const artifact = JSON.parse(readFileSync(result.out, "utf8")) as {
-      summary: { inert: number; unreadable: number };
-    };
+    const artifact = artifactOf(result);
     assert.equal(artifact.summary.unreadable, 1);
     assert.equal(artifact.summary.inert, 0);
+    assert.equal(artifact.verdicts[SYMBOL].grossSelectN, 5);
   });
 });
