@@ -3432,7 +3432,31 @@ sentence before it carries the ruling on its own and is untouched; this one is
 struck rather than deleted because a reader who checks it and finds it false
 would have reason to distrust the whole entry.
 
-**D. macroRates' 4bp band, 8bp line and −1 energy penalty — mark them
+**D. macroRates' 4bp band, 8bp line and −1 energy penalty — CLOSED, and it
+was closed before this entry was written. Recorded 2026-09-01.** Option (i) was
+executed by #536 as a comment-only, behaviour-neutral repair, which is why it
+was never the owner's to rule on: marking a number underived invents no
+criterion and changes no output. All four numbers now carry markers —
+`macroRates.ts` "4 bp: UNDERIVED", "8 bp: UNDERIVED", "8 bp AND the 2:1 pair:
+both UNDERIVED", and the −1's #415 treatment on HOUSD and RBUSD — and all four
+are CI-pinned in `tests/macroStateReachesTheEmit.test.ts`.
+
+**The −1's pin was the weak one, and it is tightened in the same change set.**
+It asserted a file-wide COUNT of two occurrences of "never been measured
+anywhere in this repo", which cannot see the case it exists to catch: delete
+HOUSD's note, add one anywhere else, and the count still reads two. It now
+matches per role entry and requires exactly `["HOUSD", "RBUSD"]`.
+Mutation-verified — moving the note to NGUSD holds the count at two and fails.
+That is the same enumerate-don't-count repair made to the role-membership test
+the same day, and it is the second time in one session a count hid a real move.
+
+**What is genuinely left is R3's to measure, not the owner's.** The rate-LEVEL
+question the entry raises — 4bp is a large daily move at a 0.5% ten-year and
+routine at 4.3%, and nothing ties the band to level or realised volatility — is
+answerable from a valid corpus at zero provider bytes, because #536 put
+`tenYearYield` on every emitted row for exactly this purpose.
+
+*The entry as it stood:* macroRates' 4bp band, 8bp line and −1 energy penalty — mark them
 underived now, or wait for R3?** ~~Three distinct decisions, none documented~~
 **FOUR, and one of the three is already documented — corrected 2026-09-01.**
 The −1 already carries #415's treatment twice in this same file
