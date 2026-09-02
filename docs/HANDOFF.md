@@ -3594,11 +3594,20 @@ size and value on both rows, `offered-but-unsizeable` 5 → 3,
 `served-and-visible` 92 → 94. Nothing further is owed on those two.
 
 **What actually remains is one ask, and it is not requestable yet.** MC, BIT and
-SIC are unidentified and unmatchable — ruling 2's dormant list, re-admitted the
-moment a source is confirmed. The route is owner-only, but an agent-side FMP
-catalogue price-match must be tried and must FAIL first, and that sequencing
-puts it after R4 rather than now. The 6J order ticket folds into the same
-session at zero marginal cost when it comes.
+SIC are **unidentified** — ruling 2's dormant list, re-admitted the moment a
+source is confirmed. Not "unmatchable by construction", which the older wording
+said and which overstates: identification can perfectly well ADMIT a market.
+The nearest precedents are on the same frames — ES, NQ and YM are served CME
+index futures and BTC and ETH are served Crypto-tab rows — so an identified MC
+could turn out to be a served market and coverage under amendment 31 rather
+than a permanent absence. Unknown until identified is the honest state, and
+nothing automatic will ever re-probe these three.
+
+The route is owner-only, but an agent-side FMP catalogue price-match must be
+tried and must FAIL first, and that sequencing puts it after R4 rather than
+now. The 6J order ticket folds into the same session at zero marginal cost when
+it comes — its own spec queue item dates to 2026-08-06, before amendment 32,
+which is the blame date rather than anything in #543's body.
 
 **Blocks R5, not R3** — unchanged, and stated by the entry itself.
 
