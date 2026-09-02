@@ -55,7 +55,7 @@ import { StringDecoder } from "node:string_decoder";
 import { fileURLToPath } from "node:url";
 import { flagReader, OperatorInputError } from "./flagReader.ts";
 import { type SweepManifest, stableStringify } from "./sweepManifest.ts";
-import { assertAcceptanceMode, assertManifest } from "./sweepStats.ts";
+import { assertAcceptanceMode, assertManifest, SEALED_FOLD } from "./sweepStats.ts";
 
 const VALUE_FLAGS = new Set(["--capture-all", "--gated", "--max-examples"]);
 
@@ -168,18 +168,28 @@ function sameValue(a: unknown, b: unknown): boolean {
   return stableStringify(a) === stableStringify(b);
 }
 
+/**
+ * The differing fields of two rows. This instrument reads every row of both
+ * arms because row equality is its purpose — blinding it to the confirm fold
+ * would leave that third unverified on the arm the gate reads — but it PRINTS
+ * nothing from that fold: a differing confirm row is reported by field name
+ * only, its values withheld (R4 act 1).
+ */
 function fieldDiff(
   a: Record<string, unknown>,
   b: Record<string, unknown>,
 ): string[] {
   const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  const sealed = a.split === SEALED_FOLD || b.split === SEALED_FOLD;
   const differing: string[] = [];
   for (const key of [...keys].sort()) {
     if (!sameValue(a[key], b[key])) {
       differing.push(
-        `${key}: gated=${JSON.stringify(a[key])} capture-all=${
-          JSON.stringify(b[key])
-        }`,
+        sealed
+          ? `${key} (values withheld: sealed fold)`
+          : `${key}: gated=${JSON.stringify(a[key])} capture-all=${
+            JSON.stringify(b[key])
+          }`,
       );
     }
   }

@@ -2335,7 +2335,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     );
     assert.match(
       out,
-      /folds: fit=fit select=select confirm=confirm SEALED \(not derived: no --confirm-final — nothing burned\)/,
+      /folds: fit=fit select=select confirm=confirm SEALED \(not derived: no --confirm-final — nothing burned; \d+ rows withheld at the door\)/,
     );
     assert.doesNotMatch(out, /legacy two-split corpus/);
     assert.deepEqual(readdirSync(ledgerDir), []);

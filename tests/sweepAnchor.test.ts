@@ -96,3 +96,34 @@ describe("the anchor reaches every series and the manifest", () => {
     assert.match(source, /^\s{6}anchor: args\.anchor,$/m);
   });
 });
+
+describe("the stdout table seals the confirm split's outcome columns", () => {
+  // The driver prints one row per (symbol, variant, split). Until 2026-09-02
+  // the confirm split's tp1HitRate / stopRate / expectancyR printed on every
+  // run — a peek at the held-back fold in every sweep log, which the record
+  // refuter caught staged for tracking. The gate tallies in the same row are
+  // not outcomes and stay: starvation-audit reads those.
+  it("defaults to sealed, and prints only when asked by name", () => {
+    assert.equal(parseArgs(["--byte-budget", "1MB"]).printConfirmTable, false);
+    assert.equal(parseArgs(["--byte-budget", "1MB", "--print-confirm-table"]).printConfirmTable, true);
+  });
+
+  it("seals the unfilled tally and the three outcome cells of the confirm row, by the fold's one name", () => {
+    const source = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.match(
+      source,
+      /const sealOutcomes = split\.name === SEALED_FOLD && !args\.printConfirmTable;/,
+    );
+    assert.match(source, /sealOutcomes\s*\n?\s*\? \["sealed", "sealed", "sealed"\]/);
+    // A fill is the first outcome event: the unfilled tally seals too.
+    assert.match(
+      source,
+      /sealOutcomes \? "sealed" : String\(result\.summary\.unfilled\)/,
+      "the confirm row's outcome cells must read `sealed` unless --print-confirm-table is passed",
+    );
+    // `sealed` is a token starvation-audit parses as a cell; an EMPTY cell
+    // would collapse under its whitespace split and drop the row silently
+    // (the 2026-09-02 design review measured exactly that).
+    assert.doesNotMatch(source, /\["", "", ""\]/);
+  });
+});

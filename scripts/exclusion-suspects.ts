@@ -16,10 +16,16 @@
  * Association, not proof — provenance is not randomly assigned, since the cap
  * binds exactly when structure wanted more room. This ranks suspects for the
  * grid to adjudicate; it does not reinstate anything on its own.
+ *
+ * The confirm fold is sealed at the door (R4 act 1, 2026-09-02): this pools
+ * the two tuning folds only — fit and select, or train and test on a legacy
+ * corpus — and never sees a confirm row.
  */
-import { createReadStream } from "node:fs";
-import { createInterface } from "node:readline";
-import { assertManifest } from "./sweepStats.ts";
+import {
+  assertManifest,
+  assertManifestedCorpusStreaming,
+  SEALED_FOLD,
+} from "./sweepStats.ts";
 
 // SYMBOLS: record the 2026-07-28 exclusion sweep | 12
 const SUSPECTS = new Set([
@@ -56,24 +62,28 @@ async function main(): Promise<void> {
     );
     process.exit(1);
   }
+  /** Rows the door handed over, before any filter here — zero is a refusal. */
+  let handed = 0;
+  /** Rows the door withheld as the sealed fold, summed across shards. */
+  let sealed = 0;
   for (const file of files) {
     // R0: the one-clock door (#358 round 3).
     assertManifest(file);
-    const stream = createInterface({ crlfDelay: Infinity, input: createReadStream(file) });
-    for await (const line of stream) {
-      if (!line) continue;
-      let row: Row;
-      try { row = JSON.parse(line) as Row; } catch { continue; }
-      if (row.variant && row.variant !== "baseline") continue;
+    // The row half is SEALED (R4 act 1): a confirm row never reaches this
+    // callback, and a holed line refuses the corpus instead of being skipped.
+    const manifest = await assertManifestedCorpusStreaming(file, (raw) => {
+      const row = raw as unknown as Row;
+      handed += 1;
+      if (row.variant && row.variant !== "baseline") return;
       // SHIPPED DECISIONS ONLY. This ranks markets for REINSTATEMENT, so the
       // population has to be what the engine would actually place. A
       // `--capture-all` corpus carries the gate-failing decisions flagged
       // `accepted: false`, and folding them in would build a reinstatement case
       // out of setups that would never reach an operator. A no-op on a gated
       // corpus, where every emitted row is `accepted: true`.
-      if (row.accepted === false) continue;
-      if (!SUSPECTS.has(row.symbol) || !row.stopProvenance) continue;
-      if (row.outcome === "unfilled") continue;
+      if (row.accepted === false) return;
+      if (!SUSPECTS.has(row.symbol) || !row.stopProvenance) return;
+      if (row.outcome === "unfilled") return;
       for (const key of [k(row.symbol, row.stopProvenance), k(row.symbol, "ALL")]) {
         let s = acc.get(key);
         if (!s) { s = { filled: 0, rSum: 0, wins: 0 }; acc.set(key, s); }
@@ -82,7 +92,28 @@ async function main(): Promise<void> {
           ? row.realizedR : 0;
         if (row.outcome === "take_profit" || row.outcome === "tp1_partial") s.wins += 1;
       }
-    }
+    });
+    sealed += manifest.sealedRows;
+  }
+  // The door handed nothing: a ranking over zero rows is not a ranking, and
+  // when every row sat in the sealed fold the operator needs to hear that the
+  // seal, not the corpus, is why.
+  if (handed === 0) {
+    console.error(
+      `exclusion-suspects: the door handed this reader NO rows` +
+        (sealed > 0
+          ? ` — all ${sealed} sit in the sealed ${SEALED_FOLD} fold and were ` +
+            `withheld at the door (R4 act 1); nothing readable remains`
+          : ` — the corpus holds none`) +
+        `. That is a refusal, not a result.`,
+    );
+    process.exit(1);
+  }
+  if (sealed > 0) {
+    console.error(
+      `exclusion-suspects: ${sealed} ${SEALED_FOLD} row(s) withheld at the ` +
+        `door — sealed, not read`,
+    );
   }
   const E = (s?: S) => (s && s.filled ? s.rSum / s.filled : null);
   const f3 = (v: number | null) => v === null ? "  —" : (v >= 0 ? "+" : "") + v.toFixed(3);

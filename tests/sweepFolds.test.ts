@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
+  assertEmbargoCoversReview,
   calendarFolds,
   foldsByClass,
   foldSplits,
@@ -289,5 +290,30 @@ describe("stratifiedHoldout — read-time, per class, never zero where a class c
     const first = [...stratifiedHoldout(symbols, classOf)].sort();
     const second = [...stratifiedHoldout([...symbols].reverse(), classOf)].sort();
     assert.deepEqual(first, second);
+  });
+});
+
+describe("the embargo covers the longest review window any arm can carry", () => {
+  // Look-ahead by construction: a fold's decisions stop an embargo before it
+  // closes so every resolution lands inside the fold. The resolver's horizon
+  // is reviewHours + 24h (sweep.ts), and `defaultReviewHours` is a grid axis
+  // — so an arm with a long enough window would read the NEXT fold's bars
+  // from inside this one, and nothing asserted the constant against the
+  // axis until 2026-09-02 (the seal's design review found it).
+  const DAY = 86_400_000;
+
+  it("passes when the embargo exceeds the longest window plus the resolver's day", () => {
+    assert.doesNotThrow(() => assertEmbargoCoversReview(5 * DAY, [6, 12, 24, 96]));
+  });
+
+  it("refuses an embargo the longest window could cross, naming the hours", () => {
+    assert.throws(
+      () => assertEmbargoCoversReview(5 * DAY, [6, 97]),
+      /reviewHours 97 \+ 24h resolution horizon = 121h exceeds the 120h fold embargo/,
+    );
+  });
+
+  it("refuses an empty window list rather than passing vacuously", () => {
+    assert.throws(() => assertEmbargoCoversReview(5 * DAY, []), /no review windows/);
   });
 });

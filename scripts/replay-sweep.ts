@@ -66,7 +66,7 @@ import {
   parseTreasuryRow,
   treasuryCurveIsStale,
 } from "../supabase/functions/trade-analyzer/macroRates.ts";
-import { assertFiveMinuteDensity } from "./sweepStats.ts";
+import { assertFiveMinuteDensity, SEALED_FOLD } from "./sweepStats.ts";
 import {
   CALENDAR_CLOCK,
   ECON_CALENDAR_CLOCK,
@@ -86,6 +86,7 @@ import {
   MAX_DEPTH_DAYS,
 } from "./intradayChunks.ts";
 import {
+  assertEmbargoCoversReview,
   calendarFolds,
   type ClassFoldSpec,
   foldsByClass,
@@ -265,6 +266,18 @@ type SweepArgs = {
    */
   anchor: string;
   warmOnly: boolean;
+  /**
+   * Print the confirm split's outcome columns in the stdout table.
+   *
+   * The table prints one row per (symbol, variant, split) and, until
+   * 2026-09-02, its tp1HitRate / stopRate / expectancyR cells for the CONFIRM
+   * split on every run — a peek at the held-back fold that no ledger records,
+   * standing in every sweep log. By default those three cells now read
+   * `sealed`; the gate tallies beside them (what starvation-audit reads) are
+   * untouched. Passing this flag is an explicit act and belongs with a read
+   * the LA-6 ledger will record.
+   */
+  printConfirmTable: boolean;
   days: number;
   discover: boolean;
   emit: string | undefined;
@@ -808,6 +821,30 @@ async function main() {
     weightAdjustment: "raw-engine-zero",
   };
 
+  // Round-8 CV-1/CV-10: a measurement refuses an unclassifiable symbol
+  // rather than inheriting the live fallback's forex bucket — the silent
+  // fallback mis-classed eight markets across a whole baseline. Refused
+  // here, before the embargo check below, so an unknown symbol is named as
+  // itself rather than surfacing as "no review windows to check".
+  for (const symbol of args.symbols) {
+    if (!hasKnownAssetType(symbol)) {
+      throw new Error(
+        `${symbol}: not in any asset-class roster — sweep symbols must be ` +
+          `Levelflow roster names, never provider tickers`,
+      );
+    }
+  }
+  // The embargo must cover every review window this run can produce — each
+  // roster symbol's shipped cell and each grid override — or a decision at a
+  // fold's edge resolves against the next fold's bars (look-ahead).
+  if (!args.discover && !args.warmOnly) {
+    assertEmbargoCoversReview(FOLD_EMBARGO_MS, [
+      ...args.symbols.map((symbol) => getCategoryCalibration(symbol).defaultReviewHours),
+      ...args.grid
+        .map((override) => override.defaultReviewHours)
+        .filter((hours): hours is number => typeof hours === "number"),
+    ]);
+  }
   // 3c/3d: folds are COMMON-ORIGIN calendar windows over the corpus's own
   // measured span — every symbol shares the same three boundaries, so
   // "select R" is one calendar period, never a sum across disjoint years.
@@ -891,15 +928,8 @@ async function main() {
   }
 
   for (const symbol of args.symbols) {
-    // Round-8 CV-1/CV-10: a measurement refuses an unclassifiable symbol
-    // rather than inheriting the live fallback's forex bucket — the
-    // silent fallback mis-classed eight markets across a whole baseline.
-    if (!hasKnownAssetType(symbol)) {
-      throw new Error(
-        `${symbol}: not in any asset-class roster — sweep symbols must be ` +
-          `Levelflow roster names, never provider tickers`,
-      );
-    }
+    // The roster refusal (round-8 CV-1/CV-10) now runs above, before the
+    // embargo check; every symbol here has a known asset type.
     if (classFolds && !classFolds[getAssetType(symbol)]) {
       throw new Error(
         `${symbol}: class ${getAssetType(symbol)} missing from the fold ` +
@@ -1314,6 +1344,18 @@ async function main() {
           symbol,
           variant,
         });
+        // The OUTCOME columns — unfilled (a fill is the first outcome event)
+        // and the three result columns — are sealed for the confirm split
+        // unless asked for by name; decisions, rejections, setups and
+        // data-absence are decision-time tallies and stay.
+        const sealOutcomes = split.name === SEALED_FOLD && !args.printConfirmTable;
+        const [tp1HitRateCell, stopRateCell, expectancyRCell] = sealOutcomes
+          ? ["sealed", "sealed", "sealed"]
+          : [
+            formatRate(result.summary.tp1HitRate),
+            formatRate(result.summary.stopRate),
+            result.summary.expectancyR.toFixed(3),
+          ];
         rows.push([
           symbol,
           variant,
@@ -1329,11 +1371,11 @@ async function main() {
           String(result.rejections.belowConfidence),
           String(result.rejections.belowPayoff),
           String(result.summary.total),
-          String(result.summary.unfilled),
+          sealOutcomes ? "sealed" : String(result.summary.unfilled),
           String(result.summary.dataAbsent),
-          formatRate(result.summary.tp1HitRate),
-          formatRate(result.summary.stopRate),
-          result.summary.expectancyR.toFixed(3),
+          tp1HitRateCell,
+          stopRateCell,
+          expectancyRCell,
         ]);
       }
     }
@@ -1917,6 +1959,7 @@ export function parseArgs(argv: string[]): SweepArgs {
     foldStartMs: foldStartRaw !== undefined ? num("--fold-start", 0) : undefined,
     captureAll: argv.includes("--capture-all"),
     ignoreLowEdge: argv.includes("--ignore-low-edge"),
+    printConfirmTable: argv.includes("--print-confirm-table"),
     repin: argv.includes("--repin"),
     warmOnly: argv.includes("--warm-only"),
     days,

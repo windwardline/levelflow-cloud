@@ -14,7 +14,10 @@
 // proposed change is a delta from the actual resting state, never a number
 // arriving from nowhere. Stats arithmetic is scripts/sweepStats.ts — the
 // one vocabulary (item 3) — and the emit enters through the streaming
-// manifest door (2i): hash verified before a single row is read.
+// manifest door (2i): hash verified before a single row is read. The
+// confirm fold is sealed at that door (R4 act 1): its rows are withheld
+// before this file sees them, the count withheld is printed beside the
+// holdout line, and every table below reads the tuning folds only.
 import {
   getAssetType,
   getCategoryCalibration,
@@ -25,6 +28,7 @@ import {
   emptyStats,
   type SweepEmitRow,
   type SweepStats,
+  tuningFolds,
   vocabularyRow,
 } from "./sweepStats.ts";
 import {
@@ -252,11 +256,12 @@ async function main(): Promise<void> {
   // tables use: the 2026-08-05 run emitted 672,739 records (505 MB), where a
   // readFileSync + split would hold the whole file, an array of every line,
   // AND every parsed object at once. The hash verifies before the first row;
-  // holdout markets (3e) never enter a tuning table.
+  // holdout markets (3e) never enter a tuning table, and the confirm fold
+  // never reaches this callback — the door seals it and counts it.
   const rows: Row[] = [];
   let holdoutSkipped = 0;
   let dataAbsentRows = 0;
-  await assertManifestedCorpusStreaming(emitPath, (raw) => {
+  const manifest = await assertManifestedCorpusStreaming(emitPath, (raw) => {
     const parsed = raw as unknown as Row;
     if (parsed.holdout === true) {
       holdoutSkipped += 1;
@@ -291,15 +296,26 @@ async function main(): Promise<void> {
       variant: parsed.variant,
     });
   });
+  // The folds by the corpus's own vocabulary (fit/select, or train/test on
+  // a legacy corpus) — never hardcoded, and never the confirm fold.
+  const folds = tuningFolds(manifest);
+  const foldsRead = `${folds.fit}+${folds.select} folds`;
   if (holdoutSkipped > 0) {
     // Scope and definition on the line itself (#364 round 30, smaller):
     // the data-absence line below also names them, but it is gated on
     // marked rows existing — this line must stand alone.
     console.log(
       `(holdout markets excluded: ${holdoutSkipped} rows — all variants, ` +
-        `all splits, stamped flag)`,
+        `${foldsRead}, stamped flag)`,
     );
   }
+  // The sealed population is STATED, never silent, and printed whether or
+  // not anything was withheld: a zero on a legacy corpus says there was no
+  // confirm fold to seal, which is a different fact from an unsealed read.
+  console.log(
+    `(confirm fold sealed at the door: ${manifest.sealedRows} rows withheld` +
+      ` — every table below reads the ${foldsRead} only)`,
+  );
 
   // The headline states its own denominator (#364 round 7, finding 3):
   // every table below holds data-absence rows out of n, so the number a
@@ -315,7 +331,7 @@ async function main(): Promise<void> {
   if (dataAbsentRows > 0) {
     console.log(
       `(data-absence rows held out of every denominator: ${dataAbsentRows}` +
-        ` — all variants, all splits; holdout excluded by the emit's ` +
+        ` — all variants, ${foldsRead}; holdout excluded by the emit's ` +
         `stamped flag)`,
     );
   }
@@ -494,8 +510,10 @@ async function main(): Promise<void> {
   }
 
   // --------------------------------------------- walk-forward honesty
-  // Every candidate ruling must hold on BOTH splits or it is curve-fitting.
-  // This table is the acceptance test for anything the analysis proposes.
+  // Every candidate ruling must hold on BOTH tuning folds or it is
+  // curve-fitting. This table is the acceptance test for anything the
+  // analysis proposes; the confirm fold is not a row here and cannot be —
+  // the door withheld it.
   const bySplit = new Map<string, Map<string, Stats>>();
   for (const row of rows) {
     if (!row.accepted) {

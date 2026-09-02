@@ -26,6 +26,7 @@ import {
   readSync,
 } from "node:fs";
 import { createInterface } from "node:readline";
+import { StringDecoder } from "node:string_decoder";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { tMultiplier95 } from "../supabase/functions/trade-analyzer/confidence.ts";
 import {
@@ -268,6 +269,55 @@ export function clusteredStandardError(
 }
 
 /**
+ * THE HELD-BACK FOLD, named once. Its ONE authorized read is
+ * `grid-totalr`'s `gradeCorpus` under `confirmFinal`, recorded in the LA-6
+ * ledger (`docs/research/confirm-reads/`); every other read is unrecorded and
+ * therefore forbidden. On 2026-09-02 an audit found twelve readers pooling or
+ * printing figures over this fold with no opt-in — each had walked through
+ * the door and taken every row it was handed. The door no longer hands them
+ * out (R4 act 1).
+ */
+export const SEALED_FOLD = "confirm";
+
+/**
+ * What a reader says about the sealed fold when it opens a corpus. The
+ * default is sealed; `"read"` is reserved for the gate, which writes the
+ * ledger, and for the reconciliation, which prints no figure. A reader that
+ * passes `"read"` without one of those two reasons is a finding.
+ */
+export type FoldGate = { confirm?: "read" | "sealed" };
+
+function sealsConfirm(emitPath: string, options: FoldGate | undefined): boolean {
+  const mode = options?.confirm ?? "sealed";
+  if (mode !== "sealed" && mode !== "read") {
+    throw new Error(
+      `${emitPath}: confirm must be "sealed" or "read" — got ${
+        JSON.stringify(mode)
+      }; the held-back fold is not something a reader peeks at halfway`,
+    );
+  }
+  return mode === "sealed";
+}
+
+/**
+ * The folds a reader may TUNE on, by the corpus's own vocabulary: a folded
+ * corpus names fit and select; a legacy two-split corpus names train and
+ * test and has no confirm fold at all. One law for both shapes, so a reader
+ * never hardcodes either — `stop-provenance` looked up "train"/"test" on a
+ * fit/select corpus for weeks and printed an empty table at exit 0.
+ */
+export function tuningFolds(
+  manifest: { folds?: unknown; foldsByClass?: unknown },
+): { fit: string; select: string } {
+  return manifest.folds || manifest.foldsByClass
+    ? { fit: "fit", select: "select" }
+    : { fit: "train", select: "test" };
+}
+
+/** A manifest as the door returns it: with the count of rows it withheld. */
+export type ReadManifest = SweepManifest & { sealedRows: number };
+
+/**
  * The one door to a corpus: rows plus a manifest whose hash verifies.
  * Throws on a missing manifest, a hash mismatch, or an unparseable row —
  * a hole in the corpus is a refused corpus, not a smaller one.
@@ -276,13 +326,18 @@ export function clusteredStandardError(
  * The streaming form of the same door, for corpora too large to hold
  * (the 2026-08-05 run emitted 505MB): the manifest hash verifies BEFORE
  * a single row is read, rows stream one at a time, and an unparseable
- * line still refuses the whole corpus.
+ * line still refuses the whole corpus. SEALED BY DEFAULT: rows of the
+ * confirm fold are withheld and counted on the returned manifest unless the
+ * caller passes `{ confirm: "read" }`.
  */
 export async function assertManifestedCorpusStreaming(
   emitPath: string,
   onRow: (row: SweepEmitRow) => void,
-): Promise<SweepManifest> {
+  options?: FoldGate,
+): Promise<ReadManifest> {
   const manifest = verifyManifest(emitPath);
+  const sealed = sealsConfirm(emitPath, options);
+  let sealedRows = 0;
   const reader = createInterface({
     crlfDelay: Number.POSITIVE_INFINITY,
     input: createReadStream(emitPath),
@@ -308,9 +363,48 @@ export async function assertManifestedCorpusStreaming(
         `${emitPath}: line ${lineNumber} failed to parse — a holed corpus is refused, not shrunk`,
       );
     }
+    if (sealed && row.split === SEALED_FOLD) {
+      sealedRows += 1;
+      continue;
+    }
     onRow(row);
   }
-  return manifest;
+  return { ...manifest, sealedRows };
+}
+
+/**
+ * The synchronous streaming form, for readers built on `readLinesSync`: the
+ * same manifest verification, the same parse refusal, the same seal. Exists
+ * so a reader migrating off a raw line loop keeps its synchronous shape.
+ */
+export function assertManifestedCorpusSync(
+  emitPath: string,
+  onRow: (row: SweepEmitRow) => void,
+  options?: FoldGate,
+): ReadManifest {
+  const manifest = verifyManifest(emitPath);
+  const sealed = sealsConfirm(emitPath, options);
+  let sealedRows = 0;
+  readLinesSync(emitPath, (line, lineNumber) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      return;
+    }
+    let row: SweepEmitRow;
+    try {
+      row = JSON.parse(trimmed) as SweepEmitRow;
+    } catch {
+      throw new Error(
+        `${emitPath}: line ${lineNumber} failed to parse — a holed corpus is refused, not shrunk`,
+      );
+    }
+    if (sealed && row.split === SEALED_FOLD) {
+      sealedRows += 1;
+      return;
+    }
+    onRow(row);
+  });
+  return { ...manifest, sealedRows };
 }
 
 /**
@@ -333,14 +427,19 @@ export function readLinesSync(
   const fd = openSync(path, "r");
   try {
     const chunk = Buffer.alloc(65_536);
+    // A StringDecoder carries a multi-byte character across chunk edges;
+    // decoding each chunk on its own split one into replacement characters
+    // at byte 65,535 while the streaming door read it whole (2026-09-02).
+    const decoder = new StringDecoder("utf8");
     let carry = "";
     let lineNumber = 0;
     for (;;) {
       const bytes = readSync(fd, chunk, 0, chunk.length, null);
       if (bytes === 0) {
+        carry += decoder.end();
         break;
       }
-      carry += chunk.toString("utf8", 0, bytes);
+      carry += decoder.write(chunk.subarray(0, bytes));
       let newlineIndex = carry.indexOf("\n");
       while (newlineIndex !== -1) {
         lineNumber += 1;
@@ -1332,25 +1431,20 @@ export function assertFiveMinuteDensity(
   }
 }
 
-export function assertManifestedCorpus(emitPath: string): {
-  manifest: SweepManifest;
+export function assertManifestedCorpus(
+  emitPath: string,
+  options?: FoldGate,
+): {
+  manifest: ReadManifest;
   rows: SweepEmitRow[];
 } {
-  const manifest = verifyManifest(emitPath);
-
   const rows: SweepEmitRow[] = [];
-  readLinesSync(emitPath, (line, lineNumber) => {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      return;
-    }
-    try {
-      rows.push(JSON.parse(trimmed) as SweepEmitRow);
-    } catch {
-      throw new Error(
-        `${emitPath}: line ${lineNumber} failed to parse — a holed corpus is refused, not shrunk`,
-      );
-    }
-  });
+  const manifest = assertManifestedCorpusSync(
+    emitPath,
+    (row) => {
+      rows.push(row);
+    },
+    options,
+  );
   return { manifest, rows };
 }
