@@ -17,11 +17,17 @@
 # safe to run while the allowance is exhausted, which is exactly when the bank
 # is frozen and most in need of protecting.
 #
-# WHAT THIS DOES NOT DO, stated rather than implied: these snapshots sit on the
-# same disk as the bank. They protect against an accidental delete, a bad
-# script, or a scratch-clone mishap — not against losing the machine. Sending
-# them anywhere off-box is the owner's call and is deliberately not automated
-# here.
+# OFF-BOX, since 2026-09-01. These snapshots sit on the same disk as the bank,
+# so on their own they protect against an accidental delete, a bad script or a
+# scratch-clone mishap — never against losing the machine. That was 6b-1 item
+# G, and the owner ruled Cloudflare R2 as the destination. This script now
+# hands each placed snapshot to `push-minute-bank-offbox.sh`, which archives,
+# uploads, and VERIFIES THE REMOTE COPY before reporting success.
+#
+# The push is not optional and does not fail quietly. If it cannot run, this
+# script exits non-zero, because ops/agent-exit-status.sh reads that exit and a
+# silent skip would render as a healthy backup — the exact failure item G was
+# opened to close.
 set -euo pipefail
 
 REPO="/Users/peacock/Projects/levelflow-cloud"
@@ -94,6 +100,22 @@ fi
 rm -rf "$DEST"
 mv "$TMP" "$DEST"
 log "snapshot verified and placed: $DEST ($DST_FILES symbols, $DST_BARS bars)"
+
+# Off-box, before the prune. Order matters: a local snapshot that is about to
+# be pruned should never be the only one that made it off the machine.
+OFFBOX="$REPO/scripts/ops/push-minute-bank-offbox.sh"
+if [ "${LEVELFLOW_SKIP_OFFBOX:-0}" = "1" ]; then
+  # The only way to skip, and it is loud. Used by the test harness, which has
+  # no business writing to the real bucket.
+  log "off-box SKIPPED by LEVELFLOW_SKIP_OFFBOX=1"
+else
+  [[ -x $OFFBOX ]] || { log "FAIL off-box script missing or not executable: $OFFBOX"; exit 1; }
+  command -v wl-secret >/dev/null || { log "FAIL wl-secret is not on PATH; the R2 token cannot be read"; exit 1; }
+  wl-secret cloudflare-r2-backup=R2_TOKEN -- "$OFFBOX" "$DEST" || {
+    log "FAIL off-box push did not complete; the local snapshot stands but the machine is still a single point of failure"
+    exit 1
+  }
+fi
 
 # PROTECTED SNAPSHOTS, and this list is why the prune is not a one-liner.
 #

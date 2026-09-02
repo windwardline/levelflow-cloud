@@ -3528,7 +3528,38 @@ unmatchable by construction; and **live order tickets for ZB, ZN and 6J** carry
 tick sizes and values no published source has. `tests/e8RosterConformance.test.ts`
 records the first as a coverage gap in terms. Blocks R5, not R3.
 
-**G. The minute bank's only copies are on one disk — NEW 2026-09-01, and it was
+**G. The minute bank's only copies are on one disk — CLOSED 2026-09-01.**
+Destination owner-ruled **Cloudflare R2**, not Google Drive: R2 is already the
+fleet's provider, its credential is minted by `cloudflare-token-admin` without
+the owner, and the free tier covers a 219 MB bank with room for years. The
+owner enabled R2 and added the payment method; everything else is automated.
+
+`scripts/ops/push-minute-bank-offbox.sh` archives each placed snapshot, uploads
+it, and VERIFIES THE REMOTE COPY by comparing the object's own md5 to the
+local one — an upload that exits 0 and an object that matches are different
+things, and only the second is a backup. Measured live: 219 MB snapshot to a
+17.5 MB archive in ~25 s. No secret touches disk: the token is injected by
+`wl-secret` at exec and rclone is configured entirely through `RCLONE_CONFIG_*`
+environment variables, so no `rclone.conf` is ever written.
+
+Layout, pinned by `tests/minuteBankOffbox.test.ts` so a second dataset joins
+this tree rather than inventing one beside it:
+
+    windwardline-backups/<repo>/<dataset>/<YYYY>/<MM>/<dataset>-<YYYYMMDD>.tar.zst
+
+**Two defects were found by running it, not by reading it.** `rclone lsf -R`
+emits the year and month DIRECTORY entries even under `--include`, and they
+sort BEFORE the archives beneath them — one object listed as three, and the
+prune would have reached for `2026/` first. `--files-only` fixes it. And the
+existing backup tests run the real script against a sandbox bank whose snapshot
+carries the same YYYYMMDD stamp as production: they pushed a **450-byte fixture
+over the real 17,461,396-byte archive** at the production key. Two independent
+barriers now stand — the harness sets `LEVELFLOW_SKIP_OFFBOX=1`, and the push
+script refuses any snapshot under a temp directory before it reads the token,
+because a flag a caller must remember is not a guard. The archive was restored
+and re-verified.
+
+*The entry as it stood:* The minute bank's only copies are on one disk — NEW 2026-09-01, and it was
 recorded nowhere.** `scripts/ops/backup-minute-bank.sh` runs daily and verifies
 its own snapshots, and R0b is closed on that. But bank and snapshots both live on
 `/dev/disk3s5`: measured 219 MB, 2,067,013 bars across 100 symbols, and FMP

@@ -57,6 +57,12 @@ function run(
         ...process.env,
         LEVELFLOW_BACKUP_ROOT: dest,
         LEVELFLOW_BANK_DIR: bank,
+        // BARRIER 1 of 2. These tests run the REAL script, and on 2026-09-01
+        // that meant they pushed a 450-byte sandbox bank over the production
+        // archive in R2 — the sandbox stamp is today's, so the key collided
+        // exactly. The push script also refuses any snapshot under a temp
+        // directory, because a flag the caller must remember is not a guard.
+        LEVELFLOW_SKIP_OFFBOX: "1",
         ...extra,
       },
     });
