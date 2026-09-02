@@ -66,6 +66,13 @@ describe("an open breaker stops the roster but never the probe", () => {
     const decision = mayCall(at + 60_000, path);
     assert.equal(decision.allowed, false);
     assert.match(decision.reason, /circuit open/);
+    // A STABLE TOKEN at the head, for the shell consumers that classify a
+    // driver's output by grep. On 2026-09-02 the nightly top-up read this
+    // refusal — the breaker doing its job — as "no quota signal in the
+    // output, so this is a real failure", because the only tokens it knew
+    // were the provider's own ("(429)"), and the breaker refuses BEFORE the
+    // provider is asked.
+    assert.match(decision.reason, /^fmpCircuitOpen: /);
     assert.match(
       decision.reason,
       /drains by time only/,

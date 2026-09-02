@@ -438,6 +438,28 @@ livestock fold end, the "status and log" wording, and three minor figures.
   `starvation-audit --report` produces byte-identical output from the
   redacted table. The driver's table should withhold those columns unless
   asked; that is R4's instrument work, beside the twelve readers.
+- **The nightly cache top-up read the shared breaker's refusal as "a real
+  failure" — CLOSED.** Its 11:00Z run was refused by the open breaker (the
+  intended stand-down: "FMP circuit open for 35.7h … Next probe in 0.8h"),
+  but the script's stand-down grep knew only the provider's own tokens
+  (`(429)`, `providerQuotaExhausted`, `Too Many Requests`), which a run the
+  breaker refuses never carries — so it logged "no quota signal in the
+  output, so this is a real failure" and the agent read FAILING for the
+  breaker doing its job, every run since #493. The breaker's refusal now
+  leads with a stable `fmpCircuitOpen:` token (executed test), and the
+  top-up has a third named stand-down for it, after the must-stay-red guard
+  (source pin, with ordering). Found in the agent logs while sweeping for
+  strays; nothing about R3 caused it. **A live exercise of the fix went
+  wrong and is recorded as such:** kickstarting the agent at 18:01Z, the
+  breaker allowed its probe, FMP SERVED it — the allowance is back under the
+  ceiling, ten days before the estimate — and the top-up began a real warm.
+  It was stopped after ZBUSD and ZNUSD, having spent **34.1 MB** of
+  allowance (`.fmp-usage.json`), the only provider bytes this session
+  spent and not ones it was permitted to; the scheduled 07:00 run resumes
+  the warm, and the 2026-08-26 pin is untouched by construction. The
+  breaker branch could not be exercised live because there is no longer an
+  open breaker to refuse a run; it stands on its executed token test and
+  the source pin.
 - **`grid-totalr` called a three-fold corpus "legacy two-split" whenever it
   was graded without `--confirm-final` — CLOSED.** The sealed state now has
   its own words, legacy is reserved for a manifest that declares no folds,

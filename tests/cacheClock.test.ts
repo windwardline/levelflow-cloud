@@ -117,6 +117,17 @@ describe("the store guard's refusals are loud and the ops jobs know their names"
     // stand-down red.
     assert.match(topup, /grep -q 'cacheClockMismatch' <<<"\$out"/);
     assert.match(topup, /grep -qE '\\\(429\\\)\|providerQuotaExhausted\|Too Many Requests' <<<"\$out"/);
+    // The shared breaker's refusal is a THIRD named condition (2026-09-02):
+    // it fires before the provider is asked, so no "(429)" token appears,
+    // and the 11:00Z run read it as "no quota signal … a real failure". Its
+    // own branch, its own message, and it must sit AFTER the must-stay-red
+    // guard like the two stand-downs beside it.
+    assert.match(topup, /grep -q 'fmpCircuitOpen' <<<"\$out"/);
+    assert.match(topup, /STOOD DOWN: the shared FMP breaker is open/);
+    assert.ok(
+      topup.indexOf("grep -q 'fmpCircuitOpen'") > topup.indexOf("top-up FAILED: integrity refusal"),
+      "the breaker stand-down must come after the must-stay-red guard",
+    );
     assert.match(topup, /rebuild per docs\/cache-rebuild-r0\.md/);
     // The actionable refusals must NOT be swallowed by a stand-down.
     // #364 round 23 turned this from absence into a positive shape: the

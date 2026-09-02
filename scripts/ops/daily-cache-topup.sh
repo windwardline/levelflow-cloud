@@ -86,6 +86,18 @@ if grep -qE '\(429\)|providerQuotaExhausted|Too Many Requests' <<<"$out"; then
   exit 0
 fi
 
+# The shared breaker (scripts/fmpCircuit.ts, #493) refuses a run BEFORE the
+# provider is asked, so a refused run carries no "(429)" — only the breaker's
+# own token. Until 2026-09-02 that run fell through every stand-down to "no
+# quota signal in the output, so this is a real failure", and the agent read
+# FAILING for the breaker doing its job. Same class as the 429 branch: one
+# named, proven condition, exit 0; the must-stay-red tokens are matched above
+# it and still win.
+if grep -q 'fmpCircuitOpen' <<<"$out"; then
+  echo "$(date -u +%FT%TZ) STOOD DOWN: the shared FMP breaker is open (a provider refusal inside its cool-off) — the run did not reach the provider. Cache not topped up; not a regression. See §21j."
+  exit 0
+fi
+
 # R0 one clock: the store guard refuses a cache stamped under a different
 # (or no) normalization rather than deepening it — the pre-2026-08-11
 # mixed-clock store, or a future BAR_CLOCK bump whose rebuild has not run
