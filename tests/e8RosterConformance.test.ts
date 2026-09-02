@@ -43,7 +43,12 @@ import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
  * Stale rows are deliberately excluded — Tradovate retains 2024-era months with
  * no data, and the transcription marks them. The Softs and Stocks tabs exist in
  * the chrome and were NOT captured, so this list is complete for eight tabs and
- * silent about two. That silence is itself a coverage gap and is recorded as one.
+ * silent about two.
+ *
+ * That silence is NOT a coverage gap, corrected 2026-09-01. It read as one here
+ * while ruling 3 above — "we will not trade softs and stocks" — said the
+ * opposite twelve lines earlier, and both sentences were live in this one file.
+ * The ruling governs, and it is now law rather than a comment (amendment 41).
  */
 const E8_FUTURES_WATCHLIST: Record<string, string[]> = {
   Indices: [
