@@ -3314,7 +3314,51 @@ and builds no setup at all. That figure comes from the corpus the 2026-08-11
 clock defect invalidated, so it is the DECLINE that is live here, not the
 number — and the decline is what makes the market silent either way.
 
-**B. The COT contract table before R3 — fill it, or declare it partial?**
+**B. The COT contract table before R3 — CLOSED 2026-09-01. Do nothing to
+`DIRECT_CONTRACTS` before R3, and the preflight decides it, not the owner.**
+
+**The urgency premise was retired one entry down, the day before.** This entry
+rests on "a column missing then cannot be backfilled without a second
+[re-sweep]". Item 4's closure says the opposite in terms: at a pinned anchor a
+sweep spends nothing, so R4 may add arms at the same anchor for free provided
+`analyzerVersion` is unchanged. Adding mappings does not move
+`analyzerVersion` — `cotScoreAdjustment` is 0 on every class, so scoring is
+bit-identical. This entry was written before that measurement and never re-read
+after it.
+
+**Mapping and fetching are COUPLED, proven by execution.** `anchoredPreflight`
+derives the COT contract set from the mapping itself, so a mapped symbol with
+no `cot-<CONTRACT>.json` becomes a `missing` entry and the run exits 1 at an
+anchored anchor. Measured today at 2026-08-26: **97 scannable, 47 mapped, 20
+distinct contracts, 0 missing — R3 is armed.** Adding the 15 without warming 15
+cache files converts that into an immediate refusal, and a warm under the open
+breaker can 429 and leave the file absent anyway. Option (i) is not "map now,
+fetch later"; it is one indivisible act with a live failure mode.
+
+**Option (ii) was already shipped, six days before this entry asked for it.**
+`cotSampleSize` rides every emitted row (#427, 2026-08-25, `sweep.ts:84`,
+`:1178`), which is the "record WHY" half — a `0` on a mapped symbol means
+insufficient reports, distinguishable from no mapping at all.
+
+**Three corrections to this entry's own figures.** The cost claim
+("bandwidth that is currently spent") is off by about six orders of magnitude:
+the COT cache is 20 files, 0.8 MB total, ~40 KB each. That said, the cache is a
+52-byte-per-row projection and the true provider figure is unmeasured, so
+"bandwidth is not the obstacle" stands as inference rather than measurement.
+The root convention is **not** universal — `RTYUSD → "QR"` breaks it — so the
+15 codes are unverified, not merely untyped. And the population is **at least
+16, not 15**: ETHUSD sits inside the "unmappable crypto" group while CME Ether
+futures are CFTC-reported and BTCUSD is already mapped to `BT`. Calling that
+group unmappable-as-domain-fact would convert a known-partial capture into an
+attested absence, which is the failure `scripts/symbolCensus.ts` exists to
+prevent and which this register already made once.
+
+**One thing to carry, and it is the only losable item here**: `PROTECTED_ANCHORS`
+must survive past any supplementary arm, not merely past R3. The free ride is
+the pin, and a prune between R3 and a later COT arm is what would make this
+expensive.
+
+*The entry as it stood:* The COT contract table before R3 — fill it, or declare it partial?
 `DIRECT_CONTRACTS` maps 20 of 98 symbols; `getCotContractMapping` returns null
 for 50, and at least 15 of those are CFTC-reported instruments as domain
 fact — including ZFUSD and ZTUSD while their curve siblings ZBUSD and ZNUSD
