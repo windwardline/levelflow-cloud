@@ -226,12 +226,31 @@ const FUTURES_CONTRACT_SPECS: Record<string, FuturesContractSpec> = {
   // precedent ZBUSD (1/32) and ZNUSD (1/64) above already set: the grid of an
   // exchange-traded contract is the exchange's property. §20i ruling 5 still
   // bars exchange values from the SIZING table; alignment is a price-grid
-  // fact, not a money fact. Each of these five is grounded beyond memory:
-  // ZOUSX/ZRUSD measured as the exact price-delta gcd of the banked minute
-  // series; ZFUSD/ZTUSD confirmed by the futures dossier's own conversion
-  // (ZFU6 106'070 = 106.21875 = exactly 13,596 quarter-32nds); GFUSX
-  // consistent with the live watchlist print (GFQ6 348.300) and its LE/HE
-  // siblings' published 0.025.
+  // fact, not a money fact. RATIFIED as amendment 40 (2026-09-01): the
+  // boundary's own first sentence scopes it to "every number in both
+  // sections", and both sections are the §19/§20 sizing governor. That
+  // reading was correct; it is now law rather than a comment.
+  //
+  // Four of these five do not need the exchange route at all. ZOUSX (0.25)
+  // and ZRUSD (0.005) match the price-delta gcd of the banked minute series
+  // EXACTLY, so they are grounded in Levelflow's own data. ZFUSD/ZTUSD are
+  // confirmed by the futures dossier's own conversion (ZFU6 106'070 =
+  // 106.21875 = exactly 13,596 quarter-32nds). Only GFUSX rests on the grid
+  // alone.
+  //
+  // GFUSX's old corroboration is STRUCK 2026-09-01 (amendment 40). It read
+  // "consistent with the live watchlist print (GFQ6 348.300) and its LE/HE
+  // siblings' published 0.025". Neither half holds: 348.300 divides evenly by
+  // 0.025 AND by 0.005, discriminating nothing, and inference from siblings is
+  // what the third route forbids ("nothing adjacent to it").
+  //
+  // What grounds it instead is a CONTROL on the alternative. Re-deriving ticks
+  // from the bank was tested where E8 publishes the answer, and missed both by
+  // 5x: LEUSX and HEUSX are published 0.025 and their bank gcd is 0.005. The
+  // bank measures the vendor data's finest increment, not the contract's tick.
+  // Residual risk is bounded because 0.025 is a MULTIPLE of 0.005 — every
+  // aligned price is on-grid under either reading, and the only cost of being
+  // wrong is a wider minimum stop, never an unfillable price.
   GFUSX: {
     contractLabel: "Feeder cattle futures",
     minStopTicks: 8,

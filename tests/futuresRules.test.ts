@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   applyFuturesTickRules,
@@ -208,8 +209,58 @@ describe("every level the tick rules return is on the contract's grid", () => {
 // ZOUSX 0.25 and ZRUSD 0.005 measured as the exact price-delta gcd of the
 // banked minute series (234 and 458 bars); ZFUSD/ZTUSD 0.0078125 confirmed by
 // the futures-account dossier's own conversion (ZFU6 106'070 = 106.21875 =
-// exactly 13,596 quarter-32nds); GFUSX 0.025 consistent with the live
-// watchlist print (GFQ6 348.300) and its LE/HE siblings' published tick.
+// exactly 13,596 quarter-32nds).
+//
+// GFUSX is the only one resting on the grid alone, and its old grounding was
+// STRUCK 2026-09-01 (amendment 40). It read "consistent with the live
+// watchlist print (GFQ6 348.300) and its LE/HE siblings' published tick".
+// Neither half holds: 348.300 divides evenly by 0.025 AND by 0.005, so it
+// discriminates nothing, and inference from siblings is what the third route
+// forbids in terms. What grounds it now is a CONTROL on the alternative —
+// re-deriving from the bank returns 0.005 for LEUSX and HEUSX, whose
+// E8-published tick is 0.025, so that instrument misses both known answers by
+// five and cannot settle the open one.
+describe("amendment 40's grounding cannot be silently deleted", () => {
+  // The bank is gitignored, so CI cannot recompute the gcd that decided this.
+  // What CI can do is refuse a silent deletion of the reasoning, which is the
+  // same shape tests/macroStateReachesTheEmit.test.ts uses for UNDERIVED.
+  const source = readFileSync(
+    new URL("../supabase/functions/trade-analyzer/futures.ts", import.meta.url),
+    "utf8",
+  );
+
+  it("keeps the control that replaced GFUSX's struck corroboration", () => {
+    assert.match(source, /RATIFIED as amendment 40/);
+    assert.match(source, /LEUSX and HEUSX are published 0\.025 and their bank gcd is/);
+    // A naive absence check cannot work here: the comment QUOTES the struck
+    // sentence in order to record that it was struck, so the phrase is
+    // legitimately present. What must hold is that it never appears as a LIVE
+    // grounding — i.e. every occurrence sits downstream of the strike record.
+    const struckAt = source.indexOf("STRUCK 2026-09-01 (amendment 40)");
+    assert.notEqual(struckAt, -1, "the strike record itself was removed");
+    for (
+      let at = source.indexOf("siblings' published 0.025");
+      at !== -1;
+      at = source.indexOf("siblings' published 0.025", at + 1)
+    ) {
+      assert.ok(
+        at > struckAt,
+        "the sibling-inference grounding appears BEFORE the strike record, so it " +
+          "is being used as live justification again. Amendment 40 replaced it " +
+          "with a control on the alternative instrument, because inference from " +
+          "adjacent instruments is what the sizing boundary's third route forbids.",
+      );
+    }
+  });
+
+  it("keeps GFUSX at the published-control value, not the bank's", () => {
+    // Not sibling inference: LEUSX/HEUSX are cited as CONTROLS ON THE
+    // INSTRUMENT, never as evidence for GFUSX's own value. If someone
+    // "corrects" GFUSX to the bank's 0.005, this is where it stops.
+    assert.equal(getFuturesContractSpec("GFUSX")?.tickSize, 0.025);
+  });
+});
+
 describe("1b: every verified-grid market has a spec; the unverifiable refuse", () => {
   const expectedTicks: Record<string, number> = {
     // E8-published (tick table 13004287, via instruments.ts):
