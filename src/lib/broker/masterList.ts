@@ -8,6 +8,7 @@ import {
 } from "../symbolMap";
 import { isContractSizeVariant, parentMarketOf } from "./contractVariants";
 import {
+  E8_FUTURES_SPECS,
   FUTURES_MAPPINGS,
   MARGIN_ONLY_E8_SYMBOLS,
 } from "./instruments";
@@ -326,9 +327,24 @@ const BRENT_GROUND =
  * this, so the harm was confined to the durable artifact and its status
  * counts — a wrong broker fact on the record is still a wrong fact.
  */
+// DERIVED FROM THE SPEC, not from membership in the margin-only table —
+// changed 2026-09-01, and the distinction is the whole point. Keying off
+// MARGIN_ONLY_E8_SYMBOLS asked "is this row in E8's margin-only family?", and
+// answered a question nobody was asking. What makes a row unsizeable is that
+// its tick size or its value per tick is missing, and on 2026-09-01 those
+// stopped being the same set: frame F14's order tickets gave ZB and ZN both
+// figures through the boundary's third route while GF, ZF and ZT still have
+// neither. Under the old derivation this file would have gone on recording
+// ZB and ZN as `offered-but-unsizeable` over a ground that reads "has never
+// published a tick size or a value per tick" — a wrong broker fact on the
+// record, which is exactly what the note above this warns about.
 const UNSIZEABLE_MASTER_SYMBOLS = new Set(
   Object.entries(FUTURES_MAPPINGS)
-    .filter(([, e8Symbol]) => MARGIN_ONLY_E8_SYMBOLS.includes(e8Symbol))
+    .filter(([, e8Symbol]) => {
+      if (!MARGIN_ONLY_E8_SYMBOLS.includes(e8Symbol)) return false;
+      const spec = E8_FUTURES_SPECS[e8Symbol];
+      return spec?.tickSize.value == null || spec?.valuePerTick.value == null;
+    })
     .map(([symbol]) => symbol),
 );
 
