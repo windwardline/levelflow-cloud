@@ -157,8 +157,12 @@ export function mayCall(now: number, path = FMP_CIRCUIT_PATH): Decision {
   return {
     allowed: false,
     probe: false,
+    // `fmpCircuitOpen:` is a STABLE TOKEN for shell consumers that classify a
+    // driver's output by grep. The breaker refuses before the provider is
+    // asked, so the provider's own "(429)" never appears in a refused run —
+    // the nightly top-up read exactly that as "a real failure" (2026-09-02).
     reason:
-      `FMP circuit open for ${openFor}h — ${state.reason ?? "provider refused"}. ` +
+      `fmpCircuitOpen: FMP circuit open for ${openFor}h — ${state.reason ?? "provider refused"}. ` +
       `Next probe in ${hours}h. The trailing-30-day window drains by time ` +
       `only, so re-running cannot shorten it.`,
   };

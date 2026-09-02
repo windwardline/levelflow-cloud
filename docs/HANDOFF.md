@@ -1954,6 +1954,18 @@ reading are tracked beside them. Full record:
   their source (mtime and transcript proof in the record); the launcher's
   one untracked status file tripped the old porcelain test. `resolveSweepSource` now
   counts untracked files separately.
+- **FMP IS SERVING AGAIN as of 2026-09-02 18:01Z** — a top-up probe passed
+  and a warm began (stopped by hand after two markets and 34.1 MB, because
+  this session was not to spend bytes). The trailing-30-day window drained
+  ten days before the 09-12 estimate. The minute bank's next scheduled run
+  banks again; the two paused pg_cron jobs stay paused until the bank has
+  one clean run (§21c ordering, above).
+- **The cache top-up agent reads FAILING for the breaker doing its job —
+  fixed 2026-09-02.** A run the shared breaker refuses carries no `(429)`,
+  so the script's stand-down grep fell through to "no quota signal … a real
+  failure" on every refused run since #493. The breaker's refusal now leads
+  with `fmpCircuitOpen:` and the top-up stands down on it by name. The
+  minute-bank agent's own stand-down already exits 0.
 - **Four hours passed between the arms ending (08:48Z) and the gate
   starting (12:56Z), unexplained.** Not sleep — `kern.sleeptime` is zero
   since boot and `pmset` logs none; the session simply did not resume. A
