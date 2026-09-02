@@ -3331,6 +3331,49 @@ declaration was corrected on 2026-08-25 for exactly this reason — as first
 written it would have attested that the CFTC does not report the other 78.
 
 **C. `strategyProfiles` — were the six silent weight blocks hand-authored?**
+**The record answers half of this, and the entry was written without it —
+2026-09-01.** `docs/trade-model.md:983` calls them "hand-set per-class weights —
+untouched since inception", in the round-16 section (2026-07-30) whose own title
+is "the committee-weight audit". That is a positive statement in the engine's
+state of record, not an inference from absence, so the reservation below rests
+on a premise that is false. It survives the clock defect because the
+invalidation banner is scoped to calibration RESULTS and this is prose.
+Corroborated in git: three commits have ever touched the file — `715fc98`
++99/−0, `958f680` +26/−0, `0fd8280` +37/−0 — and **zero weight-value lines have
+been removed across all history**, which is what round-16 reverting every
+candidate looks like from the outside. Every value is as first written.
+*Owner call is now acceptance, not derivation.*
+
+**And the review found something that outranks the provenance question.**
+Round-16's A/B named four classes — crypto, forex, futures, metals — which are
+exactly the table's inception four (`715fc98`). **Energies and indices have
+never been validated at all**, not even by a measurement later invalidated:
+they entered at `958f680` four days after inception, so "untouched since
+inception" does not describe them, and round-16's body never names them.
+Indices could not have been audited then — a no-trade class at the time — and is
+live today, `noTradeSymbols` being empty since the 2026-08-07 ruling. So the
+population needing validation is not "re-run round-16" but "run it wider than
+round-16 ever went".
+
+**Struck from this entry, 2026-09-01**: the causal story that agriculture and
+livestock carry notes *because* they postdate the audit. Their own notes and
+`0fd8280`'s body give a different, stated reason — they are the table's only
+COPIES, carried verbatim from futures, and the note marks carry-over
+provenance. Verified: both blocks deep-equal futures exactly, and
+`tests/strategyProfileCompleteness.test.ts` now pins that as a relation so an
+edit to futures alone fails loudly rather than leaving a false note attached to
+a realized-R figure.
+
+**The hole this all sat on top of, now closed.** Nothing guarded the weight
+VALUES. Measured 2026-09-01: editing `forex momentum_confirmation` from 1 to
+1.06 — a plausible tuning change on the path that decides which setups publish —
+passed all 3281 tests green. The harm is the quiet edit rather than the edit:
+`index.ts:1279` and `:1517` scope the global learning cohort by
+`analyzer_version`, and that cohort feeds `confidence_adjustment` back into
+scoring for every operator, so an unversioned weight change pools two scoring
+regimes into one corpus and tells everyone the blend. A basis ledger now pins
+all 86 cells and names each class's standing; the same edit fails.
+
 Agriculture and livestock carry explicit "carried from futures — NOT derived"
 notes. Crypto, energies, forex, futures, indices and metals carry nothing, and
 those two markers establish the house convention, which makes the other six an

@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
+import { STRATEGY_PROFILE_WEIGHTS } from "../supabase/functions/trade-analyzer/strategyProfiles.ts";
 
 /**
  * The completeness guard §6b-1 C says is written. It was not — this is it.
@@ -191,5 +192,189 @@ describe("every class carries every strategy, or records the absence", () => {
           "KNOWN_ABSENCES, and if an owner ruling filled it, say so in §6b-1",
       );
     }
+  });
+});
+
+/**
+ * The value guard. The completeness suite above asks whether a CELL EXISTS;
+ * this asks what is IN it, which nothing checked until 2026-09-01.
+ *
+ * Measured that day: editing `forex momentum_confirmation` from 1 to 1.06 — a
+ * plausible tuning change, on the path that decides which setups publish —
+ * passes all 3281 tests green. The table that multiplies every strategy vote's
+ * score and confidence had no guard on its values at all.
+ *
+ * The harm is not the edit. It is the edit made QUIETLY. `index.ts:1279` and
+ * `:1517` scope the global learning cohort by `analyzer_version`, and that
+ * cohort feeds `confidence_adjustment` back into scoring for every operator.
+ * A weight changed without bumping `ANALYZER_VERSION` pools two different
+ * scoring regimes into one corpus and tells everyone the blend.
+ *
+ * So this is a BASIS ledger, not a value opinion. Changing a weight is
+ * legitimate. Changing one without moving the record with it is not, and this
+ * is where that gets caught.
+ *
+ * The bases are the three the record actually supports, and they are not
+ * equal in standing:
+ *
+ *   "inception"        crypto, forex, futures, metals. The table's original
+ *                      four (715fc98, 2026-06-27). `docs/trade-model.md:983`
+ *                      calls them "hand-set per-class weights — untouched
+ *                      since inception", and round-16 (2026-07-30) A/B'd
+ *                      exactly these four and reverted every candidate. That
+ *                      A/B is void under the clock defect; the provenance
+ *                      sentence is not, because the invalidation banner is
+ *                      scoped to calibration RESULTS.
+ *   "added-2026-07-01" energies, indices. Added at 958f680, four days after
+ *                      inception, so "untouched since inception" does not
+ *                      describe them — and round-16's A/B body never names
+ *                      them. THESE TWO HAVE NEVER BEEN VALIDATED, not even by
+ *                      a measurement later invalidated. Indices could not have
+ *                      been at the time (a no-trade class then) and is live
+ *                      now, `noTradeSymbols` being empty since 2026-08-07.
+ *   carried            agriculture, livestock. Pinned by RELATION below rather
+ *                      than by literal, because their own notes claim they are
+ *                      carried verbatim from futures. A claim worth asserting
+ *                      is worth failing.
+ *
+ * No weight value has ever been edited: three commits have ever touched this
+ * file — 715fc98 +99/-0, 958f680 +26/-0, 0fd8280 +37/-0 — and zero weight
+ * lines have been removed across all history. Every value is as first written.
+ */
+const WEIGHT_BASIS_LEDGER: Record<
+  string,
+  { basis: string; weights: Record<string, number> }
+> = {
+  crypto: {
+    basis: "inception",
+    weights: {
+      breakout_continuation: 1.06,
+      failed_breakout_reversal: 1.02,
+      momentum_confirmation: 1.1,
+      momentum_divergence: 1.04,
+      multi_timeframe_bias: 1.02,
+      range_mean_reversion: 0.94,
+      smart_money_liquidity: 0.98,
+      volatility_expansion: 1.12,
+      volume_value_extension: 0.96,
+      volume_value_retest: 0.96,
+    },
+  },
+  forex: {
+    basis: "inception",
+    weights: {
+      breakout_continuation: 1,
+      failed_breakout_reversal: 1.04,
+      momentum_confirmation: 1,
+      momentum_divergence: 1.02,
+      multi_timeframe_bias: 1.08,
+      range_mean_reversion: 1.06,
+      smart_money_liquidity: 1.03,
+      volatility_expansion: 0.98,
+      volume_value_extension: 1,
+      volume_value_retest: 1,
+    },
+  },
+  futures: {
+    basis: "inception",
+    weights: {
+      breakout_continuation: 1.08,
+      failed_breakout_reversal: 1.05,
+      momentum_confirmation: 1.03,
+      momentum_divergence: 1,
+      multi_timeframe_bias: 1.06,
+      range_mean_reversion: 0.94,
+      smart_money_liquidity: 1.02,
+      trend_pullback_to_value: 1.08,
+      volatility_expansion: 1.04,
+      volume_value_extension: 1.03,
+      volume_value_retest: 1.03,
+    },
+  },
+  metals: {
+    basis: "inception",
+    weights: {
+      breakout_continuation: 1.02,
+      failed_breakout_reversal: 1.08,
+      momentum_confirmation: 1.02,
+      momentum_divergence: 1.04,
+      multi_timeframe_bias: 1.03,
+      range_mean_reversion: 0.96,
+      smart_money_liquidity: 1.08,
+      trend_pullback_to_value: 1.04,
+      volatility_expansion: 1.05,
+      volume_value_extension: 1.02,
+      volume_value_retest: 1.02,
+    },
+  },
+  energies: {
+    basis: "added-2026-07-01",
+    weights: {
+      breakout_continuation: 1.06,
+      failed_breakout_reversal: 1.05,
+      momentum_confirmation: 1.04,
+      momentum_divergence: 1,
+      multi_timeframe_bias: 1.05,
+      range_mean_reversion: 0.94,
+      smart_money_liquidity: 1.04,
+      trend_pullback_to_value: 1.05,
+      volatility_expansion: 1.08,
+      volume_value_extension: 1.02,
+      volume_value_retest: 1.02,
+    },
+  },
+  indices: {
+    basis: "added-2026-07-01",
+    weights: {
+      breakout_continuation: 1.04,
+      failed_breakout_reversal: 1.03,
+      momentum_confirmation: 1.04,
+      momentum_divergence: 0.98,
+      multi_timeframe_bias: 1.08,
+      range_mean_reversion: 0.98,
+      smart_money_liquidity: 1.02,
+      trend_pullback_to_value: 1.06,
+      volatility_expansion: 1.03,
+      volume_value_extension: 1.01,
+      volume_value_retest: 1.01,
+    },
+  },
+};
+
+describe("no weight moves without the record moving with it", () => {
+  it("pins every originally-authored cell to its recorded basis", () => {
+    for (const [assetType, entry] of Object.entries(WEIGHT_BASIS_LEDGER)) {
+      assert.deepEqual(
+        STRATEGY_PROFILE_WEIGHTS[assetType as keyof typeof STRATEGY_PROFILE_WEIGHTS],
+        entry.weights,
+        `${assetType} weights moved. This is §6b-1 C territory: state the new ` +
+          `basis here, and bump ANALYZER_VERSION — global learning is scoped ` +
+          `by it (index.ts:1279, :1517) and an unversioned change pools two ` +
+          `scoring regimes into the corpus that adjusts everyone's confidence.`,
+      );
+    }
+  });
+
+  it("holds the two carried classes to the claim their notes make", () => {
+    // Their comments say "carried over verbatim from futures — NOT derived".
+    // Asserted as a relation, so editing futures alone breaks the claim loudly
+    // instead of leaving a false provenance note attached to a realized-R
+    // figure.
+    for (const carried of ["agriculture", "livestock"]) {
+      assert.deepEqual(
+        STRATEGY_PROFILE_WEIGHTS[carried as keyof typeof STRATEGY_PROFILE_WEIGHTS],
+        STRATEGY_PROFILE_WEIGHTS.futures,
+        `${carried} no longer equals futures, so its "carried over verbatim ` +
+          `from futures" note is now false. Either restore it or rewrite the ` +
+          `note and give the class its own basis in the ledger above.`,
+      );
+    }
+  });
+
+  it("covers every class, so a ninth cannot arrive unrecorded", () => {
+    assert.deepEqual(
+      Object.keys(STRATEGY_PROFILE_WEIGHTS).sort(),
+      [...Object.keys(WEIGHT_BASIS_LEDGER), "agriculture", "livestock"].sort(),
+    );
   });
 });
