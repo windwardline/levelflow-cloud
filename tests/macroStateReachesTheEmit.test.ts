@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 import {
   calculateMacroRateAdjustment,
+  MACRO_RATE_ROLE_BY_SYMBOL,
   type MacroRateContext,
   treasuryContextFromRows,
 } from "../supabase/functions/trade-analyzer/macroRates.ts";
@@ -144,8 +145,23 @@ describe("the underived numbers say so", () => {
   });
 
   it("does NOT re-mark the -1, which #415 already treated twice", () => {
-    const treated = [...source.matchAll(/never been measured anywhere in this repo/g)];
-    assert.equal(treated.length, 2, "the #415 notes for HOUSD and RBUSD moved");
+    // Was a file-wide count of 2, tightened 2026-09-01 to a per-entry match.
+    // A count cannot see the case it exists to catch: delete HOUSD's note and
+    // add one anywhere else and the count still reads 2. This asks the two
+    // entries directly, and asks every other entry to stay silent — the same
+    // enumerate-don't-count repair made to the role membership test the same
+    // day.
+    const treated = Object.entries(MACRO_RATE_ROLE_BY_SYMBOL)
+      .filter(([, entry]) =>
+        entry.why.includes("never been measured anywhere in this repo")
+      )
+      .map(([symbol]) => symbol)
+      .sort();
+    assert.deepEqual(
+      treated,
+      ["HOUSD", "RBUSD"],
+      "the #415 -1 notes are no longer on exactly HOUSD and RBUSD",
+    );
     assert.match(source, /already carries #415's treatment\n\s*\/\/ twice in this file/);
   });
 
