@@ -258,8 +258,15 @@ stdout logs (deleted here) leave `docs/research/r3/` holding the two capture-all
 arms (33.5 GB) and their sidecars. Free space is unchanged by this act beyond
 the logs.
 
-## 8. Gates
+## 8. Gates and landing
 
 `check` · `lint` · `check:migrations` · `npm audit --audit-level=high` ·
-`test` · `build` · `check:bundle` — each run and green on the branch before
-the pull request (the PR body carries the counts).
+`test` (3,441 / 0) · `build` · `check:bundle` — each run and green on the
+branch before the pull request. Landed 2026-09-02: PR #567, deploy and the
+security sweep green on `d9d84f3`, production 200. Provenance: a peer
+session's PR #566 merged minutes earlier carrying this act's commit — the
+shared checkout's HEAD had been switched to its branch, so the act's commit
+landed there — and the content entered main in that squash (`cce7daf`);
+#567's squash carries the title with no further delta. Both PRs carry a
+comment saying so; the branch holding a forward revert of the stray commit
+was deleted so nothing can reopen it against main.
