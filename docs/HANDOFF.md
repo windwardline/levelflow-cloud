@@ -1916,7 +1916,13 @@ that fixed it.
 **R4 act 1 RAN: the confirm fold is sealed at the door.** Owner-approved
 2026-09-02 ("Recommendations are approved… fan out, adversarial passes,
 mutation testing, fresh eyes — non-negotiable"). Record:
-`docs/research/r4-act1-seal-readers-2026-09-02.md`. What changed:
+`docs/research/r4-act1-seal-readers-2026-09-02.md`. Merged 2026-09-02 20:20Z
+as PR #567 — with a provenance wrinkle worth knowing before reading `git
+log`: a peer session's PR #566 merged minutes earlier carrying this act's
+commit (a shared-checkout collision put it on that branch), so the 42-file
+content entered main in the #566 squash `cce7daf`, and #567's squash
+`d9d84f3` carries the title with no further delta. Content verified on
+main; deploy and security green on `d9d84f3`. What changed:
 
 - `scripts/sweepStats.ts` withholds `split === "confirm"` rows from every
   reader unless it passes `{ confirm: "read" }`; only `grid-totalr` (under
