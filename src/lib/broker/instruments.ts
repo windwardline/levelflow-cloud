@@ -141,8 +141,14 @@ const CANONICAL_ROWS: SpecRow[] = [
 
 // The margin-table-only symbols Levelflow serves. Absent from the fee table,
 // the tick table, the canonical 45-instrument list and the live symbol
-// browser: margin published, tick size and value NOT PUBLISHED — still true,
-// and still why sizing stays withheld (amendment 22). Tradability is a
+// browser: margin published, tick size and value NOT PUBLISHED BY E8 — still
+// true of all five as a statement about E8's TABLES, and still why sizing
+// stays withheld for GF, ZF and ZT (amendment 22).
+//
+// It stopped being true of ZB and ZN on 2026-09-01. The third route supplied
+// both figures from the owner's own live order tickets (F14), so those two are
+// now sizeable while the other three are not — which is the boundary working
+// as written rather than an exception to it. Tradability is a
 // different question: every one of these printed live on the owner's F9
 // futures-account watchlist sighting (amendment 19; see
 // FUTURES_ACCOUNT_SIGHTINGS below), which OFFERS them the same way a
@@ -170,9 +176,18 @@ export const MARGIN_ONLY_E8_SYMBOLS: readonly string[] = [
 
 const MARGIN_ONLY_ROWS: SpecRow[] = [
   ["GF", "Feeder Cattle", null, null, 10_000, null],
-  ["ZB", "30-Year Bond", null, null, 10_000, null],
+  // ZB and ZN carry tick size AND value since 2026-09-01, and they are the
+  // only two here that do. Both came through the boundary's THIRD ROUTE — the
+  // owner's live order tickets on E8's own platform, frame F14 in
+  // docs/research/e8-feed-verification-2026-08-02.md — not from an exchange
+  // spec sheet, which §20i ruling 5 still bars. The platform did the
+  // arithmetic itself: a 100-lot ticket priced the move at $3,125.00, so
+  // 3.125/100 = 0.03125 = 1/32 and $3125.00/100 = $31.25. ZN's 100-lot gave
+  // $1,562.50, so 1.5625/100 = 0.015625 = 1/64 and $15.625. Nothing is
+  // inferred from a sibling; each figure is that contract's own ticket.
+  ["ZB", "30-Year Bond", 0.03125, 31.25, 10_000, null],
   ["ZF", "5-Year Note", null, null, 10_000, null],
-  ["ZN", "10-Year Note", null, null, 10_000, null],
+  ["ZN", "10-Year Note", 0.015625, 15.625, 10_000, null],
   ["ZT", "2-Year Note", null, null, 10_000, null],
 ];
 
@@ -224,7 +239,9 @@ const UNRECONCILED_TICK_AXIS = ["6J", "6M"];
  * observation may establish tradability itself"). Amendment 22 keeps the
  * route narrow: it establishes OFFERED, nothing about SIZING — E8's own
  * tick/value tables still gate that separately (UNRECONCILED_TICK_AXIS
- * above, and the null tick/value on ZB/ZN's own MARGIN_ONLY_ROWS entry).
+ * above, and the null tick/value on GF, ZF and ZT's MARGIN_ONLY_ROWS entries
+ * — ZB and ZN left that set on 2026-09-01 when F14's order tickets supplied
+ * their tick size and value through the third route).
  */
 function signatureFuturesSighting(note: string): Provenance {
   return {

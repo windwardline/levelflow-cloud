@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { AVAILABLE_ASSET_SYMBOLS } from "../src/lib/symbolMap.ts";
 import { visibleAssetSymbols } from "../src/lib/broker/visibility.ts";
 import {
+  E8_FUTURES_SPECS,
   FUTURES_MAPPINGS,
   MARGIN_ONLY_E8_SYMBOLS,
 } from "../src/lib/broker/instruments.ts";
@@ -73,7 +74,11 @@ describe("row counts — total, per classification, per status", () => {
       // excluded-no-fmp-source below; nothing is deleted.
       // 96 -> 95: BRENT dormant 2026-08-09, decided on the owner's live
       // frame — the time-varying gap that amendment 32 names.
-      "served-and-visible": 92,
+      // 92 -> 94 (2026-09-01): ZBUSD and ZNUSD arrive from
+      // offered-but-unsizeable, having gained tick size and value from frame
+      // F14's live order tickets. The one status a row wants to reach, and
+      // two reached it by evidence rather than by a rule change.
+      "served-and-visible": 94,
             // 9 -> 28: the nineteen futures onboarded 2026-08-05 land here, not in
       // served-and-visible, because the directive makes visibility conditional
       // on an analyzed and acceptable match and they have no sweep evidence yet.
@@ -124,7 +129,12 @@ describe("row counts — total, per classification, per status", () => {
       "excluded-no-fmp-source": 21,
       // 4 -> 2: 6J and 6M reclassified — offered they remain (the F9
       // sightings stand), MATCHED they never were.
-      "offered-but-unsizeable": 5,
+      // 5 -> 3 (2026-09-01): ZBUSD and ZNUSD left. Frame F14's live order
+      // tickets supplied tick size AND value through the boundary's third
+      // route, so amendment 22's published clause is satisfied and the Size
+      // layer opens. GF, ZF and ZT stay — same margin-only family, no ticket
+      // taken, and the third route establishes only the instrument observed.
+      "offered-but-unsizeable": 3,
       // Zero holders, and the key stays: the status is still derivable, so a
       // row earning it again must still be excluded on every account type that
       // would otherwise reach it (tests/brokerVisibility.test.ts asserts that
@@ -295,25 +305,54 @@ describe("the six CME FX majors — dormant under amendment 32 (2026-08-09)", ()
   });
 });
 
-/** E8's margin-only roots, in Levelflow's own symbols. */
+/** E8's margin-only roots, in Levelflow's own symbols. All five. */
 const MARGIN_ONLY_LEVELFLOW_SYMBOLS = Object.entries(FUTURES_MAPPINGS)
   .filter(([, e8Symbol]) => MARGIN_ONLY_E8_SYMBOLS.includes(e8Symbol))
   .map(([symbol]) => symbol);
 
+/**
+ * The subset that is actually UNSIZEABLE, which stopped being the same set on
+ * 2026-09-01. Membership in E8's margin-only table is not what withholds
+ * sizing — a missing tick size or value per tick is. Frame F14's live order
+ * tickets gave ZB and ZN both figures through the boundary's third route,
+ * while GF, ZF and ZT still have neither and no ticket was taken on them.
+ *
+ * Derived from the spec for the same reason the list above is derived rather
+ * than typed: the previous version of this distinction was a hand-kept copy
+ * that stayed at two while three symbols joined, and recorded three rows as
+ * carrying no limitation while each carried one.
+ */
+const UNSIZEABLE_LEVELFLOW_SYMBOLS = Object.entries(FUTURES_MAPPINGS)
+  .filter(([, e8Symbol]) => {
+    if (!MARGIN_ONLY_E8_SYMBOLS.includes(e8Symbol)) return false;
+    const spec = E8_FUTURES_SPECS[e8Symbol];
+    return spec?.tickSize.value == null || spec?.valuePerTick.value == null;
+  })
+  .map(([symbol]) => symbol);
+
 describe("the amendment-22 unsizeable rows — offered-but-unsizeable", () => {
-  it("marks every margin-only row unsizeable while it stays served and visible", () => {
+  it("marks every SPEC-INCOMPLETE margin-only row unsizeable, served and visible", () => {
     // DERIVED from E8's margin-only table, not listed. The literal list is
     // exactly why this drifted: the set in masterList.ts read ZBUSD and
     // ZNUSD, was correct when written, and stayed at two after ZF, ZT and GF
     // joined the table — so three rows were recorded as carrying no
     // exclusion or limitation while each carries one. A pin that restates
     // the code cannot notice the code going stale.
-    for (const symbol of MARGIN_ONLY_LEVELFLOW_SYMBOLS) {
+    for (const symbol of UNSIZEABLE_LEVELFLOW_SYMBOLS) {
       const entry = findMasterListRow(symbol);
       assert.ok(entry, symbol);
       assert.equal(entry!.status, "offered-but-unsizeable");
       assert.equal(isServedToday(entry!), true);
       assert.equal(isVisibleToday(entry!), true);
+    }
+    // And the two that LEFT the status carry no trace of it. A row that became
+    // sizeable while still reading "has never published a tick size" would be
+    // a wrong broker fact on the durable record, which is the failure the note
+    // above describes in its own history.
+    for (const symbol of ["ZBUSD", "ZNUSD"]) {
+      const entry = findMasterListRow(symbol);
+      assert.ok(entry, symbol);
+      assert.notEqual(entry!.status, "offered-but-unsizeable");
     }
   });
 
@@ -330,12 +369,27 @@ describe("the amendment-22 unsizeable rows — offered-but-unsizeable", () => {
     }
   });
 
-  it("is exactly the margin-only table, no more and no fewer", () => {
+  it("keeps the margin-only FAMILY at five while the unsizeable subset is three", () => {
+    // The two sets were identical until 2026-09-01 and are not any more. Both
+    // are derived, so this asserts the SPLIT rather than either number: E8's
+    // margin-only table did not change, and what changed is that two of its
+    // rows acquired a tick size and a value through the third route. Holding
+    // both here means a future edit that collapses them back into one set
+    // fails, whichever direction it collapses.
+    assert.equal(MARGIN_ONLY_LEVELFLOW_SYMBOLS.length, 5);
+    assert.equal(UNSIZEABLE_LEVELFLOW_SYMBOLS.length, 3);
+    for (const sized of ["ZBUSD", "ZNUSD"]) {
+      assert.ok(MARGIN_ONLY_LEVELFLOW_SYMBOLS.includes(sized), `${sized} is still margin-only`);
+      assert.ok(!UNSIZEABLE_LEVELFLOW_SYMBOLS.includes(sized), `${sized} is no longer unsizeable`);
+    }
+  });
+
+  it("is exactly the spec-incomplete margin-only rows, no more and no fewer", () => {
     const unsizeable = MASTER_LIST_ROWS
       .filter((entry) => entry.status === "offered-but-unsizeable")
       .map((entry) => entry.brokerName)
       .sort();
-    assert.deepEqual(unsizeable, [...MARGIN_ONLY_LEVELFLOW_SYMBOLS].sort());
+    assert.deepEqual(unsizeable, [...UNSIZEABLE_LEVELFLOW_SYMBOLS].sort());
   });
 });
 
@@ -584,7 +638,7 @@ describe("reentry candidates — no exclusion or limitation is permanent", () =>
     }
   });
 
-  it("reentryList() returns exactly the 34 non-happy-path rows", () => {
+  it("reentryList() returns exactly the 32 non-happy-path rows", () => {
     // 80 -> 26 on 2026-08-07. The release moved every market withheld on a
     // calibration finding into served-and-visible, so it left the reentry
     // population — which is the list working, not shrinking: a reentry
@@ -608,7 +662,12 @@ describe("reentry candidates — no exclusion or limitation is permanent", () =>
     // of carrying a two-member copy written when the table had two members.
     // The list working a third time, and the three rows had been recorded as
     // carrying no exclusion or limitation while each carries one.
-    assert.equal(reentryList().length, 34);
+    // 34 -> 32 (2026-09-01): ZBUSD and ZNUSD LEAVE. They stopped being
+    // reentry candidates by becoming served-and-visible with full size inputs
+    // — frame F14's live order tickets through the boundary's third route.
+    // A row leaving this list downward is the list working a fourth time:
+    // re-entry is exactly what amendment 26 says no exclusion prevents.
+    assert.equal(reentryList().length, 32);
     assert.ok(reentryList().every((entry: MasterListRow) => entry.reentryCandidate));
   });
 

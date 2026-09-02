@@ -113,8 +113,16 @@ const FUTURES_SPECS_OF_RECORD: Record<
   PL: [0.1, 10, 10_000],
   PA: [0.1, 10, null],
   // Margin-table-only: margin published, tick and value NOT PUBLISHED.
-  ZB: [null, null, 10_000],
-  ZN: [null, null, 10_000],
+  //
+  // ZB and ZN LEFT THIS TABLE on 2026-09-01, and the reason is the table's own
+  // title. This block is "pinned to the ARTICLES that publish them" and
+  // asserts `tickSize.source.article === "13004287"` on every row. ZB and ZN
+  // now carry a tick and a value, but from the owner's live order tickets
+  // (frame F14) — the boundary's third route, which has no article and never
+  // will. Keeping them here would have forced either a false article or a
+  // branch that quietly excused them. They are asserted in full, values and
+  // provenance both, by "marks ZB and ZN OFFERED and, since F14, SIZEABLE
+  // through the third route" below.
 };
 
 describe("§19f — E8's futures specs, pinned to the articles that publish them", () => {
@@ -196,7 +204,13 @@ describe("§19f — E8's futures specs, pinned to the articles that publish them
     }
   });
 
-  it("marks ZB and ZN OFFERED (amendment 19) but unsizeable — margin only, tick and value never published (amendment 22)", () => {
+  it("marks ZB and ZN OFFERED and, since F14, SIZEABLE through the third route", () => {
+    // Rewritten 2026-09-01. This asserted "unsizeable — tick and value never
+    // published", which was true of E8's TABLES and is still true of them. It
+    // stopped being the whole truth when the owner's own live order tickets
+    // supplied both figures (frame F14, docs/research/e8-feed-verification).
+    // That is the boundary's third route working exactly as written: the
+    // broker's platform, never the exchange's spec sheet.
     for (const symbol of ["ZB", "ZN"]) {
       const spec = E8_FUTURES_SPECS[symbol];
       assert.equal(spec.canonical, false);
@@ -208,19 +222,31 @@ describe("§19f — E8's futures specs, pinned to the articles that publish them
       assert.equal(spec.tradabilitySource.observation?.date, "2026-08-03");
       assert.equal(spec.tradabilitySource.observation?.platform, "Tradovate");
       assert.equal(spec.tradabilitySource.observation?.program, "E8 Signature Futures");
-      // Unchanged by amendment 19: E8 has never published either number, so
-      // sizing stays withheld on the "published" clause of amendment 22 --
-      // the null itself, not the anomaly gate 6J/6M fail on.
-      assert.equal(spec.tickSize.value, null);
-      assert.equal(spec.valuePerTick.value, null);
+      // The platform did its own arithmetic on a 100-lot ticket, so each
+      // figure is that contract's own and nothing is inferred from a sibling:
+      // ZB $3,125.00/100 = $31.25 at 3.125/100 = 0.03125 = 1/32;
+      // ZN $1,562.50/100 = $15.625 at 1.5625/100 = 0.015625 = 1/64.
+      const expected = symbol === "ZB"
+        ? { tick: 0.03125, value: 31.25 }
+        : { tick: 0.015625, value: 15.625 };
+      assert.equal(spec.tickSize.value, expected.tick);
+      assert.equal(spec.valuePerTick.value, expected.value);
       const row = findBrokerInstrument("signature_futures", `${symbol}USD`)!;
       assert.equal(row.tradability, "confirmed");
       assert.equal(row.tradabilitySource.tag, "verified");
       assert.equal(
         hasPublishedSizeInputs(row),
-        false,
-        `${symbol} must stay unsizeable under amendment 22`,
+        true,
+        `${symbol} is sizeable since F14 supplied tick and value`,
       );
+    }
+    // The other three margin-only rows did NOT move, and that is the point:
+    // the third route establishes the value observed, on the instrument it was
+    // observed on, and nothing adjacent to it.
+    for (const symbol of ["GF", "ZF", "ZT"]) {
+      const spec = E8_FUTURES_SPECS[symbol];
+      assert.equal(spec.tickSize.value, null, `${symbol} has no observed tick`);
+      assert.equal(spec.valuePerTick.value, null, `${symbol} has no observed value`);
     }
     // 1c (2026-08-09): ZT, ZF and GF joined the margin-only family — same F9
     // sighting, same published margin, same unpublished tick/value — and ZO,
@@ -826,14 +852,29 @@ describe("§19a — the row and its states", () => {
       assert.equal(findBrokerInstrument(line, "BZUSD")!.tradability, "confirmed");
       assert.equal(findBrokerInstrument(line, "ZBUSD")!.tradability, "confirmed");
       assert.equal(findBrokerInstrument(line, "ZNUSD")!.tradability, "confirmed");
+      // INVERTED 2026-09-01. These asserted "offered but not sizeable
+      // (amendment 22)", which was right for as long as E8 published neither
+      // number. Frame F14 supplied both from the owner's own live order
+      // tickets — the boundary's third route — so amendment 22's published
+      // clause is satisfied and the Size layer opens. Amendment 22 did not
+      // change; its input did.
       assert.ok(
-        !SIZEABLE_MARKETS_BY_LINE[line].includes("ZBUSD"),
-        `${line}: ZBUSD offered but not sizeable (amendment 22)`,
+        SIZEABLE_MARKETS_BY_LINE[line].includes("ZBUSD"),
+        `${line}: ZBUSD is sizeable since F14 (1/32, $31.25)`,
       );
       assert.ok(
-        !SIZEABLE_MARKETS_BY_LINE[line].includes("ZNUSD"),
-        `${line}: ZNUSD offered but not sizeable (amendment 22)`,
+        SIZEABLE_MARKETS_BY_LINE[line].includes("ZNUSD"),
+        `${line}: ZNUSD is sizeable since F14 (1/64, $15.625)`,
       );
+      // ZF and ZT are the control: same margin-only family, same F9 sighting,
+      // no order ticket. The third route establishes the instrument observed
+      // and nothing adjacent to it, so they stay unsizeable.
+      for (const held of ["ZFUSD", "ZTUSD"]) {
+        assert.ok(
+          !SIZEABLE_MARKETS_BY_LINE[line].includes(held),
+          `${line}: ${held} has no observed tick and stays unsizeable`,
+        );
+      }
     }
   });
 
@@ -1049,8 +1090,12 @@ describe("§19a — the row and its states", () => {
       // variants with published specs (MES MNQ MYM QG QM) size the moment
       // the mapping table stops dropping them. PAUSD stays out — E8's own
       // margin table omits palladium, amendment 22's published clause.
-      // ZBUSD/ZNUSD/ZFUSD/ZTUSD/GFUSX/ZOUSX/ZRUSD stay out the same way:
-      // offered, tick or value never published.
+      // 24 -> 26 (2026-09-01): ZBUSD and ZNUSD join. Frame F14 supplied their
+      // tick size AND value from the owner's own live order tickets — the
+      // boundary's third route — so amendment 22's published clause is met.
+      // ZFUSD/ZTUSD/GFUSX/ZOUSX/ZRUSD stay out the same way as before:
+      // offered, tick or value never published and no ticket taken. That
+      // split is the third route working as written, not an exception to it.
       assert.deepEqual(SIZEABLE_MARKETS_BY_LINE[line].sort(), [
         "CLUSD",
         "ESUSD",
@@ -1072,9 +1117,11 @@ describe("§19a — the row and its states", () => {
         "RTYUSD",
         "SIUSD",
         "YMUSD",
+        "ZBUSD",
         "ZCUSX",
         "ZLUSX",
         "ZMUSD",
+        "ZNUSD",
         "ZSUSX",
       ]);
     }
