@@ -162,8 +162,16 @@ export const MACRO_RATE_ROLE_BY_SYMBOL: Record<string, MacroRateRoleEntry> = {
   NZDCHF: { role: "none", why: "No USD leg, so a US-Treasury reading has no first-order claim on this cross. Derivable from symbolCurrencies, and stated here so the table stays exhaustive." },
   NZDJPY: { role: "none", why: "No USD leg, so a US-Treasury reading has no first-order claim on this cross. Derivable from symbolCurrencies, and stated here so the table stays exhaustive." },
   NZDUSD: { role: "usd-quote", why: "USD is the quote leg, so dollar strength presses the pair." },
-  PAUSD: { role: "none", why: "OPEN (C3): platinum-group, industrial as much as monetary. Admitting it means stating the criterion that separates a monetary metal from an industrial one, which nothing in this repo states. An owner ruling, not a repair." },
-  PLUSD: { role: "none", why: "OPEN (C3): platinum-group, industrial as much as monetary. Admitting it means stating the criterion that separates a monetary metal from an industrial one, which nothing in this repo states. An owner ruling, not a repair." },
+  PAUSD: {
+    role: "rate-inverse",
+    why:
+      "Monetary metal, ruled 2026-09-01 on the criterion the set had always applied without stating it: the metals admitted here move inverse to the ten-year and the one excluded by name moves with it. Measured, daily return on same-day ten-year change over 2013-2026: -0.018 %/bp (t -2.35, n~3410), against declared-industrial HGUSD at +0.017 (t +3.46). Significantly negative, so the monetary side. Magnitude runs near half the gold and silver betas and `role` has no dial for that, so membership is what this records and nothing more. docs/research/macro-role-rate-beta-2026-09-01.md.",
+  },
+  PLUSD: {
+    role: "rate-inverse",
+    why:
+      "Monetary metal, ruled 2026-09-01 on the criterion the set had always applied without stating it: the metals admitted here move inverse to the ten-year and the one excluded by name moves with it. Measured, daily return on same-day ten-year change over 2013-2026: -0.026 %/bp (t -4.40, n~3410), against declared-industrial HGUSD at +0.017 (t +3.46). Significantly negative, so the monetary side. Magnitude runs near half the gold and silver betas and `role` has no dial for that, so membership is what this records and nothing more. docs/research/macro-role-rate-beta-2026-09-01.md.",
+  },
   RBUSD: {
     role: "energy-shock",
     why:

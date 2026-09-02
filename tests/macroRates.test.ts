@@ -357,8 +357,60 @@ describe("the macro role table — an omission cannot hide in it", () => {
       "RBUSD",
       "WTI",
     ]);
-    assert.equal(membersOf("rate-inverse").length, 52);
-    assert.equal(membersOf("none").length, 33);
+    // `none` is LISTED too, as of 2026-09-01, and the reason is the swap this
+    // test could not previously see. Counting `rate-inverse` and `none` catches
+    // a market moved OUT of one, but a pair of markets trading places keeps both
+    // counts identical and slips through the exact check this test exists to be.
+    // Listing the smaller side closes that: `rate-inverse` is then pinned as the
+    // complement, so any move in either direction shows up here.
+    assert.deepEqual(membersOf("none"), [
+      "AUDCAD",
+      "AUDCHF",
+      "AUDJPY",
+      "AUDNZD",
+      "CADCHF",
+      "CADJPY",
+      "CHFJPY",
+      "EURAUD",
+      "EURCAD",
+      "EURCHF",
+      "EURGBP",
+      "EURJPY",
+      "EURNZD",
+      "GBPAUD",
+      "GBPCAD",
+      "GBPCHF",
+      "GBPJPY",
+      "GBPNZD",
+      "GFUSX",
+      "HEUSX",
+      "HGUSD",
+      "LEUSX",
+      "NZDCAD",
+      "NZDCHF",
+      "NZDJPY",
+      "ZCUSX",
+      "ZLUSX",
+      "ZMUSD",
+      "ZOUSX",
+      "ZRUSD",
+      "ZSUSX",
+    ]);
+    // PLUSD and PAUSD left this list on 2026-09-01 and are the whole delta.
+    assert.ok(!membersOf("none").includes("PLUSD"));
+    assert.ok(!membersOf("none").includes("PAUSD"));
+    // Every remaining market is rate-inverse: the four roles above partition
+    // the table, so this is the complement and not an independent count.
+    const listed = new Set([
+      ...membersOf("usd-base"),
+      ...membersOf("usd-quote"),
+      ...membersOf("energy-shock"),
+      ...membersOf("none"),
+    ]);
+    assert.deepEqual(
+      membersOf("rate-inverse"),
+      Object.keys(MACRO_RATE_ROLE_BY_SYMBOL).filter((s) => !listed.has(s)).sort(),
+    );
     assert.equal(Object.keys(MACRO_RATE_ROLE_BY_SYMBOL).length, 98);
   });
 
@@ -421,23 +473,30 @@ describe("the macro role table — an omission cannot hide in it", () => {
     }
   });
 
-  it("closed the four open questions and left the two that are owner calls", () => {
-    // The transcription PR marked six markets OPEN. Four are now answered by
-    // the families the repo itself already asserts; two are not, and the
-    // difference is the whole point. A question closed because it was
-    // derivable is a repair. A question closed because someone picked is a
-    // model change, and PLUSD/PAUSD need a criterion separating monetary from
-    // industrial metals that nothing in this repo states.
+  it("has no open question left, and copper was never one", () => {
+    // Six markets were marked OPEN by the transcription PR. Four closed as
+    // repairs, on families the repo already asserts. The last two closed
+    // 2026-09-01 as repairs too, not picks: the criterion this set had always
+    // applied without stating it REPRODUCES every case the table had already
+    // decided — each declared monetary metal significantly negative against
+    // the ten-year, declared-industrial copper significantly POSITIVE — and
+    // both platinum-group metals land significantly negative under it. An
+    // instrument that recovers all five known answers is deriving the sixth,
+    // not picking it. docs/research/macro-role-rate-beta-2026-09-01.md.
     assert.deepEqual(
       Object.entries(MACRO_RATE_ROLE_BY_SYMBOL)
         .filter(([, entry]) => entry.why.startsWith("OPEN"))
         .map(([symbol]) => symbol)
         .sort(),
-      ["PAUSD", "PLUSD"],
+      [],
     );
-    // HGUSD is NOT open: copper's exclusion is a decision written in the old
-    // metals Set's own composition, which admitted every precious metal and
-    // left this one out. It is recorded, not pending.
+    // HGUSD is NOT open and was never pending. Its old justification — that
+    // the metals Set "admitted every precious metal and left this one out" —
+    // was STRUCK 2026-09-01: that Set was written 2026-07-01 and the platinum
+    // group did not enter the roster until 2026-08-06, so it could not have
+    // excluded them and carried no information about them. What stands in its
+    // place is measurement: copper is the criterion's control at +0.017 %/bp
+    // (t +3.46), significantly positive rather than merely weaker.
     assert.equal(getMacroRateRole("HGUSD").role, "none");
     assert.ok(!getMacroRateRole("HGUSD").why.startsWith("OPEN"));
   });
@@ -459,11 +518,29 @@ describe("the macro role table — an omission cannot hide in it", () => {
       assert.equal(adjust(symbol, "buy", 5).adjustment, 0, symbol);
       assert.equal(adjust(symbol, "buy", 10).stance, "neutral", symbol);
     }
-    // And nothing else moved: the two owner calls stay inert at every
-    // magnitude, on both sides.
-    for (const symbol of ["PLUSD", "PAUSD", "HGUSD"]) {
+    // Copper alone stays inert. It is the criterion's control and it reads
+    // POSITIVE, so `none` is what the measurement licenses for it.
+    for (const bps of [5, 10, -5, -10]) {
+      assert.equal(adjust("HGUSD", "buy", bps).adjustment, 0, `HGUSD ${bps}`);
+    }
+    // The platinum group moved 2026-09-01. Asserted against an already-ruled
+    // monetary metal rather than against copied literals, so this pins the
+    // CLAIM — they behave as monetary metals now — and cannot drift into
+    // agreeing with a changed magnitude table while the claim silently fails.
+    for (const symbol of ["PLUSD", "PAUSD"]) {
       for (const bps of [5, 10, -5, -10]) {
-        assert.equal(adjust(symbol, "buy", bps).adjustment, 0, `${symbol} ${bps}`);
+        for (const side of ["buy", "sell"] as const) {
+          assert.equal(
+            adjust(symbol, side, bps).adjustment,
+            adjust("GCUSD", side, bps).adjustment,
+            `${symbol} ${side} ${bps}`,
+          );
+          assert.equal(
+            adjust(symbol, side, bps).stance,
+            adjust("GCUSD", side, bps).stance,
+            `${symbol} ${side} ${bps} stance`,
+          );
+        }
       }
     }
   });

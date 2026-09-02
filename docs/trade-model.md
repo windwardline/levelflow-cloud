@@ -19,7 +19,7 @@
 > the defect and must be rebuilt (Phase 0) before anything is re-measured.
 
 
-Model version: `2026.08.31.learning-on-realized-r` (**not yet deployed**
+Model version: `2026.09.01.platinum-group-rate-inverse` (**not yet deployed**
 — the desk is parked, so this version has never served a request. R2's D1:
 global learning derived `confidence_adjustment` from a WIN RATE against a
 neutral point of 0.5, which is break-even only when a win and a loss are the
@@ -370,7 +370,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.08.31.learning-on-realized-r'
+   where o.analyzer_version = '2026.09.01.platinum-group-rate-inverse'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;
