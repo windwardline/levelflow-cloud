@@ -11,7 +11,9 @@ export type StrategyProfileVote = {
 
 const DEFAULT_PROFILE_WEIGHT = 1;
 
-const STRATEGY_PROFILE_WEIGHTS: Record<
+// Exported for the value guard in tests/strategyProfileCompleteness.test.ts.
+// Read-only there; nothing in production reads it through this name.
+export const STRATEGY_PROFILE_WEIGHTS: Record<
   AssetType,
   Partial<Record<string, number>>
 > = {
