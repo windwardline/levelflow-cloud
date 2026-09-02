@@ -129,8 +129,11 @@ export type CategoryCalibration = {
    * always shipped.
    *
    * WHY IT IS NOT SIMPLY ADOPTED. Adding levels to a nearest-beyond search can
-   * only find a nearer level, so this always tightens the stop and never
-   * widens it. A tighter stop shrinks `riskDistance`, which shrinks the payoff
+   * only find a nearer level WHERE A LEVEL ALREADY STOOD; where the intraday
+   * search found none and the stop sat at the volatility floor, a daily level
+   * moves it OUT (R3, 2026-09-02: 49.8% of floor rows widened, 27.9% of cap
+   * rows tightened — an earlier version of this comment said "always tightens
+   * and never widens"). A tighter stop shrinks `riskDistance`, which shrinks the payoff
    * floor, admits more marginal setups, moves TP1 nearer and stops out more
    * often — and it mechanically improves every printed reward-to-risk with no
    * structural reason to believe the money improves. Amendment 39 names that

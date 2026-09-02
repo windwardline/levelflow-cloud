@@ -117,7 +117,8 @@ export type SweepOutcomeRecord = {
    * from `.calibration-cache` given `time` and `dailyVisibleCount` — but that
    * cache is gitignored, untracked, has no backup mechanism, is mutated
    * nightly by a loaded top-up agent, prunes oldest-first, and the anchor
-   * protecting it is scheduled for removal once R3 has run. A recomputation
+   * protecting it is scheduled for removal once R4's supplementary arms have
+   * run (it outlived R3 by design; see PROTECTED_ANCHORS). A recomputation
    * answers today and may not in six months; the column answers for as long
    * as the corpus exists.
    */

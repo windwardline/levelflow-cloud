@@ -1847,6 +1847,10 @@ describe("every emit reader passes the one-clock door (R0) — the population, n
       "in stdout) is carried on HANDOFF's small list for the instrument " +
       "phase",
     "sweepStats.ts": "is the door module itself",
+    "sweepManifest.ts":
+      "its only line split is resolveSweepSource reading `git status " +
+      "--porcelain` — one status line per path, never a corpus emit; the " +
+      "manifest builder writes corpora and reads none",
     "symbolCensus.ts":
       "reads TYPESCRIPT SOURCE, not a corpus emit — it walks src/, scripts/ " +
       "and supabase/functions/ with the TypeScript AST to find declarations " +

@@ -2314,6 +2314,33 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     );
   });
 
+  it("names the confirm fold SEALED when a folded corpus is graded without --confirm-final — executed through main()", () => {
+    // R3's corpus is a three-fold one, and its first grading ran without the
+    // flag — the label read "(legacy two-split corpus)", which is false of
+    // that corpus and was about to stand in a tracked report. The sealed
+    // state has its own words now; the legacy label is reserved for a
+    // manifest that declares no folds at all.
+    const ledgerDir = mkdtempSync(join(tmpdir(), "gate-main-sealed-"));
+    const out = execFileSync(
+      "npx",
+      [
+        "--no-install",
+        "tsx",
+        "scripts/grid-totalr.ts",
+        foldedCorpus(),
+        "--confirm-log-dir",
+        ledgerDir,
+      ],
+      { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+    );
+    assert.match(
+      out,
+      /folds: fit=fit select=select confirm=confirm SEALED \(not derived: no --confirm-final — nothing burned\)/,
+    );
+    assert.doesNotMatch(out, /legacy two-split corpus/);
+    assert.deepEqual(readdirSync(ledgerDir), []);
+  });
+
   // A source pin, deliberately: the only way to EXECUTE the default is to
   // let a test append to the repository's real confirm ledger, which is
   // the one thing that record must never receive from a test run. The

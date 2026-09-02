@@ -1,0 +1,196 @@
+anchored at 2026-08-26: 313 cache artifacts all carry the pin, so this run cannot reach the provider — the shared spend gate is not consulted
+EURUSD	density 5min 199.9/day over 6179.45d (15min 66.6/day)
+EURUSD	warm	411599 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+GBPUSD	density 5min 199.0/day over 6179.45d (15min 66.3/day)
+GBPUSD	warm	409973 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+USDJPY	density 5min 198.0/day over 6176.58d (15min 65.2/day)
+USDJPY	warm	402794 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+AUDUSD	density 5min 200.0/day over 6179.45d (15min 66.6/day)
+AUDUSD	warm	411795 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+USDCAD	density 5min 197.7/day over 6179.45d (15min 66.1/day)
+USDCAD	warm	408157 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+USDCHF	density 5min 197.1/day over 6179.45d (15min 65.7/day)
+USDCHF	warm	406085 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+NZDUSD	density 5min 197.3/day over 6179.45d (15min 65.7/day)
+NZDUSD	warm	406260 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+NZDJPY	density 5min 197.8/day over 6179.45d (15min 65.9/day)
+NZDJPY	warm	407250 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+NZDCHF	density 5min 197.6/day over 6179.45d (15min 65.8/day)
+NZDCHF	warm	406889 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+NZDCAD	density 5min 197.9/day over 6179.45d (15min 65.9/day)
+NZDCAD	warm	407428 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+GBPNZD	density 5min 199.5/day over 6179.45d (15min 66.5/day)
+GBPNZD	warm	410792 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+GBPJPY	density 5min 199.6/day over 6179.45d (15min 66.5/day)
+GBPJPY	warm	411154 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+GBPCHF	density 5min 199.3/day over 6179.45d (15min 66.4/day)
+GBPCHF	warm	410416 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+GBPCAD	density 5min 199.8/day over 6179.45d (15min 66.6/day)
+GBPCAD	warm	411478 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+GBPAUD	density 5min 200.0/day over 6179.45d (15min 66.6/day)
+GBPAUD	warm	411800 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+EURNZD	density 5min 199.4/day over 6179.45d (15min 66.5/day)
+EURNZD	warm	410678 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+EURJPY	density 5min 200.1/day over 6179.45d (15min 66.7/day)
+EURJPY	warm	412009 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+EURGBP	density 5min 199.8/day over 6179.45d (15min 66.6/day)
+EURGBP	warm	411390 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+EURCHF	density 5min 197.3/day over 6179.45d (15min 65.8/day)
+EURCHF	warm	406621 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+EURCAD	density 5min 199.9/day over 6179.45d (15min 66.6/day)
+EURCAD	warm	411824 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+EURAUD	density 5min 199.7/day over 6179.45d (15min 66.5/day)
+EURAUD	warm	411046 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+CHFJPY	density 5min 199.8/day over 6179.45d (15min 66.6/day)
+CHFJPY	warm	411338 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+CADJPY	density 5min 200.4/day over 6179.45d (15min 66.8/day)
+CADJPY	warm	412598 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+CADCHF	density 5min 198.5/day over 6179.45d (15min 66.2/day)
+CADCHF	warm	408824 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+AUDNZD	density 5min 198.7/day over 6179.45d (15min 66.2/day)
+AUDNZD	warm	409162 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+AUDJPY	density 5min 200.4/day over 6179.45d (15min 66.8/day)
+AUDJPY	warm	412594 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+AUDCHF	density 5min 200.7/day over 6179.45d (15min 66.9/day)
+AUDCHF	warm	413328 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+AUDCAD	density 5min 200.7/day over 6179.45d (15min 66.9/day)
+AUDCAD	warm	413142 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+XAUUSD	density 5min 187.6/day over 4790.54d (15min 62.8/day)
+XAUUSD	warm	300652 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+XAGUSD	density 5min 190.9/day over 1092.29d (15min 64.0/day)
+XAGUSD	warm	69873 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+BZUSD	density 5min 170.0/day over 1066.54d (15min 61.0/day)
+BZUSD	warm	65106 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+CLUSD	density 5min 188.3/day over 1059.54d (15min 63.4/day)
+CLUSD	warm	67147 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ESUSD	density 5min 191.1/day over 1059.53d (15min 64.0/day)
+ESUSD	warm	67786 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+GCUSD	density 5min 191.2/day over 1066.53d (15min 63.9/day)
+GCUSD	warm	68154 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+HGUSD	density 5min 192.3/day over 1059.54d (15min 64.5/day)
+HGUSD	warm	68332 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+NGUSD	density 5min 186.6/day over 1059.54d (15min 63.2/day)
+NGUSD	warm	66918 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+NQUSD	density 5min 190.8/day over 1059.53d (15min 64.0/day)
+NQUSD	warm	67795 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+RTYUSD	density 5min 191.6/day over 1066.53d (15min 64.2/day)
+RTYUSD	warm	68420 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+SIUSD	density 5min 189.9/day over 1059.53d (15min 63.6/day)
+SIUSD	warm	67355 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+YMUSD	density 5min 190.7/day over 1066.53d (15min 63.9/day)
+YMUSD	warm	68190 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ZBUSD	density 5min 188.6/day over 1059.53d (15min 63.8/day)
+ZBUSD	warm	67593 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ZNUSD	density 5min 190.9/day over 1059.53d (15min 64.1/day)
+ZNUSD	warm	67880 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+SP	density 5min 53.5/day over 2374.23d (15min 17.8/day)
+SP	warm	42326 intraday bars through 2026-08-25	spent 0.00GiB of 0.00GiB
+NSDQ	density 5min 52.9/day over 2202.27d (15min 17.6/day)
+NSDQ	warm	38866 intraday bars through 2026-08-25	spent 0.00GiB of 0.00GiB
+NIKKEI	density 5min 43.6/day over 1059.27d (15min 14.9/day)
+NIKKEI	warm	15826 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+DOW	density 5min 53.1/day over 1058.27d (15min 17.7/day)
+DOW	warm	18735 intraday bars through 2026-08-25	spent 0.00GiB of 0.00GiB
+DAX	density 5min 71.1/day over 1059.16d (15min 23.5/day)
+DAX	warm	24939 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ASX	density 5min 50.5/day over 1059.28d (15min 16.6/day)
+ASX	warm	17602 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+WTI	density 5min 188.3/day over 1059.54d (15min 63.4/day)
+WTI	warm	67147 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+XRPUSD	density 5min 279.0/day over 3521.96d (15min 93.7/day)
+XRPUSD	warm	329981 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+SOLUSD	density 5min 285.6/day over 2008.05d (15min 96.0/day)
+SOLUSD	warm	192678 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+LTCUSD	density 5min 216.6/day over 4677.68d (15min 73.9/day)
+LTCUSD	warm	345757 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ETHUSD	density 5min 263.4/day over 4036.87d (15min 90.2/day)
+ETHUSD	warm	364275 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+BTCUSD	density 5min 236.0/day over 4678.45d (15min 82.2/day)
+BTCUSD	warm	384771 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+BNBUSD	density 5min 285.1/day over 1059.18d (15min 95.1/day)
+BNBUSD	warm	100686 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+BCHUSD	density 5min 286.0/day over 3186.83d (15min 95.4/day)
+BCHUSD	warm	303946 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ADAUSD	density 5min 264.3/day over 3102.68d (15min 91.6/day)
+ADAUSD	warm	284230 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ZFUSD	density 5min 190.5/day over 1059.53d (15min 64.3/day)
+ZFUSD	warm	68090 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ZTUSD	density 5min 186.7/day over 1059.53d (15min 63.6/day)
+ZTUSD	warm	67392 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+HOUSD	density 5min 162.7/day over 1059.54d (15min 59.2/day)
+HOUSD	warm	62712 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+RBUSD	density 5min 155.8/day over 1066.53d (15min 57.9/day)
+RBUSD	warm	61699 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+PLUSD	density 5min 191.5/day over 1059.54d (15min 64.3/day)
+PLUSD	warm	68139 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+PAUSD	density 5min 166.3/day over 1059.54d (15min 62.1/day)
+PAUSD	warm	65763 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ZCUSX	density 5min 138.8/day over 1066.45d (15min 48.3/day)
+ZCUSX	warm	51527 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ZSUSX	density 5min 141.9/day over 1059.45d (15min 48.4/day)
+ZSUSX	warm	51259 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ZLUSX	density 5min 140.1/day over 1066.45d (15min 47.7/day)
+ZLUSX	warm	50900 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ZMUSD	density 5min 139.9/day over 1059.45d (15min 48.6/day)
+ZMUSD	warm	51495 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ZOUSX	density 5min 40.1/day over 1066.4d (15min 22.5/day)
+ZOUSX	warm	24009 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ZRUSD	density 5min 38.4/day over 1066.08d (15min 16.2/day)
+ZRUSD	warm	17285 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+LEUSX	density 5min 37.9/day over 1065.19d (15min 13.0/day)
+LEUSX	warm	13881 intraday bars through 2026-08-25	spent 0.00GiB of 0.00GiB
+GFUSX	density 5min 37.4/day over 1058.19d (15min 13.0/day)
+GFUSX	warm	13751 intraday bars through 2026-08-25	spent 0.00GiB of 0.00GiB
+HEUSX	density 5min 37.7/day over 1058.19d (15min 13.0/day)
+HEUSX	warm	13780 intraday bars through 2026-08-25	spent 0.00GiB of 0.00GiB
+AAVEUSD	density 5min 280.4/day over 2119.01d (15min 93.7/day)
+AAVEUSD	warm	198637 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ALGOUSD	density 5min 272.6/day over 2567.79d (15min 93.9/day)
+ALGOUSD	warm	241087 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ARWUSD	density 5min 284.4/day over 1060d (15min 95.1/day)
+ARWUSD	warm	100814 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ATOMUSD	density 5min 285.0/day over 2415.69d (15min 95.2/day)
+ATOMUSD	warm	229998 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+AVAXUSD	density 5min 285.2/day over 1750.45d (15min 95.1/day)
+AVAXUSD	warm	166510 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+CAKEUSD	density 5min 282.6/day over 1058.96d (15min 94.8/day)
+CAKEUSD	warm	100404 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+DASHUSD	density 5min 269.2/day over 3422.73d (15min 94.6/day)
+DASHUSD	warm	323957 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+DOGEUSD	density 5min 272.0/day over 3372.62d (15min 94.1/day)
+DOGEUSD	warm	317389 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+DOTUSD	density 5min 279.4/day over 2198.58d (15min 94.3/day)
+DOTUSD	warm	207227 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+DYDXUSD	density 5min 150.2/day over 1806.81d (15min 69.1/day)
+DYDXUSD	warm	124893 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+EGLDUSD	density 5min 256.5/day over 1749.45d (15min 94.5/day)
+EGLDUSD	warm	165272 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+ETCUSD	density 5min 271.3/day over 3682.1d (15min 93.1/day)
+ETCUSD	warm	342730 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+FILUSD	density 5min 280.4/day over 2140.68d (15min 94.7/day)
+FILUSD	warm	202724 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+GRTUSD	density 5min 284.8/day over 2077.71d (15min 95.2/day)
+GRTUSD	warm	197787 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+HBARUSD	density 5min 281.6/day over 1412.78d (15min 93.9/day)
+HBARUSD	warm	132689 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+IMXUSD	density 5min 273.7/day over 1635.45d (15min 92.4/day)
+IMXUSD	warm	151176 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+LINKUSD	density 5min 284.6/day over 2616.77d (15min 94.9/day)
+LINKUSD	warm	248383 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+NEARUSD	density 5min 281.1/day over 1696.45d (15min 94.3/day)
+NEARUSD	warm	159972 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+THETAUSD	density 5min 265.1/day over 1061.34d (15min 94.2/day)
+THETAUSD	warm	100021 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+TRUMPUSD	density 5min 284.5/day over 584.1d (15min 94.9/day)
+TRUMPUSD	warm	55456 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+TRXUSD	density 5min 271.6/day over 3244.84d (15min 93.8/day)
+TRXUSD	warm	304512 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+UNIUSD	density 5min 283.4/day over 2168.66d (15min 94.6/day)
+UNIUSD	warm	205218 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+XLMUSD	density 5min 280.1/day over 3112.47d (15min 94.9/day)
+XLMUSD	warm	295330 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+XMRUSD	density 5min 275.1/day over 3524.41d (15min 94.7/day)
+XMRUSD	warm	333651 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+XTZUSD	density 5min 281.5/day over 3340.99d (15min 95.2/day)
+XTZUSD	warm	318164 intraday bars through 2026-08-26	spent 0.00GiB of 0.00GiB
+symbol  variant  split  decisions  sessionBlk  newsBlk  notWarm  regimeBlk  noConsensus  planRejected  unresolv  belowConf  belowPayoff  setups  unfilled  dataAbsent  tp1HitRate  stopRate  expectancyR

@@ -141,9 +141,14 @@ export const PROTECTED_ANCHORS: ReadonlyArray<{ day: string; why: string }> = [
   {
     day: "2026-08-26",
     why:
-      "R3's zero-fetch anchor. All 290 stores pin it (measured 2026-09-01); " +
-      "at any later anchor 277 of them fetch against an allowance the owner " +
-      "is deliberately not topping up. Remove once R3 has run.",
+      "R3's zero-fetch anchor. All 290 stores pin it (measured 2026-09-01) " +
+      "and R3 ran on it 2026-09-02 at zero provider bytes; at any later " +
+      "anchor 277 of them fetch against an allowance the owner is " +
+      "deliberately not topping up. KEPT PAST R3 on purpose: a sweep at a " +
+      "pinned anchor spends nothing, so R4 may add grid arms here for free " +
+      "while ANALYZER_VERSION is unchanged (HANDOFF §6b-1 items B and C). " +
+      "Remove once R4's supplementary arms at this anchor have run, or once " +
+      "an ANALYZER_VERSION bump makes a new anchor unavoidable.",
   },
 ];
 

@@ -1,0 +1,8 @@
+shared manifest terms checked: 24
+gated: 5232445 rows (5232445 accepted, 0 not)
+capture-all: 6660138 rows (5232445 accepted, 1427693 not)
+accepted rows identical: 5232445 byte-for-byte, 0 field-for-field after re-serialization
+counters the capture-all arm zeroes by construction — gated: {"belowConfidence":8589,"belowPayoff":409521,"belowThreshold":418110,"regimeBlocked":1291003} · capture-all: {"belowConfidence":0,"belowPayoff":0,"belowThreshold":0,"regimeBlocked":0}
+VERDICT: DIVERGENT — 2 finding(s):
+  - gated: source.dirty is true under the pre-2026-09-02 definition (git status --porcelain non-empty, untracked files included) — the engine MAY differ from the recorded revision; establish which from the run's own record
+  - capture-all: source.dirty is true under the pre-2026-09-02 definition (git status --porcelain non-empty, untracked files included) — the engine MAY differ from the recorded revision; establish which from the run's own record

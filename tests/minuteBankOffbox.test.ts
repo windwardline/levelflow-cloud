@@ -124,7 +124,9 @@ describe("the remote layout is a contract, not a convenience", () => {
 describe("the daily job cannot report success on a failed push", () => {
   it("exits non-zero when the push fails", () => {
     assert.match(CALLER, /FAIL off-box push did not complete/);
-    assert.match(CALLER, /wl-secret cloudflare-r2-backup=R2_TOKEN -- "\$OFFBOX" "\$DEST" \|\| \{/);
+    // By absolute path since 2026-09-02: launchd's login shell never sees
+    // ~/.local/bin, so the launcher is named, not looked up.
+    assert.match(CALLER, /"\$WL_SECRET" cloudflare-r2-backup=R2_TOKEN -- "\$OFFBOX" "\$DEST" \|\| \{/);
   });
 
   it("has exactly one skip, and it announces itself", () => {
@@ -136,6 +138,7 @@ describe("the daily job cannot report success on a failed push", () => {
   it("refuses to run at all when wl-secret is absent", () => {
     // Otherwise the token would have to come from somewhere that persists,
     // which is the thing the credential policy exists to prevent.
-    assert.match(CALLER, /wl-secret is not on PATH; the R2 token cannot be read/);
+    assert.match(CALLER, /wl-secret is not executable at \$WL_SECRET; the R2 token cannot be read/);
+    assert.match(CALLER, /WL_SECRET="\$\{LEVELFLOW_WL_SECRET:-\$HOME\/\.local\/bin\/wl-secret\}"/);
   });
 });

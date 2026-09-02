@@ -138,6 +138,16 @@ export function foldsByClass(
   spec: ClassFoldSpec,
   embargoMs: number,
 ): Record<string, CalendarFold[]> {
+  // A fold spec is a research artifact and may carry the INVALID banner the
+  // shared writer preserves. Read naively, that banner is a ninth "class"
+  // with no span — so it is refused by name before anything folds on it.
+  if ("INVALID" in spec) {
+    throw new Error(
+      `foldSpecInvalid: the fold spec carries an INVALID banner — ${
+        String((spec as Record<string, unknown>).INVALID)
+      }. Re-derive it from a validated cache before folding on it`,
+    );
+  }
   const result: Record<string, CalendarFold[]> = {};
   for (const [className, span] of Object.entries(spec)) {
     result[className] = calendarFolds({

@@ -239,3 +239,98 @@ describe("the schedule exists and points at the script", () => {
     );
   });
 });
+
+describe("the off-box step under launchd's environment", () => {
+  // THE FAILURE THAT HAPPENED. At 2026-09-02T05:36:29Z the agent ran at load,
+  // placed the local snapshot, and then logged `FAIL wl-secret is not on PATH;
+  // the R2 token cannot be read` and exited 1. The plist runs `/bin/zsh -lc`,
+  // a login shell that never sources ~/.zshrc — and ~/.zshrc is where
+  // ~/.local/bin joins PATH. So the resolution worked from every interactive
+  // shell it was ever tried in and failed in the one environment the schedule
+  // actually runs from. The fix is to stop trusting an inherited PATH for the
+  // secret launcher at all.
+  const LAUNCHD_PATH = "/usr/bin:/bin:/usr/sbin:/sbin";
+
+  /** A HOME whose ~/.local/bin holds a recording stub, or nothing. */
+  function homeWith(root: string, stub: boolean) {
+    const home = join(root, "home");
+    const bin = join(home, ".local", "bin");
+    mkdirSync(bin, { recursive: true });
+    const calls = join(root, "wl-secret.calls");
+    if (stub) {
+      writeFileSync(
+        join(bin, "wl-secret"),
+        `#!/bin/sh\nprintf '%s\\n' "$*" >> "${calls}"\nexit 0\n`,
+        { mode: 0o755 },
+      );
+    }
+    return { calls, home };
+  }
+
+  function runUnderLaunchd(
+    bank: string,
+    dest: string,
+    home: string,
+  ): { code: number; out: string } {
+    try {
+      const out = execFileSync("bash", [SCRIPT], {
+        encoding: "utf8",
+        // NOT `...process.env`: the point is the environment launchd hands the
+        // agent, which carries neither ~/.local/bin nor /opt/homebrew/bin.
+        env: {
+          HOME: home,
+          LEVELFLOW_BACKUP_ROOT: dest,
+          LEVELFLOW_BANK_DIR: bank,
+          PATH: LAUNCHD_PATH,
+        },
+      });
+      return { code: 0, out };
+    } catch (error) {
+      const shell = error as { status?: number; stderr?: string; stdout?: string };
+      return {
+        code: shell.status ?? 1,
+        out: `${shell.stdout ?? ""}${shell.stderr ?? ""}`,
+      };
+    }
+  }
+
+  it("reaches the off-box push with no ~/.local/bin on PATH", () => {
+    const { bank, dest, root } = sandbox(["AAA", "BBB"]);
+    const { calls, home } = homeWith(root, true);
+    const { code, out } = runUnderLaunchd(bank, dest, home);
+    assert.equal(code, 0, out);
+    assert.doesNotMatch(out, /not on PATH/);
+    // The launcher was invoked by absolute path, with the token binding and
+    // the push script as its command — the stub records its argv verbatim.
+    const recorded = readFileSync(calls, "utf8");
+    assert.match(
+      recorded,
+      /^cloudflare-r2-backup=R2_TOKEN -- \S+\/scripts\/ops\/push-minute-bank-offbox\.sh \S+levelflow-minute-bank-snapshot-\d{8}\n$/,
+    );
+  });
+
+  it("names the absolute path it looked at when the launcher is missing", () => {
+    const { bank, dest, root } = sandbox(["AAA"]);
+    const { home } = homeWith(root, false);
+    const { code, out } = runUnderLaunchd(bank, dest, home);
+    assert.equal(code, 1);
+    // The local snapshot still lands — the copy is the irreplaceable half.
+    assert.equal(snapshots(dest).length, 1);
+    assert.match(out, /FAIL wl-secret is not executable at \S+\/home\/\.local\/bin\/wl-secret/);
+  });
+
+  it("finds its own repository from its own location, so the off-box branch exists on every checkout", () => {
+    // CI's first run of the launchd cases failed on a literal
+    // /Users/peacock/... repo root: the push script "did not exist" there and
+    // the script died before the launcher check it was testing.
+    assert.match(SOURCE, /REPO="\$\{LEVELFLOW_REPO:-\$\(cd "\$\(dirname "\$\{BASH_SOURCE\[0\]\}"\)\/\.\.\/\.\." && pwd\)\}"/);
+    assert.doesNotMatch(SOURCE, /REPO="\/Users\//);
+  });
+
+  it("never resolves the secret launcher from an inherited PATH", () => {
+    // A source pin beside the executed cases, so the shape cannot come back
+    // quietly in a refactor that keeps the tests' stub on PATH.
+    assert.doesNotMatch(SOURCE, /command -v wl-secret/);
+    assert.match(SOURCE, /\$\{LEVELFLOW_WL_SECRET:-\$HOME\/\.local\/bin\/wl-secret\}/);
+  });
+});
