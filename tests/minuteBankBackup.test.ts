@@ -319,6 +319,14 @@ describe("the off-box step under launchd's environment", () => {
     assert.match(out, /FAIL wl-secret is not executable at \S+\/home\/\.local\/bin\/wl-secret/);
   });
 
+  it("finds its own repository from its own location, so the off-box branch exists on every checkout", () => {
+    // CI's first run of the launchd cases failed on a literal
+    // /Users/peacock/... repo root: the push script "did not exist" there and
+    // the script died before the launcher check it was testing.
+    assert.match(SOURCE, /REPO="\$\{LEVELFLOW_REPO:-\$\(cd "\$\(dirname "\$\{BASH_SOURCE\[0\]\}"\)\/\.\.\/\.\." && pwd\)\}"/);
+    assert.doesNotMatch(SOURCE, /REPO="\/Users\//);
+  });
+
   it("never resolves the secret launcher from an inherited PATH", () => {
     // A source pin beside the executed cases, so the shape cannot come back
     // quietly in a refactor that keeps the tests' stub on PATH.

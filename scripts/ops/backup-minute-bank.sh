@@ -30,7 +30,11 @@
 # opened to close.
 set -euo pipefail
 
-REPO="/Users/peacock/Projects/levelflow-cloud"
+# Derived from this script's own location, never hardcoded: the launchd plist
+# invokes it by absolute path inside the checkout, and CI runs the same script
+# from a different checkout root — a literal here made the off-box branch
+# unreachable there (2026-09-02, the first test to exercise it).
+REPO="${LEVELFLOW_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 # Overridable so the behaviour can be EXERCISED rather than read. A backup
 # script whose only test is a source match is the shape this repo has spent the
 # week removing: the verify branch and the protected-name branch are the two
