@@ -236,7 +236,11 @@ describe("amendment 40's grounding cannot be silently deleted", () => {
     // sentence in order to record that it was struck, so the phrase is
     // legitimately present. What must hold is that it never appears as a LIVE
     // grounding — i.e. every occurrence sits downstream of the strike record.
-    const struckAt = source.indexOf("STRUCK 2026-09-01 (amendment 40)");
+    // Matched loosely on purpose: the marker also carries its register
+    // reference, "(amendment 40, §6b-1 E)", and an exact-string guard broke
+    // the moment that was added. A guard should pin the CLAIM, not the
+    // punctuation around it.
+    const struckAt = source.search(/STRUCK 2026-09-01 \(amendment 40[,)]/);
     assert.notEqual(struckAt, -1, "the strike record itself was removed");
     for (
       let at = source.indexOf("siblings' published 0.025");

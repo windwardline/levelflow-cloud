@@ -55,7 +55,7 @@ export const STRATEGY_PROFILE_WEIGHTS: Record<
     volume_value_retest: 1,
   },
   // Livestock, 2026-08-06 — the weights the class's measured result was produced
-  // under, carried from futures and NOT derived. No per-strategy attribution
+  // under, carried from futures and NOT derived (§6b-1 C). No per-strategy attribution
   // exists for cattle or hogs, and inventing weights that "feel right for
   // livestock" is the fabrication the class was built to escape. A standing item
   // for a strategy-attribution pass.
@@ -73,7 +73,7 @@ export const STRATEGY_PROFILE_WEIGHTS: Record<
     volume_value_retest: 1.03,
   },
   // Agriculture, 2026-08-06. These are the weights the class's measured +0.205
-  // was produced under, carried over verbatim from futures — NOT derived. No
+  // was produced under, carried over verbatim from futures — NOT derived (§6b-1 C). No
   // per-strategy attribution exists for the grains yet, so inventing weights
   // that "feel right for agriculture" would be exactly the fabrication the
   // class was created to escape. They ship unchanged so the measured result is

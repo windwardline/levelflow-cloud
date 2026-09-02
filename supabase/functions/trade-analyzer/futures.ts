@@ -238,7 +238,7 @@ const FUTURES_CONTRACT_SPECS: Record<string, FuturesContractSpec> = {
   // 106.21875 = exactly 13,596 quarter-32nds). Only GFUSX rests on the grid
   // alone.
   //
-  // GFUSX's old corroboration is STRUCK 2026-09-01 (amendment 40). It read
+  // GFUSX's old corroboration is STRUCK 2026-09-01 (amendment 40, §6b-1 E). It read
   // "consistent with the live watchlist print (GFQ6 348.300) and its LE/HE
   // siblings' published 0.025". Neither half holds: 348.300 divides evenly by
   // 0.025 AND by 0.005, discriminating nothing, and inference from siblings is
