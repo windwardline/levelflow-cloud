@@ -57,16 +57,35 @@ describe("the off-box push refuses before it can do harm", () => {
   });
 
   it("refuses a snapshot that does not exist", () => {
-    const { code, out } = run("/Users/peacock/no-such-snapshot-20260902");
+    const { code, out } = run(join(process.cwd(), "no-such-snapshot-20260902"));
     assert.equal(code, 1);
     assert.match(out, /snapshot directory does not exist/);
   });
 
   it("refuses when the token was not injected, naming how to invoke it", () => {
-    const { code, out } = run("/Users/peacock");
+    // process.cwd(), not a hardcoded home directory. The first version of this
+    // passed "/Users/peacock" and went green here and RED on CI, where the
+    // path does not exist and the earlier existence guard fired instead — so
+    // the test proved the wrong refusal and said nothing about the token. Any
+    // real directory outside a temp root reaches the token check, because the
+    // guards run existence, then sandbox, then token, in that order.
+    // TMPDIR is pinned to a sentinel so the sandbox barrier cannot fire on a
+    // runner whose temp root happens to prefix the checkout. Without this the
+    // test would depend on the CI image's environment, which is the same class
+    // of assumption that made the first version machine-specific.
+    const { code, out } = run(process.cwd(), { TMPDIR: "/nonexistent-tmp-for-this-test" });
     assert.equal(code, 1);
     assert.match(out, /R2_TOKEN is unset/);
     assert.match(out, /wl-secret cloudflare-r2-backup=R2_TOKEN/);
+  });
+
+  it("orders its guards so each one can actually be reached", () => {
+    // The ordering IS the contract: a non-existent path under a temp root must
+    // report the missing directory, not the sandbox refusal, or the sandbox
+    // barrier would be unreachable for any path that also fails to exist.
+    const { out } = run(join(tmpdir(), "no-such-snapshot-20260902"));
+    assert.match(out, /snapshot directory does not exist/);
+    assert.doesNotMatch(out, /refusing to push a snapshot under a temp directory/);
   });
 });
 
