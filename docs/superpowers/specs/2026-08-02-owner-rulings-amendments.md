@@ -2286,6 +2286,21 @@ gap and is recorded as one." Both sentences were live in one file. The ruling
 governs: not a gap. Corrected in the same change set that records this.
 
 **What this does not do.** It does not shrink §6b-1 item F to nothing. MC, BIT
-and SIC remain unidentified and unmatchable, which is ruling 2's dormant list
-rather than a softs-and-stocks question, and identification of them stays an
-owner-only route through the platform.
+and SIC remain unidentified, which is ruling 2's dormant list rather than a
+softs-and-stocks question, and identification of them stays an owner-only route
+through the platform.
+
+**And the class is guarded, not just this instance.** Recording these three was
+a repair; nothing stopped the next ruling being written into a comment the same
+way. `tests/ownerLawLivesInTheSpecs.test.ts` now fails any quoted sentence
+inside an owner-ruling comment block that appears nowhere in `docs/`. The two
+obvious guards were measured and rejected: requiring a citation on every `owner
+ruling` mention would have MISSED this case, because the block header read
+"OWNER RULINGS, 2026-08-07" and a date is a locator; and scanning comments for
+directive-shaped language returned 48 hits that were almost all UI copy. What
+separates law from prose is that law is quoted speech in a block that says whose
+speech it is. The predicate needs no exemption list — the near-misses in the
+tree are sentence fragments, and requiring a complete sentence excludes them
+without naming any. Validated against the case that produced it: with amendment
+41 removed from the corpus, the detector fires on line 34 of the old file and on
+nothing else.
