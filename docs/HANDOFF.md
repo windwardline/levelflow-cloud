@@ -3390,7 +3390,38 @@ within-class mapping differential. *Note*: #418's census marker on this
 declaration was corrected on 2026-08-25 for exactly this reason — as first
 written it would have attested that the CFTC does not report the other 78.
 
-**C. `strategyProfiles` — were the six silent weight blocks hand-authored?**
+**C. `strategyProfiles` — were the six silent weight blocks hand-authored?
+HALF ONE ANSWERED, half two scheduled, and NEITHER blocks R3 — 2026-09-01.**
+
+*Half one* is answered by the repository's own state of record rather than by
+anyone deciding: `docs/trade-model.md:983` calls them "hand-set per-class
+weights — untouched since inception", written in the round whose title is "the
+committee-weight audit". Corroborated in git — four commits have ever touched
+the file, all pure additions, **zero weight-value lines ever removed**. The
+owner call is acceptance, not derivation.
+
+*Half two* — crypto and forex omitting `trend_pullback_to_value` — is scheduled
+for measurement under **Round 29 item 8, committee weights**, and is enforced
+meanwhile by `KNOWN_ABSENCES` in `tests/strategyProfileCompleteness.test.ts`.
+It is not waiting on an owner ruling; no such ruling exists, and the guard said
+otherwise until that was struck.
+
+**The weight arm does NOT have to ride R3, and the reason is item 4's closure.**
+Energies and indices have never been validated at all — round-16's A/B named
+only crypto, forex, futures and metals, and that A/B is void under the
+pre-repair instrument. That is a real gap. But "R3 is the one re-sweep, so
+decide now" was written when a re-sweep cost provider bytes. At a pinned anchor
+it costs none, so **R4 may add a uniform-weights arm at the same 2026-08-26
+anchor for free**, provided `analyzerVersion` is unchanged — and a grid arm does
+not move it, by the #539/#540 precedent. The plumbing is ~20 lines:
+`applyStrategyProfile` has exactly one production call site and
+`runStrategyCommittee` already takes its calibration as a parameter.
+
+So the arm is Round 29 / R4 work, not a pre-R3 decision. The single condition is
+the one already recorded under item B: **`PROTECTED_ANCHORS` must survive past
+any supplementary arm, not merely past R3.**
+
+*The entry as it stood:* `strategyProfiles` — were the six silent weight blocks hand-authored?
 **The record answers half of this, and the entry was written without it —
 2026-09-01.** `docs/trade-model.md:983` calls them "hand-set per-class weights —
 untouched since inception", in the round-16 section (2026-07-30) whose own title
