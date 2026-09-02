@@ -72,8 +72,16 @@ const strategyNames = [...new Set(voters.flatMap(namesEmittedBy))].sort();
  * Recorded rather than filled. Writing an explicit `1` here would be a
  * provenance claim, not a restatement: the commit that created the table gave
  * forex four explicit `1`s while omitting this one, in the same commit that
- * gave futures `1.08`, so silence has never meant 1. §6b-1 decision C is the
- * owner ruling that settles it.
+ * gave futures `1.08`, so silence has never meant 1.
+ *
+ * WHAT SETTLES IT IS NOT AN OWNER RULING. An earlier version of this comment
+ * said "§6b-1 decision C is the owner ruling that settles it" — corrected
+ * 2026-09-01, because no such ruling exists and asserting one in a merged
+ * guard is the same class of unfounded claim the guard was written to refuse.
+ * §6b-1 C is an open register QUESTION, not a ruling, and its first half is
+ * answered by `docs/trade-model.md:983` ("hand-set ... untouched since
+ * inception") rather than by anyone deciding. This cell is scheduled for
+ * measurement under Round 29 item 8, committee weights (`HANDOFF:2688`).
  *
  * A second reason once stood here and is STRUCK, 2026-09-01: that every stated
  * value sits at 1.04-1.08, so a written `1.00` would be the only sub-band cell
@@ -162,9 +170,13 @@ describe("every class carries every strategy, or records the absence", () => {
         [...allowed].sort(),
         `${assetType} is missing ${missing.join(", ")}. Each of those scores ` +
           "at DEFAULT_PROFILE_WEIGHT in silence. If a strategy was RENAMED, " +
-          "fix the table. If this is the crypto/forex omission, it is §6b-1 " +
-          "decision C and only an owner ruling may fill it — do not write a " +
-          "1, which asserts a provenance the table's own notation denies.",
+          "fix the table. If this is the crypto/forex omission: do not write " +
+          "a 1, which asserts a provenance the table's own notation denies. " +
+          "It is not waiting on an owner ruling — none exists — it is " +
+          "scheduled for measurement under Round 29 item 8, committee " +
+          "weights. And a measured fill needs validated controls the table " +
+          "does not have: all 86 cells are unvalidated, and two classes " +
+          "(energies, indices) were never audited even once.",
       );
     });
   }
@@ -237,9 +249,11 @@ describe("every class carries every strategy, or records the absence", () => {
  *                      carried verbatim from futures. A claim worth asserting
  *                      is worth failing.
  *
- * No weight value has ever been edited: three commits have ever touched this
- * file — 715fc98 +99/-0, 958f680 +26/-0, 0fd8280 +37/-0 — and zero weight
- * lines have been removed across all history. Every value is as first written.
+ * No weight value has ever been edited: four commits have ever touched this
+ * file — 715fc98 +99/-0, 958f680 +26/-0, 0fd8280 +37/-0, and bbb14a6 (this
+ * guard's own export line) — and zero weight-value lines have been removed
+ * across all history. Every value is as first written. The count was written
+ * as three and this commit falsified it, which is the hazard in counting.
  */
 const WEIGHT_BASIS_LEDGER: Record<
   string,
