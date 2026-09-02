@@ -1,0 +1,20 @@
+2026-09-02T15:07:10Z launch from 886fdf1 on main
+2026-09-02T15:07:10Z gated-classfolds: start
+2026-09-02T15:07:30Z capture-all-classfolds: start
+2026-09-02T17:36:07Z gated-classfolds: exit=0 elapsed=8937s
+2026-09-02T17:39:57Z capture-all-classfolds: exit=0 elapsed=9147s
+2026-09-02T17:39:57Z both class-fold arms finished
+2026-09-02T17:41:53Z post-sweep-classfolds start
+2026-09-02T17:41:54Z reconcile-two-arms-classfolds: start
+2026-09-02T17:42:39Z reconcile-two-arms-classfolds: exit=0
+2026-09-02T17:42:39Z data-limits-gated-classfolds: start
+2026-09-02T17:42:39Z data-limits-gated-classfolds: exit=0
+2026-09-02T17:42:39Z tuning-folds-summary-gated-classfolds: start
+2026-09-02T17:43:14Z tuning-folds-summary-gated-classfolds: exit=0
+2026-09-02T17:43:14Z tuning-folds-summary-capture-all-classfolds: start
+2026-09-02T17:43:57Z tuning-folds-summary-capture-all-classfolds: exit=0
+2026-09-02T17:43:57Z starvation-audit-gated-classfolds: start
+2026-09-02T17:43:58Z starvation-audit-gated-classfolds: exit=0
+2026-09-02T17:43:58Z grid-totalr-fit-select-classfolds: start
+2026-09-02T17:44:35Z grid-totalr-fit-select-classfolds: exit=0
+2026-09-02T17:44:35Z post-sweep-classfolds done

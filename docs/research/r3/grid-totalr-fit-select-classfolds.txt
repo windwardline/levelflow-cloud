@@ -1,0 +1,75 @@
+folds: fit=fit select=select confirm=confirm SEALED (not derived: no --confirm-final — nothing burned) · holdout 20 markets excluded (read-time stratified)
+corpus 50cf0f69921a · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26
+(data-absence rows held out of every fold denominator: 2269 — all variants, graded folds only, accepted rows; holdout excluded by read-time stratified recomputation, not the stamped flag)
+
+=== FOREX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday   -5323.7  -3244.7    1.000 1296/1304   -0.041   -0.021   -0.025       0.0       0.0   0.07     -29.7  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily   -5667.7  -3396.9    1.000 1303/1304   -0.043   -0.022   -0.027       0.0       0.0   0.05     -31.9  fails
+runnerProtection=hold,stopStructureSource=intraday   -4688.9  -2517.9    1.000 1296/1304   -0.032   -0.012   -0.017       0.0       0.0   0.07     -31.6  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily   -5013.2  -2563.3    1.000 1303/1304   -0.032   -0.012   -0.017       0.0       0.0   0.05     -35.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000    0/1304    0.000    0.020    0.016       0.0       0.0   0.07     -26.3  NO VERDICT — pairing 0 nonzero of 1304 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -1.7    236.1    0.018 1284/1304    0.003    0.023    0.019       0.0       0.0   0.05     -26.9  fails
+
+=== METALS ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -96.2    -27.7    1.000   654/724   -0.011   -0.058   -0.086       0.0       0.0   0.10      -3.9  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -134.6    -39.2    1.000   680/723   -0.014   -0.062   -0.089       0.8       0.4   0.09      -3.9  fails
+runnerProtection=hold,stopStructureSource=intraday    -163.4    -23.1    0.995   655/724   -0.009   -0.056   -0.087       0.0       0.0   0.10      -4.4  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -183.0    -41.7    1.000   681/723   -0.015   -0.062   -0.093       0.5       0.4   0.09      -4.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/724    0.000   -0.047   -0.073       0.0       0.0   0.10      -4.3  NO VERDICT — pairing 0 nonzero of 724 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -28.2     -1.8    0.884   457/723    0.000   -0.047   -0.073       0.8       0.4   0.09      -4.3  fails
+
+=== FUTURES ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -84.3    -31.5    1.000   205/220   -0.006   -0.068   -0.090       0.0       0.0   0.11     -14.3  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -111.3    -75.9    1.000   208/220   -0.014   -0.076   -0.098       0.0       0.0   0.10     -15.1  fails
+runnerProtection=hold,stopStructureSource=intraday     -96.6    -25.3    0.990   209/220   -0.005   -0.067   -0.091       0.0       0.0   0.11     -14.8  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -105.4    -54.6    0.998   210/220   -0.010   -0.072   -0.096       0.0       0.0   0.10     -15.6  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday      78.5     43.8    0.001   163/220    0.009   -0.053   -0.074       0.0       0.0   0.11     -13.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      49.9     13.2    0.595   192/220    0.003   -0.059   -0.080       0.0       0.0   0.10     -14.1  fails
+
+=== INDICES ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       1.1     -7.2    1.000   140/297   -0.012   -0.166   -0.223       0.0       0.0   0.15      -3.5  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       2.3     -6.0    0.995   158/296   -0.010   -0.164   -0.221      -1.4       0.4   0.14      -3.5  fails
+runnerProtection=hold,stopStructureSource=intraday       0.0    -22.5    1.000   170/297   -0.037   -0.191   -0.251       0.0       0.0   0.15      -3.4  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       1.4    -20.7    1.000   186/296   -0.034   -0.188   -0.249      -1.4       0.4   0.14      -3.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       3.8     14.1    0.001   134/297    0.023   -0.132   -0.188       0.0       0.0   0.15      -3.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       4.2     12.3    0.003   159/296    0.020   -0.135   -0.191      -1.4       0.4   0.14      -3.4  fails
+
+=== ENERGIES ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -17.0     -4.6    0.984    87/137   -0.015   -0.217   -0.316       0.0       0.0   0.22      -3.7  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -48.3    -21.6    1.000   126/137   -0.018   -0.220   -0.311       2.9       0.0   0.22      -3.7  fails
+runnerProtection=hold,stopStructureSource=intraday     -15.5     -4.7    0.970    87/137   -0.016   -0.218   -0.319       0.0       0.0   0.22      -4.2  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -41.4    -22.0    1.000   126/137   -0.020   -0.221   -0.315       4.7       0.0   0.22      -3.8  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/137    0.000   -0.202   -0.298       0.0       0.0   0.22      -3.8  NO VERDICT — pairing 0 nonzero of 137 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -22.6    -19.5    1.000    98/137   -0.013   -0.215   -0.302       1.9       0.0   0.22      -3.8  fails
+
+=== CRYPTO ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday   -1199.1   -619.2    1.000 1160/1163   -0.014   -0.166   -0.174       0.0       0.0   0.04     -34.3  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily   -1211.9   -579.3    1.000 1160/1163   -0.012   -0.164   -0.171       0.0       0.0   0.03     -36.6  fails
+runnerProtection=hold,stopStructureSource=intraday    -284.9   -532.4    1.000 1163/1163   -0.012   -0.164   -0.172       0.0       0.0   0.04     -38.3  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -252.6   -473.4    1.000 1163/1163   -0.010   -0.162   -0.170       0.0       0.0   0.03     -41.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday     158.9    211.5    0.001 1047/1163    0.005   -0.147   -0.154       0.0       0.0   0.04     -32.6  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     169.0    269.2    0.001 1143/1163    0.007   -0.145   -0.151       0.0       0.0   0.03     -35.5  fails
+
+=== AGRICULTURE ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -22.4    -24.5    1.000   168/182   -0.019   -0.138   -0.184       0.0       0.0   0.14      -5.7  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -81.0    -62.8    1.000   179/182   -0.045   -0.163   -0.216       0.0       0.0   0.11     -11.5  fails
+runnerProtection=hold,stopStructureSource=intraday      10.2    -27.1    1.000   162/182   -0.021   -0.140   -0.190       0.0       0.0   0.14      -8.5  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -40.2    -57.2    1.000   181/182   -0.041   -0.159   -0.215       0.0       0.0   0.11     -10.7  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday      -3.9     -2.9    0.951   135/182   -0.002   -0.121   -0.166       0.0       0.0   0.14      -6.6  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -58.5    -42.1    1.000   177/182   -0.029   -0.147   -0.199       0.0       0.0   0.11     -11.4  fails
+
+=== LIVESTOCK ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000     0/112    0.000   -0.003   -0.158       0.0       0.0   0.01      -2.8  NO VERDICT — pairing 0 nonzero of 112 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000     0/112    0.000   -0.003   -0.158       0.0       0.0   0.01      -2.8  NO VERDICT — pairing 0 nonzero of 112 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday      -6.9    -15.0    0.988    47/112   -0.089   -0.091   -0.295       0.0       0.0   0.01      -8.9  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily      -6.9    -15.0    0.988    47/112   -0.089   -0.091   -0.295       0.0       0.0   0.01      -8.9  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.2     -3.1    0.911    62/112   -0.018   -0.021   -0.162       0.0       0.0   0.01      -2.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.2     -3.1    0.911    62/112   -0.018   -0.021   -0.162       0.0       0.0   0.01      -2.3  fails

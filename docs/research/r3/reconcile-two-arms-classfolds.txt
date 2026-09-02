@@ -1,0 +1,6 @@
+shared manifest terms checked: 24
+gated: 5216341 rows (5216341 accepted, 0 not)
+capture-all: 6634732 rows (5216341 accepted, 1418391 not)
+accepted rows identical: 5216341 byte-for-byte, 0 field-for-field after re-serialization
+counters the capture-all arm zeroes by construction — gated: {"belowConfidence":8554,"belowPayoff":402565,"belowThreshold":411119,"regimeBlocked":1286866} · capture-all: {"belowConfidence":0,"belowPayoff":0,"belowThreshold":0,"regimeBlocked":0}
+VERDICT: the capture-all arm filtered to accepted:true IS the gated corpus — one measurement, two acceptance modes
