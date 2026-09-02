@@ -118,4 +118,19 @@ if [ "$EXCESS" -gt 0 ]; then
   done
 fi
 
+# LOCAL/OFF-BOX PARITY, and it runs AFTER the prune on purpose: the listing
+# gathered above is stale the moment a prune deletes from it, and a parity
+# claim built on a stale listing is worth nothing. This re-lists.
+#
+# The comparison lives in its own script so it can be exercised against real
+# directories without a bucket; the network stays here, where the credential
+# already is. A failure exits non-zero through `set -euo pipefail`, which is
+# what puts it in front of a person: ops/agent-exit-status.sh reads the
+# launchd exit code, so drift now reads as a failing job rather than as a
+# backup that quietly stopped agreeing with itself.
+PARITY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/check-minute-bank-parity.sh"
+[[ -x $PARITY ]] || die "parity checker missing or not executable: $PARITY"
+rclone lsf -R --files-only "R2:$BUCKET/$PREFIX/" --include '*.tar.zst' 2>/dev/null \
+  | bash "$PARITY" "$(dirname "$SNAPSHOT")"
+
 log "off-box complete; $TOTAL remote archive(s), keeping $KEEP_REMOTE"

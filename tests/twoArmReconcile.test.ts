@@ -652,3 +652,31 @@ describe("as a binary", () => {
     assert.match(result.stderr, /no corpus paths given — pass --gated <emit\.jsonl> --capture-all <emit\.jsonl>/);
   });
 });
+
+describe("a divergence on a confirm-fold row is named without its values", () => {
+  // The reconciliation must read every row of both arms — its whole purpose
+  // is row equality, and blinding it to the confirm fold would leave that
+  // third unverified on the arm the gate reads. So it reads the fold and
+  // PRINTS NOTHING from it: a differing confirm row is reported by key,
+  // instant and field NAMES only. (R4 act 1; the design review's lens A.)
+  it("prints field names but not values for a confirm row", () => {
+    const report = reconcileTwoArms({
+      ...twoArms({
+        captureAllRows: (rows) =>
+          rows.map((entry, index) => index === 2 ? { ...entry, split: "confirm" } : entry),
+        gatedRows: (rows) =>
+          rows.map((entry, index) =>
+            index === 2 ? { ...entry, split: "confirm", realizedR: 4.2 } : entry
+          ),
+      }),
+      maxExamples: 20,
+    });
+    const confirmFindings = report.findings.filter((finding) => /confirm/.test(finding));
+    assert.ok(confirmFindings.length >= 1, report.findings.join("\n"));
+    for (const finding of confirmFindings) {
+      assert.match(finding, /realizedR/);
+      assert.doesNotMatch(finding, /4\.2|0\.9|-1\b/);
+      assert.match(finding, /values withheld: sealed fold/);
+    }
+  });
+});

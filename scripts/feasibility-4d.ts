@@ -9,16 +9,24 @@
 //   npx tsx scripts/feasibility-4d.ts sweeps/4c/shard-{0..7}.jsonl \
 //     --candidates docs/research/baseline-2026-08-10/4d-candidates.json
 //
-// One extra corpus pass collects median entry and stop distance per
-// (market, accepted-candidate) — the sizing engine then answers per
-// program line. Nothing here reads the confirm fold's aggregates; the
-// pass collects execution geometry only.
+// One extra corpus pass collects median planned entry and stop distance
+// per (market, accepted-candidate) — the sizing engine then answers per
+// program line.
+//
+// THIS READER OPENS THE SEALED FOLD, and here is the premise that lets it
+// (R4 act 1, 2026-09-02): PRICES ARE NOT OUTCOMES. Sizing feasibility is a
+// question about the newest prices, which live in the confirm period, so
+// the pass reads every row's planned entry price and planned risk distance
+// — plan fields the row carries whether or not it filled — and reads NO
+// outcome, R, fill or tp1 field from any row. The exemption in
+// tests/readersStateTheirAcceptance.test.ts pins both halves of that
+// premise against this source, so it verifies itself.
 import { readFileSync } from "node:fs";
 import { findBrokerInstrument } from "../src/lib/broker/instruments.ts";
 import { PROGRAM_LINES } from "../src/lib/broker/programs.ts";
 import { sizeSetup } from "../src/lib/broker/sizing.ts";
 import type { ProgramLine } from "../src/lib/broker/types.ts";
-import { assertManifest, readLinesSync } from "./sweepStats.ts";
+import { assertManifestedCorpusSync } from "./sweepStats.ts";
 import { flagReader } from "./flagReader.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 
@@ -120,7 +128,7 @@ async function main() {
 
   type Geometry = { entries: number[]; risks: number[] };
   const geometry = new Map<string, Map<string, Geometry>>();
-  // Median CLOSE per symbol regardless of variant, for the quotes map the
+  // Median planned entry per symbol regardless of variant, as the quote the
   // sizing engine converts non-USD denominations with.
   const closes = new Map<string, number[]>();
 
@@ -129,24 +137,17 @@ async function main() {
     // whose witnesses condemn it) is refused here too, not only in the
     // aggregation readers. These five scripts produced the invalidated
     // 4d-era figures by reading emits bare.
-    assertManifest(path);
-    readLinesSync(path, (line) => {
-      if (!line) return;
-      const row = JSON.parse(line) as {
-        legs?: Array<{ leg?: string; price?: number }>;
-        outcome?: string;
-        riskDistance?: number;
-        symbol?: string;
-        variant?: string;
-      };
+    assertManifestedCorpusSync(path, (row) => {
       const symbol = row.symbol;
       if (!symbol) return;
-      // The fill print is the entry leg's price — rows carry executions,
-      // not the plan's nominal fields.
-      const entryLeg = row.legs?.find((leg) => leg.leg === "entry");
-      const entryPrice = typeof entryLeg?.price === "number" &&
-          Number.isFinite(entryLeg.price) && entryLeg.price > 0
-        ? entryLeg.price
+      // The PLANNED entry price — where the order rests, carried on every
+      // row whether or not it filled. Until R4 act 1 this read the entry
+      // LEG's price instead, and legs are execution prints, empty on an
+      // unfilled row: that read was fill-conditioned by construction and
+      // learned the outcome from the leg's presence.
+      const entryPrice = typeof row.entryPrice === "number" &&
+          Number.isFinite(row.entryPrice) && row.entryPrice > 0
+        ? row.entryPrice
         : null;
       if (entryPrice !== null) {
         if (!closes.has(symbol)) closes.set(symbol, []);
@@ -156,12 +157,12 @@ async function main() {
         if (sample.length < 4_000) sample.push(entryPrice);
       }
       const variants = wanted.get(symbol);
-      const variant = row.variant ?? "baseline";
+      const variant = typeof row.variant === "string" ? row.variant : "baseline";
       if (!variants || !variants.has(variant)) return;
-      if (row.outcome === "unfilled") return;
+      const riskDistance = row.riskDistance;
       if (
-        typeof row.riskDistance !== "number" ||
-        !Number.isFinite(row.riskDistance) || row.riskDistance <= 0 ||
+        typeof riskDistance !== "number" ||
+        !Number.isFinite(riskDistance) || riskDistance <= 0 ||
         entryPrice === null
       ) return;
       if (!geometry.has(symbol)) geometry.set(symbol, new Map());
@@ -172,19 +173,26 @@ async function main() {
       const cell = byVariant.get(variant)!;
       if (cell.entries.length < 4_000) {
         cell.entries.push(entryPrice);
-        cell.risks.push(row.riskDistance);
+        cell.risks.push(riskDistance);
       }
+    }, {
+      // PRICES ARE NOT OUTCOMES — the premise the header states and
+      // tests/readersStateTheirAcceptance.test.ts pins: nothing the
+      // callback above reads is an outcome, R, fill or tp1 field. The
+      // newest prices are the confirm period's, and sizing feasibility is
+      // a question about the newest prices.
+      confirm: "read",
     });
   }
 
   // Shards and candidates both given, and not one accepted cell found a
-  // filled row carrying usable geometry. Only the corpus can see this,
-  // and the artifact is the same empty one the two doors above refuse
-  // (#364 round 53, finding 2).
+  // row carrying usable geometry. Only the corpus can see this, and the
+  // artifact is the same empty one the two doors above refuse (#364
+  // round 53, finding 2).
   if (geometry.size === 0) {
     throw new Error(
       `feasibility-4d: none of the ${wanted.size} market(s) with accepted ` +
-        `candidates found a filled row with an entry price and a positive ` +
+        `candidates found a row with a planned entry price and a positive ` +
         `riskDistance across ${paths.length} shard(s) — check that the ` +
         `candidate file and the corpus are the same measurement; an empty ` +
         `join reads as infeasible everywhere.`,

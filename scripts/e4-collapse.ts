@@ -36,6 +36,9 @@
  *    correlation clusters, so in-line collapse means buffering across every
  *    symbol and shard, or re-sharding by cluster — either of which changes
  *    corpus identity and spends the one re-sweep.
+ *
+ * The confirm fold is sealed at the door (R4 act 1): its rows are withheld
+ * before this instrument sees them, and the rows line states how many.
  */
 import { fileURLToPath } from "node:url";
 import {
@@ -276,8 +279,11 @@ async function main(): Promise<void> {
   const engines = new Set<string>();
   const clocks = new Set<string>();
   let unreadable = 0;
+  let sealedRows = 0;
 
   for (const corpus of corpora) {
+    // Sealed by default: confirm rows never reach this callback. The count
+    // the door withheld is summed over the shards and printed with the rows.
     const manifest = await assertManifestedCorpusStreaming(corpus, (raw) => {
       const row = project(raw);
       if (row === null) {
@@ -287,6 +293,7 @@ async function main(): Promise<void> {
       rows.push(row);
     });
     manifests.push(manifest);
+    sealedRows += manifest.sealedRows;
     hashes.push(manifest.manifestHash.slice(0, 12));
     engines.add(manifest.analyzerVersion);
     clocks.add(`${manifest.clock?.normalizer}/${manifest.clock?.calendar}`);
@@ -336,10 +343,15 @@ async function main(): Promise<void> {
   // examined nothing reporting success. Sibling readers close this
   // (threshold-rescue refuses "cells that matched no row"); so does this one.
   if (rows.length === 0) {
+    // A shard holding only the confirm fold is not empty, and saying so
+    // would send the operator looking for a hole in the sweep.
     fail(
       `the corpus carried no rows — ${corpora.join(", ")} passed the manifest ` +
-        `door and is empty. A run over zero rows cannot report a suppression ` +
-        `rate or a verdict.`,
+        `door and ${
+          sealedRows > 0
+            ? `holds only the confirm fold (${sealedRows} rows sealed at the door)`
+            : "is empty"
+        }. A run over zero rows cannot report a suppression rate or a verdict.`,
     );
   }
 
@@ -472,7 +484,8 @@ async function main(): Promise<void> {
   );
   console.log(
     `rows ${rows.length} → in-variant ${inVariant.length} → accepted ${candidates.length} ` +
-      `(dataAbsent ${dataAbsent.length} held out, graded ${graded.length})`,
+      `(dataAbsent ${dataAbsent.length} held out, graded ${graded.length})` +
+      ` · confirm fold sealed at the door: ${sealedRows} rows withheld`,
   );
   console.log(
     `groups ${groups.size} = contested ${contested.length} + singleton ${singletons}` +

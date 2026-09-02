@@ -77,11 +77,58 @@ and says so.
 
 First run, 2026-08-06: 338,971 bars across 100 symbols, 42 MB.
 
-## Not yet done
+## Backup
 
-The bank has no backup, the same gap the calibration corpus has. It is small enough
-today that an off-machine copy is cheap, and it becomes irreplaceable the moment it
-holds more than three days.
+Two layers, both on a timer, neither waiting on anyone to remember.
+
+```
+scripts/ops/backup-minute-bank.sh
+scripts/ops/com.windwardline.levelflow-minute-bank-backup.plist  →  ~/Library/LaunchAgents/
+```
+
+A launchd agent runs it daily at 20:10 local, fifty minutes after the evening bank
+run, plus `RunAtLoad` so a machine asleep at 20:10 catches up on wake. It counts the
+bank, copies it, counts the copy, and refuses to replace a good snapshot with a
+partial one. Then it hands the snapshot to `push-minute-bank-offbox.sh`, which
+archives it, uploads to Cloudflare R2, and compares the remote object's own md5
+against the local archive before reporting success. The push is not optional: a
+missing credential, a failed upload or a mismatched hash each exit non-zero, because
+`ops/agent-exit-status.sh` reads the launchd exit code and a silent skip would render
+as a healthy backup.
+
+The remote layout is a contract, and it generalizes past this dataset:
+
+```
+windwardline-backups/<repo>/<dataset>/<YYYY>/<MM>/<dataset>-<YYYYMMDD>.tar.zst
+```
+
+The key carries the date, so repeated runs in one day overwrite one object instead of
+accumulating. Local retention is 14 snapshots and remote is 60; `20260823` is
+protected by name in both prunes, because it is the only naive-era corpus in existence
+and a retention count cannot protect what oldest-first deletes first.
+
+## The two sides are checked against each other
+
+Verifying an upload and verifying the archive set are different claims, and only the
+first was ever made. On 2026-09-02T05:36Z the push died before it ran — `wl-secret`
+was not on the launchd PATH — the local snapshot was placed anyway, and the next
+successful run reported a healthy backup over a local stamp with no archive behind it.
+
+`check-minute-bank-parity.sh` closes that. It runs at the end of every push, after the
+prune so the listing is not stale, and requires every local snapshot to have an
+off-box archive. Missing stamps are named rather than counted, so the output can be
+handed straight to a backfill. An empty snapshot root fails rather than passing: a
+checker that reports success over zero comparisons is the silent failure it was added
+to catch.
+
+The invariant is one-directional. Local keeps 14 and remote keeps 60, so `local ⊆
+remote` is the designed steady state — remote archives with no local snapshot are the
+depth the off-box copy exists to buy, and asserting set equality would fail every day
+from day fifteen.
+
+The comparison takes the remote listing on stdin and touches no network, which is why
+it is exercised against real directories in `tests/minuteBankParity.test.ts` rather
+than asserted by reading its source.
 
 ## Keeping it running
 

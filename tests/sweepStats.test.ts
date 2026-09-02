@@ -1903,14 +1903,20 @@ describe("every emit reader passes the one-clock door (R0) — the population, n
   ) {
     it(`${script} asserts the manifest before reading a line`, () => {
       const source = readFileSync(script, "utf8");
-      assert.match(source, /assertManifest\((path|file)\);/);
+      // Either half of the door satisfies this — the manifest alone
+      // (`assertManifest(path)`), or a sealed row door, which verifies the
+      // manifest before it hands over a row (R4 act 1).
+      assert.match(
+        source,
+        /assertManifest(?:edCorpus(?:Sync|Streaming)?)?\(\s*(?:path|file)\b/,
+      );
       // The NAME must come from this module; its POSITION in the braces is
       // not the point. The first version anchored on `import { assertManifest`
       // and failed the day a lexically earlier import joined it — pinning the
       // lint rule's alphabetical ordering rather than the dependency.
       assert.match(
         source,
-        /import \{[^}]*\bassertManifest\b[^}]*\} from "\.\/sweepStats\.ts";/,
+        /import \{[^}]*\bassertManifest(?:edCorpus(?:Sync|Streaming)?)?\b[^}]*\} from "\.\/sweepStats\.ts";/,
       );
     });
   }

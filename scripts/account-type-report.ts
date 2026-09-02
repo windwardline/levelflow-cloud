@@ -30,7 +30,10 @@
  * calibration. Corpora enter through assertManifestedCorpusStreaming
  * (2i): an emit that cannot prove its conditions is refused, not
  * averaged — and streamed, because a full corpus runs to hundreds of MB
- * and R1b grows it further (#364 round 26, finding 1).
+ * and R1b grows it further (#364 round 26, finding 1). The confirm fold
+ * is sealed at that door (R4 act 1): its rows are withheld before this
+ * report sees them, the count is printed beside the holdout line, and
+ * every figure here is over the tuning folds only.
  *
  *   npx tsx scripts/account-type-report.ts <emit.jsonl> [more.jsonl ...]
  *     [--min-filled 300]
@@ -59,6 +62,7 @@ import {
   rStandardError,
   type SweepEmitRow,
   type SweepStats,
+  tuningFolds,
 } from "./sweepStats.ts";
 import {
   describeNumericToken,
@@ -245,6 +249,11 @@ async function main(): Promise<void> {
   let holdoutRows = 0;
   const holdoutSymbols = new Set<string>();
   const gatedRowsBySymbol = new Map<string, number>();
+  // What the door withheld, summed over every file, and the folds it did
+  // hand over by each corpus's own vocabulary — a set, because nothing
+  // above refuses a legacy shard pooled with a folded one.
+  let sealedRows = 0;
+  const foldsRead = new Set<string>();
 
   for (const file of files) {
     // Streamed through the manifest door (#364 round 26, finding 1): the
@@ -254,7 +263,7 @@ async function main(): Promise<void> {
     // for the sparse floorless classes this report judges. This reader
     // accumulates per symbol in one pass, so it needs no rows array at
     // all; the hash verifies before the first row, same door as ever.
-    await assertManifestedCorpusStreaming(file, (raw) => {
+    const manifest = await assertManifestedCorpusStreaming(file, (raw) => {
       const row = raw as unknown as Row;
       // Baseline-only, like every other figure this report prints — the
       // variant filter runs FIRST (#364 round 29, finding 2: the holdout
@@ -298,7 +307,11 @@ async function main(): Promise<void> {
         realizedR: typeof row.realizedR === "number" ? row.realizedR : Number.NaN,
       } as SweepEmitRow);
     });
+    sealedRows += manifest.sealedRows;
+    const folds = tuningFolds(manifest);
+    foldsRead.add(`${folds.fit}+${folds.select}`);
   }
+  const foldsLabel = `${[...foldsRead].join(", ")} folds`;
 
   // The headline states its own denominator (#364 round 24, finding 3,
   // following sweep-analysis's round-7 pattern): kept counts every row
@@ -317,7 +330,7 @@ async function main(): Promise<void> {
   if (dataAbsentTotal > 0) {
     console.log(
       `(data-absence rows held out of every denominator: ${dataAbsentTotal}` +
-        ` — baseline variant, all splits, rows clearing payoff+regime; ` +
+        ` — baseline variant, ${foldsLabel}, rows clearing payoff+regime; ` +
         `holdout excluded by the emit's stamped flag)`,
     );
   }
@@ -327,6 +340,12 @@ async function main(): Promise<void> {
         `stamped flag)`,
     );
   }
+  // Stated whether or not anything was withheld: zero on a legacy corpus
+  // means there was no confirm fold to seal, which is not an unsealed read.
+  console.log(
+    `(confirm fold sealed at the door: ${sealedRows} rows withheld — every ` +
+      `figure reads the ${foldsLabel} only)`,
+  );
   console.log(
     `precision: per-market s.e. measured from that market's own R deviation ` +
       `ASSUMING within-market independence — outcomes in one market share ` +

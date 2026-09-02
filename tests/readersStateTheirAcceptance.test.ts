@@ -34,7 +34,9 @@ import { describe, it } from "node:test";
 /** Anything that opens the corpus door — the three exported forms. */
 const DOOR = /assertManifest\(|assertManifestedCorpus/;
 /** …and actually parses emit rows, rather than only reading the manifest. */
-const READS_ROWS = /JSON\.parse\(line\)|readLinesSync\(|for await \(const line/;
+// 2026-09-02: readers migrated onto the sealed door take rows from its callback, not a line loop.
+const READS_ROWS =
+  /JSON\.parse\(line\)|readLinesSync\(|for await \(const line|assertManifestedCorpus(?:Streaming|Sync)?\(/;
 
 const DECLARES = /assertAcceptanceMode\(/;
 const FILTERS = /\.accepted === false|\.accepted !== true|row\.accepted\b/;
@@ -45,14 +47,26 @@ const REAPPLIES = /confidenceThreshold/;
  * and CHECKED below — an exemption whose reason nobody verifies is a hole with
  * a comment on it.
  */
-const EXEMPT: Record<string, { because: string; premise: RegExp }> = {
+const EXEMPT: Record<
+  string,
+  { because: string; forbids: RegExp; premise: RegExp }
+> = {
   "feasibility-4d.ts": {
     because:
-      "samples entry PRICES for sizing feasibility, never outcomes — a " +
-      "gate-failing decision still priced a real instrument, so more samples " +
-      "is strictly better and acceptance is irrelevant to the question",
-    // The premise: it reads the entry leg's price and no outcome field.
-    premise: /leg === "entry"/,
+      "samples planned entry PRICES for sizing feasibility, never outcomes — " +
+      "a gate-failing decision still priced a real instrument, so more " +
+      "samples is strictly better and acceptance is irrelevant to the question",
+    // The premise has two halves and BOTH are checked. Second: it reads no
+    // outcome, R, fill or tp1 field — neither as a property read nor as a
+    // column declared on its row type. This half is also what earns it
+    // `confirm: "read"` on the sealed door (R4 act 1): prices are not
+    // outcomes, so the exemption verifies the premise the door relies on.
+    forbids:
+      /\.(?:outcome|grossOutcome|realizedR|grossRealizedR|tp1Hit|filledAtMs|exitAtMs|legs|unfilledApproachDistance|maxFavorableMove|maxAdverseMove|forgoneRunnerR)\b|\b(?:outcome|grossOutcome|realizedR|grossRealizedR|tp1Hit|filledAtMs|exitAtMs|legs|unfilledApproachDistance|maxFavorableMove|maxAdverseMove|forgoneRunnerR)\??:/,
+    // First: it reads the PLAN's entry price, carried on every row filled or
+    // not. The entry LEG it read until R4 act 1 is empty on an unfilled row,
+    // so that read learned the outcome from the leg's presence.
+    premise: /row\.entryPrice\b/,
   },
 };
 
@@ -81,6 +95,12 @@ describe("every corpus reader states what it does with rejected rows", () => {
           exemption.premise,
           `${name} is exempt because it ${exemption.because} — and that ` +
             "premise no longer holds, so the exemption must be re-earned",
+        );
+        assert.doesNotMatch(
+          source,
+          exemption.forbids,
+          `${name} is exempt because it ${exemption.because} — and it now ` +
+            "reads an outcome field, so the exemption must be re-earned",
         );
         return;
       }
