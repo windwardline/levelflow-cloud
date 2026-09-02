@@ -68,7 +68,7 @@ items and writes nothing), and each writes its own emit, manifest and sidecar.
 `e51e742` byte for byte when both arms resolved their source (within seconds
 of 06:12:37Z and 06:12:57Z): the earliest tracked modification on the branch
 is `.gitignore` at 06:15:05Z, every other changed file is later still
-(`stat -f %m`, listed in the PR), and `git reflog` shows no other revision
+(`stat -f %m`, listed in PR #563), and `git reflog` shows no other revision
 was ever checked out. What made `git status --porcelain` non-empty was one
 untracked file, the launcher's own `arms.status` (the stdout logs were still
 ignored by the global `*.log` rule at that instant, and the corpora were
@@ -353,8 +353,8 @@ livestock fold end, the "status and log" wording, and three minor figures.
 
 ## 7. Defects found, and how each was closed
 
-- **The run card's global folds starve four classes — FOUND, remedy in
-  flight.** `--fold-spec` exists for exactly this ("one 17-year global
+- **The run card's global folds starve four classes — FOUND, and CLOSED by
+  the per-class arm (§10).** `--fold-spec` exists for exactly this ("one 17-year global
   calendar starved every 2023-era market … of fit and select entirely",
   `scripts/sweepFolds.ts`), the 4c fleet ran on per-class calendars, and the
   card as proven on two forex and crypto markets could not show it. The
@@ -363,10 +363,20 @@ livestock fold end, the "status and log" wording, and three minor figures.
   2013-07-14, crypto 2013-11-04, indices 2020-02-24, futures 2023-09-24,
   agriculture 2023-09-25, livestock 2023-09-25, energies 2023-10-01, each to
   2026-08-26 except livestock, whose last pinned bar is 2026-08-25T18:00Z). A per-class arm costs zero bytes at the pinned anchor and is
-  the class-grain instrument for those classes; it runs after this change
-  set lands and is recorded in a follow-up entry. Item 2's law is about
-  corpus coherence under one engine, not process count, and the engine is
-  unchanged.
+  the class-grain instrument for those classes. **Launched 2026-09-02
+  15:07Z from merged main `886fdf1` (PR #563)**, both acceptance modes,
+  concurrently, preflight 313 pinned, tree clean (`dirty: false`,
+  `untracked: 0` under the new definition — the status file and logs are
+  ignored paths this time). Per-class folds as printed by the driver: forex
+  fit 2009-09-25..2018-03-11 · select ..2022-06-03 · confirm ..2026-08-26;
+  crypto 2013-11-04..2020-03-31 · ..2023-06-13 · ..2026-08-26; metals
+  2013-07-14..2020-02-04 · ..2023-05-16 · ..2026-08-26; indices
+  2020-02-24..2023-05-27 · ..2025-01-09 · ..2026-08-26; futures
+  2023-09-24..2025-03-11 · ..2025-12-02 · ..2026-08-26; energies
+  2023-10-01..2025-03-14 · ..2025-12-04 · ..2026-08-26; agriculture
+  2023-09-25..2025-03-11 · ..2025-12-02 · ..2026-08-26; livestock the same to
+  2026-08-25. Results in §10. Item 2's law is about corpus coherence under
+  one engine, not process count, and the engine is unchanged.
 - **The fold-spec deriver pinned itself to the run day — CLOSED.**
   `scripts/derive-fold-spec.ts` read the cache at `new Date()`, the same
   defect the driver carried until `--anchor`; at 2026-08-26 it would have
@@ -389,7 +399,20 @@ livestock fold end, the "status and log" wording, and three minor figures.
   launcher hands the push script a known PATH. Three executed tests in
   `tests/minuteBankBackup.test.ts` run the script under a launchd-shaped
   environment with a recording stub: RED before the fix (the script hit its
-  own "not on PATH" branch), GREEN after.
+  own "not on PATH" branch), GREEN after. **Verified live 2026-09-02T15:08Z**,
+  after the fix merged: kickstarted under launchd, the agent placed the
+  snapshot, archived it (17,460,969 bytes), uploaded it to R2 and verified
+  the remote MD5 (`c5b28271…`), exit 0 — the first off-box copy the schedule
+  has ever completed on its own.
+- **The same script found its repository by a literal path — CLOSED, found
+  by CI.** `REPO="/Users/peacock/Projects/levelflow-cloud"` made the off-box
+  branch unreachable on any other checkout: CI's first run of the launchd
+  cases died on a "missing" push script before the launcher check they
+  exercise, and the pre-existing tests never reached that branch because
+  they skip the off-box step. The root is now derived from the script's own
+  location, pinned by a source test, and proven by running the script from a
+  foreign checkout root under a launchd-shaped PATH (exit 0, the launcher
+  invoked by absolute path).
 - **Twelve corpus readers read the confirm fold with no opt-in and no ledger
   entry — RECORDED, ranked as R4's first act.** The 2026-09-02 audit (verified
   by hand on `sweep-analysis`, `cost-sensitivity-verdict`,
@@ -443,10 +466,12 @@ livestock fold end, the "status and log" wording, and three minor figures.
   where there is a sample.
 - Modelled cost is larger than the net loss in crypto and metals.
 
+**Decided by the per-class arm (§10):** every class now has a class-grain
+reading; no grid variant is accepted in any class; forex at rest is the only
+net-positive class; futures, energies, indices and livestock lose before
+modelled spread and slippage are charged at all.
+
 **Open, and what gates each:**
-- Class-grain verdicts for futures, energies, agriculture, livestock —
-  gated on the per-class arm (zero bytes, ~2.5 h per arm, after this change
-  set lands).
 - Every per-market verdict and every calibration value — gated on R4, which
   is gated on sealing the twelve readers (§7) so its one confirm read is a
   recorded one.
@@ -459,9 +484,128 @@ livestock fold end, the "status and log" wording, and three minor figures.
 
 | | before | after |
 | --- | --- | --- |
-| free disk | 284 GB | 254 GB |
+| free disk | 284 GB | 224 GB (after both arm pairs) |
 | `.calibration-cache` | 7.7 GB (pinned reads write nothing) | 7.7 GB |
 | `.minute-bank` | 219 MB | 219 MB |
-| `docs/research/r3/` corpora + sidecars (gitignored) | — | 31.0 GB |
-| tracked artifacts in `docs/research/r3/` | — | 3.1 MB (manifests, redacted stdout tables, reader outputs, fold spec) |
-| strays under `/private/tmp` | none | none (probe outputs removed at the end of the session) |
+| `docs/research/r3/` corpora + sidecars + raw stdout logs (gitignored) | — | 61.95 GB across the four arms |
+| tracked artifacts in `docs/research/r3/` | — | ~5 MB (manifests, redacted stdout tables, reader outputs, fold spec) |
+| strays under `/private/tmp` | none | none (the probe corpora were removed; scratch holds 3 MB of refuter scripts) |
+
+## 10. The per-class arm — the class-grain instrument for all eight classes
+
+Launched 2026-09-02 15:07:10Z and 15:07:30Z from merged main `886fdf1` (PR
+#563), tree clean, both acceptance modes, the same anchor, grid, depth and
+step as §2, plus `--fold-spec docs/research/r3/fold-spec-2026-08-26.json`.
+Zero provider bytes by the same preflight.
+
+| arm | exit | elapsed | rows | emit | rejection sidecar | manifest |
+| --- | --- | --- | ---: | ---: | ---: | --- |
+| gated-classfolds | 0 at 17:36:07Z | 2h 28m 57s | 5,216,341 | 13.15 GB | 3,942,228 rows | `50cf0f69921a` |
+| capture-all-classfolds | 0 at 17:39:57Z | 2h 32m 27s | 6,634,732 | 16.71 GB | 2,523,837 rows | `021821537f28` |
+
+Both manifests: `source { dirty: false, untracked: 0, revision: 886fdf1… }`
+— the new definition, stamped at launch from a tree whose only outputs were
+ignored paths (the manifests themselves are untracked until this change set
+lands). 97 of 97 markets, 71 columns, 19 stamped holdout,
+15 engine-declined, **9,158,569 decision points across 1,841 cells** (more
+cells than the global arm's 1,379 because every class now has three
+populated folds; 5,971 fewer decisions, from the class calendars' own
+embargoes and fold-boundary warm-ups — which of the two, untested).
+Reconciliation (`reconcile-two-arms-classfolds.txt`): 24 terms agree,
+decision points agree on all 1,841 cells, **5,216,341 of 5,216,341 accepted
+rows byte-identical**, the identical-corpus verdict printed, exit 0. The three
+counters and their aggregate: regimeBlocked 1,286,866 · belowPayoff 402,565
+· belowConfidence 8,554 (belowThreshold 411,119) in the gated manifest, 0 in
+the capture-all one.
+
+**The class calendars** (each class folds 50/25/25 on its own span, embargo
+5 days): forex fit 2009-09-25..2018-03-11 · select ..2022-06-03 · confirm
+..2026-08-26 (identical to the global calendar, so forex's figures are
+unchanged from §5); crypto 2013-11-04..2020-03-31 · ..2023-06-13 ·
+..2026-08-26; metals 2013-07-14..2020-02-04 · ..2023-05-16 · ..2026-08-26;
+indices 2020-02-24..2023-05-27 · ..2025-01-09 · ..2026-08-26; futures
+2023-09-24..2025-03-11 · ..2025-12-02 · ..2026-08-26; energies
+2023-10-01..2025-03-14 · ..2025-12-04 · ..2026-08-26; agriculture and
+livestock 2023-09-25..2025-03-11 · ..2025-12-02 · ..2026-08-26 (livestock to
+08-25). The 2023-era classes therefore tune on ~17 months of fit and ~9 of
+select — thin, and every figure below carries its own error.
+
+**Per class at rest (`baseline`), fit + select pooled, held-out excluded**
+(`tuning-folds-summary-gated-classfolds.txt`):
+
+| class | n | filled | TP1 hit | stop | net E | ±SE clustered (k) | gross E | net total R | gross total R |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| forex | 252,522 | 218,364 | 68.8% | 23.7% | **+0.013** | ±0.006 (19) | +0.037 | **+2,896.9** | +8,047.8 |
+| crypto | 86,130 | 72,674 | 66.4% | 29.9% | −0.065 | ±0.028 (24) | +0.028 | −4,725.5 | +2,080.9 |
+| metals | 10,120 | 8,004 | 59.2% | 30.0% | −0.078 | — (XAUUSD alone) | +0.004 | −621.2 | +31.5 |
+| futures | 20,893 | 16,446 | 52.2% | 34.2% | −0.101 | ±0.028 (16) | **−0.042** | −1,666.9 | −710.6 |
+| agriculture | 6,021 | 4,246 | 53.3% | 31.5% | −0.135 | ±0.031 (5) | +0.019 | −573.4 | +86.2 |
+| indices | 681 | 594 | 46.1% | 26.3% | −0.167 | ±0.091 (4) | **−0.125** | −99.3 | −75.5 |
+| energies | 1,048 | 875 | 41.4% | 35.8% | −0.201 | — (WTI alone) | **−0.164** | −176.1 | −145.4 |
+| livestock | 1,044 | 772 | 58.0% | 38.1% | −0.205 | ±0.149 (3) | **−0.062** | −158.1 | −48.4 |
+
+Per fold at rest: futures fit −0.126 (10,719 filled) / select −0.056
+(5,727); agriculture −0.137 (2,835) / −0.131 (1,411); energies −0.201 (577)
+/ −0.202 (298); livestock −0.136 (517) / −0.345 ±0.364 (255 — no evidence);
+indices −0.038 (195) / −0.230 (399); metals −0.091 (5,497) / −0.047 (2,507);
+crypto on its own calendar +0.048 (24,665) / −0.123 (48,009) — the same sign
+flip as §5 on a different cut.
+
+**Where the loss sits, by class.** In crypto, metals and agriculture the
+GROSS arm is positive: the published commission alone leaves money on the
+table and the modelled spread and slippage take it (≈0.093, 0.081 and
+0.154R per filled trade — approximate, because the gross arm fills a
+slightly different set: metals 8,204 gross fills against 8,004 net). In
+futures, indices, energies and livestock the gross arm
+is itself negative — the structure loses before our cost model is charged at
+all, so cost is not the lever there. Forex is the only class positive on
+both arms.
+
+**Frequency beside money, at rest** (≥30 filled, held-out excluded): 73
+markets clear the floor; **20 have net expectancy above zero; 35 win at
+least half of their filled setups while losing money** (named in the
+summary file; among them 9 of the 16 non-held-out futures markets — CLUSD,
+ESUSD, GCUSD, HGUSD, PAUSD, PLUSD, RTYUSD, YMUSD, ZTUSD — three of the four
+graded indices, both graded livestock markets, XAUUSD, and eleven crypto
+markets; BTCUSD, ETHUSD and XRPUSD are net-positive and not among them).
+
+**The acceptance gate, class grain, fit and select, confirm sealed**
+(`grid-totalr-fit-select-classfolds.txt`; holdout 20 read-time stratified;
+2,269 data-absent rows held out): **no variant is accepted in any of the
+eight classes.**
+- Where baseline is a mixed or non-`trail_tp1` cell, the INTRADAY
+  `trail_tp1` arm beats baseline on both folds at paired p = 0.001 — crypto
+  ΔR +158.9 fit / +211.5 select, futures +78.5 / +43.8, indices +3.8 / +14.1
+  — and every one fails D4's absolute term (select expectancy −0.147,
+  −0.053, −0.132). The daily `trail_tp1` arm reaches p = 0.001 only in crypto
+  (+169.0 / +269.2); futures' daily arm is +49.9 / +13.2 at p 0.595 and
+  indices' +4.2 / +12.3 at p 0.003. The gate's two questions are separable,
+  and the second is the one that matters.
+- Where baseline is `trail_tp1` (forex, metals, energies), `breakeven` and
+  `hold` fail at p ≥ 0.97 on every arm; `trail_tp1 + daily` fails on fit
+  (forex −1.7, metals −28.2, energies −22.6).
+- Livestock's baseline is `breakeven`; `hold` fails (ΔE select −0.089) and
+  `trail_tp1` fails (p 0.911). Agriculture: every arm fails, the daily
+  arms worst (ΔR select −42 to −63 at p = 1.000).
+
+**What this changes.** The class-grain reading now exists for all eight
+classes and it is uniform: at rest, only forex is net-positive on the
+tuning folds; the runner axis prefers `trail_tp1` wherever the resting mode
+is `hold` or a mix (crypto, futures, indices) but not on livestock, which
+rests on `breakeven` and reads −0.206 against −0.205 (p 0.911), and never
+enough to earn money on select; the daily stop source never earns
+acceptance — it is marginally better than its intraday twin on every crypto
+arm and on forex's `trail_tp1` arm, and worse on the rest. The per-class corpus is the
+class-grain corpus of record; the global-fold corpus stays as the card as
+written and as R4's input for read-time per-market folds. The confirm fold
+of BOTH corpora remains sealed; R4 owns the one read of whichever it grades.
+
+**Refuted before it was recorded.** A fifth refuter recomputed §10 from the
+per-class corpus in one streaming pass: every table cell, per-fold figure,
+calendar date and gate verdict matched; fold scoping held with zero rows
+outside their own class calendar and zero embargo violations across all 24
+(class, split) cells; the 73 / 20 / 35 line and its names reproduced
+exactly. It killed five sentences, corrected above: the daily `trail_tp1`
+arm's p-value in futures and indices, "every futures-shaped market except
+three", "the daily stop source never helps", the metals cost figure and its
+denominators, and livestock's preference.

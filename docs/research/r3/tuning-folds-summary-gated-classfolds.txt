@@ -1,0 +1,828 @@
+corpus 50cf0f69921a · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26
+folds read: fit 2009-09-25..2025-03-14 · select 2018-03-11..2025-12-04 · confirm: SEALED, not read
+rows: 5216341 total · 3635251 accepted in the folds read · 0 not accepted (skipped) · 1581090 in other folds (not read) · 966862 on held-out markets (per-market lines only)
+thin floor: 30 filled
+
+## Per class × variant — held-out markets excluded, folds pooled
+
+| class | variant | n | filled | dataAbsent | tp1 hit | stop | net E | ±SE clustered (k) | gross E | net total R | gross total R | flag |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| agriculture | baseline | 6021 | 4246 | 46 | 53.3% | 31.5% | -0.135 | ±0.031 (5) | 0.019 | -573.4 | 86.2 |  |
+| agriculture | runnerProtection=breakeven,stopStructureSource=intraday | 6021 | 4246 | 46 | 53.3% | 31.5% | -0.143 | ±0.031 (5) | -0.001 | -607.9 | -4.3 |  |
+| agriculture | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | 6230 | 4362 | 48 | 53.7% | 33.2% | -0.158 | ±0.032 (5) | -0.006 | -690.8 | -29.0 |  |
+| agriculture | runnerProtection=hold,stopStructureSource=intraday | 6021 | 4246 | 46 | 53.3% | 31.5% | -0.144 | ±0.027 (5) | 0.009 | -612.9 | 40.7 |  |
+| agriculture | runnerProtection=hold,stopStructureSource=intraday_and_daily | 6230 | 4362 | 48 | 53.7% | 33.2% | -0.155 | ±0.027 (5) | 0.004 | -678.0 | 17.9 |  |
+| agriculture | runnerProtection=trail_tp1,stopStructureSource=intraday | 6021 | 4246 | 46 | 53.3% | 31.5% | -0.133 | ±0.031 (5) | 0.025 | -563.1 | 114.8 |  |
+| agriculture | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | 6230 | 4362 | 48 | 53.7% | 33.2% | -0.147 | ±0.032 (5) | 0.025 | -642.2 | 115.9 |  |
+| crypto | baseline | 86130 | 72674 | 6 | 66.4% | 29.9% | -0.065 | ±0.028 (24) | 0.028 | -4725.5 | 2080.9 |  |
+| crypto | runnerProtection=breakeven,stopStructureSource=intraday | 86130 | 72674 | 6 | 66.4% | 29.9% | -0.096 | ±0.025 (24) | -0.004 | -7004.6 | -297.3 |  |
+| crypto | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | 86945 | 73316 | 6 | 66.8% | 29.9% | -0.095 | ±0.025 (24) | -0.002 | -6942.7 | -114.1 |  |
+| crypto | runnerProtection=hold,stopStructureSource=intraday | 86130 | 72674 | 6 | 66.4% | 29.9% | -0.082 | ±0.026 (24) | 0.011 | -5957.7 | 843.1 |  |
+| crypto | runnerProtection=hold,stopStructureSource=intraday_and_daily | 86945 | 73316 | 6 | 66.8% | 29.9% | -0.080 | ±0.026 (24) | 0.015 | -5831.5 | 1091.9 |  |
+| crypto | runnerProtection=trail_tp1,stopStructureSource=intraday | 86130 | 72674 | 6 | 66.4% | 29.9% | -0.060 | ±0.026 (24) | 0.034 | -4367.0 | 2532.5 |  |
+| crypto | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | 86945 | 73316 | 6 | 66.8% | 29.9% | -0.058 | ±0.026 (24) | 0.037 | -4271.2 | 2731.9 |  |
+| energies | baseline | 1048 | 875 | 0 | 41.4% | 35.8% | -0.201 | — | -0.164 | -176.1 | -145.4 |  |
+| energies | runnerProtection=breakeven,stopStructureSource=intraday | 1048 | 875 | 0 | 41.4% | 35.8% | -0.226 | — | -0.182 | -197.7 | -162.0 |  |
+| energies | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | 1329 | 1098 | 1 | 42.0% | 36.2% | -0.224 | — | -0.186 | -246.0 | -207.4 |  |
+| energies | runnerProtection=hold,stopStructureSource=intraday | 1048 | 875 | 0 | 41.4% | 35.8% | -0.224 | — | -0.181 | -196.3 | -161.0 |  |
+| energies | runnerProtection=hold,stopStructureSource=intraday_and_daily | 1329 | 1098 | 1 | 42.0% | 36.2% | -0.218 | — | -0.178 | -239.5 | -198.9 |  |
+| energies | runnerProtection=trail_tp1,stopStructureSource=intraday | 1048 | 875 | 0 | 41.4% | 35.8% | -0.201 | — | -0.164 | -176.1 | -145.4 |  |
+| energies | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | 1329 | 1098 | 1 | 42.0% | 36.2% | -0.199 | — | -0.163 | -218.1 | -182.3 |  |
+| forex | baseline | 252522 | 218364 | 218 | 68.8% | 23.7% | 0.013 | ±0.006 (19) | 0.037 | 2896.9 | 8047.8 |  |
+| forex | runnerProtection=breakeven,stopStructureSource=intraday | 252522 | 218364 | 218 | 68.8% | 23.7% | -0.023 | ±0.004 (19) | 0.001 | -5010.5 | 113.4 |  |
+| forex | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | 256081 | 221235 | 219 | 70.1% | 24.3% | -0.025 | ±0.004 (19) | 0.000 | -5430.3 | 80.4 |  |
+| forex | runnerProtection=hold,stopStructureSource=intraday | 252522 | 218364 | 218 | 68.8% | 23.7% | -0.016 | ±0.005 (19) | 0.008 | -3440.8 | 1732.0 |  |
+| forex | runnerProtection=hold,stopStructureSource=intraday_and_daily | 256081 | 221235 | 219 | 70.1% | 24.3% | -0.017 | ±0.005 (19) | 0.008 | -3726.8 | 1847.8 |  |
+| forex | runnerProtection=trail_tp1,stopStructureSource=intraday | 252522 | 218364 | 218 | 68.8% | 23.7% | 0.013 | ±0.006 (19) | 0.037 | 2896.9 | 8047.8 |  |
+| forex | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | 256081 | 221235 | 219 | 70.1% | 24.3% | 0.015 | ±0.006 (19) | 0.039 | 3225.1 | 8767.1 |  |
+| futures | baseline | 20893 | 16446 | 8 | 52.2% | 34.2% | -0.101 | ±0.028 (16) | -0.042 | -1666.9 | -710.6 |  |
+| futures | runnerProtection=breakeven,stopStructureSource=intraday | 20893 | 16446 | 8 | 52.2% | 34.2% | -0.110 | ±0.027 (16) | -0.053 | -1813.5 | -887.5 |  |
+| futures | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | 21305 | 16734 | 9 | 52.8% | 35.0% | -0.112 | ±0.027 (16) | -0.052 | -1873.8 | -890.8 |  |
+| futures | runnerProtection=hold,stopStructureSource=intraday | 20893 | 16446 | 8 | 52.2% | 34.2% | -0.109 | ±0.026 (16) | -0.051 | -1785.8 | -851.7 |  |
+| futures | runnerProtection=hold,stopStructureSource=intraday_and_daily | 21305 | 16734 | 9 | 52.8% | 35.0% | -0.108 | ±0.027 (16) | -0.047 | -1812.0 | -804.6 |  |
+| futures | runnerProtection=trail_tp1,stopStructureSource=intraday | 20893 | 16446 | 8 | 52.2% | 34.2% | -0.094 | ±0.025 (16) | -0.034 | -1544.6 | -570.1 |  |
+| futures | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | 21305 | 16734 | 9 | 52.8% | 35.0% | -0.095 | ±0.026 (16) | -0.032 | -1589.9 | -544.6 |  |
+| indices | baseline | 681 | 594 | 62 | 46.1% | 26.3% | -0.167 | ±0.091 (4) | -0.125 | -99.3 | -75.5 |  |
+| indices | runnerProtection=breakeven,stopStructureSource=intraday | 681 | 594 | 62 | 46.1% | 26.3% | -0.173 | ±0.089 (4) | -0.131 | -103.0 | -79.6 |  |
+| indices | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | 684 | 597 | 63 | 46.6% | 27.5% | -0.178 | ±0.087 (4) | -0.136 | -106.2 | -83.1 |  |
+| indices | runnerProtection=hold,stopStructureSource=intraday | 681 | 594 | 62 | 46.1% | 26.3% | -0.186 | ±0.099 (4) | -0.138 | -110.3 | -83.4 |  |
+| indices | runnerProtection=hold,stopStructureSource=intraday_and_daily | 684 | 597 | 63 | 46.6% | 27.5% | -0.189 | ±0.097 (4) | -0.141 | -112.7 | -85.7 |  |
+| indices | runnerProtection=trail_tp1,stopStructureSource=intraday | 681 | 594 | 62 | 46.1% | 26.3% | -0.149 | ±0.083 (4) | -0.102 | -88.6 | -62.0 |  |
+| indices | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | 684 | 597 | 63 | 46.6% | 27.5% | -0.153 | ±0.081 (4) | -0.107 | -91.5 | -65.4 |  |
+| livestock | baseline | 1044 | 772 | 12 | 58.0% | 38.1% | -0.205 | ±0.149 (3) | -0.062 | -158.1 | -48.4 |  |
+| livestock | runnerProtection=breakeven,stopStructureSource=intraday | 1044 | 772 | 12 | 58.0% | 38.1% | -0.205 | ±0.149 (3) | -0.062 | -158.1 | -48.4 |  |
+| livestock | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | 1044 | 772 | 12 | 58.0% | 38.1% | -0.205 | ±0.149 (3) | -0.062 | -158.1 | -48.4 |  |
+| livestock | runnerProtection=hold,stopStructureSource=intraday | 1044 | 772 | 12 | 58.3% | 38.1% | -0.273 | ±0.167 (3) | -0.114 | -210.6 | -89.9 |  |
+| livestock | runnerProtection=hold,stopStructureSource=intraday_and_daily | 1044 | 772 | 12 | 58.3% | 38.1% | -0.273 | ±0.167 (3) | -0.114 | -210.6 | -89.9 |  |
+| livestock | runnerProtection=trail_tp1,stopStructureSource=intraday | 1044 | 772 | 12 | 58.0% | 38.1% | -0.206 | ±0.146 (3) | 0.025 | -159.0 | 19.6 |  |
+| livestock | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | 1044 | 772 | 12 | 58.0% | 38.1% | -0.206 | ±0.146 (3) | 0.025 | -159.0 | 19.6 |  |
+| metals | baseline | 10120 | 8004 | 11 | 59.2% | 30.0% | -0.078 | — | 0.004 | -621.2 | 31.5 |  |
+| metals | runnerProtection=breakeven,stopStructureSource=intraday | 10120 | 8004 | 11 | 59.2% | 30.0% | -0.093 | — | -0.015 | -745.1 | -120.4 |  |
+| metals | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | 10380 | 8169 | 11 | 60.0% | 30.8% | -0.097 | — | -0.014 | -795.0 | -119.2 |  |
+| metals | runnerProtection=hold,stopStructureSource=intraday | 10120 | 8004 | 11 | 59.2% | 30.0% | -0.101 | — | -0.022 | -807.6 | -180.0 |  |
+| metals | runnerProtection=hold,stopStructureSource=intraday_and_daily | 10380 | 8169 | 11 | 60.0% | 30.8% | -0.104 | — | -0.021 | -845.9 | -171.9 |  |
+| metals | runnerProtection=trail_tp1,stopStructureSource=intraday | 10120 | 8004 | 11 | 59.2% | 30.0% | -0.078 | — | 0.004 | -621.2 | 31.5 |  |
+| metals | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | 10380 | 8169 | 11 | 60.0% | 30.8% | -0.080 | — | 0.005 | -651.2 | 38.1 |  |
+
+## Per class × variant × fold — held-out markets excluded
+
+| class | variant | fold | n | filled | tp1 hit | net E | ±SE | gross E | net total R |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| agriculture | baseline | fit | 4051 | 2835 | 53.6% | -0.137 | ±0.015 | 0.016 | -388.5 |
+| agriculture | baseline | select | 1970 | 1411 | 52.5% | -0.131 | ±0.029 | 0.024 | -185.0 |
+| agriculture | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | fit | 4172 | 2899 | 54.2% | -0.156 | ±0.016 | -0.009 | -453.2 |
+| agriculture | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | select | 2058 | 1463 | 52.8% | -0.162 | ±0.031 | -0.000 | -237.6 |
+| agriculture | runnerProtection=breakeven,stopStructureSource=intraday | fit | 4051 | 2835 | 53.7% | -0.144 | ±0.016 | -0.006 | -407.1 |
+| agriculture | runnerProtection=breakeven,stopStructureSource=intraday | select | 1970 | 1411 | 52.4% | -0.142 | ±0.029 | 0.010 | -200.8 |
+| agriculture | runnerProtection=hold,stopStructureSource=intraday_and_daily | fit | 4172 | 2899 | 54.2% | -0.144 | ±0.017 | 0.007 | -416.1 |
+| agriculture | runnerProtection=hold,stopStructureSource=intraday_and_daily | select | 2058 | 1463 | 52.8% | -0.179 | ±0.034 | -0.002 | -262.0 |
+| agriculture | runnerProtection=hold,stopStructureSource=intraday | fit | 4051 | 2835 | 53.7% | -0.133 | ±0.017 | 0.010 | -378.3 |
+| agriculture | runnerProtection=hold,stopStructureSource=intraday | select | 1970 | 1411 | 52.4% | -0.166 | ±0.032 | 0.006 | -234.5 |
+| agriculture | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | fit | 4172 | 2899 | 54.1% | -0.147 | ±0.015 | 0.022 | -427.5 |
+| agriculture | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | select | 2058 | 1463 | 52.8% | -0.147 | ±0.031 | 0.031 | -214.7 |
+| agriculture | runnerProtection=trail_tp1,stopStructureSource=intraday | fit | 4051 | 2835 | 53.6% | -0.135 | ±0.015 | 0.024 | -383.1 |
+| agriculture | runnerProtection=trail_tp1,stopStructureSource=intraday | select | 1970 | 1411 | 52.5% | -0.128 | ±0.029 | 0.027 | -180.0 |
+| crypto | baseline | fit | 29822 | 24665 | 73.0% | 0.048 | ±0.004 | 0.127 | 1194.5 |
+| crypto | baseline | select | 56308 | 48009 | 63.0% | -0.123 | ±0.003 | -0.023 | -5919.9 |
+| crypto | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | fit | 30160 | 24922 | 73.2% | -0.012 | ±0.004 | 0.066 | -311.0 |
+| crypto | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | select | 56785 | 48394 | 63.5% | -0.137 | ±0.003 | -0.036 | -6631.7 |
+| crypto | runnerProtection=breakeven,stopStructureSource=intraday | fit | 29822 | 24665 | 73.0% | -0.012 | ±0.004 | 0.066 | -294.8 |
+| crypto | runnerProtection=breakeven,stopStructureSource=intraday | select | 56308 | 48009 | 63.0% | -0.140 | ±0.003 | -0.040 | -6709.8 |
+| crypto | runnerProtection=hold,stopStructureSource=intraday_and_daily | fit | 30160 | 24922 | 73.3% | 0.031 | ±0.005 | 0.112 | 764.1 |
+| crypto | runnerProtection=hold,stopStructureSource=intraday_and_daily | select | 56785 | 48394 | 63.5% | -0.136 | ±0.004 | -0.035 | -6595.6 |
+| crypto | runnerProtection=hold,stopStructureSource=intraday | fit | 29822 | 24665 | 73.1% | 0.029 | ±0.005 | 0.110 | 717.1 |
+| crypto | runnerProtection=hold,stopStructureSource=intraday | select | 56308 | 48009 | 63.0% | -0.139 | ±0.004 | -0.039 | -6674.8 |
+| crypto | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | fit | 30160 | 24922 | 73.2% | 0.055 | ±0.004 | 0.134 | 1373.4 |
+| crypto | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | select | 56785 | 48394 | 63.5% | -0.117 | ±0.003 | -0.014 | -5644.6 |
+| crypto | runnerProtection=trail_tp1,stopStructureSource=intraday | fit | 29822 | 24665 | 73.0% | 0.055 | ±0.004 | 0.134 | 1353.4 |
+| crypto | runnerProtection=trail_tp1,stopStructureSource=intraday | select | 56308 | 48009 | 63.0% | -0.119 | ±0.003 | -0.017 | -5720.3 |
+| energies | baseline | fit | 693 | 577 | 41.1% | -0.201 | ±0.035 | -0.153 | -115.9 |
+| energies | baseline | select | 355 | 298 | 41.9% | -0.202 | ±0.049 | -0.184 | -60.1 |
+| energies | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | fit | 881 | 727 | 42.4% | -0.226 | ±0.032 | -0.178 | -164.3 |
+| energies | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | select | 448 | 371 | 41.2% | -0.220 | ±0.046 | -0.201 | -81.7 |
+| energies | runnerProtection=breakeven,stopStructureSource=intraday | fit | 693 | 577 | 41.1% | -0.230 | ±0.035 | -0.174 | -132.9 |
+| energies | runnerProtection=breakeven,stopStructureSource=intraday | select | 355 | 298 | 41.9% | -0.217 | ±0.050 | -0.198 | -64.7 |
+| energies | runnerProtection=hold,stopStructureSource=intraday_and_daily | fit | 881 | 727 | 42.4% | -0.216 | ±0.033 | -0.165 | -157.3 |
+| energies | runnerProtection=hold,stopStructureSource=intraday_and_daily | select | 448 | 371 | 41.2% | -0.221 | ±0.047 | -0.203 | -82.2 |
+| energies | runnerProtection=hold,stopStructureSource=intraday | fit | 693 | 577 | 41.1% | -0.228 | ±0.036 | -0.172 | -131.4 |
+| energies | runnerProtection=hold,stopStructureSource=intraday | select | 355 | 298 | 41.9% | -0.218 | ±0.051 | -0.200 | -64.8 |
+| energies | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | fit | 881 | 727 | 42.4% | -0.191 | ±0.032 | -0.148 | -138.5 |
+| energies | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | select | 448 | 371 | 41.2% | -0.215 | ±0.045 | -0.192 | -79.6 |
+| energies | runnerProtection=trail_tp1,stopStructureSource=intraday | fit | 693 | 577 | 41.1% | -0.201 | ±0.035 | -0.153 | -115.9 |
+| energies | runnerProtection=trail_tp1,stopStructureSource=intraday | select | 355 | 298 | 41.9% | -0.202 | ±0.049 | -0.184 | -60.1 |
+| forex | baseline | fit | 173419 | 150296 | 68.0% | 0.006 | ±0.002 | 0.028 | 947.3 |
+| forex | baseline | select | 79103 | 68068 | 70.6% | 0.029 | ±0.002 | 0.055 | 1949.6 |
+| forex | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | fit | 175003 | 151531 | 68.9% | -0.028 | ±0.002 | -0.006 | -4300.2 |
+| forex | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | select | 81078 | 69704 | 72.5% | -0.016 | ±0.002 | 0.013 | -1130.1 |
+| forex | runnerProtection=breakeven,stopStructureSource=intraday | fit | 173419 | 150296 | 68.0% | -0.026 | ±0.002 | -0.004 | -3869.3 |
+| forex | runnerProtection=breakeven,stopStructureSource=intraday | select | 79103 | 68068 | 70.6% | -0.017 | ±0.002 | 0.011 | -1141.2 |
+| forex | runnerProtection=hold,stopStructureSource=intraday_and_daily | fit | 175003 | 151531 | 69.0% | -0.022 | ±0.002 | 0.001 | -3369.4 |
+| forex | runnerProtection=hold,stopStructureSource=intraday_and_daily | select | 81078 | 69704 | 72.5% | -0.005 | ±0.003 | 0.025 | -357.4 |
+| forex | runnerProtection=hold,stopStructureSource=intraday | fit | 173419 | 150296 | 68.0% | -0.020 | ±0.002 | 0.002 | -2987.7 |
+| forex | runnerProtection=hold,stopStructureSource=intraday | select | 79103 | 68068 | 70.6% | -0.007 | ±0.003 | 0.021 | -453.1 |
+| forex | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | fit | 175003 | 151531 | 69.0% | 0.006 | ±0.002 | 0.029 | 877.9 |
+| forex | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | select | 81078 | 69704 | 72.6% | 0.034 | ±0.002 | 0.063 | 2347.2 |
+| forex | runnerProtection=trail_tp1,stopStructureSource=intraday | fit | 173419 | 150296 | 68.0% | 0.006 | ±0.002 | 0.028 | 947.3 |
+| forex | runnerProtection=trail_tp1,stopStructureSource=intraday | select | 79103 | 68068 | 70.6% | 0.029 | ±0.002 | 0.055 | 1949.6 |
+| futures | baseline | fit | 13832 | 10719 | 50.5% | -0.126 | ±0.007 | -0.066 | -1348.0 |
+| futures | baseline | select | 7061 | 5727 | 55.3% | -0.056 | ±0.010 | 0.002 | -318.9 |
+| futures | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | fit | 14127 | 10928 | 51.2% | -0.135 | ±0.007 | -0.074 | -1475.1 |
+| futures | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | select | 7178 | 5806 | 55.7% | -0.069 | ±0.010 | -0.010 | -398.7 |
+| futures | runnerProtection=breakeven,stopStructureSource=intraday | fit | 13832 | 10719 | 50.6% | -0.136 | ±0.007 | -0.077 | -1453.8 |
+| futures | runnerProtection=breakeven,stopStructureSource=intraday | select | 7061 | 5727 | 55.3% | -0.063 | ±0.010 | -0.007 | -359.7 |
+| futures | runnerProtection=hold,stopStructureSource=intraday_and_daily | fit | 14127 | 10928 | 51.2% | -0.135 | ±0.008 | -0.071 | -1471.2 |
+| futures | runnerProtection=hold,stopStructureSource=intraday_and_daily | select | 7178 | 5806 | 55.8% | -0.059 | ±0.012 | -0.002 | -340.7 |
+| futures | runnerProtection=hold,stopStructureSource=intraday | fit | 13832 | 10719 | 50.5% | -0.137 | ±0.008 | -0.077 | -1465.9 |
+| futures | runnerProtection=hold,stopStructureSource=intraday | select | 7061 | 5727 | 55.4% | -0.056 | ±0.012 | -0.002 | -319.9 |
+| futures | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | fit | 14127 | 10928 | 51.2% | -0.119 | ±0.007 | -0.056 | -1296.3 |
+| futures | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | select | 7178 | 5806 | 55.7% | -0.051 | ±0.010 | 0.014 | -293.6 |
+| futures | runnerProtection=trail_tp1,stopStructureSource=intraday | fit | 13832 | 10719 | 50.5% | -0.118 | ±0.007 | -0.058 | -1269.5 |
+| futures | runnerProtection=trail_tp1,stopStructureSource=intraday | select | 7061 | 5727 | 55.3% | -0.048 | ±0.010 | 0.011 | -275.1 |
+| indices | baseline | fit | 232 | 195 | 44.6% | -0.038 | ±0.040 | -0.025 | -7.4 |
+| indices | baseline | select | 449 | 399 | 46.9% | -0.230 | ±0.036 | -0.173 | -91.9 |
+| indices | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | fit | 235 | 198 | 46.0% | -0.059 | ±0.041 | -0.047 | -11.7 |
+| indices | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | select | 449 | 399 | 46.9% | -0.237 | ±0.036 | -0.181 | -94.5 |
+| indices | runnerProtection=breakeven,stopStructureSource=intraday | fit | 232 | 195 | 44.6% | -0.047 | ±0.040 | -0.033 | -9.1 |
+| indices | runnerProtection=breakeven,stopStructureSource=intraday | select | 449 | 399 | 46.9% | -0.235 | ±0.036 | -0.179 | -93.9 |
+| indices | runnerProtection=hold,stopStructureSource=intraday_and_daily | fit | 235 | 198 | 46.0% | -0.058 | ±0.042 | -0.044 | -11.4 |
+| indices | runnerProtection=hold,stopStructureSource=intraday_and_daily | select | 449 | 399 | 46.9% | -0.254 | ±0.038 | -0.188 | -101.3 |
+| indices | runnerProtection=hold,stopStructureSource=intraday | fit | 232 | 195 | 44.6% | -0.049 | ±0.041 | -0.035 | -9.6 |
+| indices | runnerProtection=hold,stopStructureSource=intraday | select | 449 | 399 | 46.9% | -0.252 | ±0.038 | -0.188 | -100.7 |
+| indices | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | fit | 235 | 198 | 46.0% | -0.047 | ±0.041 | -0.037 | -9.3 |
+| indices | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | select | 449 | 399 | 46.9% | -0.206 | ±0.036 | -0.142 | -82.2 |
+| indices | runnerProtection=trail_tp1,stopStructureSource=intraday | fit | 232 | 195 | 44.6% | -0.038 | ±0.040 | -0.025 | -7.4 |
+| indices | runnerProtection=trail_tp1,stopStructureSource=intraday | select | 449 | 399 | 46.9% | -0.204 | ±0.036 | -0.140 | -81.3 |
+| livestock | baseline | fit | 691 | 517 | 58.8% | -0.136 | ±0.080 | -0.053 | -70.2 |
+| livestock | baseline | select | 353 | 255 | 56.5% | -0.345 | ±0.364 | -0.079 | -87.9 |
+| livestock | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | fit | 691 | 517 | 58.8% | -0.136 | ±0.080 | -0.053 | -70.2 |
+| livestock | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | select | 353 | 255 | 56.5% | -0.345 | ±0.364 | -0.079 | -87.9 |
+| livestock | runnerProtection=breakeven,stopStructureSource=intraday | fit | 691 | 517 | 58.8% | -0.136 | ±0.080 | -0.053 | -70.2 |
+| livestock | runnerProtection=breakeven,stopStructureSource=intraday | select | 353 | 255 | 56.5% | -0.345 | ±0.364 | -0.079 | -87.9 |
+| livestock | runnerProtection=hold,stopStructureSource=intraday_and_daily | fit | 691 | 517 | 59.2% | -0.181 | ±0.088 | -0.073 | -93.5 |
+| livestock | runnerProtection=hold,stopStructureSource=intraday_and_daily | select | 353 | 255 | 56.5% | -0.459 | ±0.414 | -0.198 | -117.2 |
+| livestock | runnerProtection=hold,stopStructureSource=intraday | fit | 691 | 517 | 59.2% | -0.181 | ±0.088 | -0.073 | -93.5 |
+| livestock | runnerProtection=hold,stopStructureSource=intraday | select | 353 | 255 | 56.5% | -0.459 | ±0.414 | -0.198 | -117.2 |
+| livestock | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | fit | 691 | 517 | 59.0% | -0.131 | ±0.079 | -0.005 | -67.8 |
+| livestock | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | select | 353 | 255 | 56.1% | -0.358 | ±0.363 | 0.086 | -91.2 |
+| livestock | runnerProtection=trail_tp1,stopStructureSource=intraday | fit | 691 | 517 | 59.0% | -0.131 | ±0.079 | -0.005 | -67.8 |
+| livestock | runnerProtection=trail_tp1,stopStructureSource=intraday | select | 353 | 255 | 56.1% | -0.358 | ±0.363 | 0.086 | -91.2 |
+| metals | baseline | fit | 6963 | 5497 | 58.3% | -0.091 | ±0.009 | -0.007 | -502.8 |
+| metals | baseline | select | 3157 | 2507 | 61.3% | -0.047 | ±0.013 | 0.029 | -118.4 |
+| metals | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | fit | 7133 | 5607 | 58.8% | -0.114 | ±0.009 | -0.027 | -637.4 |
+| metals | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | select | 3247 | 2562 | 62.5% | -0.062 | ±0.014 | 0.015 | -157.6 |
+| metals | runnerProtection=breakeven,stopStructureSource=intraday | fit | 6963 | 5497 | 58.2% | -0.109 | ±0.009 | -0.027 | -599.0 |
+| metals | runnerProtection=breakeven,stopStructureSource=intraday | select | 3157 | 2507 | 61.3% | -0.058 | ±0.014 | 0.013 | -146.1 |
+| metals | runnerProtection=hold,stopStructureSource=intraday_and_daily | fit | 7133 | 5607 | 58.8% | -0.122 | ±0.010 | -0.035 | -685.8 |
+| metals | runnerProtection=hold,stopStructureSource=intraday_and_daily | select | 3247 | 2562 | 62.5% | -0.062 | ±0.015 | 0.012 | -160.1 |
+| metals | runnerProtection=hold,stopStructureSource=intraday | fit | 6963 | 5497 | 58.2% | -0.121 | ±0.010 | -0.039 | -666.2 |
+| metals | runnerProtection=hold,stopStructureSource=intraday | select | 3157 | 2507 | 61.3% | -0.056 | ±0.015 | 0.016 | -141.5 |
+| metals | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | fit | 7133 | 5607 | 58.9% | -0.095 | ±0.009 | -0.008 | -531.0 |
+| metals | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | select | 3247 | 2562 | 62.5% | -0.047 | ±0.013 | 0.031 | -120.2 |
+| metals | runnerProtection=trail_tp1,stopStructureSource=intraday | fit | 6963 | 5497 | 58.3% | -0.091 | ±0.009 | -0.007 | -502.8 |
+| metals | runnerProtection=trail_tp1,stopStructureSource=intraday | select | 3157 | 2507 | 61.3% | -0.047 | ±0.013 | 0.029 | -118.4 |
+
+## Frequency beside money — baseline, folds pooled, held-out excluded
+
+markets above the thin floor at baseline: 73 · net expectancy > 0: 20 · winning at least half their filled setups while losing money: 35 (AAVEUSD, ADAUSD, CLUSD, DOGEUSD, DOW, ESUSD, EURJPY, GBPAUD, GBPUSD, GCUSD, GFUSX, GRTUSD, HBARUSD, HEUSX, HGUSD, IMXUSD, LINKUSD, LTCUSD, NIKKEI, NZDUSD, PAUSD, PLUSD, RTYUSD, SOLUSD, TRXUSD, UNIUSD, USDCAD, USDCHF, USDJPY, XAUUSD, YMUSD, ZLUSX, ZMUSD, ZRUSD, ZTUSD)
+
+## Per market × variant — folds pooled
+
+| class | market | variant | held out | n | filled | dataAbsent | tp1 hit | stop | net E | ±SE | gross E | net total R | gross total R | flag |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| agriculture | ZCUSX | baseline |  | 1604 | 1065 | 7 | 44.3% | 31.6% | -0.194 | ±0.030 | 0.064 | -206.3 | 79.0 |  |
+| agriculture | ZCUSX | runnerProtection=breakeven,stopStructureSource=intraday |  | 1604 | 1065 | 7 | 44.1% | 31.6% | -0.205 | ±0.030 | 0.022 | -218.4 | 27.5 |  |
+| agriculture | ZCUSX | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1623 | 1074 | 7 | 46.1% | 35.1% | -0.240 | ±0.034 | 0.012 | -257.3 | 14.5 |  |
+| agriculture | ZCUSX | runnerProtection=hold,stopStructureSource=intraday |  | 1604 | 1065 | 7 | 44.1% | 31.6% | -0.190 | ±0.032 | 0.050 | -202.7 | 61.7 |  |
+| agriculture | ZCUSX | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1623 | 1074 | 7 | 46.1% | 35.1% | -0.215 | ±0.035 | 0.043 | -230.4 | 52.9 |  |
+| agriculture | ZCUSX | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1604 | 1065 | 7 | 44.3% | 31.6% | -0.194 | ±0.030 | 0.064 | -206.3 | 79.0 |  |
+| agriculture | ZCUSX | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1623 | 1074 | 7 | 46.1% | 35.1% | -0.226 | ±0.033 | 0.073 | -242.8 | 90.2 |  |
+| agriculture | ZLUSX | baseline |  | 1460 | 1147 | 4 | 59.1% | 27.2% | -0.068 | ±0.020 | 0.001 | -77.7 | 1.2 |  |
+| agriculture | ZLUSX | runnerProtection=breakeven,stopStructureSource=intraday |  | 1460 | 1147 | 4 | 59.3% | 27.2% | -0.078 | ±0.021 | -0.020 | -89.6 | -23.4 |  |
+| agriculture | ZLUSX | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1590 | 1222 | 5 | 59.0% | 28.6% | -0.095 | ±0.020 | -0.029 | -116.6 | -36.0 |  |
+| agriculture | ZLUSX | runnerProtection=hold,stopStructureSource=intraday |  | 1460 | 1147 | 4 | 59.3% | 27.2% | -0.089 | ±0.022 | -0.027 | -101.9 | -31.9 |  |
+| agriculture | ZLUSX | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1590 | 1222 | 5 | 59.0% | 28.6% | -0.102 | ±0.022 | -0.034 | -124.4 | -43.0 |  |
+| agriculture | ZLUSX | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1460 | 1147 | 4 | 59.1% | 27.2% | -0.068 | ±0.020 | 0.001 | -77.7 | 1.2 |  |
+| agriculture | ZLUSX | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1590 | 1222 | 5 | 58.8% | 28.6% | -0.084 | ±0.020 | -0.004 | -102.9 | -5.6 |  |
+| agriculture | ZMUSD | baseline |  | 1515 | 1106 | 2 | 58.1% | 28.7% | -0.103 | ±0.033 | 0.012 | -114.5 | 13.9 |  |
+| agriculture | ZMUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1515 | 1106 | 2 | 58.1% | 28.7% | -0.113 | ±0.033 | -0.000 | -124.9 | -0.4 |  |
+| agriculture | ZMUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1575 | 1138 | 3 | 57.9% | 30.7% | -0.125 | ±0.034 | 0.000 | -142.0 | 0.4 |  |
+| agriculture | ZMUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1515 | 1106 | 2 | 58.3% | 28.7% | -0.124 | ±0.037 | 0.005 | -137.0 | 6.0 |  |
+| agriculture | ZMUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1575 | 1138 | 3 | 58.1% | 30.7% | -0.133 | ±0.038 | 0.003 | -151.9 | 3.1 |  |
+| agriculture | ZMUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1515 | 1106 | 2 | 58.1% | 28.7% | -0.103 | ±0.033 | 0.012 | -114.5 | 13.9 |  |
+| agriculture | ZMUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1575 | 1138 | 3 | 57.9% | 30.7% | -0.116 | ±0.034 | 0.009 | -131.9 | 10.8 |  |
+| agriculture | ZOUSX | baseline | HELD OUT | 768 | 635 | 5 | 56.4% | 36.2% | -0.068 | ±0.035 | 0.034 | -43.4 | 22.5 |  |
+| agriculture | ZOUSX | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 768 | 635 | 5 | 56.4% | 36.2% | -0.104 | ±0.032 | -0.010 | -66.3 | -6.7 |  |
+| agriculture | ZOUSX | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 767 | 635 | 5 | 53.9% | 43.0% | -0.153 | ±0.035 | -0.018 | -97.4 | -11.7 |  |
+| agriculture | ZOUSX | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 768 | 635 | 5 | 56.4% | 36.2% | -0.068 | ±0.035 | 0.034 | -43.4 | 22.5 |  |
+| agriculture | ZOUSX | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 767 | 635 | 5 | 54.0% | 43.0% | -0.116 | ±0.039 | 0.022 | -73.7 | 14.1 |  |
+| agriculture | ZOUSX | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 768 | 635 | 5 | 56.4% | 36.2% | -0.095 | ±0.031 | 0.013 | -60.5 | 8.3 |  |
+| agriculture | ZOUSX | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 767 | 635 | 5 | 53.9% | 43.0% | -0.146 | ±0.034 | 0.005 | -92.6 | 3.0 |  |
+| agriculture | ZRUSD | baseline |  | 462 | 268 | 25 | 53.0% | 31.7% | -0.033 | ±0.049 | 0.049 | -8.7 | 14.3 |  |
+| agriculture | ZRUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 462 | 268 | 25 | 53.0% | 31.7% | -0.033 | ±0.049 | 0.049 | -8.7 | 14.3 |  |
+| agriculture | ZRUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 462 | 268 | 25 | 53.0% | 31.7% | -0.033 | ±0.049 | 0.049 | -8.7 | 14.3 |  |
+| agriculture | ZRUSD | runnerProtection=hold,stopStructureSource=intraday |  | 462 | 268 | 25 | 53.0% | 31.7% | -0.021 | ±0.052 | 0.083 | -5.5 | 24.3 |  |
+| agriculture | ZRUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 462 | 268 | 25 | 53.0% | 31.7% | -0.021 | ±0.052 | 0.083 | -5.5 | 24.3 |  |
+| agriculture | ZRUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 462 | 268 | 25 | 53.0% | 31.7% | -0.009 | ±0.049 | 0.083 | -2.4 | 24.2 |  |
+| agriculture | ZRUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 462 | 268 | 25 | 53.0% | 31.7% | -0.009 | ±0.049 | 0.083 | -2.4 | 24.2 |  |
+| agriculture | ZSUSX | baseline |  | 980 | 660 | 8 | 49.4% | 43.5% | -0.252 | ±0.036 | -0.032 | -166.3 | -22.2 |  |
+| agriculture | ZSUSX | runnerProtection=breakeven,stopStructureSource=intraday |  | 980 | 660 | 8 | 49.4% | 43.5% | -0.252 | ±0.036 | -0.032 | -166.3 | -22.2 |  |
+| agriculture | ZSUSX | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 980 | 660 | 8 | 49.4% | 43.5% | -0.252 | ±0.036 | -0.032 | -166.3 | -22.2 |  |
+| agriculture | ZSUSX | runnerProtection=hold,stopStructureSource=intraday |  | 980 | 660 | 8 | 49.1% | 43.5% | -0.251 | ±0.039 | -0.028 | -165.8 | -19.5 |  |
+| agriculture | ZSUSX | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 980 | 660 | 8 | 49.1% | 43.5% | -0.251 | ±0.039 | -0.028 | -165.8 | -19.5 |  |
+| agriculture | ZSUSX | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 980 | 660 | 8 | 49.4% | 43.5% | -0.246 | ±0.034 | -0.005 | -162.3 | -3.5 |  |
+| agriculture | ZSUSX | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 980 | 660 | 8 | 49.4% | 43.5% | -0.246 | ±0.034 | -0.005 | -162.3 | -3.5 |  |
+| crypto | AAVEUSD | baseline |  | 2617 | 2272 | 0 | 67.9% | 28.7% | -0.042 | ±0.014 | -0.019 | -95.7 | -42.3 |  |
+| crypto | AAVEUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 2617 | 2272 | 0 | 67.9% | 28.7% | -0.069 | ±0.015 | -0.047 | -156.1 | -108.0 |  |
+| crypto | AAVEUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 2643 | 2288 | 0 | 68.5% | 28.1% | -0.059 | ±0.015 | -0.038 | -135.2 | -88.1 |  |
+| crypto | AAVEUSD | runnerProtection=hold,stopStructureSource=intraday |  | 2617 | 2272 | 0 | 67.9% | 28.7% | -0.066 | ±0.017 | -0.043 | -149.7 | -98.1 |  |
+| crypto | AAVEUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 2643 | 2288 | 0 | 68.5% | 28.1% | -0.056 | ±0.017 | -0.033 | -127.2 | -76.2 |  |
+| crypto | AAVEUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 2617 | 2272 | 0 | 67.9% | 28.7% | -0.042 | ±0.014 | -0.019 | -95.7 | -42.3 |  |
+| crypto | AAVEUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 2643 | 2288 | 0 | 68.5% | 28.1% | -0.035 | ±0.014 | -0.014 | -80.2 | -31.3 |  |
+| crypto | ADAUSD | baseline |  | 6019 | 5072 | 0 | 63.6% | 31.7% | -0.075 | ±0.010 | 0.007 | -381.2 | 36.9 |  |
+| crypto | ADAUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 6019 | 5072 | 0 | 63.6% | 31.7% | -0.096 | ±0.010 | -0.014 | -486.2 | -74.5 |  |
+| crypto | ADAUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 6081 | 5120 | 0 | 64.2% | 31.8% | -0.095 | ±0.010 | -0.011 | -484.5 | -55.1 |  |
+| crypto | ADAUSD | runnerProtection=hold,stopStructureSource=intraday |  | 6019 | 5072 | 0 | 63.6% | 31.7% | -0.082 | ±0.012 | -0.005 | -417.8 | -28.0 |  |
+| crypto | ADAUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 6081 | 5120 | 0 | 64.2% | 31.8% | -0.082 | ±0.012 | -0.000 | -417.3 | -1.5 |  |
+| crypto | ADAUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 6019 | 5072 | 0 | 63.6% | 31.7% | -0.075 | ±0.010 | 0.007 | -381.2 | 36.9 |  |
+| crypto | ADAUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 6081 | 5120 | 0 | 64.2% | 31.8% | -0.071 | ±0.010 | 0.012 | -364.4 | 60.9 |  |
+| crypto | ALGOUSD | baseline |  | 2169 | 1797 | 0 | 36.7% | 62.7% | -0.510 | ±0.020 | -0.125 | -916.5 | -233.3 |  |
+| crypto | ALGOUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 2169 | 1797 | 0 | 36.7% | 62.7% | -0.510 | ±0.020 | -0.125 | -916.5 | -233.3 |  |
+| crypto | ALGOUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 2169 | 1797 | 0 | 36.7% | 62.7% | -0.510 | ±0.020 | -0.125 | -916.5 | -233.3 |  |
+| crypto | ALGOUSD | runnerProtection=hold,stopStructureSource=intraday |  | 2169 | 1797 | 0 | 36.8% | 62.7% | -0.522 | ±0.022 | -0.121 | -938.3 | -225.3 |  |
+| crypto | ALGOUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 2169 | 1797 | 0 | 36.8% | 62.7% | -0.522 | ±0.022 | -0.121 | -938.3 | -225.3 |  |
+| crypto | ALGOUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 2169 | 1797 | 0 | 36.7% | 62.7% | -0.490 | ±0.020 | -0.096 | -881.3 | -178.6 |  |
+| crypto | ALGOUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 2169 | 1797 | 0 | 36.7% | 62.7% | -0.490 | ±0.020 | -0.096 | -881.3 | -178.6 |  |
+| crypto | ATOMUSD | baseline |  | 578 | 456 | 0 | 13.8% | 85.7% | -0.891 | ±0.030 | -0.133 | -406.2 | -66.1 |  |
+| crypto | ATOMUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 578 | 456 | 0 | 13.8% | 85.7% | -0.891 | ±0.030 | -0.133 | -406.2 | -66.1 |  |
+| crypto | ATOMUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 578 | 456 | 0 | 13.8% | 85.7% | -0.891 | ±0.030 | -0.133 | -406.2 | -66.1 |  |
+| crypto | ATOMUSD | runnerProtection=hold,stopStructureSource=intraday |  | 578 | 456 | 0 | 13.8% | 85.7% | -0.900 | ±0.031 | -0.117 | -410.5 | -58.0 |  |
+| crypto | ATOMUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 578 | 456 | 0 | 13.8% | 85.7% | -0.900 | ±0.031 | -0.117 | -410.5 | -58.0 |  |
+| crypto | ATOMUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 578 | 456 | 0 | 13.8% | 85.7% | -0.888 | ±0.030 | -0.083 | -405.2 | -41.5 |  |
+| crypto | ATOMUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 578 | 456 | 0 | 13.8% | 85.7% | -0.888 | ±0.030 | -0.083 | -405.2 | -41.5 |  |
+| crypto | AVAXUSD | baseline |  | 1089 | 884 | 0 | 39.9% | 59.2% | -0.477 | ±0.028 | -0.103 | -421.9 | -94.5 |  |
+| crypto | AVAXUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1089 | 884 | 0 | 39.9% | 59.2% | -0.477 | ±0.028 | -0.103 | -421.9 | -94.5 |  |
+| crypto | AVAXUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1089 | 884 | 0 | 39.9% | 59.2% | -0.477 | ±0.028 | -0.103 | -421.9 | -94.5 |  |
+| crypto | AVAXUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1089 | 884 | 0 | 39.9% | 59.2% | -0.473 | ±0.031 | -0.088 | -418.0 | -81.3 |  |
+| crypto | AVAXUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1089 | 884 | 0 | 39.9% | 59.2% | -0.473 | ±0.031 | -0.088 | -418.0 | -81.3 |  |
+| crypto | AVAXUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1089 | 884 | 0 | 39.8% | 59.2% | -0.458 | ±0.027 | -0.072 | -405.0 | -66.2 |  |
+| crypto | AVAXUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1089 | 884 | 0 | 39.8% | 59.2% | -0.458 | ±0.027 | -0.072 | -405.0 | -66.2 |  |
+| crypto | BCHUSD | baseline | HELD OUT | 5919 | 4866 | 0 | 57.3% | 36.8% | -0.182 | ±0.010 | 0.004 | -883.3 | 19.3 |  |
+| crypto | BCHUSD | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 5919 | 4866 | 0 | 57.3% | 36.8% | -0.204 | ±0.010 | -0.019 | -992.9 | -96.6 |  |
+| crypto | BCHUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 5966 | 4906 | 0 | 57.6% | 37.2% | -0.207 | ±0.010 | -0.020 | -1013.3 | -103.6 |  |
+| crypto | BCHUSD | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 5919 | 4866 | 0 | 57.4% | 36.8% | -0.193 | ±0.012 | -0.010 | -940.6 | -50.0 |  |
+| crypto | BCHUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 5966 | 4906 | 0 | 57.6% | 37.2% | -0.196 | ±0.012 | -0.011 | -961.4 | -54.9 |  |
+| crypto | BCHUSD | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 5919 | 4866 | 0 | 57.3% | 36.8% | -0.182 | ±0.010 | 0.004 | -883.3 | 19.3 |  |
+| crypto | BCHUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 5966 | 4906 | 0 | 57.6% | 37.2% | -0.185 | ±0.010 | 0.002 | -906.0 | 8.2 |  |
+| crypto | BTCUSD | baseline |  | 8159 | 6892 | 1 | 74.1% | 20.9% | 0.039 | ±0.007 | 0.075 | 267.8 | 524.2 |  |
+| crypto | BTCUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 8159 | 6892 | 1 | 74.0% | 20.9% | -0.014 | ±0.008 | 0.021 | -97.2 | 142.7 |  |
+| crypto | BTCUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 8262 | 6959 | 1 | 74.3% | 21.0% | -0.014 | ±0.008 | 0.022 | -99.8 | 151.5 |  |
+| crypto | BTCUSD | runnerProtection=hold,stopStructureSource=intraday |  | 8159 | 6892 | 1 | 74.0% | 20.9% | 0.025 | ±0.009 | 0.058 | 171.6 | 405.3 |  |
+| crypto | BTCUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 8262 | 6959 | 1 | 74.3% | 21.0% | 0.027 | ±0.009 | 0.062 | 187.5 | 435.7 |  |
+| crypto | BTCUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 8159 | 6892 | 1 | 74.1% | 20.9% | 0.039 | ±0.007 | 0.075 | 267.8 | 524.2 |  |
+| crypto | BTCUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 8262 | 6959 | 1 | 74.3% | 21.0% | 0.039 | ±0.007 | 0.077 | 268.8 | 537.3 |  |
+| crypto | DASHUSD | baseline |  | 6927 | 5859 | 0 | 70.1% | 25.7% | 0.007 | ±0.009 | 0.032 | 39.3 | 186.5 |  |
+| crypto | DASHUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 6927 | 5859 | 0 | 70.1% | 25.7% | -0.031 | ±0.009 | -0.007 | -183.8 | -43.6 |  |
+| crypto | DASHUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 6975 | 5897 | 0 | 70.6% | 25.9% | -0.030 | ±0.009 | -0.004 | -177.1 | -25.5 |  |
+| crypto | DASHUSD | runnerProtection=hold,stopStructureSource=intraday |  | 6927 | 5859 | 0 | 70.1% | 25.7% | -0.025 | ±0.010 | -0.002 | -147.5 | -10.0 |  |
+| crypto | DASHUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 6975 | 5897 | 0 | 70.7% | 25.9% | -0.023 | ±0.011 | 0.001 | -136.9 | 6.2 |  |
+| crypto | DASHUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 6927 | 5859 | 0 | 70.1% | 25.7% | 0.007 | ±0.009 | 0.032 | 39.3 | 186.5 |  |
+| crypto | DASHUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 6975 | 5897 | 0 | 70.6% | 25.9% | 0.008 | ±0.009 | 0.033 | 45.9 | 196.4 |  |
+| crypto | DOGEUSD | baseline |  | 4964 | 4258 | 0 | 69.4% | 27.1% | -0.013 | ±0.010 | 0.029 | -53.6 | 122.6 |  |
+| crypto | DOGEUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 4964 | 4258 | 0 | 69.5% | 27.1% | -0.043 | ±0.011 | -0.003 | -183.4 | -12.1 |  |
+| crypto | DOGEUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 4975 | 4270 | 0 | 69.8% | 27.2% | -0.043 | ±0.011 | -0.002 | -183.7 | -9.9 |  |
+| crypto | DOGEUSD | runnerProtection=hold,stopStructureSource=intraday |  | 4964 | 4258 | 0 | 69.5% | 27.1% | -0.027 | ±0.013 | 0.015 | -115.9 | 63.6 |  |
+| crypto | DOGEUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 4975 | 4270 | 0 | 69.9% | 27.2% | -0.028 | ±0.013 | 0.015 | -117.8 | 63.4 |  |
+| crypto | DOGEUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 4964 | 4258 | 0 | 69.4% | 27.1% | -0.013 | ±0.010 | 0.029 | -53.6 | 122.6 |  |
+| crypto | DOGEUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 4975 | 4270 | 0 | 69.8% | 27.2% | -0.013 | ±0.010 | 0.029 | -54.7 | 124.0 |  |
+| crypto | DOTUSD | baseline |  | 682 | 540 | 0 | 27.0% | 72.4% | -0.702 | ±0.031 | -0.062 | -379.3 | -36.7 |  |
+| crypto | DOTUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 682 | 540 | 0 | 27.0% | 72.4% | -0.702 | ±0.031 | -0.062 | -379.3 | -36.7 |  |
+| crypto | DOTUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 682 | 540 | 0 | 27.0% | 72.4% | -0.702 | ±0.031 | -0.062 | -379.3 | -36.7 |  |
+| crypto | DOTUSD | runnerProtection=hold,stopStructureSource=intraday |  | 682 | 540 | 0 | 27.2% | 72.4% | -0.703 | ±0.034 | -0.070 | -379.4 | -41.6 |  |
+| crypto | DOTUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 682 | 540 | 0 | 27.2% | 72.4% | -0.703 | ±0.034 | -0.070 | -379.4 | -41.6 |  |
+| crypto | DOTUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 682 | 540 | 0 | 27.2% | 72.4% | -0.678 | ±0.031 | -0.051 | -366.1 | -30.0 |  |
+| crypto | DOTUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 682 | 540 | 0 | 27.2% | 72.4% | -0.678 | ±0.031 | -0.051 | -366.1 | -30.0 |  |
+| crypto | DYDXUSD | baseline |  | 359 | 285 | 0 | 7.7% | 91.6% | -1.071 | ±0.040 | -0.152 | -305.3 | -47.2 |  |
+| crypto | DYDXUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 359 | 285 | 0 | 7.7% | 91.6% | -1.071 | ±0.040 | -0.152 | -305.3 | -47.2 |  |
+| crypto | DYDXUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 359 | 285 | 0 | 7.7% | 91.6% | -1.071 | ±0.040 | -0.152 | -305.3 | -47.2 |  |
+| crypto | DYDXUSD | runnerProtection=hold,stopStructureSource=intraday |  | 359 | 285 | 0 | 7.7% | 91.6% | -1.085 | ±0.038 | -0.192 | -309.2 | -59.6 |  |
+| crypto | DYDXUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 359 | 285 | 0 | 7.7% | 91.6% | -1.085 | ±0.038 | -0.192 | -309.2 | -59.6 |  |
+| crypto | DYDXUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 359 | 285 | 0 | 7.7% | 91.6% | -1.071 | ±0.039 | -0.164 | -305.2 | -50.8 |  |
+| crypto | DYDXUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 359 | 285 | 0 | 7.7% | 91.6% | -1.071 | ±0.039 | -0.164 | -305.2 | -50.8 |  |
+| crypto | EGLDUSD | baseline |  | 1579 | 1296 | 0 | 47.0% | 48.5% | -0.309 | ±0.021 | -0.051 | -400.5 | -69.3 |  |
+| crypto | EGLDUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1579 | 1296 | 0 | 47.0% | 48.5% | -0.309 | ±0.022 | -0.064 | -400.6 | -87.9 |  |
+| crypto | EGLDUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1580 | 1298 | 0 | 47.7% | 47.8% | -0.296 | ±0.022 | -0.064 | -384.5 | -87.9 |  |
+| crypto | EGLDUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1579 | 1296 | 0 | 47.0% | 48.5% | -0.315 | ±0.024 | -0.076 | -407.8 | -104.5 |  |
+| crypto | EGLDUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1580 | 1298 | 0 | 47.7% | 47.8% | -0.301 | ±0.024 | -0.070 | -390.1 | -96.0 |  |
+| crypto | EGLDUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1579 | 1296 | 0 | 47.0% | 48.5% | -0.309 | ±0.021 | -0.051 | -400.5 | -69.3 |  |
+| crypto | EGLDUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1580 | 1298 | 0 | 47.7% | 47.8% | -0.296 | ±0.021 | -0.049 | -383.7 | -67.2 |  |
+| crypto | ETCUSD | baseline |  | 4747 | 4084 | 0 | 72.3% | 24.1% | 0.028 | ±0.010 | 0.077 | 113.3 | 318.4 |  |
+| crypto | ETCUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 4747 | 4084 | 0 | 72.3% | 24.1% | -0.016 | ±0.010 | 0.032 | -64.3 | 133.6 |  |
+| crypto | ETCUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 4934 | 4252 | 0 | 72.7% | 24.0% | -0.013 | ±0.010 | 0.033 | -56.5 | 142.0 |  |
+| crypto | ETCUSD | runnerProtection=hold,stopStructureSource=intraday |  | 4747 | 4084 | 0 | 72.3% | 24.1% | -0.003 | ±0.012 | 0.047 | -10.3 | 192.7 |  |
+| crypto | ETCUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 4934 | 4252 | 0 | 72.8% | 24.0% | 0.001 | ±0.012 | 0.048 | 3.1 | 205.5 |  |
+| crypto | ETCUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 4747 | 4084 | 0 | 72.3% | 24.1% | 0.028 | ±0.010 | 0.077 | 113.3 | 318.4 |  |
+| crypto | ETCUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 4934 | 4252 | 0 | 72.8% | 24.0% | 0.030 | ±0.010 | 0.079 | 129.5 | 339.4 |  |
+| crypto | ETHUSD | baseline |  | 7879 | 6612 | 1 | 75.0% | 20.9% | 0.065 | ±0.007 | 0.091 | 429.0 | 609.5 |  |
+| crypto | ETHUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 7879 | 6612 | 1 | 75.0% | 20.9% | 0.021 | ±0.008 | 0.049 | 141.9 | 324.0 |  |
+| crypto | ETHUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 7945 | 6664 | 1 | 75.4% | 20.9% | 0.025 | ±0.008 | 0.052 | 163.4 | 350.9 |  |
+| crypto | ETHUSD | runnerProtection=hold,stopStructureSource=intraday |  | 7879 | 6612 | 1 | 75.0% | 20.9% | 0.044 | ±0.009 | 0.070 | 287.7 | 465.1 |  |
+| crypto | ETHUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 7945 | 6664 | 1 | 75.4% | 20.9% | 0.048 | ±0.009 | 0.075 | 322.4 | 504.8 |  |
+| crypto | ETHUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 7879 | 6612 | 1 | 75.0% | 20.9% | 0.065 | ±0.007 | 0.091 | 429.0 | 609.5 |  |
+| crypto | ETHUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 7945 | 6664 | 1 | 75.4% | 20.9% | 0.067 | ±0.007 | 0.094 | 449.1 | 633.7 |  |
+| crypto | FILUSD | baseline | HELD OUT | 69 | 39 | 0 | 0.0% | 100.0% | -1.919 | ±0.164 | -0.043 | -74.8 | -2.3 |  |
+| crypto | FILUSD | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 69 | 39 | 0 | 0.0% | 100.0% | -1.919 | ±0.164 | -0.043 | -74.8 | -2.3 |  |
+| crypto | FILUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 69 | 39 | 0 | 0.0% | 100.0% | -1.919 | ±0.164 | -0.043 | -74.8 | -2.3 |  |
+| crypto | FILUSD | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 69 | 39 | 0 | 0.0% | 100.0% | -1.919 | ±0.164 | -0.034 | -74.8 | -1.8 |  |
+| crypto | FILUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 69 | 39 | 0 | 0.0% | 100.0% | -1.919 | ±0.164 | -0.034 | -74.8 | -1.8 |  |
+| crypto | FILUSD | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 69 | 39 | 0 | 0.0% | 100.0% | -1.919 | ±0.164 | -0.010 | -74.8 | -0.5 |  |
+| crypto | FILUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 69 | 39 | 0 | 0.0% | 100.0% | -1.919 | ±0.164 | -0.010 | -74.8 | -0.5 |  |
+| crypto | GRTUSD | baseline |  | 2943 | 2514 | 0 | 67.3% | 27.6% | -0.032 | ±0.013 | 0.004 | -81.6 | 11.0 |  |
+| crypto | GRTUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 2943 | 2514 | 0 | 67.3% | 27.6% | -0.042 | ±0.014 | -0.004 | -105.1 | -11.4 |  |
+| crypto | GRTUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 2948 | 2520 | 0 | 67.8% | 27.6% | -0.041 | ±0.014 | -0.004 | -104.5 | -10.4 |  |
+| crypto | GRTUSD | runnerProtection=hold,stopStructureSource=intraday |  | 2943 | 2514 | 0 | 67.3% | 27.6% | -0.043 | ±0.016 | -0.004 | -108.8 | -10.2 |  |
+| crypto | GRTUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 2948 | 2520 | 0 | 67.8% | 27.6% | -0.039 | ±0.016 | 0.000 | -97.5 | 0.4 |  |
+| crypto | GRTUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 2943 | 2514 | 0 | 67.3% | 27.6% | -0.032 | ±0.013 | 0.004 | -81.6 | 11.0 |  |
+| crypto | GRTUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 2948 | 2520 | 0 | 67.8% | 27.6% | -0.030 | ±0.013 | 0.008 | -74.6 | 20.0 |  |
+| crypto | HBARUSD | baseline |  | 736 | 640 | 0 | 65.8% | 31.6% | -0.104 | ±0.028 | -0.062 | -66.6 | -40.6 |  |
+| crypto | HBARUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 736 | 640 | 0 | 65.9% | 31.6% | -0.137 | ±0.029 | -0.095 | -87.8 | -62.0 |  |
+| crypto | HBARUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 738 | 642 | 0 | 65.3% | 32.2% | -0.144 | ±0.029 | -0.100 | -92.4 | -65.1 |  |
+| crypto | HBARUSD | runnerProtection=hold,stopStructureSource=intraday |  | 736 | 640 | 0 | 65.9% | 31.6% | -0.107 | ±0.034 | -0.062 | -68.6 | -40.3 |  |
+| crypto | HBARUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 738 | 642 | 0 | 65.3% | 32.2% | -0.112 | ±0.034 | -0.062 | -72.2 | -40.7 |  |
+| crypto | HBARUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 736 | 640 | 0 | 65.8% | 31.6% | -0.104 | ±0.028 | -0.062 | -66.6 | -40.6 |  |
+| crypto | HBARUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 738 | 642 | 0 | 65.1% | 32.2% | -0.115 | ±0.028 | -0.071 | -73.7 | -46.0 |  |
+| crypto | IMXUSD | baseline |  | 1305 | 1128 | 0 | 66.5% | 30.0% | -0.062 | ±0.025 | -0.010 | -70.3 | -11.3 |  |
+| crypto | IMXUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1305 | 1128 | 0 | 66.5% | 30.0% | -0.066 | ±0.022 | -0.012 | -74.7 | -13.8 |  |
+| crypto | IMXUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1314 | 1134 | 0 | 67.2% | 29.4% | -0.053 | ±0.022 | -0.000 | -60.2 | -0.1 |  |
+| crypto | IMXUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1305 | 1128 | 0 | 66.5% | 30.0% | -0.062 | ±0.025 | -0.010 | -70.3 | -11.3 |  |
+| crypto | IMXUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1314 | 1134 | 0 | 67.2% | 29.4% | -0.051 | ±0.025 | 0.001 | -57.8 | 1.3 |  |
+| crypto | IMXUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1305 | 1128 | 0 | 66.5% | 30.0% | -0.041 | ±0.021 | 0.006 | -46.3 | 7.3 |  |
+| crypto | IMXUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1314 | 1134 | 0 | 67.2% | 29.4% | -0.032 | ±0.020 | 0.016 | -36.1 | 18.8 |  |
+| crypto | LINKUSD | baseline |  | 4516 | 3918 | 0 | 70.2% | 27.8% | -0.039 | ±0.014 | -0.011 | -151.8 | -44.0 |  |
+| crypto | LINKUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 4516 | 3918 | 0 | 70.2% | 27.8% | -0.041 | ±0.012 | -0.012 | -159.7 | -48.9 |  |
+| crypto | LINKUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 4517 | 3920 | 0 | 70.5% | 27.8% | -0.038 | ±0.012 | -0.009 | -147.1 | -36.7 |  |
+| crypto | LINKUSD | runnerProtection=hold,stopStructureSource=intraday |  | 4516 | 3918 | 0 | 70.2% | 27.8% | -0.039 | ±0.014 | -0.011 | -151.8 | -44.0 |  |
+| crypto | LINKUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 4517 | 3920 | 0 | 70.5% | 27.8% | -0.037 | ±0.014 | -0.009 | -144.7 | -36.3 |  |
+| crypto | LINKUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 4516 | 3918 | 0 | 70.2% | 27.8% | -0.020 | ±0.011 | 0.011 | -77.6 | 45.1 |  |
+| crypto | LINKUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 4517 | 3920 | 0 | 70.5% | 27.8% | -0.018 | ±0.011 | 0.013 | -69.4 | 52.7 |  |
+| crypto | LTCUSD | baseline |  | 6494 | 5266 | 4 | 62.3% | 31.6% | -0.101 | ±0.009 | 0.094 | -530.1 | 522.1 |  |
+| crypto | LTCUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 6494 | 5266 | 4 | 62.2% | 31.6% | -0.154 | ±0.009 | 0.037 | -811.9 | 204.3 |  |
+| crypto | LTCUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 6542 | 5287 | 4 | 63.0% | 32.0% | -0.156 | ±0.009 | 0.047 | -823.6 | 261.0 |  |
+| crypto | LTCUSD | runnerProtection=hold,stopStructureSource=intraday |  | 6494 | 5266 | 4 | 62.3% | 31.6% | -0.134 | ±0.011 | 0.059 | -708.2 | 329.9 |  |
+| crypto | LTCUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 6542 | 5287 | 4 | 63.1% | 32.0% | -0.132 | ±0.011 | 0.070 | -697.2 | 393.8 |  |
+| crypto | LTCUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 6494 | 5266 | 4 | 62.3% | 31.6% | -0.101 | ±0.009 | 0.094 | -530.1 | 522.1 |  |
+| crypto | LTCUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 6542 | 5287 | 4 | 63.0% | 32.0% | -0.101 | ±0.009 | 0.104 | -532.6 | 583.5 |  |
+| crypto | NEARUSD | baseline | HELD OUT | 803 | 638 | 0 | 28.5% | 70.5% | -0.643 | ±0.032 | -0.081 | -410.2 | -54.3 |  |
+| crypto | NEARUSD | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 803 | 638 | 0 | 28.5% | 70.5% | -0.643 | ±0.032 | -0.081 | -410.2 | -54.3 |  |
+| crypto | NEARUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 803 | 638 | 0 | 28.5% | 70.5% | -0.643 | ±0.032 | -0.081 | -410.2 | -54.3 |  |
+| crypto | NEARUSD | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 803 | 638 | 0 | 28.5% | 70.5% | -0.632 | ±0.035 | -0.050 | -403.5 | -33.9 |  |
+| crypto | NEARUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 803 | 638 | 0 | 28.5% | 70.5% | -0.632 | ±0.035 | -0.050 | -403.5 | -33.9 |  |
+| crypto | NEARUSD | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 803 | 638 | 0 | 28.5% | 70.5% | -0.624 | ±0.031 | -0.078 | -398.4 | -52.4 |  |
+| crypto | NEARUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 803 | 638 | 0 | 28.5% | 70.5% | -0.624 | ±0.031 | -0.078 | -398.4 | -52.4 |  |
+| crypto | SOLUSD | baseline |  | 2555 | 2202 | 0 | 66.4% | 30.0% | -0.053 | ±0.015 | -0.028 | -117.0 | -62.5 |  |
+| crypto | SOLUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 2555 | 2202 | 0 | 66.4% | 30.0% | -0.053 | ±0.016 | -0.025 | -116.3 | -56.4 |  |
+| crypto | SOLUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 2580 | 2222 | 0 | 66.5% | 30.2% | -0.054 | ±0.016 | -0.024 | -119.3 | -54.7 |  |
+| crypto | SOLUSD | runnerProtection=hold,stopStructureSource=intraday |  | 2555 | 2202 | 0 | 66.4% | 30.0% | -0.049 | ±0.018 | -0.020 | -107.0 | -44.4 |  |
+| crypto | SOLUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 2580 | 2222 | 0 | 66.5% | 30.2% | -0.053 | ±0.018 | -0.023 | -116.8 | -51.6 |  |
+| crypto | SOLUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 2555 | 2202 | 0 | 66.4% | 30.0% | -0.053 | ±0.015 | -0.028 | -117.0 | -62.5 |  |
+| crypto | SOLUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 2580 | 2222 | 0 | 66.5% | 30.2% | -0.055 | ±0.015 | -0.027 | -122.4 | -61.1 |  |
+| crypto | TRXUSD | baseline |  | 2911 | 2378 | 0 | 50.1% | 49.0% | -0.344 | ±0.017 | -0.035 | -819.1 | -87.4 |  |
+| crypto | TRXUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 2911 | 2378 | 0 | 50.1% | 49.0% | -0.344 | ±0.017 | -0.035 | -819.1 | -87.4 |  |
+| crypto | TRXUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 2911 | 2378 | 0 | 50.1% | 49.0% | -0.344 | ±0.017 | -0.035 | -819.1 | -87.4 |  |
+| crypto | TRXUSD | runnerProtection=hold,stopStructureSource=intraday |  | 2911 | 2378 | 0 | 50.1% | 49.0% | -0.318 | ±0.020 | -0.004 | -755.1 | -10.7 |  |
+| crypto | TRXUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 2911 | 2378 | 0 | 50.1% | 49.0% | -0.318 | ±0.020 | -0.004 | -755.1 | -10.7 |  |
+| crypto | TRXUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 2911 | 2378 | 0 | 50.0% | 49.0% | -0.291 | ±0.017 | 0.016 | -691.7 | 40.6 |  |
+| crypto | TRXUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 2911 | 2378 | 0 | 50.0% | 49.0% | -0.291 | ±0.017 | 0.016 | -691.7 | 40.6 |  |
+| crypto | UNIUSD | baseline |  | 2959 | 2531 | 0 | 66.5% | 31.4% | -0.079 | ±0.014 | -0.051 | -201.1 | -129.9 |  |
+| crypto | UNIUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 2959 | 2531 | 0 | 66.6% | 31.4% | -0.092 | ±0.015 | -0.064 | -233.9 | -161.7 |  |
+| crypto | UNIUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 2961 | 2533 | 0 | 66.8% | 31.5% | -0.093 | ±0.015 | -0.064 | -235.3 | -162.9 |  |
+| crypto | UNIUSD | runnerProtection=hold,stopStructureSource=intraday |  | 2959 | 2531 | 0 | 66.6% | 31.4% | -0.080 | ±0.017 | -0.048 | -203.5 | -121.1 |  |
+| crypto | UNIUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 2961 | 2533 | 0 | 66.8% | 31.5% | -0.079 | ±0.017 | -0.047 | -200.9 | -119.5 |  |
+| crypto | UNIUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 2959 | 2531 | 0 | 66.5% | 31.4% | -0.079 | ±0.014 | -0.051 | -201.1 | -129.9 |  |
+| crypto | UNIUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 2961 | 2533 | 0 | 66.7% | 31.5% | -0.079 | ±0.014 | -0.050 | -200.6 | -127.5 |  |
+| crypto | XLMUSD | baseline | HELD OUT | 5520 | 4729 | 0 | 72.8% | 24.9% | 0.000 | ±0.012 | 0.023 | 2.1 | 109.8 |  |
+| crypto | XLMUSD | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 5520 | 4729 | 0 | 72.8% | 24.9% | -0.020 | ±0.010 | 0.002 | -93.2 | 8.3 |  |
+| crypto | XLMUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 5543 | 4752 | 0 | 73.0% | 24.9% | -0.021 | ±0.010 | 0.004 | -98.0 | 19.6 |  |
+| crypto | XLMUSD | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 5520 | 4729 | 0 | 72.8% | 24.9% | 0.000 | ±0.012 | 0.023 | 2.1 | 109.8 |  |
+| crypto | XLMUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 5543 | 4752 | 0 | 73.0% | 24.9% | -0.004 | ±0.012 | 0.020 | -19.7 | 96.9 |  |
+| crypto | XLMUSD | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 5520 | 4729 | 0 | 72.8% | 24.9% | 0.021 | ±0.009 | 0.043 | 100.4 | 203.1 |  |
+| crypto | XLMUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 5543 | 4752 | 0 | 73.0% | 24.9% | 0.022 | ±0.009 | 0.045 | 105.2 | 214.7 |  |
+| crypto | XMRUSD | baseline |  | 6574 | 5609 | 0 | 71.7% | 24.5% | 0.012 | ±0.009 | 0.041 | 69.8 | 231.5 |  |
+| crypto | XMRUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 6574 | 5609 | 0 | 71.7% | 24.5% | -0.039 | ±0.009 | -0.011 | -217.2 | -61.7 |  |
+| crypto | XMRUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 6656 | 5673 | 0 | 71.9% | 25.0% | -0.041 | ±0.009 | -0.011 | -230.4 | -64.3 |  |
+| crypto | XMRUSD | runnerProtection=hold,stopStructureSource=intraday |  | 6574 | 5609 | 0 | 71.7% | 24.5% | -0.028 | ±0.010 | -0.001 | -154.9 | -5.5 |  |
+| crypto | XMRUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 6656 | 5673 | 0 | 71.9% | 25.0% | -0.031 | ±0.010 | -0.002 | -174.0 | -8.7 |  |
+| crypto | XMRUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 6574 | 5609 | 0 | 71.7% | 24.5% | 0.012 | ±0.009 | 0.041 | 69.8 | 231.5 |  |
+| crypto | XMRUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 6656 | 5673 | 0 | 71.9% | 25.0% | 0.009 | ±0.009 | 0.039 | 53.1 | 223.1 |  |
+| crypto | XRPUSD | baseline |  | 6046 | 5144 | 0 | 75.0% | 21.3% | 0.048 | ±0.008 | 0.073 | 247.6 | 376.1 |  |
+| crypto | XRPUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 6046 | 5144 | 0 | 75.1% | 21.3% | -0.005 | ±0.009 | 0.019 | -25.1 | 98.1 |  |
+| crypto | XRPUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 6183 | 5260 | 0 | 75.4% | 21.6% | -0.006 | ±0.009 | 0.019 | -29.1 | 99.1 |  |
+| crypto | XRPUSD | runnerProtection=hold,stopStructureSource=intraday |  | 6046 | 5144 | 0 | 75.1% | 21.3% | 0.018 | ±0.012 | 0.042 | 91.0 | 219.3 |  |
+| crypto | XRPUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 6183 | 5260 | 0 | 75.4% | 21.6% | 0.017 | ±0.012 | 0.043 | 91.7 | 226.6 |  |
+| crypto | XRPUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 6046 | 5144 | 0 | 75.0% | 21.3% | 0.048 | ±0.008 | 0.073 | 247.6 | 376.1 |  |
+| crypto | XRPUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 6183 | 5260 | 0 | 75.4% | 21.6% | 0.049 | ±0.008 | 0.073 | 257.5 | 389.3 |  |
+| crypto | XTZUSD | baseline |  | 1323 | 1037 | 0 | 40.4% | 57.2% | -0.477 | ±0.024 | 0.095 | -494.6 | 107.3 |  |
+| crypto | XTZUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1323 | 1037 | 0 | 40.4% | 57.2% | -0.477 | ±0.024 | 0.095 | -494.6 | 107.3 |  |
+| crypto | XTZUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1323 | 1037 | 0 | 40.4% | 57.2% | -0.477 | ±0.024 | 0.095 | -494.6 | 107.3 |  |
+| crypto | XTZUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1323 | 1037 | 0 | 40.5% | 57.2% | -0.459 | ±0.027 | 0.142 | -475.5 | 161.2 |  |
+| crypto | XTZUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1323 | 1037 | 0 | 40.5% | 57.2% | -0.459 | ±0.027 | 0.142 | -475.5 | 161.2 |  |
+| crypto | XTZUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1323 | 1037 | 0 | 40.5% | 57.2% | -0.413 | ±0.025 | 0.188 | -428.3 | 212.5 |  |
+| crypto | XTZUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1323 | 1037 | 0 | 40.5% | 57.2% | -0.413 | ±0.025 | 0.188 | -428.3 | 212.5 |  |
+| energies | WTI | baseline |  | 1048 | 875 | 0 | 41.4% | 35.8% | -0.201 | ±0.028 | -0.164 | -176.1 | -145.4 |  |
+| energies | WTI | runnerProtection=breakeven,stopStructureSource=intraday |  | 1048 | 875 | 0 | 41.4% | 35.8% | -0.226 | ±0.029 | -0.182 | -197.7 | -162.0 |  |
+| energies | WTI | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1329 | 1098 | 1 | 42.0% | 36.2% | -0.224 | ±0.026 | -0.186 | -246.0 | -207.4 |  |
+| energies | WTI | runnerProtection=hold,stopStructureSource=intraday |  | 1048 | 875 | 0 | 41.4% | 35.8% | -0.224 | ±0.030 | -0.181 | -196.3 | -161.0 |  |
+| energies | WTI | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1329 | 1098 | 1 | 42.0% | 36.2% | -0.218 | ±0.027 | -0.178 | -239.5 | -198.9 |  |
+| energies | WTI | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1048 | 875 | 0 | 41.4% | 35.8% | -0.201 | ±0.028 | -0.164 | -176.1 | -145.4 |  |
+| energies | WTI | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1329 | 1098 | 1 | 42.0% | 36.2% | -0.199 | ±0.026 | -0.163 | -218.1 | -182.3 |  |
+| forex | AUDCAD | baseline |  | 13068 | 11382 | 11 | 70.7% | 22.6% | 0.030 | ±0.006 | 0.054 | 338.7 | 614.6 |  |
+| forex | AUDCAD | runnerProtection=breakeven,stopStructureSource=intraday |  | 13068 | 11382 | 11 | 70.7% | 22.6% | -0.017 | ±0.006 | 0.006 | -190.3 | 69.6 |  |
+| forex | AUDCAD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13239 | 11522 | 11 | 72.5% | 23.2% | -0.016 | ±0.006 | 0.012 | -180.7 | 135.7 |  |
+| forex | AUDCAD | runnerProtection=hold,stopStructureSource=intraday |  | 13068 | 11382 | 11 | 70.6% | 22.6% | -0.003 | ±0.007 | 0.022 | -31.5 | 255.0 |  |
+| forex | AUDCAD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13239 | 11522 | 11 | 72.5% | 23.2% | -0.004 | ±0.007 | 0.026 | -43.4 | 301.8 |  |
+| forex | AUDCAD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13068 | 11382 | 11 | 70.7% | 22.6% | 0.030 | ±0.006 | 0.054 | 338.7 | 614.6 |  |
+| forex | AUDCAD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13239 | 11522 | 11 | 72.6% | 23.2% | 0.035 | ±0.006 | 0.063 | 404.3 | 733.1 |  |
+| forex | AUDCHF | baseline | HELD OUT | 13446 | 11581 | 9 | 70.2% | 23.0% | 0.030 | ±0.006 | 0.050 | 349.3 | 577.2 |  |
+| forex | AUDCHF | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 13446 | 11581 | 9 | 70.2% | 23.0% | -0.011 | ±0.006 | 0.008 | -127.2 | 93.8 |  |
+| forex | AUDCHF | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 13644 | 11739 | 9 | 71.3% | 23.6% | -0.012 | ±0.006 | 0.009 | -142.0 | 100.7 |  |
+| forex | AUDCHF | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 13446 | 11581 | 9 | 70.2% | 23.0% | 0.011 | ±0.007 | 0.031 | 125.9 | 355.7 |  |
+| forex | AUDCHF | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 13644 | 11739 | 9 | 71.3% | 23.6% | 0.010 | ±0.007 | 0.031 | 118.2 | 370.4 |  |
+| forex | AUDCHF | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 13446 | 11581 | 9 | 70.2% | 23.0% | 0.030 | ±0.006 | 0.050 | 349.3 | 577.2 |  |
+| forex | AUDCHF | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 13644 | 11739 | 9 | 71.4% | 23.6% | 0.031 | ±0.006 | 0.052 | 365.1 | 612.0 |  |
+| forex | AUDJPY | baseline | HELD OUT | 13592 | 11676 | 6 | 68.1% | 24.4% | 0.010 | ±0.006 | 0.029 | 115.0 | 345.4 |  |
+| forex | AUDJPY | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 13592 | 11676 | 6 | 68.1% | 24.4% | -0.017 | ±0.006 | 0.002 | -203.7 | 20.9 |  |
+| forex | AUDJPY | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 13741 | 11792 | 6 | 69.2% | 25.6% | -0.021 | ±0.006 | -0.001 | -253.2 | -11.6 |  |
+| forex | AUDJPY | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 13592 | 11676 | 6 | 68.1% | 24.4% | -0.016 | ±0.007 | 0.002 | -188.5 | 21.6 |  |
+| forex | AUDJPY | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 13741 | 11792 | 6 | 69.3% | 25.6% | -0.020 | ±0.007 | -0.000 | -235.5 | -2.3 |  |
+| forex | AUDJPY | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 13592 | 11676 | 6 | 68.1% | 24.4% | 0.010 | ±0.006 | 0.029 | 115.0 | 345.4 |  |
+| forex | AUDJPY | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 13741 | 11792 | 6 | 69.3% | 25.6% | 0.008 | ±0.006 | 0.029 | 89.9 | 339.7 |  |
+| forex | AUDNZD | baseline |  | 12980 | 11406 | 7 | 73.1% | 20.1% | 0.061 | ±0.006 | 0.087 | 695.1 | 1000.1 |  |
+| forex | AUDNZD | runnerProtection=breakeven,stopStructureSource=intraday |  | 12980 | 11406 | 7 | 73.0% | 20.1% | 0.003 | ±0.006 | 0.030 | 30.8 | 341.3 |  |
+| forex | AUDNZD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13281 | 11667 | 7 | 74.3% | 21.0% | -0.001 | ±0.006 | 0.026 | -12.9 | 302.8 |  |
+| forex | AUDNZD | runnerProtection=hold,stopStructureSource=intraday |  | 12980 | 11406 | 7 | 73.1% | 20.1% | 0.023 | ±0.007 | 0.050 | 267.8 | 572.9 |  |
+| forex | AUDNZD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13281 | 11667 | 7 | 74.3% | 21.0% | 0.021 | ±0.007 | 0.048 | 248.2 | 568.6 |  |
+| forex | AUDNZD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 12980 | 11406 | 7 | 73.1% | 20.1% | 0.061 | ±0.006 | 0.087 | 695.1 | 1000.1 |  |
+| forex | AUDNZD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13281 | 11667 | 7 | 74.2% | 21.0% | 0.061 | ±0.006 | 0.086 | 711.2 | 1015.7 |  |
+| forex | AUDUSD | baseline | HELD OUT | 14163 | 12200 | 8 | 66.5% | 25.6% | -0.011 | ±0.006 | 0.008 | -135.2 | 100.5 |  |
+| forex | AUDUSD | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 14163 | 12200 | 8 | 66.5% | 25.6% | -0.035 | ±0.006 | -0.017 | -429.6 | -212.8 |  |
+| forex | AUDUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 14270 | 12288 | 8 | 67.8% | 26.1% | -0.034 | ±0.006 | -0.016 | -417.5 | -196.5 |  |
+| forex | AUDUSD | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 14163 | 12200 | 8 | 66.5% | 25.6% | -0.034 | ±0.007 | -0.016 | -419.0 | -192.7 |  |
+| forex | AUDUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 14270 | 12288 | 8 | 67.7% | 26.1% | -0.033 | ±0.007 | -0.014 | -409.5 | -174.6 |  |
+| forex | AUDUSD | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 14163 | 12200 | 8 | 66.5% | 25.6% | -0.011 | ±0.006 | 0.008 | -135.2 | 100.5 |  |
+| forex | AUDUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 14270 | 12288 | 8 | 67.8% | 26.1% | -0.007 | ±0.006 | 0.012 | -91.2 | 145.5 |  |
+| forex | CADCHF | baseline |  | 13326 | 11545 | 9 | 69.3% | 22.3% | 0.028 | ±0.006 | 0.053 | 327.7 | 610.0 |  |
+| forex | CADCHF | runnerProtection=breakeven,stopStructureSource=intraday |  | 13326 | 11545 | 9 | 69.3% | 22.3% | -0.013 | ±0.006 | 0.011 | -149.2 | 133.4 |  |
+| forex | CADCHF | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13507 | 11689 | 9 | 70.6% | 22.8% | -0.015 | ±0.006 | 0.011 | -176.7 | 124.7 |  |
+| forex | CADCHF | runnerProtection=hold,stopStructureSource=intraday |  | 13326 | 11545 | 9 | 69.3% | 22.3% | 0.002 | ±0.007 | 0.027 | 23.2 | 309.0 |  |
+| forex | CADCHF | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13507 | 11689 | 9 | 70.6% | 22.8% | 0.002 | ±0.007 | 0.028 | 29.0 | 331.7 |  |
+| forex | CADCHF | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13326 | 11545 | 9 | 69.3% | 22.3% | 0.028 | ±0.006 | 0.053 | 327.7 | 610.0 |  |
+| forex | CADCHF | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13507 | 11689 | 9 | 70.6% | 22.8% | 0.029 | ±0.006 | 0.055 | 342.3 | 643.6 |  |
+| forex | CADJPY | baseline | HELD OUT | 13716 | 11805 | 10 | 67.2% | 24.9% | -0.003 | ±0.006 | 0.019 | -31.1 | 226.6 |  |
+| forex | CADJPY | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 13716 | 11805 | 10 | 67.2% | 24.9% | -0.029 | ±0.006 | -0.007 | -341.4 | -84.1 |  |
+| forex | CADJPY | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 13879 | 11930 | 10 | 68.6% | 25.9% | -0.031 | ±0.006 | -0.008 | -369.7 | -92.9 |  |
+| forex | CADJPY | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 13716 | 11805 | 10 | 67.1% | 24.9% | -0.023 | ±0.007 | -0.004 | -272.6 | -43.3 |  |
+| forex | CADJPY | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 13879 | 11930 | 10 | 68.6% | 25.9% | -0.023 | ±0.007 | -0.002 | -273.3 | -22.8 |  |
+| forex | CADJPY | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 13716 | 11805 | 10 | 67.2% | 24.9% | -0.003 | ±0.006 | 0.019 | -31.1 | 226.6 |  |
+| forex | CADJPY | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 13879 | 11930 | 10 | 68.6% | 25.9% | -0.003 | ±0.006 | 0.020 | -36.5 | 237.0 |  |
+| forex | CHFJPY | baseline |  | 13576 | 11791 | 10 | 68.5% | 24.2% | 0.009 | ±0.006 | 0.030 | 103.9 | 359.5 |  |
+| forex | CHFJPY | runnerProtection=breakeven,stopStructureSource=intraday |  | 13576 | 11791 | 10 | 68.5% | 24.2% | -0.027 | ±0.006 | -0.006 | -317.1 | -66.1 |  |
+| forex | CHFJPY | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13671 | 11865 | 10 | 69.3% | 24.9% | -0.030 | ±0.006 | -0.006 | -351.0 | -77.3 |  |
+| forex | CHFJPY | runnerProtection=hold,stopStructureSource=intraday |  | 13576 | 11791 | 10 | 68.5% | 24.2% | -0.016 | ±0.007 | 0.005 | -189.6 | 62.7 |  |
+| forex | CHFJPY | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13671 | 11865 | 10 | 69.3% | 24.9% | -0.019 | ±0.007 | 0.004 | -224.3 | 51.2 |  |
+| forex | CHFJPY | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13576 | 11791 | 10 | 68.5% | 24.2% | 0.009 | ±0.006 | 0.030 | 103.9 | 359.5 |  |
+| forex | CHFJPY | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13671 | 11865 | 10 | 69.3% | 24.9% | 0.007 | ±0.006 | 0.031 | 85.2 | 370.5 |  |
+| forex | EURAUD | baseline |  | 13586 | 11700 | 7 | 69.6% | 23.3% | 0.018 | ±0.006 | 0.040 | 215.2 | 472.3 |  |
+| forex | EURAUD | runnerProtection=breakeven,stopStructureSource=intraday |  | 13586 | 11700 | 7 | 69.5% | 23.3% | -0.011 | ±0.006 | 0.011 | -132.6 | 125.7 |  |
+| forex | EURAUD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13723 | 11809 | 7 | 70.8% | 23.7% | -0.011 | ±0.006 | 0.012 | -134.7 | 146.4 |  |
+| forex | EURAUD | runnerProtection=hold,stopStructureSource=intraday |  | 13586 | 11700 | 7 | 69.6% | 23.3% | -0.001 | ±0.007 | 0.023 | -7.5 | 265.9 |  |
+| forex | EURAUD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13723 | 11809 | 7 | 70.8% | 23.7% | 0.001 | ±0.007 | 0.027 | 11.7 | 318.2 |  |
+| forex | EURAUD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13586 | 11700 | 7 | 69.6% | 23.3% | 0.018 | ±0.006 | 0.040 | 215.2 | 472.3 |  |
+| forex | EURAUD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13723 | 11809 | 7 | 70.9% | 23.7% | 0.022 | ±0.006 | 0.045 | 257.3 | 540.0 |  |
+| forex | EURCAD | baseline |  | 13500 | 11614 | 7 | 69.9% | 21.6% | 0.033 | ±0.006 | 0.058 | 379.4 | 673.7 |  |
+| forex | EURCAD | runnerProtection=breakeven,stopStructureSource=intraday |  | 13500 | 11614 | 7 | 70.0% | 21.6% | -0.002 | ±0.006 | 0.023 | -27.4 | 273.3 |  |
+| forex | EURCAD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13724 | 11790 | 7 | 71.4% | 22.5% | -0.009 | ±0.006 | 0.017 | -103.5 | 204.3 |  |
+| forex | EURCAD | runnerProtection=hold,stopStructureSource=intraday |  | 13500 | 11614 | 7 | 69.9% | 21.6% | 0.006 | ±0.007 | 0.032 | 69.6 | 374.9 |  |
+| forex | EURCAD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13724 | 11790 | 7 | 71.3% | 22.5% | 0.001 | ±0.007 | 0.028 | 7.0 | 327.7 |  |
+| forex | EURCAD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13500 | 11614 | 7 | 69.9% | 21.6% | 0.033 | ±0.006 | 0.058 | 379.4 | 673.7 |  |
+| forex | EURCAD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13724 | 11790 | 7 | 71.3% | 22.5% | 0.031 | ±0.006 | 0.057 | 362.2 | 672.8 |  |
+| forex | EURCHF | baseline | HELD OUT | 12371 | 10742 | 12 | 68.3% | 23.4% | -0.022 | ±0.006 | 0.021 | -240.0 | 225.7 |  |
+| forex | EURCHF | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 12371 | 10742 | 12 | 68.3% | 23.4% | -0.076 | ±0.006 | -0.034 | -815.2 | -363.5 |  |
+| forex | EURCHF | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 12463 | 10809 | 12 | 68.9% | 23.9% | -0.080 | ±0.006 | -0.036 | -860.5 | -397.7 |  |
+| forex | EURCHF | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 12371 | 10742 | 12 | 68.3% | 23.4% | -0.076 | ±0.007 | -0.033 | -817.3 | -355.6 |  |
+| forex | EURCHF | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 12463 | 10809 | 12 | 68.9% | 23.9% | -0.080 | ±0.007 | -0.035 | -859.4 | -383.4 |  |
+| forex | EURCHF | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 12371 | 10742 | 12 | 68.3% | 23.4% | -0.022 | ±0.006 | 0.021 | -240.0 | 225.7 |  |
+| forex | EURCHF | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 12463 | 10809 | 12 | 68.9% | 23.9% | -0.024 | ±0.006 | 0.020 | -261.8 | 213.0 |  |
+| forex | EURGBP | baseline | HELD OUT | 12931 | 11143 | 4 | 67.0% | 23.1% | 0.005 | ±0.006 | 0.031 | 58.8 | 343.9 |  |
+| forex | EURGBP | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 12931 | 11143 | 4 | 67.0% | 23.1% | -0.030 | ±0.006 | -0.005 | -333.1 | -51.5 |  |
+| forex | EURGBP | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 13143 | 11305 | 4 | 69.0% | 24.0% | -0.030 | ±0.006 | -0.002 | -340.3 | -25.3 |  |
+| forex | EURGBP | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 12931 | 11143 | 4 | 67.1% | 23.1% | -0.022 | ±0.007 | 0.005 | -248.9 | 58.6 |  |
+| forex | EURGBP | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 13143 | 11305 | 4 | 69.1% | 24.0% | -0.023 | ±0.007 | 0.007 | -263.1 | 78.3 |  |
+| forex | EURGBP | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 12931 | 11143 | 4 | 67.0% | 23.1% | 0.005 | ±0.006 | 0.031 | 58.8 | 343.9 |  |
+| forex | EURGBP | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 13143 | 11305 | 4 | 69.0% | 24.0% | 0.007 | ±0.006 | 0.036 | 83.0 | 411.6 |  |
+| forex | EURJPY | baseline |  | 13581 | 11633 | 10 | 67.1% | 25.1% | -0.007 | ±0.006 | 0.020 | -83.8 | 229.5 |  |
+| forex | EURJPY | runnerProtection=breakeven,stopStructureSource=intraday |  | 13581 | 11633 | 10 | 67.0% | 25.1% | -0.034 | ±0.006 | -0.008 | -390.6 | -92.7 |  |
+| forex | EURJPY | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13770 | 11791 | 10 | 68.5% | 25.5% | -0.032 | ±0.006 | -0.005 | -380.2 | -62.3 |  |
+| forex | EURJPY | runnerProtection=hold,stopStructureSource=intraday |  | 13581 | 11633 | 10 | 67.1% | 25.1% | -0.033 | ±0.007 | -0.008 | -379.6 | -91.9 |  |
+| forex | EURJPY | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13770 | 11791 | 10 | 68.5% | 25.5% | -0.031 | ±0.007 | -0.005 | -368.6 | -65.2 |  |
+| forex | EURJPY | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13581 | 11633 | 10 | 67.1% | 25.1% | -0.007 | ±0.006 | 0.020 | -83.8 | 229.5 |  |
+| forex | EURJPY | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13770 | 11791 | 10 | 68.5% | 25.5% | -0.003 | ±0.006 | 0.024 | -35.4 | 288.1 |  |
+| forex | EURNZD | baseline |  | 13489 | 11665 | 9 | 70.8% | 22.6% | 0.033 | ±0.006 | 0.056 | 390.2 | 660.6 |  |
+| forex | EURNZD | runnerProtection=breakeven,stopStructureSource=intraday |  | 13489 | 11665 | 9 | 70.8% | 22.6% | -0.009 | ±0.006 | 0.014 | -107.9 | 163.2 |  |
+| forex | EURNZD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13663 | 11805 | 9 | 72.0% | 23.6% | -0.013 | ±0.006 | 0.011 | -148.1 | 130.4 |  |
+| forex | EURNZD | runnerProtection=hold,stopStructureSource=intraday |  | 13489 | 11665 | 9 | 70.8% | 22.6% | -0.000 | ±0.007 | 0.022 | -0.6 | 262.5 |  |
+| forex | EURNZD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13663 | 11805 | 9 | 72.0% | 23.6% | -0.003 | ±0.007 | 0.020 | -36.6 | 233.5 |  |
+| forex | EURNZD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13489 | 11665 | 9 | 70.8% | 22.6% | 0.033 | ±0.006 | 0.056 | 390.2 | 660.6 |  |
+| forex | EURNZD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13663 | 11805 | 9 | 72.0% | 23.6% | 0.032 | ±0.006 | 0.055 | 377.5 | 656.9 |  |
+| forex | EURUSD | baseline | HELD OUT | 14069 | 12055 | 8 | 64.9% | 25.7% | -0.032 | ±0.006 | -0.006 | -386.5 | -67.7 |  |
+| forex | EURUSD | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 14069 | 12055 | 8 | 64.9% | 25.7% | -0.054 | ±0.006 | -0.028 | -656.6 | -345.6 |  |
+| forex | EURUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 14214 | 12161 | 8 | 65.9% | 26.4% | -0.056 | ±0.006 | -0.028 | -685.4 | -345.5 |  |
+| forex | EURUSD | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 14069 | 12055 | 8 | 64.9% | 25.7% | -0.054 | ±0.007 | -0.028 | -654.6 | -336.9 |  |
+| forex | EURUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 14214 | 12161 | 8 | 65.9% | 26.4% | -0.053 | ±0.007 | -0.024 | -647.6 | -290.6 |  |
+| forex | EURUSD | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 14069 | 12055 | 8 | 64.9% | 25.7% | -0.032 | ±0.006 | -0.006 | -386.5 | -67.7 |  |
+| forex | EURUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 14214 | 12161 | 8 | 65.9% | 26.4% | -0.032 | ±0.006 | -0.004 | -393.3 | -48.7 |  |
+| forex | GBPAUD | baseline |  | 13521 | 11697 | 6 | 67.7% | 24.8% | -0.001 | ±0.006 | 0.019 | -9.7 | 224.6 |  |
+| forex | GBPAUD | runnerProtection=breakeven,stopStructureSource=intraday |  | 13521 | 11697 | 6 | 67.6% | 24.8% | -0.032 | ±0.006 | -0.010 | -375.1 | -123.3 |  |
+| forex | GBPAUD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13629 | 11787 | 6 | 68.8% | 25.2% | -0.031 | ±0.006 | -0.009 | -364.1 | -101.5 |  |
+| forex | GBPAUD | runnerProtection=hold,stopStructureSource=intraday |  | 13521 | 11697 | 6 | 67.7% | 24.8% | -0.025 | ±0.007 | -0.005 | -292.0 | -54.3 |  |
+| forex | GBPAUD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13629 | 11787 | 6 | 68.9% | 25.2% | -0.023 | ±0.007 | -0.002 | -271.3 | -20.8 |  |
+| forex | GBPAUD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13521 | 11697 | 6 | 67.7% | 24.8% | -0.001 | ±0.006 | 0.019 | -9.7 | 224.6 |  |
+| forex | GBPAUD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13629 | 11787 | 6 | 68.9% | 25.2% | 0.003 | ±0.006 | 0.024 | 37.9 | 285.6 |  |
+| forex | GBPCAD | baseline |  | 13106 | 11283 | 7 | 68.3% | 22.9% | 0.017 | ±0.006 | 0.041 | 190.0 | 466.2 |  |
+| forex | GBPCAD | runnerProtection=breakeven,stopStructureSource=intraday |  | 13106 | 11283 | 7 | 68.3% | 22.9% | -0.024 | ±0.006 | -0.000 | -271.0 | -2.0 |  |
+| forex | GBPCAD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13304 | 11437 | 7 | 69.8% | 23.7% | -0.026 | ±0.006 | -0.001 | -300.1 | -14.7 |  |
+| forex | GBPCAD | runnerProtection=hold,stopStructureSource=intraday |  | 13106 | 11283 | 7 | 68.3% | 22.9% | -0.014 | ±0.007 | 0.010 | -154.0 | 113.5 |  |
+| forex | GBPCAD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13304 | 11437 | 7 | 69.8% | 23.7% | -0.016 | ±0.007 | 0.009 | -185.2 | 98.9 |  |
+| forex | GBPCAD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13106 | 11283 | 7 | 68.3% | 22.9% | 0.017 | ±0.006 | 0.041 | 190.0 | 466.2 |  |
+| forex | GBPCAD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13304 | 11437 | 7 | 69.8% | 23.7% | 0.019 | ±0.006 | 0.045 | 213.9 | 516.3 |  |
+| forex | GBPCHF | baseline | HELD OUT | 13103 | 11332 | 5 | 68.4% | 22.5% | 0.017 | ±0.006 | 0.039 | 196.2 | 443.1 |  |
+| forex | GBPCHF | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 13103 | 11332 | 5 | 68.3% | 22.5% | -0.021 | ±0.006 | -0.000 | -233.5 | -2.1 |  |
+| forex | GBPCHF | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 13274 | 11466 | 5 | 69.4% | 23.1% | -0.022 | ±0.006 | -0.001 | -257.9 | -7.9 |  |
+| forex | GBPCHF | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 13103 | 11332 | 5 | 68.4% | 22.5% | -0.007 | ±0.007 | 0.015 | -77.2 | 174.6 |  |
+| forex | GBPCHF | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 13274 | 11466 | 5 | 69.5% | 23.1% | -0.009 | ±0.007 | 0.014 | -106.3 | 164.2 |  |
+| forex | GBPCHF | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 13103 | 11332 | 5 | 68.4% | 22.5% | 0.017 | ±0.006 | 0.039 | 196.2 | 443.1 |  |
+| forex | GBPCHF | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 13274 | 11466 | 5 | 69.5% | 23.1% | 0.017 | ±0.006 | 0.040 | 198.2 | 466.5 |  |
+| forex | GBPJPY | baseline | HELD OUT | 13313 | 11557 | 4 | 68.3% | 23.6% | 0.018 | ±0.006 | 0.037 | 204.7 | 427.9 |  |
+| forex | GBPJPY | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 13313 | 11557 | 4 | 68.3% | 23.6% | -0.011 | ±0.006 | 0.008 | -127.3 | 88.4 |  |
+| forex | GBPJPY | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 13471 | 11677 | 4 | 69.5% | 24.5% | -0.015 | ±0.006 | 0.006 | -170.8 | 76.1 |  |
+| forex | GBPJPY | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 13313 | 11557 | 4 | 68.3% | 23.6% | -0.015 | ±0.007 | 0.005 | -168.2 | 52.8 |  |
+| forex | GBPJPY | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 13471 | 11677 | 4 | 69.5% | 24.5% | -0.018 | ±0.007 | 0.002 | -213.5 | 29.1 |  |
+| forex | GBPJPY | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 13313 | 11557 | 4 | 68.3% | 23.6% | 0.018 | ±0.006 | 0.037 | 204.7 | 427.9 |  |
+| forex | GBPJPY | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 13471 | 11677 | 4 | 69.5% | 24.5% | 0.016 | ±0.006 | 0.038 | 192.0 | 445.2 |  |
+| forex | GBPNZD | baseline |  | 13482 | 11769 | 9 | 70.4% | 23.0% | 0.035 | ±0.006 | 0.056 | 408.2 | 664.3 |  |
+| forex | GBPNZD | runnerProtection=breakeven,stopStructureSource=intraday |  | 13482 | 11769 | 9 | 70.4% | 23.0% | -0.008 | ±0.006 | 0.014 | -88.8 | 168.2 |  |
+| forex | GBPNZD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13628 | 11886 | 9 | 71.9% | 23.6% | -0.008 | ±0.006 | 0.014 | -94.4 | 165.2 |  |
+| forex | GBPNZD | runnerProtection=hold,stopStructureSource=intraday |  | 13482 | 11769 | 9 | 70.4% | 23.0% | -0.004 | ±0.007 | 0.017 | -48.5 | 205.2 |  |
+| forex | GBPNZD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13628 | 11886 | 9 | 71.9% | 23.6% | -0.001 | ±0.007 | 0.020 | -13.7 | 240.3 |  |
+| forex | GBPNZD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13482 | 11769 | 9 | 70.4% | 23.0% | 0.035 | ±0.006 | 0.056 | 408.2 | 664.3 |  |
+| forex | GBPNZD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13628 | 11886 | 9 | 71.9% | 23.6% | 0.037 | ±0.006 | 0.059 | 443.8 | 701.4 |  |
+| forex | GBPUSD | baseline |  | 13581 | 11626 | 7 | 65.6% | 25.1% | -0.020 | ±0.006 | 0.007 | -237.5 | 76.8 |  |
+| forex | GBPUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 13581 | 11626 | 7 | 65.5% | 25.1% | -0.050 | ±0.006 | -0.022 | -579.9 | -262.4 |  |
+| forex | GBPUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13726 | 11733 | 7 | 66.8% | 25.7% | -0.049 | ±0.006 | -0.021 | -579.0 | -244.9 |  |
+| forex | GBPUSD | runnerProtection=hold,stopStructureSource=intraday |  | 13581 | 11626 | 7 | 65.6% | 25.1% | -0.045 | ±0.007 | -0.018 | -523.3 | -210.8 |  |
+| forex | GBPUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13726 | 11733 | 7 | 66.9% | 25.7% | -0.047 | ±0.007 | -0.019 | -557.3 | -227.3 |  |
+| forex | GBPUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13581 | 11626 | 7 | 65.6% | 25.1% | -0.020 | ±0.006 | 0.007 | -237.5 | 76.8 |  |
+| forex | GBPUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13726 | 11733 | 7 | 66.9% | 25.7% | -0.019 | ±0.006 | 0.010 | -223.4 | 115.8 |  |
+| forex | NZDCAD | baseline |  | 13156 | 11403 | 11 | 71.4% | 22.2% | 0.038 | ±0.006 | 0.060 | 438.6 | 684.4 |  |
+| forex | NZDCAD | runnerProtection=breakeven,stopStructureSource=intraday |  | 13156 | 11403 | 11 | 71.3% | 22.2% | -0.006 | ±0.006 | 0.014 | -73.1 | 165.8 |  |
+| forex | NZDCAD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13326 | 11540 | 11 | 72.9% | 22.6% | -0.004 | ±0.006 | 0.018 | -48.1 | 209.6 |  |
+| forex | NZDCAD | runnerProtection=hold,stopStructureSource=intraday |  | 13156 | 11403 | 11 | 71.4% | 22.2% | 0.004 | ±0.007 | 0.025 | 40.3 | 282.6 |  |
+| forex | NZDCAD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13326 | 11540 | 11 | 73.0% | 22.6% | 0.006 | ±0.007 | 0.029 | 73.9 | 337.8 |  |
+| forex | NZDCAD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13156 | 11403 | 11 | 71.4% | 22.2% | 0.038 | ±0.006 | 0.060 | 438.6 | 684.4 |  |
+| forex | NZDCAD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13326 | 11540 | 11 | 73.0% | 22.6% | 0.042 | ±0.006 | 0.064 | 490.0 | 745.8 |  |
+| forex | NZDCHF | baseline |  | 12795 | 11109 | 13 | 70.7% | 22.6% | 0.037 | ±0.006 | 0.057 | 415.8 | 631.0 |  |
+| forex | NZDCHF | runnerProtection=breakeven,stopStructureSource=intraday |  | 12795 | 11109 | 13 | 70.6% | 22.6% | -0.007 | ±0.006 | 0.013 | -75.5 | 140.2 |  |
+| forex | NZDCHF | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13000 | 11289 | 13 | 72.3% | 23.4% | -0.008 | ±0.006 | 0.014 | -85.9 | 160.1 |  |
+| forex | NZDCHF | runnerProtection=hold,stopStructureSource=intraday |  | 12795 | 11109 | 13 | 70.7% | 22.6% | 0.003 | ±0.007 | 0.023 | 28.2 | 262.0 |  |
+| forex | NZDCHF | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13000 | 11289 | 13 | 72.4% | 23.4% | -0.000 | ±0.007 | 0.023 | -0.8 | 255.7 |  |
+| forex | NZDCHF | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 12795 | 11109 | 13 | 70.7% | 22.6% | 0.037 | ±0.006 | 0.057 | 415.8 | 631.0 |  |
+| forex | NZDCHF | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13000 | 11289 | 13 | 72.3% | 23.4% | 0.041 | ±0.006 | 0.063 | 467.2 | 711.6 |  |
+| forex | NZDJPY | baseline |  | 13362 | 11586 | 14 | 69.1% | 23.9% | 0.022 | ±0.006 | 0.040 | 255.1 | 463.7 |  |
+| forex | NZDJPY | runnerProtection=breakeven,stopStructureSource=intraday |  | 13362 | 11586 | 14 | 69.0% | 23.9% | -0.010 | ±0.006 | 0.007 | -119.4 | 87.1 |  |
+| forex | NZDJPY | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13497 | 11690 | 14 | 69.9% | 24.7% | -0.012 | ±0.006 | 0.006 | -145.9 | 73.8 |  |
+| forex | NZDJPY | runnerProtection=hold,stopStructureSource=intraday |  | 13362 | 11586 | 14 | 69.1% | 23.9% | -0.007 | ±0.007 | 0.011 | -76.9 | 132.1 |  |
+| forex | NZDJPY | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13497 | 11690 | 14 | 69.9% | 24.7% | -0.007 | ±0.007 | 0.012 | -82.2 | 141.8 |  |
+| forex | NZDJPY | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13362 | 11586 | 14 | 69.1% | 23.9% | 0.022 | ±0.006 | 0.040 | 255.1 | 463.7 |  |
+| forex | NZDJPY | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13497 | 11690 | 14 | 70.0% | 24.7% | 0.022 | ±0.006 | 0.041 | 263.0 | 480.5 |  |
+| forex | NZDUSD | baseline |  | 13708 | 11859 | 10 | 67.2% | 25.7% | -0.004 | ±0.006 | 0.013 | -49.8 | 156.8 |  |
+| forex | NZDUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 13708 | 11859 | 10 | 67.1% | 25.7% | -0.035 | ±0.006 | -0.017 | -409.3 | -202.2 |  |
+| forex | NZDUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13835 | 11960 | 10 | 68.6% | 26.5% | -0.036 | ±0.006 | -0.016 | -428.8 | -190.5 |  |
+| forex | NZDUSD | runnerProtection=hold,stopStructureSource=intraday |  | 13708 | 11859 | 10 | 67.1% | 25.7% | -0.035 | ±0.007 | -0.016 | -416.5 | -193.2 |  |
+| forex | NZDUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13835 | 11960 | 10 | 68.6% | 26.5% | -0.036 | ±0.007 | -0.015 | -432.3 | -181.4 |  |
+| forex | NZDUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13708 | 11859 | 10 | 67.2% | 25.7% | -0.004 | ±0.006 | 0.013 | -49.8 | 156.8 |  |
+| forex | NZDUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13835 | 11960 | 10 | 68.7% | 26.5% | -0.003 | ±0.006 | 0.017 | -32.9 | 202.6 |  |
+| forex | USDCAD | baseline |  | 12216 | 10554 | 53 | 66.6% | 26.7% | -0.035 | ±0.006 | -0.003 | -369.9 | -28.1 |  |
+| forex | USDCAD | runnerProtection=breakeven,stopStructureSource=intraday |  | 12216 | 10554 | 53 | 66.6% | 26.7% | -0.065 | ±0.007 | -0.033 | -685.5 | -348.7 |  |
+| forex | USDCAD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 12749 | 10977 | 54 | 67.2% | 26.9% | -0.064 | ±0.007 | -0.031 | -698.3 | -347.1 |  |
+| forex | USDCAD | runnerProtection=hold,stopStructureSource=intraday |  | 12216 | 10554 | 53 | 66.6% | 26.7% | -0.064 | ±0.008 | -0.033 | -676.4 | -349.9 |  |
+| forex | USDCAD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 12749 | 10977 | 54 | 67.2% | 26.9% | -0.063 | ±0.008 | -0.031 | -693.0 | -347.9 |  |
+| forex | USDCAD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 12216 | 10554 | 53 | 66.6% | 26.7% | -0.035 | ±0.006 | -0.003 | -369.9 | -28.1 |  |
+| forex | USDCAD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 12749 | 10977 | 54 | 67.2% | 26.9% | -0.032 | ±0.006 | 0.000 | -351.1 | 4.4 |  |
+| forex | USDCHF | baseline |  | 13064 | 11217 | 10 | 66.0% | 24.9% | -0.017 | ±0.006 | 0.008 | -194.9 | 92.7 |  |
+| forex | USDCHF | runnerProtection=breakeven,stopStructureSource=intraday |  | 13064 | 11217 | 10 | 66.0% | 24.9% | -0.046 | ±0.006 | -0.020 | -510.8 | -222.4 |  |
+| forex | USDCHF | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13267 | 11379 | 10 | 67.3% | 26.0% | -0.052 | ±0.006 | -0.023 | -587.2 | -261.8 |  |
+| forex | USDCHF | runnerProtection=hold,stopStructureSource=intraday |  | 13064 | 11217 | 10 | 66.0% | 24.9% | -0.050 | ±0.007 | -0.024 | -565.7 | -266.5 |  |
+| forex | USDCHF | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13267 | 11379 | 10 | 67.3% | 26.0% | -0.057 | ±0.007 | -0.027 | -643.7 | -308.9 |  |
+| forex | USDCHF | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13064 | 11217 | 10 | 66.0% | 24.9% | -0.017 | ±0.006 | 0.008 | -194.9 | 92.7 |  |
+| forex | USDCHF | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13267 | 11379 | 10 | 67.3% | 26.0% | -0.021 | ±0.006 | 0.008 | -234.2 | 95.3 |  |
+| forex | USDJPY | baseline |  | 13425 | 11525 | 8 | 65.8% | 26.0% | -0.027 | ±0.006 | -0.000 | -315.5 | -4.9 |  |
+| forex | USDJPY | runnerProtection=breakeven,stopStructureSource=intraday |  | 13425 | 11525 | 8 | 65.7% | 26.0% | -0.047 | ±0.006 | -0.020 | -537.8 | -234.5 |  |
+| forex | USDJPY | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 13542 | 11619 | 8 | 66.3% | 26.7% | -0.053 | ±0.006 | -0.023 | -610.8 | -272.5 |  |
+| forex | USDJPY | runnerProtection=hold,stopStructureSource=intraday |  | 13425 | 11525 | 8 | 65.8% | 26.0% | -0.044 | ±0.007 | -0.017 | -507.8 | -199.8 |  |
+| forex | USDJPY | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 13542 | 11619 | 8 | 66.4% | 26.7% | -0.047 | ±0.007 | -0.018 | -544.1 | -207.8 |  |
+| forex | USDJPY | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 13425 | 11525 | 8 | 65.8% | 26.0% | -0.027 | ±0.006 | -0.000 | -315.5 | -4.9 |  |
+| forex | USDJPY | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 13542 | 11619 | 8 | 66.4% | 26.7% | -0.030 | ±0.006 | -0.001 | -353.8 | -12.9 |  |
+| futures | BZUSD | baseline |  | 1320 | 1047 | 1 | 45.5% | 35.3% | -0.057 | ±0.024 | -0.001 | -60.0 | -1.2 |  |
+| futures | BZUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1320 | 1047 | 1 | 45.6% | 35.3% | -0.075 | ±0.025 | -0.024 | -78.8 | -26.3 |  |
+| futures | BZUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1374 | 1088 | 1 | 47.4% | 37.4% | -0.073 | ±0.025 | -0.026 | -79.1 | -28.6 |  |
+| futures | BZUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1320 | 1047 | 1 | 45.6% | 35.3% | -0.058 | ±0.026 | -0.006 | -60.3 | -6.1 |  |
+| futures | BZUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1374 | 1088 | 1 | 47.4% | 37.4% | -0.056 | ±0.027 | -0.002 | -61.3 | -2.2 |  |
+| futures | BZUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1320 | 1047 | 1 | 45.5% | 35.3% | -0.057 | ±0.024 | -0.001 | -60.0 | -1.2 |  |
+| futures | BZUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1374 | 1088 | 1 | 47.4% | 37.4% | -0.054 | ±0.024 | 0.004 | -58.7 | 4.7 |  |
+| futures | CLUSD | baseline |  | 1199 | 987 | 0 | 51.9% | 30.9% | -0.021 | ±0.024 | 0.026 | -20.7 | 26.4 |  |
+| futures | CLUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1199 | 987 | 0 | 51.8% | 30.9% | -0.036 | ±0.025 | 0.014 | -35.3 | 14.4 |  |
+| futures | CLUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1420 | 1146 | 1 | 52.1% | 31.6% | -0.042 | ±0.024 | 0.004 | -48.2 | 5.3 |  |
+| futures | CLUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1199 | 987 | 0 | 51.9% | 30.9% | -0.036 | ±0.027 | 0.012 | -36.0 | 12.0 |  |
+| futures | CLUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1420 | 1146 | 1 | 52.2% | 31.6% | -0.039 | ±0.025 | 0.007 | -44.2 | 8.7 |  |
+| futures | CLUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1199 | 987 | 0 | 51.9% | 30.9% | -0.021 | ±0.024 | 0.026 | -20.7 | 26.4 |  |
+| futures | CLUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1420 | 1146 | 1 | 52.2% | 31.6% | -0.021 | ±0.023 | 0.024 | -23.6 | 27.9 |  |
+| futures | ESUSD | baseline |  | 1492 | 1131 | 0 | 56.7% | 23.4% | -0.032 | ±0.018 | 0.010 | -35.7 | 11.5 |  |
+| futures | ESUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1492 | 1131 | 0 | 56.7% | 23.4% | -0.042 | ±0.020 | 0.001 | -47.8 | 1.1 |  |
+| futures | ESUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1497 | 1132 | 0 | 56.1% | 23.7% | -0.048 | ±0.020 | -0.004 | -54.2 | -4.5 |  |
+| futures | ESUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1492 | 1131 | 0 | 56.7% | 23.4% | -0.040 | ±0.021 | 0.000 | -45.6 | 0.2 |  |
+| futures | ESUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1497 | 1132 | 0 | 56.1% | 23.7% | -0.044 | ±0.021 | -0.003 | -50.2 | -3.9 |  |
+| futures | ESUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1492 | 1131 | 0 | 56.7% | 23.4% | -0.032 | ±0.018 | 0.010 | -35.7 | 11.5 |  |
+| futures | ESUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1497 | 1132 | 0 | 56.1% | 23.7% | -0.036 | ±0.018 | 0.006 | -41.2 | 6.4 |  |
+| futures | GCUSD | baseline |  | 1703 | 1390 | 1 | 62.8% | 23.3% | -0.001 | ±0.018 | 0.014 | -1.7 | 20.1 |  |
+| futures | GCUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1703 | 1390 | 1 | 62.8% | 23.3% | -0.001 | ±0.019 | 0.012 | -0.9 | 16.9 |  |
+| futures | GCUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1700 | 1389 | 1 | 62.8% | 23.0% | 0.003 | ±0.019 | 0.017 | 3.7 | 23.8 |  |
+| futures | GCUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1703 | 1390 | 1 | 62.7% | 23.3% | 0.011 | ±0.021 | 0.027 | 15.0 | 37.6 |  |
+| futures | GCUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1700 | 1389 | 1 | 62.8% | 23.0% | 0.019 | ±0.021 | 0.037 | 26.1 | 51.2 |  |
+| futures | GCUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1703 | 1390 | 1 | 62.8% | 23.3% | -0.001 | ±0.018 | 0.014 | -1.7 | 20.1 |  |
+| futures | GCUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1700 | 1389 | 1 | 62.9% | 23.0% | 0.004 | ±0.018 | 0.022 | 5.5 | 30.8 |  |
+| futures | HGUSD | baseline |  | 1580 | 1297 | 0 | 56.6% | 30.5% | -0.081 | ±0.019 | -0.065 | -104.8 | -84.8 |  |
+| futures | HGUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1580 | 1297 | 0 | 56.6% | 30.5% | -0.098 | ±0.020 | -0.084 | -127.1 | -108.7 |  |
+| futures | HGUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1644 | 1347 | 0 | 56.9% | 33.3% | -0.107 | ±0.021 | -0.083 | -144.4 | -111.5 |  |
+| futures | HGUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1580 | 1297 | 0 | 56.6% | 30.5% | -0.095 | ±0.021 | -0.075 | -122.9 | -97.6 |  |
+| futures | HGUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1644 | 1347 | 0 | 56.9% | 33.3% | -0.104 | ±0.022 | -0.075 | -139.9 | -101.0 |  |
+| futures | HGUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1580 | 1297 | 0 | 56.6% | 30.5% | -0.081 | ±0.019 | -0.065 | -104.8 | -84.8 |  |
+| futures | HGUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1644 | 1347 | 0 | 56.9% | 33.3% | -0.098 | ±0.020 | -0.070 | -132.0 | -94.6 |  |
+| futures | HOUSD | baseline |  | 1306 | 942 | 2 | 26.3% | 72.7% | -0.378 | ±0.024 | -0.340 | -356.0 | -320.8 |  |
+| futures | HOUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1306 | 942 | 2 | 26.3% | 72.7% | -0.378 | ±0.024 | -0.340 | -356.0 | -320.8 |  |
+| futures | HOUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1306 | 942 | 2 | 26.3% | 72.7% | -0.378 | ±0.024 | -0.340 | -356.0 | -320.8 |  |
+| futures | HOUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1306 | 942 | 2 | 26.4% | 72.7% | -0.380 | ±0.026 | -0.338 | -358.0 | -318.8 |  |
+| futures | HOUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1306 | 942 | 2 | 26.4% | 72.7% | -0.380 | ±0.026 | -0.338 | -358.0 | -318.8 |  |
+| futures | HOUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1306 | 942 | 2 | 26.3% | 72.7% | -0.337 | ±0.026 | -0.300 | -317.5 | -282.7 |  |
+| futures | HOUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1306 | 942 | 2 | 26.3% | 72.7% | -0.337 | ±0.026 | -0.300 | -317.5 | -282.7 |  |
+| futures | NGUSD | baseline | HELD OUT | 1494 | 1194 | 1 | 51.6% | 28.1% | -0.095 | ±0.019 | -0.056 | -113.5 | -68.2 |  |
+| futures | NGUSD | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 1494 | 1194 | 1 | 51.6% | 28.1% | -0.110 | ±0.020 | -0.076 | -131.6 | -92.9 |  |
+| futures | NGUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 1521 | 1213 | 1 | 55.7% | 29.8% | -0.096 | ±0.026 | -0.059 | -116.5 | -73.4 |  |
+| futures | NGUSD | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 1494 | 1194 | 1 | 51.6% | 28.1% | -0.129 | ±0.022 | -0.096 | -154.5 | -116.4 |  |
+| futures | NGUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 1521 | 1213 | 1 | 55.7% | 29.8% | -0.112 | ±0.028 | -0.075 | -135.6 | -92.8 |  |
+| futures | NGUSD | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 1494 | 1194 | 1 | 51.6% | 28.1% | -0.095 | ±0.019 | -0.056 | -113.5 | -68.2 |  |
+| futures | NGUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 1521 | 1213 | 1 | 55.7% | 29.8% | -0.084 | ±0.026 | -0.043 | -102.0 | -53.3 |  |
+| futures | NQUSD | baseline | HELD OUT | 1423 | 1130 | 0 | 61.7% | 21.5% | 0.016 | ±0.019 | 0.025 | 17.8 | 28.9 |  |
+| futures | NQUSD | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 1423 | 1130 | 0 | 61.7% | 21.5% | 0.008 | ±0.020 | 0.018 | 9.0 | 20.9 |  |
+| futures | NQUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 1427 | 1129 | 1 | 61.9% | 21.6% | 0.003 | ±0.020 | 0.013 | 3.8 | 15.3 |  |
+| futures | NQUSD | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 1423 | 1130 | 0 | 61.8% | 21.5% | -0.015 | ±0.022 | -0.004 | -16.8 | -5.0 |  |
+| futures | NQUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 1427 | 1129 | 1 | 62.0% | 21.6% | -0.016 | ±0.021 | -0.006 | -18.5 | -6.7 |  |
+| futures | NQUSD | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 1423 | 1130 | 0 | 61.7% | 21.5% | 0.016 | ±0.019 | 0.025 | 17.8 | 28.9 |  |
+| futures | NQUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 1427 | 1129 | 1 | 61.9% | 21.6% | 0.013 | ±0.018 | 0.023 | 14.7 | 26.4 |  |
+| futures | PAUSD | baseline |  | 1481 | 1231 | 0 | 51.5% | 45.6% | -0.089 | ±0.026 | -0.029 | -109.4 | -35.3 |  |
+| futures | PAUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1481 | 1231 | 0 | 51.8% | 45.6% | -0.097 | ±0.027 | -0.038 | -119.0 | -46.5 |  |
+| futures | PAUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1481 | 1231 | 0 | 51.8% | 45.6% | -0.097 | ±0.027 | -0.038 | -119.0 | -46.5 |  |
+| futures | PAUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1481 | 1231 | 0 | 51.7% | 45.6% | -0.100 | ±0.030 | -0.042 | -122.7 | -52.5 |  |
+| futures | PAUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1481 | 1231 | 0 | 51.7% | 45.6% | -0.100 | ±0.030 | -0.042 | -122.7 | -52.5 |  |
+| futures | PAUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1481 | 1231 | 0 | 51.5% | 45.6% | -0.089 | ±0.026 | -0.029 | -109.4 | -35.3 |  |
+| futures | PAUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1481 | 1231 | 0 | 51.5% | 45.6% | -0.089 | ±0.026 | -0.029 | -109.4 | -35.3 |  |
+| futures | PLUSD | baseline |  | 1467 | 1239 | 0 | 57.8% | 39.3% | -0.109 | ±0.024 | -0.050 | -134.9 | -61.9 |  |
+| futures | PLUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1467 | 1239 | 0 | 57.8% | 39.3% | -0.109 | ±0.024 | -0.050 | -134.9 | -61.9 |  |
+| futures | PLUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1467 | 1239 | 0 | 57.8% | 39.3% | -0.109 | ±0.024 | -0.050 | -134.9 | -61.9 |  |
+| futures | PLUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1467 | 1239 | 0 | 57.9% | 39.3% | -0.112 | ±0.027 | -0.055 | -138.8 | -68.7 |  |
+| futures | PLUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1467 | 1239 | 0 | 57.9% | 39.3% | -0.112 | ±0.027 | -0.055 | -138.8 | -68.7 |  |
+| futures | PLUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1467 | 1239 | 0 | 57.6% | 39.3% | -0.071 | ±0.023 | -0.007 | -87.8 | -8.3 |  |
+| futures | PLUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1467 | 1239 | 0 | 57.6% | 39.3% | -0.071 | ±0.023 | -0.007 | -87.8 | -8.3 |  |
+| futures | RBUSD | baseline |  | 1276 | 930 | 2 | 29.4% | 68.9% | -0.356 | ±0.031 | -0.307 | -331.5 | -286.1 |  |
+| futures | RBUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1276 | 930 | 2 | 29.4% | 68.9% | -0.356 | ±0.031 | -0.307 | -331.5 | -286.1 |  |
+| futures | RBUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1276 | 930 | 2 | 29.4% | 68.9% | -0.356 | ±0.031 | -0.307 | -331.5 | -286.1 |  |
+| futures | RBUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1276 | 930 | 2 | 29.5% | 68.9% | -0.321 | ±0.034 | -0.275 | -298.7 | -256.7 |  |
+| futures | RBUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1276 | 930 | 2 | 29.5% | 68.9% | -0.321 | ±0.034 | -0.275 | -298.7 | -256.7 |  |
+| futures | RBUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1276 | 930 | 2 | 29.5% | 68.9% | -0.322 | ±0.031 | -0.271 | -299.5 | -253.0 |  |
+| futures | RBUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1276 | 930 | 2 | 29.5% | 68.9% | -0.322 | ±0.031 | -0.271 | -299.5 | -253.0 |  |
+| futures | RTYUSD | baseline |  | 1412 | 1151 | 0 | 59.2% | 24.3% | -0.026 | ±0.019 | -0.003 | -29.8 | -3.7 |  |
+| futures | RTYUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1412 | 1151 | 0 | 59.3% | 24.3% | -0.032 | ±0.020 | -0.010 | -36.4 | -12.2 |  |
+| futures | RTYUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1459 | 1179 | 0 | 60.0% | 24.0% | -0.024 | ±0.020 | -0.002 | -28.9 | -2.6 |  |
+| futures | RTYUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1412 | 1151 | 0 | 59.3% | 24.3% | -0.037 | ±0.022 | -0.011 | -43.0 | -12.3 |  |
+| futures | RTYUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1459 | 1179 | 0 | 60.1% | 24.0% | -0.027 | ±0.022 | 0.002 | -31.7 | 2.6 |  |
+| futures | RTYUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1412 | 1151 | 0 | 59.2% | 24.3% | -0.026 | ±0.019 | -0.003 | -29.8 | -3.7 |  |
+| futures | RTYUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1459 | 1179 | 0 | 59.9% | 24.0% | -0.018 | ±0.019 | 0.008 | -21.2 | 9.1 |  |
+| futures | SIUSD | baseline |  | 1570 | 1302 | 1 | 64.4% | 23.0% | 0.028 | ±0.017 | 0.065 | 36.3 | 86.3 |  |
+| futures | SIUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1570 | 1302 | 1 | 64.4% | 23.0% | 0.006 | ±0.018 | 0.045 | 8.2 | 60.2 |  |
+| futures | SIUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1591 | 1318 | 1 | 65.6% | 24.1% | 0.005 | ±0.019 | 0.044 | 7.1 | 59.4 |  |
+| futures | SIUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1570 | 1302 | 1 | 64.4% | 23.0% | -0.003 | ±0.020 | 0.042 | -3.8 | 55.4 |  |
+| futures | SIUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1591 | 1318 | 1 | 65.6% | 24.1% | -0.001 | ±0.021 | 0.045 | -1.2 | 60.8 |  |
+| futures | SIUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1570 | 1302 | 1 | 64.4% | 23.0% | 0.028 | ±0.017 | 0.065 | 36.3 | 86.3 |  |
+| futures | SIUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1591 | 1318 | 1 | 65.6% | 24.1% | 0.026 | ±0.018 | 0.064 | 34.8 | 86.5 |  |
+| futures | YMUSD | baseline |  | 1413 | 1121 | 1 | 56.9% | 24.4% | -0.048 | ±0.019 | -0.016 | -53.4 | -18.7 |  |
+| futures | YMUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1413 | 1121 | 1 | 56.9% | 24.4% | -0.060 | ±0.020 | -0.031 | -67.6 | -35.4 |  |
+| futures | YMUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1416 | 1122 | 1 | 57.4% | 24.3% | -0.062 | ±0.020 | -0.031 | -69.0 | -34.8 |  |
+| futures | YMUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1413 | 1121 | 1 | 56.8% | 24.4% | -0.064 | ±0.022 | -0.035 | -71.4 | -39.8 |  |
+| futures | YMUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1416 | 1122 | 1 | 57.3% | 24.3% | -0.064 | ±0.022 | -0.034 | -71.6 | -38.9 |  |
+| futures | YMUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1413 | 1121 | 1 | 56.9% | 24.4% | -0.048 | ±0.019 | -0.016 | -53.4 | -18.7 |  |
+| futures | YMUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1416 | 1122 | 1 | 57.4% | 24.3% | -0.047 | ±0.019 | -0.014 | -52.5 | -15.8 |  |
+| futures | ZBUSD | baseline |  | 1662 | 1215 | 0 | 49.2% | 27.0% | -0.137 | ±0.018 | 0.016 | -166.5 | 21.0 |  |
+| futures | ZBUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1662 | 1215 | 0 | 49.1% | 27.0% | -0.148 | ±0.019 | -0.003 | -179.4 | -4.4 |  |
+| futures | ZBUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1652 | 1202 | 0 | 51.3% | 29.4% | -0.163 | ±0.020 | 0.003 | -195.4 | 3.5 |  |
+| futures | ZBUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1662 | 1215 | 0 | 49.1% | 27.0% | -0.154 | ±0.021 | -0.018 | -186.6 | -22.8 |  |
+| futures | ZBUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1652 | 1202 | 0 | 51.2% | 29.4% | -0.167 | ±0.021 | -0.007 | -200.8 | -8.4 |  |
+| futures | ZBUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1662 | 1215 | 0 | 49.2% | 27.0% | -0.137 | ±0.018 | 0.016 | -166.5 | 21.0 |  |
+| futures | ZBUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1652 | 1202 | 0 | 51.6% | 29.4% | -0.145 | ±0.019 | 0.028 | -174.7 | 35.6 |  |
+| futures | ZFUSD | baseline |  | 375 | 259 | 0 | 47.5% | 43.2% | -0.419 | ±0.051 | -0.144 | -108.5 | -39.8 |  |
+| futures | ZFUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 375 | 259 | 0 | 47.5% | 43.2% | -0.419 | ±0.051 | -0.144 | -108.5 | -39.8 |  |
+| futures | ZFUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 375 | 259 | 0 | 47.5% | 43.2% | -0.419 | ±0.051 | -0.144 | -108.5 | -39.8 |  |
+| futures | ZFUSD | runnerProtection=hold,stopStructureSource=intraday |  | 375 | 259 | 0 | 47.1% | 43.2% | -0.415 | ±0.058 | -0.139 | -107.6 | -38.3 |  |
+| futures | ZFUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 375 | 259 | 0 | 47.1% | 43.2% | -0.415 | ±0.058 | -0.139 | -107.6 | -38.3 |  |
+| futures | ZFUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 375 | 259 | 0 | 47.5% | 43.2% | -0.412 | ±0.048 | -0.100 | -106.7 | -27.7 |  |
+| futures | ZFUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 375 | 259 | 0 | 47.5% | 43.2% | -0.412 | ±0.048 | -0.100 | -106.7 | -27.7 |  |
+| futures | ZNUSD | baseline |  | 1565 | 1162 | 0 | 49.0% | 25.0% | -0.157 | ±0.018 | -0.017 | -182.6 | -21.3 |  |
+| futures | ZNUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 1565 | 1162 | 0 | 48.9% | 25.0% | -0.164 | ±0.019 | -0.029 | -190.6 | -35.6 |  |
+| futures | ZNUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 1575 | 1168 | 0 | 50.3% | 27.5% | -0.178 | ±0.020 | -0.035 | -207.7 | -43.3 |  |
+| futures | ZNUSD | runnerProtection=hold,stopStructureSource=intraday |  | 1565 | 1162 | 0 | 48.7% | 25.0% | -0.170 | ±0.021 | -0.032 | -198.0 | -40.2 |  |
+| futures | ZNUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 1575 | 1168 | 0 | 50.0% | 27.5% | -0.175 | ±0.021 | -0.028 | -204.2 | -35.1 |  |
+| futures | ZNUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 1565 | 1162 | 0 | 49.0% | 25.0% | -0.157 | ±0.018 | -0.017 | -182.6 | -21.3 |  |
+| futures | ZNUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 1575 | 1168 | 0 | 50.3% | 27.5% | -0.172 | ±0.019 | -0.024 | -200.5 | -29.7 |  |
+| futures | ZTUSD | baseline |  | 72 | 42 | 0 | 69.0% | 26.2% | -0.186 | ±0.108 | -0.052 | -7.8 | -2.3 |  |
+| futures | ZTUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 72 | 42 | 0 | 69.0% | 26.2% | -0.186 | ±0.108 | -0.052 | -7.8 | -2.3 |  |
+| futures | ZTUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 72 | 42 | 0 | 69.0% | 26.2% | -0.186 | ±0.108 | -0.052 | -7.8 | -2.3 |  |
+| futures | ZTUSD | runnerProtection=hold,stopStructureSource=intraday |  | 72 | 42 | 0 | 69.0% | 26.2% | -0.175 | ±0.130 | -0.071 | -7.4 | -3.1 |  |
+| futures | ZTUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 72 | 42 | 0 | 69.0% | 26.2% | -0.175 | ±0.130 | -0.071 | -7.4 | -3.1 |  |
+| futures | ZTUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 72 | 42 | 0 | 69.0% | 26.2% | -0.113 | ±0.113 | 0.031 | -4.8 | 1.4 |  |
+| futures | ZTUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 72 | 42 | 0 | 69.0% | 26.2% | -0.113 | ±0.113 | 0.031 | -4.8 | 1.4 |  |
+| indices | ASX | baseline |  | 118 | 101 | 0 | 47.5% | 49.5% | -0.556 | ±0.080 | -0.418 | -56.2 | -43.9 |  |
+| indices | ASX | runnerProtection=breakeven,stopStructureSource=intraday |  | 118 | 101 | 0 | 47.5% | 49.5% | -0.556 | ±0.080 | -0.418 | -56.2 | -43.9 |  |
+| indices | ASX | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 118 | 101 | 0 | 47.5% | 49.5% | -0.556 | ±0.080 | -0.418 | -56.2 | -43.9 |  |
+| indices | ASX | runnerProtection=hold,stopStructureSource=intraday |  | 118 | 101 | 0 | 47.5% | 49.5% | -0.603 | ±0.082 | -0.446 | -60.9 | -46.8 |  |
+| indices | ASX | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 118 | 101 | 0 | 47.5% | 49.5% | -0.603 | ±0.082 | -0.446 | -60.9 | -46.8 |  |
+| indices | ASX | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 118 | 101 | 0 | 47.5% | 49.5% | -0.523 | ±0.080 | -0.374 | -52.8 | -39.3 |  |
+| indices | ASX | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 118 | 101 | 0 | 47.5% | 49.5% | -0.523 | ±0.080 | -0.374 | -52.8 | -39.3 |  |
+| indices | DAX | baseline | HELD OUT | 223 | 216 | 0 | 63.4% | 26.4% | -0.029 | ±0.044 | -0.004 | -6.2 | -0.8 |  |
+| indices | DAX | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 223 | 216 | 0 | 63.4% | 26.4% | -0.064 | ±0.045 | -0.048 | -13.8 | -10.4 |  |
+| indices | DAX | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 221 | 213 | 0 | 62.9% | 26.8% | -0.063 | ±0.046 | -0.046 | -13.3 | -9.9 |  |
+| indices | DAX | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 223 | 216 | 0 | 63.4% | 26.4% | -0.097 | ±0.049 | -0.079 | -21.0 | -17.1 |  |
+| indices | DAX | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 221 | 213 | 0 | 62.9% | 26.8% | -0.093 | ±0.050 | -0.075 | -19.7 | -16.0 |  |
+| indices | DAX | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 223 | 216 | 0 | 63.4% | 26.4% | -0.029 | ±0.044 | -0.004 | -6.2 | -0.8 |  |
+| indices | DAX | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 221 | 213 | 0 | 62.9% | 26.8% | -0.037 | ±0.045 | -0.009 | -8.0 | -1.8 |  |
+| indices | DOW | baseline |  | 51 | 43 | 0 | 62.8% | 34.9% | -0.122 | ±0.117 | -0.065 | -5.2 | -2.9 |  |
+| indices | DOW | runnerProtection=breakeven,stopStructureSource=intraday |  | 51 | 43 | 0 | 62.8% | 34.9% | -0.122 | ±0.117 | -0.065 | -5.2 | -2.9 |  |
+| indices | DOW | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 51 | 43 | 0 | 62.8% | 34.9% | -0.122 | ±0.117 | -0.065 | -5.2 | -2.9 |  |
+| indices | DOW | runnerProtection=hold,stopStructureSource=intraday |  | 51 | 43 | 0 | 62.8% | 34.9% | -0.090 | ±0.127 | -0.033 | -3.9 | -1.5 |  |
+| indices | DOW | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 51 | 43 | 0 | 62.8% | 34.9% | -0.090 | ±0.127 | -0.033 | -3.9 | -1.5 |  |
+| indices | DOW | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 51 | 43 | 0 | 62.8% | 34.9% | -0.091 | ±0.115 | -0.017 | -3.9 | -0.8 |  |
+| indices | DOW | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 51 | 43 | 0 | 62.8% | 34.9% | -0.091 | ±0.115 | -0.017 | -3.9 | -0.8 |  |
+| indices | NIKKEI | baseline |  | 118 | 107 | 9 | 57.0% | 36.4% | -0.168 | ±0.072 | -0.137 | -18.0 | -14.7 |  |
+| indices | NIKKEI | runnerProtection=breakeven,stopStructureSource=intraday |  | 118 | 107 | 9 | 57.0% | 36.4% | -0.168 | ±0.072 | -0.137 | -18.0 | -14.7 |  |
+| indices | NIKKEI | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 118 | 107 | 9 | 57.0% | 36.4% | -0.168 | ±0.072 | -0.137 | -18.0 | -14.7 |  |
+| indices | NIKKEI | runnerProtection=hold,stopStructureSource=intraday |  | 118 | 107 | 9 | 57.0% | 36.4% | -0.208 | ±0.078 | -0.163 | -22.2 | -17.4 |  |
+| indices | NIKKEI | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 118 | 107 | 9 | 57.0% | 36.4% | -0.208 | ±0.078 | -0.163 | -22.2 | -17.4 |  |
+| indices | NIKKEI | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 118 | 107 | 9 | 57.0% | 36.4% | -0.112 | ±0.073 | -0.075 | -12.0 | -8.0 |  |
+| indices | NIKKEI | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 118 | 107 | 9 | 57.0% | 36.4% | -0.112 | ±0.073 | -0.075 | -12.0 | -8.0 |  |
+| indices | NSDQ | baseline |  | 394 | 343 | 53 | 40.2% | 15.2% | -0.058 | ±0.030 | -0.040 | -19.9 | -14.0 |  |
+| indices | NSDQ | runnerProtection=breakeven,stopStructureSource=intraday |  | 394 | 343 | 53 | 40.2% | 15.2% | -0.069 | ±0.030 | -0.052 | -23.7 | -18.1 |  |
+| indices | NSDQ | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 397 | 346 | 54 | 41.0% | 17.3% | -0.078 | ±0.031 | -0.061 | -26.8 | -21.6 |  |
+| indices | NSDQ | runnerProtection=hold,stopStructureSource=intraday |  | 394 | 343 | 53 | 40.2% | 15.2% | -0.068 | ±0.030 | -0.051 | -23.3 | -17.7 |  |
+| indices | NSDQ | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 397 | 346 | 54 | 41.0% | 17.3% | -0.074 | ±0.031 | -0.057 | -25.6 | -20.0 |  |
+| indices | NSDQ | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 394 | 343 | 53 | 40.2% | 15.2% | -0.058 | ±0.030 | -0.040 | -19.9 | -14.0 |  |
+| indices | NSDQ | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 397 | 346 | 54 | 41.0% | 17.3% | -0.066 | ±0.031 | -0.049 | -22.7 | -17.4 |  |
+| indices | SP | baseline | HELD OUT | 477 | 426 | 7 | 46.2% | 14.6% | -0.057 | ±0.028 | -0.023 | -24.2 | -9.8 |  |
+| indices | SP | runnerProtection=breakeven,stopStructureSource=intraday | HELD OUT | 477 | 426 | 7 | 46.2% | 14.6% | -0.053 | ±0.028 | -0.023 | -22.6 | -10.1 |  |
+| indices | SP | runnerProtection=breakeven,stopStructureSource=intraday_and_daily | HELD OUT | 486 | 433 | 7 | 48.3% | 16.6% | -0.048 | ±0.029 | -0.019 | -20.8 | -8.3 |  |
+| indices | SP | runnerProtection=hold,stopStructureSource=intraday | HELD OUT | 477 | 426 | 7 | 46.2% | 14.6% | -0.057 | ±0.028 | -0.023 | -24.2 | -9.8 |  |
+| indices | SP | runnerProtection=hold,stopStructureSource=intraday_and_daily | HELD OUT | 486 | 433 | 7 | 48.3% | 16.6% | -0.051 | ±0.029 | -0.018 | -22.3 | -7.9 |  |
+| indices | SP | runnerProtection=trail_tp1,stopStructureSource=intraday | HELD OUT | 477 | 426 | 7 | 46.2% | 14.6% | -0.040 | ±0.027 | -0.007 | -16.9 | -3.0 |  |
+| indices | SP | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily | HELD OUT | 486 | 433 | 7 | 48.3% | 16.6% | -0.038 | ±0.028 | -0.006 | -16.6 | -2.8 |  |
+| livestock | GFUSX | baseline |  | 381 | 274 | 2 | 54.4% | 40.9% | -0.085 | ±0.055 | -0.048 | -23.3 | -13.2 |  |
+| livestock | GFUSX | runnerProtection=breakeven,stopStructureSource=intraday |  | 381 | 274 | 2 | 54.4% | 40.9% | -0.085 | ±0.055 | -0.048 | -23.3 | -13.2 |  |
+| livestock | GFUSX | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 381 | 274 | 2 | 54.4% | 40.9% | -0.085 | ±0.055 | -0.048 | -23.3 | -13.2 |  |
+| livestock | GFUSX | runnerProtection=hold,stopStructureSource=intraday |  | 381 | 274 | 2 | 54.7% | 40.9% | -0.092 | ±0.062 | -0.030 | -25.2 | -8.2 |  |
+| livestock | GFUSX | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 381 | 274 | 2 | 54.7% | 40.9% | -0.092 | ±0.062 | -0.030 | -25.2 | -8.2 |  |
+| livestock | GFUSX | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 381 | 274 | 2 | 54.4% | 40.9% | -0.105 | ±0.050 | -0.054 | -28.7 | -15.0 |  |
+| livestock | GFUSX | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 381 | 274 | 2 | 54.4% | 40.9% | -0.105 | ±0.050 | -0.054 | -28.7 | -15.0 |  |
+| livestock | HEUSX | baseline |  | 359 | 262 | 4 | 57.6% | 37.8% | -0.557 | ±0.379 | -0.221 | -146.0 | -59.5 |  |
+| livestock | HEUSX | runnerProtection=breakeven,stopStructureSource=intraday |  | 359 | 262 | 4 | 57.6% | 37.8% | -0.557 | ±0.379 | -0.221 | -146.0 | -59.5 |  |
+| livestock | HEUSX | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 359 | 262 | 4 | 57.6% | 37.8% | -0.557 | ±0.379 | -0.221 | -146.0 | -59.5 |  |
+| livestock | HEUSX | runnerProtection=hold,stopStructureSource=intraday |  | 359 | 262 | 4 | 58.0% | 37.8% | -0.674 | ±0.428 | -0.325 | -176.6 | -87.6 |  |
+| livestock | HEUSX | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 359 | 262 | 4 | 58.0% | 37.8% | -0.674 | ±0.428 | -0.325 | -176.6 | -87.6 |  |
+| livestock | HEUSX | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 359 | 262 | 4 | 57.6% | 37.8% | -0.550 | ±0.378 | 0.032 | -144.0 | 8.6 |  |
+| livestock | HEUSX | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 359 | 262 | 4 | 57.6% | 37.8% | -0.550 | ±0.378 | 0.032 | -144.0 | 8.6 |  |
+| livestock | LEUSX | baseline |  | 304 | 236 | 6 | 62.7% | 35.2% | 0.048 | ±0.062 | 0.102 | 11.2 | 24.3 |  |
+| livestock | LEUSX | runnerProtection=breakeven,stopStructureSource=intraday |  | 304 | 236 | 6 | 62.7% | 35.2% | 0.048 | ±0.062 | 0.102 | 11.2 | 24.3 |  |
+| livestock | LEUSX | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 304 | 236 | 6 | 62.7% | 35.2% | 0.048 | ±0.062 | 0.102 | 11.2 | 24.3 |  |
+| livestock | LEUSX | runnerProtection=hold,stopStructureSource=intraday |  | 304 | 236 | 6 | 62.7% | 35.2% | -0.038 | ±0.076 | 0.025 | -8.9 | 5.9 |  |
+| livestock | LEUSX | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 304 | 236 | 6 | 62.7% | 35.2% | -0.038 | ±0.076 | 0.025 | -8.9 | 5.9 |  |
+| livestock | LEUSX | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 304 | 236 | 6 | 62.7% | 35.2% | 0.058 | ±0.057 | 0.109 | 13.7 | 26.0 |  |
+| livestock | LEUSX | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 304 | 236 | 6 | 62.7% | 35.2% | 0.058 | ±0.057 | 0.109 | 13.7 | 26.0 |  |
+| metals | XAUUSD | baseline |  | 10120 | 8004 | 11 | 59.2% | 30.0% | -0.078 | ±0.007 | 0.004 | -621.2 | 31.5 |  |
+| metals | XAUUSD | runnerProtection=breakeven,stopStructureSource=intraday |  | 10120 | 8004 | 11 | 59.2% | 30.0% | -0.093 | ±0.008 | -0.015 | -745.1 | -120.4 |  |
+| metals | XAUUSD | runnerProtection=breakeven,stopStructureSource=intraday_and_daily |  | 10380 | 8169 | 11 | 60.0% | 30.8% | -0.097 | ±0.008 | -0.014 | -795.0 | -119.2 |  |
+| metals | XAUUSD | runnerProtection=hold,stopStructureSource=intraday |  | 10120 | 8004 | 11 | 59.2% | 30.0% | -0.101 | ±0.009 | -0.022 | -807.6 | -180.0 |  |
+| metals | XAUUSD | runnerProtection=hold,stopStructureSource=intraday_and_daily |  | 10380 | 8169 | 11 | 60.0% | 30.8% | -0.104 | ±0.009 | -0.021 | -845.9 | -171.9 |  |
+| metals | XAUUSD | runnerProtection=trail_tp1,stopStructureSource=intraday |  | 10120 | 8004 | 11 | 59.2% | 30.0% | -0.078 | ±0.007 | 0.004 | -621.2 | 31.5 |  |
+| metals | XAUUSD | runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily |  | 10380 | 8169 | 11 | 60.0% | 30.8% | -0.080 | ±0.007 | 0.005 | -651.2 | 38.1 |  |
