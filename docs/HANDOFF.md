@@ -3338,9 +3338,11 @@ is "the committee-weight audit". That is a positive statement in the engine's
 state of record, not an inference from absence, so the reservation below rests
 on a premise that is false. It survives the clock defect because the
 invalidation banner is scoped to calibration RESULTS and this is prose.
-Corroborated in git: three commits have ever touched the file — `715fc98`
-+99/−0, `958f680` +26/−0, `0fd8280` +37/−0 — and **zero weight-value lines have
-been removed across all history**, which is what round-16 reverting every
+Corroborated in git: ~~three~~ **four** commits have ever touched the file —
+`715fc98` +99/−0, `958f680` +26/−0, `0fd8280` +37/−0, and `bbb14a6`, which added
+the value guard's export line and *falsified this sentence's own count the day it
+was written* — and **zero weight-value lines have been removed across all
+history**, which is the operative half and is unaffected, which is what round-16 reverting every
 candidate looks like from the outside. Every value is as first written.
 *Owner call is now acceptance, not derivation.*
 
@@ -3363,6 +3365,16 @@ provenance. Verified: both blocks deep-equal futures exactly, and
 `tests/strategyProfileCompleteness.test.ts` now pins that as a relation so an
 edit to futures alone fails loudly rather than leaving a false note attached to
 a realized-R figure.
+
+**And the guard shipped with a false sentence of its own, struck 2026-09-01.**
+Its docblock read "§6b-1 decision C is the owner ruling that settles it" and its
+failure message said "only an owner ruling may fill it". No such ruling exists.
+§6b-1 C is an open register QUESTION; asserting it as a ruling inside a merged
+CI guard is the same unfounded-claim class the guard was written to refuse. Both
+sites now point at Round 29 item 8, committee weights (`HANDOFF:2688`), which is
+where this cell is actually scheduled — and they keep the refusal verbatim,
+because a measured fill would need validated controls the table does not have:
+all 86 cells are unvalidated and two classes were never audited even once.
 
 **The hole this all sat on top of, now closed.** Nothing guarded the weight
 VALUES. Measured 2026-09-01: editing `forex momentum_confirmation` from 1 to
