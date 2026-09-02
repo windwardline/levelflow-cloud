@@ -2197,3 +2197,60 @@ one whose inputs can be trusted today.
 If the realized payoff still cannot exceed the loss once those two are
 measured, the honest conclusion is that this ladder SHAPE cannot meet
 the standard, and the shape is the question rather than any knob on it.
+
+## Amendment 40 — an exchange price grid may ground alignment, never a money number (owner ruling, 2026-09-01)
+
+§6b-1 item E, closed. **An exchange contract's published price grid may
+ground ALIGNMENT — the increment a displayed price is rounded to. It may
+never ground a money number.** The §19/§20 boundary is unchanged: no
+sizing figure enters except by E8's publication, E8's published method
+over Levelflow's own data, or the owner's dated observation on E8's live
+platform, and "not an exchange specification" still bars the spec sheet
+there absolutely.
+
+**The boundary was never breached, because it does not reach here.** Its
+own first sentence scopes it — "it governs every number in both
+sections" — and both sections are §19 and §20, the sizing governor. An
+alignment tick is analyzer geometry: it decides which price is printable,
+not how much money is at risk. `futures.ts` had drawn that line correctly
+in a comment since 2026-08-09; this ratifies the reading rather than
+changing it.
+
+**What decided it was a control, not a doctrine.** The alternative —
+re-derive every tick from the banked minute series and drop the exchange
+source — was tested against the two markets where E8 publishes the
+answer. It failed both:
+
+| market | bank price-delta gcd | E8-published tick |
+| --- | --- | --- |
+| LEUSX | 0.005 | **0.025** |
+| HEUSX | 0.005 | **0.025** |
+
+The bank measures the finest increment the vendor's data happens to
+carry, which is not the contract's tick. An instrument that misses both
+known answers by a factor of five may not be used to settle the open one.
+This is the same discipline amendment 39's sibling ruling applied to the
+macro-role table on the same day: an instrument speaks on an open case
+only after it reproduces the decided ones.
+
+**The live blast radius is ONE market, not five.** Of the five rows citing
+this precedent, ZOUSX (0.25) and ZRUSD (0.005) match their bank gcd
+exactly and are therefore already grounded in Levelflow's own data;
+ZFUSD and ZTUSD are confirmed by E8's own dossier conversion
+(ZFU6 106'070 = 106.21875 = exactly 13,596 quarter-32nds). Only **GFUSX**
+rests on the exchange grid alone.
+
+**GFUSX's previously stated corroboration is struck.** It read that the
+tick is "consistent with the live watchlist print (GFQ6 348.300) and its
+LE/HE siblings' published 0.025". Neither half holds: 348.300 divides
+evenly by 0.025 **and** by 0.005, so it discriminates nothing, and
+reasoning from siblings is what the third route forbids in terms —
+"nothing adjacent to it". The control above replaces both.
+
+**Why the residual risk is bounded, and it is not obvious.** Where a
+shipped tick is a MULTIPLE of the finest increment the data carries
+(GFUSX 0.025 over 0.005), every aligned price is on-grid under either
+reading. The only cost of being wrong in that direction is a wider
+minimum stop — never an unfillable price. Had the relationship been the
+other way, this ruling would not be safe, and a future row in that
+position is a new question rather than a case of this one.

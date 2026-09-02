@@ -3454,7 +3454,34 @@ and nothing ties the band to level or realised volatility. Options: extend
 #415's treatment to the other two numbers now, or leave all three until a
 valid corpus can measure them.
 
-**E. ZO and ZR's CME-official alignment ticks — the second of the two flags
+**E. ZO and ZR's CME-official alignment ticks — CLOSED 2026-09-01 as
+amendment 40, and the entry's own scope was wrong.** Ruled: an exchange
+contract's published price grid may ground ALIGNMENT; it may never ground a
+money number. The §19/§20 boundary was never breached because it does not
+reach here — its own first sentence scopes it to "every number in both
+sections", and both sections are the sizing governor. `futures.ts` had drawn
+that line correctly in a comment since 2026-08-09; the amendment ratifies the
+reading rather than changing it.
+
+**A control decided it, not a doctrine.** The alternative — drop the exchange
+source and re-derive every tick from the banked minute series — was tested
+against the two markets where E8 publishes the answer, and missed both by five:
+LEUSX and HEUSX are published 0.025 and their bank gcd is 0.005. The bank
+measures the vendor data's finest increment, not the contract's tick. An
+instrument that misses both known answers cannot settle the open one.
+
+**Scope: this entry said two markets; it is five, and the live blast radius is
+one.** ZOUSX (0.25) and ZRUSD (0.005) match their bank gcd EXACTLY and are
+already grounded in Levelflow's own data; ZFUSD/ZTUSD are confirmed by E8's own
+dossier conversion. Only GFUSX rests on the grid alone — and its previously
+stated corroboration is struck, because GFQ6 348.300 divides evenly by 0.025
+AND 0.005 (discriminating nothing) and sibling inference is what the third
+route forbids in terms. Residual risk is bounded: 0.025 is a MULTIPLE of 0.005,
+so every aligned price is on-grid under either reading and the only cost of
+being wrong is a wider minimum stop, never an unfillable price. Pinned at
+`tests/futuresRules.test.ts`, mutation-verified in both directions.
+
+*The entry as it stood:* ZO and ZR's CME-official alignment ticks — the second of the two flags
 raised at the BRENT/WTI header, and it never reached this list.** It shipped on
 the ZB/ZN precedent with the boundary preserved (`futures.ts:225-234`: "§20i
 ruling 5 still bars exchange values from the SIZING table; alignment is a
