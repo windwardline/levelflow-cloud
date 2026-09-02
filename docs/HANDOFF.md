@@ -3517,7 +3517,32 @@ so the one live item in it has been invisible ever since. Options: ratify the
 exchange-spec precedent for alignment as a standing rule, or re-derive both
 ticks from the banked series alone and drop the exchange source.
 
-**F. The E8 captures nobody can take from inside the repo.** The standing ruling
+**F. The E8 captures nobody can take from inside the repo — SHRUNK 2026-09-01,
+and two thirds of it was never the owner's.** The three same-day rulings this
+entry leans on lived in a test comment and nowhere else; they are now law
+(amendment 41), and ruling 3 removes the largest gap this entry claims.
+
+**Softs and Stocks are not a gap.** "We will not trade softs and stocks"
+(ruling 3, 2026-08-07) puts both uncaptured tabs outside the offering.
+`tests/e8RosterConformance.test.ts` stated that at the top of its header and
+then called the same silence "itself a coverage gap" twelve lines below — both
+live in one file. The ruling governs; the contradiction is resolved.
+
+**The ZB/ZN tickets were already supplied and are now IN THE CODE.** #543 closed
+the owner half on 2026-09-01 and the mechanical half landed the same day: tick
+size and value on both rows, `offered-but-unsizeable` 5 → 3,
+`served-and-visible` 92 → 94. Nothing further is owed on those two.
+
+**What actually remains is one ask, and it is not requestable yet.** MC, BIT and
+SIC are unidentified and unmatchable — ruling 2's dormant list, re-admitted the
+moment a source is confirmed. The route is owner-only, but an agent-side FMP
+catalogue price-match must be tried and must FAIL first, and that sequencing
+puts it after R4 rather than now. The 6J order ticket folds into the same
+session at zero marginal cost when it comes.
+
+**Blocks R5, not R3** — unchanged, and stated by the entry itself.
+
+*The entry as it stood:* The E8 captures nobody can take from inside the repo. The standing ruling
 of 2026-08-07 is that every E8 tradable market with an FMP data match must be
 visible and usable on Levelflow — "nonnegotiable". Three gaps stand against it
 and each needs the owner at the platform: the **Softs and Stocks watchlist tabs

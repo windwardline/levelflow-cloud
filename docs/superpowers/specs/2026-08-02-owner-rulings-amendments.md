@@ -2254,3 +2254,38 @@ reading. The only cost of being wrong in that direction is a wider
 minimum stop — never an unfillable price. Had the relationship been the
 other way, this ruling would not be safe, and a future row in that
 position is a new question rather than a case of this one.
+
+## Amendment 41 — the three coverage rulings of 2026-08-07, moved into law (owner rulings, 2026-08-07; recorded 2026-09-01)
+
+These were given on 2026-08-07 and lived, all three, in the header comment of
+`tests/e8RosterConformance.test.ts` and nowhere else. A test comment is not
+where law is kept: it is invisible to anyone reading the specs, it cannot be
+cited, and — as below — it drifted against itself inside the same file.
+Recorded here verbatim in substance, with the drift resolved.
+
+**Ruling 1 — coverage is nonnegotiable.** Every E8 tradable market with an FMP
+data match must be visible and usable on Levelflow, because the user is working
+within that account structure. The ONLY ground for withholding is the absence of
+a verifiable data source. Caution is not a ground; a calibration verdict is a
+different mechanism and is not this.
+
+**Ruling 2 — an unidentifiable instrument is dormant, not forgotten.** If no
+source is identified for an E8 offering, there is no FMP match and it goes to
+the excluded dormant list. It is re-admitted the moment a source is confirmed.
+Exclusion here is a statement about identification, never about merit.
+
+**Ruling 3 — softs and stocks are out of scope.** "We will not trade softs and
+stocks." The two watchlist tabs that were never captured are therefore outside
+the offering, and **their absence is not a coverage gap**.
+
+**The drift ruling 3 resolves.** `tests/e8RosterConformance.test.ts` stated
+ruling 3 at the top of its own header — "out of scope, so their absence is no
+longer a gap" — and then, twelve lines below, described the same two tabs as
+"complete for eight tabs and silent about two. That silence is itself a coverage
+gap and is recorded as one." Both sentences were live in one file. The ruling
+governs: not a gap. Corrected in the same change set that records this.
+
+**What this does not do.** It does not shrink §6b-1 item F to nothing. MC, BIT
+and SIC remain unidentified and unmatchable, which is ruling 2's dormant list
+rather than a softs-and-stocks question, and identification of them stays an
+owner-only route through the platform.
