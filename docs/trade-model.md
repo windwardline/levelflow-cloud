@@ -74,6 +74,13 @@ geometry, not on the cohort filter.
 
 ## Current engine state (2026-08-07)
 
+> **2026-09-02 — R3, the one re-sweep, has RUN** (both arms, anchor
+> 2026-08-26, zero provider bytes; `docs/research/r3/`, record
+> `docs/research/r3-one-resweep-2026-09-02.md`). It moved NO value in this
+> file: every figure below still rests on the corpus the 2026-08-11 clock
+> defect invalidated, and R4's per-market program is what re-derives them.
+> The version R3's manifests record is `2026.09.01.platinum-group-rate-inverse`.
+
 The state of record through round 28. Every value is derived at full
 available history under the walk-forward both-splits gate. The sections
 that follow explain the mechanisms; the round journal at the bottom is

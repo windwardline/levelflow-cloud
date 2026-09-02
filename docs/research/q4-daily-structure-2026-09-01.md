@@ -36,9 +36,20 @@ Read plainly: **daily structure sits in the stop's own direction on 96.6% to
 structure-stopped it would move the shipped stop.** The move is not marginal —
 a median of roughly 0.6 ATR and a p90 above 2 ATR.
 
-Adding levels to a nearest-beyond search can only find a NEARER level, so the
+~~Adding levels to a nearest-beyond search can only find a NEARER level, so the
 stop always tightens or holds and never widens. That is a property of the
-operator, not an observation, and `tests/q4Reader.test.ts` asserts it.
+operator, not an observation, and `tests/q4Reader.test.ts` asserts it.~~
+**Corrected 2026-09-02 from R3's corpus, which carries both arms' stops per
+decision.** The property holds only where an intraday level already stood.
+In the `daily only` case below — the shipped stop sits at the volatility
+FLOOR because no intraday pivot exists — a daily pivot moves the stop OUT to a
+structural level: 49.8% of volatility-floor rows widened under the daily arm
+in a 25% sample of R3's paired rows (16,417 of 32,934), and 27.9% of cap rows
+tightened. This reader recorded `Math.abs(withDaily.stop − shipped.stop)` and
+asserted the sign; the sign was never measured. The question it was built for
+is now answered directly by R3's two stop-source arms
+(`docs/research/r3-one-resweep-2026-09-02.md` §5), and its magnitude table
+stands as a placement fact only.
 
 `daily only` is the narrower case where the intraday search found no pivot at
 all and a daily one existed — 2.6% to 4.7% everywhere. On those the stop falls
@@ -106,7 +117,10 @@ which the resolver must call `ambiguous`. Measured: 0.21% to 0.22% of filled
 rows — six rows in 37,007. It is not a constraint on R3.
 
 **The arms carry different populations, by construction.** The tighter stop
-admits 638 more decisions and loses none: a smaller `riskDistance` shrinks the
+admits 638 more decisions and loses none *(on the three markets measured here;
+at roster scale R3 measured 2,434 intraday decisions lost per mode against
+13,506 gained, and six markets with fewer — corrected 2026-09-02)*: a smaller
+`riskDistance` shrinks the
 payoff floor, so setups the current geometry refuses become admissible. This is
 the opposite of the gross/net cost arms, where the decision set was deliberately
 held identical so the comparison could not confound cost with selection. Here

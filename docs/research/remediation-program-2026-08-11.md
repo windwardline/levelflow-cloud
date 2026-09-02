@@ -373,6 +373,12 @@ One corpus, one clock, one engine, with the instrument repaired. Item
 2's law still governs: **one re-simulate after the instrument changes,
 never one per fix.**
 
+**RAN 2026-09-02** — both arms of HANDOFF's run card at anchor 2026-08-26,
+zero provider bytes, engine `2026.09.01.platinum-group-rate-inverse`.
+Corpus `docs/research/r3/`; record
+`docs/research/r3-one-resweep-2026-09-02.md`. The confirm fold is sealed
+for Phase 4.
+
 ### Phase 4 — the per-market program (the owner's mandate)
 
 *Numbering note: this is Phase 4 of THIS program. It is tracked as task

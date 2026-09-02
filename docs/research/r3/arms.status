@@ -1,0 +1,21 @@
+2026-09-02T06:12:37Z gated: start
+2026-09-02T06:12:57Z capture-all: start
+2026-09-02T08:45:20Z gated: exit=0 elapsed=9163s
+2026-09-02T08:48:28Z capture-all: exit=0 elapsed=9331s
+2026-09-02T08:48:28Z both arms finished
+2026-09-02T08:48:59Z post-sweep start
+2026-09-02T08:48:59Z reconcile-two-arms: start
+2026-09-02T08:49:44Z reconcile-two-arms: exit=1
+2026-09-02T08:49:44Z data-limits-gated: start
+2026-09-02T08:49:45Z data-limits-gated: exit=0
+2026-09-02T08:49:45Z data-limits-capture-all: start
+2026-09-02T08:49:45Z data-limits-capture-all: exit=0
+2026-09-02T08:49:45Z tuning-folds-summary-gated: start
+2026-09-02T08:50:19Z tuning-folds-summary-gated: exit=0
+2026-09-02T08:50:19Z tuning-folds-summary-capture-all: start
+2026-09-02T08:51:00Z tuning-folds-summary-capture-all: exit=0
+2026-09-02T08:51:00Z starvation-audit-gated: start
+2026-09-02T08:51:01Z starvation-audit-gated: exit=0
+2026-09-02T08:51:01Z post-sweep readers done (grid-totalr runs separately)
+2026-09-02T12:56:04Z grid-totalr: start
+2026-09-02T12:56:43Z grid-totalr: exit=0

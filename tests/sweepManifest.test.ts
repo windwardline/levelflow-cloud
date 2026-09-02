@@ -2489,7 +2489,7 @@ describe("resolveSweepSource — provenance that refuses rather than guesses", (
       resolveSweepSource((args) =>
         args[0] === "rev-parse" ? `${revision}\n` : "\n"
       ),
-      { dirty: false, revision },
+      { dirty: false, revision, untracked: 0 },
     );
   });
 
@@ -2500,6 +2500,35 @@ describe("resolveSweepSource — provenance that refuses rather than guesses", (
       ).dirty,
       true,
     );
+  });
+
+  it("does not call a tree dirty for untracked files alone — it counts them", () => {
+    // R3's two manifests carry `dirty: true` at a revision the tracked tree
+    // matched byte for byte: the launcher's own status file and stdout log sat
+    // untracked in docs/research/r3/ when the driver resolved its source.
+    // An untracked file cannot change the engine — nothing tracked imports a
+    // path that does not exist on a clean checkout — so it is provenance a
+    // reader wants to KNOW about, not a reason to call the revision wrong.
+    // A flag that fires on the run's own outputs is a flag every operator
+    // learns to ignore, and an ignored flag is worse than none.
+    const revision = "e".repeat(40);
+    assert.deepEqual(
+      resolveSweepSource((args) =>
+        args[0] === "rev-parse"
+          ? `${revision}\n`
+          : "?? docs/research/r3/arms.status\n?? docs/research/r3/gated.log\n"
+      ),
+      { dirty: false, revision, untracked: 2 },
+    );
+    // Tracked changes of every porcelain shape still count: modified,
+    // staged, renamed, deleted — anything that is not `??`.
+    for (const line of [" M scripts/x.ts", "A  scripts/new.ts", "R  a.ts -> b.ts", " D scripts/gone.ts", "MM scripts/both.ts"]) {
+      const source = resolveSweepSource((args) =>
+        args[0] === "rev-parse" ? `${revision}\n` : `?? stray.txt\n${line}\n`
+      );
+      assert.equal(source.dirty, true, line);
+      assert.equal(source.untracked, 1, line);
+    }
   });
 
   it("refuses anything that is not a commit SHA", () => {

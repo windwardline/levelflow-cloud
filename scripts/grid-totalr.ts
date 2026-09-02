@@ -1794,6 +1794,13 @@ async function main(): Promise<void> {
             : anyAccepted
             ? ` confirm=${foldNames.confirm} NOT READ (accepted variants carried no filled outcomes on both sides of the confirm fold — nothing burned)`
             : ` confirm=${foldNames.confirm} NOT READ (no variant was accepted, so there was no pick to confirm — nothing burned)`
+          // A folded corpus graded WITHOUT --confirm-final is not legacy: its
+          // confirm fold exists and was deliberately not derived (LA-6). The
+          // label said "legacy" for both states, which was false of R3's
+          // corpus on 2026-09-02 and would have stood in a tracked report.
+          // Legacy is reserved for a manifest that declares no folds at all.
+          : manifest.folds || manifest.foldsByClass
+          ? " confirm=confirm SEALED (not derived: no --confirm-final — nothing burned)"
           : " (legacy two-split corpus)"
       }` +
       `${

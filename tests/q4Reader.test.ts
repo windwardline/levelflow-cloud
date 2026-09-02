@@ -352,11 +352,17 @@ describe("the stop chain's own properties, tested directly", () => {
     stopBuffer: 0.2,
   };
 
-  it("can only TIGHTEN, never widen, when levels are added", () => {
+  it("can only TIGHTEN, never widen, when a level ALREADY STOOD and levels are added", () => {
+    // Scoped 2026-09-02: this fixture has an intraday pivot, so the union can
+    // only find a nearer one. Where the intraday search finds NO pivot the
+    // shipped stop is the volatility floor and a daily level moves it OUT —
+    // R3's arms measured 49.8% of floor rows widening. The reader records a
+    // magnitude; the direction is the corpus's to state, not this test's.
     // Structural, not observed. `nearestLevelBeyond` over a superset returns a
     // level at least as near, so the buffered stop is at least as near and the
-    // cap only clips the far side. A run reporting a widening would be a bug
-    // in the reader rather than a finding about the engine.
+    // cap only clips the far side. A run reporting a widening WITH AN INTRADAY
+    // LEVEL PRESENT would be a bug in the reader rather than a finding about
+    // the engine; with none present, widening is the engine's real behaviour.
     const intraday = [97.4, 95.1, 92.8];
     for (const added of [99.2, 98.0, 97.5, 96.0, 93.0, 80.0]) {
       const only = stopUnder({ ...base, protectiveLevels: intraday });

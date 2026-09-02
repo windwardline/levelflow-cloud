@@ -246,7 +246,7 @@ rather than into that table.
 | | |
 | --- | --- |
 | Markets | **97 distinct** — the offering is 97 markets, presented per account type as forex 45 · crypto 33 · futures 27. Those three sum to 105 because the eight crypto CFDs (`FOREX_ACCOUNT_CRYPTO_CFDS`) are visible on BOTH the forex and crypto accounts and are counted twice; 105 is the sum of account-scoped VIEWS, never the roster. (A stale 106 stood here until round 8's CV-9; the 105 that replaced it was this same double-count, caught by the 2026-08-11 audit.) `defaultScanSymbols` is the roster and has always been 97 (amendment 32 executed 2026-08-09 in two acts: thirteen derivative rows dormant, then BRENT on the owner's F13 frame — its "stable" basis measured +1.10 against the recorded +1.67, a contract-month spread no line can honestly state) |
-| Engine | `2026.08.18.one-physics` (R1a complete: D2's one R accountant on every filled resolution; live grading on the sweep's resolution tiering with the row's stored runner-protection mode and review window; the decision anchor on the last completed primary bar; no-bars expiries marked; calibration cells unchanged from `2026.08.11.declines`) — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Deployed and verified in production 2026-08-18: deploy run 380 (#362's merge) green end-to-end including the E2E chart gate, run 381 (#363's ops/docs merge) green after it |
+| Engine | `2026.09.01.platinum-group-rate-inverse` — the version both R3 manifests record (`docs/research/r3/*.manifest.json`); this cell still read `2026.08.18.one-physics` on 2026-09-02, stale across D1 and the §6b-1 item-A bump. Earlier: `2026.08.18.one-physics` (R1a complete: D2's one R accountant on every filled resolution; live grading on the sweep's resolution tiering with the row's stored runner-protection mode and review window; the decision anchor on the last completed primary bar; no-bars expiries marked; calibration cells unchanged from `2026.08.11.declines`) — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Deployed and verified in production 2026-08-18: deploy run 380 (#362's merge) green end-to-end including the E2E chart gate, run 381 (#363's ops/docs merge) green after it |
 | Public face | The parking page |
 | Gates | The seven `ci.yml` runs, named rather than counted: `check` · `lint` · `check:migrations` · `npm audit --audit-level=high` · `test` · `build` · `check:bundle`. This cell listed SIX and omitted `npm audit` — the same undercount the resume block was written to correct, reproduced in the cell a cold reader reaches first. No test count is given here: `npm test` is the authority, and two cells of this file disagreed by ~300 for days while both carried a disclaimer saying so |
 | Repo | `main` is the trunk; the 2026-08-10/11 programme landed as #307-#322. Check `gh pr list` before trusting any count here |
@@ -986,7 +986,7 @@ Then the finished cache failed its own gate twice more: a 16.4-hour ragged
 edge, because `store.pinned[anchor]` froze each market at whatever moment it
 was fetched (fixed by `--repin`), and a staleness bound that judged against
 the wall clock and ignored the bar in flight (#420) |
-| **R0b** | **Back up the MINUTE BANK first, then the cache** — re-ranked 2026-08-23 after measurement. `.minute-bank/` is 182 MB, 1,687,458 bars across 100 symbols, spanning 2026-08-04 to 2026-08-23, and FMP re-serves 1-minute bars only ~3 days deep — so **roughly 84% of it is unrecoverable if lost today**. `.calibration-cache` is expensive (~14 hours, metered bytes) and reproducible in KIND but NOT IN DEPTH — see the rebuild-depth rule below, which corrects this sentence. The original ranking gated the cheap irreplaceable half behind the expensive reproducible one. A dated local snapshot was taken 2026-08-23 (`~/levelflow-minute-bank-snapshot-20260823`, verified equal on symbol and bar counts) as a STOPGAP — a point-in-time copy starts going stale immediately, so the deliverable is still a recurring mechanism, not that copy | **THE RECURRING MECHANISM LANDED 2026-09-01.** `scripts/ops/backup-minute-bank.sh` on a launchd agent (`com.windwardline.levelflow-minute-bank-backup`, daily 20:10, `RunAtLoad`), verified registered and firing. It counts the bank, copies through a `.partial` path, RE-COUNTS the copy and refuses a mismatch, refuses an empty bank rather than overwriting a good snapshot, and prunes to a fortnight. On APFS the copy is a clone: 219 MB in about a second, so retention costs a fraction of its nominal size. **It touches no provider**, which matters because the bank is frozen precisely when the allowance is exhausted. **The 2026-08-23 naive-era corpus is protected BY NAME** — pruning oldest-first would have deleted it first, and a retention count cannot protect the oldest thing; `tests/minuteBankBackup.test.ts` proves that by execution. Re-measured at the mechanism's first run: 100 symbols, 2,067,013 bars. The cache half stays after R0 step 3, before step 5 deletes the archive. **RAISE BEFORE STEP 5 RUNS (2026-08-24)**: that archive is the ONLY real naive-era corpus in existence, and it was used on 2026-08-24 to validate the #384 clock-witness redesign against real data rather than synthetic fixtures — old and new witnesses condemn the identical 64 stores in it, 8 on transition evidence alone. Deleting it means no future clock instrument can ever be checked against anything but fixtures. Owner call** |
+| **R0b** | **Back up the MINUTE BANK first, then the cache** — re-ranked 2026-08-23 after measurement. `.minute-bank/` is 182 MB, 1,687,458 bars across 100 symbols, spanning 2026-08-04 to 2026-08-23, and FMP re-serves 1-minute bars only ~3 days deep — so **roughly 84% of it is unrecoverable if lost today**. `.calibration-cache` is expensive (~14 hours, metered bytes) and reproducible in KIND but NOT IN DEPTH — see the rebuild-depth rule below, which corrects this sentence. The original ranking gated the cheap irreplaceable half behind the expensive reproducible one. A dated local snapshot was taken 2026-08-23 (`~/levelflow-minute-bank-snapshot-20260823`, verified equal on symbol and bar counts) as a STOPGAP — a point-in-time copy starts going stale immediately, so the deliverable is still a recurring mechanism, not that copy | **THE RECURRING MECHANISM LANDED 2026-09-01.** **Its off-box half FAILED under launchd at 2026-09-02T05:36Z** — `wl-secret is not on PATH`: the plist runs `/bin/zsh -lc`, a login shell that never sources `~/.zshrc`, where `~/.local/bin` joins PATH, so the lookup worked in every interactive shell and failed in the one environment the schedule runs from. Fixed the same day: the launcher is resolved by absolute path and three executed tests run the script under a launchd-shaped environment (RED before, GREEN after). The local snapshot had still been placed; the machine stayed a single point of failure for one night. `scripts/ops/backup-minute-bank.sh` on a launchd agent (`com.windwardline.levelflow-minute-bank-backup`, daily 20:10, `RunAtLoad`), verified registered and firing. It counts the bank, copies through a `.partial` path, RE-COUNTS the copy and refuses a mismatch, refuses an empty bank rather than overwriting a good snapshot, and prunes to a fortnight. On APFS the copy is a clone: 219 MB in about a second, so retention costs a fraction of its nominal size. **It touches no provider**, which matters because the bank is frozen precisely when the allowance is exhausted. **The 2026-08-23 naive-era corpus is protected BY NAME** — pruning oldest-first would have deleted it first, and a retention count cannot protect the oldest thing; `tests/minuteBankBackup.test.ts` proves that by execution. Re-measured at the mechanism's first run: 100 symbols, 2,067,013 bars. The cache half stays after R0 step 3, before step 5 deletes the archive. **RAISE BEFORE STEP 5 RUNS (2026-08-24)**: that archive is the ONLY real naive-era corpus in existence, and it was used on 2026-08-24 to validate the #384 clock-witness redesign against real data rather than synthetic fixtures — old and new witnesses condemn the identical 64 stores in it, 8 on transition evidence alone. Deleting it means no future clock instrument can ever be checked against anything but fixtures. Owner call** |
 | **R0c** | **CLOSED — verified 2026-08-31.** The chunking fix landed in #379 (`chunkMs = 60`, under the endpoint's 90-day window clamp) and the store has since been refetched. Measured on the store as it stands: **3,414 rows from 2013-01-02 to 2026-08-26, 95.9% of business days, zero gaps over 14 days** — against the 853 rows / 25.4% with 275–278 day gaps this entry was opened for. No probe and no further fetch is owed | **CLOSED — the entry outlived the fix** |
 | **R0d** | **CLOSED 2026-08-30 (#475) — by re-deriving the class floor, not by adopting a per-symbol baseline.** `assertFiveMinuteDensity` refused the whole corpus when a symbol's recent-90 5-minute density fell under its class floor, and `crypto: 260` was refusing DYDXUSD at 249.6. **The census settles it** (`docs/research/five-minute-density-census-2026-08-30.json`, measured off the warm stores): forex floor 150 / ceiling 204.7 = 0.733; metals 140 / 196.5 = 0.712; crypto 260 / 288.0 = 0.903. Crypto's floor sat ABOVE the thinnest market it bound (ratio 1.042) — a floor above its own population can only refuse a healthy member. Re-derived as forex's ratio (the tightest any sibling carries) applied to crypto's own measured ceiling: 0.733 x 288.0 = 211, shipped as **210**. Anchored on the CEILING, so the disputed market is nowhere in its own threshold. **THE PRIOR ENTRY'S PREMISE WAS BACKWARDS**: it called crypto "the only class whose homogeneity is empirically false". 28 of the 31 measured crypto markets sit at exactly 288.0 and the class CV is 2.5%, making it one of the MOST homogeneous on the roster — the defect was under-sampling (two probes, both at the ceiling), not heterogeneity. That is why no per-symbol baseline, no new manifest fact and **no R2b dependency** were needed. Cost, stated: the depth floor is the only instrument that sees a clip applied symmetrically to both resolutions, and its blind band widens from a 10% clip to a 27% one — which is exactly where forex (27%) and metals (29%) have always sat, so this makes crypto consistent with the fleet rather than more permissive. Both clip fixtures in `tests/sweepStats.test.ts` (144 and 200 rows/day) still refuse. `tests/densityFloorDerivation.test.ts` pins the RELATIONSHIP rather than the constant — no floor above its class minimum, all floors inside one band, nothing in the measured population refused, and a half-clipped feed still caught. | **CLOSED — was never an owner call once the population was measured** |
 | **R0e** | **`verify-cache-clock` never received two refinements the corpus door already has** — NEW 2026-08-24, found by running R0 step 3. Three of its five REDs are instrument drift, not data: `DYDXUSD 2.17`, `ZOUSX 1.78`, `ZRUSD 2.37` on the 5min/15min ratio. The corpus door (`sweepStats.ts`) judges that ratio on the RECENT-90 intersection window and only for SLOT-DENSE markets (`DENSITY_RATIO_PRIMARY_FLOOR = 60` 15-minute-equivalent rows/day). `verify-cache-clock.ts` counts the WHOLE overlap span and self-selects nothing — it contains zero references to the slot-dense floor. The consequences are exact: ZOUSX runs 22.5 and ZRUSD 16.2 fifteen-minute rows/day, so the door never judges them at all, and both are agricultural trade-sparse series this codebase already documents as honest ("ZRUSD ~36 prints with intra-session holes"); DYDXUSD clears the door at 2.83 on the recent window and fails the verifier at 2.17 on the whole span, because its early thin era is where a 15-minute parent holding one print yields one 5-minute child — the parent-child degeneracy the source comment names. **This is the FOURTH instance tonight of one shape**: a threshold applied to a population it was not derived for. #382 (whole-span window vs recent), #384 (a resolution-dependent band), R0d (a class floor set from the densest members), and now an instrument that never got its sibling's fixes. Unlike R0d this needs NO new mechanism and NO manifest fact — both refinements exist, are documented, and are in production in the door; they simply were not propagated | **before R0 steps 4-5, and it blocks them** — step 3 must be green before the top-up agent is re-armed and before step 5 deletes the archive. Lower risk than R0d: this is making two instruments agree where one is already known-correct, not choosing a new threshold. **Check any new instrument against DYDXUSD before merging it** — the roster's thinnest crypto has now tripped three separate doors calibrated on dense members (clock witness #383/#384, the density floor R0d, this ratio) |
@@ -999,8 +999,8 @@ the wall clock and ignored the bar in flight (#420) |
 | **R2** | Repair the instrument — ~~D4 (the gate has no absolute-expectancy term)~~ **DONE 2026-08-31**, ~~M3 (confirm decides on a bare delta)~~ **DONE 2026-08-31**, ~~M1 (audit double-counts)~~ **CLOSED 2026-08-31 — the item named the wrong file**, ~~M5 (make the cost scale reach the resolver)~~ **DONE 2026-08-31**, ~~D1 (learning from a win rate)~~ **DONE 2026-08-31** | **NEXT — R1 is closed. All five lettered items are done.** M1 named `roster-expectancy-audit.ts`, which never carried the `|| variant === "baseline"` alternative — `git log -S` over that path's full history returns nothing. It lived in `market-dossier.ts` (#330 in, #364 out), and both files are now mutation-verified guarded. M1's "re-run and commit the artifact" half is BLOCKED and belongs to R3/R4: the 4c emits are not in the working tree, and that corpus is the invalidated one, so a fresh run would replace quarantined figures with equally invalid ones. **What remains under R2 is the pre-R3 emit and manifest work's LAST open row — section 5 item 5, the two-arm corpus.** **D4 changes what R3 must do:** the 4d picks now fail on TWO independent grounds — the corpus was invalid (clock defect) AND the criterion was wrong — so the re-sweep must run under the repaired gate, not merely on repaired data. Does not wait on R0's data half, which gates R3 onward. Whether every item is offline is NOT asserted here — M5 names the resolver and D1 names learning, both live surfaces; scope each against the map before assuming a reader-only change. **R2 also owns the PRE-R3 EMIT AND MANIFEST WORK, added 2026-08-23** — see the block below the rank table. R1c proved this class exists when `executionScore` turned out to be missing and had to land before the one re-sweep; the converge found five more of the same shape |
 | **R2b** | ~~**The geometry model's own fresh-eyes round**~~ **RAN 2026-08-31 — `docs/research/r2b-geometry-fresh-eyes-2026-08-31.md`; its one-entry field list LANDED the same day (#507).** The row below is the original statement of the item.
 | **R2b (original)** | **The geometry model's own fresh-eyes round** — the old item 4b, re-ranked here 2026-08-19 rather than left in §5's prose. Several lenses, each asked what the MODEL is missing rather than how to tune it; the one surface the adversarial protocol has never been pointed at. **Its rank is load-bearing and was never stated:** its output changes what the sweep should measure, and R3 is `re-sweep ONCE` under item 2's law — one re-simulate after the instrument changes, never one per fix. Run after R3 and the choice is a second full re-sweep or shipping a geometry nobody probed. It must clear before R3 opens. | after R2, **before R3** |
-| **R3** | Re-sweep ONCE — item 2's law: one re-simulate after the instrument changes, never one per fix | **after R2b**, not merely after R2 — R2b changes what should be measured and there is only one re-sweep. **ANCHOR THE RUN AT 2026-08-26 AND R3 COSTS ZERO FMP BYTES — see the block below. This is perishable.** |
-| **R4** | The per-market program — every matched market individually, against its own shipped configuration, absolute expectancy as the criterion | after R3 |
+| **R3** | Re-sweep ONCE — item 2's law: one re-simulate after the instrument changes, never one per fix | **RAN 2026-09-02, 06:12Z–08:48Z, both arms of the run card at anchor 2026-08-26, zero provider bytes.** Gated 5,232,445 rows / capture-all 6,660,138, both from `e51e742`, engine `2026.09.01.platinum-group-rate-inverse`, 97 of 97 markets, 71 columns. The capture-all arm filtered to `accepted: true` IS the gated corpus — 5,232,445 of 5,232,445 rows byte-identical (item H, closed). Record: `docs/research/r3-one-resweep-2026-09-02.md`; artifacts `docs/research/r3/`. **What it found about itself:** the card's global folds put every futures, energies, agriculture and livestock market — and four of six indices — entirely inside the sealed confirm fold (their intraday history begins 2023-09/10), so the class-grain gate returns NO VERDICT for four of eight classes; the per-class arm (`--fold-spec docs/research/r3/fold-spec-2026-08-26.json`, zero bytes) is the remedy and runs next. At rest, forex is net-positive on both tuning folds (+0.013R ±0.006 per filled trade, +2,896.9R over fit+select); crypto, metals, indices are not; against baseline, `breakeven` and `hold` fail the paired test at p = 1.000 in forex, crypto and metals, and `trail_tp1` is the best pooled net mode in every class with rows. No reader opened the confirm fold; the driver's stdout table prints that split's outcome columns by design, so the raw logs stay local and the tracked tables are redacted. *Earlier state:* after R2b, not merely after R2 — R2b changes what should be measured and there is only one re-sweep. Anchor at 2026-08-26 and R3 costs zero FMP bytes (it did) |
+| **R4** | The per-market program — every matched market individually, against its own shipped configuration, absolute expectancy as the criterion | after R3 — **and R3 RAN 2026-09-02.** R4's first act is to seal the reader population (6b-0's reopened corpus-readers row): twelve readers open the confirm fold unrecorded, and a per-market grade read through any of them burns the one confirmation read without a ledger line. The corpus is `docs/research/r3/`; the anchor is protected so R4's supplementary arms are free |
 | **R5** | The never-analyzed populations — 8 contract variants, dual-listed crypto per line, register gaps | after R4 |
 | **R6** | Reader-facing claims — D7 (Record rows publish a frequency as a record), D8 (tier ordering the corpus inverts) | pre-reopen |
 
@@ -1402,8 +1402,15 @@ that would evict it runs from a launchd plist with its own environment and a
 guard that depends on a shell being right is not a guard against that agent.
 `tests/protectedAnchor.test.ts` proves it by execution over ten later anchors,
 requires every entry to state when it stops being needed, and reads the live
-cache to confirm the pin is still there. **Remove the entry once R3 has run** —
-a protected anchor that outlives its sweep is a store that never prunes.
+cache to confirm the pin is still there. ~~**Remove the entry once R3 has run**~~
+**Corrected 2026-09-02: the entry STAYS past R3.** Items B and C below rule that
+a sweep at a pinned anchor spends nothing, so R4 may add grid arms at
+2026-08-26 for free while `ANALYZER_VERSION` is unchanged — and this sentence,
+left standing beside them, would have had the next session evict the free ride
+the day after R3 ran. The entry now states both facts and names its own removal
+condition: R4's supplementary arms run, or a version bump makes a new anchor
+unavoidable. A protected anchor that outlives its PURPOSE is still a store that
+never prunes; the purpose simply outlived R3.
 
 **AND THE FREE RIDE IS PERISHABLE.** `PINS_KEPT = 5` (`calibrationCache.ts:37`) and pins are
 pruned OLDEST-FIRST on every write (`:236-238`). 210 stores currently hold two pins, 68 hold
@@ -1530,6 +1537,23 @@ npx tsx scripts/replay-sweep.ts \
   --byte-budget 1MB --emit docs/research/r3/capture-all.jsonl
 ```
 
+**RAN AT ROSTER SCALE 2026-09-02 — and the card as written has a limit the
+two-market proof could not show.** Both arms completed (2h33m and 2h36m,
+zero bytes, record `docs/research/r3-one-resweep-2026-09-02.md`). But the
+card carries no `--fold-spec`, so the folds are common-origin over the
+roster's 2009–2026 span, and every market whose intraday history begins in
+2023 — all of futures, energies, agriculture and livestock, four of six
+indices, XAGUSD — has NO fit or select day: its whole history sits inside
+the sealed confirm fold and the class-grain gate returns NO VERDICT for four
+of eight classes. `scripts/sweepFolds.ts` documents exactly this starvation
+and the 4c fleet folded per class for it. The per-class spec at the anchor
+is derived and tracked (`docs/research/r3/fold-spec-2026-08-26.json`;
+`derive-fold-spec.ts` gained `--anchor`, since it pinned itself to the run
+day); the per-class arm runs at the same anchor for zero bytes and is the
+class-grain instrument for those classes. The global-fold corpus stays: it
+is the card as written, and R4's per-market folds (`grid-totalr
+--per-market-folds`) re-cut at read time from row instants.
+
 **VERIFIED END TO END 2026-09-01 on EURUSD + BTCUSD at step 256, both arms, zero
 bytes.** 7 variants each; gated 13,477 rows, capture-all 15,404; **the
 capture-all arm filtered to `accepted: true` reproduces the gated corpus exactly
@@ -1582,8 +1606,19 @@ in every class, and across the 71 markets that can be structure-stopped it would
 move the shipped stop on **32.0%** of them — median tightening ~0.6 ATR, p90
 above 2 ATR. On 2.6%-4.7% the intraday search found no pivot at all while a
 daily one existed, so the stop fell to the volatility floor with structure
-available. Adding levels to a nearest-beyond search can only find a nearer
-level, so the stop always tightens and never widens.
+available. ~~Adding levels to a nearest-beyond search can only find a nearer
+level, so the stop always tightens and never widens.~~ **FALSE at roster scale
+— corrected 2026-09-02 from R3's own arms, which carry both stops per
+decision.** The sentence holds only where an intraday level already stood.
+Where the intraday search found none — exactly the "daily only" case the
+sentence before it describes — the shipped stop IS the volatility floor, and a
+daily pivot moves it OUT to a structural level: in a deterministic 25% sample
+of R3's paired rows, 16,417 of 32,934 volatility-floor rows (49.8%) WIDENED
+under the daily arm, up to the cap. And 29,677 of 106,536 cap rows (27.9%)
+tightened, because the cap is a ceiling over the structural search and a
+nearer daily pivot pulls the stop back inside it. The q4 reader recorded the
+move as a magnitude and asserted the direction; the direction was never
+measured until R3.
 
 **Livestock reads 0.0% and that is the instrument checking itself.** The reader
 predicted before the run that a market whose cap sits at or under the 1.25-ATR
@@ -1607,7 +1642,12 @@ believe the money improves, which amendment 39 names by name.
 
 **Measured on three markets, full history, all splits, zero bytes:** the arms
 are bit-identical at `baseline` vs `intraday` (44,006 rows, −1396.0R both);
-`intraday_and_daily` admits 638 more decisions and loses none; same-bar
+`intraday_and_daily` admits 638 more decisions and loses none *(on those three
+markets; at roster scale it also LOSES — corrected 2026-09-02: per mode 2,434
+intraday decisions are absent from the daily arm against 13,506 gained, on 69
+of the 71 structure-stoppable markets, and six markets end with FEWER decisions
+— LTCUSD 8,374→8,194, BCHUSD, ZBUSD, ZNUSD, ZOUSX, GCUSD; the widened floor
+stops above are the obvious candidate cause, untested)*; same-bar
 ambiguity rises only 0.21% → 0.22% of filled rows, so the resolution limit does
 not bind; and the daily arm returns **less** money (−1438.1R total, −0.0389R per
 filled row against −0.0382R). Three markets are not a verdict, but the sign is
@@ -1866,6 +1906,55 @@ that fixed it.
   R0-R6 or in items 5-11. The disclosure branch is an amendment-34 obligation
   and belongs beside R6; the capture branch can wait, but say which is deferred
   rather than leaving both unranked.
+
+### ▶ RESUME HERE — 2026-09-02 13:30 UTC
+
+**R3 RAN.** Both arms of the run card at anchor 2026-08-26, zero provider
+bytes, from `e51e742`: gated 5,232,445 rows (13.2 GB), capture-all 6,660,138
+(16.8 GB), 97 of 97 markets, 71 columns, manifests `d0bb64d9e12f` /
+`ce146c6b8b63`. The corpora are gitignored under `docs/research/r3/`; the
+manifests, both stdout tables, the reconciliation verdict, the sealed
+summaries, `data-limits`, the starvation audit and the gate's fit/select
+reading are tracked beside them. Full record:
+`docs/research/r3-one-resweep-2026-09-02.md`.
+
+**What a resuming session must know first:**
+
+- **The confirm fold is SEALED.** No reader opened it: `grid-totalr` ran
+  without `--confirm-final` and `docs/research/confirm-reads/` is unchanged.
+  The driver's own stdout table prints per-(market, variant, split) outcome
+  columns, confirm included, on every run — so the raw logs stay local and
+  the tracked `*.stdout-redacted.txt` carry `sealed` in those columns. Twelve
+  readers would read the fold unrecorded — 6b-0's corpus-readers row names
+  them — so do not point them at this corpus.
+- **Four classes have no class-grain verdict yet**: the global folds put
+  every 2023-era market inside the confirm fold. The per-class arm
+  (`--fold-spec docs/research/r3/fold-spec-2026-08-26.json`, both
+  acceptance modes, zero bytes, ~2.5 h each) is the next run; its record
+  lands as a follow-up entry here.
+- **What R3 measured at rest, fit + select, held-out excluded:** forex
+  +0.013R ±0.006 per filled trade (+2,896.9R; select +0.029); crypto −0.036
+  (fit +0.123, select −0.065); metals −0.077 (XAUUSD alone); indices 145
+  decisions. Against baseline, `breakeven` and `hold` fail the paired test at
+  p = 1.000 in forex, crypto and metals; `trail_tp1` is the best pooled net
+  mode in every class with rows; daily stop structure moves the money by
+  <0.005R where there is a sample, and at roster scale it LOSES decisions as
+  well as admitting them (2,434 lost / 13,506 gained per mode). 21 of 44
+  markets above the thin floor are net-positive; 16 win at least half of
+  their fills while losing money (amendment 39, measured). Modelled cost
+  exceeds the net loss in crypto and metals. **No value moved.**
+- **Provenance:** both manifests say `source.dirty: true` at `e51e742`.
+  The tracked tree matched that commit byte for byte when the arms resolved
+  their source (mtime and transcript proof in the record); the launcher's
+  one untracked status file tripped the old porcelain test. `resolveSweepSource` now
+  counts untracked files separately.
+- **Four hours passed between the arms ending (08:48Z) and the gate
+  starting (12:56Z), unexplained.** Not sleep — `kern.sleeptime` is zero
+  since boot and `pmset` logs none; the session simply did not resume. A
+  session-long `caffeinate` runs anyway; it is not the explanation.
+- **Next is R4**, whose first act is sealing the twelve readers so its one
+  confirm read is a recorded one. The anchor stays protected for R4's free
+  arms.
 
 ### ▶ RESUME HERE — 2026-08-23 20:00 UTC
 
@@ -3134,7 +3223,10 @@ bar — DONE 2026-08-31, M1 the audit double-counts — CLOSED 2026-08-31, M5 ma
 2026-08-31, D1 learning from a win rate — DONE 2026-08-31) -> R2b the geometry model's own fresh-eyes
 round, which must clear BEFORE the re-sweep since it changes what should
 be measured -> Phase 3 re-sweep ONCE (item 2's law: one
-re-simulate after the instrument changes, never one per fix) -> Phase 4
+re-simulate after the instrument changes, never one per fix — RAN
+2026-09-02, both arms at anchor 2026-08-26, zero provider bytes; the
+corpus is docs/research/r3/ and the confirm fold is SEALED until R4's one
+authorized read) -> Phase 4
 the per-market program -> Phase 5 the never-analyzed populations ->
 Phase 6 the reader-facing claims.
 
@@ -3708,7 +3800,20 @@ protect against losing the machine. Options: send the daily snapshot off-box, or
 record the acceptance of a single point of failure as a decision rather than as
 an omission. Blocks nothing.
 
-**H. R3's acceptance mode — and this one is the only entry that touches R3.**
+**H. R3's acceptance mode — CLOSED 2026-09-02, executed on the whole corpus.**
+Both arms ran at 2026-08-26 (`docs/research/r3/`), and
+`scripts/two-arm-reconcile.ts` streamed them in lockstep: 24 shared manifest
+terms agree, `decisionPoints` agree on all 1,379 (symbol, variant, split)
+cells, and **5,232,445 of 5,232,445 accepted rows are byte-identical**
+between the arms; the gated arm carries no `accepted: false` row and the
+capture-all arm carries 1,427,693. The three counters the capture-all arm
+zeroes, and their aggregate, read regimeBlocked 1,291,003 · belowPayoff
+409,521 · belowConfidence 8,589 (aggregate belowThreshold 418,110) in the
+gated manifest and 0 in the other. Independently, the SHA-256 of the
+capture-all arm's accepted lines equals the SHA-256 of the whole gated file.
+The two-market, step-256 measurement below held at roster scale and step 16.
+
+*The entry as it stood:* R3's acceptance mode — and this one is the only entry that touches R3.
 The run card carries no `--capture-all`, and the flag is not free in either
 direction. Without it `sweep.ts:984` drops every gate-failing decision, so the
 below-threshold population is absent forever and `confidence-bands.ts:234` and
@@ -3759,7 +3864,7 @@ statement about measured yield, never about fatigue with the subject.
 | surface | rounds | last yield | enumerated? | status | REOPENER |
 |---|---|---|---|---|---|
 | **News join** (live event families vs the corpus) | 2 (2026-08-11 E5, 2026-08-24) | 1 → 0 | yes — the arms are enumerable from `eventRows.ts` | **CLOSED** | a new event family reaching the live gate; or the null-currency asymmetry becoming measurable once R3's corpus exists (`remediation-program-2026-08-11.md:58`) |
-| **Corpus readers / manifest reporting** | ~57 (R1b's life + 2026-08-24) | 1 → 0, killed on the code's own comments | yes — the partition is derivable from the manifest in 30 lines | **CLOSED** | any new corpus reader; any manifest field added at R3; a change to the door's population rules |
+| **Corpus readers / manifest reporting** | ~57 (R1b's life + 2026-08-24), + 2026-09-02 | 1 → 0, then **12 → 12 on 2026-09-02** | yes — and the 2026-09-02 enumeration walked the whole door population | **REOPENED 2026-09-02 — the reopener fired (R3 ran; two readers joined), and the enumeration found TWELVE readers that open the CONFIRM fold with no opt-in and no LA-6 entry**: `sweep-analysis`, `stop-provenance`, `roster-expectancy-audit`, `market-dossier`, `cost-sensitivity-verdict` (both modes), `threshold-rescue`, `account-type-report`, `ag-class-derivation`, `confidence-bands`, `exclusion-suspects`, `geometry-evidence`, `e4-collapse` — five of them re-cut the folds themselves at 50/75% of the span and never read `row.split`. Only `data-limits`, `derive-4d`, `feasibility-4d` and `grid-totalr` without `--confirm-final` are sealed. Named rather than counted, because the audit that found them counted eleven. Record: `docs/research/r3-one-resweep-2026-09-02.md` §7 | **seal the population before R4 reads a per-market grade**: every reader fold-scoped by default with confirm behind a flag that writes the ledger, guarded by an EXECUTED differential test — two corpora identical but for the confirm rows' R, a sealed reader's output byte-identical across them — carrying a known-exposed list that fails in both directions. `scripts/tuning-folds-summary.ts` is the sealed shape |
 | **Security & secret handling** | several + 2026-08-24 | 2 → 2, both config-surface gaps with no live wrongness | partly — `src/` is pinned both ways; the config surface was NOT walked | **CLOSED after the C7/C8 PR merges** | a new external host; a new configuration surface that can set a provider base URL; any change to `CODE_ROOTS` or the allowlists |
 | **Clock & registration instruments** | 3 (#358, #384, 2026-08-24) | 3 → 3, incl. C2, the deepest defect since the 2026-08-11 clock defect | **no** | **RISING — keep lensing** | — |
 | **Sweep↔live convention** | ~58 (R1's life + two 2026-08-24 rounds) | 15 `latest.time` consumers enumerated — **11 diverge**, 3 offline-only, 1 agrees — PLUS 11 more divergent consumers that never touch `latest.time` | **the `latest.time` grep: YES. The SURFACE: no** | **RISING — the precondition itself was too narrow** | `docs/research/decision-instant-enumeration-2026-08-24.md` is the record. **The old precondition is satisfied and was WRONG**: "every consumer of `latest.time`" is a strict subset of "every place the two disagree about the decision instant", and a grep-derived population is a curated population wearing a derivation's clothes. **The corrected precondition**: every construction of a `MarketContext` field, every gate that admits or refuses a decision, and every argument handed to the resolver — each stated against its live counterpart. Plus one resolvable blocker (the FX Sunday-open bar stamp, needs the cache) and **three permanent residues no re-sweep can close** — live's scan phase δ, the historical quoted spread, and FMP's Treasury publication minute — which must be carried as STATED BOUNDS, never as closures |

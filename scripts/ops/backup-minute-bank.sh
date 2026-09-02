@@ -110,8 +110,17 @@ if [ "${LEVELFLOW_SKIP_OFFBOX:-0}" = "1" ]; then
   log "off-box SKIPPED by LEVELFLOW_SKIP_OFFBOX=1"
 else
   [[ -x $OFFBOX ]] || { log "FAIL off-box script missing or not executable: $OFFBOX"; exit 1; }
-  command -v wl-secret >/dev/null || { log "FAIL wl-secret is not on PATH; the R2 token cannot be read"; exit 1; }
-  wl-secret cloudflare-r2-backup=R2_TOKEN -- "$OFFBOX" "$DEST" || {
+  # BY ABSOLUTE PATH, never from an inherited PATH. The plist runs this under
+  # `/bin/zsh -lc` — a login shell that never sources ~/.zshrc, which is where
+  # ~/.local/bin joins PATH — so a PATH lookup of the launcher succeeded from
+  # every interactive shell it was tried in and failed in the one environment the
+  # schedule runs from: 2026-09-02T05:36:29Z, "wl-secret is not on PATH", exit 1,
+  # with the local snapshot placed and nothing off-box. The launcher itself
+  # then hands the push script a known PATH (/opt/homebrew/bin included), so
+  # rclone and zstd resolve inside it whatever launchd provided.
+  WL_SECRET="${LEVELFLOW_WL_SECRET:-$HOME/.local/bin/wl-secret}"
+  [[ -x $WL_SECRET ]] || { log "FAIL wl-secret is not executable at $WL_SECRET; the R2 token cannot be read (set LEVELFLOW_WL_SECRET to relocate it)"; exit 1; }
+  "$WL_SECRET" cloudflare-r2-backup=R2_TOKEN -- "$OFFBOX" "$DEST" || {
     log "FAIL off-box push did not complete; the local snapshot stands but the machine is still a single point of failure"
     exit 1
   }

@@ -1,0 +1,34 @@
+{
+  "forex": {
+    "endMs": 1787741100000,
+    "startMs": 1253836800000
+  },
+  "metals": {
+    "endMs": 1787741100000,
+    "startMs": 1373839200000
+  },
+  "futures": {
+    "endMs": 1787741100000,
+    "startMs": 1695592800000
+  },
+  "indices": {
+    "endMs": 1787741100000,
+    "startMs": 1582554600000
+  },
+  "energies": {
+    "endMs": 1787741100000,
+    "startMs": 1696197600000
+  },
+  "crypto": {
+    "endMs": 1787741100000,
+    "startMs": 1383523200000
+  },
+  "agriculture": {
+    "endMs": 1787741100000,
+    "startMs": 1695600000000
+  },
+  "livestock": {
+    "endMs": 1787680800000,
+    "startMs": 1695648600000
+  }
+}

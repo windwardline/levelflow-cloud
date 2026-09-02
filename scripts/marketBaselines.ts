@@ -18,9 +18,10 @@
 // WHAT IT IS NOT. It carries measured DATA facts only: spans, densities,
 // staleness, and whether a sample is too thin to support a figure. No trading
 // parameter appears here. Those are per-symbol too (calibration.ts's
-// SYMBOL_CALIBRATION_OVERRIDES) but they need R3's corpus, which does not
-// exist yet; this is the prerequisite that lets R4 know each market's true
-// data limits before deriving anything.
+// SYMBOL_CALIBRATION_OVERRIDES) but they need R3's corpus, which exists since
+// 2026-09-02 (docs/research/r3/, both arms) and is R4's to read; this is the
+// prerequisite that lets R4 know each market's true data limits before
+// deriving anything.
 //
 // KEYED ON THE PROVIDER SYMBOL, because that is the identity of the DATA. The
 // engine's 97 markets resolve to 96 distinct FMP sources — WTI and CLUSD are

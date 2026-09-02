@@ -519,10 +519,13 @@ export async function runQ4(argv: string[]): Promise<number> {
       }
       if (withDaily.stop !== shipped.stop) {
         row.stopMoves += 1;
-        // Adding levels to a nearest-beyond search can only find a NEARER
-        // level, so the stop tightens or holds and never widens. Recorded as
-        // a magnitude with that direction stated rather than signed, so a
-        // negative here would be a bug rather than a finding.
+        // Recorded as a MAGNITUDE. The direction was asserted here ("can only
+        // find a nearer level, so never widens") and was wrong: where the
+        // intraday search found no pivot the shipped stop is the volatility
+        // floor, and a daily pivot moves it OUT. R3's arms measured 49.8% of
+        // floor rows widening (2026-09-02). This reader is superseded for the
+        // direction question by the corpus's own two stop-source arms; the
+        // magnitude table stands as a placement fact only.
         row.moveAtr.push(Math.abs(withDaily.stop - shipped.stop) / atr);
         if (withDaily.provenance !== shipped.provenance) {
           row.provenanceFlips += 1;

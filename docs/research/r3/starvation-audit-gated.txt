@@ -1,0 +1,101 @@
+flag floor: survival flags withheld below 30 reached geometry (--min-reached)
+market    decisions  reached  planRej belowPay  survive  flag
+FILUSD        12596     6885       35     6737       2%  STARVED — geometry kills 85%+
+ZTUSD          4180     2256     1253      901       5%  STARVED — geometry kills 85%+
+ATOMUSD       14301     7979       19     7161      10%  STARVED — geometry kills 85%+
+THETAUSD       6207     3513        3     3116      11%  STARVED — geometry kills 85%+
+XTZUSD        19576    10035     1212     7350      15%  STARVED — geometry kills 85%+
+DYDXUSD        7582     3978       14     3167      20%  thin — geometry kills 2 of 3
+ZFUSD          4224     2279      112     1695      21%  thin — geometry kills 2 of 3
+DOTUSD        10874     5905        8     4423      25%  thin — geometry kills 2 of 3
+TRXUSD        18929     9815      345     5827      37%  
+NEARUSD        9924     5596        7     3479      38%  
+ALGOUSD       14994     7866       14     4259      46%  
+AVAXUSD       10333     5740       12     3079      46%  
+ZSUSX          3176     2366       51      932      58%  
+WTI            4165     2130      736       11      65%  
+ETCUSD        21190    11552     3377        6      71%  
+LTCUSD        21466    11511     1189     1953      73%  
+ARWUSD         6256     3649        3      955      74%  
+CLUSD          4165     2041      476        0      77%  
+DOGEUSD       19543    10690     2048       28      81%  
+HEUSX           843      633      112        0      82%  
+ZCUSX          3193     2394      198      177      84%  
+RBUSD          3825     2004      286        0      86%  
+BTCUSD        23945    13639     1779      137      86%  
+EGLDUSD       10255     5844       78      734      86%  
+ZLUSX          3154     2315      300        7      87%  
+BCHUSD        18893     9652      262      997      87%  
+LEUSX           849      529       67        0      87%  
+ASX            1081      733        2       86      88%  
+XRPUSD        20464    11280     1311        1      88%  
+RTYUSD         4244     2100      244        0      88%  
+USDCAD        25273    18248     2094        0      89%  
+ZMUSD          3190     2240      143      113      89%  
+GFUSX           841      610       69        0      89%  
+NQUSD          4205     2088      229        0      89%  
+SOLUSD        11968     6981      702        0      90%  
+ETHUSD        22655    12758     1268       14      90%  
+ZNUSD          4211     2254       89      123      91%  
+EURCHF        25335    17941     1137      304      92%  
+DAX            1538      588       47        0      92%  
+HOUSD          3888     1914      142        4      92%  
+ZRUSD          1061      697       52        1      92%  
+XMRUSD        20750    10438      768       21      92%  
+TRUMPUSD       3236     2039       12      140      93%  
+AAVEUSD       12341     6561      477        0      93%  
+BZUSD          4037     1961      136        0      93%  
+IMXUSD         9374     5408      370        2      93%  
+SP             2621      566       38        0      93%  
+CAKEUSD        6231     3561      204       17      94%  
+HGUSD          4239     2274      134        0      94%  
+AUDNZD        25494    18176     1049        0      94%  
+XLMUSD        18356     9792      501        9      95%  
+NSDQ           2405      542       26        0      95%  
+ZBUSD          4193     2218       33       71      95%  
+XAUUSD        18714    14285      574       39      96%  
+DASHUSD       20012    10787      460        0      96%  
+ZOUSX          1479     1041       25       19      96%  
+XAGUSD         4335     3185      127        0      96%  
+BNBUSD         6248     3651       50       75      97%  
+ADAUSD        17671    10363      335       19      97%  
+USDCHF        25305    18454      629        0      97%  
+NZDCHF        25352    17836      542        0      97%  
+AUDCHF        25754    18286      552        0      97%  
+CADCHF        25473    18156      522        0      97%  
+NGUSD          4150     2085       58        0      97%  
+GCUSD          4228     2312       61        0      97%  
+EURGBP        25635    17645      464        0      97%  
+ESUSD          4205     2040       53        0      97%  
+CHFJPY        25631    18570      460        0      98%  
+GBPCAD        25639    17712      437        0      98%  
+EURCAD        25660    18395      437        0      98%  
+GBPCHF        25572    17983      392        0      98%  
+AUDCAD        25745    17749      383        0      98%  
+SIUSD          4178     2257       48        0      98%  
+NZDCAD        25386    17806      372        0      98%  
+EURNZD        25588    18482      381        0      98%  
+EURJPY        25671    18443      366        0      98%  
+GBPNZD        25596    18078      341        0      98%  
+GBPJPY        25621    18030      333        0      98%  
+EURUSD        25646    18939      349        0      98%  
+CADJPY        25709    18437      337        0      98%  
+GRTUSD        12287     6790      122        0      98%  
+NZDJPY        25374    17930      321        0      98%  
+GBPUSD        25544    18512      316        0      98%  
+GBPAUD        25659    18272      311        0      98%  
+YMUSD          4230     1947       33        0      98%  
+EURAUD        25612    18569      308        0      98%  
+USDJPY        25096    18280      303        0      98%  
+AUDJPY        25712    18421      303        0      98%  
+NZDUSD        25312    18567      302        0      98%  
+AUDUSD        25660    18960      257        0      99%  
+NIKKEI          970      705        8        0      99%  
+HBARUSD        8248     4637       35        6      99%  
+LINKUSD       15450     8147       57        2      99%  
+PLUSD          4227     2117        8        4      99%  
+UNIUSD        12537     6671       29        1     100%  
+PAUSD          4078     2073        8        0     100%  
+DOW            1152      263        0        1     100%  
+
+8 of 97 markets flagged. Ranked worst first.

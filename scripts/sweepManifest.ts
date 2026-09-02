@@ -1072,7 +1072,20 @@ export function buildSweepManifest(input: {
  * uncommitted edits cannot be reproduced from its revision, and the register
  * has to be able to say so rather than imply a clean checkout.
  */
-export type SweepSource = { dirty: boolean; revision: string };
+/**
+ * `dirty` is TRACKED change only — modified, staged, renamed, deleted — the
+ * cases where the engine that ran may differ from `revision`. Untracked files
+ * are counted in `untracked` instead. Until 2026-09-02 any non-empty
+ * `git status --porcelain` set `dirty`, and R3's two manifests record
+ * `dirty: true` at a revision the tracked tree matched byte for byte: the
+ * launcher's own status file and stdout log sat untracked beside the emit
+ * when the driver resolved its source. An untracked file cannot change the
+ * engine (nothing tracked imports a path absent on a clean checkout), and a
+ * flag that fires on the run's own outputs is one every operator learns to
+ * ignore. `untracked` is optional in the TYPE so manifests written before
+ * it stay readable; the resolver always sets it.
+ */
+export type SweepSource = { dirty: boolean; revision: string; untracked?: number };
 
 /**
  * Resolve the revision from git, refusing rather than guessing.
@@ -1092,5 +1105,10 @@ export function resolveSweepSource(
       `resolveSweepSource: git rev-parse HEAD returned ${JSON.stringify(revision)}, not a commit SHA`,
     );
   }
-  return { dirty: run(["status", "--porcelain"]).trim().length > 0, revision };
+  const lines = run(["status", "--porcelain"])
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter((line) => line.length > 0);
+  const untracked = lines.filter((line) => line.startsWith("??")).length;
+  return { dirty: lines.length > untracked, revision, untracked };
 }

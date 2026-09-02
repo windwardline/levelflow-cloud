@@ -1,0 +1,467 @@
+# R3 — the one re-sweep, run 2026-09-02
+
+The record of the remediation program's Phase 3
+(`docs/research/remediation-program-2026-08-11.md`): one corpus, one clock,
+one engine, the instrument repaired, both arms of the run card in
+`docs/HANDOFF.md` ("R3's run card") at anchor 2026-08-26. This file is the
+evidence; the artifacts sit beside it in `docs/research/r3/`.
+
+**What R3 is and is not.** It produces the first valid corpus since the
+2026-08-11 clock defect condemned the 4c/4d one. It does not derive a single
+calibration value: that is R4's per-market program, and the confirm fold is
+SEALED for it — nothing in this record reads that fold, and the readers that
+would have are named in §7. Every figure here is fit and select only.
+
+## 1. Preconditions, re-derived rather than assumed
+
+| precondition | how it was checked | result |
+| --- | --- | --- |
+| clean, merged main | `git status --short` empty; `HEAD == origin/main == e51e742` | held |
+| pin population | the driver's own `anchoredPreflight` at launch | **313 of 313 checks pass**: 291 bar-store checks over 288 distinct stores (WTI and CLUSD share one source), the calendar and the Treasury curve — all carrying the 2026-08-26 pin — plus 20 COT files present and parseable (COT caches by contract and carries no pins); the shared spend gate was not consulted. The driver's own line reads "313 cache artifacts all carry the pin", which overstates the COT half — a wording defect in the driver, recorded here |
+| density door and clock witnesses at this depth | an anchored `--warm-only` roster survey, the door in report mode (`docs/research/r3/preflight-survey-2026-09-02.txt`, copied from the session's scratch log, whose own stamp is 06:11:11Z — before the 06:12:37Z launch) | 97 of 97 warmed, **zero `WOULD REFUSE`**, zero witness refusals, zero provider bytes |
+| per-market cost | two single-market probes (EURUSD, BTCUSD), baseline variant, full depth | ~30 s per market-variant, ~1.9 GB peak RSS, 18,598 rows / 46 MB for EURUSD |
+| heap headroom | `v8.getHeapStatistics().heap_size_limit` = 4.4 GB; largest store 121 MB (BTCUSD 5-minute) | no heap flag needed |
+| disk | 284 GB free; `.calibration-cache` 7.7 GB; `.minute-bank` 219 MB; `/private/tmp` clean of repo copies | held |
+| FMP | breaker open on the bandwidth wall (minute bank stood down at 05:36Z on a 429) | the run must not fetch — and cannot, by the preflight above |
+| the post-sweep reader chain | rehearsed on the EURUSD probe pair (a gated and a capture-all single-market run, baseline, full depth) before the arms finished | `two-arm-reconcile`: 18,598 of 18,598 accepted rows byte-identical, 24 shared terms agree, `regimeBlocked` 3,338 preserved in the gated manifest and zeroed in the capture-all one; `tuning-folds-summary`, `data-limits`, `starvation-audit --report` and `grid-totalr` (no `--confirm-final`) all ran, and `docs/research/confirm-reads/` was untouched afterwards |
+
+## 2. What ran
+
+Both arms of the run card, exactly as written, launched 2026-09-02 06:12Z
+from `e51e742` under `caffeinate`, the key delivered by `wl-secret` at exec:
+
+```
+npx tsx scripts/replay-sweep.ts --anchor 2026-08-26 --days 7000 --symbols roster \
+  --grid "runnerProtection=breakeven,hold,trail_tp1;stopStructureSource=intraday,intraday_and_daily" \
+  --byte-budget 1MB --emit docs/research/r3/gated.jsonl
+npx tsx scripts/replay-sweep.ts --anchor 2026-08-26 --days 7000 --symbols roster --capture-all \
+  --grid "runnerProtection=breakeven,hold,trail_tp1;stopStructureSource=intraday,intraday_and_daily" \
+  --byte-budget 1MB --emit docs/research/r3/capture-all.jsonl
+```
+
+| arm | start | exit | elapsed | rows | emit | rejection sidecar | manifest |
+| --- | --- | --- | --- | ---: | ---: | ---: | --- |
+| gated | 06:12:37Z | 0 at 08:45:20Z | 2h 32m 43s | 5,232,445 | 13.19 GB | 3,932,095 rows, 644 MB | `d0bb64d9e12f` |
+| capture-all | 06:12:57Z | 0 at 08:48:28Z | 2h 35m 31s | 6,660,138 | 16.78 GB | 2,504,402 rows, 412 MB | `ce146c6b8b63` |
+
+Zero provider bytes on both, by construction: the first line of each stdout
+table is the preflight's assertion, no spend line appears in either, no
+`.fmp-usage.json` was written, and the breaker had stood open since
+2026-08-31 (`docs/research/r3/*.stdout-redacted.txt`).
+Folds, common-origin over the roster's own 15-minute span: fit
+2009-09-25..2018-03-11 (decisions to 2018-03-06) · select ..2022-06-03
+(decisions to 2022-05-29) · confirm ..2026-08-26 (decisions to 2026-08-21).
+Step 16 (a decision every four hours). Seven variants: `baseline` plus the
+2×3 cross. Per-market cost 94 s mean across seven variants (9,163 s over 97
+markets — the deep forex markets ~3 minutes, the 2023-era markets well under
+a minute); RSS 1.1–2.8 GB per arm, observed by `ps` during the run.
+
+**One deviation from the card's "in order", stated:** the two arms ran
+CONCURRENTLY as two single-process runs (one corpus file per arm), twenty
+seconds apart, from the same clean tree. Sequential execution would have
+blocked every gate for five hours. Concurrency changes nothing either arm
+reads or writes: both read pinned stores (a pinned hit returns the filtered
+items and writes nothing), and each writes its own emit, manifest and sidecar.
+
+**The provenance mark, and its proof.** Both manifests record
+`source: { revision: e51e742…, dirty: true }`. The tracked tree matched
+`e51e742` byte for byte when both arms resolved their source (within seconds
+of 06:12:37Z and 06:12:57Z): the earliest tracked modification on the branch
+is `.gitignore` at 06:15:05Z, every other changed file is later still
+(`stat -f %m`, listed in the PR), and `git reflog` shows no other revision
+was ever checked out. What made `git status --porcelain` non-empty was one
+untracked file, the launcher's own `arms.status` (the stdout logs were still
+ignored by the global `*.log` rule at that instant, and the corpora were
+excluded) — the driver's definition of dirty was "porcelain non-empty",
+untracked files included. The refuter re-derived this from the session
+transcript: `git status --short` was empty inside the launch command at
+06:12:37Z, both arms had printed their fold lines (which follow source
+resolution) by 06:13:22Z, and the first tracked write is 06:15:05Z. The
+reconciliation output's sentence "whose engine is not the recorded revision"
+is therefore false of this run; the instrument now says so itself for a
+manifest written under the old definition. That definition is changed in this change set (§7): `dirty` now
+means tracked change, and untracked files are counted beside it.
+
+**Four hours unexplained.** The arms ended at 08:48Z, the reader chain ran
+08:49–08:51Z, and the acceptance gate — dispatched in the same turn — did not
+start until 12:56Z; the session's next turn is stamped 13:04Z. An earlier
+version of this paragraph said the machine idle-slept. It did not:
+`kern.sleeptime` is zero since the 05:35Z boot and `pmset -g log` records no
+sleep on 2026-09-02 (checked by the record refuter, then by hand). The gap
+is on the harness side and is not explained here. A session-long
+`caffeinate` was started anyway; it is cheap insurance, not the lesson.
+
+## 3. The corpus — population and identity
+
+Both manifests: anchor `2026-08-26`, engine
+`2026.09.01.platinum-group-rate-inverse`, depth 7000, step 16, 7 variants,
+**71 emitted columns** (every pre-R3 field present), `modeledCostScale` 1,
+`grossCostScale` 0, clock `venue-wall-utc-v4` / the composite-key calendar,
+calendar census 74,152 events over 42,691 distinct instants, Treasury curve
+3,413 rows. `acceptance.captureAll` is `false` on the gated manifest and
+`true` on the capture-all one; `ignoreLowEdge` false on both.
+
+- **97 requested, 97 survived** — no market dropped at a door.
+- **Stamped holdout, 19 markets:** AUDCHF, AUDJPY, AUDUSD, BCHUSD, BNBUSD,
+  CADJPY, DAX, EURCHF, EURGBP, EURUSD, FILUSD, GBPCHF, GBPJPY, NEARUSD,
+  NGUSD, NQUSD, SP, XLMUSD, ZOUSX. The gate excludes its own read-time
+  stratified set (20 markets) instead.
+- **Engine-declined at the run, 15 markets** (recorded, symbols only):
+  AAVEUSD, CAKEUSD, DASHUSD, DOGEUSD, EGLDUSD, ETCUSD, GRTUSD, HBARUSD,
+  IMXUSD, LTCUSD, PAUSD, UNIUSD, XLMUSD, XMRUSD, ZCUSX.
+- **9,164,540 decision points** across 1,379 (symbol, variant, split) cells —
+  identical in both arms, because both arms walk the same instants.
+- **Where the decisions went (gated), ten buckets that partition the
+  9,164,540 exactly:** regimeBlocked 1,291,003 · sessionBlocked 1,032,297 ·
+  noConsensus 910,637 · belowPayoff 409,521 · planRejected 224,258 ·
+  newsBlocked 52,941 · belowConfidence 8,589 · notWarm 2,849 · regimeGated 0
+  · unresolvable 0 · emitted 5,232,445. `belowThreshold` 418,110 is the
+  AGGREGATE of belowConfidence + belowPayoff + regimeGated (`sweep.ts`, "an
+  aggregate, not a twelfth reason"), and is not a bucket of its own.
+- **The capture-all arm zeroes three of those counters and their aggregate by
+  construction** (regimeBlocked, belowConfidence, belowPayoff, hence
+  belowThreshold → 0) and walks on: noConsensus rises to 1,160,236 and
+  planRejected to 256,079, emitted 6,660,138. That is register item H's
+  mechanism, measured.
+- `starvation-audit --report` on the gated table (the only table it accepts):
+  8 of 97 markets flagged, ranked worst first
+  (`docs/research/r3/starvation-audit-gated.txt`).
+
+**The data limits, and what they do to the folds** (`data-limits-gated.txt`):
+forex begins 2009-09-25, crypto 2013-11-04, XAUUSD 2013-07-14, SP 2020-02-24
+and NSDQ 2020-08-14 — and **every futures, energies, agriculture and
+livestock market, the other four indices, and XAGUSD begin between
+2023-08-30 and 2023-10-02**: FMP serves ~1,060 days of intraday history for
+them. Under the run card's global folds those markets have **no fit or select
+days at all**; their entire history sits inside the sealed confirm fold.
+
+## 4. Two arms, one measurement — register item H, executed
+
+`scripts/two-arm-reconcile.ts` (new; `tests/twoArmReconcile.test.ts`)
+streams both corpora in lockstep. Output `docs/research/r3/reconcile-two-arms.txt`:
+
+- 24 shared manifest terms agree; `decisionPoints` agree on all 1,379 cells;
+  each arm's rows per cell equal its manifest's `emitted`.
+- **5,232,445 of 5,232,445 accepted rows byte-identical** between the arms;
+  0 field-identical-after-reserialization; 0 divergent. The gated corpus
+  carries no `accepted: false` row; the capture-all corpus carries 1,427,693.
+- The instrument's verdict line reads `DIVERGENT — 2 finding(s)` and it
+  exited 1, as it must when any finding stands. Both findings are the
+  provenance flag (`source.dirty is true` under the old definition), explained
+  and proven in §2; the row and term checks found nothing. The verdict is
+  overridden HERE, in writing, not by the instrument.
+- Independently (refuter, Lens B): the SHA-256 of the capture-all arm's
+  top-level `accepted: true` lines in file order equals the SHA-256 of the
+  whole gated file (`bc97167b…`), every per-cell count matches both
+  manifests by a regex stream that shares nothing with the instrument, and
+  three accounting identities hold on all 1,379 cells (belowThreshold =
+  belowConfidence + belowPayoff; the emitted delta equals regimeBlocked +
+  belowThreshold − Δ(noConsensus + planRejected); the ledger delta
+  3,932,095 − 2,504,402 equals the 1,427,693 non-accepted rows).
+
+The claim in HANDOFF's item H — "the accepted subset is bit-identical
+between the arms" — was measured on two markets at step 256; it now holds on
+the whole roster at step 16.
+
+## 5. What R3 measured — fit and select, confirm sealed
+
+`scripts/tuning-folds-summary.ts` (new; `tests/tuningFoldsSummary.test.ts`)
+refuses the confirm fold by name, excludes the 19 held-out markets from every
+class rollup, skips rows the sweep did not accept, and prints net beside
+gross and the rate beside the money. Full tables:
+`docs/research/r3/tuning-folds-summary-gated.txt` (and the capture-all twin,
+whose accepted population is identical by §4). Net R is after modelled spread,
+slippage and commission at scale 1; gross R charges the published commission
+only.
+
+**Per class at rest (`baseline`), fit + select pooled, held-out excluded:**
+
+| class | n | filled | TP1 hit | stop | net E | ±SE clustered (k markets) | gross E | net total R | gross total R |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| forex | 252,522 | 218,364 | 68.8% | 23.7% | **+0.013** | ±0.006 (19) | +0.037 | **+2,896.9** | +8,047.8 |
+| crypto | 63,521 | 53,454 | 67.9% | 28.4% | −0.036 | ±0.029 (23) | +0.053 | −1,930.3 | +2,857.9 |
+| metals | 9,150 | 7,222 | 59.6% | 29.9% | −0.077 | — (XAUUSD alone) | +0.006 | −554.4 | +42.3 |
+| indices | 145 | 131 | 48.1% | 12.2% | +0.004 | — (NSDQ alone) | +0.016 | +0.6 | +2.2 |
+| futures, energies, agriculture, livestock | 0 | 0 | — | — | — | — | — | — | — |
+
+Per fold, forex at rest: fit +0.006 (150,296 filled, +947.3R), select
+**+0.029** (68,068 filled, +1,949.6R). Crypto at rest: fit **+0.123**
+(8,284 filled, +1,017.8R), select **−0.065** (45,170 filled, −2,948.2R) — the
+sign flips between folds, and select carries five times the fills.
+
+**The runner axis, fit + select pooled, net:**
+
+| class | breakeven | hold | trail_tp1 (intraday) | trail_tp1 + daily structure |
+| --- | ---: | ---: | ---: | ---: |
+| forex | −0.023 / −5,010.5R | −0.016 / −3,440.8R | +0.013 / +2,896.9R (= baseline) | +0.015 / +3,225.1R |
+| crypto | −0.071 / −3,805.1R | −0.050 / −2,650.9R | −0.032 / −1,686.7R | −0.030 / −1,594.5R |
+| metals | −0.096 / −693.1R | −0.103 / −741.2R | −0.077 / −554.4R (= baseline) | −0.079 / −582.7R |
+
+`trail_tp1` is the least-bad or best mode in every class that can be
+measured on the summary's pooled net expectancy: over `breakeven` / `hold`
+by 0.036 / 0.029R in forex, 0.039 / 0.018R in crypto, 0.019 / 0.026R in
+metals and 0.016 / 0.020R on indices' 131 fills. The `intraday_and_daily`
+stop source moves the money by less than 0.005R per trade in forex, crypto
+and metals (0.004R at most, either direction) and by 0.011–0.019R on
+indices' 131–132 fills, where nothing is evidence; and its population is NOT
+a superset of the
+intraday one: per mode it drops 2,434 intraday decisions and admits 13,506
+new ones (net +1.4%), on 69 of the 71 structure-stoppable markets, and six
+markets end with fewer decisions (LTCUSD 8,374→8,194, BCHUSD, ZBUSD, ZNUSD,
+ZOUSX, GCUSD); net +1.49% (11,072 on 742,747). The record's standing claim that the daily arm "admits more
+and loses none" was true of the three markets it was measured on and false
+of the roster; and the claim that daily structure "always tightens and never
+widens" is false wherever the intraday search found no pivot — the shipped
+stop then sits at the volatility floor and a daily pivot moves it out (49.8%
+of floor rows widened in a 25% paired sample; 27.9% of cap rows tightened).
+Both are corrected in place in HANDOFF, the q4 record and the engine comment.
+
+**The acceptance gate, class grain, fit and select only**
+(`scripts/grid-totalr.ts` without `--confirm-final`;
+`docs/research/r3/grid-totalr-fit-select.txt`; 1,000 permutations, seed 7):
+
+- Forex: `breakeven` and `hold` fail against baseline at p = 1.000 (ΔR
+  select −3,245 and −2,518). `trail_tp1 + daily` beats baseline on select
+  (ΔR +236.1, paired p 0.018) but not on fit (ΔR −1.7), so it fails the
+  both-folds rule. Baseline's select expectancy on the gate's own population
+  is +0.020 (lower 95% +0.016).
+- Crypto: both `trail_tp1` arms beat baseline on both folds (ΔR select +190.9
+  and +242.7, paired p 0.001) and still **fail D4's absolute term** — their
+  select expectancy is −0.087 / −0.085. Beating the baseline is not earning
+  money, and the gate says so.
+- Metals: every variant fails; `trail_tp1 + daily` ΔR select −23.6, p 0.993.
+- Indices (SP alone on the gate's population, resting mode `hold`): effective
+  pairs 36 / 55 / 0 / 25 / 65 / 78 across the six variants; `hold, intraday`
+  is NO VERDICT (bit-identical to baseline), the other five fail; no evidence
+  either way.
+- **Futures, energies, agriculture, livestock: NO VERDICT — "baseline has no
+  select-fold days in this group".** See §3 and §8.
+- The `trail_tp1, intraday` row reads NO VERDICT with 0 nonzero pairs in
+  forex and metals: it is bit-identical to baseline there (the resting mode),
+  which is the axis default being honest, not the knob being inert.
+
+**Frequency beside money, at rest** (baseline, fit + select, held-out
+excluded, ≥30 filled): 44 markets clear the floor; **21 have net expectancy
+above zero; 16 win at least half of their filled setups while losing money**
+— AAVEUSD, ADAUSD, EURJPY, GBPAUD, GBPUSD, GRTUSD, LINKUSD, LTCUSD, NZDUSD,
+SOLUSD, TRXUSD, UNIUSD, USDCAD, USDCHF, USDJPY, XAUUSD. Amendment 39's
+premise — that a market can win four in five and shrink the account — is now
+a measurement on a valid corpus rather than an argument from the ladder's
+arithmetic.
+
+**Cost is the whole loss in crypto and metals.** Gross expectancy is positive
+in every measurable class at rest (+0.037 forex, +0.053 crypto, +0.006
+metals); the modelled spread and slippage take 0.024R (forex), 0.089R
+(crypto) and 0.083R (metals) per filled trade. This is the lever amendment 39
+names as highest-confidence, measured; it is not a decision.
+
+**Two holdout rules, two populations — read the gate and the summary as
+different instruments, not as two prints of one number.** The summary
+excludes the manifest's STAMPED holdout (19 markets, the driver's
+sha256-mod-5 draw); the gate excludes its own read-time STRATIFIED set (20
+markets), by design and as its output says. The two sets share only five
+markets (AUDCHF, BNBUSD, EURUSD, NGUSD, XLMUSD), so the gate tunes on 14
+stamped-held-out markets and excludes 15 the corpus stamped as tuning
+markets. That is why forex at rest reads +0.029 on select in the summary (19
+markets) and +0.020 in the gate (22 markets), and why the two indices rows
+are DISJOINT single markets: the summary's is NSDQ, the gate's is SP — which
+the manifest stamps HELD OUT. Neither figure is wrong; they answer different
+questions, and R4 must pick one rule per read and say which. Found by the
+look-ahead refuter, not by the author.
+
+**None of this is a calibration decision.** The stopping rule stands: no
+value moves on R3 evidence. R4 grades every market individually with absolute
+expectancy as the criterion and owns the one confirm read.
+
+## 6. What survived adversarial review, and what died
+
+Three refuters ran against the readings (statistical validity and
+look-ahead; the reconciliation instrument; engine-axis conformance) and a
+fourth against this record. Their verdicts are in §6a; nothing in §3–§5 was
+written before the corpus existed. Every CORPUS figure in §3–§5 quotes a
+tracked artifact in `docs/research/r3/`; the run-cost figures (probe rows and
+sizes, RSS, heap limit) and the refuters' own recomputations (the paired
+25% sample, the 2,434 / 13,506 decision sets, the per-mode row counts, the
+`bc97167b…` hash) come from the session and its scratch outputs, which are
+not tracked, and are marked as such where they appear.
+
+### 6a. Verdicts
+
+**Lens A — statistical validity and look-ahead** (independent one-pass
+recount of the gated corpus):
+- Fit+select only, no confirm figure in any printed number — SURVIVES; every
+  forex baseline figure re-derived to printed precision (n 252,522, filled
+  218,364, TP1 68.8%, net +0.0133, +2,896.9R, gross +8,047.8R).
+- The embargo held: 0 of 3,209,603 fit/select rows decided inside the
+  5-day embargo, 0 exits past a fold end; a −1-day mutation of the embargo
+  fired 1,321 fit and 511 select violations, so the counter is live —
+  SURVIVES.
+- Holdout exclusions hold in both readers — SURVIVES — but **WORSE THAN
+  FILED**: the stamped and read-time holdout rules share five markets, so the
+  gate tunes on 14 stamped-held-out markets and the two indices rows are
+  disjoint single markets (recorded in §5).
+- 44 / 21 / 16 and the clustered SEs — SURVIVES, names identical.
+- Four starved classes and the 145 index decisions — SURVIVES, with cause:
+  no `--fold-spec` on the card.
+
+**Lens D — engine-axis conformance** (one pass over all 97 markets):
+- `baseline` is bit-identical (full row minus `variant`, same order) to
+  exactly one explicit intraday variant on all 97 markets; derived resting
+  distribution trail_tp1 65 / breakeven 25 / hold 7, matching the manifest
+  and HEAD — SURVIVES, stronger than filed.
+- "Daily structure admits more decisions and loses none" — **KILLED** (§5).
+- The three runner modes differ in outcome mix and net R on every market
+  and class that has rows; stop_loss, unfilled and expiry counts are
+  identical across modes (the knob acts only after TP1) — SURVIVES.
+- `runnerProtection` recorded on 4,451,317 filled rows equals the variant's
+  mode; all 781,128 unfilled rows read `unrecorded` — SURVIVES, 0 violations.
+- "A capped stop cannot move between stop sources" — **KILLED**, and the
+  engine comment's "always tightens, never widens" with it (§5).
+
+**Lens B — the reconciliation instrument** (a route sharing nothing with
+the instrument):
+- The SHA-256 of the capture-all arm's top-level `accepted: true` lines in
+  file order equals the SHA-256 of the whole gated file — the identity,
+  proven without the instrument — SURVIVES.
+- The instrument is order-strict (a swap shows as two differing rows), and
+  compares nested `legs` and `votes`; two stated blind spots (absent vs
+  `null`, `−0` vs `0`) are unreachable on a byte-identical corpus — SURVIVES.
+- The test file was **WORSE THAN FILED**: 11 of 16 instrument mutants
+  survived it. Nine executed tests were added (nested divergence, the
+  capture-all side's manifest count, orphan keys, missing counterparts in
+  both directions, a missing `decisions[]`, `ignoreLowEdge`, a dirty gated
+  arm under both definitions, the enumerated shared-term list, a
+  non-boolean `accepted`), and two mutants were re-applied by hand and
+  killed before the fix was kept.
+- The provenance explanation SURVIVES with one correction: the only
+  untracked path at resolution was `arms.status` (the logs were still
+  ignored); the instrument's old sentence "engine is not the recorded
+  revision" was false of this run and now distinguishes the two
+  definitions.
+
+**Lens C — this record** killed twelve sentences, all corrected in place:
+the eleven-bucket sum (an aggregate counted as a bucket), the machine-sleep
+explanation (no sleep occurred), "lose to `trail_tp1` at p = 1.000" (the
+gate pairs against baseline, which is `trail_tp1` only in forex and metals),
+the indices pair count, the "< 0.003R" and "0.02–0.04R" ranges, the 313
+"artifacts carrying the pin" (COT carries none), the tracked stdout logs
+carrying the confirm split's outcome columns (now redacted, see §7), the
+reconciliation verdict's wording, "every figure quotes an artifact", the
+livestock fold end, the "status and log" wording, and three minor figures.
+
+<!-- §6a-end -->
+
+## 7. Defects found, and how each was closed
+
+- **The run card's global folds starve four classes — FOUND, remedy in
+  flight.** `--fold-spec` exists for exactly this ("one 17-year global
+  calendar starved every 2023-era market … of fit and select entirely",
+  `scripts/sweepFolds.ts`), the 4c fleet ran on per-class calendars, and the
+  card as proven on two forex and crypto markets could not show it. The
+  per-class spec at the anchor is derived and tracked
+  (`docs/research/r3/fold-spec-2026-08-26.json`: forex 2009-09-25, metals
+  2013-07-14, crypto 2013-11-04, indices 2020-02-24, futures 2023-09-24,
+  agriculture 2023-09-25, livestock 2023-09-25, energies 2023-10-01, each to
+  2026-08-26 except livestock, whose last pinned bar is 2026-08-25T18:00Z). A per-class arm costs zero bytes at the pinned anchor and is
+  the class-grain instrument for those classes; it runs after this change
+  set lands and is recorded in a follow-up entry. Item 2's law is about
+  corpus coherence under one engine, not process count, and the engine is
+  unchanged.
+- **The fold-spec deriver pinned itself to the run day — CLOSED.**
+  `scripts/derive-fold-spec.ts` read the cache at `new Date()`, the same
+  defect the driver carried until `--anchor`; at 2026-08-26 it would have
+  refused a fully warm cache as cold. It now takes `--anchor`, `roster`, is
+  importable, and refuses rather than fetches; `tests/deriveFoldSpec.test.ts`
+  proves the spans are read at the pin and truncated there.
+- **`source.dirty` fired on the run's own output files — CLOSED for future
+  corpora, explained for these.** `resolveSweepSource` now reports tracked
+  change as `dirty` and counts untracked files in `untracked`; the old
+  definition called R3's tree dirty over its own status file. Executed tests
+  cover every porcelain shape.
+- **The minute-bank backup's off-box push cannot run under launchd — CLOSED.**
+  At 2026-09-02T05:36:29Z the agent placed the local snapshot and logged
+  `FAIL wl-secret is not on PATH; the R2 token cannot be read`, exit 1. The
+  plist runs `/bin/zsh -lc`, a login shell that never sources `~/.zshrc`,
+  which is where `~/.local/bin` joins PATH — so the lookup worked in every
+  interactive shell and failed in the one environment the schedule runs from.
+  `scripts/ops/backup-minute-bank.sh` now resolves the launcher by absolute
+  path (`${LEVELFLOW_WL_SECRET:-$HOME/.local/bin/wl-secret}`) and the
+  launcher hands the push script a known PATH. Three executed tests in
+  `tests/minuteBankBackup.test.ts` run the script under a launchd-shaped
+  environment with a recording stub: RED before the fix (the script hit its
+  own "not on PATH" branch), GREEN after.
+- **Twelve corpus readers read the confirm fold with no opt-in and no ledger
+  entry — RECORDED, ranked as R4's first act.** The 2026-09-02 audit (verified
+  by hand on `sweep-analysis`, `cost-sensitivity-verdict`,
+  `roster-expectancy-audit` and `stop-provenance`) found that only
+  `data-limits`, `derive-4d`, `feasibility-4d` and `grid-totalr` without
+  `--confirm-final` leave the fold sealed. The other twelve pool or print
+  confirm-fold figures (the audit that found them counted eleven; named, they
+  are twelve) — five re-cut the folds themselves at 50/75% of the span and
+  never read `row.split` (`roster-expectancy-audit`, `market-dossier`,
+  `cost-sensitivity-verdict`, `threshold-rescue`, and `grid-totalr`'s
+  `--per-market-folds` path) — and none writes the LA-6 ledger. A confirm read
+  through any of them is an unrecorded one. R3's report used none of them;
+  the sealed summary reader exists because of this. Ranked in
+  `docs/HANDOFF.md` (6b-0's reopened corpus-readers row).
+- **The driver's own stdout table prints the confirm split's outcome columns
+  — FOUND, contained.** `replay-sweep.ts` prints one row per (market,
+  variant, split) with `tp1HitRate`, `stopRate` and `expectancyR`, the
+  confirm split included, by design and on every run. The record refuter
+  found those 679 rows per arm staged for tracking under "the confirm fold
+  is sealed". The raw logs now stay local (gitignored again); the tracked
+  evidence is `*.stdout-redacted.txt`, in which the three outcome columns of
+  every confirm row read `sealed` and the gate tallies are untouched —
+  `starvation-audit --report` produces byte-identical output from the
+  redacted table. The driver's table should withhold those columns unless
+  asked; that is R4's instrument work, beside the twelve readers.
+- **`grid-totalr` called a three-fold corpus "legacy two-split" whenever it
+  was graded without `--confirm-final` — CLOSED.** The sealed state now has
+  its own words, legacy is reserved for a manifest that declares no folds,
+  and an executed test drives the real binary on a three-fold fixture without
+  the flag and proves the ledger directory stays empty. The gate's
+  statistical core is untouched.
+- **`PROTECTED_ANCHORS` said "Remove once R3 has run" while register items B
+  and C said it must survive R4's supplementary arms — RESOLVED.** The entry
+  states both facts and the later ruling governs; the per-class arm above is
+  the first use of the kept pin.
+
+## 8. Decided, open, and what gates it
+
+**Decided by R3:**
+- The corpus exists, is one measurement in two acceptance modes, and is
+  readable by the sealed readers; register item H is closed.
+- At rest, forex is the only class with positive net expectancy on both
+  tuning folds; crypto, metals and indices are not; four classes are
+  unmeasured at the class grain until the per-class arm runs.
+- Against baseline on the gate's paired test, `breakeven` and `hold` fail at
+  p = 1.000 in forex, crypto and metals — a comparison with `trail_tp1` only
+  where baseline IS `trail_tp1` (forex, metals; crypto's baseline is a mix and
+  the gate's index market rests on `hold`). On the summary's pooled net
+  expectancy `trail_tp1` is the best of the three modes in every class with
+  rows. Daily stop structure moves the money by less than 0.005R per trade
+  where there is a sample.
+- Modelled cost is larger than the net loss in crypto and metals.
+
+**Open, and what gates each:**
+- Class-grain verdicts for futures, energies, agriculture, livestock —
+  gated on the per-class arm (zero bytes, ~2.5 h per arm, after this change
+  set lands).
+- Every per-market verdict and every calibration value — gated on R4, which
+  is gated on sealing the twelve readers (§7) so its one confirm read is a
+  recorded one.
+- Whether forex's +0.013 survives the confirm fold — R4's read, nobody
+  else's.
+- The crypto fit/select sign flip (+0.123 → −0.065) — R4's per-market
+  program, with the fold calendars per class rather than global.
+
+## 9. Storage
+
+| | before | after |
+| --- | --- | --- |
+| free disk | 284 GB | 254 GB |
+| `.calibration-cache` | 7.7 GB (pinned reads write nothing) | 7.7 GB |
+| `.minute-bank` | 219 MB | 219 MB |
+| `docs/research/r3/` corpora + sidecars (gitignored) | — | 31.0 GB |
+| tracked artifacts in `docs/research/r3/` | — | 3.1 MB (manifests, redacted stdout tables, reader outputs, fold spec) |
+| strays under `/private/tmp` | none | none (probe outputs removed at the end of the session) |
