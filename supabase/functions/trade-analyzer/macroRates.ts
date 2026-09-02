@@ -239,7 +239,7 @@ export function calculateMacroRateAdjustment(
   if (
     context.source === "unavailable" ||
     context.tenYearChangeBps === null ||
-    // 4 bp: UNDERIVED. Nothing in this repo measured it, and it is the dead
+    // 4 bp: UNDERIVED (§6b-1 D). Nothing in this repo measured it, and it is the dead
     // band that decides whether the macro term participates at all. It is also
     // the number most exposed to rate LEVEL — a large daily move at a 0.5%
     // ten-year and routine at 4.3% — and nothing ties it to level or to
@@ -264,7 +264,7 @@ export function calculateMacroRateAdjustment(
     context.tenYearChangeBps,
   );
   if (!preferredSide) {
-    // 8 bp: UNDERIVED, and the same line appears again below. The -1 beside it
+    // 8 bp: UNDERIVED (§6b-1 D), and the same line appears again below. The -1 beside it
     // is NOT a fifth undocumented number — it already carries #415's treatment
     // twice in this file, in the HOUSD and RBUSD role entries above, each of
     // which says in terms that the magnitude was never measured here. Quoting
@@ -283,7 +283,7 @@ export function calculateMacroRateAdjustment(
     };
   }
 
-  // 8 bp AND the 2:1 pair: both UNDERIVED, and the pair was the one this file's
+  // 8 bp AND the 2:1 pair: both UNDERIVED (§6b-1 D), and the pair was the one this file's
   // own register entry never named while calling the surface handled. It is
   // also the source of the "plus or minus 2" bound that entry leans on — and
   // that bound is misleading as a low-stakes argument: this addend feeds the

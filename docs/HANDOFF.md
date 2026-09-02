@@ -3243,7 +3243,23 @@ manufacturing another.
 ### 6b-1. Owner decisions owed — raised by the 2026-08-25 converge
 
 **THIS LIST WAS CURATED, NOT DERIVED — found 2026-09-01, and it is the register's
-own defect rather than a defect in any entry.** It holds what one converge
+own defect rather than a defect in any entry. THE DERIVATION NOW EXISTS, in the
+one direction that can be mechanised: `tests/registerIsDerived.test.ts` greps
+engine source for every provenance marker and fails any that does not name the
+register item it belongs to. A marker nobody can trace is how an open question
+becomes invisible, and that is the failure — not the marker.**
+
+The other direction is deliberately NOT asserted, and the reason is worth
+keeping: a register item need not have a marker. B, F, G and H were about data,
+captures, a disk and a sweep mode, none of which annotate a line of code.
+Requiring one marker per item would force fake markers, and a fake marker is
+worse than none.
+
+*The guard was mutation-verified in both directions, and the first version of it
+could not fire.* Its dangling-item check extracted `[A-H]` — valid letters only —
+so a marker citing a nonexistent item failed the traceability check above it and
+arrived with an empty set to inspect. One failure where there should have been
+two. Widened to `[A-Z]`. It holds what one converge
 surfaced, not every question the record flags for the owner. A sweep of the
 repository on 2026-09-01 found four more, each verified against live code, and
 the reason none of them was here is that nothing derives this population. The
