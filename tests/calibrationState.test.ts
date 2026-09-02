@@ -309,9 +309,15 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     // which alone scopes the cohort — the quantity is mean realized R, and the
     // population widened to include expired_in_profit and expired_at_loss,
     // filled trades that banked or lost real money and were excluded outright.
+    // 2026.09.01.platinum-group-rate-inverse (6b-1 A, owner-ruled): PLUSD and
+    // PAUSD moved from macro role `none` to `rate-inverse`. The role adds +/-1
+    // or +/-2 to a 0-100 confidence score that feeds the acceptance gate, the
+    // scan's primary sort and the correlated-sibling suppressor, so the
+    // accepted population differs and the cohort scopes again. PAUSD is
+    // engine-declined and builds no setup, so the live delta is PLUSD alone.
     assert.match(
       calibrationSrc,
-      /ANALYZER_VERSION = "2026\.08\.31\.learning-on-realized-r"/,
+      /ANALYZER_VERSION = "2026\.09\.01\.platinum-group-rate-inverse"/,
     );
     assert.match(src, /ANALYZER_VERSION,\n/);
 

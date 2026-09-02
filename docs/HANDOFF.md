@@ -3255,7 +3255,32 @@ its options and what each option implies; none was decided, because deciding
 them from inside the code would be inventing a criterion and calling it a
 finding.
 
-**A. PLUSD and PAUSD — monetary metals or industrial?** Open since #415 for
+**A. PLUSD and PAUSD — monetary metals or industrial? CLOSED 2026-09-01,
+owner-ruled `rate-inverse` for both.** The criterion was in the table all along,
+unstated: the metals it admits move inverse to the ten-year and the one it
+excludes by name moves with it. Measured on cached daily bars at zero provider
+bytes, 2013-2026, n~3410 per market — declared monetary -0.050 to -0.061 %/bp
+(t -7.7 to -19.0), declared-industrial HGUSD **+0.017 (t +3.46)**, and the two
+open markets PLUSD -0.026 (t -4.40) and PAUSD -0.018 (t -2.35). The instrument
+recovers all five decided cases before it speaks on the open two, which is what
+makes this a repair rather than a pick. Magnitude runs near half the gold and
+silver betas and `role` has no dial for that, so membership is all that was
+ruled. Evidence and re-runnable script:
+`docs/research/macro-role-rate-beta-2026-09-01.md`,
+`scripts/macro-role-rate-beta.ts`. Shipped with `ANALYZER_VERSION`
+`2026.09.01.platinum-group-rate-inverse`; PAUSD is engine-declined so the live
+delta is PLUSD alone.
+
+**One thing this ruling settled by implication, recorded so it is not re-asked**:
+whether a measurement may found membership in this table at all. Every other
+`rate-inverse` reason is an argument rather than a measurement ("USD is the quote
+leg", "its price IS the yield"). The answer is yes, on the ground that the
+measurement reproduces every case the table had already decided — it validates
+the taxonomy rather than competing with it. A future measured entry needs that
+same control check, not merely a significant coefficient.
+
+*The question as it stood, preserved because its refutation history is load-bearing:*
+Open since #415 for
 the macro-rate role, where they sit at `none` with an OPEN marker rather than
 a settled reason. The old `RATE_SENSITIVE_METALS` set admitted every precious
 metal and excluded copper, which is a decision written into its composition

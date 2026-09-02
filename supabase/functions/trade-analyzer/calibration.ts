@@ -85,7 +85,7 @@ import { isKnownSymbol } from "./symbols.ts";
 // includes `expired_in_profit` and `expired_at_loss` — filled trades that
 // banked or lost real money and were excluded outright, because under a win
 // rate they were neither. (Prior: 2026.08.27.calendar-provenance.)
-export const ANALYZER_VERSION = "2026.08.31.learning-on-realized-r";
+export const ANALYZER_VERSION = "2026.09.01.platinum-group-rate-inverse";
 
 export type AssetType =
   | "agriculture"
