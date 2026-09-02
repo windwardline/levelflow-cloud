@@ -3400,11 +3400,25 @@ committee-weight audit". Corroborated in git — four commits have ever touched
 the file, all pure additions, **zero weight-value lines ever removed**. The
 owner call is acceptance, not derivation.
 
-*Half two* — crypto and forex omitting `trend_pullback_to_value` — is scheduled
-for measurement under **Round 29 item 8, committee weights**, and is enforced
-meanwhile by `KNOWN_ABSENCES` in `tests/strategyProfileCompleteness.test.ts`.
-It is not waiting on an owner ruling; no such ruling exists, and the guard said
+*Half two* — crypto and forex omitting `trend_pullback_to_value` — is enforced
+meanwhile by `KNOWN_ABSENCES` in `tests/strategyProfileCompleteness.test.ts`, and
+is not waiting on an owner ruling; no such ruling exists, and the guard said
 otherwise until that was struck.
+
+**It sits after R3 on two independent grounds, and an earlier version of this
+entry named neither — corrected 2026-09-02.** It said "scheduled for measurement
+under Round 29 item 8", which reads as an ordinal position Round 29 does not
+have: item 8 sits under "Items 5–10: the ranking is the next converge's
+question", where the owner ruled 2026-08-11 that those items are part of the
+next CONVERGE, that it "runs after the current work closes", and that "nothing
+below is treated as either a blocker or a skip". That ruling is the first
+ground, and it is the durable one — a rank read off a numbering that is
+explicitly undecided is not a gate.
+
+The second ground is the one that de-gated the weight arm in the same entry: a
+sweep at a pinned anchor spends nothing, so a later arm at 2026-08-26 is free
+while `analyzerVersion` is unchanged. Nothing forces this measurement into R3
+even if its rank moved.
 
 **The weight arm does NOT have to ride R3, and the reason is item 4's closure.**
 Energies and indices have never been validated at all — round-16's A/B named
