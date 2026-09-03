@@ -346,8 +346,21 @@ export type DerivedFilter = {
 
 const DERIVED_OPS = new Set([">=", ">", "<=", "<"]);
 
+/**
+ * The fields a derived predicate may read: DECISION-TIME quantities only.
+ * An outcome column (realizedR, grossRealizedR, maxFavorableMove, tp1Hit…)
+ * would let a predicate look ahead and manufacture any verdict, so anything
+ * off this list is refused by name.
+ */
+export const DERIVED_FIELDS = new Set([
+  "atr", "confidenceScore", "costShare", "cotPercentile", "dailyAtr", "estimatedCommission", "estimatedRoundTripCost",
+  "estimatedSlippage", "estimatedSpread", "executionScore", "grossRewardRisk", "ladderRewardRisk", "nearestStructureDistance",
+  "newsPenalty", "rewardRisk", "riskDistance", "sessionPenalty", "stopPivotDistance", "trendStrength", "volatilityPercentile",
+]);
+
 /** `name:field>=value;name:field<=value` — one entry per derived variant. */
 export function parseDerivedFilters(spec: string): DerivedFilter[] {
+  if (spec.trim().length === 0) throw new Error("--derive-filters: an empty value names no variant; pass name:field>=value or omit the flag");
   const filters: DerivedFilter[] = [];
   for (const entry of spec.split(";").map((part) => part.trim()).filter((part) => part.length > 0)) {
     const colon = entry.indexOf(":");
@@ -360,8 +373,12 @@ export function parseDerivedFilters(spec: string): DerivedFilter[] {
     if (!match || !DERIVED_OPS.has(match[2])) {
       throw new Error(`--derive-filters: ${JSON.stringify(entry)} is not a predicate of the form field>=value (ops: >=, >, <=, <)`);
     }
+    if (!/^-?\d+(?:\.\d+)?$/.test(match[3].trim())) throw new Error(`--derive-filters: ${JSON.stringify(entry)} compares against ${JSON.stringify(match[3])}, which is not a decimal number`);
     const value = Number(match[3]);
     if (!Number.isFinite(value)) throw new Error(`--derive-filters: ${JSON.stringify(entry)} compares against ${JSON.stringify(match[3])}, which is not a number`);
+    if (!DERIVED_FIELDS.has(match[1])) {
+      throw new Error(`--derive-filters: ${JSON.stringify(match[1])} is not a decision-time field; an admission filter may read only ${[...DERIVED_FIELDS].sort().join(", ")} — an outcome column would let the predicate look ahead`);
+    }
     const canonical = `${match[1]}${match[2]}${value}`;
     filters.push({
       field: match[1],
@@ -1156,6 +1173,7 @@ export async function gradeCorpus(
   manifest: SweepManifest;
   /** The held-back calendar this corpus's confirm fold names (R4 act 2). */
   calendarHash: string;
+  derivedFilters: DerivedFilter[];
   /** The recorded read, when one happened: where it was filed and what it wrote. */
   read: {
     artifactHash: string;
@@ -1287,7 +1305,14 @@ export async function gradeCorpus(
   if (frozen && (options.deriveFilters ?? []).length > 0) {
     throw new Error("--frozen rebuilds every derived variant from the frozen file; --derive-filters may not be passed beside it");
   }
+  if (!frozen && options.confirmFinal && (options.deriveFilters ?? []).length > 0) {
+    throw new Error(
+      "--derive-filters with --confirm-final is a read of a variant nothing froze: grade the derived variants on the tuning folds, " +
+        "freeze that grading, and pass --frozen so the ledger carries the predicate that was read",
+    );
+  }
   const armOfShard: Array<string | null> = shardManifests.map(() => null);
+  const precomputedEmitSha256 = new Map<string, string>();
   if (frozen) {
     const armsByHash = new Map<string, string>();
     for (const arm of frozen.candidates.arms) for (const hash of arm.shardHashes) armsByHash.set(hash, arm.arm);
@@ -1303,6 +1328,17 @@ export async function gradeCorpus(
       for (const hash of arm.shardHashes) {
         if (!present.has(hash)) throw new Error(`arm ${arm.arm}'s corpus ${hash.slice(0, 12)} is not among the shards; the frozen read needs every arm's corpus on the command line`);
       }
+    }
+    // The bytes the arm was graded on are the bytes this read opens: every
+    // shard's emit digest must equal the one its arm's grading recorded.
+    for (let index = 0; index < paths.length; index += 1) {
+      const hash = shardManifests[index].manifestHash;
+      const arm = frozen.candidates.arms.find((entry) => entry.shardHashes.includes(hash))!;
+      const recorded = arm.emitSha256?.[hash];
+      if (recorded === undefined) throw new Error(`arm ${arm.arm}'s grading recorded no emit digest for corpus ${hash.slice(0, 12)}; re-grade it with a gate that binds the bytes before freezing`);
+      const actual = await sha256File(paths[index]);
+      if (actual !== recorded) throw new Error(`${paths[index]}: emit bytes differ from the ones arm ${arm.arm} was graded on (sha256 ${actual.slice(0, 12)} vs ${recorded.slice(0, 12)}); the frozen read opens only the corpus the freeze bound`);
+      precomputedEmitSha256.set(hash, actual);
     }
   }
   const firstConditions = conditionsOf(manifest, !frozen);
@@ -1466,6 +1502,9 @@ export async function gradeCorpus(
           if (!wanted.has(name)) continue;
           const [filter] = parseDerivedFilters(`${name}:${spec.predicate}`);
           if (filter.predicateHash !== spec.predicateHash) throw new Error(`${frozen.path}: arm ${arm.arm}'s derived variant ${name} carries predicate ${spec.predicate} whose hash does not match; the frozen file was altered`);
+          if (spec.parent !== derivedParent) throw new Error(`${frozen.path}: arm ${arm.arm}'s derived variant ${name} was derived from ${spec.parent}, not from ${derivedParent}; the read rebuilds derived rows from its baseline only`);
+          const existing = rebuilt.get(name);
+          if (existing !== undefined && existing.predicateHash !== filter.predicateHash) throw new Error(`${frozen.path}: two arms carry a derived variant named ${name} with different predicates; a name must mean one predicate across the program`);
           rebuilt.set(name, filter);
         }
       }
@@ -1473,6 +1512,18 @@ export async function gradeCorpus(
     })()
     : options.deriveFilters ?? [];
   const emittedVariants = new Set<string>();
+  // Frozen: every shard's baseline rows are digested (count, R, gross R per
+  // symbol×split, confirm included and never printed) and compared against
+  // shard 0's, so "the one baseline" is verified row-for-row, not assumed.
+  const baselineDigest: Array<Map<string, { g: number; n: number; r: number }>> = paths.map(() => new Map());
+  const digestBaseline = (shardIndex: number, row: SweepEmitRow) => {
+    const key = `${row.symbol}|${typeof row.split === "string" ? row.split : "all"}`;
+    const cell = baselineDigest[shardIndex].get(key) ?? { g: 0, n: 0, r: 0 };
+    cell.n += 1;
+    cell.r += Number(row.realizedR) || 0;
+    cell.g += Number(row.grossRealizedR) || 0;
+    baselineDigest[shardIndex].set(key, cell);
+  };
   for (const [shardIndex, path] of paths.entries()) {
     // THE ONE READ. The door seals the confirm fold by default (R4 act 1);
     // this is the only call in the repository allowed to open it, and only
@@ -1488,6 +1539,7 @@ export async function gradeCorpus(
         // own arm. A derived candidate is rebuilt from the baseline rows below.
         const emitted = typeof row.variant === "string" ? row.variant : "baseline";
         if (emitted === derivedParent) {
+          digestBaseline(shardIndex, row);
           if (shardIndex !== 0) return;
         } else {
           const candidate = candidateOf(row.symbol);
@@ -1512,6 +1564,22 @@ export async function gradeCorpus(
       confirm: options.confirmFinal ? "read" : "sealed",
     });
     sealedRows += read.sealedRows;
+  }
+  if (frozen) {
+    for (let index = 1; index < paths.length; index += 1) {
+      for (const [key, mine] of baselineDigest[index]) {
+        const first = baselineDigest[0].get(key);
+        if (first === undefined) continue;
+        if (first.n !== mine.n || Math.abs(first.r - mine.r) > 1e-9 || Math.abs(first.g - mine.g) > 1e-9) {
+          const [symbol, split] = key.split("|");
+          // No figure is printed: the mismatch may sit on the held-back fold.
+          throw new Error(
+            `${paths[index]}: baseline rows for ${symbol} on the ${split} fold differ from ${paths[0]}'s; ` +
+              "the arms do not share one baseline and cannot be read as one program",
+          );
+        }
+      }
+    }
   }
   for (const filter of derivedFilters) {
     if (emittedVariants.has(filter.name)) {
@@ -1867,6 +1935,16 @@ export async function gradeCorpus(
         if (candidateOf(group)?.variant !== name) byVariant.delete(name);
       }
     }
+    // A candidate that contributed no rows would otherwise read as silence.
+    for (const [symbol, market] of Object.entries(frozen.candidates.markets)) {
+      if (market.candidate === null) continue;
+      if (!verdicts.get(symbol)?.has(market.candidate.variant)) {
+        throw new Error(
+          `${frozen.path} names ${market.candidate.variant} (arm ${market.candidate.arm}) for ${symbol}, but no rows of that cell reached the gate ` +
+            "— the arm's corpus lacks them, the arm is not on the command line, or the name is not a variant of that corpus; a read that reports nothing for a frozen candidate is refused",
+        );
+      }
+    }
   }
   // The burn lands only once a confirm figure actually exists (#364
   // round 41, finding 1; round 42, finding 1 finished the criterion):
@@ -1963,7 +2041,8 @@ export async function gradeCorpus(
     // Keyed by the shard's manifest hash, never its basename: two shards of
     // one measurement in two directories share a basename.
     for (let index = 0; index < paths.length; index += 1) {
-      emitSha256[shardManifests[index].manifestHash] = await sha256File(paths[index]);
+      const hash = shardManifests[index].manifestHash;
+      emitSha256[hash] = precomputedEmitSha256.get(hash) ?? await sha256File(paths[index]);
     }
     const symbolsRead = [...cube.keys()].sort();
     const m3OfVerdict = (verdict: VariantVerdict): M3Outcome =>
@@ -2006,7 +2085,17 @@ export async function gradeCorpus(
       }
       markets[symbol] = {
         accepted,
-        ...(frozen ? { candidate: candidateOf(symbol) ? { arm: candidateOf(symbol)!.arm, variant: candidateOf(symbol)!.variant } : null } : {}),
+        ...(frozen
+          ? {
+            candidate: candidateOf(symbol)
+              ? (() => {
+                const cand = candidateOf(symbol)!;
+                const verdict = verdicts.get(group)?.get(cand.variant);
+                return { arm: cand.arm, disposition: verdict?.accepted ? "accepted" as const : "rejected" as const, reason: verdict?.reason ?? "no verdict", variant: cand.variant };
+              })()
+              : null,
+          }
+          : {}),
         heldOut: stratified.has(symbol),
         shipped: cell,
       };
@@ -2109,6 +2198,7 @@ export async function gradeCorpus(
   return {
     calendarHash,
     confirmRead,
+    derivedFilters,
     dataAbsentRows,
     foldNames,
     heldOutMarkets: held.size,
@@ -2316,10 +2406,10 @@ async function main(): Promise<void> {
   const provenancePath = str("--provenance");
   const readArtifactPath = str("--read-out");
   const outPath = str("--out");
-  const deriveFilters = parseDerivedFilters(str("--derive-filters") ?? "");
+  const deriveFiltersSpec = str("--derive-filters");
+  const deriveFilters = deriveFiltersSpec === undefined ? [] : parseDerivedFilters(deriveFiltersSpec);
   const frozenPath = str("--frozen");
   const frozen = frozenPath === undefined ? undefined : { candidates: verifyFrozenCandidates(frozenPath), path: frozenPath };
-  const derivedByName = new Map(deriveFilters.map((filter) => [filter.name, filter]));
   if (paths.length === 0) {
     console.error(
       // The usage line names every flag the walker recognises. It had
@@ -2339,6 +2429,7 @@ async function main(): Promise<void> {
   const {
     calendarHash,
     confirmRead,
+    derivedFilters: gradedDerived,
     dataAbsentRows,
     foldNames,
     heldOutMarkets,
@@ -2426,7 +2517,7 @@ async function main(): Promise<void> {
           selectExpectancyDelta: verdict.selectExpectancyDelta,
           selectTotalDelta: verdict.selectTotalDelta,
           select: verdict.select,
-          derived: derivedByName.has(variant),
+          derived: gradedDerived.some((filter) => filter.name === variant),
         };
       }
       markets[symbol] = {
@@ -2442,15 +2533,18 @@ async function main(): Promise<void> {
         variants: byVariant,
       };
     }
+    const outEmitSha256: Record<string, string> = {};
+    for (const path of paths) outEmitSha256[assertManifest(path).manifestHash] = await sha256File(path);
     writeResearchArtifact(outPath, {
       analyzerVersion: manifest.analyzerVersion,
       anchor: manifest.anchor,
       calendarHash,
+      emitSha256: outEmitSha256,
       corpusNote: read
         ? `the confirm fold WAS read in this run (readId ${read.readId}); the figures above are select-fold only`
         : "confirm fold sealed — not read; every figure here is a fit/select figure",
       derived: Object.fromEntries(
-        [...derivedByName.values()].map((filter) => [filter.name, { field: filter.field, op: filter.op, parent: baselineVariant ?? "baseline", predicate: filter.predicate, predicateHash: filter.predicateHash, value: filter.value }]),
+        gradedDerived.map((filter) => [filter.name, { field: filter.field, op: filter.op, parent: baselineVariant ?? "baseline", predicate: filter.predicate, predicateHash: filter.predicateHash, value: filter.value }]),
       ),
       derivedAt: new Date().toISOString(),
       foldSource: "emitted",
