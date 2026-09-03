@@ -518,9 +518,10 @@ export type SweepResult = {
    */
   rejectionLedger: Array<{ reason: string; time: number }>;
   rejections: {
-    // belowThreshold = belowConfidence + belowPayoff + regimeGated: the
+    // belowThreshold = belowConfidence + belowPayoff + aboveCostShare + regimeGated: the
     // combined acceptance-gate tally, kept for continuity; the split fields
     // attribute exactly which gate rejected (r14 acceptance audit).
+    aboveCostShare: number;
     belowConfidence: number;
     belowPayoff: number;
     belowThreshold: number;
@@ -739,6 +740,7 @@ export function simulateSymbol(input: {
   // counter cannot say why THIS bar produced nothing.
   const rejectionLedger: Array<{ reason: string; time: number }> = [];
   const rejections = {
+    aboveCostShare: 0,
     belowConfidence: 0,
     belowPayoff: 0,
     belowThreshold: 0,
@@ -1026,14 +1028,19 @@ export function simulateSymbol(input: {
     const belowConfidence =
       scoreBreakdown.confidenceScore < calibration.confidenceThreshold;
     const belowPayoff = plan.rewardRisk < calibration.minRewardRisk;
+    // The cost weight per trade (R4 act 3): inert unless a calibration row
+    // sets maxCostShare, so every corpus swept before it is unchanged.
+    const aboveCostShare = calibration.maxCostShare !== undefined &&
+      plan.executionQuality.costToRisk > calibration.maxCostShare;
     const regimeGated = calibration.blockedRegimes?.includes(regime.name) ??
       false;
-    const accepted = !belowConfidence && !belowPayoff && !regimeGated;
+    const accepted = !belowConfidence && !belowPayoff && !aboveCostShare && !regimeGated;
     if (!accepted && !input.captureAll) {
       // First failing gate wins the attribution; belowThreshold stays the
       // combined tally so long-running analyses keep their column.
       if (belowConfidence) reject("belowConfidence", latest.time);
       else if (belowPayoff) reject("belowPayoff", latest.time);
+      else if (aboveCostShare) reject("aboveCostShare", latest.time);
       else reject("regimeGated", latest.time);
       // AN AGGREGATE, NOT A TWELFTH REASON: it counts the three branches
       // above, so it takes the counter and NOT a ledger row — appending

@@ -1741,3 +1741,17 @@ than how the market behaved. Resolution sits upstream of the stop cap the
 way the stop cap sits upstream of the runner ceiling. Per-symbol geometry
 tuned at 15 minutes before that question is answered would repeat round
 26's mistake one level up.
+
+## The cost weight per trade as an admission cap (R4 act 3, 2026-09-03)
+
+`maxCostShare` is an optional calibration field: a setup whose modelled round
+trip (`executionQuality.costToRisk`, the round trip as a share of the risk
+unit) exceeds it is declined at admission, in the sweep as its own reason
+`aboveCostShare` inside the `belowThreshold` aggregate and in the live analyzer
+with a diagnostic that names the share and the cap. It is INERT: no class row
+and no symbol layer sets it, so every corpus swept before it existed
+reproduces and `ANALYZER_VERSION` is unchanged. The derived read over R3's
+rows accepted a cap of 0.15 for forex at the class grain
+(`docs/research/r4-act3-supplementary-arms-2026-09-03.md` §6a); a value ships
+only on the ledgered confirm read, as a one-line calibration change with that
+read as its evidence.

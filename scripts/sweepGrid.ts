@@ -58,6 +58,7 @@ export const GRID_OVERRIDE_KEYS = [
   "maxNewsPenalty",
   "maxProviderPenalty",
   "maxStopAtrMultiplier",
+  "maxCostShare",
   "minimumTargetRewardRisk",
   "pivotStrengthDaily",
   "pivotStrengthIntraday",

@@ -91,9 +91,10 @@ function decisionsFor(rows: Row[], captureAll: boolean) {
     decisionPoints: 40,
     emitted: entry.emitted,
     rejections: {
+      aboveCostShare: captureAll ? 0 : 1,
       belowConfidence: captureAll ? 0 : 3,
       belowPayoff: captureAll ? 0 : 2,
-      belowThreshold: captureAll ? 0 : 5,
+      belowThreshold: captureAll ? 0 : 6,
       noConsensus: 7,
       regimeBlocked: captureAll ? 0 : 4,
     },

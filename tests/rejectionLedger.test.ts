@@ -139,7 +139,7 @@ describe("the engine records which decisions it declined, not just how many", ()
     assert.equal(
       result.rejections.belowThreshold,
       result.rejections.belowConfidence + result.rejections.belowPayoff +
-        result.rejections.regimeGated,
+        result.rejections.aboveCostShare + result.rejections.regimeGated,
       "the aggregate no longer equals the branches it aggregates",
     );
     assert.equal(

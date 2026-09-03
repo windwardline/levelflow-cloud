@@ -166,7 +166,7 @@ type Row = {
   symbol: string; split: string; decisions: number; sessionBlk: number;
   newsBlk: number; notWarm: number; regimeBlk: number; noConsensus: number;
   planRejected: number; unresolv: number; belowConf: number;
-  belowPayoff: number; dataAbsent: number; setups: number;
+  belowPayoff: number; aboveCostShare: number; dataAbsent: number; setups: number;
 };
 
 // The names this audit's arithmetic consumes. `need` entries refuse a table
@@ -176,7 +176,10 @@ const NEED_COLUMNS = [
   "regimeBlk", "noConsensus", "planRejected", "belowConf", "belowPayoff",
   "setups",
 ] as const;
-const OPTIONAL_COLUMNS = ["notWarm", "unresolv", "dataAbsent"] as const;
+// aboveCostShare (R4 act 3): the cost-share admission cap's tally, absent from
+// every table swept before the column existed and 0 in every table since
+// until a calibration row sets the cap.
+const OPTIONAL_COLUMNS = ["notWarm", "unresolv", "dataAbsent", "aboveCostShare"] as const;
 for (const name of OPTIONAL_COLUMNS) {
   if ((NEED_COLUMNS as readonly string[]).includes(name)) {
     throw new Error(`column "${name}" is listed both required and optional`);
@@ -248,6 +251,7 @@ function parse(paths: string[]): Row[] {
         regimeBlk: n("regimeBlk"), noConsensus: n("noConsensus"),
         planRejected: n("planRejected"), unresolv: opt("unresolv"),
         belowConf: n("belowConf"), belowPayoff: n("belowPayoff"),
+        aboveCostShare: opt("aboveCostShare"),
         dataAbsent: opt("dataAbsent"), setups: n("setups"),
       });
     }
@@ -411,7 +415,9 @@ const out = [...byS.values()].map((r) => {
   // would blame parameters for a sweep bug.
   const reachedGeometry = r.decisions - r.sessionBlk - r.newsBlk - r.notWarm -
     r.regimeBlk - r.noConsensus - r.unresolv - r.dataAbsent;
-  const geometryKill = r.planRejected + r.belowPayoff;
+  // The cost-share cap kills at the same gate as the payoff floor: a setup
+  // whose round trip is too large a share of its risk unit (R4 act 3).
+  const geometryKill = r.planRejected + r.belowPayoff + r.aboveCostShare;
   // #364 round 31, finding 1: a ZERO denominator is NO VERDICT, never
   // the worst one. By the driver's row identity, reachedGeometry =
   // planRejected + belowConf + belowPayoff + (setups − dataAbsent), so

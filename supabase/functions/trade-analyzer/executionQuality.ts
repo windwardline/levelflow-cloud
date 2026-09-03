@@ -46,6 +46,8 @@ export type ExecutionQuality = {
   costPenalty: number;
   /** 100 - costPenalty*8: what `label` is derived from. See the label's own note. */
   costScore: number;
+  /** The modelled round trip as a share of the risk unit — the cost weight per trade (amendment 39). */
+  costToRisk: number;
   coveragePenalty: number;
   effectiveRewardRisk: number;
   // Round-8 CO-1/3/4: the venue's published commission for one round
@@ -350,6 +352,7 @@ export function estimateExecutionQuality(
     costPenalty,
     costScore,
     coveragePenalty,
+    costToRisk: Number(costToRisk.toFixed(4)),
     effectiveRewardRisk: roundPrice(effectiveRewardRisk),
     estimatedCommission,
     estimatedRoundTripCost,

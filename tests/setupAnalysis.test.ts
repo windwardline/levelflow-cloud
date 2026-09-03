@@ -161,6 +161,17 @@ function diagnosticsFor(
         calibration.minRewardRisk.toFixed(2)
       }x for this market.`,
     );
+  } else if (
+    calibration.maxCostShare !== undefined &&
+    pricePlan.executionQuality.costToRisk > calibration.maxCostShare
+  ) {
+    diagnostics.push(
+      `Trading costs would take ${
+        (pricePlan.executionQuality.costToRisk * 100).toFixed(0)
+      }% of the risk unit; Levelflow admits at most ${
+        (calibration.maxCostShare * 100).toFixed(0)
+      }% for this market.`,
+    );
   } else if (pricePlan.executionQuality.confidencePenalty > 0) {
     diagnostics.push(
       `Estimated spread and slippage reduced the setup score by ${pricePlan.executionQuality.confidencePenalty}.`,
