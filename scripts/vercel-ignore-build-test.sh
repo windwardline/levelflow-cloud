@@ -20,7 +20,11 @@
 set -uo pipefail
 
 GUARD=$(cd "$(dirname "$0")" && pwd)/vercel-ignore-build.sh
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/ignore-build-test.XXXXXX")
+# Bare `mktemp -d` already honours $TMPDIR, and the explicit template tripped
+# securityHardening's inline-body rule: it reads `-d "` followed by a `$` as a
+# curl request body passed inline. No curl here, but the shorter form is
+# equivalent and does not ask the guard to be narrowed.
+TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT HUP INT TERM
 pass=0; fail=0
 
