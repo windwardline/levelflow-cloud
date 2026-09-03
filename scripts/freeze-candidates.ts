@@ -46,8 +46,9 @@ export const FREEZE_RULE_HASH = createHash("sha256").update(FREEZE_RULE).digest(
  */
 export const RETIREMENT_RULE =
   "a decline candidate retires from candidacy iff some cell of a removal arm with >= 30 filled and >= 50% of the shipped cell's " +
-  "select fills has a select net upper bound >= 0 OR a select gross upper bound >= 0; the retiring cells are recorded; " +
-  "retirement by exactly one cell of k tested is labelled fragile; a retired market ships unchanged and its M3 is still reported.";
+  "select fills (the floor applies to the net column, and to the gross column when the gross clause fires) has a select net upper " +
+  "bound >= 0 OR a select gross upper bound >= 0; the retiring cells are recorded; retirement resting on exactly one cell — " +
+  "whether one of k tested or the only cell tested — is labelled fragile; a retired market ships unchanged and its M3 is still reported.";
 export const RETIREMENT_RULE_HASH = createHash("sha256").update(RETIREMENT_RULE).digest("hex");
 export const RETIREMENT_MIN_FILLED = 30;
 export const RETIREMENT_MIN_FILL_SHARE = 0.5;
@@ -88,6 +89,8 @@ export type GradingArtifact = {
   analyzerVersion: string;
   calendarHash: string;
   derived?: Record<string, DerivedSpec>;
+  /** sha256 of each shard's emit, keyed by manifestHash — the bytes the arm was graded on. */
+  emitSha256?: Record<string, string>;
   foldSource: string;
   heldOut: string[];
   holdoutRule: string;
@@ -127,6 +130,8 @@ export type FrozenArm = {
   calendarHash: string;
   /** The arm's derived variants (predicates graded from the parent corpus's rows), so the read can rebuild them without retyping. */
   derived: Record<string, DerivedSpec>;
+  /** sha256 of each of the arm's emits, keyed by manifestHash; the read refuses a corpus whose bytes differ. */
+  emitSha256: Record<string, string>;
   shardHashes: string[];
   shards: string[];
   verdictUnit: string;
@@ -220,14 +225,13 @@ export function retirementOf(
   shippedSelectFilled: number,
   cells: Array<{ arm: string; variant: string; select: { gross: FigureLike; net: FigureLike } | undefined }>,
 ): Retirement {
-  const tested = cells.filter(({ select }) => {
-    const net = select?.net;
-    return net !== null && net !== undefined && net.n >= RETIREMENT_MIN_FILLED && net.n >= shippedSelectFilled * RETIREMENT_MIN_FILL_SHARE;
-  });
+  const meetsFloor = (figure: FigureLike | undefined): figure is { expectancy: number; lower: number; n: number; upper: number } =>
+    figure !== null && figure !== undefined && figure.n >= RETIREMENT_MIN_FILLED && figure.n >= shippedSelectFilled * RETIREMENT_MIN_FILL_SHARE;
+  const tested = cells.filter(({ select }) => meetsFloor(select?.net));
   const retiring = tested
-    .filter(({ select }) => (select!.net!.upper >= 0) || (select!.gross !== null && select!.gross !== undefined && select!.gross.upper >= 0))
+    .filter(({ select }) => select!.net!.upper >= 0 || (meetsFloor(select!.gross) && select!.gross!.upper >= 0))
     .map(({ arm, variant, select }) => ({ arm, gross: select!.gross ?? null, net: select!.net ?? null, variant }));
-  return { fragile: retiring.length === 1 && tested.length > 1, retired: retiring.length > 0, retiringCells: retiring, testedCells: tested.length };
+  return { fragile: retiring.length === 1, retired: retiring.length > 0, retiringCells: retiring, testedCells: tested.length };
 }
 
 export async function freezeCandidates(
@@ -244,10 +248,17 @@ export async function freezeCandidates(
     if (seen.has(arm)) refuse(`arm ${arm} is named twice`);
     seen.add(arm);
   }
+  const corpusOwner = new Map<string, string>();
   const baseDir = options.baseDir ?? process.cwd();
   const loaded: Array<{ arm: string; path: string; artifact: GradingArtifact; sha256: string }> = [];
   for (const { arm, path } of arms) {
-    loaded.push({ arm, path, artifact: loadGradingArtifact(path), sha256: await sha256File(path) });
+    const artifact = loadGradingArtifact(path);
+    for (const hash of artifact.shardHashes) {
+      const owner = corpusOwner.get(hash);
+      if (owner !== undefined) refuse(`arms ${owner} and ${arm} are both bound to corpus ${hash.slice(0, 12)}; one corpus is one arm, or the read cannot tell whose candidate it opens`);
+      corpusOwner.set(hash, arm);
+    }
+    loaded.push({ arm, path, artifact, sha256: await sha256File(path) });
   }
   const first = loaded[0].artifact;
   for (const { arm, artifact } of loaded.slice(1)) {
@@ -273,7 +284,8 @@ export async function freezeCandidates(
       if (entry === undefined) continue;
       // One baseline per program: every arm's shipped cell must be the same
       // rows, or a cross-arm "largest fit ΔR" compares against two baselines.
-      const selectKey = stableJson(entry.shipped.select ?? null);
+      if (entry.shipped.select === undefined) refuse(`${symbol}: arm ${arm}'s grading carries no shipped-cell select figures, so its baseline cannot be reconciled; grade it with a gate that writes them`);
+      const selectKey = stableJson(entry.shipped.select);
       if (shippedSelect === null) shippedSelect = selectKey;
       else if (shippedSelect !== selectKey) {
         refuse(`${symbol}: arm ${arm}'s shipped-cell select figures differ from another arm's; the arms' baselines are not the same rows and cannot be frozen together`);
@@ -282,6 +294,7 @@ export async function freezeCandidates(
       shippedSelectFilled = entry.shipped.select?.net?.n ?? 0;
       if (removalArms.includes(arm)) {
         for (const [variant, verdict] of Object.entries(entry.variants ?? {})) {
+          if (verdict.select === undefined) refuse(`${symbol}: removal arm ${arm}'s cell ${variant} carries no select figures; the retirement rule cannot read it — grade the arm with a gate that writes per-variant figures`);
           removalCells.push({ arm, select: verdict.select, variant });
         }
       }
@@ -324,6 +337,7 @@ export async function freezeCandidates(
       artifactSha256: sha256,
       calendarHash: artifact.calendarHash,
       derived: artifact.derived ?? {},
+      emitSha256: { ...(artifact.emitSha256 ?? {}) },
       shardHashes: [...artifact.shardHashes],
       shards: [...artifact.shards],
       verdictUnit: artifact.verdictUnit,

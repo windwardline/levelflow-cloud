@@ -160,8 +160,10 @@ The read is freeze-driven. `scripts/freeze-candidates.ts` binds every arm's
 tuning-fold grading by its bytes and freezes one candidate per market under a
 hashed rule (with the retirement rule's verdicts for the decline candidates);
 `grid-totalr --confirm-final --verdict-unit market --frozen <frozen-candidates.json> <every arm's corpus>`
-then opens each arm's baseline once and each market's frozen candidate from
-its own arm, under ONE ledger line whose `frozenHash` names the file, and one
-calendar key over the requested roster. Nothing decides on the held-back fold
+then opens the one baseline (from the first corpus, verified row-for-row
+against every other corpus's, confirm fold included) and each market's frozen
+candidate from its own arm, under ONE ledger line whose `frozenHash` names the
+file, and one calendar key over the requested roster. Every corpus is bound to
+the emit digest its arm's grading recorded. Nothing decides on the held-back fold
 after seeing it: the candidates were frozen before the command ran, and the
 door refuses a file altered or re-ruled since.

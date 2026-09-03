@@ -36,17 +36,19 @@ type Variant = {
   selectTotalDelta: number | null;
 };
 
-function variant(accepted: boolean, fitTotalDelta: number, pairedP = 0.01): Variant {
+function variant(accepted: boolean, fitTotalDelta: number, pairedP = 0.01): Variant & { select: { gross: null; net: { expectancy: number; lower: number; n: number; upper: number } } } {
   return {
     accepted,
     fitTotalDelta,
     pairedP,
     reason: accepted ? "accepted" : "fails",
+    select: { gross: null, net: { expectancy: 0.01, lower: -0.02, n: 80, upper: 0.04 } },
     selectExpectancy: 0.01,
     selectExpectancyDelta: 0.005,
     selectTotalDelta: fitTotalDelta / 2,
   };
 }
+const SHIPPED_SELECT = { gross: null, net: { expectancy: -0.05, lower: -0.09, n: 100, upper: -0.01 } };
 
 function grading(overrides: Record<string, unknown> = {}, markets?: Record<string, unknown>) {
   return {
@@ -59,9 +61,9 @@ function grading(overrides: Record<string, unknown> = {}, markets?: Record<strin
     heldOut: ["CCC"],
     holdoutRule: "stratified-per-class-20pct",
     markets: markets ?? {
-      AAA: { heldOut: false, shipped: { declineCandidate: false, variant: "baseline" }, variants: { "x=1": variant(true, 10), "x=2": variant(false, 40) } },
-      BBB: { heldOut: false, shipped: { declineCandidate: false, variant: "baseline" }, variants: { "x=1": variant(false, 5) } },
-      CCC: { heldOut: true, shipped: { declineCandidate: true, variant: "baseline" }, variants: { "x=1": variant(true, 3) } },
+      AAA: { heldOut: false, shipped: { declineCandidate: false, select: SHIPPED_SELECT, variant: "baseline" }, variants: { "x=1": variant(true, 10), "x=2": variant(false, 40) } },
+      BBB: { heldOut: false, shipped: { declineCandidate: false, select: SHIPPED_SELECT, variant: "baseline" }, variants: { "x=1": variant(false, 5) } },
+      CCC: { heldOut: true, shipped: { declineCandidate: true, select: SHIPPED_SELECT, variant: "baseline" }, variants: { "x=1": variant(true, 3) } },
     },
     rules: { accept: "accepted iff beatsBaseline && earnsMoney", decline: "net AND gross" },
     shardHashes: ["a".repeat(64)],
@@ -82,9 +84,9 @@ describe("the freeze binds every arm and chooses one candidate per market", () =
     const dir = mkdtempSync(join(tmpdir(), "freeze-"));
     const arm1 = write(dir, "s.json", grading({ shardHashes: ["1".repeat(64)] }));
     const arm2 = write(dir, "w.json", grading({ shardHashes: ["2".repeat(64)] }, {
-      AAA: { heldOut: false, shipped: { declineCandidate: false, variant: "baseline" }, variants: { "y=3": variant(true, 25) } },
-      CCC: { heldOut: true, shipped: { declineCandidate: true, variant: "baseline" }, variants: { "y=3": variant(false, 1) } },
-      DDD: { heldOut: false, shipped: { declineCandidate: true, variant: "baseline" }, variants: { "y=3": variant(true, 7) } },
+      AAA: { heldOut: false, shipped: { declineCandidate: false, select: SHIPPED_SELECT, variant: "baseline" }, variants: { "y=3": variant(true, 25) } },
+      CCC: { heldOut: true, shipped: { declineCandidate: true, select: SHIPPED_SELECT, variant: "baseline" }, variants: { "y=3": variant(false, 1) } },
+      DDD: { heldOut: false, shipped: { declineCandidate: true, select: SHIPPED_SELECT, variant: "baseline" }, variants: { "y=3": variant(true, 7) } },
     }));
     const frozen = await freezeCandidates([{ arm: "S", path: arm1 }, { arm: "W", path: arm2 }], { now: new Date("2026-09-03T05:00:00Z") });
     assert.equal(frozen.rule, FREEZE_RULE);
@@ -186,6 +188,58 @@ describe("the retirement rule (amendment 36's removals), pre-registered and mech
   });
 });
 
+describe("the freeze refuses a grading it cannot reconcile or retire on", () => {
+  it("refuses two arms bound to one corpus, a shipped cell without select figures, and a removal-arm cell without them", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "freeze-"));
+    const same = write(dir, "same.json", grading({ shardHashes: ["9".repeat(64)] }));
+    await assert.rejects(freezeCandidates([{ arm: "A", path: same }, { arm: "B", path: write(dir, "same2.json", grading({ shardHashes: ["9".repeat(64)] })) }]), /both bound to corpus/);
+    const bare = grading();
+    delete (bare.markets as Record<string, { shipped: Record<string, unknown> }>).AAA.shipped.select;
+    await assert.rejects(freezeCandidates([{ arm: "S", path: write(dir, "bare.json", bare) }]), /no shipped-cell select figures/);
+    const noFigures = grading();
+    delete (noFigures.markets as Record<string, { variants: Record<string, Record<string, unknown>> }>).AAA.variants["x=1"].select;
+    await assert.rejects(freezeCandidates([{ arm: "S", path: write(dir, "nofig.json", noFigures) }], { removalArms: ["S"] }), /carries no select figures/);
+    const notRemoval = await freezeCandidates([{ arm: "F", path: write(dir, "nofig2.json", noFigures) }]);
+    assert.equal(notRemoval.markets.AAA.acceptedCount, 1, "a non-removal arm's cell without figures is still a candidate");
+  });
+
+  it("carries each arm's emit digests so the read can bind the bytes", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "freeze-"));
+    const digest = "e".repeat(64);
+    const frozen = await freezeCandidates([{ arm: "S", path: write(dir, "s.json", grading({ emitSha256: { ["a".repeat(64)]: digest } })) }]);
+    assert.deepEqual(frozen.arms[0].emitSha256, { ["a".repeat(64)]: digest });
+  });
+});
+
+describe("the retirement rule's floors and labels, at their boundaries", () => {
+  const fig = (upper: number, n: number) => ({ expectancy: upper - 0.05, lower: upper - 0.1, n, upper });
+  it("counts a cell at exactly 30 filled and exactly half the shipped fills, not one below", () => {
+    const at = retirementOf(60, [{ arm: "S", variant: "a", select: { gross: null, net: fig(0.01, 30) } }]);
+    assert.equal(at.testedCells, 1); assert.equal(at.retired, true);
+    const below30 = retirementOf(40, [{ arm: "S", variant: "a", select: { gross: null, net: fig(0.01, 29) } }]);
+    assert.equal(below30.testedCells, 0); assert.equal(below30.retired, false);
+    const belowHalf = retirementOf(100, [{ arm: "S", variant: "a", select: { gross: null, net: fig(0.01, 49) } }]);
+    assert.equal(belowHalf.testedCells, 0);
+    const half = retirementOf(100, [{ arm: "S", variant: "a", select: { gross: null, net: fig(0.01, 50) } }]);
+    assert.equal(half.testedCells, 1);
+  });
+  it("labels a retirement resting on one cell fragile, whether one of k or the only cell tested", () => {
+    const only = retirementOf(60, [{ arm: "S", variant: "a", select: { gross: null, net: fig(0.01, 40) } }]);
+    assert.equal(only.retired, true); assert.equal(only.fragile, true);
+    const two = retirementOf(60, [
+      { arm: "S", variant: "a", select: { gross: null, net: fig(0.01, 40) } },
+      { arm: "W", variant: "b", select: { gross: null, net: fig(0.02, 40) } },
+    ]);
+    assert.equal(two.retiringCells.length, 2); assert.equal(two.fragile, false);
+  });
+  it("applies the sample floor to the gross column when the gross clause fires", () => {
+    const thinGross = retirementOf(60, [{ arm: "S", variant: "a", select: { gross: fig(0.05, 20), net: fig(-0.01, 40) } }]);
+    assert.equal(thinGross.testedCells, 1); assert.equal(thinGross.retired, false, "a gross interval over 20 rows cannot retire");
+    const fullGross = retirementOf(60, [{ arm: "S", variant: "a", select: { gross: fig(0.05, 40), net: fig(-0.01, 40) } }]);
+    assert.equal(fullGross.retired, true);
+  });
+});
+
 describe("the freeze refuses what it must not consume", () => {
   it("refuses a grading that carries a confirm figure, by name", () => {
     const dir = mkdtempSync(join(tmpdir(), "freeze-"));
@@ -207,16 +261,16 @@ describe("the freeze refuses what it must not consume", () => {
   it("refuses arms that disagree on the calendar, the anchor, the holdout, or a shipped cell's candidacy", async () => {
     const dir = mkdtempSync(join(tmpdir(), "freeze-"));
     const base = write(dir, "a.json", grading());
-    await assert.rejects(freezeCandidates([{ arm: "S", path: base }, { arm: "W", path: write(dir, "b.json", grading({ calendarHash: "d".repeat(64) })) }]), /calendarHash/);
-    await assert.rejects(freezeCandidates([{ arm: "S", path: base }, { arm: "W", path: write(dir, "c.json", grading({ anchor: "2026-08-27" })) }]), /anchor/);
-    await assert.rejects(freezeCandidates([{ arm: "S", path: base }, { arm: "W", path: write(dir, "d.json", grading({ heldOut: ["AAA"] })) }]), /heldOut/);
-    const flipped = grading();
+    await assert.rejects(freezeCandidates([{ arm: "S", path: base }, { arm: "W", path: write(dir, "b.json", grading({ calendarHash: "d".repeat(64), shardHashes: ["2".repeat(64)] })) }]), /calendarHash/);
+    await assert.rejects(freezeCandidates([{ arm: "S", path: base }, { arm: "W", path: write(dir, "c.json", grading({ anchor: "2026-08-27", shardHashes: ["2".repeat(64)] })) }]), /anchor/);
+    await assert.rejects(freezeCandidates([{ arm: "S", path: base }, { arm: "W", path: write(dir, "d.json", grading({ heldOut: ["AAA"], shardHashes: ["2".repeat(64)] })) }]), /heldOut/);
+    const flipped = grading({ shardHashes: ["2".repeat(64)] });
     (flipped.markets as Record<string, { shipped: { declineCandidate: boolean } }>).AAA.shipped.declineCandidate = true;
     await assert.rejects(freezeCandidates([{ arm: "S", path: base }, { arm: "W", path: write(dir, "e.json", flipped) }]), /declineCandidate/);
     await assert.rejects(freezeCandidates([{ arm: "S", path: base }, { arm: "S", path: base }]), /twice/);
-    const otherBaseline = grading();
+    const otherBaseline = grading({ shardHashes: ["3".repeat(64)] });
     (otherBaseline.markets as Record<string, { shipped: Record<string, unknown> }>).AAA.shipped.select = { net: { expectancy: 0.5, lower: 0.1, n: 99, upper: 0.9 }, gross: null };
-    const withSelect = grading();
+    const withSelect = grading({ shardHashes: ["4".repeat(64)] });
     (withSelect.markets as Record<string, { shipped: Record<string, unknown> }>).AAA.shipped.select = { net: { expectancy: -0.5, lower: -0.9, n: 99, upper: -0.1 }, gross: null };
     await assert.rejects(freezeCandidates([{ arm: "S", path: write(dir, "s1.json", withSelect) }, { arm: "W", path: write(dir, "s2.json", otherBaseline) }]), /baselines are not the same rows/);
     await assert.rejects(freezeCandidates([]), /no arm/);

@@ -182,11 +182,28 @@ class earns money after it, so the gate refuses both as pre-registered —
 the losses shrink, the sign does not change. The cost-share rule has no
 engine knob; shipping it is engine work after the read (owner item).
 
-Instrument discipline for §6a: the derived path's identity and external-anchor
-tests are executed; a mutation that inverted the predicate failed both. The
-freeze-driven read and the retirement rule are built beside it (design §5),
-each with its identity test and a killed mutation (the arm check dropped;
-the gross clause dropped; the sample floor dropped).
+Instrument discipline for §6a, executed on the real corpus after the
+fresh-eyes review (2026-09-03): a derived floor of 1.2 — below every class's
+shipped `minRewardRisk` — reproduces all 91 shipped cells figure for figure
+(identity on the corpus, not a fixture); and the pre-registered external
+anchor is met exactly once the population is named: the scratch counterfactual
+recomputed over the fit rows of the markets the class gate pools (the
+stratified holdout excluded) equals the gate's class-unit fit ΔR to the
+decimal — forex payoffFloor=1.5 +279.7, costShareMax=0.15 +563.7; crypto
++437.3 / +1,316.0; futures +233.2 / +999.9; agriculture +185.7 / +346.6;
+energies +83.4 / +108.8. The design §2 figures (forex +305 etc.) were the
+same counterfactual over every market; the difference is the holdout, not the
+instrument. Two facts the review made explicit: the class-unit accepts are
+informational — the freeze is per market and the read opens per-market
+candidates, so F contributes EURAUD alone to the read; and a derived
+predicate may read decision-time fields only (a whitelist), because an
+outcome column would let it look ahead. The freeze-driven read and the
+retirement rule are built beside the derived path (design §5), each with its
+identity test; nine mutations were landed and killed across the three
+(predicate inverted; AND-with-baseline dropped; arm check dropped; grid term
+relaxed for every read; baseline digest skipped; field whitelist bypassed;
+emit bytes unchecked; the retirement rule's gross clause and sample floor
+dropped).
 
 ### 6b. Arms S, W, C1, C2
 

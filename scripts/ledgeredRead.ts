@@ -125,7 +125,7 @@ export type LedgeredReadArtifact = {
   markets: Record<string, {
     heldOut: boolean;
     /** The frozen candidate this read opened for the market (frozen reads only); null when the freeze named none. */
-    candidate?: { arm: string; variant: string } | null;
+    candidate?: { arm: string; disposition: "accepted" | "rejected"; reason: string; variant: string } | null;
     shipped: ShippedCellRead;
     accepted: AcceptedVariantRead[];
   }>;
