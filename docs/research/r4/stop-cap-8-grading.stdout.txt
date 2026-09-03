@@ -1,0 +1,556 @@
+verdict unit: market — every market on its own rows, singleton groups, 30-filled floor (R4); fold source: emitted labels (no time re-cut)
+
+shipped cell per market (91; held out by the stratified rule: 20, labelled, never dropped; decline rule = 2e1521e201da)
+holdout: holdout: stratified-per-class-20pct — 20 markets labelled HELD OUT per market (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only
+accepted (market, variant) pairs: 0 · expected false families at FWER 0.05 over 91 markets ≈ 4.5 (per-market families; D4's absolute term is the cross-market brake)
+market      held  select net E [95%] n              select gross E [95%] n            decline  tranche      m3
+AAVEUSD     OUT   -0.042 [-0.070, -0.015] n=2272     -0.021 [-0.048, 0.006] n=2272      no        totality     not-read
+ADAUSD            -0.097 [-0.120, -0.074] n=3380     -0.022 [-0.044, -0.000] n=3380     CANDIDATE derived-4d   not-read
+ALGOUSD           -0.501 [-0.543, -0.459] n=1468     -0.159 [-0.201, -0.116] n=1468     CANDIDATE shipped      not-read
+ASX               -0.556 [-0.715, -0.397] n=101      -0.451 [-0.608, -0.293] n=101      CANDIDATE shipped      not-read
+ATOMUSD           -0.909 [-0.966, -0.851] n=422      -0.243 [-0.315, -0.171] n=422      CANDIDATE shipped      not-read
+AUDCAD            0.054 [0.035, 0.074] n=3657        0.075 [0.056, 0.094] n=3657        no        derived-4d   not-read
+AUDCHF      OUT   0.078 [0.059, 0.097] n=3786        0.097 [0.079, 0.116] n=3786        no        holdout-cycle not-read
+AUDJPY            0.001 [-0.020, 0.021] n=3788       0.021 [0.001, 0.041] n=3788        no        derived-4d   not-read
+AUDNZD      OUT   0.076 [0.057, 0.095] n=3555        0.101 [0.083, 0.120] n=3555        no        holdout-cycle not-read
+AUDUSD            0.015 [-0.004, 0.035] n=3805       0.032 [0.012, 0.052] n=3805        no        derived-4d   not-read
+AVAXUSD           -0.477 [-0.532, -0.423] n=884      -0.149 [-0.203, -0.096] n=884      CANDIDATE shipped      not-read
+BCHUSD            -0.235 [-0.261, -0.209] n=2778     -0.061 [-0.086, -0.037] n=2778     CANDIDATE derived-4d   not-read
+BTCUSD            -0.029 [-0.050, -0.008] n=3436     0.008 [-0.013, 0.028] n=3436       no        derived-4d   not-read
+BZUSD       OUT   0.030 [-0.055, 0.116] n=358        0.069 [-0.014, 0.153] n=358        no        totality     not-read
+CADCHF            0.064 [0.045, 0.084] n=3558        0.087 [0.068, 0.106] n=3558        no        derived-4d   not-read
+CADJPY            -0.014 [-0.035, 0.006] n=3773      0.009 [-0.011, 0.029] n=3773       no        derived-4d   not-read
+CHFJPY            0.015 [-0.005, 0.036] n=3711       0.044 [0.025, 0.064] n=3711        no        derived-4d   not-read
+CLUSD             0.036 [-0.047, 0.119] n=346        0.076 [-0.006, 0.157] n=346        no        derived-4d   not-read
+DASHUSD     OUT   -0.057 [-0.081, -0.033] n=3123     -0.033 [-0.056, -0.009] n=3123     CANDIDATE totality     not-read
+DAX               -0.029 [-0.116, 0.059] n=216       -0.004 [-0.090, 0.083] n=216       no        totality     not-read
+DOGEUSD           -0.025 [-0.050, -0.001] n=2693     0.011 [-0.012, 0.035] n=2693       no        totality     not-read
+DOTUSD            -0.702 [-0.763, -0.642] n=540      -0.166 [-0.234, -0.098] n=540      CANDIDATE shipped      not-read
+DOW               -0.122 [-0.358, 0.114] n=43        -0.088 [-0.319, 0.144] n=43        no        shipped      not-read
+DYDXUSD           -1.071 [-1.149, -0.993] n=285      -0.320 [-0.453, -0.188] n=285      CANDIDATE shipped      not-read
+EGLDUSD           -0.309 [-0.350, -0.268] n=1296     -0.081 [-0.120, -0.042] n=1296     CANDIDATE totality     not-read
+ESUSD             -0.009 [-0.071, 0.052] n=399       0.007 [-0.053, 0.068] n=399        no        derived-4d   not-read
+ETCUSD            -0.026 [-0.052, -0.001] n=2498     0.020 [-0.004, 0.044] n=2498       no        totality     not-read
+ETHUSD            -0.039 [-0.060, -0.017] n=3348     -0.009 [-0.030, 0.012] n=3348      no        derived-4d   not-read
+EURAUD            0.020 [0.001, 0.040] n=3741        0.043 [0.024, 0.062] n=3741        no        derived-4d   not-read
+EURCAD            0.048 [0.030, 0.067] n=3723        0.077 [0.058, 0.095] n=3723        no        derived-4d   not-read
+EURCHF            0.016 [-0.005, 0.036] n=3241       0.051 [0.031, 0.071] n=3241        no        derived-4d   not-read
+EURGBP            0.036 [0.015, 0.057] n=3277        0.059 [0.039, 0.079] n=3277        no        derived-4d   not-read
+EURJPY            -0.001 [-0.021, 0.020] n=3633      0.031 [0.011, 0.050] n=3633        no        derived-4d   not-read
+EURNZD            0.053 [0.033, 0.072] n=3614        0.076 [0.057, 0.094] n=3614        no        derived-4d   not-read
+EURUSD      OUT   -0.034 [-0.053, -0.014] n=3817     -0.005 [-0.024, 0.015] n=3817      no        holdout-cycle not-read
+FILUSD            -1.919 [-2.255, -1.583] n=39       -0.187 [-0.405, 0.031] n=39        no        shipped      not-read
+GBPAUD            -0.005 [-0.026, 0.016] n=3504      0.019 [-0.002, 0.040] n=3504       no        derived-4d   not-read
+GBPCAD      OUT   0.022 [0.001, 0.043] n=3411        0.046 [0.025, 0.067] n=3411        no        holdout-cycle not-read
+GBPCHF            0.031 [0.011, 0.051] n=3571        0.054 [0.034, 0.074] n=3571        no        derived-4d   not-read
+GBPJPY            0.029 [0.009, 0.049] n=3563        0.046 [0.026, 0.066] n=3563        no        derived-4d   not-read
+GBPNZD            0.046 [0.026, 0.066] n=3611        0.071 [0.052, 0.091] n=3611        no        derived-4d   not-read
+GBPUSD            0.003 [-0.017, 0.023] n=3572       0.024 [0.004, 0.044] n=3572        no        derived-4d   not-read
+GCUSD             0.026 [-0.028, 0.079] n=547        0.034 [-0.019, 0.087] n=547        no        derived-4d   not-read
+GFUSX             -0.066 [-0.257, 0.124] n=97        -0.011 [-0.203, 0.182] n=97        no        shipped      not-read
+GRTUSD            -0.032 [-0.058, -0.007] n=2514     0.001 [-0.024, 0.026] n=2514       no        totality     not-read
+HBARUSD           -0.104 [-0.158, -0.050] n=640      -0.070 [-0.123, -0.016] n=640      CANDIDATE totality     not-read
+HEUSX       OUT   -1.028 [-3.177, 1.121] n=85        -0.399 [-1.490, 0.692] n=85        no        shipped      not-read
+HGUSD             -0.012 [-0.074, 0.050] n=454       0.008 [-0.054, 0.069] n=454        no        derived-4d   not-read
+HOUSD             -0.227 [-0.316, -0.139] n=332      -0.183 [-0.271, -0.094] n=332      CANDIDATE shipped      not-read
+IMXUSD            -0.062 [-0.111, -0.014] n=1128     -0.023 [-0.070, 0.025] n=1128      no        totality     not-read
+LEUSX             0.082 [-0.182, 0.345] n=73         0.154 [-0.104, 0.413] n=73         no        shipped      not-read
+LINKUSD           -0.042 [-0.071, -0.014] n=3311     -0.019 [-0.047, 0.009] n=3311      no        totality     not-read
+LTCUSD            -0.221 [-0.248, -0.194] n=2686     -0.024 [-0.048, 0.000] n=2686      no        derived-4d   not-read
+NEARUSD           -0.643 [-0.705, -0.581] n=638      -0.141 [-0.211, -0.071] n=638      CANDIDATE shipped      not-read
+NGUSD       OUT   -0.099 [-0.162, -0.035] n=494      -0.069 [-0.132, -0.006] n=494      CANDIDATE holdout-cycle not-read
+NIKKEI            -0.168 [-0.310, -0.026] n=107      -0.137 [-0.274, 0.000] n=107       no        shipped      not-read
+NQUSD             0.015 [-0.045, 0.076] n=423        0.024 [-0.036, 0.084] n=423        no        derived-4d   not-read
+NSDQ        OUT   -0.085 [-0.174, 0.005] n=148       -0.069 [-0.158, 0.021] n=148       no        holdout-cycle not-read
+NZDCAD            0.051 [0.032, 0.070] n=3693        0.071 [0.052, 0.090] n=3693        no        derived-4d   not-read
+NZDCHF      OUT   0.081 [0.062, 0.100] n=3558        0.101 [0.082, 0.119] n=3558        no        holdout-cycle not-read
+NZDJPY      OUT   0.029 [0.009, 0.049] n=3630        0.045 [0.025, 0.065] n=3630        no        holdout-cycle not-read
+NZDUSD            0.015 [-0.005, 0.034] n=3814       0.036 [0.017, 0.056] n=3814        no        derived-4d   not-read
+PAUSD             -0.106 [-0.199, -0.013] n=382      -0.046 [-0.139, 0.047] n=382       no        totality     not-read
+PLUSD             -0.063 [-0.141, 0.014] n=483       -0.040 [-0.116, 0.037] n=483       no        shipped      not-read
+RBUSD             -0.117 [-0.256, 0.021] n=323       -0.044 [-0.181, 0.092] n=323       no        shipped      not-read
+RTYUSD      OUT   -0.014 [-0.078, 0.049] n=401       0.007 [-0.057, 0.070] n=401        no        holdout-cycle not-read
+SIUSD             0.048 [-0.008, 0.104] n=486        0.079 [0.026, 0.132] n=486         no        derived-4d   not-read
+SOLUSD            -0.053 [-0.082, -0.024] n=2202     -0.033 [-0.062, -0.004] n=2202     CANDIDATE totality     not-read
+SP                -0.063 [-0.160, 0.034] n=146       -0.034 [-0.129, 0.061] n=146       no        derived-4d   not-read
+TRXUSD            -0.501 [-0.553, -0.449] n=1000     -0.175 [-0.225, -0.124] n=1000     CANDIDATE shipped      not-read
+UNIUSD            -0.079 [-0.106, -0.053] n=2531     -0.053 [-0.079, -0.027] n=2531     CANDIDATE totality     not-read
+USDCAD            0.003 [-0.019, 0.025] n=3289       0.030 [0.009, 0.051] n=3289        no        derived-4d   not-read
+USDCHF            -0.009 [-0.030, 0.012] n=3315      0.016 [-0.005, 0.036] n=3315       no        derived-4d   not-read
+USDJPY            -0.028 [-0.050, -0.007] n=3479     0.002 [-0.019, 0.023] n=3479       no        derived-4d   not-read
+WTI               -0.202 [-0.298, -0.105] n=298      -0.188 [-0.284, -0.092] n=298      CANDIDATE derived-4d   not-read
+XAUUSD            -0.047 [-0.073, -0.022] n=2507     0.020 [-0.005, 0.044] n=2507       no        derived-4d   not-read
+XLMUSD      OUT   -0.065 [-0.094, -0.036] n=3163     -0.046 [-0.074, -0.017] n=3163     CANDIDATE totality     not-read
+XMRUSD      OUT   -0.078 [-0.103, -0.054] n=2984     -0.047 [-0.071, -0.023] n=2984     CANDIDATE totality     not-read
+XRPUSD            -0.035 [-0.058, -0.012] n=3063     -0.012 [-0.035, 0.010] n=3063      no        derived-4d   not-read
+XTZUSD            -0.704 [-0.786, -0.623] n=305      -0.098 [-0.177, -0.019] n=305      CANDIDATE shipped      not-read
+YMUSD       OUT   -0.018 [-0.081, 0.045] n=371       0.008 [-0.054, 0.071] n=371        no        holdout-cycle not-read
+ZBUSD             -0.196 [-0.261, -0.132] n=397      -0.055 [-0.114, 0.003] n=397       no        totality     not-read
+ZCUSX             -0.186 [-0.291, -0.081] n=355      -0.005 [-0.120, 0.111] n=355       no        derived-4d   not-read
+ZFUSD             -0.361 [-0.597, -0.124] n=59       -0.057 [-0.240, 0.125] n=59        no        shipped      not-read
+ZLUSX             -0.071 [-0.137, -0.004] n=385      -0.009 [-0.072, 0.053] n=385       no        derived-4d   not-read
+ZMUSD       OUT   -0.101 [-0.255, 0.052] n=392       0.019 [-0.126, 0.164] n=392        no        holdout-cycle not-read
+ZNUSD             -0.183 [-0.247, -0.120] n=382      -0.046 [-0.105, 0.013] n=382       no        totality     not-read
+ZOUSX             -0.017 [-0.129, 0.095] n=244       0.073 [-0.032, 0.179] n=244        no        totality     not-read
+ZRUSD             -0.008 [-0.180, 0.164] n=94        0.027 [-0.141, 0.195] n=94         no        shipped      not-read
+ZSUSX             -0.278 [-0.401, -0.156] n=185      -0.121 [-0.232, -0.011] n=185      CANDIDATE shipped      not-read
+ZTUSD             -0.619 [-1.139, -0.100] n=7        -0.565 [-1.108, -0.021] n=7        no        shipped      not-read
+wrote docs/research/r4/stop-cap-8-grading.json
+folds: fit=fit select=select confirm=confirm SEALED (not derived: no --confirm-final — nothing burned; 898075 rows withheld at the door)
+corpus ff568263e7e2 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26
+(data-absence rows held out of every fold denominator: 1282 — all variants, graded folds only, accepted rows; holdout excluded by read-time stratified recomputation, not the stamped flag)
+
+=== EURUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.9     12.5    0.100   405/986    0.003   -0.031   -0.051       0.0       0.4   0.10      -5.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -22.5     34.5    0.049   798/986    0.009   -0.024   -0.044      -1.0       0.8   0.08      -6.3  fails
+
+=== GBPUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      31.3     -4.5    0.853   382/924   -0.001    0.002   -0.019       0.0       0.8   0.09      -3.5  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      19.9     11.2    0.393   721/926    0.003    0.006   -0.014       0.4       0.0   0.07      -3.5  fails
+
+=== USDJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -1.7      1.4    0.661   294/915   -0.000   -0.029   -0.050       0.0      -0.1   0.08      -5.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -8.4    -18.9    0.978   731/916   -0.005   -0.033   -0.055       0.3       0.0   0.06      -5.3  fails
+
+=== AUDUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -4.9     -4.7    0.895   307/984   -0.001    0.014   -0.006       0.0       0.8   0.08      -4.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      28.6     11.4    0.437   787/985    0.003    0.018   -0.002       0.0       0.4   0.05      -4.1  fails
+
+=== USDCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -1.1     15.7    0.053   289/917    0.005    0.008   -0.014       0.0       1.0   0.06      -5.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       5.4     28.5    0.271   733/918    0.008    0.011   -0.010       4.5      -3.7   0.05      -5.4  fails
+
+=== USDCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      18.5      0.7    0.705   339/884    0.000   -0.009   -0.030       0.0       0.0   0.09      -5.3  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -2.8    -18.1    0.966   783/884   -0.005   -0.014   -0.035       1.3       0.0   0.05      -5.4  fails
+
+=== NZDUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -1.4      2.2    0.615   283/966    0.001    0.016   -0.004       0.0      -0.2   0.07      -5.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -46.5     61.1    0.004   825/970    0.016    0.030    0.011      -0.2       0.0   0.05      -5.2  fails
+
+=== NZDJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -8.2      0.7    0.624   242/929    0.001    0.030    0.009       0.0       0.8   0.07      -5.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -22.8     26.3    0.139   767/930    0.007    0.036    0.015       0.1       0.4   0.05      -5.2  fails
+
+=== NZDCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       7.2      1.3    0.585   204/919    0.001    0.082    0.063       0.0       0.8   0.06      -5.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -12.5     64.6    0.001   731/921    0.016    0.096    0.077      -0.5       0.0   0.04      -5.2  fails
+
+=== NZDCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -4.5     -6.6    0.985   203/946   -0.001    0.050    0.030       0.0      -0.0   0.07      -3.8  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      23.2     24.4    0.183   836/947    0.005    0.056    0.037      -0.9       0.0   0.04      -4.2  fails
+
+=== GBPNZD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -8.1      1.3    0.641   182/927    0.001    0.047    0.027       0.0      -0.2   0.06      -4.9  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -25.0     54.6    0.009   835/928    0.014    0.060    0.040      -0.7       0.0   0.03      -4.9  fails
+
+=== GBPJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       1.3     -2.3    0.817   254/901   -0.000    0.029    0.009       0.0       0.4   0.08      -4.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -6.5    -11.7    0.918   764/902   -0.004    0.025    0.005      -0.1       0.0   0.05      -4.3  fails
+
+=== GBPCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       5.4      9.0    0.168   268/920    0.003    0.034    0.014       0.0       0.0   0.08      -4.9  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       5.4     -0.4    0.723   717/920   -0.001    0.031    0.011       0.0       0.0   0.06      -4.9  fails
+
+=== GBPCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -8.3     -5.1    0.933   277/880   -0.001    0.021   -0.001       0.0      -0.2   0.08      -4.3  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -2.0     15.5    0.337   775/883    0.004    0.026    0.005       0.7       0.0   0.05      -4.4  fails
+
+=== GBPAUD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       1.0      0.4    0.687   218/885    0.000   -0.005   -0.026       0.0       0.3   0.07      -4.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      43.6      4.7    0.616   769/888    0.001   -0.003   -0.025      -0.0       0.0   0.05      -4.8  fails
+
+=== EURNZD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       5.7      2.4    0.473   190/949    0.001    0.054    0.034       0.0       0.0   0.07      -5.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -19.2      7.1    0.560   842/949    0.001    0.053    0.034       0.1       0.0   0.03      -5.1  fails
+
+=== EURJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday     -35.1      2.7    0.623   252/934    0.001    0.000   -0.020       0.0      -1.2   0.07      -4.9  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       7.3     38.9    0.038   787/936    0.010    0.010   -0.010      -0.4       0.0   0.04      -4.9  fails
+
+=== EURGBP ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -1.1      6.7    0.312   309/859    0.003    0.039    0.018       0.0       0.4   0.09      -4.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -1.0     28.9    0.102   769/860    0.008    0.044    0.023       0.3       0.0   0.05      -5.2  fails
+
+=== EURCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       5.3     -1.9    0.803   232/832   -0.000    0.015   -0.006       0.0      -0.0   0.07      -4.3  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -7.4    -17.8    0.986   598/832   -0.006    0.010   -0.011       2.1      -1.5   0.06      -4.3  fails
+
+=== EURCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday     -10.4     -4.7    0.949   256/967   -0.001    0.048    0.029       0.0       0.1   0.08      -4.9  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -19.1     -8.7    0.915   860/968   -0.003    0.045    0.026       1.5       0.0   0.05      -4.2  fails
+
+=== EURAUD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday     -12.2      1.6    0.604   233/953    0.001    0.021    0.001       0.0       0.0   0.06      -4.9  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -1.5     40.9    0.033   778/953    0.011    0.031    0.011       1.4       0.0   0.04      -4.9  fails
+
+=== CHFJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       6.5     -1.0    0.787   186/935   -0.000    0.015   -0.005       0.0       0.0   0.07      -5.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -14.0     -4.1    0.744   680/934   -0.001    0.014   -0.006      -0.7       2.6   0.05      -4.1  fails
+
+=== CADJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -3.9     -6.4    0.955   291/962   -0.002   -0.016   -0.037       0.0       0.3   0.08      -3.8  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       6.8    -10.1    0.898   845/963   -0.002   -0.017   -0.037       0.0       0.0   0.04      -4.7  fails
+
+=== CADCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       1.6      4.0    0.449   262/925    0.002    0.066    0.047       0.0      -0.2   0.07      -4.4  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -13.5     23.7    0.165   791/926    0.005    0.069    0.050       0.4       0.0   0.04      -5.2  fails
+
+=== AUDNZD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -7.9     -3.8    0.970   156/934   -0.000    0.076    0.057       0.0       0.0   0.06      -4.9  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -7.8     24.5    0.302   819/934    0.003    0.079    0.060       5.7       0.0   0.03      -5.0  fails
+
+=== AUDJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday     -12.7      1.1    0.525   264/974    0.000    0.001   -0.019       0.0       1.9   0.08      -3.7  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -18.7    -13.5    0.915   796/977   -0.004   -0.003   -0.023      -0.6       1.1   0.05      -5.1  fails
+
+=== AUDCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -5.9     -2.7    0.904  218/1004    0.000    0.078    0.059       0.0      -0.6   0.06      -4.9  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -42.0     51.7    0.001  711/1002    0.012    0.089    0.071       0.4       0.2   0.05      -4.9  fails
+
+=== AUDCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -5.4     -9.7    0.991   198/948   -0.002    0.052    0.033       0.0       0.0   0.06      -4.5  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      45.5     15.9    0.323   809/948    0.003    0.058    0.038      -1.7       0.0   0.03      -4.9  fails
+
+=== XAUUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      20.7      6.2    0.387   226/721    0.001   -0.046   -0.072       0.0      -0.8   0.11      -3.6  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -15.0      5.6    0.509   516/723    0.003   -0.044   -0.070       0.8       0.4   0.09      -4.3  fails
+
+=== BZUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      13.8     -4.1    0.890    82/145   -0.011    0.019   -0.066       0.0      -0.2   0.18      -3.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       7.9      1.2    0.631   129/146    0.001    0.032   -0.052       0.2       0.0   0.13      -4.0  fails
+
+=== CLUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      12.3     -4.5    0.960    72/135   -0.010    0.026   -0.062       0.0       0.2   0.18      -4.9  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      13.2    -10.6    0.922   122/144   -0.031    0.005   -0.075      -4.4       0.0   0.16      -5.4  fails
+
+=== ESUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -1.9      3.0    0.277    88/141    0.008   -0.002   -0.061       0.0       0.4   0.23      -3.5  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -3.9     -1.0    0.639    96/141   -0.003   -0.012   -0.072       0.0       0.4   0.24      -3.5  fails
+
+=== GCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       8.0      0.1    0.599    83/184    0.001    0.027   -0.027       0.0       0.1   0.14      -3.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      19.8     -3.8    0.894    92/185   -0.006    0.020   -0.035       0.0       0.8   0.15      -3.2  fails
+
+=== HGUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      36.6     10.5    0.205   117/151    0.024    0.012   -0.047       0.0      -3.4   0.16      -3.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       5.5      1.3    0.531   131/153    0.003   -0.010   -0.077       0.4       0.8   0.12      -6.3  fails
+
+=== NGUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      14.4     25.6    0.004   160/181    0.050   -0.049   -0.105       0.0       0.0   0.28      -2.9  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      22.0     24.5    0.212   177/181    0.051   -0.048   -0.147       0.0       0.0   0.14     -13.0  fails
+
+=== NQUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday     -10.8      4.0    0.216    92/147    0.011    0.026   -0.035       0.0       0.4   0.20      -2.5  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -5.1     -2.9    0.811    95/147   -0.006    0.009   -0.049      -0.6       0.4   0.20      -2.5  fails
+
+=== RTYUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -4.5      6.4    0.259   106/151    0.016    0.002   -0.062       0.0      -1.9   0.18      -3.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       4.6      9.1    0.088   127/152    0.023    0.008   -0.054       0.3       0.0   0.18      -3.1  fails
+
+=== SIUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.4      1.3    0.524    89/168    0.004    0.052   -0.004       0.0      -0.2   0.11      -3.0  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -2.5      0.8    0.605   111/169    0.003    0.051   -0.004       0.0       0.0   0.12      -3.0  fails
+
+=== YMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       3.3     -0.9    0.668    92/136   -0.003   -0.021   -0.081       0.0       0.0   0.23      -2.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       6.2     -3.0    0.785    99/135   -0.008   -0.026   -0.087       0.0      -0.1   0.22      -2.5  fails
+
+=== ZBUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       5.1     13.9    0.003   114/154    0.024   -0.172   -0.237       0.0       1.1   0.27      -2.9  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -2.8     -3.8    0.859   140/159   -0.015   -0.211   -0.279      -0.6      -0.7   0.20      -3.1  fails
+
+=== ZNUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      17.7      3.8    0.092    76/153    0.001   -0.182   -0.245      -0.8       1.9   0.26      -3.5  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       5.2     -6.1    0.930   112/154   -0.020   -0.203   -0.267      -0.7       0.1   0.20      -3.5  fails
+
+=== SP ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       2.2      0.8    0.990     9/138    0.002   -0.061   -0.158       0.0      -1.2   0.40      -1.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       2.1      2.9    0.962    28/139    0.019   -0.045   -0.143      -0.2      -3.8   0.37      -1.1  fails
+
+=== NSDQ ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -0.3     -0.4    0.883    20/136   -0.011   -0.095   -0.189       0.0       0.3   0.49      -1.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -2.8     -2.1    0.986    40/139   -0.020   -0.105   -0.198       0.0       1.1   0.48      -1.1  fails
+
+=== NIKKEI ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0      6.0    0.549     47/47   -0.050   -0.218   -0.396       0.1      -5.8   0.38      -1.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0      5.7    0.374     50/50   -0.040   -0.208   -0.377       0.3      -2.9   0.36      -1.1  fails
+
+=== DOW ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0      6.8    0.135     23/23    0.186    0.064   -0.218      -0.5      -3.8   0.28      -1.0  THIN (25 filled) — refuse
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0     10.3    0.037     26/26    0.304    0.182   -0.070      -0.5      -3.1   0.25      -1.0  THIN (28 filled) — refuse
+
+=== DAX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0     -3.4    0.956    14/189   -0.019   -0.047   -0.139       0.0       1.1   0.10      -1.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0     -4.2    0.951    37/188   -0.023   -0.051   -0.143       0.0       0.7   0.10      -1.1  fails
+
+=== ASX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0     35.9    0.004     41/41    0.230   -0.326   -0.472      -8.4     -28.6   0.29      -2.3  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0     29.7    0.007     49/49    0.203   -0.353   -0.488     -10.6     -26.3   0.24      -2.3  fails
+
+=== WTI ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      32.1     10.1    0.024    63/127    0.016   -0.186   -0.286       0.0       1.4   0.25      -3.6  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       3.1    -13.6    0.991   117/136   -0.004   -0.205   -0.294       1.9       0.6   0.25      -3.7  fails
+
+=== XRPUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -1.2      0.1    0.676  235/1010   -0.000   -0.036   -0.059       0.0       0.7   0.04      -4.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      12.7      3.3    0.676  678/1012    0.002   -0.033   -0.056       1.5       0.0   0.03      -4.1  fails
+
+=== SOLUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0      5.7    0.295   250/752    0.001   -0.052   -0.081       0.0       1.1   0.04      -4.3  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0     -3.9    0.732   389/753   -0.003   -0.056   -0.085       0.0       0.1   0.04      -4.3  fails
+
+=== LTCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       2.6      9.5    0.155   238/907    0.001   -0.220   -0.247       0.0       0.0   0.07      -4.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -2.8     15.5    0.543   656/892    0.004   -0.217   -0.244       1.5      -7.2   0.05      -4.2  fails
+
+=== ETHUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       3.8      0.6    0.685  269/1017   -0.000   -0.039   -0.061       0.0       0.0   0.05      -5.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      13.6      2.3    0.679  569/1017    0.001   -0.038   -0.060       1.1       0.0   0.04      -5.2  fails
+
+=== BTCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -2.4     -6.0    0.944  232/1024   -0.002   -0.031   -0.052       0.0       0.4   0.05      -4.4  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -5.8      4.9    0.542  484/1025    0.001   -0.028   -0.048       0.7      -0.0   0.05      -4.8  fails
+
+=== BCHUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       7.3     19.8    0.012   366/924    0.006   -0.229   -0.255      -0.7      -0.5   0.08      -5.4  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       4.3    -11.7    0.947   657/922   -0.002   -0.237   -0.263      -2.2      -4.6   0.06      -5.4  fails
+
+=== ADAUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       3.6      7.0    0.294  310/1027    0.001   -0.096   -0.119       0.0      -1.0   0.06      -4.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -1.5     29.0    0.033  591/1028    0.009   -0.088   -0.111       0.0       0.0   0.05      -4.2  fails
+
+=== ZFUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday     -15.6    -35.1    0.569     34/34    0.105   -0.256   -0.343     -36.9      -2.2   0.21      -2.7  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -29.2    -50.2    0.634     40/40    0.095   -0.266   -0.345     -49.3      -0.9   0.21      -3.4  fails
+
+=== ZTUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday     -35.4     -8.1    1.000       2/2    0.077   -0.543   -0.799     -12.3      -2.5   0.26      -1.1  THIN (23 filled) — refuse
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -60.7    -17.5    0.266       5/5    0.144   -0.475   -0.653     -18.5      -0.3   0.22      -2.2  fails
+
+=== HOUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday     209.6     79.0    0.001   101/101    0.247    0.020   -0.119      -0.3     -12.1   0.10      -2.4  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     193.3     59.2    0.002   125/125    0.173   -0.054   -0.174      -0.3       3.8   0.13      -4.3  fails
+
+=== RBUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday     266.8     12.8    0.476   107/107   -0.008   -0.125   -0.385       0.0      -3.5   0.12     -21.9  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     263.4    -13.9    0.683   136/136   -0.058   -0.175   -0.394       0.0       1.6   0.08     -27.5  fails
+
+=== PLUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      71.1     38.8    0.044   157/157    0.083    0.020   -0.048       0.0      -6.8   0.07      -4.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      69.6     38.5    0.021   166/166    0.080    0.017   -0.049       0.0       0.0   0.06      -5.3  fails
+
+=== PAUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      27.2     60.6    0.001   142/142    0.171    0.065   -0.007       0.0      -2.2   0.12      -3.0  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      48.9     54.8    0.003   148/148    0.146    0.040   -0.030       0.0      -0.8   0.10      -3.6  fails
+
+=== ZCUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      16.6      5.0    0.368    88/150    0.013   -0.173   -0.278       0.1      -0.2   0.28      -9.4  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -12.0    -17.2    0.990   126/151   -0.040   -0.226   -0.358      -0.7      -1.1   0.18     -15.7  fails
+
+=== ZSUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      78.2      9.3    0.140   118/118    0.166   -0.112   -0.180      -7.0       2.3   0.16      -3.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      66.3     -7.0    0.490   120/120    0.134   -0.145   -0.214     -11.3       0.0   0.12      -4.1  fails
+
+=== ZLUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -2.8     -1.6    0.886    67/145   -0.009   -0.080   -0.148       0.0      -1.0   0.14      -3.5  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -17.2    -13.1    0.992   134/149   -0.027   -0.097   -0.162      -0.7       0.0   0.12      -2.9  fails
+
+=== ZMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      30.0      6.6    0.688   130/150    0.009   -0.093   -0.242       0.0      -3.7   0.18     -21.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      10.4     -1.4    0.772   150/153   -0.000   -0.101   -0.257      -2.2      -0.7   0.15     -21.2  fails
+
+=== ZOUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -1.8     -3.5    0.990    44/149   -0.015   -0.032   -0.145       0.0      -1.1   0.11      -2.5  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -20.4    -10.2    0.965   127/150   -0.042   -0.059   -0.183       0.0       0.9   0.02      -3.3  fails
+
+=== ZRUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -6.1     -4.9    0.997     46/47   -0.098   -0.106   -0.263       0.0      -1.5   0.26      -1.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -0.6      2.4    0.835     71/74    0.028    0.020   -0.116       0.0      -4.2   0.28      -1.4  fails
+
+=== LEUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday     -10.2      3.1    0.657     30/30    0.211    0.292   -0.232       0.0      -2.4   0.06      -1.6  THIN (31 filled) — refuse
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     -13.3     -0.8    0.881     31/31    0.079    0.160   -0.191       0.0      -1.6   0.09      -1.0  THIN (32 filled) — refuse
+
+=== GFUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       7.5      1.6    0.330     27/27   -0.095   -0.161   -0.475       0.0      -0.1   0.03      -1.8  THIN (30 filled) — refuse
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      11.4      1.6    0.330     27/27   -0.095   -0.161   -0.475       0.0      -0.1   0.03      -1.8  THIN (30 filled) — refuse
+
+=== HEUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -5.7     12.9    0.454     32/32   -1.229   -2.257   -6.781       0.0       1.7   0.09     -72.8  THIN (33 filled) — refuse
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      17.5     13.5    0.403     47/47   -0.420   -1.448   -4.349       0.0       2.7   0.06     -72.8  fails
+
+=== AAVEUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0      7.2    0.311   301/766    0.001   -0.041   -0.069       0.0       0.3   0.04      -4.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0     12.4    0.297   436/766    0.005   -0.037   -0.065       0.4      -2.1   0.04      -4.1  fails
+
+=== ALGOUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday     100.9    216.5    0.001   709/709    0.273   -0.229   -0.260     -89.3     -12.9   0.05      -4.6  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     107.8    198.2    0.001   720/720    0.276   -0.226   -0.256     -86.1      -9.3   0.05      -4.6  fails
+
+=== ATOMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -5.0   -159.0    0.001   260/260    0.443   -0.465   -0.506    -363.0     -67.3   0.09      -4.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -7.4   -195.6    0.001   268/268    0.426   -0.483   -0.523    -378.1     -50.2   0.08      -4.1  fails
+
+=== AVAXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0    155.4    0.001   407/407    0.259   -0.218   -0.260     -66.5     -13.9   0.07      -3.5  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0    155.7    0.001   413/413    0.267   -0.210   -0.251     -64.5     -11.4   0.07      -4.2  fails
+
+=== DASHUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      -8.1      8.0    0.392   453/932    0.002   -0.055   -0.079       0.0      -1.0   0.05      -4.3  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -5.1      2.1    0.669   751/933    0.001   -0.056   -0.080       1.8       0.0   0.04      -4.3  fails
+
+=== DOGEUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      17.6     22.8    0.099   676/851    0.008   -0.017   -0.042       0.0      -0.1   0.06      -4.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      -4.6     23.8    0.126   737/850    0.009   -0.017   -0.041       1.0      -1.2   0.05      -4.2  fails
+
+=== DOTUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0    -37.2    0.001   302/302    0.343   -0.359   -0.401    -185.2     -22.5   0.06      -4.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0    -39.9    0.001   306/306    0.343   -0.359   -0.401    -188.4     -25.0   0.06      -4.2  fails
+
+=== DYDXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0    114.8    0.001   175/175    0.729   -0.342   -0.406     -83.5     -40.2   0.14      -4.0  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0    120.5    0.001   175/175    0.738   -0.333   -0.398     -75.5     -40.0   0.13      -4.0  fails
+
+=== EGLDUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0     21.6    0.023   267/474    0.015   -0.294   -0.334      -1.4      -2.4   0.08      -5.4  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0     41.4    0.001   332/476    0.032   -0.278   -0.318      -1.1      -2.1   0.07      -5.4  fails
+
+=== ETCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       2.3      5.8    0.309   226/830    0.002   -0.024   -0.050       0.0       0.4   0.04      -4.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      10.4      5.4    0.605   514/827    0.003   -0.023   -0.048       1.4      -1.3   0.04      -4.2  fails
+
+=== FILUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0    -31.5    0.019     15/15    0.916   -1.003   -1.100     -84.6     -36.4   0.08      -3.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0    -37.5    0.019     14/14    0.933   -0.986   -1.087     -91.7     -37.4   0.06      -3.1  fails
+
+=== GRTUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0     -7.7    0.898   354/785   -0.004   -0.036   -0.061       0.0       0.1   0.07      -4.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0     -5.0    0.806   468/785   -0.002   -0.035   -0.060       0.0       0.1   0.06      -4.2  fails
+
+=== HBARUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0     16.9    0.065   180/193    0.024   -0.080   -0.133       0.0       0.0   0.08      -4.4  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0     15.7    0.083   184/193    0.024   -0.080   -0.132       0.0       0.0   0.07      -4.4  fails
+
+=== IMXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0      7.9    0.196   165/355    0.005   -0.057   -0.106       0.0       0.0   0.04      -4.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0     25.0    0.009   222/355    0.021   -0.041   -0.090       0.0       0.0   0.04      -4.1  fails
+
+=== LINKUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      37.4     44.7    0.021   816/955    0.013   -0.030   -0.057       0.0       2.7   0.05      -4.3  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      36.7     45.8    0.022   842/957    0.013   -0.029   -0.056       0.0      -0.3   0.04      -4.2  fails
+
+=== NEARUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0     68.6    0.001   342/342    0.367   -0.276   -0.318    -101.3      -4.1   0.08      -4.2  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0     60.9    0.001   343/343    0.369   -0.274   -0.316    -105.7      -4.4   0.08      -4.2  fails
+
+=== TRXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday     158.4    -65.1    0.004   505/505    0.214   -0.287   -0.321    -196.7     -27.8   0.07      -4.4  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily     150.7    -85.9    0.015   515/515    0.215   -0.286   -0.319    -194.0     -22.8   0.06      -4.4  fails
+
+=== UNIUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       0.0     10.2    0.324   717/798    0.002   -0.077   -0.104       0.0       0.5   0.06      -5.3  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       0.0     13.3    0.266   747/800    0.004   -0.076   -0.102       0.0       1.1   0.05      -5.3  fails
+
+=== XLMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       3.1      6.0    0.495   769/955    0.000   -0.065   -0.093       0.0      -0.6   0.05      -4.7  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       2.3    -13.9    0.890   863/958   -0.005   -0.070   -0.098       0.0       0.0   0.03      -4.5  fails
+
+=== XMRUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday       3.7      3.3    0.526   338/924   -0.000   -0.078   -0.103       0.0       0.7   0.04      -4.4  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily       8.0    -12.5    0.940   650/927   -0.004   -0.082   -0.106       0.0       0.0   0.03      -5.4  fails
+
+=== XTZUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=8,stopStructureSource=intraday      43.0   -176.9    0.027   163/163    0.270   -0.434   -0.479    -274.3     -65.7   0.10      -4.1  fails
+maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily      27.5   -232.0    0.164   177/177    0.236   -0.468   -0.513    -300.5     -51.0   0.06      -3.9  fails

@@ -336,6 +336,22 @@ had already priced. Futures' cap 4 improves fit by +394R with the class still
 negative. Cap cells retire four candidates under the rule: ADAUSD (five
 cells), HOUSD (three), NGUSD (four), ZSUSX (three), on the gross clause.
 
+**Arm S8 — the uncapped stop** (`stop-cap-8`, manifest `ff568263e7e2`,
+2,790,378 rows, 7.00 GB, exit 0 at 08:54Z; graded
+`docs/research/r4/stop-cap-8-grading.json` and `-class.json`). Cap 8 with
+the daily source is the cell that crosses the class gate cap 4 missed: forex
+accepts it — fit +2.2R, select +248R, p 0.009, own expectancy +0.023R — the
+only swept stop cell accepted anywhere, and at the class grain only; no
+market accepts either cell. For the eight derived candidates shipping at cap
+4 the removal of the cap moves their select net upper bounds by hundredths
+(HBARUSD −0.050 → −0.028, EGLDUSD −0.268 → −0.237, WTI −0.105 → −0.086)
+except NGUSD, whose bound turns positive (−0.035 → +0.051) and which retires
+on the net clause; ADAUSD and HOUSD retire again. Futures' fit improves by
++591R and crypto's by +368R with both classes still negative. Amendment 36's
+cap removal is now complete for every candidate: eight of the eleven
+class-row candidates and seven of the eleven derived ones keep a negative
+net upper bound under every cap from 1.5 to uncapped.
+
 ## 7. Storage and the anchor
 
 **Preflight, 2026-09-03 04:2xZ** (`docs/research/r4/preflight-survey-2026-09-03.txt`,
