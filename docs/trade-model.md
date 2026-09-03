@@ -1788,5 +1788,15 @@ inside the band, where a rounded comparison would admit the row the read
 declined. A cap that read the display form would not be the rule that was
 measured.
 
+**One difference between the measured basis and the live one, stated.** The
+corpus always models the spread; live, `estimateExecutionQuality` uses the
+provider's quoted bid/ask when it has one (`spreadSource: "quoted"`). So this
+is the first admission gate whose firing depends on a live quote — the payoff
+floor reads `|takeProfit − entry| / riskDistance`, which no cost touches. The
+rule is unchanged and better informed: the cap asks what share of the risk
+unit the round trip really takes, and a quote is the truer answer. The
+exposure it adds is a transiently wide quote declining a setup the modelled
+basis would have admitted, which the cost PENALTY already carried.
+
 The cap declines trades. It moves no stop and no target, so no surviving
 trade's payoff is manufactured (amendment 39).

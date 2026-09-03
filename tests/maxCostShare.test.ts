@@ -9,7 +9,7 @@ import {
 import { estimateExecutionQuality } from "../supabase/functions/trade-analyzer/executionQuality.ts";
 import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
-import { GRID_OVERRIDE_KEYS } from "../scripts/sweepGrid.ts";
+import { GRID_OVERRIDE_KEYS, parseGridSpec } from "../scripts/sweepGrid.ts";
 
 /**
  * The cost weight per trade as an admission cap (R4 act 3, amendment 39's
@@ -185,6 +185,21 @@ describe("maxCostShare caps the cost weight per trade", () => {
         `scripts/${reader.name} must REFUSE a corpus without the columns, never silently skip the gate`,
       );
     }
+  });
+
+  it("a grid that names no usable value refuses instead of sweeping the shipped cell", () => {
+    // `Infinity` is the natural way to write "no cap at all", and it parses to
+    // a non-finite number: the axis was dropped and the arm swept the SHIPPED
+    // value under the name of the arm that was asked for. That is how an
+    // uncapped-forex control run would have come back looking capped.
+    assert.throws(
+      () => parseGridSpec("maxCostShare=Infinity"),
+      /names no usable value/,
+      "a non-finite axis must refuse, not skip",
+    );
+    const unreachable = parseGridSpec("maxCostShare=1e9");
+    assert.equal(unreachable.length, 1);
+    assert.equal(unreachable[0].maxCostShare, 1e9);
   });
 
   it("a cap inside the rounding band declines the row the display form would have admitted", () => {

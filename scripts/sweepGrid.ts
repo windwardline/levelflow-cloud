@@ -161,11 +161,22 @@ export function parseGridSpec(
           }`,
       );
     }
-    const numerics = (values ?? "")
-      .split(",")
-      .map((value) => Number(value))
-      .filter((numeric) => Number.isFinite(numeric));
-    if (numerics.length === 0) continue;
+    const parsed = (values ?? "").split(",").map((value) => ({ raw: value, numeric: Number(value) }));
+    const numerics = parsed.filter((entry) => Number.isFinite(entry.numeric)).map((entry) => entry.numeric);
+    // REFUSES, where it used to `continue`. A silent skip drops the axis and
+    // sweeps the shipped value under the name of the arm that was asked for —
+    // and `Infinity`, the natural way to write "no cap at all" for
+    // maxCostShare, parses to a non-finite number and was skipped in exactly
+    // that silence. An uncapped arm is expressed as a cap above any reachable
+    // share (tests/maxCostShare.test.ts pins that an unreachable cap
+    // reproduces the uncapped run exactly).
+    if (numerics.length === 0) {
+      throw new Error(
+        `--grid ${key}=${values ?? ""} names no usable value — a grid axis that parses to nothing would be ` +
+          `swept as the shipped cell under the arm's name; for "no cap", pass a value above any reachable one ` +
+          `(1e9), not Infinity`,
+      );
+    }
     const crossed: GridCell[] = [];
     for (const existing of combos) {
       for (const numeric of numerics) {
