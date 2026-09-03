@@ -9,6 +9,7 @@ import {
   FREEZE_RULE,
   freezeCandidates,
   loadGradingArtifact,
+  parseClassArms,
   RETIREMENT_RULE,
   retirementOf,
   verifyFrozenCandidates,
@@ -237,6 +238,78 @@ describe("the retirement rule's floors and labels, at their boundaries", () => {
     assert.equal(thinGross.testedCells, 1); assert.equal(thinGross.retired, false, "a gross interval over 20 rows cannot retire");
     const fullGross = retirementOf(60, [{ arm: "S", variant: "a", select: { gross: fig(0.05, 40), net: fig(-0.01, 40) } }]);
     assert.equal(fullGross.retired, true);
+  });
+});
+
+describe("the class grain (R4 act 3): one candidate per class per axis over the class gradings", () => {
+  // The fixture symbols resolve to forex through getAssetType's fallback, so one class.
+  const classGrading = (variants: Record<string, Variant>, overrides: Record<string, unknown> = {}) =>
+    grading({ verdictUnit: "class", ...overrides }, {
+      AAA: { heldOut: false, shipped: { declineCandidate: false, select: SHIPPED_SELECT, variant: "baseline" }, variants },
+      BBB: { heldOut: false, shipped: { declineCandidate: false, select: SHIPPED_SELECT, variant: "baseline" }, variants },
+    });
+
+  it("parses axis:ARM=path[|prefix] lists and refuses malformed entries", () => {
+    assert.deepEqual(parseClassArms("window:W=a.json,W96=b.json;admission:F=c.json|payoffFloor="), [
+      { arm: "W", axis: "window", path: "a.json", prefix: null },
+      { arm: "W96", axis: "window", path: "b.json", prefix: null },
+      { arm: "F", axis: "admission", path: "c.json", prefix: "payoffFloor=" },
+    ]);
+    assert.throws(() => parseClassArms("W=a.json"), /axis entry needs a name/);
+    assert.throws(() => parseClassArms("window:W"), /not <arm>=<class-grading.json>/);
+    assert.throws(() => parseClassArms("window:W=a.json|"), /empty prefix/);
+  });
+
+  it("freezes the largest accepted fit ΔR per class per axis, filtered by prefix, with the pooled and held-out members", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "freeze-"));
+    const marketS = write(dir, "s.json", grading({ shardHashes: ["1".repeat(64)] }));
+    const marketF = write(dir, "f.json", grading({ shardHashes: ["2".repeat(64)] }));
+    const classS = write(dir, "s-class.json", classGrading({ "w=1": variant(true, 5), "w=2": variant(false, 40) }, { shardHashes: ["1".repeat(64)] }));
+    const classF = write(dir, "f-class.json", classGrading({ "payoffFloor=1.5": variant(true, 3), "payoffFloor=1.6": variant(true, 2), "costShareMax=0.15": variant(true, 9), "costShareMax=0.2": variant(false, 12) }, { shardHashes: ["2".repeat(64)] }));
+    const frozen = await freezeCandidates([{ arm: "S", path: marketS }, { arm: "F", path: marketF }], {
+      classArms: [
+        { arm: "S", axis: "window", path: classS, prefix: null },
+        { arm: "F", axis: "payoffFloor", path: classF, prefix: "payoffFloor=" },
+        { arm: "F", axis: "costShare", path: classF, prefix: "costShareMax=" },
+      ],
+    });
+    assert.deepEqual(frozen.classAxes, [
+      { arms: [{ arm: "S", prefix: null }], axis: "window" },
+      { arms: [{ arm: "F", prefix: "payoffFloor=" }], axis: "payoffFloor" },
+      { arms: [{ arm: "F", prefix: "costShareMax=" }], axis: "costShare" },
+    ]);
+    const forex = frozen.classes!.forex;
+    assert.equal(forex.window!.variant, "w=1");
+    assert.equal(forex.payoffFloor!.variant, "payoffFloor=1.5", "the prefix keeps the admission instruments apart");
+    assert.equal(forex.costShare!.variant, "costShareMax=0.15");
+    assert.deepEqual(forex.window!.members, ["AAA", "BBB"]);
+    assert.deepEqual(forex.window!.heldOutMembers, ["CCC"], "the class's held-out member rides the same cell as the out-of-sample check");
+    assert.equal(frozen.classCellsTested, 2 + 2 + 2);
+    assert.equal(frozen.expectedFalseAcceptsClasses, 0.3);
+    const out = write(dir, "frozen.json", frozen);
+    assert.equal(verifyFrozenCandidates(out).classes!.forex.window!.variant, "w=1");
+  });
+
+  it("refuses a class arm that is not a market arm, one graded on another corpus, a market-unit grading named as class, and members whose blocks differ", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "freeze-"));
+    const marketS = write(dir, "s.json", grading({ shardHashes: ["1".repeat(64)] }));
+    const classS = write(dir, "s-class.json", classGrading({ "w=1": variant(true, 5) }, { shardHashes: ["1".repeat(64)] }));
+    await assert.rejects(freezeCandidates([{ arm: "S", path: marketS }], { classArms: [{ arm: "W", axis: "window", path: classS, prefix: null }] }), /not among the market arms/);
+    const otherCorpus = write(dir, "s-class2.json", classGrading({ "w=1": variant(true, 5) }, { shardHashes: ["7".repeat(64)] }));
+    await assert.rejects(freezeCandidates([{ arm: "S", path: marketS }], { classArms: [{ arm: "S", axis: "window", path: otherCorpus, prefix: null }] }), /one arm is one corpus/);
+    await assert.rejects(freezeCandidates([{ arm: "S", path: marketS }], { classArms: [{ arm: "S", axis: "window", path: marketS, prefix: null }] }), /named as a class-unit grading/);
+    const uneven = classGrading({ "w=1": variant(true, 5) }, { shardHashes: ["1".repeat(64)] });
+    (uneven.markets as Record<string, { variants: Record<string, Variant> }>).BBB.variants = { "w=1": variant(false, 5) };
+    await assert.rejects(freezeCandidates([{ arm: "S", path: marketS }], { classArms: [{ arm: "S", axis: "window", path: write(dir, "uneven.json", uneven), prefix: null }] }), /differs from its class's/);
+  });
+
+  it("names the class candidates in the command's summary", () => {
+    const dir = mkdtempSync(join(tmpdir(), "freeze-"));
+    const marketS = write(dir, "s.json", grading({ shardHashes: ["1".repeat(64)] }));
+    const classS = write(dir, "s-class.json", classGrading({ "w=1": variant(true, 5) }, { shardHashes: ["1".repeat(64)] }));
+    const result = spawnSync(process.execPath, ["./node_modules/.bin/tsx", "scripts/freeze-candidates.ts", "--arms", `S=${marketS}`, "--class-arms", `window:S=${classS}`, "--out", join(dir, "frozen.json")], { cwd: process.cwd(), encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /1 class candidates over 1 axes/);
   });
 });
 
