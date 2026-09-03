@@ -1947,7 +1947,10 @@ tables: `docs/research/r4-act3-design-2026-09-03.md`.
 
 **What the fold said.** One confirmed result: forex's cost-share cap at
 0.15 (class grain; pool confirm ΔR +283R, ΔE +0.0064 [+0.0001, +0.0127] over
-77,537 fills; positive on every fold and on the six held-out members). All
+77,537 fills; the sign agreeing on fit, select and the fold, the six
+held-out members point-positive but indistinguishable — and one crossing
+among the read's thirteen candidates, which the record states where the
+figure is quoted). All
 nine market candidates and the other three forex class cells are positive
 in point estimate and indistinguishable from zero. 46 of 91 shipped cells
 are confirmed negative on the held-back fold — crypto 32 of 33, the four

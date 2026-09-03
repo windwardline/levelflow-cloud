@@ -1752,12 +1752,25 @@ with a diagnostic that names the share and the cap.
 
 **Forex carries it at 0.15 (2026-09-03); no other row sets it.** The value is
 the one candidate the program's single ledgered confirm read confirmed
-(`docs/research/confirm-reads/ledgered-read-act3.json`, read
-`f3b72ce8261a…`): at the class grain the pooled confirm delta is **+283.0R**
-and **+0.0064R per trade**, 95% interval **[+0.0001, +0.0127]** over 77,537
-fills, positive on the fit fold (+564R), the select fold (+306R) and the six
-held-out forex members (+92R). The lower bound clears zero by a hair, which
-is the honest description of it. Crypto's and futures' caps moved thousands
+(`docs/research/confirm-reads/ledgered-read-act3.json`, readId
+`65331372-2b86-4c57-9ef8-fb588846bfac`, artifact `3a17f23378f6`; the
+`f3b72ce8261a…` in the ledger filename is the corpus id): at the class grain
+the pooled confirm delta is **+283.0R** and **+0.0064R per trade**, 95%
+interval **[+0.0001, +0.0127]** over 77,537 fills, with the fit fold (+564R)
+and the select fold (+306R) agreeing in sign and the six held-out forex
+members point-positive (+92R) but **indistinguishable** from zero under the
+same rule. The lower bound clears zero by a hair, which is the honest
+description of it.
+
+**And it is one crossing among thirteen.** The read judged 13 frozen
+candidates — nine at the market grain, four forex class cells — and exactly
+one cleared. Under independence, a single crossing by chance across 13
+candidates at a 95% two-sided interval runs to about 28%; the candidates
+share rows, so the true figure is lower, but it is not small. The cap ships
+because the sign agrees on every fold, because the class-grain grading passed
+the gate's own earns-money term before the fold was opened, and because the
+mechanism is a bill the venue charges — not because this interval cleared
+zero by 0.0001. Crypto's and futures' caps moved thousands
 of R on the tuning folds and failed the gate's own earns-money term — the
 losses shrink, the sign does not change — so those rows stay unset
 (`docs/research/r4-act3-supplementary-arms-2026-09-03.md` §6a, §6d).
@@ -1765,8 +1778,10 @@ losses shrink, the sign does not change — so those rows stay unset
 **What the cap reads is load-bearing.** The gate derived the confirmed
 predicate from the emit as `estimatedRoundTripCost / riskDistance` — the raw
 quotient. `executionQuality.costToRisk` is that same quotient rounded to 4 dp
-for display, and on R3's corpus **105 of 941,947 baseline rows** (44 markets,
-19 of them forex) fall in the band where the two disagree at a 0.15 cap. So
+for display, and on R3's corpus **105 of 941,947 baseline rows** fall in the
+band where the two disagree at a 0.15 cap — **49 of them in the 19 forex
+markets the shipped cap actually governs**, which is the population that
+matters here. So
 admission compares `costShare`, the unrounded field, and
 `tests/maxCostShare.test.ts` pins that it does — including a cap placed
 inside the band, where a rounded comparison would admit the row the read
