@@ -85,6 +85,14 @@ import { isKnownSymbol } from "./symbols.ts";
 // includes `expired_in_profit` and `expired_at_loss` — filled trades that
 // banked or lost real money and were excluded outright, because under a win
 // rate they were neither. (Prior: 2026.08.27.calendar-provenance.)
+// 2026.09.03.forex-cost-share-cap: the forex class row caps the cost weight
+// per trade at `maxCostShare: 0.15`, so a forex setup whose modelled round
+// trip exceeds 15% of its risk unit is declined at admission. The accepted
+// population changes, so the cohort scopes again. Set by the one ledgered
+// confirm read of R4 act 3 (readId 65331372-…, artifact 3a17f23378f6) — the
+// only candidate it confirmed, and one crossing among its thirteen.
+// (Prior: 2026.09.01.platinum-group-rate-inverse, whose own entry this log
+// never received.)
 export const ANALYZER_VERSION = "2026.09.03.forex-cost-share-cap";
 
 export type AssetType =

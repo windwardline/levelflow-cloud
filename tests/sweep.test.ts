@@ -904,8 +904,9 @@ describe("the rejection ledger (P1) — an account, not a tally", () => {
     );
     assert.equal(
       counters.belowThreshold,
-      counters.belowConfidence + counters.belowPayoff + counters.regimeGated,
-      "belowThreshold must remain exactly the sum of its three branches, or " +
+      counters.belowConfidence + counters.belowPayoff +
+        counters.aboveCostShare + counters.regimeGated,
+      "belowThreshold must remain exactly the sum of its four branches, or " +
         "excluding it from the ledger drops real rejections",
     );
   });

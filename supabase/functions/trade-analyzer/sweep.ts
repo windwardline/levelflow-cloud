@@ -1044,7 +1044,7 @@ export function simulateSymbol(input: {
       else if (belowPayoff) reject("belowPayoff", latest.time);
       else if (aboveCostShare) reject("aboveCostShare", latest.time);
       else reject("regimeGated", latest.time);
-      // AN AGGREGATE, NOT A TWELFTH REASON: it counts the three branches
+      // AN AGGREGATE, NOT A TWELFTH REASON: it counts the four branches
       // above, so it takes the counter and NOT a ledger row — appending
       // here would double-count every rejection at this gate.
       rejections.belowThreshold += 1;
