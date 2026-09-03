@@ -4,7 +4,46 @@
 // the way keys always were, because a typo'd value that silently overrode
 // nothing would report the baseline's numbers back as if it had varied.
 
-import type { CategoryCalibration } from "../supabase/functions/trade-analyzer/calibration.ts";
+import {
+  type CategoryCalibration,
+  getAssetType,
+  getClassCalibration,
+  getSymbolCalibrationOverride,
+} from "../supabase/functions/trade-analyzer/calibration.ts";
+
+/**
+ * A grid cell: calibration overrides, plus the one TOKEN that is not a
+ * calibration field. `symbolOverride: "none"` (R4 act 3) asks the driver
+ * to run each market on its CLASS row with its per-symbol layer removed —
+ * the only way to grade the invalidated 2026-08-11 derived cells against
+ * their absence. The token never reaches the engine: `expandGridCell`
+ * resolves it per market into the class row's values for exactly the
+ * fields that market's layer overrides, so the sweep composes class row +
+ * layer + cell and the cell wins them back. The row's `variant` and the
+ * manifest's `grid` carry the cell as written, and the manifest's
+ * `symbols[].symbolOverride` and `calibrationByClass` make the expansion
+ * derivable by any reader.
+ */
+export type GridCell = Partial<CategoryCalibration> & { symbolOverride?: "none" };
+
+export const GRID_TOKEN_KEYS = { symbolOverride: ["none"] } as const;
+
+function isGridTokenKey(key: string): key is keyof typeof GRID_TOKEN_KEYS {
+  return key in GRID_TOKEN_KEYS;
+}
+
+/** The engine-facing override for one market: the token resolved, explicit keys on top. */
+export function expandGridCell(symbol: string, cell: GridCell): Partial<CategoryCalibration> {
+  const { symbolOverride, ...explicit } = cell;
+  if (symbolOverride === undefined) return explicit;
+  const layer = getSymbolCalibrationOverride(symbol);
+  const classRow = getClassCalibration(getAssetType(symbol));
+  const restored: Partial<CategoryCalibration> = {};
+  for (const key of Object.keys(layer) as Array<keyof CategoryCalibration>) {
+    (restored as Record<string, unknown>)[key] = classRow[key];
+  }
+  return { ...restored, ...explicit };
+}
 
 // Mirrors CategoryCalibration's numeric fields; the satisfies-check keeps
 // the list from drifting from the type it mirrors.
@@ -63,12 +102,28 @@ function isGridStringKey(key: string): key is keyof typeof GRID_STRING_KEYS {
 /** Parse one --grid spec into the full cross product of its axes. */
 export function parseGridSpec(
   spec: string,
-): Array<Partial<CategoryCalibration>> {
-  let combos: Array<Partial<CategoryCalibration>> = [{}];
+): GridCell[] {
+  let combos: GridCell[] = [{}];
   for (const axis of spec.split(";")) {
     if (!axis.trim()) continue;
     const [rawKey, values] = axis.split("=");
     const key = rawKey.trim();
+    if (isGridTokenKey(key)) {
+      const legal = GRID_TOKEN_KEYS[key] as readonly string[];
+      const parsed = (values ?? "").split(",").map((value) => value.trim()).filter(Boolean);
+      for (const value of parsed) {
+        if (!legal.includes(value)) {
+          throw new Error(`--grid ${key} value "${value}" is not one of: ${legal.join(", ")}`);
+        }
+      }
+      if (parsed.length === 0) continue;
+      const crossed: GridCell[] = [];
+      for (const existing of combos) {
+        for (const value of parsed) crossed.push({ ...existing, [key]: value as "none" });
+      }
+      combos = crossed;
+      continue;
+    }
     if (isGridStringKey(key)) {
       const legal = GRID_STRING_KEYS[key] as readonly string[];
       const parsed = (values ?? "").split(",").map((value) => value.trim())
@@ -83,7 +138,7 @@ export function parseGridSpec(
         }
       }
       if (parsed.length === 0) continue;
-      const crossed: Array<Partial<CategoryCalibration>> = [];
+      const crossed: GridCell[] = [];
       for (const existing of combos) {
         for (const value of parsed) {
           crossed.push({
@@ -99,7 +154,7 @@ export function parseGridSpec(
       throw new Error(
         `--grid key "${key}" is not a numeric CategoryCalibration field. ` +
           `Valid keys: ${
-            [...GRID_OVERRIDE_KEYS, ...Object.keys(GRID_STRING_KEYS)].join(
+            [...GRID_OVERRIDE_KEYS, ...Object.keys(GRID_STRING_KEYS), ...Object.keys(GRID_TOKEN_KEYS)].join(
               ", ",
             )
           }`,
@@ -110,7 +165,7 @@ export function parseGridSpec(
       .map((value) => Number(value))
       .filter((numeric) => Number.isFinite(numeric));
     if (numerics.length === 0) continue;
-    const crossed: Array<Partial<CategoryCalibration>> = [];
+    const crossed: GridCell[] = [];
     for (const existing of combos) {
       for (const numeric of numerics) {
         crossed.push({ ...existing, [key]: numeric });

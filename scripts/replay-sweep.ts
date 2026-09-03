@@ -93,7 +93,10 @@ import {
   foldSplits,
   isHoldoutSymbol,
 } from "./sweepFolds.ts";
-import { parseGridSpec } from "./sweepGrid.ts";
+import { parseGridSpec,
+  expandGridCell,
+  type GridCell,
+} from "./sweepGrid.ts";
 import {
   DEFAULT_CACHE_DIR,
   loadRollingSeries,
@@ -281,7 +284,7 @@ type SweepArgs = {
   days: number;
   discover: boolean;
   emit: string | undefined;
-  grid: Array<Partial<CategoryCalibration>>;
+  grid: GridCell[];
   step: number;
   symbols: string[];
 };
@@ -843,6 +846,10 @@ async function main() {
       ...args.grid
         .map((override) => override.defaultReviewHours)
         .filter((hours): hours is number => typeof hours === "number"),
+      // A class-default cell puts each market on its class row's window.
+      ...(args.grid.some((override) => override.symbolOverride === "none")
+        ? args.symbols.map((symbol) => getClassCalibration(getAssetType(symbol)).defaultReviewHours)
+        : []),
     ]);
   }
   // 3c/3d: folds are COMMON-ORIGIN calendar windows over the corpus's own
@@ -1275,7 +1282,9 @@ async function main() {
       const variant = describeOverride(override);
       for (const split of splits) {
         const result = simulateSymbol({
-          calibrationOverride: override,
+          // The cell's token (symbolOverride=none) resolves per market here;
+          // the engine never sees it (R4 act 3).
+          calibrationOverride: expandGridCell(symbol, override),
           captureAll: args.captureAll,
           ignoreLowEdge: args.ignoreLowEdge,
           cotReports,
@@ -1896,7 +1905,7 @@ export function parseArgs(argv: string[]): SweepArgs {
     min: 1,
   });
   const gridSpec = str("--grid");
-  const grid: Array<Partial<CategoryCalibration>> = [{}];
+  const grid: GridCell[] = [{}];
   if (gridSpec) {
     // Semicolon-separated axes, crossed (2026-08-06). One axis stays exactly as
     // before — `key=a,b,c` — so every prior invocation means what it always did.
