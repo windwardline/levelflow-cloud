@@ -294,6 +294,15 @@ remove few fills) except where it is high: WTI on the energies row
 VERDICT (21) or THIN (1): the reproduction control the design counted, and
 the reason arm C grades 72 markets, not 97.
 
+**Multiplicity, stated before the freeze.** A dry run of the freeze over the
+four arms graded so far (W, C1, C2, F) finds 9 candidates — 8 from the window
+arm, EURAUD from the derived cost-share cap — against 1,638 (market, cell)
+tests, so the gate's own p ≤ 0.05 would hand out about 82 accepts by chance.
+Nine is below that count. Per-market acceptance on the tuning folds is
+therefore not evidence at the program level; it is the list the read opens.
+The four retirements (ADAUSD, NGUSD, XTZUSD, ZSUSX) each rest on two or more
+cells and none is labelled fragile.
+
 ## 7. Storage and the anchor
 
 **Preflight, 2026-09-03 04:2xZ** (`docs/research/r4/preflight-survey-2026-09-03.txt`,
