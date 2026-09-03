@@ -744,6 +744,15 @@ function groupVerdicts(
   const random = mulberry32(options.seed ?? 7);
   const minFilled = options.minFilled ?? 0;
   const verdicts = new Map<string, Map<string, VariantVerdict>>();
+  if (frozen) {
+    // A market's only graded variant is its own frozen candidate: every other
+    // arm's candidate has no rows here and would print THIN for nothing.
+    for (const [group, byVariant] of verdicts) {
+      for (const name of [...byVariant.keys()]) {
+        if (candidateOf(group)?.variant !== name) byVariant.delete(name);
+      }
+    }
+  }
   const symbolsByClass = groups;
 
   const variants = new Set<string>();
@@ -1280,6 +1289,9 @@ export async function gradeCorpus(
   const frozen = options.frozen ?? null;
   if (frozen && !options.confirmFinal) {
     throw new Error("--frozen is the read's own shape: pass --confirm-final with it, or grade an arm on the tuning folds without it");
+  }
+  if (frozen && options.verdictUnit !== "market") {
+    throw new Error("--frozen names one candidate per MARKET: pass --verdict-unit market with it");
   }
   if (frozen && (options.deriveFilters ?? []).length > 0) {
     throw new Error("--frozen rebuilds every derived variant from the frozen file; --derive-filters may not be passed beside it");

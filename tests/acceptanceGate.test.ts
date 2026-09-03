@@ -1836,10 +1836,8 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       assert.equal(driven.verdicts.get("USDJPY")!.get("y=2")!.confirmBaseFilled, 16);
       // A market's only graded variant is its own frozen candidate; another
       // market's candidate prints NO VERDICT for it (no rows), never a figure.
-      const graded = (symbol: string) => [...driven.verdicts.get(symbol)!.entries()].filter(([, verdict]) => !verdict.noVerdict).map(([name]) => name);
-      assert.deepEqual(graded("EURUSD"), ["good"]);
-      assert.deepEqual(graded("USDJPY"), ["y=2"]);
-      assert.equal(driven.verdicts.get("EURUSD")!.get("y=2")!.noVerdict, true);
+      assert.deepEqual([...driven.verdicts.get("EURUSD")!.keys()], ["good"]);
+      assert.deepEqual([...driven.verdicts.get("USDJPY")!.keys()], ["y=2"]);
       assert.ok(driven.verdicts.get("USDJPY")!.get("y=2")!.confirmTotalDelta! < 0, "y=2's confirm rows came from arm B's corpus");
       const opened = readLedgeredArtifact(driven.read!.artifactPath, { manifestHash: driven.manifest.manifestHash });
       assert.deepEqual(opened.shardHashes, [manifestHashOf(first), manifestHashOf(second)]);
@@ -1852,6 +1850,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       const { first, frozen: both, second } = await twoArms(dir);
       const onlyFirst = await freeze(mkdtempSync(join(dir, "one-")), [{ arm: "A", grading: gradingFor(first, { EURUSD: { variant: "good", accepted: true } }) }]);
       await assert.rejects(gradeCorpus(first, { frozen: onlyFirst, permutations: 20, seed: 4, verdictUnit: "market" }), /confirm-final/);
+      await assert.rejects(gradeCorpus(first, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l0-")), frozen: onlyFirst, permutations: 20, seed: 4, verdictUnit: "class" }), /--verdict-unit market/);
       await assert.rejects(
         gradeCorpus([first, second], { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l1-")), frozen: onlyFirst, permutations: 20, seed: 4, verdictUnit: "market" }),
         /named by no arm/,
