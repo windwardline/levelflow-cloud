@@ -999,8 +999,8 @@ the wall clock and ignored the bar in flight (#420) |
 | **R2** | Repair the instrument — ~~D4 (the gate has no absolute-expectancy term)~~ **DONE 2026-08-31**, ~~M3 (confirm decides on a bare delta)~~ **DONE 2026-08-31**, ~~M1 (audit double-counts)~~ **CLOSED 2026-08-31 — the item named the wrong file**, ~~M5 (make the cost scale reach the resolver)~~ **DONE 2026-08-31**, ~~D1 (learning from a win rate)~~ **DONE 2026-08-31** | **NEXT — R1 is closed. All five lettered items are done.** M1 named `roster-expectancy-audit.ts`, which never carried the `|| variant === "baseline"` alternative — `git log -S` over that path's full history returns nothing. It lived in `market-dossier.ts` (#330 in, #364 out), and both files are now mutation-verified guarded. M1's "re-run and commit the artifact" half is BLOCKED and belongs to R3/R4: the 4c emits are not in the working tree, and that corpus is the invalidated one, so a fresh run would replace quarantined figures with equally invalid ones. **What remains under R2 is the pre-R3 emit and manifest work's LAST open row — section 5 item 5, the two-arm corpus.** **D4 changes what R3 must do:** the 4d picks now fail on TWO independent grounds — the corpus was invalid (clock defect) AND the criterion was wrong — so the re-sweep must run under the repaired gate, not merely on repaired data. Does not wait on R0's data half, which gates R3 onward. Whether every item is offline is NOT asserted here — M5 names the resolver and D1 names learning, both live surfaces; scope each against the map before assuming a reader-only change. **R2 also owns the PRE-R3 EMIT AND MANIFEST WORK, added 2026-08-23** — see the block below the rank table. R1c proved this class exists when `executionScore` turned out to be missing and had to land before the one re-sweep; the converge found five more of the same shape |
 | **R2b** | ~~**The geometry model's own fresh-eyes round**~~ **RAN 2026-08-31 — `docs/research/r2b-geometry-fresh-eyes-2026-08-31.md`; its one-entry field list LANDED the same day (#507).** The row below is the original statement of the item.
 | **R2b (original)** | **The geometry model's own fresh-eyes round** — the old item 4b, re-ranked here 2026-08-19 rather than left in §5's prose. Several lenses, each asked what the MODEL is missing rather than how to tune it; the one surface the adversarial protocol has never been pointed at. **Its rank is load-bearing and was never stated:** its output changes what the sweep should measure, and R3 is `re-sweep ONCE` under item 2's law — one re-simulate after the instrument changes, never one per fix. Run after R3 and the choice is a second full re-sweep or shipping a geometry nobody probed. It must clear before R3 opens. | after R2, **before R3** |
-| **R3** | Re-sweep ONCE — item 2's law: one re-simulate after the instrument changes, never one per fix | **RAN 2026-09-02, 06:12Z–08:48Z, both arms of the run card at anchor 2026-08-26, zero provider bytes.** Gated 5,232,445 rows / capture-all 6,660,138, both from `e51e742`, engine `2026.09.01.platinum-group-rate-inverse`, 97 of 97 markets, 71 columns. The capture-all arm filtered to `accepted: true` IS the gated corpus — 5,232,445 of 5,232,445 rows byte-identical (item H, closed). Record: `docs/research/r3-one-resweep-2026-09-02.md`; artifacts `docs/research/r3/`. **What it found about itself:** the card's global folds put every futures, energies, agriculture and livestock market — and four of six indices — entirely inside the sealed confirm fold (their intraday history begins 2023-09/10), so the class-grain gate returned NO VERDICT for four of eight classes — **and the per-class arm RAN 15:07–17:40Z from merged main `886fdf1`** (`--fold-spec docs/research/r3/fold-spec-2026-08-26.json`, zero bytes, gated 5,216,341 rows / capture-all 6,634,732, reconciled byte-identical with `dirty: false, untracked: 0`). Every class now has a class-grain reading and it is uniform: **no grid variant is accepted in any class**; at rest only forex is net-positive on the tuning folds; futures, energies, indices and livestock lose before modelled spread and slippage are charged at all; the intraday `trail_tp1` arm beats mixed baselines at p = 0.001 in crypto, futures and indices and still fails D4's absolute term. Record §10. At rest, forex is net-positive on both tuning folds (+0.013R ±0.006 per filled trade, +2,896.9R over fit+select); crypto, metals, indices are not; against baseline, `breakeven` and `hold` fail the paired test at p = 1.000 in forex, crypto and metals, and `trail_tp1` is the best pooled net mode in every class with rows. No reader opened the confirm fold; the driver's stdout table prints that split's outcome columns by design, so the raw logs stay local and the tracked tables are redacted. *Earlier state:* after R2b, not merely after R2 — R2b changes what should be measured and there is only one re-sweep. Anchor at 2026-08-26 and R3 costs zero FMP bytes (it did) |
-| **R4** | The per-market program — every matched market individually, against its own shipped configuration, absolute expectancy as the criterion | after R3 — **and R3 RAN 2026-09-02.** **R4 act 1 RAN 2026-09-02**: the reader population is sealed at the door and proven so by execution (`docs/research/r4-act1-seal-readers-2026-09-02.md`; 6b-0's corpus-readers row CLOSED). Next: act 2 — per-market grading on fit and select, then the vetted confirm-read design (owner item: three purpose-confirm readers; ledger term for per-market folds; one holdout population). The corpus is `docs/research/r3/` (capture-all arms only); the anchor is protected so R4's supplementary arms are free |
+| **R3** | Re-sweep ONCE — item 2's law: one re-simulate after the instrument changes, never one per fix | **RAN 2026-09-02, 06:12Z–08:48Z, both arms of the run card at anchor 2026-08-26, zero provider bytes.** Gated 5,232,445 rows / capture-all 6,660,138, both from `e51e742`, engine `2026.09.01.platinum-group-rate-inverse`, 97 of 97 markets, 71 columns. The capture-all arm filtered to `accepted: true` IS the gated corpus — 5,232,445 of 5,232,445 rows byte-identical (item H, closed). Record: `docs/research/r3-one-resweep-2026-09-02.md`; artifacts `docs/research/r3/`. **What it found about itself:** the card's global folds put every futures, energies, agriculture and livestock market — and four of six indices — entirely inside the sealed confirm fold (their intraday history begins 2023-09/10), so the class-grain gate returned NO VERDICT for four of eight classes — **and the per-class arm RAN 15:07–17:40Z from merged main `886fdf1`** (`--fold-spec docs/research/r3/fold-spec-2026-08-26.json`, zero bytes, gated 5,216,341 rows / capture-all 6,634,732, reconciled byte-identical with `dirty: false, untracked: 0`). Every class now has a class-grain reading and it is uniform: **no grid variant is accepted in any class**; at rest only forex is net-positive on the tuning folds; futures, energies, indices and livestock lose before modelled spread and slippage are charged at all; the intraday `trail_tp1` arm beats mixed baselines at p = 0.001 in crypto, futures and indices and still fails D4's absolute term. Record §10. At rest, forex is net-positive on both tuning folds (+0.006R (corrected 2026-09-03 under the one holdout population; +0.013R as first printed) ±0.006 per filled trade, +2,896.9R over fit+select); crypto, metals, indices are not; against baseline, `breakeven` and `hold` fail the paired test at p = 1.000 in forex, crypto and metals, and `trail_tp1` is the best pooled net mode in every class with rows. No reader opened the confirm fold; the driver's stdout table prints that split's outcome columns by design, so the raw logs stay local and the tracked tables are redacted. *Earlier state:* after R2b, not merely after R2 — R2b changes what should be measured and there is only one re-sweep. Anchor at 2026-08-26 and R3 costs zero FMP bytes (it did) |
+| **R4** | The per-market program — every matched market individually, against its own shipped configuration, absolute expectancy as the criterion | after R3 — **and R3 RAN 2026-09-02.** **R4 act 1 RAN 2026-09-02** (the seal; `docs/research/r4-act1-seal-readers-2026-09-02.md`) **and act 2 RAN the same day** (the per-market program on the tuning folds; `docs/research/r4-act2-per-market-2026-09-02.md`): no grid variant accepted against any market's shipped cell, 22 decline candidates under a pre-registered rule, the one ledgered read extended to every shipped cell with a calendar key so it can be burned exactly once per program. Next: act 3 — the supplementary arms at the protected anchor (zero bytes), then the one read. The corpus is `docs/research/r3/` (capture-all arms only) |
 | **R5** | The never-analyzed populations — 8 contract variants, dual-listed crypto per line, register gaps | after R4 |
 | **R6** | Reader-facing claims — D7 (Record rows publish a frequency as a record), D8 (tier ordering the corpus inverts) | pre-reopen |
 
@@ -1911,7 +1911,70 @@ that fixed it.
   and belongs beside R6; the capture branch can wait, but say which is deferred
   rather than leaving both unranked.
 
-### ▶ RESUME HERE — 2026-09-02 21:30 UTC
+### ▶ RESUME HERE — 2026-09-02 23:00 UTC
+
+**R4 act 2 RAN: the per-market program on the tuning folds.** Owner-approved
+the same day ("Recommendations are approved… total autonomy… keep working").
+Record: `docs/research/r4-act2-per-market-2026-09-02.md`; design and its two
+reviews: `docs/research/r4-act2-design-2026-09-02.md`. What changed:
+
+- `grid-totalr --verdict-unit market` grades every market on its own rows on
+  the EMITTED per-class folds; the 2026-08-11 per-market time re-cut is
+  retired (under the confirm flag it relabelled a median 329 days of the
+  held-back fold into select) and its flag is refused by name; the gate
+  refuses unknown flags by name.
+- Every market's SHIPPED cell is graded absolutely on select, net and gross
+  with intervals, and the pre-registered decline rule (net AND gross upper
+  bounds below zero at 30 filled) is applied mechanically. Provenance of all
+  72 derived cells is tracked (`docs/research/r4/shipped-cell-provenance.json`):
+  NONE is held back from R3's per-class confirm fold — each was confirmed
+  positive on dates that fold covers — so for a shipped cell only a
+  confirmed-negative confirm figure is admissible (pre-registered; the gate
+  withholds the rest).
+- The one ledgered read now covers every market's shipped cell (absolute net
+  and gross confirm expectancy, M3 against the pre-registered rule), writes
+  its own artifact (`scripts/ledgeredRead.ts` is the contract; consumers open
+  it only through `readLedgeredArtifact`) and a fuller ledger line carrying
+  the held-back calendar in DATES per requested symbol: a second read whose
+  windows overlap a recorded read's on any shared symbol — from any corpus,
+  any engine version, any fold shape — refuses without acknowledgement.
+  **One burn per program**, taken after every supplementary arm is graded on
+  select and frozen.
+- One holdout population (the stratified set over the requested roster,
+  pinned in `docs/research/r4/holdout-2026-08-26.json`); the stamp is
+  provenance only; per-market readers label, the class gate excludes.
+- The roster audit reads the shipped cell from the manifest's grid; the two
+  purpose-confirm consumers print the ledgered read's figures verbatim or say
+  "select only"; threshold-rescue consumes nothing from confirm by design.
+
+**The grading, sealed, zero bytes** (`docs/research/r4/per-market-grading-
+classfolds.json` + `.stdout.txt`): 91 of 97 markets graded (six have every
+row inside their class's confirm fold — ARWUSD, BNBUSD, CAKEUSD, THETAUSD,
+TRUMPUSD, XAGUSD); **no grid variant accepted against any market's shipped
+cell**; 44 shipped cells lose on select beyond their interval; **22 decline
+candidates** under the pre-registered rule (16 crypto; ADAUSD, ALGOUSD, ASX,
+ATOMUSD, AVAXUSD, BCHUSD, DASHUSD, DOTUSD, DYDXUSD, EGLDUSD, HBARUSD, HOUSD,
+NEARUSD, NGUSD, SOLUSD, TRXUSD, UNIUSD, WTI, XLMUSD, XMRUSD, XTZUSD, ZSUSX) —
+candidates only: amendment 36's cost clause is met, its window/cap/calendar
+removals are act 3's arms, and withdrawal is never permanent.
+
+**What a resuming session must know first:**
+
+- **Next is act 3 — the supplementary arms at the protected anchor, zero
+  bytes**: a `symbolOverride=none` arm (each market on its class default —
+  the only way to grade the invalidated derived layer against its absence),
+  the review window, the TP1 and stop families, the threshold proposals with
+  their own acceptance rule, and an emit-time per-market fold spec for the six
+  late-listed markets. Each arm's design names its inputs; a class's axis
+  choices come from that class's own tuning folds only.
+- **Do not** run `grid-totalr --confirm-final` or `confirm-4d` against
+  `docs/research/r3/`: that is the program's one read, and the ledger now
+  records the held-back dates per requested symbol and refuses a second read
+  whose windows overlap them on any shared market, from any corpus. The read
+  comes after act 3, as one command with a vetted package.
+- `--per-market-folds` no longer exists; `--verdict-unit market` is the grain.
+
+### ▶ RESUME HERE — 2026-09-02 21:30 UTC (superseded by the block above)
 
 **R4 act 1 RAN: the confirm fold is sealed at the door.** Owner-approved
 2026-09-02 ("Recommendations are approved… fan out, adversarial passes,
@@ -1998,10 +2061,14 @@ reading are tracked beside them. Full record:
   and one engine: `gated`/`capture-all` (the card as written, global folds)
   and `gated-classfolds`/`capture-all-classfolds` (the class-grain corpus of
   record). Both confirm folds are sealed.
-- **What R3 measured at rest, fit + select, held-out excluded:** forex
-  +0.013R ±0.006 per filled trade (+2,896.9R; select +0.029); crypto −0.036
-  (fit +0.123, select −0.065); metals −0.077 (XAUUSD alone); indices 145
-  decisions. Against baseline, `breakeven` and `hold` fail the paired test at
+- **What R3 measured at rest, fit + select, held-out excluded** (corrected
+  2026-09-03 under the ONE holdout population — the stratified 20, pinned —
+  after R4 act 2's refuter found the day's figures pooled under the driver's
+  stamped 19; the money did not move, the pool did): forex +0.006R ±0.005
+  per filled trade (+1,509.1R over 22 clusters; select +0.020), as first
+  printed +0.013R ±0.006 (+2,896.9R); crypto −0.064 (fit +0.096, select
+  −0.092), as first printed −0.036 (+0.123 / −0.065); metals −0.077 (XAUUSD
+  alone); indices 202 decisions, −0.077. Against baseline, `breakeven` and `hold` fail the paired test at
   p = 1.000 in forex, crypto and metals; `trail_tp1` is the best pooled net
   mode in every class with rows; daily stop structure moves the money by
   <0.005R where there is a sample, and at roster scale it LOSES decisions as

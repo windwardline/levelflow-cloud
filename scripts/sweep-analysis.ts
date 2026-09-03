@@ -17,13 +17,19 @@
 // manifest door (2i): hash verified before a single row is read. The
 // confirm fold is sealed at that door (R4 act 1): its rows are withheld
 // before this file sees them, the count withheld is printed beside the
-// holdout line, and every table below reads the tuning folds only.
+// holdout line, and every table below reads the tuning folds only. The
+// holdout is ONE population (R4 act 2): the stratified rule over the
+// manifest's requested roster, verified against the anchor's tracked pin —
+// every class table excludes it, the per-symbol table labels it, and the
+// row's stamped flag is printed as provenance and excludes nothing.
 import {
   getAssetType,
   getCategoryCalibration,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
+import { describeHeldOut, resolveHeldOut } from "./sweepFolds.ts";
 import {
   addOutcome,
+  assertManifest,
   assertManifestedCorpusStreaming,
   emptyStats,
   type SweepEmitRow,
@@ -42,6 +48,9 @@ import {
 
 type Row = {
   accepted: boolean;
+  /** In the stratified held-out set: kept for the per-symbol table, pooled nowhere. */
+  heldOut: boolean;
+  /** The driver's stamp — provenance only. */
   holdout?: boolean;
   confidenceScore: number;
   cotStance: string | null;
@@ -255,18 +264,22 @@ async function main(): Promise<void> {
   // Streamed through the manifest door (2i), and narrowed to the fields the
   // tables use: the 2026-08-05 run emitted 672,739 records (505 MB), where a
   // readFileSync + split would hold the whole file, an array of every line,
-  // AND every parsed object at once. The hash verifies before the first row;
-  // holdout markets (3e) never enter a tuning table, and the confirm fold
-  // never reaches this callback — the door seals it and counts it.
+  // AND every parsed object at once. The hash verifies before the first row,
+  // and the confirm fold never reaches this callback — the door seals it and
+  // counts it. The held-out set stands BEFORE the first row (R4 act 2, one
+  // holdout population): the streaming door hands its manifest back only
+  // after the last row, so the manifest half of the door is read first.
+  const holdout = resolveHeldOut([assertManifest(emitPath)]);
   const rows: Row[] = [];
-  let holdoutSkipped = 0;
+  let heldOutRows = 0;
+  let stampedRows = 0;
   let dataAbsentRows = 0;
   const manifest = await assertManifestedCorpusStreaming(emitPath, (raw) => {
     const parsed = raw as unknown as Row;
-    if (parsed.holdout === true) {
-      holdoutSkipped += 1;
-      return;
-    }
+    // Provenance only: the stamp is counted and excludes nothing.
+    if (parsed.holdout === true) stampedRows += 1;
+    const heldOut = holdout.held.has(parsed.symbol);
+    if (heldOut) heldOutRows += 1;
     if (raw.noBarsInReviewWindow === true) {
       dataAbsentRows += 1;
     }
@@ -280,6 +293,7 @@ async function main(): Promise<void> {
       accepted: parsed.accepted,
       confidenceScore: parsed.confidenceScore,
       cotStance: parsed.cotStance,
+      heldOut,
       macroAdjustment: parsed.macroAdjustment,
       macroStance: parsed.macroStance,
       newsPenalty: parsed.newsPenalty,
@@ -300,15 +314,16 @@ async function main(): Promise<void> {
   // a legacy corpus) — never hardcoded, and never the confirm fold.
   const folds = tuningFolds(manifest);
   const foldsRead = `${folds.fit}+${folds.select} folds`;
-  if (holdoutSkipped > 0) {
-    // Scope and definition on the line itself (#364 round 30, smaller):
-    // the data-absence line below also names them, but it is gated on
-    // marked rows existing — this line must stand alone.
-    console.log(
-      `(holdout markets excluded: ${holdoutSkipped} rows — all variants, ` +
-        `${foldsRead}, stamped flag)`,
-    );
-  }
+  // Scope and definition on the line itself (#364 round 30, smaller): the
+  // data-absence line below also names them, but it is gated on marked rows
+  // existing — this line must stand alone, and it prints whether or not a
+  // market was held out: a zero says the roster's classes were too small to
+  // hold one out, which is a different fact from a reader that never looked.
+  console.log(
+    `(${describeHeldOut(holdout)}; ${heldOutRows} rows on held-out markets ` +
+      `— all variants, ${foldsRead} — read for the per-symbol table only; ` +
+      `stamped rows: ${stampedRows})`,
+  );
   // The sealed population is STATED, never silent, and printed whether or
   // not anything was withheld: a zero on a legacy corpus says there was no
   // confirm fold to seal, which is a different fact from an unsealed read.
@@ -331,18 +346,20 @@ async function main(): Promise<void> {
   if (dataAbsentRows > 0) {
     console.log(
       `(data-absence rows held out of every denominator: ${dataAbsentRows}` +
-        ` — all variants, ${foldsRead}; holdout excluded by the emit's ` +
-        `stamped flag)`,
+        ` — all variants, ${foldsRead}; held-out markets per the rule above)`,
     );
   }
   console.log(`Emit: ${emitPath} · min-n for a reportable cell: ${minN}`);
   const splits = [...new Set(rows.map((row) => row.split))];
   const variants = [...new Set(rows.map((row) => row.variant))];
   console.log(`Splits: ${splits.join(", ")} · variants: ${variants.join(", ")}`);
+  // Every class-level table reads the pool; only the per-symbol table reads
+  // every row, with the held-out markets labelled.
+  const pooled = rows.filter((row) => !row.heldOut);
 
   // ---------------------------------------------------------------- per class
   const byClass = new Map<string, { all: Stats; accepted: Stats }>();
-  for (const row of rows) {
+  for (const row of pooled) {
     const key = classOf(row.symbol);
     if (!byClass.has(key)) {
       byClass.set(key, { accepted: emptyStats(), all: emptyStats() });
@@ -376,7 +393,7 @@ async function main(): Promise<void> {
   // (--capture-all is what makes the below-threshold half visible), so the
   // curve shows what a threshold move would actually buy or cost.
   for (const className of [...byClass.keys()].sort()) {
-    const classRows = rows.filter((row) => classOf(row.symbol) === className);
+    const classRows = pooled.filter((row) => classOf(row.symbol) === className);
     const buckets = new Map<number, Stats>();
     for (const row of classRows) {
       const bucket = Math.floor(row.confidenceScore / 5) * 5;
@@ -421,7 +438,7 @@ async function main(): Promise<void> {
   // the class of setups.
   const candidates = [35, 40, 45, 50, 55, 60, 65, 68, 70, 75, 80, 82, 85, 90, 95];
   for (const className of [...byClass.keys()].sort()) {
-    const classRows = rows.filter((row) => classOf(row.symbol) === className);
+    const classRows = pooled.filter((row) => classOf(row.symbol) === className);
     table(
       `${className} — threshold sensitivity (all evaluated decisions at or above each candidate)`,
       ["thr", "n", "tp1", "stop", "expR", "flag"],
@@ -458,7 +475,7 @@ async function main(): Promise<void> {
     }
   }
   table(
-    "Per symbol (NEW marks a market Phase 5 made sizeable for the first time)",
+    "Per symbol — every market, held-out ones labelled (NEW marks a market Phase 5 made sizeable for the first time)",
     ["symbol", "class", "acc n", "acc tp1", "acc expR", "all n", "all expR", "flag"],
     [...bySymbol.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
@@ -470,7 +487,9 @@ async function main(): Promise<void> {
         expectancyLabel(cell.accepted),
         String(cell.all.n),
         expectancyLabel(cell.all),
-        `${NEWLY_SIZEABLE.has(symbol) ? "NEW " : ""}${cell.accepted.n < minN ? "!" : ""}`,
+        `${holdout.held.has(symbol) ? "HELD OUT " : ""}${
+          NEWLY_SIZEABLE.has(symbol) ? "NEW " : ""
+        }${cell.accepted.n < minN ? "!" : ""}`,
       ]),
   );
 
@@ -483,7 +502,7 @@ async function main(): Promise<void> {
     ["news penalty", (row: Row) => (row.newsPenalty > 0 ? "penalized" : "clear")],
   ] as Array<[string, (row: Row) => string]>) {
     const buckets = new Map<string, Stats>();
-    for (const row of rows) {
+    for (const row of pooled) {
       if (!row.accepted) {
         continue;
       }
@@ -515,7 +534,7 @@ async function main(): Promise<void> {
   // analysis proposes; the confirm fold is not a row here and cannot be —
   // the door withheld it.
   const bySplit = new Map<string, Map<string, Stats>>();
-  for (const row of rows) {
+  for (const row of pooled) {
     if (!row.accepted) {
       continue;
     }

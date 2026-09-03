@@ -89,9 +89,12 @@ axis.
   the sync door) or reads lines raw (`createInterface`, `readLinesSync`,
   `JSON.parse(line)`), so a reader that bypasses the door is still in the
   population. The argument table must cover it exactly: a reader without an
-  entry fails, an entry without a reader fails. Nineteen readers plus
-  `grid-totalr --per-market-folds` as a second shape; `confirm-4d` excluded
-  by name with its reason.
+  entry fails, an entry without a reader fails. Nineteen readers; `confirm-4d` excluded by name with its reason.
+  (Correction, act 2: the guard's second shape `grid-totalr
+  --per-market-folds` was a NO-OP — the gate's command line never declared
+  that flag and walked past unknown flags in silence, so the run was
+  byte-identical to the plain one. The gate now refuses unknown flags by name,
+  the re-cut itself is retired, and the shape is gone from the table.)
 - **Fixtures** — seven markets across five classes (two correlated pairs so
   the collapse instrument has groups), two grid cells, three folds,
   40 decisions per cell, every column a real emit carries. A: a realistic mix of
@@ -149,7 +152,7 @@ look-ahead lens). Their kills, and the disposition of each:
 | Kill | Disposition |
 |---|---|
 | "Twelve + two doors" is not the population; the door regex finds nineteen, and `feasibility-4d` read confirm fill status | Accepted. Population derived, not listed; feasibility premised and pinned; `two-arm-reconcile` keeps reading every row and redacts. |
-| Item 5 of the design was false: `grid-totalr --per-market-folds` re-cut SELECT past the class confirm start for 56 of 97 R3 markets, so declared-confirm rows graded as select without `--confirm-final` | The reviewer read the pre-change code. The sealed door withholds label-confirm rows before the re-cut; the guard runs that shape and it passes. The residue — the ledger entry under `--confirm-final` records no per-market-folds term — is OPEN (§6). |
+| Item 5 of the design was false: `grid-totalr --per-market-folds` re-cut SELECT past the class confirm start for 56 of 97 R3 markets, so declared-confirm rows graded as select without `--confirm-final` | The reviewer read the pre-change code. The sealed door withholds label-confirm rows before the re-cut; (The guard's "second shape" claimed here was vacuous — see the correction in §4; act 2 retired the re-cut outright after its code-path lens found it relabelling a median 329 days of the held-back fold into select under `--confirm-final`.) The residue — the ledger entry under `--confirm-final` records no per-market-folds term — is OPEN (§6). |
 | Three readers' PURPOSES are confirm decisions the gate cannot serve today (roster audit's absolute confirm E per market; cost-sensitivity's withdrawal on gross confirm E; threshold-rescue's both-folds rule); re-pointing them at select makes them in-sample | Accepted as an OWNER item (§6). They are sealed now and say what they read; their held-back verdicts must come through the one ledgered read once it carries what they need. |
 | Legacy train/test as "tuning" contradicts the seal: in the two-split design `test` was the confirmation fold | Residue stated (§6): no valid legacy corpus exists; the door seals nothing on one and `tuningFolds` names its folds honestly. |
 | The differential guard leaks: count-only reads, flag-gated reads, side channels (stderr, `derivedAt`), a masked corpus hash | Fixtures hold counts constant and vary outcomes, fills and R sign; the source law scans flags; stderr and artifacts are surfaces; the mask is learned from A vs A′ and backed by a static instant/duration mask (two artifacts derived in the same millisecond had defeated the empirical one alone). |

@@ -178,22 +178,26 @@ only.
 
 | class | n | filled | TP1 hit | stop | net E | ±SE clustered (k markets) | gross E | net total R | gross total R |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| forex | 252,522 | 218,364 | 68.8% | 23.7% | **+0.013** | ±0.006 (19) | +0.037 | **+2,896.9** | +8,047.8 |
-| crypto | 63,521 | 53,454 | 67.9% | 28.4% | −0.036 | ±0.029 (23) | +0.053 | −1,930.3 | +2,857.9 |
+| forex | 293,468 | 253,435 | 68.2% | 24.0% | **+0.006** | ±0.005 (22) | +0.030 | **+1,509.1** | +7,599.9 |
+| crypto | 56,373 | 47,272 | 66.1% | 30.1% | −0.064 | ±0.036 (23) | +0.048 | −3,021.3 | +2,320.3 |
 | metals | 9,150 | 7,222 | 59.6% | 29.9% | −0.077 | — (XAUUSD alone) | +0.006 | −554.4 | +42.3 |
-| indices | 145 | 131 | 48.1% | 12.2% | +0.004 | — (NSDQ alone) | +0.016 | +0.6 | +2.2 |
+| indices | 202 | 182 | 44.5% | 14.3% | −0.077 | — | −0.039 | −14.0 | −7.3 |
 | futures, energies, agriculture, livestock | 0 | 0 | — | — | — | — | — | — | — |
 
-Per fold, forex at rest: fit +0.006 (150,296 filled, +947.3R), select
-**+0.029** (68,068 filled, +1,949.6R). Crypto at rest: fit **+0.123**
-(8,284 filled, +1,017.8R), select **−0.065** (45,170 filled, −2,948.2R) — the
+Per fold, forex at rest: fit −0.001 (174,503 filled, −94.7R), select
+**+0.020** (78,932 filled, +1,603.8R). Crypto at rest: fit **+0.096**
+(7,052 filled, +677.9R), select **−0.092** (40,220 filled, −3,699.1R) — the
 sign flips between folds, and select carries five times the fills.
+(Corrected 2026-09-03 under the one holdout population — the stratified 20,
+not the driver's stamped 19; as first printed: forex +0.013 / +2,896.9R with
+fit +0.006 / select +0.029, crypto −0.036 with fit +0.123 / select −0.065.
+See §10's correction for why the pool moved and the money did not.)
 
 **The runner axis, fit + select pooled, net:**
 
 | class | breakeven | hold | trail_tp1 (intraday) | trail_tp1 + daily structure |
 | --- | ---: | ---: | ---: | ---: |
-| forex | −0.023 / −5,010.5R | −0.016 / −3,440.8R | +0.013 / +2,896.9R (= baseline) | +0.015 / +3,225.1R |
+| forex | −0.023 / −5,010.5R | −0.016 / −3,440.8R | +0.013 / +2,896.9R (= baseline; +0.006 / +1,509.1R under the one holdout population, §10's correction) | +0.015 / +3,225.1R |
 | crypto | −0.071 / −3,805.1R | −0.050 / −2,650.9R | −0.032 / −1,686.7R | −0.030 / −1,594.5R |
 | metals | −0.096 / −693.1R | −0.103 / −741.2R | −0.077 / −554.4R (= baseline) | −0.079 / −582.7R |
 
@@ -256,10 +260,13 @@ metals); the modelled spread and slippage take 0.024R (forex), 0.089R
 names as highest-confidence, measured; it is not a decision.
 
 **Two holdout rules, two populations — read the gate and the summary as
-different instruments, not as two prints of one number.** The summary
-excludes the manifest's STAMPED holdout (19 markets, the driver's
-sha256-mod-5 draw); the gate excludes its own read-time STRATIFIED set (20
-markets), by design and as its output says. The two sets share only five
+different instruments, not as two prints of one number.** The summary as
+first printed excluded the manifest's STAMPED holdout (19 markets, the
+driver's sha256-mod-5 draw); the gate excludes its own read-time STRATIFIED
+set (20 markets), by design and as its output says. (Corrected 2026-09-03:
+R4 act 2 made the stratified set the ONE population every reader excludes
+from class pools, pinned per roster; the summary outputs were regenerated
+under it and the stamp is provenance only.) The two sets share only five
 markets (AUDCHF, BNBUSD, EURUSD, NGUSD, XLMUSD), so the gate tunes on 14
 stamped-held-out markets and excludes 15 the corpus stamped as tuning
 markets. That is why forex at rest reads +0.029 on select in the summary (19
@@ -291,7 +298,8 @@ not tracked, and are marked as such where they appear.
 recount of the gated corpus):
 - Fit+select only, no confirm figure in any printed number — SURVIVES; every
   forex baseline figure re-derived to printed precision (n 252,522, filled
-  218,364, TP1 68.8%, net +0.0133, +2,896.9R, gross +8,047.8R).
+  218,364, TP1 68.8%, net +0.0133, +2,896.9R, gross +8,047.8R — the figures
+  as printed on the day, under the stamped exclusion; see §10's correction).
 - The embargo held: 0 of 3,209,603 fit/select rows decided inside the
   5-day embargo, 0 exits past a fold end; a −1-day mutation of the embargo
   fired 1,321 fit and 511 select violations, so the counter is live —
@@ -502,9 +510,9 @@ modelled spread and slippage are charged at all.
 - Every per-market verdict and every calibration value — gated on R4, which
   is gated on sealing the twelve readers (§7) so its one confirm read is a
   recorded one.
-- Whether forex's +0.013 survives the confirm fold — R4's read, nobody
+- Whether forex's +0.006 (as corrected; +0.013 as first printed) survives the confirm fold — R4's read, nobody
   else's.
-- The crypto fit/select sign flip (+0.123 → −0.065) — R4's per-market
+- The crypto fit/select sign flip (+0.096 → −0.092 under the one population; +0.123 → −0.065 as first printed) — R4's per-market
   program, with the fold calendars per class rather than global.
 
 ## 9. Storage
@@ -567,25 +575,42 @@ livestock 2023-09-25..2025-03-11 · ..2025-12-02 · ..2026-08-26 (livestock to
 select — thin, and every figure below carries its own error.
 
 **Per class at rest (`baseline`), fit + select pooled, held-out excluded**
-(`tuning-folds-summary-gated-classfolds.txt`):
+(`tuning-folds-summary-capture-all-classfolds.txt`, corrected below):
 
 | class | n | filled | TP1 hit | stop | net E | ±SE clustered (k) | gross E | net total R | gross total R |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| forex | 252,522 | 218,364 | 68.8% | 23.7% | **+0.013** | ±0.006 (19) | +0.037 | **+2,896.9** | +8,047.8 |
-| crypto | 86,130 | 72,674 | 66.4% | 29.9% | −0.065 | ±0.028 (24) | +0.028 | −4,725.5 | +2,080.9 |
+| forex | 293,468 | 253,435 | 68.2% | 24.0% | **+0.006** | ±0.005 (22) | +0.030 | **+1,509.1** | +7,599.9 |
+| crypto | 76,803 | 64,477 | 64.4% | 31.7% | −0.095 | ±0.034 (24) | +0.025 | −6,107.2 | +1,667.9 |
 | metals | 10,120 | 8,004 | 59.2% | 30.0% | −0.078 | — (XAUUSD alone) | +0.004 | −621.2 | +31.5 |
-| futures | 20,893 | 16,446 | 52.2% | 34.2% | −0.101 | ±0.028 (16) | **−0.042** | −1,666.9 | −710.6 |
-| agriculture | 6,021 | 4,246 | 53.3% | 31.5% | −0.135 | ±0.031 (5) | +0.019 | −573.4 | +86.2 |
-| indices | 681 | 594 | 46.1% | 26.3% | −0.167 | ±0.091 (4) | **−0.125** | −99.3 | −75.5 |
+| futures | 18,171 | 14,257 | 52.5% | 34.7% | −0.106 | ±0.033 (14) | **−0.045** | −1,505.9 | −658.1 |
+| agriculture | 5,274 | 3,775 | 52.3% | 33.1% | −0.133 | ±0.036 (5) | +0.023 | −502.4 | +94.7 |
+| indices | 987 | 893 | 52.6% | 25.0% | −0.123 | ±0.063 (5) | **−0.079** | −109.7 | −72.1 |
 | energies | 1,048 | 875 | 41.4% | 35.8% | −0.201 | — (WTI alone) | **−0.164** | −176.1 | −145.4 |
-| livestock | 1,044 | 772 | 58.0% | 38.1% | −0.205 | ±0.149 (3) | **−0.062** | −158.1 | −48.4 |
+| livestock | 685 | 510 | 58.2% | 38.2% | −0.024 | ±0.047 (2) | +0.021 | −12.1 | +11.1 |
 
-Per fold at rest: futures fit −0.126 (10,719 filled) / select −0.056
-(5,727); agriculture −0.137 (2,835) / −0.131 (1,411); energies −0.201 (577)
-/ −0.202 (298); livestock −0.136 (517) / −0.345 ±0.364 (255 — no evidence);
-indices −0.038 (195) / −0.230 (399); metals −0.091 (5,497) / −0.047 (2,507);
-crypto on its own calendar +0.048 (24,665) / −0.123 (48,009) — the same sign
-flip as §5 on a different cut.
+**Corrected 2026-09-03 (R4 act 2's diff refuter).** The table as first written
+excluded the driver's STAMPED holdout (19 markets, sha256 mod 5) from every
+class pool; the one holdout population is now the read-time stratified set
+(20 markets, pinned in `docs/research/r4/holdout-2026-08-26.json`), which
+shares five markets with the stamp. The money did not move — the pool did:
+forex read +0.013R / +2,896.9R over 19 clusters under the stamp and reads
++0.006R / +1,509.1R over 22 under the one population; crypto −0.065 →
+−0.095 (−6,107.2R); futures −0.101 → −0.106; indices −0.167 → −0.123;
+livestock −0.205 → −0.024; agriculture and metals within a hundredth;
+energies unchanged. "Only forex net-positive at rest" survives; its
+magnitude halves. The rows above are the regenerated
+`tuning-folds-summary-capture-all-classfolds.txt` (capture-all arm, accepted
+rows — identical to the gated arm's pools by construction, and the gated
+corpora were released after that identity was proven); the tracked
+`*-gated*.txt` outputs carry the stamped exclusion and are superseded, kept
+as the record of what R3 printed on the day.
+
+Per fold at rest, under the one holdout population: futures fit −0.129
+(9,237 filled) / select −0.062 (5,020); agriculture −0.141 (2,512) / −0.118
+(1,263); energies −0.201 (577) / −0.202 (298); indices −0.053 (280) / −0.155
+(613); livestock −0.034 (340) / −0.003 (170); crypto +0.021 (21,392) /
+−0.152 (43,085); forex −0.001 (174,503) / +0.020 (78,932). (As first printed
+under the stamp: futures −0.126 / −0.056, agriculture −0.137 / −0.131.)
 
 **Where the loss sits, by class.** In crypto, metals and agriculture the
 GROSS arm is positive: the published commission alone leaves money on the

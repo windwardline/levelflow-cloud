@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -12,8 +12,10 @@ import {
 } from "../scripts/sweepManifest.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
+import { rosterHashOf } from "../scripts/sweepFolds.ts";
 import {
   CAPTURE_ALL_ZEROED,
+  formatReport,
   linesOf,
   reconcileTwoArms,
   SHARED_TERMS,
@@ -203,6 +205,10 @@ function twoArms(mutate: {
       lines: gatedLines,
       manifestOverrides: mutate.gatedManifest,
     }),
+    // No pin stands here, so every reconciliation below resolves its held-out
+    // set "unpinned": the tracked docs/research/r4/ is this repo's, and a
+    // fixture roster at R3's anchor must not be read against R3's pin.
+    holdoutPinDir: join(dir, "pins"),
   };
 }
 
@@ -528,13 +534,74 @@ describe("every check the instrument makes has a mutation that fails it", () => 
     });
     assert.ok(report.findings.some((finding) => /manifest term "symbols" differs/.test(finding)), report.findings.join("\n"));
     // Enumerated, never counted: a term dropped from the list is a check that
-    // silently stopped happening.
+    // silently stopped happening. `holdoutSymbols` stays in the list as
+    // PROVENANCE — two arms of one sweep carry one stamp — while nothing
+    // excludes on it (R4 act 2, one holdout population): the set both arms
+    // are read under is the stratified rule over `requestedSymbols`, which
+    // the report states below.
     assert.deepEqual([...SHARED_TERMS], [
       "analyzerVersion", "anchor", "barRejections", "calendarCensus", "calibrationByClass", "clock",
       "conditions", "days", "emitColumns", "engineDeclined", "folds", "foldsByClass", "grid",
       "grossCostScale", "holdoutSymbols", "modeledCostScale", "requestedSymbols", "stepBars", "symbols",
       "trainShare", "treasuryCurve", "warmupBars",
     ]);
+  });
+
+  it("states the one holdout population both arms are read under — the stratified rule, never the stamp", () => {
+    const report = reconcileTwoArms({ ...twoArms(), maxExamples: 20 });
+    assert.equal(report.holdout.rule, "stratified-per-class-20pct");
+    // A two-market forex class holds nothing out, and the fixture stamps
+    // nothing: both facts are stated, not assumed.
+    assert.deepEqual(report.holdout.markets, []);
+    assert.deepEqual(report.holdout.stamped, []);
+    assert.equal(report.holdout.pinned, false);
+    assert.match(
+      formatReport(report),
+      /^holdout: stratified-per-class-20pct — 0 markets named as provenance only \(this reader pools nothing and prints no per-market line\) \(unpinned — no .*holdout-2026-08-26\.json, computed from requestedSymbols\); stamped flag: 0 markets, provenance only$/m,
+    );
+    // Stamping a market on both arms moves the provenance line and nothing else.
+    const stamped = reconcileTwoArms({
+      ...twoArms({
+        captureAllManifest: { holdoutSymbols: ["EURUSD"] },
+        gatedManifest: { holdoutSymbols: ["EURUSD"] },
+      }),
+      maxExamples: 20,
+    });
+    assert.deepEqual(stamped.findings, []);
+    assert.deepEqual(stamped.holdout.markets, []);
+    assert.deepEqual(stamped.holdout.stamped, ["EURUSD"]);
+  });
+
+  it("refuses a pin that names another set than the arms compute for the same roster — executed", () => {
+    const arms = twoArms();
+    mkdirSync(arms.holdoutPinDir, { recursive: true });
+    const pinPath = join(arms.holdoutPinDir, "holdout-2026-08-26.json");
+    writeFileSync(
+      pinPath,
+      JSON.stringify({
+        manifestHashes: ["0".repeat(64)],
+        markets: ["EURUSD"],
+        rosterHash: rosterHashOf(["EURUSD", "GBPUSD"]),
+        rule: "stratified-per-class-20pct",
+      }) + "\n",
+    );
+    assert.throws(
+      () => reconcileTwoArms({ ...arms, maxExamples: 20 }),
+      /heldOutSetDrift: .*pinned but not computed: EURUSD; computed but not pinned: none/,
+    );
+    // The same pin for ANOTHER requested roster is unpinned for this one.
+    writeFileSync(
+      pinPath,
+      JSON.stringify({
+        manifestHashes: ["0".repeat(64)],
+        markets: ["EURUSD"],
+        rosterHash: rosterHashOf(["EURUSD", "GBPUSD", "USDJPY"]),
+        rule: "stratified-per-class-20pct",
+      }) + "\n",
+    );
+    const report = reconcileTwoArms({ ...arms, maxExamples: 20 });
+    assert.equal(report.holdout.pinState, "other-roster");
+    assert.deepEqual(report.findings, []);
   });
 
   it("accepts only the boolean true — a string \"true\" is not an accepted row", () => {

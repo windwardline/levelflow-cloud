@@ -54,6 +54,11 @@ import { closeSync, openSync, readSync } from "node:fs";
 import { StringDecoder } from "node:string_decoder";
 import { fileURLToPath } from "node:url";
 import { flagReader, OperatorInputError } from "./flagReader.ts";
+import {
+  describeHeldOut,
+  type ResolvedHeldOut,
+  resolveHeldOut,
+} from "./sweepFolds.ts";
 import { type SweepManifest, stableStringify } from "./sweepManifest.ts";
 import { assertAcceptanceMode, assertManifest, SEALED_FOLD } from "./sweepStats.ts";
 
@@ -95,7 +100,11 @@ export function* linesOf(path: string): Generator<string, void, undefined> {
  * either allowed to differ (`acceptance.captureAll`, the rejection counters,
  * `manifestHash`, `generatedAt`, `rejectionLedgerRows` — the capture-all arm
  * walks further before recording a rejection) or is checked structurally
- * below (`decisions[]`).
+ * below (`decisions[]`). `holdoutSymbols` stays a shared term as PROVENANCE
+ * — two arms of one sweep carry one stamp — while nothing excludes on it:
+ * the held-out set both arms are read under is the stratified rule over
+ * `requestedSymbols`, resolved once for the pair and stated in the report
+ * (R4 act 2, one holdout population).
  */
 export const SHARED_TERMS = [
   "analyzerVersion",
@@ -143,6 +152,8 @@ export type ReconcileReport = {
   captureAll: ArmTally & { zeroedCounters: Record<string, number> };
   findings: string[];
   gated: ArmTally & { zeroedCounters: Record<string, number> };
+  /** The one holdout population both arms are read under, and its pin state. */
+  holdout: ResolvedHeldOut;
   identicalByBytes: number;
   identicalByFields: number;
   sharedTermsChecked: number;
@@ -252,6 +263,8 @@ function checkEmittedAgainstManifest(
 export function reconcileTwoArms(input: {
   captureAllPath: string;
   gatedPath: string;
+  /** Where the anchor's pinned set is looked for; the tracked default when absent. */
+  holdoutPinDir?: string;
   maxExamples: number;
 }): ReconcileReport {
   const gatedManifest = assertManifest(input.gatedPath);
@@ -293,6 +306,13 @@ export function reconcileTwoArms(input: {
       );
     }
   }
+  // The one holdout population, resolved for the pair before a row is read:
+  // requestedSymbols is a shared term above, so on agreeing arms this is one
+  // set; on disagreeing arms the finding above already names the divergence.
+  const holdout = resolveHeldOut(
+    [gatedManifest, captureAllManifest],
+    input.holdoutPinDir,
+  );
   sharedTermsChecked += 1;
   if (
     gatedManifest.acceptance?.ignoreLowEdge !==
@@ -459,6 +479,7 @@ export function reconcileTwoArms(input: {
     },
     findings,
     gated: { ...gated, zeroedCounters: zeroedCounters(gatedManifest) },
+    holdout,
     identicalByBytes,
     identicalByFields,
     sharedTermsChecked,
@@ -481,6 +502,7 @@ export function formatReport(report: ReconcileReport): string {
     `counters the capture-all arm zeroes by construction — gated: ${
       JSON.stringify(report.gated.zeroedCounters)
     } · capture-all: ${JSON.stringify(report.captureAll.zeroedCounters)}`,
+    describeHeldOut(report.holdout, { labels: false, pools: false }),
   );
   if (report.findings.length === 0) {
     lines.push(

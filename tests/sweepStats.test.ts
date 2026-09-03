@@ -28,6 +28,9 @@ import {
   type SweepEmitRow,
   VOCABULARY_ROW_KEYS,
   vocabularyRow,
+  grossExpectancy,
+  grossView,
+  rExpectancyInterval95,
 } from "../scripts/sweepStats.ts";
 
 // Item 3, first commit (the map's govern-all finding): seven emit-readers
@@ -464,6 +467,11 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
       days: 365,
       generatedAt: "2026-08-10T04:00:00.000Z",
       grid: [{}],
+      // The roster REQUESTED, which the one holdout population is drawn over
+      // (R4 act 2): six forex hold one out — EURUSD, the lowest sha256 rank —
+      // while the rows stamp USDJPY, so the two populations differ here by
+      // construction and the report must exclude on the first only.
+      requestedSymbols: ["AUDUSD", "EURUSD", "GBPJPY", "GBPUSD", "USDCAD", "USDJPY", "XAUUSD"],
       stepBars: 16,
       symbols: [
         {
@@ -527,7 +535,10 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
       ["--no-install", "tsx", "scripts/account-type-report.ts", emitPath],
       { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
     );
-    assert.match(out, /corpus: 9 market-evidence rows/);
+    // 11, not 9 (R4 act 2): the held-out market's two rows and the
+    // stamped market's two baseline rows are both READ now — one labelled,
+    // one pooled — where the stamp used to drop USDJPY at the door.
+    assert.match(out, /corpus: 11 market-evidence rows/);
     assert.match(out, /data-absence rows held out of every denominator: 3/);
     // The all-marked market's line: filled 0, dataAbs 3, E "—", ±"—".
     assert.match(out, / 3\s+— ±—/);
@@ -576,12 +587,37 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
     // all-marked at filled 0 and USDJPY held out), and k is what
     // bounds the estimate, so it prints beside the term.
     assert.match(out, /clustered over 3 filled markets/);
-    // #364 round 27, finding 2: the held-out market prints as policy,
-    // with its volume stated — never as a coverage gap. Round 29,
-    // finding 2: the volume is BASELINE-only (the fixture's wide-variant
-    // holdout row must not move it) and the line states its scope.
-    assert.match(out, /holdout markets excluded: 2 rows — baseline variant/);
-    assert.match(out, /HELD OUT \(3e confirmation set\)/);
+    // R4 act 2, one holdout population: the rollup excludes the STRATIFIED
+    // market (EURUSD, 1.5 and −1) and pools the STAMPED one (USDJPY, +1 and
+    // −1). The counts coincide — three filled clusters, seven filled either
+    // way — so the rollup's expectancy is what proves which market left:
+    // (−1 −1.1 −0.9 −0.1 +0.05 +1 −1) / 7 = −0.436, where pooling EURUSD
+    // instead gave −0.364.
+    assert.match(
+      out,
+      /forex  \(\d+ markets, 7 filled, 3 dataAbs, E=-0\.436 ±\d\.\d{3} clustered over 3 filled markets THIN \(7 < 300 filled\)\)/,
+    );
+    // The header states the rule, the count, the pin state (this fixture's
+    // anchor has no tracked pin — said, not skipped) and the stamp as
+    // provenance; the held-out volume is BASELINE-only (#364 round 29,
+    // finding 2 — the wide-variant stamped row moves neither count).
+    assert.match(
+      out,
+      /\(holdout: stratified-per-class-20pct — 1 markets excluded from every class pool, labelled HELD OUT per market \(unpinned — no docs\/research\/r4\/holdout-2026-08-10\.json, computed from requestedSymbols\); stamped flag: 0 markets, provenance only; 2 rows on held-out markets — baseline variant — read and labelled, pooled nowhere; stamped rows: 2\)/,
+    );
+    // The held-out market's line prints WITH its figures and the label
+    // (#364 round 27, finding 2 kept it visible; R4 act 2 keeps its figures);
+    // the stamped market's line carries no label at all.
+    assert.match(
+      out,
+      /EURUSD\s+2\s+50%\s+50%\s+0\s+0\.250 ±1\.250 THIN HELD OUT \(stratified-per-class-20pct; excluded from the rollup\)/,
+    );
+    assert.match(out, /USDJPY\s+2\s+50%\s+50%\s+0\s+0\.000 ±1\.000 THIN$/m);
+    assert.doesNotMatch(out, /3e confirmation set/);
+    assert.match(
+      out,
+      /1 market\(s\) HELD OUT — stratified-per-class-20pct; listed above with their figures, excluded from this rollup and its clustered s\.e\./,
+    );
     // #364 round 30, finding 2: the fully-gated market prints as the
     // reader's own doing — swept, gated by the current calibration —
     // never as a coverage gap.
@@ -660,8 +696,17 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
     );
   });
 
-  it("excludes holdout markets — the report informs inclusion decisions (3e)", () => {
-    assert.match(source, /raw\.holdout === true/);
+  it("excludes the stratified held-out set from the rollups, labels its line, and counts the stamp as provenance (R4 act 2)", () => {
+    // The set is resolved from every file's manifest BEFORE the first row —
+    // the streaming door hands its manifest back only after the last.
+    assert.match(source, /resolveHeldOut\(corpusManifests\)/);
+    assert.match(source, /if \(holdout\.held\.has\(row\.symbol\)\) heldOutRows \+= 1;/);
+    // The stamp is counted on one line and never followed by a return.
+    assert.match(source, /if \(raw\.holdout === true\) stampedRows \+= 1;/);
+    assert.doesNotMatch(source, /raw\.holdout === true\) \{/);
+    assert.doesNotMatch(source, /holdoutSymbols/);
+    // Held out keeps its figures and leaves the rollup — the label, not a drop.
+    assert.match(source, /if \(isHeldOut\) \{\s*\n\s*heldOut \+= 1;\s*\n\s*\} else \{\s*\n\s*memberStats\.push\(stats\);/);
   });
 
   it("keeps no private stats arithmetic to drift", () => {
@@ -684,8 +729,16 @@ describe("sweep-analysis adopts the shared vocabulary too", () => {
     assert.match(source, /getCategoryCalibration\(/);
   });
 
-  it("excludes holdout markets from tuning tables (3e)", () => {
-    assert.match(source, /parsed\.holdout === true/);
+  it("excludes the stratified held-out set from every class table, labels it in the per-symbol table, and counts the stamp as provenance (R4 act 2)", () => {
+    assert.match(source, /resolveHeldOut\(\[assertManifest\(emitPath\)\]\)/);
+    assert.match(source, /if \(parsed\.holdout === true\) stampedRows \+= 1;/);
+    assert.doesNotMatch(source, /parsed\.holdout === true\) \{/);
+    assert.match(source, /const pooled = rows\.filter\(\(row\) => !row\.heldOut\);/);
+    // Two loops read unpooled rows: table()'s own parameter and the
+    // per-symbol table. Every class-level table reads the pool.
+    assert.equal([...source.matchAll(/for \(const row of rows\) \{/g)].length, 2);
+    assert.equal([...source.matchAll(/rows\.filter\(\(row\) => classOf/g)].length, 0);
+    assert.match(source, /holdout\.held\.has\(symbol\) \? "HELD OUT " : ""/);
   });
 });
 
@@ -1941,4 +1994,50 @@ describe("every emit reader passes the one-clock door (R0) — the population, n
       );
     });
   }
+});
+
+describe("the gross column travels with every cell (R4 act 2)", () => {
+  // Amendment 36's precondition needs the gross figure beside the net one
+  // wherever a cell is graded: a negative that vanishes when modelled
+  // spread and slippage are removed is a parameter defect, not a market.
+  // Every row since item 5 carries `grossRealizedR`, so the accumulator
+  // sums it beside `realizedR` and the interval helpers read it through a
+  // gross VIEW of the same record.
+  it("sums gross R beside net R and counts the rows that carried a gross figure", () => {
+    const stats = emptyStats();
+    addOutcome(stats, { outcome: "take_profit", realizedR: 0.3, grossRealizedR: 0.35, symbol: "EURUSD" } as never);
+    addOutcome(stats, { outcome: "stop_loss", realizedR: -1, grossRealizedR: -0.98, symbol: "EURUSD" } as never);
+    addOutcome(stats, { outcome: "unfilled", realizedR: 0, grossRealizedR: 0, symbol: "EURUSD" } as never);
+    assert.equal(stats.filled, 2);
+    assert.equal(Number(stats.rSum.toFixed(6)), -0.7);
+    assert.equal(stats.grossFilled, 2);
+    assert.equal(Number(stats.grossRSum.toFixed(6)), -0.63);
+    assert.equal(Number(stats.grossRSumSq.toFixed(6)), Number((0.35 * 0.35 + 0.98 * 0.98).toFixed(6)));
+  });
+
+  it("does not count a filled row whose gross figure is absent, and says so in the count", () => {
+    const stats = emptyStats();
+    addOutcome(stats, { outcome: "take_profit", realizedR: 0.3, symbol: "EURUSD" } as never);
+    assert.equal(stats.filled, 1);
+    assert.equal(stats.grossFilled, 0);
+    assert.equal(stats.grossRSum, 0);
+    assert.equal(grossExpectancy(stats), null);
+  });
+
+  it("reads the gross interval through the same helper as the net one", () => {
+    const stats = emptyStats();
+    for (let index = 0; index < 40; index += 1) {
+      addOutcome(stats, {
+        outcome: index % 4 === 0 ? "stop_loss" : "take_profit",
+        realizedR: index % 4 === 0 ? -1 : 0.4,
+        grossRealizedR: index % 4 === 0 ? -0.9 : 0.5,
+        symbol: "EURUSD",
+      } as never);
+    }
+    const net = rExpectancyInterval95(stats)!;
+    const gross = rExpectancyInterval95(grossView(stats))!;
+    assert.ok(gross.lower > net.lower && gross.upper > net.upper, "gross sits above net when costs are removed");
+    assert.equal(grossExpectancy(stats), 30 * 0.5 / 40 - 10 * 0.9 / 40);
+    assert.equal(grossView(stats).filled, 40);
+  });
 });

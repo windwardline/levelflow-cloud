@@ -2099,7 +2099,15 @@ function dedupeSort(bars: Bar[]): Bar[] {
   );
 }
 
-function describeOverride(override: Partial<CategoryCalibration>) {
+/**
+ * The name a grid cell carries on every row and in the manifest. The EMPTY
+ * override is "baseline" — the market's shipped configuration at sweep time
+ * (class calibration plus its per-symbol layer) — and a named cell is its
+ * `key=value` pairs in the order written. Exported (R4 act 2) so the readers
+ * that must recognise the shipped cell from a manifest's grid name it the
+ * same way the driver does, rather than keeping a private copy.
+ */
+export function describeOverride(override: Partial<CategoryCalibration>): string {
   const entries = Object.entries(override);
   return entries.length === 0
     ? "baseline"

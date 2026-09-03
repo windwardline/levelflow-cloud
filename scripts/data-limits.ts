@@ -14,6 +14,7 @@
  */
 import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
+import { describeHeldOut, resolveHeldOut } from "./sweepFolds.ts";
 import { assertManifest } from "./sweepStats.ts";
 
 function iso(ms: number | null): string {
@@ -31,6 +32,13 @@ function main(): void {
     process.exit(1);
   }
   const manifest = assertManifest(paths[0]);
+  // One holdout population (R4 act 2): the stratified set over the requested
+  // roster, verified against the anchor's tracked pin when one stands, is
+  // what every reader and the gate exclude on — labelled per market here so
+  // a per-market sweep planned off this table reads the same set. The
+  // manifest's STAMPED flag (the driver's class-blind sha256 mod 5) prints
+  // beside it as provenance; nothing excludes on it.
+  const holdout = resolveHeldOut([manifest]);
   console.log(
     `corpus ${manifest.manifestHash.slice(0, 12)} · engine ${manifest.analyzerVersion} · anchor ${manifest.anchor}`,
   );
@@ -42,10 +50,10 @@ function main(): void {
     );
   }
   console.log(
-    `\n| class | market | 15min span | first | last | bars | gap (d) | 5min span | 5min first | 1day bars |`,
+    `\n| class | market | held out | 15min span | first | last | bars | gap (d) | 5min span | 5min first | 1day bars |`,
   );
   console.log(
-    `| --- | --- | ---: | --- | --- | ---: | ---: | ---: | --- | ---: |`,
+    `| --- | --- | --- | ---: | --- | --- | ---: | ---: | ---: | --- | ---: |`,
   );
   const sorted = [...manifest.symbols].sort((a, b) => {
     const classOrder = getAssetType(a.symbol).localeCompare(
@@ -60,6 +68,8 @@ function main(): void {
     if (!primary) continue;
     console.log(
       `| ${getAssetType(entry.symbol)} | ${entry.symbol} | ${
+        holdout.held.has(entry.symbol) ? "HELD OUT" : ""
+      } | ${
         primary.spanDays.toFixed(0)
       }d | ${iso(primary.firstTime)} | ${iso(primary.lastTime)} | ${primary.count} | ${
         days(primary.largestGapMs)
@@ -68,21 +78,17 @@ function main(): void {
       } | ${daily?.count ?? "—"} |`,
     );
   }
-  const holdout = manifest.holdoutSymbols ?? [];
-  if (holdout.length > 0) {
-    // The STAMPED flag, named as such (#364 round 30, finding 3): this
-    // is the driver's class-blind 1-in-5 draw recorded in the manifest.
-    // The 4c gate (grid-totalr) ignores it and excludes its own
-    // read-time stratified set — a different set by design — and prints
-    // that count itself; a per-market sweep planned off this table must
-    // not read this list as the gate's holdout.
-    console.log(
-      `\nholdout (${holdout.length}, the manifest's STAMPED flag — the 4c ` +
-        `gate excludes its own read-time stratified set instead): ${
-          holdout.join(", ")
-        }`,
-    );
-  }
+  // The set by name (#364 round 30, finding 3 asked that the stamp never be
+  // read as the gate's holdout; R4 act 2 made the gate's set the only one).
+  console.log(`\n${describeHeldOut(holdout, { labels: true, pools: false })}`);
+  console.log(
+    `held out (${holdout.markets.length}): ${holdout.markets.join(", ") || "none"}`,
+  );
+  console.log(
+    `stamped flag (${holdout.stamped.length}, provenance only): ${
+      holdout.stamped.join(", ") || "none"
+    }`,
+  );
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
