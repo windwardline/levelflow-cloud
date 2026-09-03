@@ -1047,12 +1047,12 @@ export async function gradeCorpus(
   heldOutSet: string[];
   manifest: SweepManifest;
   /** The held-back calendar this corpus's confirm fold names (R4 act 2). */
-  calendarKey: string;
+  calendarHash: string;
   /** The recorded read, when one happened: where it was filed and what it wrote. */
   read: {
     artifactHash: string;
     artifactPath: string;
-    calendarKey: string;
+    calendarHash: string;
     corpusId: string;
     ledgerPath: string;
     readId: string;
@@ -1203,7 +1203,7 @@ export async function gradeCorpus(
   // version, a clock name, a fold SHAPE (global versus by-class over the
   // same dates) or a one-day shift are not different held-back periods; the
   // bars are the same bars. The scan below matches a prior read by OVERLAP
-  // of these windows over shared symbols, and `calendarKey` is only the
+  // of these windows over shared symbols, and `calendarHash` is only the
   // hash of the spans, for the ledger line's eye.
   const spanOf = (folds: Array<{ name: string; startMs: number; endMs: number }> | undefined) => {
     const confirm = folds?.find((fold) => fold.name === "confirm");
@@ -1235,7 +1235,7 @@ export async function gradeCorpus(
       : spanOf(manifest.folds);
     if (span) confirmSpans[symbol] = span;
   }
-  const calendarKey = sha256Hex(stableJson(confirmSpans));
+  const calendarHash = sha256Hex(stableJson(confirmSpans));
   const overlapsCalendar = (recorded: Record<string, { endMs: number; startMs: number }> | undefined): string[] =>
     recorded
       ? Object.entries(recorded)
@@ -1537,7 +1537,7 @@ export async function gradeCorpus(
           );
         }
         const entry = parsed as {
-          calendarKey?: string;
+          calendarHash?: string;
           confirmSpans?: Record<string, { endMs: number; startMs: number }>;
           corpusHash: string;
           identity?: string;
@@ -1562,7 +1562,7 @@ export async function gradeCorpus(
         const byRetiredKey = shardHashes.has(entry.corpusHash);
         const sharedDates = overlapsCalendar(entry.confirmSpans);
         const byCalendar = sharedDates.length > 0 ||
-          (entry.calendarKey === calendarKey &&
+          (entry.calendarHash === calendarHash &&
             (entry.symbolsRead ?? []).some((symbol) => requestedUnion.has(symbol)));
         if (!byIdentity && !byRetiredKey && !byShardOverlap && !byCalendar) return;
         // One read is one entry; a readId repeated across the retired
@@ -1760,7 +1760,7 @@ export async function gradeCorpus(
   let read: {
     artifactHash: string;
     artifactPath: string;
-    calendarKey: string;
+    calendarHash: string;
     corpusId: string;
     ledgerPath: string;
     readId: string;
@@ -1819,7 +1819,7 @@ export async function gradeCorpus(
       analyzerVersion: manifest.analyzerVersion,
       anchor: manifest.anchor,
       baselineVariant: baselineName,
-      calendarKey,
+      calendarHash,
       corpusId,
       emitSha256,
       foldSource: "emitted",
@@ -1857,7 +1857,7 @@ export async function gradeCorpus(
       artifactHash,
       artifactPath,
       baselineVariant: baselineName,
-      calendarKey,
+      calendarHash,
       confirmSpans,
       corpusHash: corpusId,
       emitSha256,
@@ -1873,7 +1873,7 @@ export async function gradeCorpus(
     }) + "\n";
     mkdirSync(dirname(canonicalLedgerPath), { recursive: true });
     appendFileSync(canonicalLedgerPath, entry);
-    read = { artifactHash, artifactPath, calendarKey, corpusId, ledgerPath: canonicalLedgerPath, readId };
+    read = { artifactHash, artifactPath, calendarHash, corpusId, ledgerPath: canonicalLedgerPath, readId };
     // The tracked-ledger claim was a PROMISE in a change set whose
     // repeated law is mechanism (#364 round 46, smaller): a burn left
     // uncommitted is invisible to every other checkout, which is the
@@ -1907,7 +1907,7 @@ export async function gradeCorpus(
     );
   }
   return {
-    calendarKey,
+    calendarHash,
     confirmRead,
     dataAbsentRows,
     foldNames,
@@ -2131,7 +2131,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   const {
-    calendarKey,
+    calendarHash,
     confirmRead,
     dataAbsentRows,
     foldNames,
@@ -2235,7 +2235,7 @@ async function main(): Promise<void> {
     writeResearchArtifact(outPath, {
       analyzerVersion: manifest.analyzerVersion,
       anchor: manifest.anchor,
-      calendarKey,
+      calendarHash,
       corpusNote: read
         ? `the confirm fold WAS read in this run (readId ${read.readId}); the figures above are select-fold only`
         : "confirm fold sealed — not read; every figure here is a fit/select figure",

@@ -129,7 +129,7 @@ The read writes two files: the ledger line, and the read's own artifact
 whose `artifactHash` the line records. The line now carries `baselineVariant`,
 `verdictUnit`, `includeHoldout`, `symbolFilter`, `symbolsRead`, the holdout
 rule and set, `emitSha256` per shard (the bytes, which no manifest hash binds),
-`calendarKey` and `artifactHash`. Consumers open the artifact only through
+`calendarHash` and `artifactHash`. Consumers open the artifact only through
 `readLedgeredArtifact(path, { manifestHash })`, which refuses a condemned,
 foreign, tampered or re-ruled artifact.
 
@@ -142,7 +142,7 @@ shape enters it, because none of those makes the bars different bars. The
 prior-read scan refuses a read whose windows OVERLAP a recorded read's on any
 shared symbol, with the same acknowledgement escape; a recorded read on a
 manifest without `requestedSymbols`, or carrying a symbol its request did not
-name, is refused before the fold opens. `calendarKey` is only the hash of the
+name, is refused before the fold opens. `calendarHash` is only the hash of the
 spans, for the eye. A read at any verdict unit burns the calendar: the fold
 read is the same fold.
 

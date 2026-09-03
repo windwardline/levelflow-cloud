@@ -144,7 +144,7 @@ function ledgeredArtifact(shard: { manifestHash: string; path?: string }): Ledge
     analyzerVersion: "2026.09.02.test",
     anchor: "2026-08-26",
     baselineVariant: "baseline",
-    calendarKey: "c".repeat(64),
+    calendarHash: "c".repeat(64),
     corpusId: "d".repeat(64),
     emitSha256,
     foldSource: "emitted",

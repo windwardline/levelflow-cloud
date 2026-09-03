@@ -104,7 +104,7 @@ export type LedgeredReadArtifact = {
   artifactHash: string;
   baselineVariant: string;
   /** sha256 of the held-back CALENDAR in dates only: per requested symbol, the confirm window. */
-  calendarKey: string;
+  calendarHash: string;
   corpusId: string;
   /** Emit-file sha256 keyed by the shard's manifestHash: binds the bytes, which no manifest hash does. */
   emitSha256: Record<string, string>;
@@ -220,7 +220,7 @@ export function readLedgeredArtifact(path: string, options: OpenOptions): Ledger
         `consumer may print a figure from it`,
     );
   }
-  for (const field of ["artifactHash", "calendarKey", "corpusId", "readId", "readAt", "shardHashes", "markets", "rules", "holdout", "foldSource", "verdictUnit"] as const) {
+  for (const field of ["artifactHash", "calendarHash", "corpusId", "readId", "readAt", "shardHashes", "markets", "rules", "holdout", "foldSource", "verdictUnit"] as const) {
     if (artifact[field] === undefined) {
       throw new Error(`${path}: ledgered-read artifact carries no ${field} — an unlabelled read is not evidence`);
     }

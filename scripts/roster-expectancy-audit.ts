@@ -612,7 +612,7 @@ export function ledgeredBlockOf(read: LedgeredReadArtifact, path: string) {
   }
   return {
     artifactHash: read.artifactHash,
-    calendarKey: read.calendarKey,
+    calendarHash: read.calendarHash,
     interval: `gate's t-interval, from the ledgered read ${read.readId}`,
     path,
     readAt: read.readAt,
@@ -732,7 +732,7 @@ async function main() {
   }
   console.log(
     `ledgered read ${ledgeredRead.readId} (${ledgeredRead.readAt}, calendar ` +
-      `${ledgeredRead.calendarKey.slice(0, 12)}, artifact ${ledgeredRead.artifactHash.slice(0, 12)}): ` +
+      `${ledgeredRead.calendarHash.slice(0, 12)}, artifact ${ledgeredRead.artifactHash.slice(0, 12)}): ` +
       `the shipped cell's NET confirm figure per market, verbatim`,
   );
   for (const [symbol, row] of Object.entries(ledgeredRead.shipped)) {

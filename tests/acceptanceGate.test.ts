@@ -1709,7 +1709,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       seed: 4,
     });
     assert.equal(acknowledged.confirmRead, true);
-    assert.equal(acknowledged.calendarKey, first.calendarKey);
+    assert.equal(acknowledged.calendarHash, first.calendarHash);
     assert.notEqual(acknowledged.read!.corpusId, first.read!.corpusId);
     const filed = readdirSync(ledgerDir);
     assert.equal(filed.filter((name) => name.startsWith("confirm-log-")).length, 2, filed.join(", "));
@@ -1752,7 +1752,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.equal(opened.foldSource, "emitted");
     assert.equal(Object.keys(opened.markets).length, graded.shipped.size);
     const line = JSON.parse(readFileSync(logPath, "utf8").trim()) as Record<string, unknown>;
-    for (const field of ["artifactHash", "calendarKey", "emitSha256", "holdout", "symbolsRead", "verdictUnit", "baselineVariant"]) {
+    for (const field of ["artifactHash", "calendarHash", "emitSha256", "holdout", "symbolsRead", "verdictUnit", "baselineVariant"]) {
       assert.ok(field in line, `the ledger line carries ${field}`);
     }
     assert.equal(line.artifactHash, graded.read!.artifactHash);

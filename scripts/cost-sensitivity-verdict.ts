@@ -273,7 +273,7 @@ function ledgeredBlockOf(path: string, bindings: readonly ShardBinding[], judged
   }
   return {
     artifactHash: read.artifactHash,
-    calendarKey: read.calendarKey,
+    calendarHash: read.calendarHash,
     interval: `gate's t-interval, from the ledgered read ${read.readId}`,
     notInRead,
     path,
@@ -486,7 +486,7 @@ async function main() {
   } else {
     console.log(
       `ledgered read ${ledgeredRead.readId} (${ledgeredRead.readAt}, calendar ` +
-        `${ledgeredRead.calendarKey.slice(0, 12)}, artifact ${ledgeredRead.artifactHash.slice(0, 12)}): ` +
+        `${ledgeredRead.calendarHash.slice(0, 12)}, artifact ${ledgeredRead.artifactHash.slice(0, 12)}): ` +
         `the shipped cell's GROSS confirm figure beside its NET one, verbatim`,
     );
     for (const [symbol, row] of Object.entries(ledgeredRead.shipped)) {

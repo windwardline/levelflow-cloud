@@ -36,7 +36,7 @@ function artifact(overrides: Partial<LedgeredReadArtifact> = {}): LedgeredReadAr
     analyzerVersion: "2026.09.02.test",
     anchor: "2026-08-26",
     baselineVariant: "baseline",
-    calendarKey: "c".repeat(64),
+    calendarHash: "c".repeat(64),
     corpusId: "d".repeat(64),
     emitSha256: { ["b".repeat(64)]: "e".repeat(64) },
     foldSource: "emitted",
@@ -165,7 +165,7 @@ describe("the consumer's door", () => {
   });
 
   it("refuses an artifact missing a labelling field", () => {
-    const { calendarKey: _absent, ...rest } = artifact();
-    assert.throws(() => readLedgeredArtifact(written(rest), { manifestHash: "b".repeat(64) }), /carries no calendarKey/);
+    const { calendarHash: _absent, ...rest } = artifact();
+    assert.throws(() => readLedgeredArtifact(written(rest), { manifestHash: "b".repeat(64) }), /carries no calendarHash/);
   });
 });

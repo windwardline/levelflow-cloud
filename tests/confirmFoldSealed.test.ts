@@ -425,7 +425,7 @@ function ledgeredReadFor(shardHashes: string[], emitSha256: Record<string, strin
     analyzerVersion: "2026.09.02.sealed-guard",
     anchor: ANCHOR,
     baselineVariant: BASELINE,
-    calendarKey: createHash("sha256").update("sealed-guard-calendar").digest("hex"),
+    calendarHash: createHash("sha256").update("sealed-guard-calendar").digest("hex"),
     corpusId: createHash("sha256").update("sealed-guard-corpus").digest("hex"),
     emitSha256,
     foldSource: "emitted",
