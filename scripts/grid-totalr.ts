@@ -79,6 +79,8 @@ import {
   DELTA_RULE,
   DELTA_RULE_HASH,
   deltaOutcomeOf,
+  type ClassCandidateRead,
+  type ClassPoolRead,
 } from "./ledgeredRead.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 import {
@@ -1502,9 +1504,27 @@ export async function gradeCorpus(
   let sealedRows = 0;
   const derivedParent = options.baselineVariant ?? "baseline";
   const candidateOf = (symbol: string) => frozen?.candidates.markets[symbol]?.candidate ?? null;
+  // The class grain (R4 act 3): per class per axis, one frozen candidate whose
+  // rows are opened for every pooled AND held-out member of the class, from
+  // the candidate's own arm; a derived class candidate is rebuilt for them.
+  const classWanted = new Map<string, Set<string>>();
+  const classWantedNames = new Map<string, Set<string>>();
+  for (const byAxis of Object.values(frozen?.candidates.classes ?? {})) {
+    for (const candidate of Object.values(byAxis)) {
+      if (candidate === null) continue;
+      for (const symbol of [...candidate.members, ...candidate.heldOutMembers]) {
+        classWanted.set(symbol, (classWanted.get(symbol) ?? new Set()).add(`${candidate.arm}|${candidate.variant}`));
+        classWantedNames.set(symbol, (classWantedNames.get(symbol) ?? new Set()).add(candidate.variant));
+      }
+    }
+  }
+  const derivedWantedFor = (symbol: string, name: string) => candidateOf(symbol)?.variant === name || (classWantedNames.get(symbol)?.has(name) ?? false);
   const derivedFilters: DerivedFilter[] = frozen
     ? (() => {
-      const wanted = new Set(Object.values(frozen.candidates.markets).map((market) => market.candidate?.variant).filter((name): name is string => typeof name === "string"));
+      const wanted = new Set([
+        ...Object.values(frozen.candidates.markets).map((market) => market.candidate?.variant).filter((name): name is string => typeof name === "string"),
+        ...[...classWantedNames.values()].flatMap((names) => [...names]),
+      ]);
       const rebuilt = new Map<string, DerivedFilter>();
       for (const arm of frozen.candidates.arms) {
         for (const [name, spec] of Object.entries(arm.derived ?? {})) {
@@ -1552,7 +1572,9 @@ export async function gradeCorpus(
           if (shardIndex !== 0) return;
         } else {
           const candidate = candidateOf(row.symbol);
-          if (!candidate || candidate.arm !== armOfShard[shardIndex] || candidate.variant !== emitted) return;
+          const marketMatch = candidate !== null && candidate.arm === armOfShard[shardIndex] && candidate.variant === emitted;
+          const classMatch = classWanted.get(row.symbol)?.has(`${armOfShard[shardIndex]}|${emitted}`) ?? false;
+          if (!marketMatch && !classMatch) return;
         }
       }
       // The emitted split label is the fold. Nothing here re-cuts time.
@@ -1562,7 +1584,7 @@ export async function gradeCorpus(
         emittedVariants.add(emitted);
         if (emitted === derivedParent) {
           for (const filter of derivedFilters) {
-            if (frozen && candidateOf(row.symbol)?.variant !== filter.name) continue;
+            if (frozen && !derivedWantedFor(row.symbol, filter.name)) continue;
             const passes = derivedPasses(filter, derivedFieldOf(row, filter.field));
             addRowToCube(cube, { ...row, accepted: row.accepted !== false && passes, variant: filter.name }, { includeHoldout: true });
           }
@@ -1945,6 +1967,7 @@ export async function gradeCorpus(
       cube,
       { ...options, foldNames },
     );
+  const classReads: Record<string, ClassCandidateRead[]> = {};
   if (frozen) {
     // A market's only graded variant is its own frozen candidate: every other
     // arm's candidate has no rows here and would print THIN for nothing.
@@ -1971,6 +1994,62 @@ export async function gradeCorpus(
           `${symbol}: the read's tuning-fold figures for ${market.candidate.variant} (fit ΔR ${verdict.fitTotalDelta}, select ΔR ${verdict.selectTotalDelta}) ` +
             `differ from the frozen ones (${market.candidate.fitTotalDelta}, ${market.candidate.selectTotalDelta}); the rows opened are not the rows the candidate was frozen on`,
         );
+      }
+    }
+    // The class grain: pooled members on the frozen cell (the tuning folds'
+    // own pool, identity-checked), held-out members on the same cell apart.
+    const mergeCells = (symbols: string[], variant: string, fold: string): SweepStats | null => {
+      const merged = emptyStats();
+      let any = false;
+      for (const symbol of symbols) {
+        const cell = cube.get(symbol)?.get(variant)?.get(fold);
+        if (!cell) continue;
+        any = true;
+        for (const key of Object.keys(merged) as Array<keyof SweepStats>) merged[key] += cell[key];
+      }
+      return any ? merged : null;
+    };
+    const poolOf = (members: string[], variant: string) => {
+      const v = { confirm: foldNames.confirm ? mergeCells(members, variant, foldNames.confirm) : null, fit: mergeCells(members, variant, foldNames.fit), select: mergeCells(members, variant, foldNames.select) };
+      const b = { confirm: foldNames.confirm ? mergeCells(members, derivedParent, foldNames.confirm) : null, fit: mergeCells(members, derivedParent, foldNames.fit), select: mergeCells(members, derivedParent, foldNames.select) };
+      if (v.fit === null && v.select === null && v.confirm === null) return null;
+      const fitTotalDelta = totalOf(v.fit ?? emptyStats()) - totalOf(b.fit ?? emptyStats());
+      const selectTotalDelta = totalOf(v.select ?? emptyStats()) - totalOf(b.select ?? emptyStats());
+      const delta = v.confirm && b.confirm ? rDeltaInterval95(v.confirm, b.confirm) : null;
+      const read: ClassPoolRead = {
+        confirmBaseFilled: b.confirm?.filled ?? null,
+        confirmExpectancyDelta: delta?.delta ?? null,
+        confirmExpectancyDeltaLower: delta?.lower ?? null,
+        confirmExpectancyDeltaUpper: delta?.upper ?? null,
+        confirmFilled: v.confirm?.filled ?? null,
+        confirmTotalDelta: v.confirm && b.confirm ? totalOf(v.confirm) - totalOf(b.confirm) : null,
+        deltaOutcome: deltaOutcomeOf(delta ? { lower: delta.lower, upper: delta.upper } : null, v.confirm?.filled ?? null, b.confirm?.filled ?? null),
+        members: [...members].sort(),
+      };
+      return { fitTotalDelta, read, selectTotalDelta };
+    };
+    for (const [cls, byAxis] of Object.entries(frozen.candidates.classes ?? {})) {
+      for (const [axis, candidate] of Object.entries(byAxis)) {
+        if (candidate === null) continue;
+        const pool = poolOf(candidate.members, candidate.variant);
+        if (pool === null) {
+          throw new Error(`${frozen.path} names ${candidate.variant} (arm ${candidate.arm}) for class ${cls} on the ${axis} axis, but no rows of that cell reached the gate for any pooled member; a read that reports nothing for a frozen candidate is refused`);
+        }
+        if (pool.fitTotalDelta !== candidate.fitTotalDelta || pool.selectTotalDelta !== candidate.selectTotalDelta) {
+          throw new Error(
+            `class ${cls} (${axis}): the read's pooled tuning-fold figures for ${candidate.variant} (fit ΔR ${pool.fitTotalDelta}, select ΔR ${pool.selectTotalDelta}) ` +
+              `differ from the frozen ones (${candidate.fitTotalDelta}, ${candidate.selectTotalDelta}); the rows opened are not the rows the class candidate was frozen on`,
+          );
+        }
+        const heldOutPool = candidate.heldOutMembers.length > 0 ? poolOf(candidate.heldOutMembers, candidate.variant) : null;
+        classReads[cls] = [...(classReads[cls] ?? []), {
+          arm: candidate.arm,
+          axis,
+          frozen: { fitTotalDelta: candidate.fitTotalDelta, pairedP: candidate.pairedP, selectTotalDelta: candidate.selectTotalDelta },
+          heldOutPool: heldOutPool?.read ?? null,
+          pool: pool.read,
+          variant: candidate.variant,
+        }];
       }
     }
   }
@@ -2139,7 +2218,10 @@ export async function gradeCorpus(
     }
     const artifactBody: Omit<LedgeredReadArtifact, "artifactHash"> = {
       ...(frozen
-        ? { frozen: { arms: frozen.candidates.arms.map((arm) => ({ arm: arm.arm, shardHashes: [...arm.shardHashes] })), frozenHash: frozen.candidates.frozenHash, path: relative(process.cwd(), frozen.path), ruleHash: frozen.candidates.ruleHash } }
+        ? {
+          frozen: { arms: frozen.candidates.arms.map((arm) => ({ arm: arm.arm, shardHashes: [...arm.shardHashes] })), frozenHash: frozen.candidates.frozenHash, path: relative(process.cwd(), frozen.path), ruleHash: frozen.candidates.ruleHash },
+          ...(Object.keys(classReads).length > 0 ? { classes: classReads } : {}),
+        }
         : {}),
       analyzerVersion: manifest.analyzerVersion,
       anchor: manifest.anchor,
