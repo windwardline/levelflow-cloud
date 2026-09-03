@@ -516,7 +516,11 @@ frozen candidates — under 25 MB.
    display, while the read's predicate was the raw quotient the gate derives
    from the emit (`estimatedRoundTripCost / riskDistance`). A scan of R3's
    corpus put **105 of 941,947 baseline rows** in the band where the two
-   verdicts differ at a 0.15 cap — 44 markets, 19 of them forex — so the
+   verdicts differ at a 0.15 cap — 44 markets, 19 of them forex. The scan
+   emulated `Number(x.toFixed(4))` in Python, so it was cross-checked against
+   the runtime that actually rounds: over the corpus's first 200,000 rows both
+   implementations report the same 42,499 baseline rows and the same 7
+   disagreements. So the
    knob as merged would have shipped a rule the read did not confirm. The
    engine now caps `executionQuality.costShare`, the unrounded field, at all
    three sites (live admission, live diagnostic, sweep), and a test places a
@@ -543,6 +547,7 @@ frozen candidates — under 25 MB.
    and one corpus over them, read under `--acknowledge-prior-reads` (its
    overlap with this calendar is pre-registered; the five crypto listings
    read here are already confirmed negative on their shipped cells).
-5. **Housekeeping the session could not do:** 1.9 GB of a reviewer's
-   extracted rows in the session scratchpad (`rows/`), which the permission
-   layer would not let the session delete.
+5. **Housekeeping — CLOSED 2026-09-03.** The 1.9 GB of a reviewer's
+   extracted rows (`rows/`) that the permission layer would not let the
+   session delete is gone; the whole of `/private/tmp/claude-501` measures
+   253 MB. Nothing for the owner to do.
