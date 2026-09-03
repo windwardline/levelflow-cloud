@@ -303,6 +303,20 @@ therefore not evidence at the program level; it is the list the read opens.
 The four retirements (ADAUSD, NGUSD, XTZUSD, ZSUSX) each rest on two or more
 cells and none is labelled fragile.
 
+**Arm W96 — the 96-hour window** (`review-window-96`, manifest
+`256c74eb9032`, 1,919,083 rows, 4.78 GB, exit 0 at 08:33Z; graded
+`docs/research/r4/review-window-96-grading.json` and `-class.json`). The
+same eight forex markets accept (AUDCAD, AUDCHF, AUDNZD, CADCHF, CHFJPY,
+EURNZD, NZDCAD, NZDCHF; fit ΔR over all markets +2,352R, select −282R), and
+forex accepts at the class grain with the window family's best figures — fit
++378R, select +511R, p 0.001, own expectancy +0.024R. Across the family
+forex's select ΔR rises monotonically with the window: +223R at 12 h, +377R
+at 24 h, +464R at 48 h, +511R at 96 h, against a shipped 8 hours. No other
+class earns money at 96 h; crypto's fit improves by +1,812R while its select
+worsens by −836R, the same shape as at 24 and 48 h. The 96-hour cell would
+retire the same four candidates (ADAUSD, NGUSD, XTZUSD, ZSUSX), again on the
+gross clause.
+
 ## 7. Storage and the anchor
 
 **Preflight, 2026-09-03 04:2xZ** (`docs/research/r4/preflight-survey-2026-09-03.txt`,

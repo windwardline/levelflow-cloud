@@ -1,0 +1,465 @@
+verdict unit: market — every market on its own rows, singleton groups, 30-filled floor (R4); fold source: emitted labels (no time re-cut)
+
+shipped cell per market (91; held out by the stratified rule: 20, labelled, never dropped; decline rule = 2e1521e201da)
+holdout: holdout: stratified-per-class-20pct — 20 markets labelled HELD OUT per market (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only
+accepted (market, variant) pairs: 8 · expected false families at FWER 0.05 over 91 markets ≈ 4.5 (per-market families; D4's absolute term is the cross-market brake)
+market      held  select net E [95%] n              select gross E [95%] n            decline  tranche      m3
+AAVEUSD     OUT   -0.042 [-0.070, -0.015] n=2272     -0.021 [-0.048, 0.006] n=2272      no        totality     not-read
+ADAUSD            -0.097 [-0.120, -0.074] n=3380     -0.022 [-0.044, -0.000] n=3380     CANDIDATE derived-4d   not-read
+ALGOUSD           -0.501 [-0.543, -0.459] n=1468     -0.159 [-0.201, -0.116] n=1468     CANDIDATE shipped      not-read
+ASX               -0.556 [-0.715, -0.397] n=101      -0.451 [-0.608, -0.293] n=101      CANDIDATE shipped      not-read
+ATOMUSD           -0.909 [-0.966, -0.851] n=422      -0.243 [-0.315, -0.171] n=422      CANDIDATE shipped      not-read
+AUDCAD            0.054 [0.035, 0.074] n=3657        0.075 [0.056, 0.094] n=3657        no        derived-4d   not-read
+AUDCHF      OUT   0.078 [0.059, 0.097] n=3786        0.097 [0.079, 0.116] n=3786        no        holdout-cycle not-read
+AUDJPY            0.001 [-0.020, 0.021] n=3788       0.021 [0.001, 0.041] n=3788        no        derived-4d   not-read
+AUDNZD      OUT   0.076 [0.057, 0.095] n=3555        0.101 [0.083, 0.120] n=3555        no        holdout-cycle not-read
+AUDUSD            0.015 [-0.004, 0.035] n=3805       0.032 [0.012, 0.052] n=3805        no        derived-4d   not-read
+AVAXUSD           -0.477 [-0.532, -0.423] n=884      -0.149 [-0.203, -0.096] n=884      CANDIDATE shipped      not-read
+BCHUSD            -0.235 [-0.261, -0.209] n=2778     -0.061 [-0.086, -0.037] n=2778     CANDIDATE derived-4d   not-read
+BTCUSD            -0.029 [-0.050, -0.008] n=3436     0.008 [-0.013, 0.028] n=3436       no        derived-4d   not-read
+BZUSD       OUT   0.030 [-0.055, 0.116] n=358        0.069 [-0.014, 0.153] n=358        no        totality     not-read
+CADCHF            0.064 [0.045, 0.084] n=3558        0.087 [0.068, 0.106] n=3558        no        derived-4d   not-read
+CADJPY            -0.014 [-0.035, 0.006] n=3773      0.009 [-0.011, 0.029] n=3773       no        derived-4d   not-read
+CHFJPY            0.015 [-0.005, 0.036] n=3711       0.044 [0.025, 0.064] n=3711        no        derived-4d   not-read
+CLUSD             0.036 [-0.047, 0.119] n=346        0.076 [-0.006, 0.157] n=346        no        derived-4d   not-read
+DASHUSD     OUT   -0.057 [-0.081, -0.033] n=3123     -0.033 [-0.056, -0.009] n=3123     CANDIDATE totality     not-read
+DAX               -0.029 [-0.116, 0.059] n=216       -0.004 [-0.090, 0.083] n=216       no        totality     not-read
+DOGEUSD           -0.025 [-0.050, -0.001] n=2693     0.011 [-0.012, 0.035] n=2693       no        totality     not-read
+DOTUSD            -0.702 [-0.763, -0.642] n=540      -0.166 [-0.234, -0.098] n=540      CANDIDATE shipped      not-read
+DOW               -0.122 [-0.358, 0.114] n=43        -0.088 [-0.319, 0.144] n=43        no        shipped      not-read
+DYDXUSD           -1.071 [-1.149, -0.993] n=285      -0.320 [-0.453, -0.188] n=285      CANDIDATE shipped      not-read
+EGLDUSD           -0.309 [-0.350, -0.268] n=1296     -0.081 [-0.120, -0.042] n=1296     CANDIDATE totality     not-read
+ESUSD             -0.009 [-0.071, 0.052] n=399       0.007 [-0.053, 0.068] n=399        no        derived-4d   not-read
+ETCUSD            -0.026 [-0.052, -0.001] n=2498     0.020 [-0.004, 0.044] n=2498       no        totality     not-read
+ETHUSD            -0.039 [-0.060, -0.017] n=3348     -0.009 [-0.030, 0.012] n=3348      no        derived-4d   not-read
+EURAUD            0.020 [0.001, 0.040] n=3741        0.043 [0.024, 0.062] n=3741        no        derived-4d   not-read
+EURCAD            0.048 [0.030, 0.067] n=3723        0.077 [0.058, 0.095] n=3723        no        derived-4d   not-read
+EURCHF            0.016 [-0.005, 0.036] n=3241       0.051 [0.031, 0.071] n=3241        no        derived-4d   not-read
+EURGBP            0.036 [0.015, 0.057] n=3277        0.059 [0.039, 0.079] n=3277        no        derived-4d   not-read
+EURJPY            -0.001 [-0.021, 0.020] n=3633      0.031 [0.011, 0.050] n=3633        no        derived-4d   not-read
+EURNZD            0.053 [0.033, 0.072] n=3614        0.076 [0.057, 0.094] n=3614        no        derived-4d   not-read
+EURUSD      OUT   -0.034 [-0.053, -0.014] n=3817     -0.005 [-0.024, 0.015] n=3817      no        holdout-cycle not-read
+FILUSD            -1.919 [-2.255, -1.583] n=39       -0.187 [-0.405, 0.031] n=39        no        shipped      not-read
+GBPAUD            -0.005 [-0.026, 0.016] n=3504      0.019 [-0.002, 0.040] n=3504       no        derived-4d   not-read
+GBPCAD      OUT   0.022 [0.001, 0.043] n=3411        0.046 [0.025, 0.067] n=3411        no        holdout-cycle not-read
+GBPCHF            0.031 [0.011, 0.051] n=3571        0.054 [0.034, 0.074] n=3571        no        derived-4d   not-read
+GBPJPY            0.029 [0.009, 0.049] n=3563        0.046 [0.026, 0.066] n=3563        no        derived-4d   not-read
+GBPNZD            0.046 [0.026, 0.066] n=3611        0.071 [0.052, 0.091] n=3611        no        derived-4d   not-read
+GBPUSD            0.003 [-0.017, 0.023] n=3572       0.024 [0.004, 0.044] n=3572        no        derived-4d   not-read
+GCUSD             0.026 [-0.028, 0.079] n=547        0.034 [-0.019, 0.087] n=547        no        derived-4d   not-read
+GFUSX             -0.066 [-0.257, 0.124] n=97        -0.011 [-0.203, 0.182] n=97        no        shipped      not-read
+GRTUSD            -0.032 [-0.058, -0.007] n=2514     0.001 [-0.024, 0.026] n=2514       no        totality     not-read
+HBARUSD           -0.104 [-0.158, -0.050] n=640      -0.070 [-0.123, -0.016] n=640      CANDIDATE totality     not-read
+HEUSX       OUT   -1.028 [-3.177, 1.121] n=85        -0.399 [-1.490, 0.692] n=85        no        shipped      not-read
+HGUSD             -0.012 [-0.074, 0.050] n=454       0.008 [-0.054, 0.069] n=454        no        derived-4d   not-read
+HOUSD             -0.227 [-0.316, -0.139] n=332      -0.183 [-0.271, -0.094] n=332      CANDIDATE shipped      not-read
+IMXUSD            -0.062 [-0.111, -0.014] n=1128     -0.023 [-0.070, 0.025] n=1128      no        totality     not-read
+LEUSX             0.082 [-0.182, 0.345] n=73         0.154 [-0.104, 0.413] n=73         no        shipped      not-read
+LINKUSD           -0.042 [-0.071, -0.014] n=3311     -0.019 [-0.047, 0.009] n=3311      no        totality     not-read
+LTCUSD            -0.221 [-0.248, -0.194] n=2686     -0.024 [-0.048, 0.000] n=2686      no        derived-4d   not-read
+NEARUSD           -0.643 [-0.705, -0.581] n=638      -0.141 [-0.211, -0.071] n=638      CANDIDATE shipped      not-read
+NGUSD       OUT   -0.099 [-0.162, -0.035] n=494      -0.069 [-0.132, -0.006] n=494      CANDIDATE holdout-cycle not-read
+NIKKEI            -0.168 [-0.310, -0.026] n=107      -0.137 [-0.274, 0.000] n=107       no        shipped      not-read
+NQUSD             0.015 [-0.045, 0.076] n=423        0.024 [-0.036, 0.084] n=423        no        derived-4d   not-read
+NSDQ        OUT   -0.085 [-0.174, 0.005] n=148       -0.069 [-0.158, 0.021] n=148       no        holdout-cycle not-read
+NZDCAD            0.051 [0.032, 0.070] n=3693        0.071 [0.052, 0.090] n=3693        no        derived-4d   not-read
+NZDCHF      OUT   0.081 [0.062, 0.100] n=3558        0.101 [0.082, 0.119] n=3558        no        holdout-cycle not-read
+NZDJPY      OUT   0.029 [0.009, 0.049] n=3630        0.045 [0.025, 0.065] n=3630        no        holdout-cycle not-read
+NZDUSD            0.015 [-0.005, 0.034] n=3814       0.036 [0.017, 0.056] n=3814        no        derived-4d   not-read
+PAUSD             -0.106 [-0.199, -0.013] n=382      -0.046 [-0.139, 0.047] n=382       no        totality     not-read
+PLUSD             -0.063 [-0.141, 0.014] n=483       -0.040 [-0.116, 0.037] n=483       no        shipped      not-read
+RBUSD             -0.117 [-0.256, 0.021] n=323       -0.044 [-0.181, 0.092] n=323       no        shipped      not-read
+RTYUSD      OUT   -0.014 [-0.078, 0.049] n=401       0.007 [-0.057, 0.070] n=401        no        holdout-cycle not-read
+SIUSD             0.048 [-0.008, 0.104] n=486        0.079 [0.026, 0.132] n=486         no        derived-4d   not-read
+SOLUSD            -0.053 [-0.082, -0.024] n=2202     -0.033 [-0.062, -0.004] n=2202     CANDIDATE totality     not-read
+SP                -0.063 [-0.160, 0.034] n=146       -0.034 [-0.129, 0.061] n=146       no        derived-4d   not-read
+TRXUSD            -0.501 [-0.553, -0.449] n=1000     -0.175 [-0.225, -0.124] n=1000     CANDIDATE shipped      not-read
+UNIUSD            -0.079 [-0.106, -0.053] n=2531     -0.053 [-0.079, -0.027] n=2531     CANDIDATE totality     not-read
+USDCAD            0.003 [-0.019, 0.025] n=3289       0.030 [0.009, 0.051] n=3289        no        derived-4d   not-read
+USDCHF            -0.009 [-0.030, 0.012] n=3315      0.016 [-0.005, 0.036] n=3315       no        derived-4d   not-read
+USDJPY            -0.028 [-0.050, -0.007] n=3479     0.002 [-0.019, 0.023] n=3479       no        derived-4d   not-read
+WTI               -0.202 [-0.298, -0.105] n=298      -0.188 [-0.284, -0.092] n=298      CANDIDATE derived-4d   not-read
+XAUUSD            -0.047 [-0.073, -0.022] n=2507     0.020 [-0.005, 0.044] n=2507       no        derived-4d   not-read
+XLMUSD      OUT   -0.065 [-0.094, -0.036] n=3163     -0.046 [-0.074, -0.017] n=3163     CANDIDATE totality     not-read
+XMRUSD      OUT   -0.078 [-0.103, -0.054] n=2984     -0.047 [-0.071, -0.023] n=2984     CANDIDATE totality     not-read
+XRPUSD            -0.035 [-0.058, -0.012] n=3063     -0.012 [-0.035, 0.010] n=3063      no        derived-4d   not-read
+XTZUSD            -0.704 [-0.786, -0.623] n=305      -0.098 [-0.177, -0.019] n=305      CANDIDATE shipped      not-read
+YMUSD       OUT   -0.018 [-0.081, 0.045] n=371       0.008 [-0.054, 0.071] n=371        no        holdout-cycle not-read
+ZBUSD             -0.196 [-0.261, -0.132] n=397      -0.055 [-0.114, 0.003] n=397       no        totality     not-read
+ZCUSX             -0.186 [-0.291, -0.081] n=355      -0.005 [-0.120, 0.111] n=355       no        derived-4d   not-read
+ZFUSD             -0.361 [-0.597, -0.124] n=59       -0.057 [-0.240, 0.125] n=59        no        shipped      not-read
+ZLUSX             -0.071 [-0.137, -0.004] n=385      -0.009 [-0.072, 0.053] n=385       no        derived-4d   not-read
+ZMUSD       OUT   -0.101 [-0.255, 0.052] n=392       0.019 [-0.126, 0.164] n=392        no        holdout-cycle not-read
+ZNUSD             -0.183 [-0.247, -0.120] n=382      -0.046 [-0.105, 0.013] n=382       no        totality     not-read
+ZOUSX             -0.017 [-0.129, 0.095] n=244       0.073 [-0.032, 0.179] n=244        no        totality     not-read
+ZRUSD             -0.008 [-0.180, 0.164] n=94        0.027 [-0.141, 0.195] n=94         no        shipped      not-read
+ZSUSX             -0.278 [-0.401, -0.156] n=185      -0.121 [-0.232, -0.011] n=185      CANDIDATE shipped      not-read
+ZTUSD             -0.619 [-1.139, -0.100] n=7        -0.565 [-1.108, -0.021] n=7        no        shipped      not-read
+wrote docs/research/r4/review-window-96-grading.json
+folds: fit=fit select=select confirm=confirm SEALED (not derived: no --confirm-final — nothing burned; 617276 rows withheld at the door)
+corpus 256c74eb9032 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26
+(data-absence rows held out of every fold denominator: 698 — all variants, graded folds only, accepted rows; holdout excluded by read-time stratified recomputation, not the stamped flag)
+
+=== EURUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0      8.1    0.264   503/987    0.005   -0.028   -0.048      -2.5       0.0   0.03      -5.2  fails
+
+=== GBPUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -13.7      8.7    0.377   481/926    0.002    0.005   -0.015       3.1       0.0   0.02     -10.5  fails
+
+=== USDJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -10.5    -11.8    0.788   416/916   -0.001   -0.029   -0.050       1.5       0.0   0.02      -5.2  fails
+
+=== AUDUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             27.3     30.5    0.080   480/986    0.006    0.021    0.001       0.7       0.0   0.02      -6.1  fails
+
+=== USDCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -64.0     12.9    0.425   559/920    0.003    0.006   -0.015       8.4       0.0   0.02      -5.4  fails
+
+=== USDCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -15.9     90.6    0.029   451/884    0.025    0.016   -0.005      53.6       0.0   0.02      -8.8  fails
+
+=== NZDUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             13.8     11.9    0.223   439/970    0.001    0.016   -0.004      -0.1       0.0   0.02      -5.4  fails
+
+=== NZDJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              2.2     21.9    0.118   425/931    0.003    0.032    0.011       1.2       0.0   0.02      -5.2  fails
+
+=== NZDCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             60.9     60.9    0.001   428/921    0.006    0.086    0.067       4.3       0.0   0.02      -5.1  ACCEPT — fit+select, paired p, and its OWN expectancy 0.086R positive beyond error (95% lower 0.067R)
+
+=== NZDCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             79.0     41.4    0.004   441/947    0.005    0.056    0.037      -1.5       0.0   0.02      -4.9  ACCEPT — fit+select, paired p, and its OWN expectancy 0.056R positive beyond error (95% lower 0.037R)
+
+=== GBPNZD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             73.3     19.0    0.124   419/928    0.000    0.046    0.027      -0.4       0.0   0.02      -4.8  fails
+
+=== GBPJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -68.4    -13.4    0.799   420/902   -0.006    0.023    0.003       0.6       0.0   0.02      -8.1  fails
+
+=== GBPCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             71.2     29.0    0.073   446/920    0.004    0.035    0.015      -0.1       0.0   0.02     -12.0  fails
+
+=== GBPCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             22.7     -5.1    0.616   444/883   -0.004    0.018   -0.003       0.1       0.0   0.02      -4.8  fails
+
+=== GBPAUD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             52.4      5.1    0.351   392/888    0.002   -0.003   -0.024      -1.8       0.0   0.02      -6.1  fails
+
+=== EURNZD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             24.0     30.7    0.019   404/949    0.002    0.055    0.036      -4.8       0.0   0.02      -6.1  ACCEPT — fit+select, paired p, and its OWN expectancy 0.055R positive beyond error (95% lower 0.036R)
+
+=== EURJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              6.5     11.0    0.273   446/936    0.003    0.002   -0.018       3.4       0.0   0.02      -6.2  fails
+
+=== EURGBP ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             30.2     10.7    0.213   457/860   -0.001    0.035    0.014      -2.6       0.0   0.02      -5.1  fails
+
+=== EURCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             26.7     62.2    0.381   411/834    0.014    0.029    0.010      57.4       0.0   0.02      -5.4  fails
+
+=== EURCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             25.1     17.7    0.142   477/968   -0.001    0.048    0.029      -2.0       0.0   0.02      -7.2  fails
+
+=== EURAUD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             23.8      3.0    0.470   391/953   -0.001    0.019   -0.000       2.0       0.0   0.02      -4.9  fails
+
+=== CHFJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             10.9     58.8    0.005   410/935    0.013    0.028    0.008       4.4       0.0   0.02      -5.2  ACCEPT — fit+select, paired p, and its OWN expectancy 0.028R positive beyond error (95% lower 0.008R)
+
+=== CADJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             16.5      0.5    0.558   451/963    0.001   -0.013   -0.033       2.6       0.0   0.02      -4.8  fails
+
+=== CADCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             18.1     39.8    0.001   455/926    0.003    0.067    0.048      -5.6       0.0   0.02      -4.8  ACCEPT — fit+select, paired p, and its OWN expectancy 0.067R positive beyond error (95% lower 0.048R)
+
+=== AUDNZD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             45.8     91.1    0.001   461/934    0.012    0.088    0.070      11.5       0.0   0.02      -5.0  ACCEPT — fit+select, paired p, and its OWN expectancy 0.088R positive beyond error (95% lower 0.070R)
+
+=== AUDJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             32.7      0.5    0.418   433/979    0.000    0.001   -0.019      -2.7       0.0   0.02      -4.7  fails
+
+=== AUDCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             13.5     80.2    0.001  460/1006    0.010    0.088    0.070       1.9       0.0   0.02      -4.9  ACCEPT — fit+select, paired p, and its OWN expectancy 0.088R positive beyond error (95% lower 0.070R)
+
+=== AUDCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             18.9     52.4    0.005   428/948    0.007    0.062    0.043       3.3       0.0   0.02      -5.7  ACCEPT — fit+select, paired p, and its OWN expectancy 0.062R positive beyond error (95% lower 0.043R)
+
+=== XAUUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -84.4    -21.6    0.861   449/724    0.000   -0.047   -0.072      -2.6       0.0   0.02      -5.0  fails
+
+=== BZUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             -2.9      8.4    0.351    91/146    0.010    0.041   -0.037       5.1       0.0   0.01      -4.0  fails
+
+=== CLUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -10.5    -13.5    0.701    99/144   -0.038   -0.002   -0.076      -8.8       0.0   0.02      -3.7  fails
+
+=== ESUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              3.6     15.9    0.018   107/142    0.034    0.025   -0.034      -1.6       0.0   0.01      -4.0  fails
+
+=== GCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             -4.3     11.8    0.040   102/187    0.017    0.042   -0.009       0.4       0.0   0.01      -4.0  fails
+
+=== HGUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -20.2     -4.0    0.699    83/155   -0.006   -0.019   -0.079       0.2       0.0   0.01      -4.2  fails
+
+=== NGUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -17.1      7.8    0.162   136/181    0.029   -0.069   -0.133      -1.2       0.0   0.01      -6.7  fails
+
+=== NQUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             23.2      7.1    0.223   116/148    0.010    0.025   -0.034      -1.1       0.0   0.01      -3.6  fails
+
+=== RTYUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              1.7      2.4    0.294   111/152    0.008   -0.006   -0.067      -2.0       0.0   0.01      -3.1  fails
+
+=== SIUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              7.0     -5.7    0.759    88/169   -0.016    0.032   -0.025       0.4       0.0   0.02      -4.0  fails
+
+=== YMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              6.5     -5.3    0.595    91/136   -0.009   -0.028   -0.091      -3.5       0.0   0.02      -3.0  fails
+
+=== ZBUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.2    -18.4    0.985   119/160    0.005   -0.191   -0.254      -0.4       0.0   0.02      -4.1  fails
+
+=== ZNUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             -1.5    -32.1    1.000   121/155   -0.028   -0.211   -0.274      -2.2       0.0   0.01      -4.3  fails
+
+=== SP ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              3.2     15.3    0.061    93/146    0.101    0.038   -0.142      -3.7       0.0   0.08      -2.9  fails
+
+=== NSDQ ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             12.2     -8.4    0.734    69/148   -0.041   -0.126   -0.300      -0.3       0.0   0.11      -3.8  fails
+
+=== NIKKEI ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0    -11.7    0.767     14/93   -0.084   -0.252   -0.509      -1.3       0.0   0.03      -7.1  fails
+
+=== DOW ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0      1.1    1.000      4/43    0.034   -0.088   -0.338      -2.2       0.0   0.00      -1.2  NO VERDICT — pairing 4 nonzero of 43 shared days is below the statistic's floor (5)
+
+=== DAX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0      4.8    0.119    22/200    0.023   -0.006   -0.096      -0.4       0.0   0.03      -2.3  fails
+
+=== ASX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0     -8.6    0.693     10/93   -0.038   -0.594   -0.749      -7.0       0.0   0.01      -2.6  fails
+
+=== WTI ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -30.1    -43.6    0.996   109/137   -0.007   -0.208   -0.290      -6.7       0.0   0.04      -5.8  fails
+
+=== XRPUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            308.6    -24.6    0.951  434/1012   -0.002   -0.038   -0.060       5.4       0.0   0.00      -5.2  fails
+
+=== SOLUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0    -11.5    0.884   386/756    0.006   -0.048   -0.075      11.0       0.0   0.00      -4.5  fails
+
+=== LTCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            256.9    -72.1    1.000   458/907    0.010   -0.211   -0.236      -4.9       0.0   0.00      -5.2  fails
+
+=== ETHUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            376.8      1.6    0.516  475/1017    0.005   -0.033   -0.055       3.2       0.0   0.00      -5.2  fails
+
+=== BTCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            406.2     -6.5    0.643  489/1026    0.002   -0.027   -0.047       0.6       0.0   0.00      -4.4  fails
+
+=== BCHUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -44.0   -113.1    1.000   472/929    0.000   -0.235   -0.260      -0.6       0.0   0.00      -5.4  fails
+
+=== ADAUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -26.7    -28.4    0.949  503/1028    0.005   -0.091   -0.113       0.6       0.0   0.00      -4.2  fails
+
+=== ZFUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              9.9     -8.8    0.401     10/48   -0.006   -0.367   -0.576      -9.5       0.0   0.01      -3.3  fails
+
+=== ZTUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -18.4      3.4    1.000       1/6    0.584   -0.036   -0.604       2.5       0.0   0.04      -1.1  THIN (26 filled) — refuse
+
+=== HOUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96           -109.2    -46.7    1.000    54/134   -0.073   -0.300   -0.379     -10.1       0.0   0.00      -4.2  fails
+
+=== RBUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96           -128.3      5.8    0.417    63/146    0.042   -0.075   -0.191       3.2       0.0   0.00      -4.4  fails
+
+=== PLUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.4    -12.4    0.991    48/166   -0.016   -0.080   -0.152       3.1       0.0   0.01      -6.4  fails
+
+=== PAUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             18.7     -3.1    0.641    43/152    0.004   -0.102   -0.191      -1.0       0.0   0.00      -4.2  fails
+
+=== ZCUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -43.0      1.2    0.505   134/154    0.068   -0.118   -0.232       1.8       0.0   0.03     -16.2  fails
+
+=== ZSUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -11.3     -0.6    0.535    55/120    0.072   -0.206   -0.328       0.4       0.0   0.00      -3.2  fails
+
+=== ZLUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             -7.1      9.4    0.356   111/149    0.037   -0.034   -0.093       5.3       0.0   0.02      -4.1  fails
+
+=== ZMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -29.0    -14.3    0.729   126/155   -0.001   -0.102   -0.239      -0.2       0.0   0.03     -21.2  fails
+
+=== ZOUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -12.5     -3.9    0.692    55/151   -0.014   -0.031   -0.146      -0.2       0.0   0.06      -2.7  fails
+
+=== ZRUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              6.8    -16.7    0.486     37/82   -0.110   -0.118   -0.306     -17.1       0.0   0.03      -5.7  fails
+
+=== LEUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             -2.3     -8.4    1.000      6/70   -0.109   -0.028   -0.256      -3.6       0.0   0.01      -2.9  fails
+
+=== GFUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              2.4      4.0    0.734      7/91    0.046   -0.020   -0.203       5.9       0.0   0.00      -3.2  fails
+
+=== HEUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -11.7     -4.5    0.757      8/80    0.071   -0.957   -2.859      -2.7       0.0   0.01     -91.0  fails
+
+=== AAVEUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0     25.6    0.123   376/770    0.016   -0.026   -0.052       6.4       0.0   0.00      -4.1  fails
+
+=== ALGOUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -25.0   -101.7    1.000   169/734    0.005   -0.497   -0.536     -19.3       0.0   0.00      -4.7  fails
+
+=== ATOMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             -5.0    -74.7    1.000    46/308   -0.004   -0.913   -0.966     -36.8       0.0   0.00      -4.5  fails
+
+=== AVAXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0    -80.4    1.000   117/430   -0.008   -0.486   -0.536     -18.2       0.0   0.00      -4.5  fails
+
+=== DASHUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             91.3      1.4    0.523   394/933    0.006   -0.051   -0.074       3.4       0.0   0.00      -4.3  fails
+
+=== DOGEUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             28.2     23.3    0.112   331/856    0.011   -0.015   -0.039       3.3       0.0   0.00      -4.2  fails
+
+=== DOTUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0    -71.1    1.000    65/333   -0.003   -0.705   -0.761     -28.5       0.0   0.00      -4.6  fails
+
+=== DYDXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0    -50.8    1.000    20/206    0.005   -1.066   -1.136     -30.9       0.0   0.00      -4.5  fails
+
+=== EGLDUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0    -46.7    0.994   219/479    0.013   -0.296   -0.335      -7.8       0.0   0.00      -5.4  fails
+
+=== ETCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            439.6     61.3    0.221   478/831    0.025   -0.001   -0.024      48.0       0.0   0.00      -4.3  fails
+
+=== FILUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0    -54.8    0.990      7/32    0.093   -1.826   -2.086     -39.8       0.0   0.00     -10.6  fails
+
+=== GRTUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0      8.6    0.384   381/786    0.007   -0.025   -0.050       4.1       0.0   0.00      -5.3  fails
+
+=== HBARUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0     -4.8    0.747    72/193    0.004   -0.101   -0.152       0.0       0.0   0.00      -5.0  fails
+
+=== IMXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0     21.3    0.225   302/357    0.026   -0.036   -0.089       3.8       0.0   0.00      -5.2  fails
+
+=== LINKUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.8    -33.4    0.859   710/958   -0.005   -0.047   -0.077      -0.4       0.0   0.00      -4.6  fails
+
+=== NEARUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0    -74.6    1.000    88/352   -0.003   -0.646   -0.703     -21.4       0.0   0.00      -4.5  fails
+
+=== TRXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             43.6    -99.0    1.000   125/540   -0.009   -0.510   -0.559     -34.3       0.0   0.00      -4.5  fails
+
+=== UNIUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.0    -28.5    0.979   297/802   -0.001   -0.081   -0.106      -1.3       0.0   0.00      -4.2  fails
+
+=== XLMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            147.4     -7.1    0.610   699/958    0.005   -0.060   -0.090      -0.3       0.0   0.00      -4.7  fails
+
+=== XMRUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            226.5    -40.7    0.999   377/927   -0.004   -0.082   -0.105       0.1       0.0   0.00      -4.4  fails
+
+=== XTZUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96             51.7     24.6    0.342    35/232    0.350   -0.354   -0.422      21.7       0.0   0.00      -3.5  fails

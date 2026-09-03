@@ -1,0 +1,635 @@
+anchored at 2026-08-26: 313 cache artifacts all carry the pin, so this run cannot reach the provider — the shared spend gate is not consulted
+forex folds: fit 2009-09-25..2018-03-11 · select 2018-03-11..2022-06-03 · confirm 2022-06-03..2026-08-26
+metals folds: fit 2013-07-14..2020-02-04 · select 2020-02-04..2023-05-16 · confirm 2023-05-16..2026-08-26
+futures folds: fit 2023-09-24..2025-03-11 · select 2025-03-11..2025-12-02 · confirm 2025-12-02..2026-08-26
+indices folds: fit 2020-02-24..2023-05-27 · select 2023-05-27..2025-01-09 · confirm 2025-01-09..2026-08-26
+energies folds: fit 2023-10-01..2025-03-14 · select 2025-03-14..2025-12-04 · confirm 2025-12-04..2026-08-26
+crypto folds: fit 2013-11-04..2020-03-31 · select 2020-03-31..2023-06-13 · confirm 2023-06-13..2026-08-26
+agriculture folds: fit 2023-09-25..2025-03-11 · select 2025-03-11..2025-12-02 · confirm 2025-12-02..2026-08-26
+livestock folds: fit 2023-09-25..2025-03-11 · select 2025-03-11..2025-12-02 · confirm 2025-12-02..2026-08-25
+EURUSD	density 5min 199.9/day over 6179.45d (15min 66.6/day)
+GBPUSD	density 5min 199.0/day over 6179.45d (15min 66.3/day)
+USDJPY	density 5min 198.0/day over 6176.58d (15min 65.2/day)
+AUDUSD	density 5min 200.0/day over 6179.45d (15min 66.6/day)
+USDCAD	density 5min 197.7/day over 6179.45d (15min 66.1/day)
+USDCHF	density 5min 197.1/day over 6179.45d (15min 65.7/day)
+NZDUSD	density 5min 197.3/day over 6179.45d (15min 65.7/day)
+NZDJPY	density 5min 197.8/day over 6179.45d (15min 65.9/day)
+NZDCHF	density 5min 197.6/day over 6179.45d (15min 65.8/day)
+NZDCAD	density 5min 197.9/day over 6179.45d (15min 65.9/day)
+GBPNZD	density 5min 199.5/day over 6179.45d (15min 66.5/day)
+GBPJPY	density 5min 199.6/day over 6179.45d (15min 66.5/day)
+GBPCHF	density 5min 199.3/day over 6179.45d (15min 66.4/day)
+GBPCAD	density 5min 199.8/day over 6179.45d (15min 66.6/day)
+GBPAUD	density 5min 200.0/day over 6179.45d (15min 66.6/day)
+EURNZD	density 5min 199.4/day over 6179.45d (15min 66.5/day)
+EURJPY	density 5min 200.1/day over 6179.45d (15min 66.7/day)
+EURGBP	density 5min 199.8/day over 6179.45d (15min 66.6/day)
+EURCHF	density 5min 197.3/day over 6179.45d (15min 65.8/day)
+EURCAD	density 5min 199.9/day over 6179.45d (15min 66.6/day)
+EURAUD	density 5min 199.7/day over 6179.45d (15min 66.5/day)
+CHFJPY	density 5min 199.8/day over 6179.45d (15min 66.6/day)
+CADJPY	density 5min 200.4/day over 6179.45d (15min 66.8/day)
+CADCHF	density 5min 198.5/day over 6179.45d (15min 66.2/day)
+AUDNZD	density 5min 198.7/day over 6179.45d (15min 66.2/day)
+AUDJPY	density 5min 200.4/day over 6179.45d (15min 66.8/day)
+AUDCHF	density 5min 200.7/day over 6179.45d (15min 66.9/day)
+AUDCAD	density 5min 200.7/day over 6179.45d (15min 66.9/day)
+XAUUSD	density 5min 187.6/day over 4790.54d (15min 62.8/day)
+XAGUSD	density 5min 190.9/day over 1092.29d (15min 64.0/day)
+BZUSD	density 5min 170.0/day over 1066.54d (15min 61.0/day)
+CLUSD	density 5min 188.3/day over 1059.54d (15min 63.4/day)
+ESUSD	density 5min 191.1/day over 1059.53d (15min 64.0/day)
+GCUSD	density 5min 191.2/day over 1066.53d (15min 63.9/day)
+HGUSD	density 5min 192.3/day over 1059.54d (15min 64.5/day)
+NGUSD	density 5min 186.6/day over 1059.54d (15min 63.2/day)
+NQUSD	density 5min 190.8/day over 1059.53d (15min 64.0/day)
+RTYUSD	density 5min 191.6/day over 1066.53d (15min 64.2/day)
+SIUSD	density 5min 189.9/day over 1059.53d (15min 63.6/day)
+YMUSD	density 5min 190.7/day over 1066.53d (15min 63.9/day)
+ZBUSD	density 5min 188.6/day over 1059.53d (15min 63.8/day)
+ZNUSD	density 5min 190.9/day over 1059.53d (15min 64.1/day)
+SP	density 5min 53.5/day over 2374.23d (15min 17.8/day)
+NSDQ	density 5min 52.9/day over 2202.27d (15min 17.6/day)
+NIKKEI	density 5min 43.6/day over 1059.27d (15min 14.9/day)
+DOW	density 5min 53.1/day over 1058.27d (15min 17.7/day)
+DAX	density 5min 71.1/day over 1059.16d (15min 23.5/day)
+ASX	density 5min 50.5/day over 1059.28d (15min 16.6/day)
+WTI	density 5min 188.3/day over 1059.54d (15min 63.4/day)
+XRPUSD	density 5min 279.0/day over 3521.96d (15min 93.7/day)
+SOLUSD	density 5min 285.6/day over 2008.05d (15min 96.0/day)
+LTCUSD	density 5min 216.6/day over 4677.68d (15min 73.9/day)
+ETHUSD	density 5min 263.4/day over 4036.87d (15min 90.2/day)
+BTCUSD	density 5min 236.0/day over 4678.45d (15min 82.2/day)
+BNBUSD	density 5min 285.1/day over 1059.18d (15min 95.1/day)
+BCHUSD	density 5min 286.0/day over 3186.83d (15min 95.4/day)
+ADAUSD	density 5min 264.3/day over 3102.68d (15min 91.6/day)
+ZFUSD	density 5min 190.5/day over 1059.53d (15min 64.3/day)
+ZTUSD	density 5min 186.7/day over 1059.53d (15min 63.6/day)
+HOUSD	density 5min 162.7/day over 1059.54d (15min 59.2/day)
+RBUSD	density 5min 155.8/day over 1066.53d (15min 57.9/day)
+PLUSD	density 5min 191.5/day over 1059.54d (15min 64.3/day)
+PAUSD	density 5min 166.3/day over 1059.54d (15min 62.1/day)
+ZCUSX	density 5min 138.8/day over 1066.45d (15min 48.3/day)
+ZSUSX	density 5min 141.9/day over 1059.45d (15min 48.4/day)
+ZLUSX	density 5min 140.1/day over 1066.45d (15min 47.7/day)
+ZMUSD	density 5min 139.9/day over 1059.45d (15min 48.6/day)
+ZOUSX	density 5min 40.1/day over 1066.4d (15min 22.5/day)
+ZRUSD	density 5min 38.4/day over 1066.08d (15min 16.2/day)
+LEUSX	density 5min 37.9/day over 1065.19d (15min 13.0/day)
+GFUSX	density 5min 37.4/day over 1058.19d (15min 13.0/day)
+HEUSX	density 5min 37.7/day over 1058.19d (15min 13.0/day)
+AAVEUSD	density 5min 280.4/day over 2119.01d (15min 93.7/day)
+ALGOUSD	density 5min 272.6/day over 2567.79d (15min 93.9/day)
+ARWUSD	density 5min 284.4/day over 1060d (15min 95.1/day)
+ATOMUSD	density 5min 285.0/day over 2415.69d (15min 95.2/day)
+AVAXUSD	density 5min 285.2/day over 1750.45d (15min 95.1/day)
+CAKEUSD	density 5min 282.6/day over 1058.96d (15min 94.8/day)
+DASHUSD	density 5min 269.2/day over 3422.73d (15min 94.6/day)
+DOGEUSD	density 5min 272.0/day over 3372.62d (15min 94.1/day)
+DOTUSD	density 5min 279.4/day over 2198.58d (15min 94.3/day)
+DYDXUSD	density 5min 150.2/day over 1806.81d (15min 69.1/day)
+EGLDUSD	density 5min 256.5/day over 1749.45d (15min 94.5/day)
+ETCUSD	density 5min 271.3/day over 3682.1d (15min 93.1/day)
+FILUSD	density 5min 280.4/day over 2140.68d (15min 94.7/day)
+GRTUSD	density 5min 284.8/day over 2077.71d (15min 95.2/day)
+HBARUSD	density 5min 281.6/day over 1412.78d (15min 93.9/day)
+IMXUSD	density 5min 273.7/day over 1635.45d (15min 92.4/day)
+LINKUSD	density 5min 284.6/day over 2616.77d (15min 94.9/day)
+NEARUSD	density 5min 281.1/day over 1696.45d (15min 94.3/day)
+THETAUSD	density 5min 265.1/day over 1061.34d (15min 94.2/day)
+TRUMPUSD	density 5min 284.5/day over 584.1d (15min 94.9/day)
+TRXUSD	density 5min 271.6/day over 3244.84d (15min 93.8/day)
+UNIUSD	density 5min 283.4/day over 2168.66d (15min 94.6/day)
+XLMUSD	density 5min 280.1/day over 3112.47d (15min 94.9/day)
+XMRUSD	density 5min 275.1/day over 3524.41d (15min 94.7/day)
+XTZUSD	density 5min 281.5/day over 3340.99d (15min 95.2/day)
+# capture-all — acceptance gates untallied; starvation-audit refuses this table
+symbol    variant                split    decisions  sessionBlk  newsBlk  notWarm  regimeBlk  noConsensus  planRejected  unresolv  belowConf  belowPayoff  setups  unfilled  dataAbsent  tp1HitRate  stopRate  expectancyR
+EURUSD    baseline               fit      12821      134         130      0        0          1617         164           0         0          0            9595    1349      8           65%         26%       -0.031     
+EURUSD    baseline               select   6314       50          102      0        0          874          95            0         0          0            4482    665       0           66%         25%       -0.034     
+EURUSD    baseline               confirm  6511       62          164      0        0          876          125           0         0          0            4521    sealed    0           sealed      sealed    sealed     
+EURUSD    defaultReviewHours=96  fit      12821      134         130      0        0          1617         4             0         0          0            9746    659       7           68%         29%       -0.029     
+EURUSD    defaultReviewHours=96  select   6314       50          102      0        0          874          0             0         0          0            4562    329       0           69%         28%       -0.028     
+EURUSD    defaultReviewHours=96  confirm  6511       62          164      0        0          876          6             0         0          0            4631    sealed    0           sealed      sealed    sealed     
+GBPUSD    baseline               fit      12801      117         94       0        0          1672         151           0         0          0            9365    1305      6           65%         26%       -0.031     
+GBPUSD    baseline               select   6269       36          83       0        0          871          104           0         0          0            4223    650       1           68%         23%       0.003      
+GBPUSD    baseline               confirm  6474       52          130      0        0          872          116           0         0          0            4615    sealed    0           sealed      sealed    sealed     
+GBPUSD    defaultReviewHours=96  fit      12801      117         94       0        0          1672         1             0         0          0            9494    596       5           69%         29%       -0.029     
+GBPUSD    defaultReviewHours=96  select   6269       36          83       0        0          871          1             0         0          0            4300    303       0           71%         26%       0.005      
+GBPUSD    defaultReviewHours=96  confirm  6474       52          130      0        0          872          6             0         0          0            4721    sealed    0           sealed      sealed    sealed     
+USDJPY    baseline               fit      12695      100         78       0        0          1686         182           0         0          0            9401    1348      7           66%         26%       -0.027     
+USDJPY    baseline               select   5935       63          87       0        0          894          89            0         0          0            4032    552       1           66%         25%       -0.028     
+USDJPY    baseline               confirm  6466       49          128      0        0          731          94            0         0          0            4587    sealed    35          sealed      sealed    sealed     
+USDJPY    defaultReviewHours=96  fit      12695      100         78       0        0          1686         6             0         0          0            9556    643       5           68%         29%       -0.025     
+USDJPY    defaultReviewHours=96  select   5935       63          87       0        0          894          1             0         0          0            4100    286       0           69%         28%       -0.029     
+USDJPY    defaultReviewHours=96  confirm  6466       49          128      0        0          731          2             0         0          0            4660    sealed    17          sealed      sealed    sealed     
+AUDUSD    baseline               fit      12802      83          81       0        0          1645         99            0         0          0            9686    1285      6           66%         27%       -0.023     
+AUDUSD    baseline               select   6385       59          80       0        0          855          90            0         0          0            4485    678       2           68%         23%       0.015      
+AUDUSD    baseline               confirm  6473       60          157      0        0          937          107           0         0          0            4540    sealed    0           sealed      sealed    sealed     
+AUDUSD    defaultReviewHours=96  fit      12802      83          81       0        0          1645         0             0         0          0            9772    639       5           68%         29%       -0.018     
+AUDUSD    defaultReviewHours=96  select   6385       59          80       0        0          855          1             0         0          0            4560    326       0           72%         26%       0.021      
+AUDUSD    defaultReviewHours=96  confirm  6473       60          157      0        0          937          6             0         0          0            4629    sealed    0           sealed      sealed    sealed     
+USDCAD    baseline               fit      12661      94          78       59       0          1661         1025          0         0          0            8414    1143      6           65%         28%       -0.052     
+USDCAD    baseline               select   6192       48          70       0        0          852          590           0         0          0            3855    519       47          70%         24%       0.003      
+USDCAD    baseline               confirm  6420       63          129      0        0          909          791           0         0          0            3939    sealed    1           sealed      sealed    sealed     
+USDCAD    defaultReviewHours=96  fit      12661      94          78       59       0          1661         5             0         0          0            9298    551       3           67%         30%       -0.051     
+USDCAD    defaultReviewHours=96  select   6192       48          70       0        0          852          2             0         0          0            4350    264       37          72%         27%       0.006      
+USDCAD    defaultReviewHours=96  confirm  6420       63          129      0        0          909          39            0         0          0            4609    sealed    0           sealed      sealed    sealed     
+USDCHF    baseline               fit      12795      140         95       0        0          1690         156           0         0          0            9216    1306      8           65%         25%       -0.021     
+USDCHF    baseline               select   6015       44          51       0        0          848          423           0         0          0            3858    541       2           68%         24%       -0.009     
+USDCHF    baseline               confirm  6495       67          105      0        0          847          137           0         0          0            4762    sealed    1           sealed      sealed    sealed     
+USDCHF    defaultReviewHours=96  fit      12795      140         95       0        0          1690         3             0         0          0            9354    629       7           69%         29%       -0.021     
+USDCHF    defaultReviewHours=96  select   6015       44          51       0        0          848          44            0         0          0            4189    298       0           72%         25%       0.016      
+USDCHF    defaultReviewHours=96  confirm  6495       67          105      0        0          847          2             0         0          0            4878    sealed    0           sealed      sealed    sealed     
+NZDUSD    baseline               fit      12815      101         72       0        0          1733         109           0         0          0            9272    1222      5           66%         27%       -0.013     
+NZDUSD    baseline               select   6051       40          80       0        0          810          85            0         0          0            4446    627       5           69%         24%       0.015      
+NZDUSD    baseline               confirm  6446       57          87       0        0          943          141           0         0          0            4558    sealed    1           sealed      sealed    sealed     
+NZDUSD    defaultReviewHours=96  fit      12815      101         72       0        0          1733         0             0         0          0            9368    583       4           69%         29%       -0.011     
+NZDUSD    defaultReviewHours=96  select   6051       40          80       0        0          810          0             0         0          0            4518    320       0           72%         26%       0.016      
+NZDUSD    defaultReviewHours=96  confirm  6446       57          87       0        0          943          5             0         0          0            4687    sealed    0           sealed      sealed    sealed     
+NZDJPY    baseline               fit      12826      125         32       0        0          1800         146           0         0          0            9152    1183      13          69%         24%       0.019      
+NZDJPY    baseline               select   6091       53          28       0        0          836          100           0         0          0            4224    593       1           70%         23%       0.029      
+NZDJPY    baseline               confirm  6457       59          29       0        0          987          157           0         0          0            4248    sealed    1           sealed      sealed    sealed     
+NZDJPY    defaultReviewHours=96  fit      12826      125         32       0        0          1800         3             0         0          0            9266    599       7           71%         27%       0.018      
+NZDJPY    defaultReviewHours=96  select   6091       53          28       0        0          836          0             0         0          0            4305    312       1           72%         25%       0.032      
+NZDJPY    defaultReviewHours=96  confirm  6457       59          29       0        0          987          0             0         0          0            4372    sealed    0           sealed      sealed    sealed     
+NZDCHF    baseline               fit      12826      146         16       0        0          1904         134           0         0          0            8644    1081      12          69%         24%       0.017      
+NZDCHF    baseline               select   6086       53          7        0        0          900          196           0         0          0            4164    605       1           74%         19%       0.081      
+NZDCHF    baseline               confirm  6440       57          11       0        0          929          289           0         0          0            4500    sealed    1           sealed      sealed    sealed     
+NZDCHF    defaultReviewHours=96  fit      12826      146         16       0        0          1904         4             0         0          0            8746    545       11          72%         26%       0.023      
+NZDCHF    defaultReviewHours=96  select   6086       53          7        0        0          900          1             0         0          0            4326    302       0           77%         21%       0.086      
+NZDCHF    defaultReviewHours=96  confirm  6440       57          11       0        0          929          3             0         0          0            4772    sealed    0           sealed      sealed    sealed     
+NZDCAD    baseline               fit      12822      102         39       0        0          1797         140           0         0          0            8884    1164      10          71%         23%       0.033      
+NZDCAD    baseline               select   6079       67          31       0        0          844          120           0         0          0            4283    589       1           72%         21%       0.051      
+NZDCAD    baseline               confirm  6485       42          26       0        0          1052         165           0         0          0            4278    sealed    0           sealed      sealed    sealed     
+NZDCAD    defaultReviewHours=96  fit      12822      102         39       0        0          1797         0             0         0          0            9006    579       7           73%         25%       0.039      
+NZDCAD    defaultReviewHours=96  select   6079       67          31       0        0          844          0             0         0          0            4385    288       0           75%         23%       0.056      
+NZDCAD    defaultReviewHours=96  confirm  6485       42          26       0        0          1052         5             0         0          0            4424    sealed    0           sealed      sealed    sealed     
+GBPNZD    baseline               fit      12800      101         49       0        0          1686         146           0         0          0            9338    1171      9           70%         24%       0.030      
+GBPNZD    baseline               select   6322       47          40       0        0          915          104           0         0          0            4153    542       0           72%         22%       0.046      
+GBPNZD    baseline               confirm  6474       68          50       0        0          1027         141           0         0          0            4255    sealed    0           sealed      sealed    sealed     
+GBPNZD    defaultReviewHours=96  fit      12800      101         49       0        0          1686         2             0         0          0            9468    581       7           72%         26%       0.036      
+GBPNZD    defaultReviewHours=96  select   6322       47          40       0        0          915          1             0         0          0            4238    245       0           74%         24%       0.046      
+GBPNZD    defaultReviewHours=96  confirm  6474       68          50       0        0          1027         2             0         0          0            4377    sealed    0           sealed      sealed    sealed     
+GBPJPY    baseline               fit      12803      97          47       0        0          1798         181           0         0          0            9189    1194      1           68%         24%       0.013      
+GBPJPY    baseline               select   6334       60          54       0        0          912          105           0         0          0            4128    562       3           69%         23%       0.029      
+GBPJPY    baseline               confirm  6484       49          82       0        0          876          110           0         0          0            4384    sealed    0           sealed      sealed    sealed     
+GBPJPY    defaultReviewHours=96  fit      12803      97          47       0        0          1798         1             0         0          0            9343    580       1           70%         27%       0.004      
+GBPJPY    defaultReviewHours=96  select   6334       60          54       0        0          912          1             0         0          0            4218    277       1           72%         25%       0.023      
+GBPJPY    defaultReviewHours=96  confirm  6484       49          82       0        0          876          2             0         0          0            4470    sealed    0           sealed      sealed    sealed     
+GBPCHF    baseline               fit      12820      113         34       0        0          1783         187           0         0          0            8951    1186      4           68%         23%       0.011      
+GBPCHF    baseline               select   6314       44          36       0        0          912          116           0         0          0            4157    585       1           70%         22%       0.031      
+GBPCHF    baseline               confirm  6438       51          41       0        0          988          157           0         0          0            4488    sealed    0           sealed      sealed    sealed     
+GBPCHF    defaultReviewHours=96  fit      12820      113         34       0        0          1783         5             0         0          0            9101    529       3           72%         26%       0.018      
+GBPCHF    defaultReviewHours=96  select   6314       44          36       0        0          912          1             0         0          0            4260    286       1           74%         24%       0.035      
+GBPCHF    defaultReviewHours=96  confirm  6438       51          41       0        0          988          5             0         0          0            4618    sealed    0           sealed      sealed    sealed     
+GBPCAD    baseline               fit      12845      110         41       0        0          1735         173           0         0          0            9144    1265      7           68%         23%       0.015      
+GBPCAD    baseline               select   6333       60          47       0        0          955          147           0         0          0            3969    558       0           69%         23%       0.022      
+GBPCAD    baseline               confirm  6461       53          67       0        0          916          182           0         0          0            4171    sealed    2           sealed      sealed    sealed     
+GBPCAD    defaultReviewHours=96  fit      12845      110         41       0        0          1735         1             0         0          0            9291    527       4           72%         26%       0.016      
+GBPCAD    defaultReviewHours=96  select   6333       60          47       0        0          955          0             0         0          0            4097    234       0           72%         26%       0.018      
+GBPCAD    defaultReviewHours=96  confirm  6461       53          67       0        0          916          7             0         0          0            4327    sealed    0           sealed      sealed    sealed     
+GBPAUD    baseline               fit      12848      104         56       0        0          1688         117           0         0          0            9472    1273      6           68%         25%       0.001      
+GBPAUD    baseline               select   6325       61          52       0        0          874          97            0         0          0            4055    551       0           68%         25%       -0.005     
+GBPAUD    baseline               confirm  6486       33          71       0        0          979          167           0         0          0            4441    sealed    1           sealed      sealed    sealed     
+GBPAUD    defaultReviewHours=96  fit      12848      104         56       0        0          1688         1             0         0          0            9561    642       4           71%         27%       0.007      
+GBPAUD    defaultReviewHours=96  select   6325       61          52       0        0          874          0             0         0          0            4131    279       0           70%         27%       -0.003     
+GBPAUD    defaultReviewHours=96  confirm  6486       33          71       0        0          979          10            0         0          0            4580    sealed    0           sealed      sealed    sealed     
+EURNZD    baseline               fit      12878      115         85       0        0          1757         154           0         0          0            9283    1224      8           70%         23%       0.025      
+EURNZD    baseline               select   6258       46          54       0        0          909          119           0         0          0            4215    600       1           73%         21%       0.053      
+EURNZD    baseline               confirm  6452       62          69       0        0          972          144           0         0          0            4613    sealed    1           sealed      sealed    sealed     
+EURNZD    defaultReviewHours=96  fit      12878      115         85       0        0          1757         0             0         0          0            9429    624       6           72%         26%       0.025      
+EURNZD    defaultReviewHours=96  select   6258       46          54       0        0          909          0             0         0          0            4316    298       0           75%         23%       0.055      
+EURNZD    defaultReviewHours=96  confirm  6452       62          69       0        0          972          0             0         0          0            4747    sealed    0           sealed      sealed    sealed     
+EURJPY    baseline               fit      12860      99          97       0        0          1711         167           0         0          0            9328    1321      7           66%         26%       -0.010     
+EURJPY    baseline               select   6313       59          73       0        0          865          131           0         0          0            4263    627       3           69%         24%       -0.001     
+EURJPY    baseline               confirm  6498       57          102      0        0          846          121           0         0          0            4496    sealed    0           sealed      sealed    sealed     
+EURJPY    defaultReviewHours=96  fit      12860      99          97       0        0          1711         2             0         0          0            9478    676       6           69%         28%       -0.009     
+EURJPY    defaultReviewHours=96  select   6313       59          73       0        0          865          1             0         0          0            4375    300       0           72%         26%       0.002      
+EURJPY    defaultReviewHours=96  confirm  6498       57          102      0        0          846          3             0         0          0            4596    sealed    0           sealed      sealed    sealed     
+EURGBP    baseline               fit      12839      87          79       0        0          1797         171           0         0          0            9105    1235      4           66%         24%       -0.008     
+EURGBP    baseline               select   6323       75          84       0        0          924          153           0         0          0            3830    553       0           70%         21%       0.036      
+EURGBP    baseline               confirm  6473       55          111      0        0          1032         218           0         0          0            4250    sealed    0           sealed      sealed    sealed     
+EURGBP    defaultReviewHours=96  fit      12839      87          79       0        0          1797         2             0         0          0            9258    556       3           70%         27%       -0.003     
+EURGBP    defaultReviewHours=96  select   6323       75          84       0        0          924          0             0         0          0            3958    249       0           73%         24%       0.035      
+EURGBP    defaultReviewHours=96  confirm  6473       55          111      0        0          1032         10            0         0          0            4428    sealed    0           sealed      sealed    sealed     
+EURCHF    baseline               fit      12800      111         78       0        0          1795         614           0         0          0            8633    1123      9           67%         24%       -0.039     
+EURCHF    baseline               select   6102       38          44       0        0          808          503           0         0          0            3750    506       3           71%         22%       0.015      
+EURCHF    baseline               confirm  6433       66          69       0        0          1007         176           0         0          0            4129    sealed    0           sealed      sealed    sealed     
+EURCHF    defaultReviewHours=96  fit      12800      111         78       0        0          1795         383           0         0          0            8832    536       9           71%         27%       -0.032     
+EURCHF    defaultReviewHours=96  select   6102       38          44       0        0          808          111           0         0          0            4087    255       0           75%         23%       0.029      
+EURCHF    defaultReviewHours=96  confirm  6433       66          69       0        0          1007         1             0         0          0            4276    sealed    0           sealed      sealed    sealed     
+EURCAD    baseline               fit      12841      96          107      0        0          1654         201           0         0          0            9174    1278      5           69%         22%       0.025      
+EURCAD    baseline               select   6316       51          65       0        0          868          125           0         0          0            4333    608       2           72%         20%       0.049      
+EURCAD    baseline               confirm  6503       34          85       0        0          930          163           0         0          0            4458    sealed    0           sealed      sealed    sealed     
+EURCAD    defaultReviewHours=96  fit      12841      96          107      0        0          1654         1             0         0          0            9361    617       4           72%         26%       0.026      
+EURCAD    defaultReviewHours=96  select   6316       51          65       0        0          868          0             0         0          0            4437    282       0           75%         23%       0.048      
+EURCAD    defaultReviewHours=96  confirm  6503       34          85       0        0          930          5             0         0          0            4601    sealed    0           sealed      sealed    sealed     
+EURAUD    baseline               fit      12803      104         85       0        0          1735         125           0         0          0            9259    1294      6           69%         24%       0.017      
+EURAUD    baseline               select   6327       39          61       0        0          849          99            0         0          0            4334    592       1           71%         23%       0.021      
+EURAUD    baseline               confirm  6482       46          84       0        0          991          132           0         0          0            4675    sealed    0           sealed      sealed    sealed     
+EURAUD    defaultReviewHours=96  fit      12803      104         85       0        0          1735         2             0         0          0            9364    684       6           72%         26%       0.019      
+EURAUD    defaultReviewHours=96  select   6327       39          61       0        0          849          0             0         0          0            4418    304       0           73%         25%       0.019      
+EURAUD    defaultReviewHours=96  confirm  6482       46          84       0        0          991          2             0         0          0            4791    sealed    0           sealed      sealed    sealed     
+CHFJPY    baseline               fit      12785      116         24       0        0          1704         138           0         0          0            9315    1228      7           68%         25%       0.006      
+CHFJPY    baseline               select   6349       61          21       0        0          955          133           0         0          0            4271    557       3           70%         23%       0.015      
+CHFJPY    baseline               confirm  6497       39          45       0        0          796          253           0         0          0            4535    sealed    1           sealed      sealed    sealed     
+CHFJPY    defaultReviewHours=96  fit      12785      116         24       0        0          1704         1             0         0          0            9436    607       3           71%         27%       0.006      
+CHFJPY    defaultReviewHours=96  select   6349       61          21       0        0          955          1             0         0          0            4381    272       2           73%         25%       0.028      
+CHFJPY    defaultReviewHours=96  confirm  6497       39          45       0        0          796          4             0         0          0            4760    sealed    0           sealed      sealed    sealed     
+CADJPY    baseline               fit      12849      122         49       0        0          1691         160           0         0          0            9338    1298      8           67%         25%       0.003      
+CADJPY    baseline               select   6412       36          54       0        0          955          95            0         0          0            4388    613       2           67%         25%       -0.014     
+CADJPY    baseline               confirm  6448       53          61       0        0          912          140           0         0          0            4386    sealed    2           sealed      sealed    sealed     
+CADJPY    defaultReviewHours=96  fit      12849      122         49       0        0          1691         0             0         0          0            9473    620       6           70%         27%       0.004      
+CADJPY    defaultReviewHours=96  select   6412       36          54       0        0          955          0             0         0          0            4466    309       0           70%         28%       -0.013     
+CADJPY    defaultReviewHours=96  confirm  6448       53          61       0        0          912          2             0         0          0            4508    sealed    0           sealed      sealed    sealed     
+CADCHF    baseline               fit      12826      105         32       0        0          1749         185           0         0          0            9198    1202      9           68%         23%       0.012      
+CADCHF    baseline               select   6180       57          24       0        0          944          144           0         0          0            4137    579       0           73%         20%       0.064      
+CADCHF    baseline               confirm  6467       56          32       0        0          967          249           0         0          0            4309    sealed    1           sealed      sealed    sealed     
+CADCHF    defaultReviewHours=96  fit      12826      105         32       0        0          1749         3             0         0          0            9361    554       7           71%         26%       0.013      
+CADCHF    defaultReviewHours=96  select   6180       57          24       0        0          944          0             0         0          0            4262    252       0           76%         22%       0.067      
+CADCHF    defaultReviewHours=96  confirm  6467       56          32       0        0          967          0             0         0          0            4540    sealed    0           sealed      sealed    sealed     
+AUDNZD    baseline               fit      12807      123         30       0        0          1785         180           0         0          0            8888    1032      5           72%         21%       0.054      
+AUDNZD    baseline               select   6216       58          27       0        0          923          352           0         0          0            4099    542       2           75%         19%       0.076      
+AUDNZD    baseline               confirm  6471       59          37       0        0          976          639           0         0          0            4147    sealed    0           sealed      sealed    sealed     
+AUDNZD    defaultReviewHours=96  fit      12807      123         30       0        0          1785         13            0         0          0            9038    521       4           75%         23%       0.055      
+AUDNZD    defaultReviewHours=96  select   6216       58          27       0        0          923          1             0         0          0            4397    280       0           77%         20%       0.088      
+AUDNZD    defaultReviewHours=96  confirm  6471       59          37       0        0          976          28            0         0          0            4708    sealed    0           sealed      sealed    sealed     
+AUDJPY    baseline               fit      12881      98          41       0        0          1819         147           0         0          0            9182    1291      3           68%         24%       0.014      
+AUDJPY    baseline               select   6399       55          41       0        0          882          95            0         0          0            4416    625       3           67%         24%       0.001      
+AUDJPY    baseline               confirm  6432       69          64       0        0          878          121           0         0          0            4526    sealed    0           sealed      sealed    sealed     
+AUDJPY    defaultReviewHours=96  fit      12881      98          41       0        0          1819         2             0         0          0            9298    633       2           71%         27%       0.017      
+AUDJPY    defaultReviewHours=96  select   6399       55          41       0        0          882          1             0         0          0            4502    341       1           70%         27%       0.001      
+AUDJPY    defaultReviewHours=96  confirm  6432       69          64       0        0          878          2             0         0          0            4623    sealed    0           sealed      sealed    sealed     
+AUDCHF    baseline               fit      12862      116         26       0        0          1777         107           0         0          0            9023    1220      8           68%         25%       0.007      
+AUDCHF    baseline               select   6409       59          32       0        0          940          234           0         0          0            4432    645       1           74%         20%       0.078      
+AUDCHF    baseline               confirm  6483       51          36       0        0          1004         287           0         0          0            4288    sealed    0           sealed      sealed    sealed     
+AUDCHF    defaultReviewHours=96  fit      12862      116         26       0        0          1777         3             0         0          0            9109    602       6           71%         27%       0.008      
+AUDCHF    defaultReviewHours=96  select   6409       59          32       0        0          940          0             0         0          0            4633    352       1           77%         21%       0.088      
+AUDCHF    defaultReviewHours=96  confirm  6483       51          36       0        0          1004         6             0         0          0            4545    sealed    0           sealed      sealed    sealed     
+AUDCAD    baseline               fit      12831      124         46       0        0          1870         112           0         0          0            8819    1083      11          70%         24%       0.018      
+AUDCAD    baseline               select   6408       64          47       0        0          884          130           0         0          0            4260    603       0           73%         21%       0.054      
+AUDCAD    baseline               confirm  6506       45          59       0        0          1035         193           0         0          0            4298    sealed    0           sealed      sealed    sealed     
+AUDCAD    defaultReviewHours=96  fit      12831      124         46       0        0          1870         0             0         0          0            8917    531       6           72%         26%       0.019      
+AUDCAD    defaultReviewHours=96  select   6408       64          47       0        0          884          0             0         0          0            4365    288       0           76%         22%       0.061      
+AUDCAD    defaultReviewHours=96  confirm  6506       45          59       0        0          1035         9             0         0          0            4469    sealed    0           sealed      sealed    sealed     
+XAUUSD    baseline               fit      9339       16          73       0        0          1286         303           0         0          0            6972    1466      9           58%         31%       -0.091     
+XAUUSD    baseline               select   4614       63          58       0        0          625          186           0         0          0            3159    650       2           61%         28%       -0.047     
+XAUUSD    baseline               confirm  4772       24          64       0        0          549          158           0         0          0            3560    sealed    3           sealed      sealed    sealed     
+XAUUSD    defaultReviewHours=96  fit      9339       16          73       0        0          1286         2             0         0          0            7251    719       6           63%         35%       -0.090     
+XAUUSD    defaultReviewHours=96  select   4614       63          58       0        0          625          3             0         0          0            3321    325       1           65%         32%       -0.047     
+XAUUSD    defaultReviewHours=96  confirm  4772       24          64       0        0          549          3             0         0          0            3707    sealed    2           sealed      sealed    sealed     
+XAGUSD    baseline               confirm  4335       26          69       0        0          557          140           0         0          0            3060    sealed    2           sealed      sealed    sealed     
+XAGUSD    defaultReviewHours=96  confirm  4335       26          69       0        0          557          3             0         0          0            3187    sealed    2           sealed      sealed    sealed     
+BZUSD     baseline               fit      1880       549         10       0        0          212          45            0         0          0            883     193       1           43%         36%       -0.103     
+BZUSD     baseline               select   1058       288         4        0        0          122          95            0         0          0            438     80        0           49%         34%       0.030      
+BZUSD     baseline               confirm  1070       303         1        0        0          112          44            0         0          0            473     sealed    0           sealed      sealed    sealed     
+BZUSD     defaultReviewHours=96  fit      1880       549         10       0        0          212          1             0         0          0            919     64        1           54%         45%       -0.086     
+BZUSD     defaultReviewHours=96  select   1058       288         4        0        0          122          0             0         0          0            510     36        0           58%         41%       0.041      
+BZUSD     defaultReviewHours=96  confirm  1070       303         1        0        0          112          3             0         0          0            501     sealed    0           sealed      sealed    sealed     
+CLUSD     baseline               fit      1993       547         9        0        0          204          246           0         0          0            791     150       0           49%         32%       -0.052     
+CLUSD     baseline               select   1076       299         6        0        0          124          147           0         0          0            408     62        0           57%         29%       0.036      
+CLUSD     baseline               confirm  1066       289         2        0        0          113          166           0         0          0            368     sealed    0           sealed      sealed    sealed     
+CLUSD     defaultReviewHours=96  fit      1993       547         9        0        0          204          0             0         0          0            995     63        0           59%         40%       -0.047     
+CLUSD     defaultReviewHours=96  select   1076       299         6        0        0          124          3             0         0          0            527     43        0           60%         38%       -0.002     
+CLUSD     defaultReviewHours=96  confirm  1066       289         2        0        0          113          8             0         0          0            478     sealed    0           sealed      sealed    sealed     
+ESUSD     baseline               fit      2036       532         8        0        0          159          42            0         0          0            984     252       0           56%         24%       -0.044     
+ESUSD     baseline               select   1071       282         4        0        0          96           19            0         0          0            508     109       0           59%         23%       -0.009     
+ESUSD     baseline               confirm  1069       276         3        0        0          101          13            0         0          0            521     sealed    0           sealed      sealed    sealed     
+ESUSD     defaultReviewHours=96  fit      2036       532         8        0        0          159          0             0         0          0            1017    74        0           67%         32%       -0.030     
+ESUSD     defaultReviewHours=96  select   1071       282         4        0        0          96           0             0         0          0            520     33        0           71%         27%       0.025      
+ESUSD     defaultReviewHours=96  confirm  1069       276         3        0        0          101          0             0         0          0            533     sealed    0           sealed      sealed    sealed     
+GCUSD     baseline               fit      2062       544         9        0        0          200          21            0         0          0            1049    206       0           62%         24%       -0.019     
+GCUSD     baseline               select   1071       280         3        0        0          74           11            0         0          0            655     107       1           65%         22%       0.026      
+GCUSD     baseline               confirm  1064       289         1        0        0          90           20            0         0          0            574     sealed    0           sealed      sealed    sealed     
+GCUSD     defaultReviewHours=96  fit      2062       544         9        0        0          200          1             0         0          0            1067    72        0           68%         30%       -0.020     
+GCUSD     defaultReviewHours=96  select   1071       280         3        0        0          74           0             0         0          0            665     53        1           72%         27%       0.042      
+GCUSD     defaultReviewHours=96  confirm  1064       289         1        0        0          90           0             0         0          0            591     sealed    0           sealed      sealed    sealed     
+HGUSD     baseline               fit      2065       553         7        0        0          171          96            0         0          0            1058    215       0           53%         33%       -0.118     
+HGUSD     baseline               select   1076       282         6        0        0          109          30            0         0          0            522     68        0           63%         26%       -0.012     
+HGUSD     baseline               confirm  1067       295         0        0        0          102          20            0         0          0            558     sealed    0           sealed      sealed    sealed     
+HGUSD     defaultReviewHours=96  fit      2065       553         7        0        0          171          21            0         0          0            1127    85        0           60%         38%       -0.115     
+HGUSD     defaultReviewHours=96  select   1076       282         6        0        0          109          0             0         0          0            543     31        0           68%         31%       -0.019     
+HGUSD     defaultReviewHours=96  confirm  1067       295         0        0        0          102          0             0         0          0            576     sealed    0           sealed      sealed    sealed     
+NGUSD     baseline               fit      1985       539         7        0        0          176          34            0         0          0            891     190       1           51%         28%       -0.093     
+NGUSD     baseline               select   1070       277         5        0        0          119          24            0         0          0            604     110       0           52%         28%       -0.099     
+NGUSD     baseline               confirm  1066       283         2        0        0          98           33            0         0          0            528     sealed    0           sealed      sealed    sealed     
+NGUSD     defaultReviewHours=96  fit      1985       539         7        0        0          176          6             0         0          0            907     56        1           62%         36%       -0.096     
+NGUSD     defaultReviewHours=96  select   1070       277         5        0        0          119          1             0         0          0            623     33        0           65%         34%       -0.069     
+NGUSD     defaultReviewHours=96  confirm  1066       283         2        0        0          98           2             0         0          0            547     sealed    0           sealed      sealed    sealed     
+NQUSD     baseline               fit      2037       533         11       0        0          176          151           0         0          0            903     196       0           63%         22%       0.016      
+NQUSD     baseline               select   1069       282         5        0        0          76           63            0         0          0            520     97        0           60%         21%       0.015      
+NQUSD     baseline               confirm  1069       294         5        0        0          129          82            0         0          0            419     sealed    0           sealed      sealed    sealed     
+NQUSD     defaultReviewHours=96  fit      2037       533         11       0        0          176          1             0         0          0            1018    66        0           71%         27%       0.036      
+NQUSD     defaultReviewHours=96  select   1069       282         5        0        0          76           2             0         0          0            566     27        0           70%         28%       0.025      
+NQUSD     defaultReviewHours=96  confirm  1069       294         5        0        0          129          1             0         0          0            489     sealed    0           sealed      sealed    sealed     
+RTYUSD    baseline               fit      2070       546         14       0        0          212          158           0         0          0            923     173       0           59%         25%       -0.032     
+RTYUSD    baseline               select   1075       291         4        0        0          110          70            0         0          0            489     88        0           60%         24%       -0.014     
+RTYUSD    baseline               confirm  1069       297         5        0        0          100          65            0         0          0            432     sealed    0           sealed      sealed    sealed     
+RTYUSD    defaultReviewHours=96  fit      2070       546         14       0        0          212          5             0         0          0            1049    65        0           68%         31%       -0.023     
+RTYUSD    defaultReviewHours=96  select   1075       291         4        0        0          110          0             0         0          0            547     27        0           68%         30%       -0.006     
+RTYUSD    defaultReviewHours=96  confirm  1069       297         5        0        0          100          0             0         0          0            475     sealed    0           sealed      sealed    sealed     
+SIUSD     baseline               fit      2008       524         5        0        0          244          24            0         0          0            978     161       1           63%         23%       0.016      
+SIUSD     baseline               select   1075       280         5        0        0          94           18            0         0          0            593     107       0           67%         23%       0.048      
+SIUSD     baseline               confirm  1064       276         1        0        0          92           11            0         0          0            634     sealed    0           sealed      sealed    sealed     
+SIUSD     defaultReviewHours=96  fit      2008       524         5        0        0          244          0             0         0          0            999     64        0           70%         28%       0.021      
+SIUSD     defaultReviewHours=96  select   1075       280         5        0        0          94           0             0         0          0            610     51        0           70%         28%       0.032      
+SIUSD     defaultReviewHours=96  confirm  1064       276         1        0        0          92           0             0         0          0            645     sealed    0           sealed      sealed    sealed     
+YMUSD     baseline               fit      2056       548         9        0        0          194          23            0         0          0            959     208       1           56%         25%       -0.062     
+YMUSD     baseline               select   1075       297         2        0        0          107          21            0         0          0            455     84        0           60%         23%       -0.018     
+YMUSD     baseline               confirm  1069       269         2        0        0          97           13            0         0          0            517     sealed    0           sealed      sealed    sealed     
+YMUSD     defaultReviewHours=96  fit      2056       548         9        0        0          194          0             0         0          0            976     51        0           66%         32%       -0.043     
+YMUSD     defaultReviewHours=96  select   1075       297         2        0        0          107          0             0         0          0            465     27        0           68%         30%       -0.028     
+YMUSD     defaultReviewHours=96  confirm  1069       269         2        0        0          97           0             0         0          0            528     sealed    0           sealed      sealed    sealed     
+ZBUSD     baseline               fit      2023       534         4        0        0          191          18            0         0          0            1131    313       0           51%         25%       -0.108     
+ZBUSD     baseline               select   1072       293         2        0        0          121          16            0         0          0            531     134       0           46%         31%       -0.196     
+ZBUSD     baseline               confirm  1068       290         3        0        0          113          11            0         0          0            438     sealed    0           sealed      sealed    sealed     
+ZBUSD     defaultReviewHours=96  fit      2023       534         4        0        0          191          0             0         0          0            1149    112       0           64%         34%       -0.085     
+ZBUSD     defaultReviewHours=96  select   1072       293         2        0        0          121          0             0         0          0            541     37        0           57%         41%       -0.191     
+ZBUSD     defaultReviewHours=96  confirm  1068       290         3        0        0          113          0             0         0          0            448     sealed    0           sealed      sealed    sealed     
+ZNUSD     baseline               fit      2038       538         6        0        0          212          67            0         0          0            1063    283       0           49%         24%       -0.144     
+ZNUSD     baseline               select   1074       295         1        0        0          126          12            0         0          0            502     120       0           49%         27%       -0.183     
+ZNUSD     baseline               confirm  1069       282         0        0        0          134          13            0         0          0            469     sealed    0           sealed      sealed    sealed     
+ZNUSD     defaultReviewHours=96  fit      2038       538         6        0        0          212          0             0         0          0            1129    94        0           63%         34%       -0.110     
+ZNUSD     defaultReviewHours=96  select   1074       295         1        0        0          126          0             0         0          0            510     27        0           59%         39%       -0.211     
+ZNUSD     defaultReviewHours=96  confirm  1069       282         0        0        0          134          0             0         0          0            480     sealed    0           sealed      sealed    sealed     
+SP        baseline               fit      1307       842         5        0        0          50           18            0         0          0            324     37        7           47%         14%       -0.053     
+SP        baseline               select   651        420         6        0        0          20           12            0         0          0            160     14        0           45%         16%       -0.063     
+SP        baseline               confirm  655        423         1        0        0          36           16            0         0          0            134     sealed    9           sealed      sealed    sealed     
+SP        defaultReviewHours=96  fit      1307       842         5        0        0          50           0             0         0          0            340     17        0           65%         29%       -0.036     
+SP        defaultReviewHours=96  select   651        420         6        0        0          20           0             0         0          0            170     11        0           63%         29%       0.038      
+SP        defaultReviewHours=96  confirm  655        423         1        0        0          36           0             0         0          0            148     sealed    2           sealed      sealed    sealed     
+NSDQ      baseline               fit      1092       691         5        0        0          46           18            0         0          0            272     37        40          45%         15%       -0.038     
+NSDQ      baseline               select   651        420         5        0        0          17           6             0         0          0            175     14        13          34%         16%       -0.085     
+NSDQ      baseline               confirm  655        424         5        0        0          34           11            0         0          0            137     sealed    0           sealed      sealed    sealed     
+NSDQ      defaultReviewHours=96  fit      1092       691         5        0        0          46           0             0         0          0            286     23        10          61%         34%       0.019      
+NSDQ      defaultReviewHours=96  select   651        420         5        0        0          17           0             0         0          0            179     11        2           52%         37%       -0.126     
+NSDQ      defaultReviewHours=96  confirm  655        424         5        0        0          34           0             0         0          0            146     sealed    0           sealed      sealed    sealed     
+NIKKEI    baseline               select   399        0           3        0        0          53           1             0         0          0            127     11        9           57%         36%       -0.168     
+NIKKEI    baseline               confirm  566        0           4        0        0          72           7             0         0          0            234     sealed    0           sealed      sealed    sealed     
+NIKKEI    defaultReviewHours=96  select   399        0           3        0        0          53           0             0         0          0            127     7         2           55%         42%       -0.252     
+NIKKEI    defaultReviewHours=96  confirm  566        0           4        0        0          72           0             0         0          0            238     sealed    0           sealed      sealed    sealed     
+DOW       baseline               select   492        312         1        0        0          19           0             0         0          0            51      8         0           63%         35%       -0.122     
+DOW       baseline               confirm  655        424         4        0        0          33           0             0         0          0            64      sealed    14          sealed      sealed    sealed     
+DOW       defaultReviewHours=96  select   492        312         1        0        0          19           0             0         0          0            51      4         0           62%         38%       -0.088     
+DOW       defaultReviewHours=96  confirm  655        424         4        0        0          33           0             0         0          0            64      sealed    3           sealed      sealed    sealed     
+DAX       baseline               select   661        307         8        0        0          41           25            0         0          0            223     7         0           63%         26%       -0.029     
+DAX       baseline               confirm  868        396         6        0        0          56           34            0         0          0            320     sealed    0           sealed      sealed    sealed     
+DAX       defaultReviewHours=96  select   661        307         8        0        0          41           0             0         0          0            243     6         0           69%         28%       -0.006     
+DAX       defaultReviewHours=96  confirm  868        396         6        0        0          56           1             0         0          0            347     sealed    0           sealed      sealed    sealed     
+ASX       baseline               select   463        0           5        0        0          48           0             0         0          0            118     17        0           48%         50%       -0.556     
+ASX       baseline               confirm  613        0           14       0        0          79           1             0         0          0            161     sealed    0           sealed      sealed    sealed     
+ASX       defaultReviewHours=96  select   463        0           5        0        0          48           0             0         0          0            118     9         0           46%         53%       -0.594     
+ASX       defaultReviewHours=96  confirm  613        0           14       0        0          79           0             0         0          0            162     sealed    0           sealed      sealed    sealed     
+WTI       baseline               fit      2003       476         21       0        0          200          416           0         0          0            693     116       0           41%         36%       -0.201     
+WTI       baseline               select   1059       226         14       0        0          142          220           0         0          0            355     57        0           42%         36%       -0.202     
+WTI       baseline               confirm  1056       266         9        0        0          108          234           0         0          0            308     sealed    0           sealed      sealed    sealed     
+WTI       defaultReviewHours=96  fit      2003       476         21       0        0          200          1             0         0          0            1038    64        0           52%         44%       -0.150     
+WTI       defaultReviewHours=96  select   1059       226         14       0        0          142          3             0         0          0            535     37        0           50%         47%       -0.208     
+WTI       defaultReviewHours=96  confirm  1056       266         9        0        0          108          5             0         0          0            472     sealed    0           sealed      sealed    sealed     
+XRPUSD    baseline               fit      6647       1836        7        17       0          762          1023          0         0          0            2526    445       0           84%         13%       0.171      
+XRPUSD    baseline               select   6983       1958        17       0        0          829          183           0         0          0            3520    457       0           69%         27%       -0.035     
+XRPUSD    baseline               confirm  6834       1891        14       0        0          825          108           0         0          0            3564    sealed    0           sealed      sealed    sealed     
+XRPUSD    defaultReviewHours=96  fit      6647       1836        7        17       0          762          110           0         0          0            3393    232       0           87%         12%       0.210      
+XRPUSD    defaultReviewHours=96  select   6983       1958        17       0        0          829          13            0         0          0            3671    160       0           71%         29%       -0.038     
+XRPUSD    defaultReviewHours=96  confirm  6834       1891        14       0        0          825          11            0         0          0            3641    sealed    0           sealed      sealed    sealed     
+SOLUSD    baseline               select   4984       1414        15       0        0          527          301           0         0          0            2555    353       0           66%         30%       -0.053     
+SOLUSD    baseline               confirm  6984       1981        20       0        0          746          383           0         0          0            3223    sealed    0           sealed      sealed    sealed     
+SOLUSD    defaultReviewHours=96  select   4984       1414        15       0        0          527          9             0         0          0            2827    125       0           68%         32%       -0.048     
+SOLUSD    defaultReviewHours=96  confirm  6984       1981        20       0        0          746          12            0         0          0            3549    sealed    0           sealed      sealed    sealed     
+LTCUSD    baseline               fit      7611       1757        0        8        0          885          1098          0         0          0            3261    677       4           71%         23%       0.025      
+LTCUSD    baseline               select   6982       1379        26       0        0          952          105           0         0          0            3237    551       0           54%         40%       -0.221     
+LTCUSD    baseline               confirm  6874       2161        6        0        0          800          73            0         0          0            1908    sealed    0           sealed      sealed    sealed     
+LTCUSD    defaultReviewHours=96  fit      7611       1757        0        8        0          885          83            0         0          0            4224    336       0           77%         22%       0.083      
+LTCUSD    defaultReviewHours=96  select   6982       1379        26       0        0          952          2             0         0          0            3329    174       0           58%         42%       -0.211     
+LTCUSD    defaultReviewHours=96  confirm  6874       2161        6        0        0          800          3             0         0          0            1963    sealed    0           sealed      sealed    sealed     
+ETHUSD    baseline               fit      8680       2043        1        2        0          984          1181          0         0          0            3927    662       1           82%         15%       0.171      
+ETHUSD    baseline               select   6987       1595        24       0        0          812          118           0         0          0            3953    605       0           69%         26%       -0.039     
+ETHUSD    baseline               confirm  6987       1672        18       0        0          831          69            0         0          0            3871    sealed    0           sealed      sealed    sealed     
+ETHUSD    defaultReviewHours=96  fit      8680       2043        1        2        0          984          75            0         0          0            4969    356       0           85%         14%       0.203      
+ETHUSD    defaultReviewHours=96  select   6987       1595        24       0        0          812          2             0         0          0            4065    229       0           71%         29%       -0.033     
+ETHUSD    defaultReviewHours=96  confirm  6987       1672        18       0        0          831          2             0         0          0            3933    sealed    0           sealed      sealed    sealed     
+BTCUSD    baseline               fit      9970       2444        2        0        0          1088         1684          0         0          0            4171    714       1           78%         17%       0.106      
+BTCUSD    baseline               select   6987       1595        24       0        0          823          121           0         0          0            3989    553       0           71%         25%       -0.029     
+BTCUSD    baseline               confirm  6987       1672        18       0        0          864          94            0         0          0            3801    sealed    0           sealed      sealed    sealed     
+BTCUSD    defaultReviewHours=96  fit      9970       2444        2        0        0          1088         233           0         0          0            5600    372       0           82%         17%       0.148      
+BTCUSD    defaultReviewHours=96  select   6987       1595        24       0        0          823          2             0         0          0            4102    197       0           73%         26%       -0.027     
+BTCUSD    defaultReviewHours=96  confirm  6987       1672        18       0        0          864          1             0         0          0            3884    sealed    0           sealed      sealed    sealed     
+BNBUSD    baseline               confirm  6248       1231        19       0        0          738          55            0         0          0            3527    sealed    1           sealed      sealed    sealed     
+BNBUSD    defaultReviewHours=96  confirm  6248       1231        19       0        0          738          1             0         0          0            3576    sealed    0           sealed      sealed    sealed     
+BCHUSD    baseline               fit      5036       1340        4        0        0          583          175           0         0          0            2548    460       0           62%         32%       -0.110     
+BCHUSD    baseline               select   6981       1418        29       0        0          915          110           0         0          0            3371    593       0           54%         40%       -0.235     
+BCHUSD    baseline               confirm  6877       2152        7        0        0          746          82            0         0          0            2578    sealed    1           sealed      sealed    sealed     
+BCHUSD    defaultReviewHours=96  fit      5036       1340        4        0        0          583          41            0         0          0            2668    178       0           65%         35%       -0.110     
+BCHUSD    defaultReviewHours=96  select   6981       1418        29       0        0          915          5             0         0          0            3450    185       0           57%         43%       -0.235     
+BCHUSD    defaultReviewHours=96  confirm  6877       2152        7        0        0          746          7             0         0          0            2634    sealed    0           sealed      sealed    sealed     
+ADAUSD    baseline               fit      3835       1094        5        0        0          384          148           0         0          0            2021    329       0           63%         32%       -0.032     
+ADAUSD    baseline               select   6987       1634        10       0        0          760          144           0         0          0            3998    618       0           64%         31%       -0.097     
+ADAUSD    baseline               confirm  6839       2238        6        0        0          656          67            0         0          0            3462    sealed    0           sealed      sealed    sealed     
+ADAUSD    defaultReviewHours=96  fit      3835       1094        5        0        0          384          3             0         0          0            2156    108       0           65%         34%       -0.039     
+ADAUSD    defaultReviewHours=96  select   6987       1634        10       0        0          760          5             0         0          0            4111    223       0           66%         33%       -0.091     
+ADAUSD    defaultReviewHours=96  confirm  6839       2238        6        0        0          656          7             0         0          0            3515    sealed    0           sealed      sealed    sealed     
+ZFUSD     baseline               fit      2051       548         12       0        0          196          58            0         0          0            288     88        0           46%         44%       -0.436     
+ZFUSD     baseline               select   1075       287         4        0        0          127          34            0         0          0            87      28        0           54%         41%       -0.361     
+ZFUSD     baseline               confirm  1068       290         1        0        0          124          30            0         0          0            58      sealed    0           sealed      sealed    sealed     
+ZFUSD     defaultReviewHours=96  fit      2051       548         12       0        0          196          34            0         0          0            312     24        0           51%         45%       -0.269     
+ZFUSD     defaultReviewHours=96  select   1075       287         4        0        0          127          28            0         0          0            90      8         0           51%         48%       -0.367     
+ZFUSD     defaultReviewHours=96  confirm  1068       290         1        0        0          124          30            0         0          0            58      sealed    0           sealed      sealed    sealed     
+ZTUSD     baseline               fit      2009       531         10       0        0          222          586           0         0          0            60      25        0           74%         23%       -0.099     
+ZTUSD     baseline               select   1073       297         5        0        0          131          378           0         0          0            12      5         0           43%         43%       -0.620     
+ZTUSD     baseline               confirm  1069       282         2        0        0          119          375           0         0          0            9       sealed    0           sealed      sealed    sealed     
+ZTUSD     defaultReviewHours=96  fit      2009       531         10       0        0          222          577           0         0          0            67      8         0           53%         44%       -0.370     
+ZTUSD     defaultReviewHours=96  select   1073       297         5        0        0          131          361           0         0          0            32      6         0           46%         50%       -0.035     
+ZTUSD     defaultReviewHours=96  confirm  1069       282         2        0        0          119          370           0         0          0            13      sealed    0           sealed      sealed    sealed     
+HOUSD     baseline               fit      1810       530         8        0        0          185          36            0         0          0            870     259       1           25%         74%       -0.460     
+HOUSD     baseline               select   1007       281         4        0        0          112          63            0         0          0            438     105       1           28%         71%       -0.227     
+HOUSD     baseline               confirm  1046       278         3        0        0          103          136           0         0          0            456     sealed    0           sealed      sealed    sealed     
+HOUSD     defaultReviewHours=96  fit      1810       530         8        0        0          185          36            0         0          0            870     70        0           25%         75%       -0.487     
+HOUSD     defaultReviewHours=96  select   1007       281         4        0        0          112          20            0         0          0            447     39        1           26%         74%       -0.300     
+HOUSD     defaultReviewHours=96  confirm  1046       278         3        0        0          103          11            0         0          0            540     sealed    0           sealed      sealed    sealed     
+RBUSD     baseline               fit      1814       528         8        0        0          164          50            0         0          0            883     274       2           22%         78%       -0.484     
+RBUSD     baseline               select   965        279         1        0        0          100          99            0         0          0            395     72        0           44%         52%       -0.117     
+RBUSD     baseline               confirm  1023       281         6        0        0          96           197           0         0          0            397     sealed    0           sealed      sealed    sealed     
+RBUSD     defaultReviewHours=96  fit      1814       528         8        0        0          164          49            0         0          0            884     83        0           21%         79%       -0.527     
+RBUSD     defaultReviewHours=96  select   965        279         1        0        0          100          16            0         0          0            462     36        0           44%         54%       -0.075     
+RBUSD     defaultReviewHours=96  confirm  1023       281         6        0        0          96           45            0         0          0            533     sealed    0           sealed      sealed    sealed     
+PLUSD     baseline               fit      2053       547         6        0        0          229          3             0         0          0            895     139       0           56%         40%       -0.138     
+PLUSD     baseline               select   1077       293         2        0        0          93           3             0         0          0            572     89        0           60%         37%       -0.063     
+PLUSD     baseline               confirm  1067       292         2        0        0          118          1             0         0          0            582     sealed    0           sealed      sealed    sealed     
+PLUSD     defaultReviewHours=96  fit      2053       547         6        0        0          229          0             0         0          0            897     57        0           57%         40%       -0.124     
+PLUSD     defaultReviewHours=96  select   1077       293         2        0        0          93           0             0         0          0            575     37        0           60%         38%       -0.080     
+PLUSD     defaultReviewHours=96  confirm  1067       292         2        0        0          118          0             0         0          0            583     sealed    0           sealed      sealed    sealed     
+PAUSD     baseline               fit      1946       524         10       0        0          204          0             0         0          0            1023    174       0           51%         45%       -0.081     
+PAUSD     baseline               select   1046       283         3        0        0          146          2             0         0          0            458     76        0           52%         46%       -0.106     
+PAUSD     baseline               confirm  1056       286         1        0        0          108          5             0         0          0            555     sealed    0           sealed      sealed    sealed     
+PAUSD     defaultReviewHours=96  fit      1946       524         10       0        0          204          0             0         0          0            1023    65        0           52%         46%       -0.052     
+PAUSD     defaultReviewHours=96  select   1046       283         3        0        0          146          0             0         0          0            460     34        0           54%         46%       -0.102     
+PAUSD     defaultReviewHours=96  confirm  1056       286         1        0        0          108          0             0         0          0            559     sealed    0           sealed      sealed    sealed     
+ZCUSX     baseline               fit      1555       0           35       0        0          180          58            0         0          0            1089    373       6           46%         30%       -0.198     
+ZCUSX     baseline               select   812        2           20       0        0          97           98            0         0          0            522     166       1           41%         36%       -0.186     
+ZCUSX     baseline               confirm  803        10          16       0        0          98           40            0         0          0            418     sealed    0           sealed      sealed    sealed     
+ZCUSX     defaultReviewHours=96  fit      1555       0           35       0        0          180          15            0         0          0            1130    130       4           59%         39%       -0.184     
+ZCUSX     defaultReviewHours=96  select   812        2           20       0        0          97           20            0         0          0            600     49        1           50%         46%       -0.118     
+ZCUSX     defaultReviewHours=96  confirm  803        10          16       0        0          98           2             0         0          0            452     sealed    0           sealed      sealed    sealed     
+ZSUSX     baseline               fit      1535       0           31       0        0          182          48            0         0          0            707     225       7           50%         43%       -0.242     
+ZSUSX     baseline               select   816        26          19       0        0          95           5             0         0          0            281     95        1           47%         45%       -0.278     
+ZSUSX     baseline               confirm  802        14          17       0        0          110          1             0         0          0            322     sealed    1           sealed      sealed    sealed     
+ZSUSX     defaultReviewHours=96  fit      1535       0           31       0        0          182          8             0         0          0            744     82        7           54%         44%       -0.193     
+ZSUSX     defaultReviewHours=96  select   816        26          19       0        0          95           1             0         0          0            285     32        1           52%         47%       -0.206     
+ZSUSX     defaultReviewHours=96  confirm  802        14          17       0        0          110          0             0         0          0            323     sealed    1           sealed      sealed    sealed     
+ZLUSX     baseline               fit      1555       0           35       0        0          193          155           0         0          0            973     208       3           59%         27%       -0.066     
+ZLUSX     baseline               select   794        0           13       0        0          90           96            0         0          0            491     105       1           60%         27%       -0.070     
+ZLUSX     baseline               confirm  783        0           18       0        0          74           85            0         0          0            549     sealed    0           sealed      sealed    sealed     
+ZLUSX     defaultReviewHours=96  fit      1555       0           35       0        0          193          0             0         0          0            1110    76        2           67%         32%       -0.056     
+ZLUSX     defaultReviewHours=96  select   794        0           13       0        0          90           1             0         0          0            576     51        1           68%         29%       -0.034     
+ZLUSX     defaultReviewHours=96  confirm  783        0           18       0        0          74           2             0         0          0            630     sealed    0           sealed      sealed    sealed     
+ZMUSD     baseline               fit      1537       0           26       0        0          181          112           0         0          0            996     280       2           58%         30%       -0.105     
+ZMUSD     baseline               select   813        5           17       0        0          105          62            0         0          0            521     129       0           58%         27%       -0.101     
+ZMUSD     baseline               confirm  817        26          16       0        0          109          34            0         0          0            458     sealed    1           sealed      sealed    sealed     
+ZMUSD     defaultReviewHours=96  fit      1537       0           26       0        0          181          19            0         0          0            1065    94        3           63%         35%       -0.107     
+ZMUSD     defaultReviewHours=96  select   813        5           17       0        0          105          9             0         0          0            568     39        0           62%         35%       -0.102     
+ZMUSD     defaultReviewHours=96  confirm  817        26          16       0        0          109          0             0         0          0            490     sealed    1           sealed      sealed    sealed     
+ZOUSX     baseline               fit      704        0           20       0        0          84           13            0         0          0            485     89        5           56%         37%       -0.101     
+ZOUSX     baseline               select   377        5           8        0        0          32           2             0         0          0            288     44        0           57%         35%       -0.017     
+ZOUSX     baseline               confirm  388        7           6        0        0          49           9             0         0          0            231     sealed    1           sealed      sealed    sealed     
+ZOUSX     defaultReviewHours=96  fit      704        0           20       0        0          84           1             0         0          0            494     65        5           58%         38%       -0.122     
+ZOUSX     defaultReviewHours=96  select   377        5           8        0        0          32           0             0         0          0            290     31        0           57%         37%       -0.031     
+ZOUSX     defaultReviewHours=96  confirm  388        7           6        0        0          49           2             0         0          0            238     sealed    1           sealed      sealed    sealed     
+ZRUSD     baseline               fit      496        0           18       0        0          59           39            0         0          0            317     130       13          53%         32%       -0.046     
+ZRUSD     baseline               select   273        8           7        0        0          34           3             0         0          0            170     64        12          53%         32%       -0.008     
+ZRUSD     baseline               confirm  283        16          4        0        0          37           15            0         0          0            173     sealed    5           sealed      sealed    sealed     
+ZRUSD     defaultReviewHours=96  fit      496        0           18       0        0          59           12            0         0          0            344     63        1           63%         35%       -0.004     
+ZRUSD     defaultReviewHours=96  select   273        8           7        0        0          34           0             0         0          0            173     24        1           55%         42%       -0.118     
+ZRUSD     defaultReviewHours=96  confirm  283        16          4        0        0          37           5             0         0          0            180     sealed    0           sealed      sealed    sealed     
+LEUSX     baseline               fit      414        0           13       0        0          67           37            0         0          0            210     42        5           64%         33%       0.032      
+LEUSX     baseline               select   217        0           8        0        0          28           25            0         0          0            100     26        1           59%         41%       0.082      
+LEUSX     baseline               confirm  214        0           7        0        0          27           24            0         0          0            120     sealed    1           sealed      sealed    sealed     
+LEUSX     defaultReviewHours=96  fit      414        0           13       0        0          67           23            0         0          0            221     37        5           63%         34%       0.017      
+LEUSX     defaultReviewHours=96  select   217        0           8        0        0          28           10            0         0          0            111     21        2           57%         42%       -0.028     
+LEUSX     defaultReviewHours=96  confirm  214        0           7        0        0          27           0             0         0          0            139     sealed    1           sealed      sealed    sealed     
+GFUSX     baseline               fit      407        0           12       0        0          48           43            0         0          0            240     63        0           56%         38%       -0.095     
+GFUSX     baseline               select   216        0           8        0        0          12           29            0         0          0            143     44        2           52%         46%       -0.066     
+GFUSX     baseline               confirm  213        0           10       0        0          30           13            0         0          0            121     sealed    0           sealed      sealed    sealed     
+GFUSX     defaultReviewHours=96  fit      407        0           12       0        0          48           27            0         0          0            255     56        0           58%         38%       -0.073     
+GFUSX     defaultReviewHours=96  select   216        0           8        0        0          12           16            0         0          0            155     33        2           54%         45%       -0.020     
+GFUSX     defaultReviewHours=96  confirm  213        0           10       0        0          30           6             0         0          0            127     sealed    0           sealed      sealed    sealed     
+HEUSX     baseline               fit      409        0           14       0        0          54           48            0         0          0            248     69        2           56%         37%       -0.331     
+HEUSX     baseline               select   216        0           11       0        0          23           36            0         0          0            115     28        2           60%         39%       -1.028     
+HEUSX     baseline               confirm  214        0           10       0        0          23           23            0         0          0            131     sealed    2           sealed      sealed    sealed     
+HEUSX     defaultReviewHours=96  fit      409        0           14       0        0          54           17            0         0          0            276     60        2           55%         40%       -0.329     
+HEUSX     defaultReviewHours=96  select   216        0           11       0        0          23           22            0         0          0            127     29        2           59%         40%       -0.957     
+HEUSX     defaultReviewHours=96  confirm  214        0           10       0        0          23           11            0         0          0            143     sealed    2           sealed      sealed    sealed     
+AAVEUSD   baseline               select   5410       1595        12       0        0          562          254           0         0          0            2617    345       0           68%         29%       -0.042     
+AAVEUSD   baseline               confirm  6931       1657        17       0        0          781          332           0         0          0            3349    sealed    1           sealed      sealed    sealed     
+AAVEUSD   defaultReviewHours=96  select   5410       1595        12       0        0          562          7             0         0          0            2820    127       0           70%         30%       -0.026     
+AAVEUSD   defaultReviewHours=96  confirm  6931       1657        17       0        0          781          11            0         0          0            3609    sealed    0           sealed      sealed    sealed     
+ALGOUSD   baseline               fit      1151       303         0        0        0          124          2             0         0          0            387     58        0           29%         70%       -0.549     
+ALGOUSD   baseline               select   6965       2108        5        0        0          773          14            0         0          0            1782    314       0           38%         61%       -0.501     
+ALGOUSD   baseline               confirm  6851       1818        17       0        0          668          11            0         0          0            1468    sealed    2           sealed      sealed    sealed     
+ALGOUSD   defaultReviewHours=96  fit      1151       303         0        0        0          124          0             0         0          0            389     21        0           28%         72%       -0.559     
+ALGOUSD   defaultReviewHours=96  select   6965       2108        5        0        0          773          0             0         0          0            1788    102       0           39%         61%       -0.497     
+ALGOUSD   defaultReviewHours=96  confirm  6851       1818        17       0        0          668          0             0         0          0            1475    sealed    0           sealed      sealed    sealed     
+ARWUSD    baseline               confirm  6256       1373        19       0        0          602          4             0         0          0            2684    sealed    0           sealed      sealed    sealed     
+ARWUSD    defaultReviewHours=96  confirm  6256       1373        19       0        0          602          0             0         0          0            2687    sealed    0           sealed      sealed    sealed     
+ATOMUSD   baseline               fit      412        83          1        0        0          56           1             0         0          0            44      10        0           24%         76%       -0.672     
+ATOMUSD   baseline               select   6979       1614        33       0        0          892          5             0         0          0            534     112       0           13%         86%       -0.908     
+ATOMUSD   baseline               confirm  6880       1436        24       0        0          703          8             0         0          0            144     sealed    0           sealed      sealed    sealed     
+ATOMUSD   defaultReviewHours=96  fit      412        83          1        0        0          56           0             0         0          0            45      4         0           22%         78%       -0.679     
+ATOMUSD   defaultReviewHours=96  select   6979       1614        33       0        0          892          0             0         0          0            538     36        0           14%         86%       -0.913     
+ATOMUSD   defaultReviewHours=96  confirm  6880       1436        24       0        0          703          0             0         0          0            153     sealed    0           sealed      sealed    sealed     
+AVAXUSD   baseline               select   3440       1148        15       0        0          293          7             0         0          0            1089    205       0           40%         59%       -0.477     
+AVAXUSD   baseline               confirm  6892       1879        13       0        0          718          8             0         0          0            1528    sealed    0           sealed      sealed    sealed     
+AVAXUSD   defaultReviewHours=96  select   3440       1148        15       0        0          293          0             0         0          0            1096    62        0           40%         60%       -0.486     
+AVAXUSD   defaultReviewHours=96  confirm  6892       1879        13       0        0          718          0             0         0          0            1536    sealed    0           sealed      sealed    sealed     
+CAKEUSD   baseline               confirm  6231       1527        19       0        0          637          244           0         0          0            3341    sealed    1           sealed      sealed    sealed     
+CAKEUSD   defaultReviewHours=96  confirm  6231       1527        19       0        0          637          33            0         0          0            3519    sealed    0           sealed      sealed    sealed     
+DASHUSD   baseline               fit      6193       1401        3        45       0          609          354           0         0          0            3329    593       0           75%         21%       0.080      
+DASHUSD   baseline               select   6977       1611        14       0        0          857          83            0         0          0            3598    475       0           66%         30%       -0.057     
+DASHUSD   baseline               confirm  6842       1704        24       0        0          714          93            0         0          0            3447    sealed    0           sealed      sealed    sealed     
+DASHUSD   defaultReviewHours=96  fit      6193       1401        3        45       0          609          17            0         0          0            3646    238       0           77%         23%       0.091      
+DASHUSD   defaultReviewHours=96  select   6977       1611        14       0        0          857          7             0         0          0            3659    173       0           68%         31%       -0.051     
+DASHUSD   defaultReviewHours=96  confirm  6842       1704        24       0        0          714          6             0         0          0            3513    sealed    0           sealed      sealed    sealed     
+DOGEUSD   baseline               fit      5830       1459        1        39       0          620          1491          0         0          0            1854    289       0           70%         28%       0.009      
+DOGEUSD   baseline               select   6904       1492        19       0        0          919          793           0         0          0            3110    417       0           69%         27%       -0.025     
+DOGEUSD   baseline               confirm  6812       1883        17       0        0          721          50            0         0          0            3533    sealed    1           sealed      sealed    sealed     
+DOGEUSD   defaultReviewHours=96  fit      5830       1459        1        39       0          620          1401          0         0          0            1925    101       0           71%         29%       0.024      
+DOGEUSD   defaultReviewHours=96  select   6904       1492        19       0        0          919          646           0         0          0            3176    136       0           71%         28%       -0.015     
+DOGEUSD   defaultReviewHours=96  confirm  6812       1883        17       0        0          721          1             0         0          0            3569    sealed    0           sealed      sealed    sealed     
+DOTUSD    baseline               select   4103       1153        12       39       0          383          1             0         0          0            682     142       0           27%         72%       -0.702     
+DOTUSD    baseline               confirm  6771       1834        15       0        0          668          9             0         0          0            823     sealed    1           sealed      sealed    sealed     
+DOTUSD    defaultReviewHours=96  select   4103       1153        12       39       0          383          0             0         0          0            683     44        0           27%         73%       -0.705     
+DOTUSD    defaultReviewHours=96  confirm  6771       1834        15       0        0          668          0             0         0          0            830     sealed    0           sealed      sealed    sealed     
+DYDXUSD   baseline               select   2071       596         8        35       0          204          1             0         0          0            359     74        0           8%          92%       -1.071     
+DYDXUSD   baseline               confirm  5507       1490        18       0        0          592          11            0         0          0            440     sealed    0           sealed      sealed    sealed     
+DYDXUSD   defaultReviewHours=96  select   2071       596         8        35       0          204          0             0         0          0            360     26        0           8%          92%       -1.066     
+DYDXUSD   defaultReviewHours=96  confirm  5507       1490        18       0        0          592          1             0         0          0            449     sealed    0           sealed      sealed    sealed     
+EGLDUSD   baseline               select   3398       948         6        0        0          326          31            0         0          0            1579    283       0           47%         49%       -0.309     
+EGLDUSD   baseline               confirm  6858       1985        7        0        0          632          56            0         0          0            3312    sealed    0           sealed      sealed    sealed     
+EGLDUSD   defaultReviewHours=96  select   3398       948         6        0        0          326          2             0         0          0            1604    91        0           50%         50%       -0.296     
+EGLDUSD   defaultReviewHours=96  confirm  6858       1985        7        0        0          632          6             0         0          0            3356    sealed    0           sealed      sealed    sealed     
+ETCUSD    baseline               fit      7301       2040        3        19       0          775          2255          0         0          0            1842    256       0           77%         20%       0.113      
+ETCUSD    baseline               select   6987       1595        24       0        0          900          1163          0         0          0            2905    407       0           69%         26%       -0.026     
+ETCUSD    baseline               confirm  6900       1377        30       0        0          821          382           0         0          0            3493    sealed    0           sealed      sealed    sealed     
+ETCUSD    defaultReviewHours=96  fit      7301       2040        3        19       0          775          476           0         0          0            3496    164       0           83%         17%       0.186      
+ETCUSD    defaultReviewHours=96  select   6987       1595        24       0        0          900          538           0         0          0            3402    167       0           73%         27%       -0.001     
+ETCUSD    defaultReviewHours=96  confirm  6900       1377        30       0        0          821          21            0         0          0            3784    sealed    0           sealed      sealed    sealed     
+FILUSD    baseline               select   5774       1205        24       0        0          707          25            0         0          0            69      30        0           0%          100%      -1.919     
+FILUSD    baseline               confirm  6822       1864        16       0        0          744          20            0         0          0            44      sealed    0           sealed      sealed    sealed     
+FILUSD    defaultReviewHours=96  select   5774       1205        24       0        0          707          1             0         0          0            90      19        0           1%          99%       -1.826     
+FILUSD    defaultReviewHours=96  confirm  6822       1864        16       0        0          744          2             0         0          0            53      sealed    0           sealed      sealed    sealed     
+GRTUSD    baseline               select   5397       1436        7        0        0          580          69            0         0          0            2943    429       0           67%         28%       -0.032     
+GRTUSD    baseline               confirm  6890       1685        16       0        0          669          51            0         0          0            3922    sealed    0           sealed      sealed    sealed     
+GRTUSD    defaultReviewHours=96  select   5397       1436        7        0        0          580          3             0         0          0            3008    145       0           70%         30%       -0.025     
+GRTUSD    defaultReviewHours=96  confirm  6890       1685        16       0        0          669          5             0         0          0            3960    sealed    0           sealed      sealed    sealed     
+HBARUSD   baseline               select   1413       375         13       0        0          146          9             0         0          0            736     96        0           66%         32%       -0.104     
+HBARUSD   baseline               confirm  6806       1793        13       0        0          669          44            0         0          0            3717    sealed    1           sealed      sealed    sealed     
+HBARUSD   defaultReviewHours=96  select   1413       375         13       0        0          146          0             0         0          0            744     34        0           67%         32%       -0.101     
+HBARUSD   defaultReviewHours=96  confirm  6806       1793        13       0        0          669          1             0         0          0            3743    sealed    0           sealed      sealed    sealed     
+IMXUSD    baseline               select   2536       638         10       0        0          242          124           0         0          0            1305    177       0           66%         30%       -0.062     
+IMXUSD    baseline               confirm  6839       1967        20       0        0          690          308           0         0          0            3341    sealed    0           sealed      sealed    sealed     
+IMXUSD    defaultReviewHours=96  select   2536       638         10       0        0          242          3             0         0          0            1398    49        0           68%         32%       -0.036     
+IMXUSD    defaultReviewHours=96  confirm  6839       1967        20       0        0          690          23            0         0          0            3588    sealed    0           sealed      sealed    sealed     
+LINKUSD   baseline               fit      1620       539         0        0        0          161          18            0         0          0            692     85        0           67%         32%       -0.019     
+LINKUSD   baseline               select   6986       1419        19       0        0          913          27            0         0          0            3824    513       0           71%         27%       -0.042     
+LINKUSD   baseline               confirm  6815       2135        11       0        0          691          21            0         0          0            3430    sealed    1           sealed      sealed    sealed     
+LINKUSD   defaultReviewHours=96  fit      1620       539         0        0        0          161          0             0         0          0            708     28        0           67%         33%       -0.015     
+LINKUSD   defaultReviewHours=96  select   6986       1419        19       0        0          913          2             0         0          0            3840    169       0           72%         28%       -0.047     
+LINKUSD   defaultReviewHours=96  confirm  6815       2135        11       0        0          691          1             0         0          0            3446    sealed    0           sealed      sealed    sealed     
+NEARUSD   baseline               select   3113       747         8        0        0          329          3             0         0          0            803     165       0           29%         71%       -0.643     
+NEARUSD   baseline               confirm  6811       1913        5        0        0          726          8             0         0          0            1250    sealed    4           sealed      sealed    sealed     
+NEARUSD   defaultReviewHours=96  select   3113       747         8        0        0          329          0             0         0          0            806     56        0           29%         71%       -0.646     
+NEARUSD   defaultReviewHours=96  confirm  6811       1913        5        0        0          726          0             0         0          0            1256    sealed    0           sealed      sealed    sealed     
+THETAUSD  baseline               confirm  6207       1802        8        0        0          538          6             0         0          0            389     sealed    0           sealed      sealed    sealed     
+THETAUSD  defaultReviewHours=96  confirm  6207       1802        8        0        0          538          2             0         0          0            391     sealed    0           sealed      sealed    sealed     
+TRUMPUSD  baseline               confirm  3236       593         14       40       0          348          12            0         0          0            1886    sealed    0           sealed      sealed    sealed     
+TRUMPUSD  defaultReviewHours=96  confirm  3236       593         14       40       0          348          1             0         0          0            1897    sealed    0           sealed      sealed    sealed     
+TRXUSD    baseline               fit      5160       1551        1        10       0          564          345           0         0          0            1681    303       0           57%         42%       -0.231     
+TRXUSD    baseline               select   6976       1828        22       0        0          780          24            0         0          0            1230    230       0           41%         59%       -0.501     
+TRXUSD    baseline               confirm  6793       1970        17       0        0          661          12            0         0          0            607     sealed    0           sealed      sealed    sealed     
+TRXUSD    defaultReviewHours=96  fit      5160       1551        1        10       0          564          13            0         0          0            1980    143       0           62%         37%       -0.149     
+TRXUSD    defaultReviewHours=96  select   6976       1828        22       0        0          780          0             0         0          0            1250    74        0           40%         59%       -0.510     
+TRXUSD    defaultReviewHours=96  confirm  6793       1970        17       0        0          661          1             0         0          0            615     sealed    0           sealed      sealed    sealed     
+UNIUSD    baseline               select   5728       1689        17       45       0          539          14            0         0          0            2959    428       0           67%         31%       -0.080     
+UNIUSD    baseline               confirm  6809       1934        13       0        0          698          23            0         0          0            3275    sealed    2           sealed      sealed    sealed     
+UNIUSD    defaultReviewHours=96  select   5728       1689        17       45       0          539          0             0         0          0            2970    125       0           67%         32%       -0.081     
+UNIUSD    defaultReviewHours=96  confirm  6809       1934        13       0        0          698          1             0         0          0            3291    sealed    0           sealed      sealed    sealed     
+XLMUSD    baseline               fit      4520       1322        1        0        0          537          473           0         0          0            1830    264       0           79%         19%       0.133      
+XLMUSD    baseline               select   6987       1595        24       0        0          890          60            0         0          0            3690    527       0           70%         28%       -0.065     
+XLMUSD    baseline               confirm  6847       1897        20       0        0          720          64            0         0          0            3667    sealed    0           sealed      sealed    sealed     
+XLMUSD    defaultReviewHours=96  fit      4520       1322        1        0        0          537          9             0         0          0            2255    145       0           82%         17%       0.169      
+XLMUSD    defaultReviewHours=96  select   6987       1595        24       0        0          890          5             0         0          0            3725    181       0           71%         29%       -0.060     
+XLMUSD    defaultReviewHours=96  confirm  6847       1897        20       0        0          720          3             0         0          0            3702    sealed    0           sealed      sealed    sealed     
+XMRUSD    baseline               fit      6837       1478        3        0        0          828          740           0         0          0            3156    531       0           78%         18%       0.116      
+XMRUSD    baseline               select   6977       1708        6        0        0          883          112           0         0          0            3418    434       0           66%         30%       -0.078     
+XMRUSD    baseline               confirm  6936       2060        15       0        0          748          72            0         0          0            3078    sealed    1           sealed      sealed    sealed     
+XMRUSD    defaultReviewHours=96  fit      6837       1478        3        0        0          828          36            0         0          0            3805    236       0           81%         18%       0.148      
+XMRUSD    defaultReviewHours=96  select   6977       1708        6        0        0          883          3             0         0          0            3494    140       0           68%         32%       -0.082     
+XMRUSD    defaultReviewHours=96  confirm  6936       2060        15       0        0          748          4             0         0          0            3128    sealed    0           sealed      sealed    sealed     
+XTZUSD    baseline               fit      5735       1441        2        49       0          636          1006          0         0          0            937     205       0           46%         51%       -0.382     
+XTZUSD    baseline               select   6987       1453        28       0        0          931          421           0         0          0            386     81        0           28%         72%       -0.704     
+XTZUSD    baseline               confirm  6855       2110        13       0        0          639          14            0         0          0            187     sealed    0           sealed      sealed    sealed     
+XTZUSD    defaultReviewHours=96  fit      5735       1441        2        49       0          636          249           0         0          0            1601    126       0           60%         38%       -0.155     
+XTZUSD    defaultReviewHours=96  select   6987       1453        28       0        0          931          98            0         0          0            573     36        0           52%         48%       -0.354     
+XTZUSD    defaultReviewHours=96  confirm  6855       2110        13       0        0          639          2             0         0          0            193     sealed    0           sealed      sealed    sealed     
+Emitted 1919083 setup records to docs/research/r4/review-window-96.jsonl (manifest 256c74eb9032)

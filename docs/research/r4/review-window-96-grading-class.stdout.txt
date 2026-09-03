@@ -1,0 +1,37 @@
+verdict unit: class — class pools (the 4c gate); fold source: emitted labels (no time re-cut)
+wrote docs/research/r4/review-window-96-grading-class.json
+folds: fit=fit select=select confirm=confirm SEALED (not derived: no --confirm-final — nothing burned; 617276 rows withheld at the door) · holdout 20 markets excluded (read-time stratified; holdout: stratified-per-class-20pct — 20 markets excluded from every class pool (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only)
+corpus 256c74eb9032 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26
+(data-absence rows held out of every fold denominator: 516 — all variants, graded folds only, accepted rows; holdout excluded by read-time stratified recomputation, not the stamped flag)
+
+=== FOREX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            378.1    511.2    0.001 1247/1304    0.004    0.024    0.020       0.7       0.0   0.02     -27.0  ACCEPT — fit+select, paired p, and its OWN expectancy 0.024R positive beyond error (95% lower 0.020R)
+
+=== METALS ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -84.4    -21.6    0.836   449/724    0.000   -0.047   -0.072      -2.6       0.0   0.02      -5.0  fails
+
+=== FUTURES ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96           -229.4   -100.7    0.998   207/220   -0.006   -0.068   -0.088       0.0       0.0   0.01     -16.0  fails
+
+=== INDICES ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              3.2      0.9    0.430   144/297    0.014   -0.140   -0.217      -2.0       0.0   0.04      -9.1  fails
+
+=== ENERGIES ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -30.1    -43.6    0.994   109/137   -0.007   -0.208   -0.290      -6.7       0.0   0.04      -5.8  fails
+
+=== CRYPTO ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96           1811.7   -836.0    1.000 1150/1163    0.005   -0.147   -0.154       0.0       0.0   0.00     -34.6  fails
+
+=== AGRICULTURE ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96            -67.2    -10.5    0.616   177/182    0.026   -0.092   -0.142       0.0       0.0   0.03     -19.0  fails
+
+=== LIVESTOCK ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=96              0.1     -4.4    0.993    18/112   -0.021   -0.023   -0.165       6.6       0.0   0.00      -4.1  fails

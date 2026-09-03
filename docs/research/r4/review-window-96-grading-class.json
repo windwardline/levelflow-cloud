@@ -1,0 +1,2343 @@
+{
+  "analyzerVersion": "2026.09.01.platinum-group-rate-inverse",
+  "anchor": "2026-08-26",
+  "calendarHash": "5d04a7824ecae8c9183b98acc4b736777131c59a9dba672e2cd6382ecaff06dc",
+  "emitSha256": {
+    "256c74eb9032c30617b75fa247f6963a8cae26608a24c43fb53531c1ede5dd94": "4ac425e4b1359a4f44d49c6536dab574328fdf52443aec0f61b92ccab6e6813a"
+  },
+  "corpusNote": "confirm fold sealed — not read; every figure here is a fit/select figure",
+  "derived": {},
+  "derivedAt": "2026-09-03T08:35:07.709Z",
+  "foldSource": "emitted",
+  "heldOut": [
+    "AAVEUSD",
+    "ARWUSD",
+    "AUDCHF",
+    "AUDNZD",
+    "BNBUSD",
+    "BZUSD",
+    "DASHUSD",
+    "EURUSD",
+    "GBPCAD",
+    "HEUSX",
+    "NGUSD",
+    "NSDQ",
+    "NZDCHF",
+    "NZDJPY",
+    "RTYUSD",
+    "THETAUSD",
+    "XLMUSD",
+    "XMRUSD",
+    "YMUSD",
+    "ZMUSD"
+  ],
+  "holdoutRule": "stratified-per-class-20pct",
+  "markets": {
+    "ADAUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.0223324556213018,
+            "lower": -0.044256816588581896,
+            "n": 3380,
+            "upper": -0.0004080946540216991
+          },
+          "net": {
+            "expectancy": -0.09680165680473372,
+            "lower": -0.11966814670396267,
+            "n": 3380,
+            "upper": -0.07393516690550478
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "ALGOUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.1587205040871935,
+            "lower": -0.2011764209599215,
+            "n": 1468,
+            "upper": -0.11626458721446546
+          },
+          "net": {
+            "expectancy": -0.50133916893733,
+            "lower": -0.5434740984404788,
+            "n": 1468,
+            "upper": -0.45920423943418115
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "ASX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.45062673267326747,
+            "lower": -0.6083067414295069,
+            "n": 101,
+            "upper": -0.292946723917028
+          },
+          "net": {
+            "expectancy": -0.5560039603960397,
+            "lower": -0.7153865600856717,
+            "n": 101,
+            "upper": -0.39662136070640774
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "ATOMUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.24289952606635082,
+            "lower": -0.31519699743645546,
+            "n": 422,
+            "upper": -0.17060205469624617
+          },
+          "net": {
+            "expectancy": -0.9085319905213275,
+            "lower": -0.9660818087425157,
+            "n": 422,
+            "upper": -0.8509821723001393
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "AUDCAD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.07455586546349474,
+            "lower": 0.05550884873869262,
+            "n": 3657,
+            "upper": 0.09360288218829686
+          },
+          "net": {
+            "expectancy": 0.05426628383921251,
+            "lower": 0.03485748180417634,
+            "n": 3657,
+            "upper": 0.07367508587424867
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "AUDJPY": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.020589281942977846,
+            "lower": 0.000592970923700413,
+            "n": 3788,
+            "upper": 0.04058559296225528
+          },
+          "net": {
+            "expectancy": 0.0007303326293559032,
+            "lower": -0.019534913664360522,
+            "n": 3788,
+            "upper": 0.02099557892307233
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "AUDUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.03192176084099871,
+            "lower": 0.012281146814130443,
+            "n": 3805,
+            "upper": 0.051562374867866974
+          },
+          "net": {
+            "expectancy": 0.01543106438896192,
+            "lower": -0.004436078026407064,
+            "n": 3805,
+            "upper": 0.035298206804330906
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "AVAXUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.14949027149321267,
+            "lower": -0.20279869455588528,
+            "n": 884,
+            "upper": -0.09618184843054006
+          },
+          "net": {
+            "expectancy": -0.4773095022624429,
+            "lower": -0.5320361254641067,
+            "n": 884,
+            "upper": -0.42258287906077907
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "BCHUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.061483477321814285,
+            "lower": -0.08583200765002766,
+            "n": 2778,
+            "upper": -0.03713494699360091
+          },
+          "net": {
+            "expectancy": -0.235082721382289,
+            "lower": -0.2613229424306108,
+            "n": 2778,
+            "upper": -0.2088425003339672
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "BTCUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.007546100116414452,
+            "lower": -0.0127026218346903,
+            "n": 3436,
+            "upper": 0.027794822067519202
+          },
+          "net": {
+            "expectancy": -0.02902450523864957,
+            "lower": -0.04991602330719956,
+            "n": 3436,
+            "upper": -0.008132987170099578
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "CADCHF": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.08706984260820691,
+            "lower": 0.06815861678119153,
+            "n": 3558,
+            "upper": 0.10598106843522229
+          },
+          "net": {
+            "expectancy": 0.06420092748735251,
+            "lower": 0.04489968780330403,
+            "n": 3558,
+            "upper": 0.08350216717140099
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "CADJPY": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.008613040021203324,
+            "lower": -0.011275380213437347,
+            "n": 3773,
+            "upper": 0.028501460255843998
+          },
+          "net": {
+            "expectancy": -0.014384495096740025,
+            "lower": -0.034650223199106454,
+            "n": 3773,
+            "upper": 0.005881233005626407
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "CHFJPY": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.0444224737267582,
+            "lower": 0.024657089812950138,
+            "n": 3711,
+            "upper": 0.06418785764056625
+          },
+          "net": {
+            "expectancy": 0.01548445163028835,
+            "lower": -0.004754766163861194,
+            "n": 3711,
+            "upper": 0.035723669424437894
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "CLUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.0755708092485549,
+            "lower": -0.0055368168729492545,
+            "n": 346,
+            "upper": 0.15667843537005904
+          },
+          "net": {
+            "expectancy": 0.03602080924855486,
+            "lower": -0.04707993957967753,
+            "n": 346,
+            "upper": 0.11912155807678725
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "DAX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.003526388888888886,
+            "lower": -0.08968716188550328,
+            "n": 216,
+            "upper": 0.08263438410772551
+          },
+          "net": {
+            "expectancy": -0.02875833333333333,
+            "lower": -0.11625772903827572,
+            "n": 216,
+            "upper": 0.05874106237160906
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "DOGEUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.011374155217229835,
+            "lower": -0.012399555989300565,
+            "n": 2693,
+            "upper": 0.035147866423760235
+          },
+          "net": {
+            "expectancy": -0.025343557370961733,
+            "lower": -0.050072090515602,
+            "n": 2693,
+            "upper": -0.0006150242263214672
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "DOTUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.166015925925926,
+            "lower": -0.2339523241659815,
+            "n": 540,
+            "upper": -0.09807952768587051
+          },
+          "net": {
+            "expectancy": -0.7023601851851853,
+            "lower": -0.762845989458673,
+            "n": 540,
+            "upper": -0.6418743809116976
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "DOW": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.08752093023255814,
+            "lower": -0.31875429159651714,
+            "n": 43,
+            "upper": 0.14371243113140086
+          },
+          "net": {
+            "expectancy": -0.1216790697674419,
+            "lower": -0.3577588931782828,
+            "n": 43,
+            "upper": 0.11440075364339901
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "DYDXUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.32027017543859654,
+            "lower": -0.4528604403319566,
+            "n": 285,
+            "upper": -0.1876799105452365
+          },
+          "net": {
+            "expectancy": -1.0712014035087718,
+            "lower": -1.1494680463596711,
+            "n": 285,
+            "upper": -0.9929347606578723
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "EGLDUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.08093780864197539,
+            "lower": -0.12023192960971556,
+            "n": 1296,
+            "upper": -0.04164368767423522
+          },
+          "net": {
+            "expectancy": -0.30902137345679004,
+            "lower": -0.3503265070066683,
+            "n": 1296,
+            "upper": -0.2677162399069118
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "ESUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.0074511278195488655,
+            "lower": -0.053465350200733744,
+            "n": 399,
+            "upper": 0.06836760583983148
+          },
+          "net": {
+            "expectancy": -0.009183458646616571,
+            "lower": -0.07053582893704859,
+            "n": 399,
+            "upper": 0.052168911643815444
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "ETCUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.019853242594075237,
+            "lower": -0.004448842392874224,
+            "n": 2498,
+            "upper": 0.044155327581024695
+          },
+          "net": {
+            "expectancy": -0.02634131305044034,
+            "lower": -0.051550431347646294,
+            "n": 2498,
+            "upper": -0.001132194753234391
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "ETHUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.008730017921146969,
+            "lower": -0.029903275279049825,
+            "n": 3348,
+            "upper": 0.012443239436755888
+          },
+          "net": {
+            "expectancy": -0.038704241338112344,
+            "lower": -0.06044289894317372,
+            "n": 3348,
+            "upper": -0.016965583733050967
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "EURAUD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.04300454423950808,
+            "lower": 0.023612973000714275,
+            "n": 3741,
+            "upper": 0.062396115478301886
+          },
+          "net": {
+            "expectancy": 0.02049716653301254,
+            "lower": 0.0006547409381101738,
+            "n": 3741,
+            "upper": 0.04033959212791491
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "EURCAD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.07676835885038936,
+            "lower": 0.0584323734636277,
+            "n": 3723,
+            "upper": 0.09510434423715103
+          },
+          "net": {
+            "expectancy": 0.04849231802309969,
+            "lower": 0.02960461873372662,
+            "n": 3723,
+            "upper": 0.06738001731247276
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "EURCHF": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.05076760259179271,
+            "lower": 0.03070169214907843,
+            "n": 3241,
+            "upper": 0.07083351303450698
+          },
+          "net": {
+            "expectancy": 0.015537951249614407,
+            "lower": -0.005386272855693694,
+            "n": 3241,
+            "upper": 0.03646217535492251
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "EURGBP": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.059101220628623725,
+            "lower": 0.038854068385363455,
+            "n": 3277,
+            "upper": 0.079348372871884
+          },
+          "net": {
+            "expectancy": 0.03620137320720174,
+            "lower": 0.015398372235901799,
+            "n": 3277,
+            "upper": 0.057004374178501675
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "EURJPY": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.030603881090008212,
+            "lower": 0.01082886777608394,
+            "n": 3633,
+            "upper": 0.050378894403932485
+          },
+          "net": {
+            "expectancy": -0.000640489953206687,
+            "lower": -0.020850470164144007,
+            "n": 3633,
+            "upper": 0.01956949025773063
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "EURNZD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.07553345323740998,
+            "lower": 0.056598474205201366,
+            "n": 3614,
+            "upper": 0.0944684322696186
+          },
+          "net": {
+            "expectancy": 0.05255218594355281,
+            "lower": 0.03307883172317688,
+            "n": 3614,
+            "upper": 0.07202554016392873
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "FILUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.18660512820512823,
+            "lower": -0.40456203401916524,
+            "n": 39,
+            "upper": 0.03135177760890881
+          },
+          "net": {
+            "expectancy": -1.9191256410256408,
+            "lower": -2.2548654350911828,
+            "n": 39,
+            "upper": -1.583385846960099
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "GBPAUD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.019055479452054786,
+            "lower": -0.0016258933328536194,
+            "n": 3504,
+            "upper": 0.03973685223696319
+          },
+          "net": {
+            "expectancy": -0.0048323630136986205,
+            "lower": -0.025883873374814806,
+            "n": 3504,
+            "upper": 0.016219147347417563
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "GBPCHF": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.05387446093531227,
+            "lower": 0.034240934761455635,
+            "n": 3571,
+            "upper": 0.0735079871091689
+          },
+          "net": {
+            "expectancy": 0.031232287874544913,
+            "lower": 0.011213856888467308,
+            "n": 3571,
+            "upper": 0.05125071886062252
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "GBPJPY": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.04582638226213865,
+            "lower": 0.02587456312411341,
+            "n": 3563,
+            "upper": 0.06577820140016388
+          },
+          "net": {
+            "expectancy": 0.029150463092899263,
+            "lower": 0.008934481909811116,
+            "n": 3563,
+            "upper": 0.04936644427598741
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "GBPNZD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.07122417612849631,
+            "lower": 0.05180389017537107,
+            "n": 3611,
+            "upper": 0.09064446208162155
+          },
+          "net": {
+            "expectancy": 0.04564267515923569,
+            "lower": 0.025723073720102987,
+            "n": 3611,
+            "upper": 0.06556227659836839
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "GBPUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.024189473684210497,
+            "lower": 0.004270397435612309,
+            "n": 3572,
+            "upper": 0.04410854993280869
+          },
+          "net": {
+            "expectancy": 0.002786786114221733,
+            "lower": -0.01748248980920091,
+            "n": 3572,
+            "upper": 0.023056062037644376
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "GCUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.03380237659963436,
+            "lower": -0.01897790813769603,
+            "n": 547,
+            "upper": 0.08658266133696474
+          },
+          "net": {
+            "expectancy": 0.025723583180987247,
+            "lower": -0.02750582572489308,
+            "n": 547,
+            "upper": 0.07895299208686757
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "GFUSX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.010661855670103096,
+            "lower": -0.20324106709100376,
+            "n": 97,
+            "upper": 0.18191735575079754
+          },
+          "net": {
+            "expectancy": -0.06629896907216494,
+            "lower": -0.2567918818968433,
+            "n": 97,
+            "upper": 0.12419394375251343
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "GRTUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.001080031821797923,
+            "lower": -0.023831345983395626,
+            "n": 2514,
+            "upper": 0.025991409626991473
+          },
+          "net": {
+            "expectancy": -0.03244196499602231,
+            "lower": -0.0579235910970379,
+            "n": 2514,
+            "upper": -0.0069603388950067215
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "HBARUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.06954718750000004,
+            "lower": -0.122727342961888,
+            "n": 640,
+            "upper": -0.01636703203811208
+          },
+          "net": {
+            "expectancy": -0.10404609374999998,
+            "lower": -0.15811087594636092,
+            "n": 640,
+            "upper": -0.04998131155363904
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "HGUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.00769559471365638,
+            "lower": -0.05370053352458805,
+            "n": 454,
+            "upper": 0.0690917229519008
+          },
+          "net": {
+            "expectancy": -0.012203744493392047,
+            "lower": -0.07411294044187675,
+            "n": 454,
+            "upper": 0.049705451455092656
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "HOUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.18287680722891567,
+            "lower": -0.271278558158593,
+            "n": 332,
+            "upper": -0.09447505629923836
+          },
+          "net": {
+            "expectancy": -0.2273855421686747,
+            "lower": -0.31554037211675967,
+            "n": 332,
+            "upper": -0.13923071222058975
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "IMXUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.022621985815602843,
+            "lower": -0.07044511832439322,
+            "n": 1128,
+            "upper": 0.025201146693187532
+          },
+          "net": {
+            "expectancy": -0.06234414893617018,
+            "lower": -0.1105935287333743,
+            "n": 1128,
+            "upper": -0.014094769138966061
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "LEUSX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.15445342465753417,
+            "lower": -0.10428854162433174,
+            "n": 73,
+            "upper": 0.41319539093940005
+          },
+          "net": {
+            "expectancy": 0.08155616438356166,
+            "lower": -0.18154804944846525,
+            "n": 73,
+            "upper": 0.3446603782155886
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "LINKUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.019029356689821822,
+            "lower": -0.04704038392290002,
+            "n": 3311,
+            "upper": 0.008981670543256375
+          },
+          "net": {
+            "expectancy": -0.042424343098761745,
+            "lower": -0.0706743755912746,
+            "n": 3311,
+            "upper": -0.01417431060624889
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "LTCUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.02377907669396868,
+            "lower": -0.0480097857036579,
+            "n": 2686,
+            "upper": 0.0004516323157205404
+          },
+          "net": {
+            "expectancy": -0.22107624720774377,
+            "lower": -0.24779533429414635,
+            "n": 2686,
+            "upper": -0.1943571601213412
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "NEARUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.14132648902821324,
+            "lower": -0.21136981408311123,
+            "n": 638,
+            "upper": -0.07128316397331526
+          },
+          "net": {
+            "expectancy": -0.6430057993730409,
+            "lower": -0.7049539216760718,
+            "n": 638,
+            "upper": -0.58105767707001
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "NIKKEI": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.13705327102803735,
+            "lower": -0.27414425782853435,
+            "n": 107,
+            "upper": 0.00003771577245967328
+          },
+          "net": {
+            "expectancy": -0.1678289719626168,
+            "lower": -0.3099017363676675,
+            "n": 107,
+            "upper": -0.025756207557566163
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "NQUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.024047281323877095,
+            "lower": -0.03561930898040849,
+            "n": 423,
+            "upper": 0.08371387162816268
+          },
+          "net": {
+            "expectancy": 0.015467848699763599,
+            "lower": -0.04459921862688224,
+            "n": 423,
+            "upper": 0.07553491602640944
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "NZDCAD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.0708590035201733,
+            "lower": 0.052120786960180916,
+            "n": 3693,
+            "upper": 0.08959722008016568
+          },
+          "net": {
+            "expectancy": 0.05090311399945845,
+            "lower": 0.03174741164731673,
+            "n": 3693,
+            "upper": 0.07005881635160018
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "NZDUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.036423885684320916,
+            "lower": 0.017000670630743217,
+            "n": 3814,
+            "upper": 0.055847100737898614
+          },
+          "net": {
+            "expectancy": 0.014661248033560583,
+            "lower": -0.005030740698592988,
+            "n": 3814,
+            "upper": 0.034353236765714154
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "PAUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.04618429319371728,
+            "lower": -0.13907467613565377,
+            "n": 382,
+            "upper": 0.04670608974821923
+          },
+          "net": {
+            "expectancy": -0.1060329842931938,
+            "lower": -0.19870874213239847,
+            "n": 382,
+            "upper": -0.01335722645398911
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "PLUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.03977039337474118,
+            "lower": -0.11641817927272957,
+            "n": 483,
+            "upper": 0.03687739252324721
+          },
+          "net": {
+            "expectancy": -0.06322484472049701,
+            "lower": -0.14061414106236197,
+            "n": 483,
+            "upper": 0.014164451621367952
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "RBUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.044422291021671785,
+            "lower": -0.18115045356188317,
+            "n": 323,
+            "upper": 0.09230587151853961
+          },
+          "net": {
+            "expectancy": -0.11714860681114567,
+            "lower": -0.25552267051462957,
+            "n": 323,
+            "upper": 0.021225456892338235
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "SIUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.07894691358024693,
+            "lower": 0.025672661463795723,
+            "n": 486,
+            "upper": 0.13222116569669812
+          },
+          "net": {
+            "expectancy": 0.04794691358024692,
+            "lower": -0.007749259484968796,
+            "n": 486,
+            "upper": 0.10364308664546264
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "SOLUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.03300635785649402,
+            "lower": -0.06179763736052954,
+            "n": 2202,
+            "upper": -0.004215078352458504
+          },
+          "net": {
+            "expectancy": -0.053115849227974535,
+            "lower": -0.0821795907654399,
+            "n": 2202,
+            "upper": -0.02405210769050917
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "SP": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.034346575342465796,
+            "lower": -0.12931730705817168,
+            "n": 146,
+            "upper": 0.060624156373240076
+          },
+          "net": {
+            "expectancy": -0.06317671232876715,
+            "lower": -0.1599677068683803,
+            "n": 146,
+            "upper": 0.03361428221084599
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "TRXUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.1747362000000001,
+            "lower": -0.22546181276908517,
+            "n": 1000,
+            "upper": -0.12401058723091501
+          },
+          "net": {
+            "expectancy": -0.5011039,
+            "lower": -0.5530314914294128,
+            "n": 1000,
+            "upper": -0.44917630857058727
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "UNIUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.05323820624259184,
+            "lower": -0.07946645181787604,
+            "n": 2531,
+            "upper": -0.02700996066730764
+          },
+          "net": {
+            "expectancy": -0.07946641643619098,
+            "lower": -0.10602958957506627,
+            "n": 2531,
+            "upper": -0.0529032432973157
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "USDCAD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.030212100942535725,
+            "lower": 0.008951119138196267,
+            "n": 3289,
+            "upper": 0.05147308274687518
+          },
+          "net": {
+            "expectancy": 0.0029108847674065197,
+            "lower": -0.01889684402913368,
+            "n": 3289,
+            "upper": 0.02471861356394672
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "USDCHF": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.015719879336349916,
+            "lower": -0.004992666564115591,
+            "n": 3315,
+            "upper": 0.03643242523681542
+          },
+          "net": {
+            "expectancy": -0.008894630467571715,
+            "lower": -0.03006808819878026,
+            "n": 3315,
+            "upper": 0.01227882726363683
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "USDJPY": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.0020708824374820623,
+            "lower": -0.01856237450279173,
+            "n": 3479,
+            "upper": 0.022704139377755853
+          },
+          "net": {
+            "expectancy": -0.028385081920092148,
+            "lower": -0.04952058154810581,
+            "n": 3479,
+            "upper": -0.007249582292078484
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "WTI": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.1877999999999999,
+            "lower": -0.2836074582129151,
+            "n": 298,
+            "upper": -0.09199254178708471
+          },
+          "net": {
+            "expectancy": -0.20173724832214765,
+            "lower": -0.298006474704377,
+            "n": 298,
+            "upper": -0.1054680219399183
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "XAUUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.019817830075787714,
+            "lower": -0.004824566022781949,
+            "n": 2507,
+            "upper": 0.04446022617435738
+          },
+          "net": {
+            "expectancy": -0.04721763063422417,
+            "lower": -0.07289214099604543,
+            "n": 2507,
+            "upper": -0.021543120272402898
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "XRPUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.012306301012079652,
+            "lower": -0.03493335693078044,
+            "n": 3063,
+            "upper": 0.01032075490662113
+          },
+          "net": {
+            "expectancy": -0.03534142997061704,
+            "lower": -0.05831861577045386,
+            "n": 3063,
+            "upper": -0.012364244170780223
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "XTZUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.09832819672131148,
+            "lower": -0.17746978769742194,
+            "n": 305,
+            "upper": -0.019186605745201007
+          },
+          "net": {
+            "expectancy": -0.7042239344262297,
+            "lower": -0.7858833842545663,
+            "n": 305,
+            "upper": -0.622564484597893
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "ZBUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.05531435768261966,
+            "lower": -0.11409324235077942,
+            "n": 397,
+            "upper": 0.0034645269855401103
+          },
+          "net": {
+            "expectancy": -0.19613929471032754,
+            "lower": -0.2605326249150724,
+            "n": 397,
+            "upper": -0.13174596450558268
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "ZCUSX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.004588732394366209,
+            "lower": -0.12029755489273003,
+            "n": 355,
+            "upper": 0.11112009010399762
+          },
+          "net": {
+            "expectancy": -0.18567521126760556,
+            "lower": -0.29084359019445133,
+            "n": 355,
+            "upper": -0.08050683234075977
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "ZFUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.05734406779661013,
+            "lower": -0.23969980453217554,
+            "n": 59,
+            "upper": 0.12501166893895527
+          },
+          "net": {
+            "expectancy": -0.360815254237288,
+            "lower": -0.5973749541538139,
+            "n": 59,
+            "upper": -0.1242555543207621
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "ZLUSX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.009464415584415548,
+            "lower": -0.07230875360518636,
+            "n": 385,
+            "upper": 0.05337992243635527
+          },
+          "net": {
+            "expectancy": -0.07053662337662324,
+            "lower": -0.13658527972348836,
+            "n": 385,
+            "upper": -0.004487967029758122
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "ZNUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.04594712041884822,
+            "lower": -0.10516323295053043,
+            "n": 382,
+            "upper": 0.013268992112833992
+          },
+          "net": {
+            "expectancy": -0.18327041884816755,
+            "lower": -0.24655984404356657,
+            "n": 382,
+            "upper": -0.11998099365276856
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "ZOUSX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.07313237704918032,
+            "lower": -0.032474352017857755,
+            "n": 244,
+            "upper": 0.1787391061162184
+          },
+          "net": {
+            "expectancy": -0.016865573770491794,
+            "lower": -0.1289841455686378,
+            "n": 244,
+            "upper": 0.0952529980276542
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "ZRUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.026902127659574452,
+            "lower": -0.14147414721578305,
+            "n": 94,
+            "upper": 0.19527840253493195
+          },
+          "net": {
+            "expectancy": -0.008154255319148922,
+            "lower": -0.18019231812627753,
+            "n": 94,
+            "upper": 0.16388380748797968
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "ZSUSX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.12129675675675673,
+            "lower": -0.2317158064650225,
+            "n": 185,
+            "upper": -0.01087770704849099
+          },
+          "net": {
+            "expectancy": -0.2781367567567567,
+            "lower": -0.4006410548065549,
+            "n": 185,
+            "upper": -0.1556324587069585
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    },
+    "ZTUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": false,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.5648428571428571,
+            "lower": -1.108260843999971,
+            "n": 7,
+            "upper": -0.021424870285743136
+          },
+          "net": {
+            "expectancy": -0.6194999999999998,
+            "lower": -1.138648960111854,
+            "n": 7,
+            "upper": -0.10035103988814564
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {}
+    }
+  },
+  "rules": {
+    "accept": "accepted iff beatsBaseline && earnsMoney per market on the emitted folds (gate v2, D4); M3 reported for accepted variants only",
+    "decline": "decline candidate iff on the select fold of the per-class corpus the shipped cell's NET expectancy 95% upper bound < 0 AND its GROSS expectancy 95% upper bound < 0 with at least 30 filled; the confirm read reports M3 for candidates and non-candidates alike",
+    "declineHash": "2e1521e201da99515655a86a48724800c90d87ec3545a12b0e936564f814a996"
+  },
+  "shardHashes": [
+    "256c74eb9032c30617b75fa247f6963a8cae26608a24c43fb53531c1ede5dd94"
+  ],
+  "shards": [
+    "../levelflow-cloud/docs/research/r4/review-window-96.jsonl"
+  ],
+  "verdictUnit": "class"
+}

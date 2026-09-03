@@ -1,0 +1,5766 @@
+{
+  "analyzerVersion": "2026.09.01.platinum-group-rate-inverse",
+  "anchor": "2026-08-26",
+  "calendarHash": "5d04a7824ecae8c9183b98acc4b736777131c59a9dba672e2cd6382ecaff06dc",
+  "emitSha256": {
+    "256c74eb9032c30617b75fa247f6963a8cae26608a24c43fb53531c1ede5dd94": "4ac425e4b1359a4f44d49c6536dab574328fdf52443aec0f61b92ccab6e6813a"
+  },
+  "corpusNote": "confirm fold sealed — not read; every figure here is a fit/select figure",
+  "derived": {},
+  "derivedAt": "2026-09-03T08:34:45.219Z",
+  "foldSource": "emitted",
+  "heldOut": [
+    "AAVEUSD",
+    "ARWUSD",
+    "AUDCHF",
+    "AUDNZD",
+    "BNBUSD",
+    "BZUSD",
+    "DASHUSD",
+    "EURUSD",
+    "GBPCAD",
+    "HEUSX",
+    "NGUSD",
+    "NSDQ",
+    "NZDCHF",
+    "NZDJPY",
+    "RTYUSD",
+    "THETAUSD",
+    "XLMUSD",
+    "XMRUSD",
+    "YMUSD",
+    "ZMUSD"
+  ],
+  "holdoutRule": "stratified-per-class-20pct",
+  "markets": {
+    "AAVEUSD": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1740915000000,
+            "endMs": 1786333500000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 627.6432291666666,
+          "selectionWindow": {
+            "confirmEndMs": 1786333500000,
+            "confirmStartMs": 1740915000000,
+            "fitStartMs": 1604659500000,
+            "selectStartMs": 1695496500000,
+            "selectEndMs": 1740915000000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.020987808098591555,
+            "lower": -0.04818250978141041,
+            "n": 2272,
+            "upper": 0.0062068935842273
+          },
+          "net": {
+            "expectancy": -0.042124427816901365,
+            "lower": -0.06965156632460241,
+            "n": 2272,
+            "upper": -0.014597289309200318
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 0.12287712287712288,
+          "reason": "fails",
+          "selectExpectancy": -0.02601767545488298,
+          "selectExpectancyDelta": 0.016106752362018386,
+          "selectTotalDelta": 25.641100000000037,
+          "select": {
+            "gross": {
+              "expectancy": -0.0051882658744894245,
+              "lower": -0.03099832149091085,
+              "n": 2693,
+              "upper": 0.020621789741931996
+            },
+            "net": {
+              "expectancy": -0.02601767545488298,
+              "lower": -0.052157938963063616,
+              "n": 2693,
+              "upper": 0.0001225880532976613
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ADAUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1685627775000,
+            "endMs": 1786335300000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786335300000,
+            "confirmStartMs": 1685627775000,
+            "fitStartMs": 1383505200000,
+            "selectStartMs": 1584920250000,
+            "selectEndMs": 1685627775000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.0223324556213018,
+            "lower": -0.044256816588581896,
+            "n": 3380,
+            "upper": -0.0004080946540216991
+          },
+          "net": {
+            "expectancy": -0.09680165680473372,
+            "lower": -0.11966814670396267,
+            "n": 3380,
+            "upper": -0.07393516690550478
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -26.705700000000213,
+          "pairedP": 0.949050949050949,
+          "reason": "fails",
+          "selectExpectancy": -0.09146183127572025,
+          "selectExpectancyDelta": 0.005339825529013478,
+          "selectTotalDelta": -28.41400000000033,
+          "select": {
+            "gross": {
+              "expectancy": -0.013841152263374469,
+              "lower": -0.03479806231705303,
+              "n": 3888,
+              "upper": 0.007115757790304088
+            },
+            "net": {
+              "expectancy": -0.09146183127572025,
+              "lower": -0.11338220439135888,
+              "n": 3888,
+              "upper": -0.06954145816008162
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ALGOUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.1587205040871935,
+            "lower": -0.2011764209599215,
+            "n": 1468,
+            "upper": -0.11626458721446546
+          },
+          "net": {
+            "expectancy": -0.50133916893733,
+            "lower": -0.5434740984404788,
+            "n": 1468,
+            "upper": -0.45920423943418115
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -24.977100000000036,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.49680883748517196,
+          "selectExpectancyDelta": 0.004530331452158032,
+          "selectTotalDelta": -101.65379999999959,
+          "select": {
+            "gross": {
+              "expectancy": -0.10985023724792409,
+              "lower": -0.1510640083586242,
+              "n": 1686,
+              "upper": -0.06863646613722396
+            },
+            "net": {
+              "expectancy": -0.49680883748517196,
+              "lower": -0.5361873558833211,
+              "n": 1686,
+              "upper": -0.4574303190870228
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ASX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.45062673267326747,
+            "lower": -0.6083067414295069,
+            "n": 101,
+            "upper": -0.292946723917028
+          },
+          "net": {
+            "expectancy": -0.5560039603960397,
+            "lower": -0.7153865600856717,
+            "n": 101,
+            "upper": -0.39662136070640774
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 0.6933066933066933,
+          "reason": "fails",
+          "selectExpectancy": -0.5941642201834865,
+          "selectExpectancyDelta": -0.03816025978744675,
+          "selectTotalDelta": -8.607500000000009,
+          "select": {
+            "gross": {
+              "expectancy": -0.48576788990825726,
+              "lower": -0.6398715012265188,
+              "n": 109,
+              "upper": -0.33166427858999575
+            },
+            "net": {
+              "expectancy": -0.5941642201834865,
+              "lower": -0.7490810737461636,
+              "n": 109,
+              "upper": -0.4392473666208093
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ATOMUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.24289952606635082,
+            "lower": -0.31519699743645546,
+            "n": 422,
+            "upper": -0.17060205469624617
+          },
+          "net": {
+            "expectancy": -0.9085319905213275,
+            "lower": -0.9660818087425157,
+            "n": 422,
+            "upper": -0.8509821723001393
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -4.977399999999992,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.9125824701195221,
+          "selectExpectancyDelta": -0.004050479598194601,
+          "selectTotalDelta": -74.71589999999992,
+          "select": {
+            "gross": {
+              "expectancy": -0.174578486055777,
+              "lower": -0.24444858358664873,
+              "n": 502,
+              "upper": -0.10470838852490526
+            },
+            "net": {
+              "expectancy": -0.9125824701195221,
+              "lower": -0.9661622653463227,
+              "n": 502,
+              "upper": -0.8590026748927215
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "AUDCAD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.07455586546349474,
+            "lower": 0.05550884873869262,
+            "n": 3657,
+            "upper": 0.09360288218829686
+          },
+          "net": {
+            "expectancy": 0.05426628383921251,
+            "lower": 0.03485748180417634,
+            "n": 3657,
+            "upper": 0.07367508587424867
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 18.92970000000139,
+          "pairedP": 0.004995004995004995,
+          "reason": "accept",
+          "selectExpectancy": 0.061539931322050594,
+          "selectExpectancyDelta": 0.007273647482838083,
+          "selectTotalDelta": 52.4465000000001,
+          "select": {
+            "gross": {
+              "expectancy": 0.0830991169977925,
+              "lower": 0.06468609325235017,
+              "n": 4077,
+              "upper": 0.10151214074323484
+            },
+            "net": {
+              "expectancy": 0.061539931322050594,
+              "lower": 0.04253116681722595,
+              "n": 4077,
+              "upper": 0.08054869582687524
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "AUDCHF": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "holdout-cycle"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.0974354199683043,
+            "lower": 0.07887714470673358,
+            "n": 3786,
+            "upper": 0.115993695229875
+          },
+          "net": {
+            "expectancy": 0.07785084521922864,
+            "lower": 0.05893539166657983,
+            "n": 3786,
+            "upper": 0.09676629877187745
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 13.458900000000376,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.08759735981308417,
+          "selectExpectancyDelta": 0.009746514593855532,
+          "selectTotalDelta": 80.17340000000058,
+          "select": {
+            "gross": {
+              "expectancy": 0.10704214953271035,
+              "lower": 0.0893833165557214,
+              "n": 4280,
+              "upper": 0.1247009825096993
+            },
+            "net": {
+              "expectancy": 0.08759735981308417,
+              "lower": 0.06957155360339193,
+              "n": 4280,
+              "upper": 0.10562316602277641
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "AUDJPY": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.020589281942977846,
+            "lower": 0.000592970923700413,
+            "n": 3788,
+            "upper": 0.04058559296225528
+          },
+          "net": {
+            "expectancy": 0.0007303326293559032,
+            "lower": -0.019534913664360522,
+            "n": 3788,
+            "upper": 0.02099557892307233
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 32.7350000000001,
+          "pairedP": 0.4175824175824176,
+          "reason": "fails",
+          "selectExpectancy": 0.0007926442307692561,
+          "selectExpectancyDelta": 0.00006231160141335294,
+          "selectTotalDelta": 0.530899999999944,
+          "select": {
+            "gross": {
+              "expectancy": 0.020330216346153878,
+              "lower": 0.0005560221365572861,
+              "n": 4160,
+              "upper": 0.04010441055575047
+            },
+            "net": {
+              "expectancy": 0.0007926442307692561,
+              "lower": -0.019252096195848754,
+              "n": 4160,
+              "upper": 0.020837384657387267
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "AUDNZD": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "holdout-cycle"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.10116213783403652,
+            "lower": 0.08250881264004921,
+            "n": 3555,
+            "upper": 0.11981546302802383
+          },
+          "net": {
+            "expectancy": 0.07619555555555556,
+            "lower": 0.056948688032588624,
+            "n": 3555,
+            "upper": 0.09544242307852249
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 45.84489999999994,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.08791253339810534,
+          "selectExpectancyDelta": 0.011716977842549783,
+          "selectTotalDelta": 91.06069999999966,
+          "select": {
+            "gross": {
+              "expectancy": 0.11289912557687615,
+              "lower": 0.0951398544748114,
+              "n": 4117,
+              "upper": 0.1306583966789409
+            },
+            "net": {
+              "expectancy": 0.08791253339810534,
+              "lower": 0.06961711870266052,
+              "n": 4117,
+              "upper": 0.10620794809355016
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "AUDUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.03192176084099871,
+            "lower": 0.012281146814130443,
+            "n": 3805,
+            "upper": 0.051562374867866974
+          },
+          "net": {
+            "expectancy": 0.01543106438896192,
+            "lower": -0.004436078026407064,
+            "n": 3805,
+            "upper": 0.035298206804330906
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 27.348000000000127,
+          "pairedP": 0.07992007992007992,
+          "reason": "fails",
+          "selectExpectancy": 0.021061431270666103,
+          "selectExpectancyDelta": 0.005630366881704183,
+          "selectTotalDelta": 30.458900000000177,
+          "select": {
+            "gross": {
+              "expectancy": 0.03911365139348128,
+              "lower": 0.019294136371597503,
+              "n": 4234,
+              "upper": 0.05893316641536506
+            },
+            "net": {
+              "expectancy": 0.021061431270666103,
+              "lower": 0.0009734394998848865,
+              "n": 4234,
+              "upper": 0.04114942304144732
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "AVAXUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.14949027149321267,
+            "lower": -0.20279869455588528,
+            "n": 884,
+            "upper": -0.09618184843054006
+          },
+          "net": {
+            "expectancy": -0.4773095022624429,
+            "lower": -0.5320361254641067,
+            "n": 884,
+            "upper": -0.42258287906077907
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.48580319148936113,
+          "selectExpectancyDelta": -0.008493689226918233,
+          "selectTotalDelta": -80.37889999999987,
+          "select": {
+            "gross": {
+              "expectancy": -0.13233191489361706,
+              "lower": -0.18302391336860274,
+              "n": 1034,
+              "upper": -0.08163991641863139
+            },
+            "net": {
+              "expectancy": -0.48580319148936113,
+              "lower": -0.5364049559983641,
+              "n": 1034,
+              "upper": -0.4352014269803581
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "BCHUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1685627775000,
+            "endMs": 1786335300000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786335300000,
+            "confirmStartMs": 1685627775000,
+            "fitStartMs": 1383505200000,
+            "selectStartMs": 1584920250000,
+            "selectEndMs": 1685627775000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.061483477321814285,
+            "lower": -0.08583200765002766,
+            "n": 2778,
+            "upper": -0.03713494699360091
+          },
+          "net": {
+            "expectancy": -0.235082721382289,
+            "lower": -0.2613229424306108,
+            "n": 2778,
+            "upper": -0.2088425003339672
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -44.010199999999685,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.23464762633996913,
+          "selectExpectancyDelta": 0.0004350950423198663,
+          "selectTotalDelta": -113.06470000000036,
+          "select": {
+            "gross": {
+              "expectancy": -0.03824698315467082,
+              "lower": -0.0610478668744157,
+              "n": 3265,
+              "upper": -0.015446099434925947
+            },
+            "net": {
+              "expectancy": -0.23464762633996913,
+              "lower": -0.25954233245591973,
+              "n": 3265,
+              "upper": -0.2097529202240185
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "BTCUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1685627775000,
+            "endMs": 1786335300000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786335300000,
+            "confirmStartMs": 1685627775000,
+            "fitStartMs": 1383505200000,
+            "selectStartMs": 1584920250000,
+            "selectEndMs": 1685627775000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.007546100116414452,
+            "lower": -0.0127026218346903,
+            "n": 3436,
+            "upper": 0.027794822067519202
+          },
+          "net": {
+            "expectancy": -0.02902450523864957,
+            "lower": -0.04991602330719956,
+            "n": 3436,
+            "upper": -0.008132987170099578
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 406.2208000000003,
+          "pairedP": 0.6433566433566433,
+          "reason": "fails",
+          "selectExpectancy": -0.027206939820742623,
+          "selectExpectancyDelta": 0.0018175654179069488,
+          "selectTotalDelta": -6.5149000000000115,
+          "select": {
+            "gross": {
+              "expectancy": 0.009088911651728572,
+              "lower": -0.010590966765462177,
+              "n": 3905,
+              "upper": 0.02876879006891932
+            },
+            "net": {
+              "expectancy": -0.027206939820742623,
+              "lower": -0.047482873827915925,
+              "n": 3905,
+              "upper": -0.0069310058135693235
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "BZUSD": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763704125000,
+            "endMs": 1786412700000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786412700000,
+            "confirmStartMs": 1763704125000,
+            "fitStartMs": 1695578400000,
+            "selectStartMs": 1740995550000,
+            "selectEndMs": 1763704125000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.06915530726256988,
+            "lower": -0.014445499903633766,
+            "n": 358,
+            "upper": 0.15275611442877352
+          },
+          "net": {
+            "expectancy": 0.030373463687150846,
+            "lower": -0.05509176829833388,
+            "n": 358,
+            "upper": 0.11583869567263558
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -2.944799999999944,
+          "pairedP": 0.35064935064935066,
+          "reason": "fails",
+          "selectExpectancy": 0.040764345991561146,
+          "selectExpectancyDelta": 0.0103908823044103,
+          "selectTotalDelta": 8.448599999999981,
+          "select": {
+            "gross": {
+              "expectancy": 0.0749459915611815,
+              "lower": -0.0005305217711834981,
+              "n": 474,
+              "upper": 0.15042250489354647
+            },
+            "net": {
+              "expectancy": 0.040764345991561146,
+              "lower": -0.03683589276873049,
+              "n": 474,
+              "upper": 0.11836458475185278
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "CADCHF": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.08706984260820691,
+            "lower": 0.06815861678119153,
+            "n": 3558,
+            "upper": 0.10598106843522229
+          },
+          "net": {
+            "expectancy": 0.06420092748735251,
+            "lower": 0.04489968780330403,
+            "n": 3558,
+            "upper": 0.08350216717140099
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 18.144800000000117,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.06689309226932677,
+          "selectExpectancyDelta": 0.00269216478197426,
+          "selectTotalDelta": 39.81440000000015,
+          "select": {
+            "gross": {
+              "expectancy": 0.08937895261845381,
+              "lower": 0.07105364862956469,
+              "n": 4010,
+              "upper": 0.10770425660734294
+            },
+            "net": {
+              "expectancy": 0.06689309226932677,
+              "lower": 0.04809889887506891,
+              "n": 4010,
+              "upper": 0.08568728566358463
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "CADJPY": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.008613040021203324,
+            "lower": -0.011275380213437347,
+            "n": 3773,
+            "upper": 0.028501460255843998
+          },
+          "net": {
+            "expectancy": -0.014384495096740025,
+            "lower": -0.034650223199106454,
+            "n": 3773,
+            "upper": 0.005881233005626407
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 16.54440000000007,
+          "pairedP": 0.5584415584415584,
+          "reason": "fails",
+          "selectExpectancy": -0.01293184989174887,
+          "selectExpectancyDelta": 0.001452645204991155,
+          "selectTotalDelta": 0.5150000000000645,
+          "select": {
+            "gross": {
+              "expectancy": 0.009699855665143137,
+              "lower": -0.010031498493612673,
+              "n": 4157,
+              "upper": 0.02943120982389895
+            },
+            "net": {
+              "expectancy": -0.01293184989174887,
+              "lower": -0.03300950282109064,
+              "n": 4157,
+              "upper": 0.007145803037592905
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "CHFJPY": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.0444224737267582,
+            "lower": 0.024657089812950138,
+            "n": 3711,
+            "upper": 0.06418785764056625
+          },
+          "net": {
+            "expectancy": 0.01548445163028835,
+            "lower": -0.004754766163861194,
+            "n": 3711,
+            "upper": 0.035723669424437894
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 10.852200000000046,
+          "pairedP": 0.004995004995004995,
+          "reason": "accept",
+          "selectExpectancy": 0.028297467738008286,
+          "selectExpectancyDelta": 0.012813016107719935,
+          "selectTotalDelta": 58.754899999999964,
+          "select": {
+            "gross": {
+              "expectancy": 0.05692605308010699,
+              "lower": 0.03724681755391625,
+              "n": 4107,
+              "upper": 0.07660528860629773
+            },
+            "net": {
+              "expectancy": 0.028297467738008286,
+              "lower": 0.00817949833182801,
+              "n": 4107,
+              "upper": 0.04841543714418856
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "CLUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763704125000,
+            "endMs": 1786412700000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786412700000,
+            "confirmStartMs": 1763704125000,
+            "fitStartMs": 1695578400000,
+            "selectStartMs": 1740995550000,
+            "selectEndMs": 1763704125000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.0755708092485549,
+            "lower": -0.0055368168729492545,
+            "n": 346,
+            "upper": 0.15667843537005904
+          },
+          "net": {
+            "expectancy": 0.03602080924855486,
+            "lower": -0.04707993957967753,
+            "n": 346,
+            "upper": 0.11912155807678725
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -10.451099999999947,
+          "pairedP": 0.7012987012987013,
+          "reason": "fails",
+          "selectExpectancy": -0.002116115702479315,
+          "selectExpectancyDelta": -0.03813692495103417,
+          "selectTotalDelta": -13.487399999999969,
+          "select": {
+            "gross": {
+              "expectancy": 0.03299111570247934,
+              "lower": -0.03978740048313252,
+              "n": 484,
+              "upper": 0.1057696318880912
+            },
+            "net": {
+              "expectancy": -0.002116115702479315,
+              "lower": -0.07610995521651844,
+              "n": 484,
+              "upper": 0.07187772381155981
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "DASHUSD": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1712754450000,
+            "endMs": 1786333500000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 301.7109375,
+          "selectionWindow": {
+            "confirmEndMs": 1786333500000,
+            "confirmStartMs": 1712754450000,
+            "fitStartMs": 1492017300000,
+            "selectStartMs": 1639175400000,
+            "selectEndMs": 1712754450000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.03272465577969906,
+            "lower": -0.056303003954690345,
+            "n": 3123,
+            "upper": -0.009146307604707776
+          },
+          "net": {
+            "expectancy": -0.05728933717579236,
+            "lower": -0.08119251572363773,
+            "n": 3123,
+            "upper": -0.03338615862794699
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 91.26650000000049,
+          "pairedP": 0.5234765234765235,
+          "reason": "fails",
+          "selectExpectancy": -0.05092280550774517,
+          "selectExpectancyDelta": 0.006366531668047196,
+          "selectTotalDelta": 1.397699999999901,
+          "select": {
+            "gross": {
+              "expectancy": -0.025644492254733243,
+              "lower": -0.048513044017914494,
+              "n": 3486,
+              "upper": -0.0027759404915519877
+            },
+            "net": {
+              "expectancy": -0.05092280550774517,
+              "lower": -0.07408792047943165,
+              "n": 3486,
+              "upper": -0.027757690536058685
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "DAX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763662275000,
+            "endMs": 1786137300000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 315.0208333333333,
+          "selectionWindow": {
+            "confirmEndMs": 1786137300000,
+            "confirmStartMs": 1763662275000,
+            "fitStartMs": 1696237200000,
+            "selectStartMs": 1741187250000,
+            "selectEndMs": 1763662275000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.003526388888888886,
+            "lower": -0.08968716188550328,
+            "n": 216,
+            "upper": 0.08263438410772551
+          },
+          "net": {
+            "expectancy": -0.02875833333333333,
+            "lower": -0.11625772903827572,
+            "n": 216,
+            "upper": 0.05874106237160906
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 0.11888111888111888,
+          "reason": "fails",
+          "selectExpectancy": -0.006114345991561176,
+          "selectExpectancyDelta": 0.022643987341772153,
+          "selectTotalDelta": 4.762700000000001,
+          "select": {
+            "gross": {
+              "expectancy": 0.015335443037974657,
+              "lower": -0.0731677417139165,
+              "n": 237,
+              "upper": 0.10383862778986581
+            },
+            "net": {
+              "expectancy": -0.006114345991561176,
+              "lower": -0.09552722867218837,
+              "n": 237,
+              "upper": 0.08329853668906602
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "DOGEUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1713836925000,
+            "endMs": 1786333500000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 314.2395833333333,
+          "selectionWindow": {
+            "confirmEndMs": 1786333500000,
+            "confirmStartMs": 1713836925000,
+            "fitStartMs": 1496347200000,
+            "selectStartMs": 1641340350000,
+            "selectEndMs": 1713836925000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.011374155217229835,
+            "lower": -0.012399555989300565,
+            "n": 2693,
+            "upper": 0.035147866423760235
+          },
+          "net": {
+            "expectancy": -0.025343557370961733,
+            "lower": -0.050072090515602,
+            "n": 2693,
+            "upper": -0.0006150242263214672
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 28.19509999999982,
+          "pairedP": 0.11188811188811189,
+          "reason": "fails",
+          "selectExpectancy": -0.014782894736842089,
+          "selectExpectancyDelta": 0.010560662634119644,
+          "selectTotalDelta": 23.310200000000002,
+          "select": {
+            "gross": {
+              "expectancy": 0.024460065789473677,
+              "lower": 0.0008234759780762525,
+              "n": 3040,
+              "upper": 0.048096655600871105
+            },
+            "net": {
+              "expectancy": -0.014782894736842089,
+              "lower": -0.03926567249903168,
+              "n": 3040,
+              "upper": 0.009699883025347498
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "DOTUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.166015925925926,
+            "lower": -0.2339523241659815,
+            "n": 540,
+            "upper": -0.09807952768587051
+          },
+          "net": {
+            "expectancy": -0.7023601851851853,
+            "lower": -0.762845989458673,
+            "n": 540,
+            "upper": -0.6418743809116976
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.7048613458528957,
+          "selectExpectancyDelta": -0.0025011606677104448,
+          "selectTotalDelta": -71.13190000000031,
+          "select": {
+            "gross": {
+              "expectancy": -0.09629671361502347,
+              "lower": -0.16109792973315878,
+              "n": 639,
+              "upper": -0.03149549749688817
+            },
+            "net": {
+              "expectancy": -0.7048613458528957,
+              "lower": -0.7607060708321137,
+              "n": 639,
+              "upper": -0.6490166208736777
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "DOW": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.08752093023255814,
+            "lower": -0.31875429159651714,
+            "n": 43,
+            "upper": 0.14371243113140086
+          },
+          "net": {
+            "expectancy": -0.1216790697674419,
+            "lower": -0.3577588931782828,
+            "n": 43,
+            "upper": 0.11440075364339901
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 1,
+          "reason": "NO VERDICT — pairing 4 nonzero of 43 shared days is below the statistic's floor (5)",
+          "selectExpectancy": -0.08760000000000001,
+          "selectExpectancyDelta": 0.03407906976744189,
+          "selectTotalDelta": 1.115000000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.05705319148936171,
+              "lower": -0.30387655991316515,
+              "n": 47,
+              "upper": 0.18977017693444176
+            },
+            "net": {
+              "expectancy": -0.08760000000000001,
+              "lower": -0.33804075761069896,
+              "n": 47,
+              "upper": 0.16284075761069894
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "DYDXUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.32027017543859654,
+            "lower": -0.4528604403319566,
+            "n": 285,
+            "upper": -0.1876799105452365
+          },
+          "net": {
+            "expectancy": -1.0712014035087718,
+            "lower": -1.1494680463596711,
+            "n": 285,
+            "upper": -0.9929347606578723
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -1.066051796407186,
+          "selectExpectancyDelta": 0.00514960710158574,
+          "selectTotalDelta": -50.768900000000144,
+          "select": {
+            "gross": {
+              "expectancy": -0.16984251497005978,
+              "lower": -0.3069049496947979,
+              "n": 334,
+              "upper": -0.03278008024532164
+            },
+            "net": {
+              "expectancy": -1.066051796407186,
+              "lower": -1.136357972632233,
+              "n": 334,
+              "upper": -0.9957456201821391
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "EGLDUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1748897325000,
+            "endMs": 1786333500000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 720.03125,
+          "selectionWindow": {
+            "confirmEndMs": 1786333500000,
+            "confirmStartMs": 1748897325000,
+            "fitStartMs": 1636588800000,
+            "selectStartMs": 1711461150000,
+            "selectEndMs": 1748897325000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.08093780864197539,
+            "lower": -0.12023192960971556,
+            "n": 1296,
+            "upper": -0.04164368767423522
+          },
+          "net": {
+            "expectancy": -0.30902137345679004,
+            "lower": -0.3503265070066683,
+            "n": 1296,
+            "upper": -0.2677162399069118
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 0.994005994005994,
+          "reason": "fails",
+          "selectExpectancy": -0.29559543952412437,
+          "selectExpectancyDelta": 0.013425933932665668,
+          "selectTotalDelta": -46.74420000000026,
+          "select": {
+            "gross": {
+              "expectancy": -0.051933311302048986,
+              "lower": -0.08969480624915874,
+              "n": 1513,
+              "upper": -0.014171816354939235
+            },
+            "net": {
+              "expectancy": -0.29559543952412437,
+              "lower": -0.3353658724785497,
+              "n": 1513,
+              "upper": -0.25582500656969903
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ESUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763704125000,
+            "endMs": 1786412700000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786412700000,
+            "confirmStartMs": 1763704125000,
+            "fitStartMs": 1695578400000,
+            "selectStartMs": 1740995550000,
+            "selectEndMs": 1763704125000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.0074511278195488655,
+            "lower": -0.053465350200733744,
+            "n": 399,
+            "upper": 0.06836760583983148
+          },
+          "net": {
+            "expectancy": -0.009183458646616571,
+            "lower": -0.07053582893704859,
+            "n": 399,
+            "upper": 0.052168911643815444
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 3.6077999999999832,
+          "pairedP": 0.017982017982017984,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy 0.0252R is not positive beyond its error (95% lower -0.0343R over 487 filled)",
+          "selectExpectancy": 0.02515051334702256,
+          "selectExpectancyDelta": 0.034333971993639134,
+          "selectTotalDelta": 15.912499999999998,
+          "select": {
+            "gross": {
+              "expectancy": 0.04061889117043122,
+              "lower": -0.018018053472398113,
+              "n": 487,
+              "upper": 0.09925583581326056
+            },
+            "net": {
+              "expectancy": 0.02515051334702256,
+              "lower": -0.03433877603699015,
+              "n": 487,
+              "upper": 0.08463980273103526
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ETCUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1707152175000,
+            "endMs": 1786333500000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 236.86979166666666,
+          "selectionWindow": {
+            "confirmEndMs": 1786333500000,
+            "confirmStartMs": 1707152175000,
+            "fitStartMs": 1469608200000,
+            "selectStartMs": 1627970850000,
+            "selectEndMs": 1707152175000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.019853242594075237,
+            "lower": -0.004448842392874224,
+            "n": 2498,
+            "upper": 0.044155327581024695
+          },
+          "net": {
+            "expectancy": -0.02634131305044034,
+            "lower": -0.051550431347646294,
+            "n": 2498,
+            "upper": -0.001132194753234391
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 439.55550000000017,
+          "pairedP": 0.22077922077922077,
+          "reason": "fails",
+          "selectExpectancy": -0.001391746522411083,
+          "selectExpectancyDelta": 0.02494956652802926,
+          "selectTotalDelta": 61.29830000000012,
+          "select": {
+            "gross": {
+              "expectancy": 0.045428964451313794,
+              "lower": 0.023433668149981605,
+              "n": 3235,
+              "upper": 0.06742426075264599
+            },
+            "net": {
+              "expectancy": -0.001391746522411083,
+              "lower": -0.024225729332972342,
+              "n": 3235,
+              "upper": 0.021442236288150177
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ETHUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1685627775000,
+            "endMs": 1786335300000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786335300000,
+            "confirmStartMs": 1685627775000,
+            "fitStartMs": 1383505200000,
+            "selectStartMs": 1584920250000,
+            "selectEndMs": 1685627775000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.008730017921146969,
+            "lower": -0.029903275279049825,
+            "n": 3348,
+            "upper": 0.012443239436755888
+          },
+          "net": {
+            "expectancy": -0.038704241338112344,
+            "lower": -0.06044289894317372,
+            "n": 3348,
+            "upper": -0.016965583733050967
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 376.79360000000077,
+          "pairedP": 0.5164835164835165,
+          "reason": "fails",
+          "selectExpectancy": -0.03337226277372267,
+          "selectExpectancyDelta": 0.005331978564389675,
+          "selectTotalDelta": 1.5657999999999674,
+          "select": {
+            "gross": {
+              "expectancy": 0.00009739311783108379,
+              "lower": -0.021380366598433988,
+              "n": 3836,
+              "upper": 0.021575152834096153
+            },
+            "net": {
+              "expectancy": -0.03337226277372267,
+              "lower": -0.05537995061192681,
+              "n": 3836,
+              "upper": -0.011364574935518526
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "EURAUD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.04300454423950808,
+            "lower": 0.023612973000714275,
+            "n": 3741,
+            "upper": 0.062396115478301886
+          },
+          "net": {
+            "expectancy": 0.02049716653301254,
+            "lower": 0.0006547409381101738,
+            "n": 3741,
+            "upper": 0.04033959212791491
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 23.77099999999976,
+          "pairedP": 0.4695304695304695,
+          "reason": "fails",
+          "selectExpectancy": 0.01937100145843459,
+          "selectExpectancyDelta": -0.0011261650745779499,
+          "selectTotalDelta": 3.0123999999999853,
+          "select": {
+            "gross": {
+              "expectancy": 0.04314982984929499,
+              "lower": 0.024063328630996104,
+              "n": 4114,
+              "upper": 0.062236331067593874
+            },
+            "net": {
+              "expectancy": 0.01937100145843459,
+              "lower": -0.00012360359533532955,
+              "n": 4114,
+              "upper": 0.03886560651220451
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "EURCAD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.07676835885038936,
+            "lower": 0.0584323734636277,
+            "n": 3723,
+            "upper": 0.09510434423715103
+          },
+          "net": {
+            "expectancy": 0.04849231802309969,
+            "lower": 0.02960461873372662,
+            "n": 3723,
+            "upper": 0.06738001731247276
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 25.062800000000465,
+          "pairedP": 0.14185814185814186,
+          "reason": "fails",
+          "selectExpectancy": 0.04770000000000002,
+          "selectExpectancyDelta": -0.0007923180230996682,
+          "selectTotalDelta": 17.65659999999994,
+          "select": {
+            "gross": {
+              "expectancy": 0.0775376654632971,
+              "lower": 0.059315735877267295,
+              "n": 4155,
+              "upper": 0.0957595950493269
+            },
+            "net": {
+              "expectancy": 0.04770000000000002,
+              "lower": 0.02896722603759181,
+              "n": 4155,
+              "upper": 0.06643277396240824
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "EURCHF": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.05076760259179271,
+            "lower": 0.03070169214907843,
+            "n": 3241,
+            "upper": 0.07083351303450698
+          },
+          "net": {
+            "expectancy": 0.015537951249614407,
+            "lower": -0.005386272855693694,
+            "n": 3241,
+            "upper": 0.03646217535492251
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 26.7069000000007,
+          "pairedP": 0.3806193806193806,
+          "reason": "fails",
+          "selectExpectancy": 0.029373303757828862,
+          "selectExpectancyDelta": 0.013835352508214455,
+          "selectTotalDelta": 62.1999999999999,
+          "select": {
+            "gross": {
+              "expectancy": 0.06255498434238006,
+              "lower": 0.04352973576462223,
+              "n": 3832,
+              "upper": 0.0815802329201379
+            },
+            "net": {
+              "expectancy": 0.029373303757828862,
+              "lower": 0.009730809159563023,
+              "n": 3832,
+              "upper": 0.0490157983560947
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "EURGBP": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.059101220628623725,
+            "lower": 0.038854068385363455,
+            "n": 3277,
+            "upper": 0.079348372871884
+          },
+          "net": {
+            "expectancy": 0.03620137320720174,
+            "lower": 0.015398372235901799,
+            "n": 3277,
+            "upper": 0.057004374178501675
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 30.154899999999838,
+          "pairedP": 0.2127872127872128,
+          "reason": "fails",
+          "selectExpectancy": 0.03487430574278778,
+          "selectExpectancyDelta": -0.00132706746441396,
+          "selectTotalDelta": 10.716899999999768,
+          "select": {
+            "gross": {
+              "expectancy": 0.060266729576705265,
+              "lower": 0.04047324776237564,
+              "n": 3709,
+              "upper": 0.08006021139103489
+            },
+            "net": {
+              "expectancy": 0.03487430574278778,
+              "lower": 0.014495327356795911,
+              "n": 3709,
+              "upper": 0.05525328412877964
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "EURJPY": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.030603881090008212,
+            "lower": 0.01082886777608394,
+            "n": 3633,
+            "upper": 0.050378894403932485
+          },
+          "net": {
+            "expectancy": -0.000640489953206687,
+            "lower": -0.020850470164144007,
+            "n": 3633,
+            "upper": 0.01956949025773063
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 6.537999999999869,
+          "pairedP": 0.2727272727272727,
+          "reason": "fails",
+          "selectExpectancy": 0.0021352392638037173,
+          "selectExpectancyDelta": 0.0027757292170104042,
+          "selectTotalDelta": 11.028000000000041,
+          "select": {
+            "gross": {
+              "expectancy": 0.03224144785276066,
+              "lower": 0.012984557169479032,
+              "n": 4075,
+              "upper": 0.051498338536042285
+            },
+            "net": {
+              "expectancy": 0.0021352392638037173,
+              "lower": -0.01756053842373137,
+              "n": 4075,
+              "upper": 0.0218310169513388
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "EURNZD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.07553345323740998,
+            "lower": 0.056598474205201366,
+            "n": 3614,
+            "upper": 0.0944684322696186
+          },
+          "net": {
+            "expectancy": 0.05255218594355281,
+            "lower": 0.03307883172317688,
+            "n": 3614,
+            "upper": 0.07202554016392873
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 24.019100000000293,
+          "pairedP": 0.01898101898101898,
+          "reason": "accept",
+          "selectExpectancy": 0.05491811846689892,
+          "selectExpectancyDelta": 0.0023659325233461106,
+          "selectTotalDelta": 30.737400000000008,
+          "select": {
+            "gross": {
+              "expectancy": 0.07696199601791927,
+              "lower": 0.05837272817402346,
+              "n": 4018,
+              "upper": 0.09555126386181508
+            },
+            "net": {
+              "expectancy": 0.05491811846689892,
+              "lower": 0.035833667293657806,
+              "n": 4018,
+              "upper": 0.07400256964014003
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "EURUSD": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "holdout-cycle"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.004855960178150367,
+            "lower": -0.024426445170820668,
+            "n": 3817,
+            "upper": 0.014714524814519936
+          },
+          "net": {
+            "expectancy": -0.033527115535761036,
+            "lower": -0.05349747790791215,
+            "n": 3817,
+            "upper": -0.013556753163609919
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0.025300000000413547,
+          "pairedP": 0.26373626373626374,
+          "reason": "fails",
+          "selectExpectancy": -0.02832074179069216,
+          "selectExpectancyDelta": 0.005206373745068875,
+          "selectTotalDelta": 8.091299999999961,
+          "select": {
+            "gross": {
+              "expectancy": 0.0007248759744861818,
+              "lower": -0.018645364340744867,
+              "n": 4233,
+              "upper": 0.020095116289717233
+            },
+            "net": {
+              "expectancy": -0.02832074179069216,
+              "lower": -0.048091667699526025,
+              "n": 4233,
+              "upper": -0.008549815881858297
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "FILUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.18660512820512823,
+            "lower": -0.40456203401916524,
+            "n": 39,
+            "upper": 0.03135177760890881
+          },
+          "net": {
+            "expectancy": -1.9191256410256408,
+            "lower": -2.2548654350911828,
+            "n": 39,
+            "upper": -1.583385846960099
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -1.8259718309859163,
+          "selectExpectancyDelta": 0.09315381003972445,
+          "selectTotalDelta": -54.798100000000076,
+          "select": {
+            "gross": {
+              "expectancy": -0.18883943661971833,
+              "lower": -0.34738855811594527,
+              "n": 71,
+              "upper": -0.030290315123491424
+            },
+            "net": {
+              "expectancy": -1.8259718309859163,
+              "lower": -2.08563058268695,
+              "n": 71,
+              "upper": -1.5663130792848827
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "GBPAUD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.019055479452054786,
+            "lower": -0.0016258933328536194,
+            "n": 3504,
+            "upper": 0.03973685223696319
+          },
+          "net": {
+            "expectancy": -0.0048323630136986205,
+            "lower": -0.025883873374814806,
+            "n": 3504,
+            "upper": 0.016219147347417563
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 52.42180000000021,
+          "pairedP": 0.35064935064935066,
+          "reason": "fails",
+          "selectExpectancy": -0.003071936656282417,
+          "selectExpectancyDelta": 0.0017604263574162037,
+          "selectTotalDelta": 5.099500000000095,
+          "select": {
+            "gross": {
+              "expectancy": 0.020360851505711333,
+              "lower": -0.000020818507252471502,
+              "n": 3852,
+              "upper": 0.040742521518675134
+            },
+            "net": {
+              "expectancy": -0.003071936656282417,
+              "lower": -0.023813810414124066,
+              "n": 3852,
+              "upper": 0.01766993710155923
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "GBPCAD": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "holdout-cycle"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.04607041923189678,
+            "lower": 0.025492445031316653,
+            "n": 3411,
+            "upper": 0.06664839343247692
+          },
+          "net": {
+            "expectancy": 0.02184658457930223,
+            "lower": 0.0008224336202494811,
+            "n": 3411,
+            "upper": 0.04287073553835498
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 22.654999999999617,
+          "pairedP": 0.6163836163836164,
+          "reason": "fails",
+          "selectExpectancy": 0.017963241004400724,
+          "selectExpectancyDelta": -0.0038833435749015058,
+          "selectTotalDelta": -5.126699999999914,
+          "select": {
+            "gross": {
+              "expectancy": 0.04408392441107946,
+              "lower": 0.023845675295818394,
+              "n": 3863,
+              "upper": 0.06432217352634052
+            },
+            "net": {
+              "expectancy": 0.017963241004400724,
+              "lower": -0.002740769263394352,
+              "n": 3863,
+              "upper": 0.0386672512721958
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "GBPCHF": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.05387446093531227,
+            "lower": 0.034240934761455635,
+            "n": 3571,
+            "upper": 0.0735079871091689
+          },
+          "net": {
+            "expectancy": 0.031232287874544913,
+            "lower": 0.011213856888467308,
+            "n": 3571,
+            "upper": 0.05125071886062252
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 71.19719999999974,
+          "pairedP": 0.07292707292707293,
+          "reason": "fails",
+          "selectExpectancy": 0.035361188019129144,
+          "selectExpectancyDelta": 0.004128900144584231,
+          "selectTotalDelta": 28.959500000000205,
+          "select": {
+            "gross": {
+              "expectancy": 0.05999473949156814,
+              "lower": 0.040233871276977404,
+              "n": 3973,
+              "upper": 0.07975560770615887
+            },
+            "net": {
+              "expectancy": 0.035361188019129144,
+              "lower": 0.015204059030863432,
+              "n": 3973,
+              "upper": 0.05551831700739486
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "GBPJPY": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.04582638226213865,
+            "lower": 0.02587456312411341,
+            "n": 3563,
+            "upper": 0.06577820140016388
+          },
+          "net": {
+            "expectancy": 0.029150463092899263,
+            "lower": 0.008934481909811116,
+            "n": 3563,
+            "upper": 0.04936644427598741
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -68.41020000000022,
+          "pairedP": 0.7992007992007992,
+          "reason": "fails",
+          "selectExpectancy": 0.02295578680203045,
+          "selectExpectancyDelta": -0.006194676290868811,
+          "selectTotalDelta": -13.417300000000097,
+          "select": {
+            "gross": {
+              "expectancy": 0.04110695431472085,
+              "lower": 0.021109094338457503,
+              "n": 3940,
+              "upper": 0.06110481429098419
+            },
+            "net": {
+              "expectancy": 0.02295578680203045,
+              "lower": 0.002673248561673277,
+              "n": 3940,
+              "upper": 0.04323832504238763
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "GBPNZD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.07122417612849631,
+            "lower": 0.05180389017537107,
+            "n": 3611,
+            "upper": 0.09064446208162155
+          },
+          "net": {
+            "expectancy": 0.04564267515923569,
+            "lower": 0.025723073720102987,
+            "n": 3611,
+            "upper": 0.06556227659836839
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 73.2839999999986,
+          "pairedP": 0.12387612387612387,
+          "reason": "fails",
+          "selectExpectancy": 0.04604214876033055,
+          "selectExpectancyDelta": 0.0003994736010948588,
+          "selectTotalDelta": 19.030599999999794,
+          "select": {
+            "gross": {
+              "expectancy": 0.07226929626846991,
+              "lower": 0.05323636603972755,
+              "n": 3993,
+              "upper": 0.09130222649721227
+            },
+            "net": {
+              "expectancy": 0.04604214876033055,
+              "lower": 0.026505672741116742,
+              "n": 3993,
+              "upper": 0.06557862477954435
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "GBPUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.024189473684210497,
+            "lower": 0.004270397435612309,
+            "n": 3572,
+            "upper": 0.04410854993280869
+          },
+          "net": {
+            "expectancy": 0.002786786114221733,
+            "lower": -0.01748248980920091,
+            "n": 3572,
+            "upper": 0.023056062037644376
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -13.695000000000448,
+          "pairedP": 0.37662337662337664,
+          "reason": "fails",
+          "selectExpectancy": 0.004671328496372283,
+          "selectExpectancyDelta": 0.0018845423821505503,
+          "selectTotalDelta": 8.716899999999987,
+          "select": {
+            "gross": {
+              "expectancy": 0.029240905679259403,
+              "lower": 0.009492061706870322,
+              "n": 3997,
+              "upper": 0.048989749651648484
+            },
+            "net": {
+              "expectancy": 0.004671328496372283,
+              "lower": -0.0154421722321057,
+              "n": 3997,
+              "upper": 0.024784829224850265
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "GCUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763704125000,
+            "endMs": 1786412700000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786412700000,
+            "confirmStartMs": 1763704125000,
+            "fitStartMs": 1695578400000,
+            "selectStartMs": 1740995550000,
+            "selectEndMs": 1763704125000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.03380237659963436,
+            "lower": -0.01897790813769603,
+            "n": 547,
+            "upper": 0.08658266133696474
+          },
+          "net": {
+            "expectancy": 0.025723583180987247,
+            "lower": -0.02750582572489308,
+            "n": 547,
+            "upper": 0.07895299208686757
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -4.301899999999975,
+          "pairedP": 0.03996003996003996,
+          "reason": "fails",
+          "selectExpectancy": 0.042395744680851034,
+          "selectExpectancyDelta": 0.016672161499863787,
+          "selectTotalDelta": 11.832999999999958,
+          "select": {
+            "gross": {
+              "expectancy": 0.048287234042553175,
+              "lower": -0.0031989256040320865,
+              "n": 611,
+              "upper": 0.09977339368913843
+            },
+            "net": {
+              "expectancy": 0.042395744680851034,
+              "lower": -0.009490359818754894,
+              "n": 611,
+              "upper": 0.09428184918045696
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "GFUSX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.010661855670103096,
+            "lower": -0.20324106709100376,
+            "n": 97,
+            "upper": 0.18191735575079754
+          },
+          "net": {
+            "expectancy": -0.06629896907216494,
+            "lower": -0.2567918818968433,
+            "n": 97,
+            "upper": 0.12419394375251343
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 2.4163999999999923,
+          "pairedP": 0.7342657342657343,
+          "reason": "fails",
+          "selectExpectancy": -0.02013916666666663,
+          "selectExpectancyDelta": 0.04615980240549831,
+          "selectTotalDelta": 4.014300000000004,
+          "select": {
+            "gross": {
+              "expectancy": 0.05328166666666666,
+              "lower": -0.13146592683507924,
+              "n": 120,
+              "upper": 0.23802926016841258
+            },
+            "net": {
+              "expectancy": -0.02013916666666663,
+              "lower": -0.20263544820069607,
+              "n": 120,
+              "upper": 0.16235711486736282
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "GRTUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1741807575000,
+            "endMs": 1786334400000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 637.9739583333334,
+          "selectionWindow": {
+            "confirmEndMs": 1786334400000,
+            "confirmStartMs": 1741807575000,
+            "fitStartMs": 1608227100000,
+            "selectStartMs": 1697280750000,
+            "selectEndMs": 1741807575000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.001080031821797923,
+            "lower": -0.023831345983395626,
+            "n": 2514,
+            "upper": 0.025991409626991473
+          },
+          "net": {
+            "expectancy": -0.03244196499602231,
+            "lower": -0.0579235910970379,
+            "n": 2514,
+            "upper": -0.0069603388950067215
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 0.3836163836163836,
+          "reason": "fails",
+          "selectExpectancy": -0.02547467691232977,
+          "selectExpectancyDelta": 0.006967288083692541,
+          "selectTotalDelta": 8.62509999999996,
+          "select": {
+            "gross": {
+              "expectancy": 0.008148725113517292,
+              "lower": -0.01601761904933806,
+              "n": 2863,
+              "upper": 0.03231506927637265
+            },
+            "net": {
+              "expectancy": -0.02547467691232977,
+              "lower": -0.050312148962157924,
+              "n": 2863,
+              "upper": -0.0006372048625016176
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "HBARUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1756170000000,
+            "endMs": 1786334400000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 804.2057291666666,
+          "selectionWindow": {
+            "confirmEndMs": 1786334400000,
+            "confirmStartMs": 1756170000000,
+            "fitStartMs": 1665676800000,
+            "selectStartMs": 1726005600000,
+            "selectEndMs": 1756170000000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.06954718750000004,
+            "lower": -0.122727342961888,
+            "n": 640,
+            "upper": -0.01636703203811208
+          },
+          "net": {
+            "expectancy": -0.10404609374999998,
+            "lower": -0.15811087594636092,
+            "n": 640,
+            "upper": -0.04998131155363904
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 0.7472527472527473,
+          "reason": "fails",
+          "selectExpectancy": -0.10054253521126752,
+          "selectExpectancyDelta": 0.0035035585387324653,
+          "selectTotalDelta": -4.795699999999954,
+          "select": {
+            "gross": {
+              "expectancy": -0.06335788732394369,
+              "lower": -0.11439089822365014,
+              "n": 710,
+              "upper": -0.012324876424237234
+            },
+            "net": {
+              "expectancy": -0.10054253521126752,
+              "lower": -0.15247342042053763,
+              "n": 710,
+              "upper": -0.0486116500019974
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "HEUSX": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.3990529411764709,
+            "lower": -1.4902154412912183,
+            "n": 85,
+            "upper": 0.6921095589382764
+          },
+          "net": {
+            "expectancy": -1.028142352941177,
+            "lower": -3.177288790329985,
+            "n": 85,
+            "upper": 1.1210040844476308
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -11.712900000000083,
+          "pairedP": 0.7572427572427572,
+          "reason": "fails",
+          "selectExpectancy": -0.9567125000000005,
+          "selectExpectancyDelta": 0.07142985294117654,
+          "selectTotalDelta": -4.452300000000008,
+          "select": {
+            "gross": {
+              "expectancy": -0.3599229166666669,
+              "lower": -1.3265714398989181,
+              "n": 96,
+              "upper": 0.6067256065655844
+            },
+            "net": {
+              "expectancy": -0.9567125000000005,
+              "lower": -2.8593524484761876,
+              "n": 96,
+              "upper": 0.9459274484761866
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "HGUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763704125000,
+            "endMs": 1786412700000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786412700000,
+            "confirmStartMs": 1763704125000,
+            "fitStartMs": 1695578400000,
+            "selectStartMs": 1740995550000,
+            "selectEndMs": 1763704125000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.00769559471365638,
+            "lower": -0.05370053352458805,
+            "n": 454,
+            "upper": 0.0690917229519008
+          },
+          "net": {
+            "expectancy": -0.012203744493392047,
+            "lower": -0.07411294044187675,
+            "n": 454,
+            "upper": 0.049705451455092656
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -20.246500000000253,
+          "pairedP": 0.6993006993006993,
+          "reason": "fails",
+          "selectExpectancy": -0.018676562500000025,
+          "selectExpectancyDelta": -0.006472818006607978,
+          "selectTotalDelta": -4.021900000000024,
+          "select": {
+            "gross": {
+              "expectancy": 0.002923437499999987,
+              "lower": -0.05710501657079394,
+              "n": 512,
+              "upper": 0.06295189157079392
+            },
+            "net": {
+              "expectancy": -0.018676562500000025,
+              "lower": -0.07943675633520643,
+              "n": 512,
+              "upper": 0.04208363133520639
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "HOUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.18287680722891567,
+            "lower": -0.271278558158593,
+            "n": 332,
+            "upper": -0.09447505629923836
+          },
+          "net": {
+            "expectancy": -0.2273855421686747,
+            "lower": -0.31554037211675967,
+            "n": 332,
+            "upper": -0.13923071222058975
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -109.22179999999958,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.3002073710073713,
+          "selectExpectancyDelta": -0.07282182883869662,
+          "selectTotalDelta": -46.69240000000012,
+          "select": {
+            "gross": {
+              "expectancy": -0.2586813267813272,
+              "lower": -0.3380415944158062,
+              "n": 407,
+              "upper": -0.1793210591468482
+            },
+            "net": {
+              "expectancy": -0.3002073710073713,
+              "lower": -0.3790983800838354,
+              "n": 407,
+              "upper": -0.22131636193090726
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "IMXUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1751360400000,
+            "endMs": 1786334400000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 748.5390625,
+          "selectionWindow": {
+            "confirmEndMs": 1786334400000,
+            "confirmStartMs": 1751360400000,
+            "fitStartMs": 1646438400000,
+            "selectStartMs": 1716386400000,
+            "selectEndMs": 1751360400000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.022621985815602843,
+            "lower": -0.07044511832439322,
+            "n": 1128,
+            "upper": 0.025201146693187532
+          },
+          "net": {
+            "expectancy": -0.06234414893617018,
+            "lower": -0.1105935287333743,
+            "n": 1128,
+            "upper": -0.014094769138966061
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 0.22477522477522477,
+          "reason": "fails",
+          "selectExpectancy": -0.03636730911786512,
+          "selectExpectancyDelta": 0.025976839818305057,
+          "selectTotalDelta": 21.264699999999912,
+          "select": {
+            "gross": {
+              "expectancy": 0.007361452928094897,
+              "lower": -0.04519237153170623,
+              "n": 1349,
+              "upper": 0.059915277387896024
+            },
+            "net": {
+              "expectancy": -0.03636730911786512,
+              "lower": -0.08914038377604681,
+              "n": 1349,
+              "upper": 0.016405765540316572
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "LEUSX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.15445342465753417,
+            "lower": -0.10428854162433174,
+            "n": 73,
+            "upper": 0.41319539093940005
+          },
+          "net": {
+            "expectancy": 0.08155616438356166,
+            "lower": -0.18154804944846525,
+            "n": 73,
+            "upper": 0.3446603782155886
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -2.3243999999999962,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.02785909090909089,
+          "selectExpectancyDelta": -0.10941525529265254,
+          "selectTotalDelta": -8.405199999999999,
+          "select": {
+            "gross": {
+              "expectancy": 0.03351818181818185,
+              "lower": -0.19260151864521852,
+              "n": 88,
+              "upper": 0.2596378822815822
+            },
+            "net": {
+              "expectancy": -0.02785909090909089,
+              "lower": -0.25615913752661024,
+              "n": 88,
+              "upper": 0.2004409557084285
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "LINKUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1730164050000,
+            "endMs": 1786334400000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 503.2109375,
+          "selectionWindow": {
+            "confirmEndMs": 1786334400000,
+            "confirmStartMs": 1730164050000,
+            "fitStartMs": 1561653000000,
+            "selectStartMs": 1673993700000,
+            "selectEndMs": 1730164050000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.019029356689821822,
+            "lower": -0.04704038392290002,
+            "n": 3311,
+            "upper": 0.008981670543256375
+          },
+          "net": {
+            "expectancy": -0.042424343098761745,
+            "lower": -0.0706743755912746,
+            "n": 3311,
+            "upper": -0.01417431060624889
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0.8219999999999974,
+          "pairedP": 0.8591408591408591,
+          "reason": "fails",
+          "selectExpectancy": -0.04736126396077371,
+          "selectExpectancyDelta": -0.004936920862011966,
+          "selectTotalDelta": -33.396200000000164,
+          "select": {
+            "gross": {
+              "expectancy": -0.022239335330972474,
+              "lower": -0.05172139895531125,
+              "n": 3671,
+              "upper": 0.0072427282933663
+            },
+            "net": {
+              "expectancy": -0.04736126396077371,
+              "lower": -0.07703561346215074,
+              "n": 3671,
+              "upper": -0.017686914459396692
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "LTCUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1685627775000,
+            "endMs": 1786335300000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786335300000,
+            "confirmStartMs": 1685627775000,
+            "fitStartMs": 1383505200000,
+            "selectStartMs": 1584920250000,
+            "selectEndMs": 1685627775000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.02377907669396868,
+            "lower": -0.0480097857036579,
+            "n": 2686,
+            "upper": 0.0004516323157205404
+          },
+          "net": {
+            "expectancy": -0.22107624720774377,
+            "lower": -0.24779533429414635,
+            "n": 2686,
+            "upper": -0.1943571601213412
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 256.89099999999945,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2110751505546751,
+          "selectExpectancyDelta": 0.01000109665306867,
+          "selectTotalDelta": -72.13130000000024,
+          "select": {
+            "gross": {
+              "expectancy": -0.0009293819334389917,
+              "lower": -0.02339462811379971,
+              "n": 3155,
+              "upper": 0.021535864246921724
+            },
+            "net": {
+              "expectancy": -0.2110751505546751,
+              "lower": -0.2362548526876551,
+              "n": 3155,
+              "upper": -0.18589544842169511
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "NEARUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.14132648902821324,
+            "lower": -0.21136981408311123,
+            "n": 638,
+            "upper": -0.07128316397331526
+          },
+          "net": {
+            "expectancy": -0.6430057993730409,
+            "lower": -0.7049539216760718,
+            "n": 638,
+            "upper": -0.58105767707001
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.6464265333333337,
+          "selectExpectancyDelta": -0.0034207339602927433,
+          "selectTotalDelta": -74.58220000000011,
+          "select": {
+            "gross": {
+              "expectancy": -0.12470373333333329,
+              "lower": -0.19092746605734487,
+              "n": 750,
+              "upper": -0.05848000060932171
+            },
+            "net": {
+              "expectancy": -0.6464265333333337,
+              "lower": -0.7030752235508653,
+              "n": 750,
+              "upper": -0.5897778431158021
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "NGUSD": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763704125000,
+            "endMs": 1786412700000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786412700000,
+            "confirmStartMs": 1763704125000,
+            "fitStartMs": 1695578400000,
+            "selectStartMs": 1740995550000,
+            "selectEndMs": 1763704125000
+          },
+          "tranche": "holdout-cycle"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.06868704453441297,
+            "lower": -0.1318424431058765,
+            "n": 494,
+            "upper": -0.005531645962949444
+          },
+          "net": {
+            "expectancy": -0.09856457489878545,
+            "lower": -0.16221357388680951,
+            "n": 494,
+            "upper": -0.0349155759107614
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -17.125400000000113,
+          "pairedP": 0.16183816183816183,
+          "reason": "fails",
+          "selectExpectancy": -0.06934711864406783,
+          "selectExpectancyDelta": 0.029217456254717625,
+          "selectTotalDelta": 7.7761,
+          "select": {
+            "gross": {
+              "expectancy": -0.04600372881355931,
+              "lower": -0.10938007052534446,
+              "n": 590,
+              "upper": 0.017372612898225837
+            },
+            "net": {
+              "expectancy": -0.06934711864406783,
+              "lower": -0.1333652741714387,
+              "n": 590,
+              "upper": -0.00532896311669695
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "NIKKEI": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.13705327102803735,
+            "lower": -0.27414425782853435,
+            "n": 107,
+            "upper": 0.00003771577245967328
+          },
+          "net": {
+            "expectancy": -0.1678289719626168,
+            "lower": -0.3099017363676675,
+            "n": 107,
+            "upper": -0.025756207557566163
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 0.7672327672327672,
+          "reason": "fails",
+          "selectExpectancy": -0.25153050847457614,
+          "selectExpectancyDelta": -0.08370153651195933,
+          "selectTotalDelta": -11.722899999999989,
+          "select": {
+            "gross": {
+              "expectancy": -0.2131169491525423,
+              "lower": -0.4631388101462348,
+              "n": 118,
+              "upper": 0.03690491184115019
+            },
+            "net": {
+              "expectancy": -0.25153050847457614,
+              "lower": -0.5092066319006077,
+              "n": 118,
+              "upper": 0.006145614951455325
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "NQUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763704125000,
+            "endMs": 1786412700000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786412700000,
+            "confirmStartMs": 1763704125000,
+            "fitStartMs": 1695578400000,
+            "selectStartMs": 1740995550000,
+            "selectEndMs": 1763704125000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.024047281323877095,
+            "lower": -0.03561930898040849,
+            "n": 423,
+            "upper": 0.08371387162816268
+          },
+          "net": {
+            "expectancy": 0.015467848699763599,
+            "lower": -0.04459921862688224,
+            "n": 423,
+            "upper": 0.07553491602640944
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 23.229999999999947,
+          "pairedP": 0.22277722277722278,
+          "reason": "fails",
+          "selectExpectancy": 0.02527309833024123,
+          "selectExpectancyDelta": 0.009805249630477632,
+          "selectTotalDelta": 7.079300000000022,
+          "select": {
+            "gross": {
+              "expectancy": 0.03494935064935067,
+              "lower": -0.024100270526494064,
+              "n": 539,
+              "upper": 0.0939989718251954
+            },
+            "net": {
+              "expectancy": 0.02527309833024123,
+              "lower": -0.03395400907381269,
+              "n": 539,
+              "upper": 0.08450020573429515
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "NSDQ": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1735427475000,
+            "endMs": 1786391100000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786391100000,
+            "confirmStartMs": 1735427475000,
+            "fitStartMs": 1582536600000,
+            "selectStartMs": 1684463850000,
+            "selectEndMs": 1735427475000
+          },
+          "tranche": "holdout-cycle"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.06872702702702704,
+            "lower": -0.15816651053264882,
+            "n": 148,
+            "upper": 0.020712456478594737
+          },
+          "net": {
+            "expectancy": -0.08470405405405405,
+            "lower": -0.17416437676141583,
+            "n": 148,
+            "upper": 0.0047562686533077075
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 12.229299999999995,
+          "pairedP": 0.7342657342657343,
+          "reason": "fails",
+          "selectExpectancy": -0.12613373493975902,
+          "selectExpectancyDelta": -0.041429680885704964,
+          "selectTotalDelta": -8.402,
+          "select": {
+            "gross": {
+              "expectancy": -0.10388253012048196,
+              "lower": -0.27704793755775625,
+              "n": 166,
+              "upper": 0.06928287731679234
+            },
+            "net": {
+              "expectancy": -0.12613373493975902,
+              "lower": -0.2995106590760328,
+              "n": 166,
+              "upper": 0.04724318919651474
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "NZDCAD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.0708590035201733,
+            "lower": 0.052120786960180916,
+            "n": 3693,
+            "upper": 0.08959722008016568
+          },
+          "net": {
+            "expectancy": 0.05090311399945845,
+            "lower": 0.03174741164731673,
+            "n": 3693,
+            "upper": 0.07005881635160018
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 79.01210000000154,
+          "pairedP": 0.003996003996003996,
+          "reason": "accept",
+          "selectExpectancy": 0.05599299487429833,
+          "selectExpectancyDelta": 0.005089880874839879,
+          "selectTotalDelta": 41.41810000000018,
+          "select": {
+            "gross": {
+              "expectancy": 0.07766841591408352,
+              "lower": 0.059284750266780206,
+              "n": 4097,
+              "upper": 0.09605208156138684
+            },
+            "net": {
+              "expectancy": 0.05599299487429833,
+              "lower": 0.037214717422428864,
+              "n": 4097,
+              "upper": 0.0747712723261678
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "NZDCHF": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "holdout-cycle"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.10063822372119166,
+            "lower": 0.08188581110619486,
+            "n": 3558,
+            "upper": 0.11939063633618846
+          },
+          "net": {
+            "expectancy": 0.0806768690275436,
+            "lower": 0.06151793293820429,
+            "n": 3558,
+            "upper": 0.09983580511688292
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 60.9256000000006,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.08646712226640157,
+          "selectExpectancyDelta": 0.00579025323885797,
+          "selectTotalDelta": 60.89539999999977,
+          "select": {
+            "gross": {
+              "expectancy": 0.10623076540755451,
+              "lower": 0.08760104785851375,
+              "n": 4024,
+              "upper": 0.12486048295659527
+            },
+            "net": {
+              "expectancy": 0.08646712226640157,
+              "lower": 0.06745964065063341,
+              "n": 4024,
+              "upper": 0.10547460388216974
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "NZDJPY": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "holdout-cycle"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.0451470523415978,
+            "lower": 0.025058989930754783,
+            "n": 3630,
+            "upper": 0.06523511475244081
+          },
+          "net": {
+            "expectancy": 0.028894958677685947,
+            "lower": 0.008604429532913752,
+            "n": 3630,
+            "upper": 0.04918548782245814
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 2.1737999999994884,
+          "pairedP": 0.11788211788211789,
+          "reason": "fails",
+          "selectExpectancy": 0.031769789579158325,
+          "selectExpectancyDelta": 0.0028748309014723777,
+          "selectTotalDelta": 21.936300000000045,
+          "select": {
+            "gross": {
+              "expectancy": 0.04862667835671342,
+              "lower": 0.028504144210863558,
+              "n": 3992,
+              "upper": 0.06874921250256329
+            },
+            "net": {
+              "expectancy": 0.031769789579158325,
+              "lower": 0.011412658664865346,
+              "n": 3992,
+              "upper": 0.0521269204934513
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "NZDUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.036423885684320916,
+            "lower": 0.017000670630743217,
+            "n": 3814,
+            "upper": 0.055847100737898614
+          },
+          "net": {
+            "expectancy": 0.014661248033560583,
+            "lower": -0.005030740698592988,
+            "n": 3814,
+            "upper": 0.034353236765714154
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 13.805100000000067,
+          "pairedP": 0.22277722277722278,
+          "reason": "fails",
+          "selectExpectancy": 0.016154311576941454,
+          "selectExpectancyDelta": 0.0014930635433808709,
+          "selectTotalDelta": 11.89780000000016,
+          "select": {
+            "gross": {
+              "expectancy": 0.03863930443068123,
+              "lower": 0.01915107100775261,
+              "n": 4198,
+              "upper": 0.058127537853609856
+            },
+            "net": {
+              "expectancy": 0.016154311576941454,
+              "lower": -0.0035940662599286376,
+              "n": 4198,
+              "upper": 0.03590268941381154
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "PAUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763801550000,
+            "endMs": 1786336200000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786336200000,
+            "confirmStartMs": 1763801550000,
+            "fitStartMs": 1696197600000,
+            "selectStartMs": 1741266900000,
+            "selectEndMs": 1763801550000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.04618429319371728,
+            "lower": -0.13907467613565377,
+            "n": 382,
+            "upper": 0.04670608974821923
+          },
+          "net": {
+            "expectancy": -0.1060329842931938,
+            "lower": -0.19870874213239847,
+            "n": 382,
+            "upper": -0.01335722645398911
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 18.6633,
+          "pairedP": 0.6413586413586414,
+          "reason": "fails",
+          "selectExpectancy": -0.1022971830985916,
+          "selectExpectancyDelta": 0.0037358011946022063,
+          "selectTotalDelta": -3.073999999999984,
+          "select": {
+            "gross": {
+              "expectancy": -0.04847089201877936,
+              "lower": -0.13691874646135654,
+              "n": 426,
+              "upper": 0.03997696242379783
+            },
+            "net": {
+              "expectancy": -0.1022971830985916,
+              "lower": -0.19056068834157178,
+              "n": 426,
+              "upper": -0.01403367785561141
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "PLUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.03977039337474118,
+            "lower": -0.11641817927272957,
+            "n": 483,
+            "upper": 0.03687739252324721
+          },
+          "net": {
+            "expectancy": -0.06322484472049701,
+            "lower": -0.14061414106236197,
+            "n": 483,
+            "upper": 0.014164451621367952
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0.4356999999999971,
+          "pairedP": 0.991008991008991,
+          "reason": "fails",
+          "selectExpectancy": -0.07972286245353165,
+          "selectExpectancyDelta": -0.016498017733034637,
+          "selectTotalDelta": -12.353299999999976,
+          "select": {
+            "gross": {
+              "expectancy": -0.052190706319702615,
+              "lower": -0.12425069488096682,
+              "n": 538,
+              "upper": 0.019869282241561592
+            },
+            "net": {
+              "expectancy": -0.07972286245353165,
+              "lower": -0.1523988159291872,
+              "n": 538,
+              "upper": -0.007046908977876104
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "RBUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.044422291021671785,
+            "lower": -0.18115045356188317,
+            "n": 323,
+            "upper": 0.09230587151853961
+          },
+          "net": {
+            "expectancy": -0.11714860681114567,
+            "lower": -0.25552267051462957,
+            "n": 323,
+            "upper": 0.021225456892338235
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -128.33829999999944,
+          "pairedP": 0.4165834165834166,
+          "reason": "fails",
+          "selectExpectancy": -0.07530187793427245,
+          "selectExpectancyDelta": 0.04184672887687321,
+          "selectTotalDelta": 5.760399999999983,
+          "select": {
+            "gross": {
+              "expectancy": 0.0041117370892019,
+              "lower": -0.10983163879907783,
+              "n": 426,
+              "upper": 0.11805511297748163
+            },
+            "net": {
+              "expectancy": -0.07530187793427245,
+              "lower": -0.19097078576629695,
+              "n": 426,
+              "upper": 0.04036702989775205
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "RTYUSD": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763704125000,
+            "endMs": 1786412700000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786412700000,
+            "confirmStartMs": 1763704125000,
+            "fitStartMs": 1695578400000,
+            "selectStartMs": 1740995550000,
+            "selectEndMs": 1763704125000
+          },
+          "tranche": "holdout-cycle"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.00662394014962594,
+            "lower": -0.05709414693014398,
+            "n": 401,
+            "upper": 0.07034202722939586
+          },
+          "net": {
+            "expectancy": -0.014448628428927668,
+            "lower": -0.07834187944882547,
+            "n": 401,
+            "upper": 0.049444622590970135
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1.7077000000000027,
+          "pairedP": 0.2937062937062937,
+          "reason": "fails",
+          "selectExpectancy": -0.006489423076923069,
+          "selectExpectancyDelta": 0.0079592053520046,
+          "selectTotalDelta": 2.4193999999999987,
+          "select": {
+            "gross": {
+              "expectancy": 0.012860769230769203,
+              "lower": -0.04662402973096514,
+              "n": 520,
+              "upper": 0.07234556819250354
+            },
+            "net": {
+              "expectancy": -0.006489423076923069,
+              "lower": -0.06693078424551244,
+              "n": 520,
+              "upper": 0.0539519380916663
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "SIUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763704125000,
+            "endMs": 1786412700000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786412700000,
+            "confirmStartMs": 1763704125000,
+            "fitStartMs": 1695578400000,
+            "selectStartMs": 1740995550000,
+            "selectEndMs": 1763704125000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.07894691358024693,
+            "lower": 0.025672661463795723,
+            "n": 486,
+            "upper": 0.13222116569669812
+          },
+          "net": {
+            "expectancy": 0.04794691358024692,
+            "lower": -0.007749259484968796,
+            "n": 486,
+            "upper": 0.10364308664546264
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 7.025999999999993,
+          "pairedP": 0.7592407592407593,
+          "reason": "fails",
+          "selectExpectancy": 0.0315098389982111,
+          "selectExpectancyDelta": -0.01643707458203582,
+          "selectTotalDelta": -5.688199999999998,
+          "select": {
+            "gross": {
+              "expectancy": 0.07055062611806794,
+              "lower": 0.01586552500313969,
+              "n": 559,
+              "upper": 0.1252357272329962
+            },
+            "net": {
+              "expectancy": 0.0315098389982111,
+              "lower": -0.02545372410475734,
+              "n": 559,
+              "upper": 0.08847340210117954
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "SOLUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1743307650000,
+            "endMs": 1786334400000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 655.3359375,
+          "selectionWindow": {
+            "confirmEndMs": 1786334400000,
+            "confirmStartMs": 1743307650000,
+            "fitStartMs": 1614227400000,
+            "selectStartMs": 1700280900000,
+            "selectEndMs": 1743307650000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.03300635785649402,
+            "lower": -0.06179763736052954,
+            "n": 2202,
+            "upper": -0.004215078352458504
+          },
+          "net": {
+            "expectancy": -0.053115849227974535,
+            "lower": -0.0821795907654399,
+            "n": 2202,
+            "upper": -0.02405210769050917
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 0.8841158841158842,
+          "reason": "fails",
+          "selectExpectancy": -0.04754337527757216,
+          "selectExpectancyDelta": 0.005572473950402376,
+          "selectTotalDelta": -11.501100000000037,
+          "select": {
+            "gross": {
+              "expectancy": -0.0277431532198371,
+              "lower": -0.054275370277664166,
+              "n": 2702,
+              "upper": -0.0012109361620100331
+            },
+            "net": {
+              "expectancy": -0.04754337527757216,
+              "lower": -0.07499894446125258,
+              "n": 2702,
+              "upper": -0.020087806093891738
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "SP": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1735427475000,
+            "endMs": 1786391100000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786391100000,
+            "confirmStartMs": 1735427475000,
+            "fitStartMs": 1582536600000,
+            "selectStartMs": 1684463850000,
+            "selectEndMs": 1735427475000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.034346575342465796,
+            "lower": -0.12931730705817168,
+            "n": 146,
+            "upper": 0.060624156373240076
+          },
+          "net": {
+            "expectancy": -0.06317671232876715,
+            "lower": -0.1599677068683803,
+            "n": 146,
+            "upper": 0.03361428221084599
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 3.2270000000000074,
+          "pairedP": 0.060939060939060936,
+          "reason": "fails",
+          "selectExpectancy": 0.03828113207547169,
+          "selectExpectancyDelta": 0.10145784440423883,
+          "selectTotalDelta": 15.310500000000003,
+          "select": {
+            "gross": {
+              "expectancy": 0.08579245283018867,
+              "lower": -0.09343906342257514,
+              "n": 159,
+              "upper": 0.2650239690829525
+            },
+            "net": {
+              "expectancy": 0.03828113207547169,
+              "lower": -0.14154591156074622,
+              "n": 159,
+              "upper": 0.21810817571168958
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "TRXUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.1747362000000001,
+            "lower": -0.22546181276908517,
+            "n": 1000,
+            "upper": -0.12401058723091501
+          },
+          "net": {
+            "expectancy": -0.5011039,
+            "lower": -0.5530314914294128,
+            "n": 1000,
+            "upper": -0.44917630857058727
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 43.6242000000002,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.5102542517006806,
+          "selectExpectancyDelta": -0.00915035170068057,
+          "selectTotalDelta": -98.95510000000041,
+          "select": {
+            "gross": {
+              "expectancy": -0.1392284013605442,
+              "lower": -0.18769489984460397,
+              "n": 1176,
+              "upper": -0.09076190287648445
+            },
+            "net": {
+              "expectancy": -0.5102542517006806,
+              "lower": -0.5585036720092433,
+              "n": 1176,
+              "upper": -0.4620048313921179
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "UNIUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1739843100000,
+            "endMs": 1786334400000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 615.2369791666666,
+          "selectionWindow": {
+            "confirmEndMs": 1786334400000,
+            "confirmStartMs": 1739843100000,
+            "fitStartMs": 1600369200000,
+            "selectStartMs": 1693351800000,
+            "selectEndMs": 1739843100000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.05323820624259184,
+            "lower": -0.07946645181787604,
+            "n": 2531,
+            "upper": -0.02700996066730764
+          },
+          "net": {
+            "expectancy": -0.07946641643619098,
+            "lower": -0.10602958957506627,
+            "n": 2531,
+            "upper": -0.0529032432973157
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0,
+          "pairedP": 0.9790209790209791,
+          "reason": "fails",
+          "selectExpectancy": -0.0807072759226711,
+          "selectExpectancyDelta": -0.001240859486480117,
+          "selectTotalDelta": -28.48269999999991,
+          "select": {
+            "gross": {
+              "expectancy": -0.05023384885764494,
+              "lower": -0.07516204672472745,
+              "n": 2845,
+              "upper": -0.025305650990562426
+            },
+            "net": {
+              "expectancy": -0.0807072759226711,
+              "lower": -0.10603577346691861,
+              "n": 2845,
+              "upper": -0.05537877837842359
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "USDCAD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.030212100942535725,
+            "lower": 0.008951119138196267,
+            "n": 3289,
+            "upper": 0.05147308274687518
+          },
+          "net": {
+            "expectancy": 0.0029108847674065197,
+            "lower": -0.01889684402913368,
+            "n": 3289,
+            "upper": 0.02471861356394672
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -63.95570000000009,
+          "pairedP": 0.4245754245754246,
+          "reason": "fails",
+          "selectExpectancy": 0.005554112126451011,
+          "selectExpectancyDelta": 0.0026432273590444914,
+          "selectTotalDelta": 12.914700000000101,
+          "select": {
+            "gross": {
+              "expectancy": 0.032468930600148195,
+              "lower": 0.012518724835735406,
+              "n": 4049,
+              "upper": 0.052419136364560984
+            },
+            "net": {
+              "expectancy": 0.005554112126451011,
+              "lower": -0.014845580249051778,
+              "n": 4049,
+              "upper": 0.025953804501953802
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "USDCHF": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.015719879336349916,
+            "lower": -0.004992666564115591,
+            "n": 3315,
+            "upper": 0.03643242523681542
+          },
+          "net": {
+            "expectancy": -0.008894630467571715,
+            "lower": -0.03006808819878026,
+            "n": 3315,
+            "upper": 0.01227882726363683
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -15.920100000000105,
+          "pairedP": 0.028971028971028972,
+          "reason": "fails",
+          "selectExpectancy": 0.015697070161912074,
+          "selectExpectancyDelta": 0.02459170062948379,
+          "selectTotalDelta": 90.56300000000012,
+          "select": {
+            "gross": {
+              "expectancy": 0.03871747622719101,
+              "lower": 0.018541771342084037,
+              "n": 3891,
+              "upper": 0.05889318111229798
+            },
+            "net": {
+              "expectancy": 0.015697070161912074,
+              "lower": -0.005235105796605952,
+              "n": 3891,
+              "upper": 0.0366292461204301
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "USDJPY": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1653263100000,
+            "endMs": 1786410000000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786410000000,
+            "confirmStartMs": 1653263100000,
+            "fitStartMs": 1253822400000,
+            "selectStartMs": 1520116200000,
+            "selectEndMs": 1653263100000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.0020708824374820623,
+            "lower": -0.01856237450279173,
+            "n": 3479,
+            "upper": 0.022704139377755853
+          },
+          "net": {
+            "expectancy": -0.028385081920092148,
+            "lower": -0.04952058154810581,
+            "n": 3479,
+            "upper": -0.007249582292078484
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -10.494999999999749,
+          "pairedP": 0.7882117882117882,
+          "reason": "fails",
+          "selectExpectancy": -0.028990298898794037,
+          "selectExpectancyDelta": -0.0006052169787018891,
+          "selectTotalDelta": -11.817299999999875,
+          "select": {
+            "gross": {
+              "expectancy": 0.0036654431043523987,
+              "lower": -0.016949513625009408,
+              "n": 3814,
+              "upper": 0.024280399833714206
+            },
+            "net": {
+              "expectancy": -0.028990298898794037,
+              "lower": -0.0501640625158708,
+              "n": 3814,
+              "upper": -0.007816535281717274
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "WTI": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763797275000,
+            "endMs": 1786335300000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786335300000,
+            "confirmStartMs": 1763797275000,
+            "fitStartMs": 1696183200000,
+            "selectStartMs": 1741259250000,
+            "selectEndMs": 1763797275000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.1877999999999999,
+            "lower": -0.2836074582129151,
+            "n": 298,
+            "upper": -0.09199254178708471
+          },
+          "net": {
+            "expectancy": -0.20173724832214765,
+            "lower": -0.298006474704377,
+            "n": 298,
+            "upper": -0.1054680219399183
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -30.082899999999967,
+          "pairedP": 0.996003996003996,
+          "reason": "fails",
+          "selectExpectancy": -0.2082471887550202,
+          "selectExpectancyDelta": -0.006509940432872563,
+          "selectTotalDelta": -43.58940000000007,
+          "select": {
+            "gross": {
+              "expectancy": -0.18900461847389566,
+              "lower": -0.2702928164329961,
+              "n": 498,
+              "upper": -0.10771642051479521
+            },
+            "net": {
+              "expectancy": -0.2082471887550202,
+              "lower": -0.2900864790914009,
+              "n": 498,
+              "upper": -0.12640789841863953
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "XAUUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1683266400000,
+            "endMs": 1786413600000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786413600000,
+            "confirmStartMs": 1683266400000,
+            "fitStartMs": 1373824800000,
+            "selectStartMs": 1580119200000,
+            "selectEndMs": 1683266400000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.019817830075787714,
+            "lower": -0.004824566022781949,
+            "n": 2507,
+            "upper": 0.04446022617435738
+          },
+          "net": {
+            "expectancy": -0.04721763063422417,
+            "lower": -0.07289214099604543,
+            "n": 2507,
+            "upper": -0.021543120272402898
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -84.42199999999997,
+          "pairedP": 0.8611388611388612,
+          "reason": "fails",
+          "selectExpectancy": -0.046734390651085145,
+          "selectExpectancyDelta": 0.00048323998313902494,
+          "selectTotalDelta": -21.59490000000001,
+          "select": {
+            "gross": {
+              "expectancy": 0.026282737896494174,
+              "lower": 0.002560543705168398,
+              "n": 2995,
+              "upper": 0.05000493208781995
+            },
+            "net": {
+              "expectancy": -0.046734390651085145,
+              "lower": -0.07158852915343718,
+              "n": 2995,
+              "upper": -0.02188025214873311
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "XLMUSD": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1719456750000,
+            "endMs": 1786334400000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 379.2838541666667,
+          "selectionWindow": {
+            "confirmEndMs": 1786334400000,
+            "confirmStartMs": 1719456750000,
+            "fitStartMs": 1518823800000,
+            "selectStartMs": 1652579100000,
+            "selectEndMs": 1719456750000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.04593974075245021,
+            "lower": -0.0744705478903866,
+            "n": 3163,
+            "upper": -0.017408933614513837
+          },
+          "net": {
+            "expectancy": -0.06512589313942456,
+            "lower": -0.09383219678126581,
+            "n": 3163,
+            "upper": -0.0364195894975833
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 147.37869999999998,
+          "pairedP": 0.6103896103896104,
+          "reason": "fails",
+          "selectExpectancy": -0.060129345372460445,
+          "selectExpectancyDelta": 0.004996547766964114,
+          "selectTotalDelta": -7.10519999999994,
+          "select": {
+            "gross": {
+              "expectancy": -0.038542183972911946,
+              "lower": -0.06779683279932303,
+              "n": 3544,
+              "upper": -0.009287535146500873
+            },
+            "net": {
+              "expectancy": -0.060129345372460445,
+              "lower": -0.08956092678671182,
+              "n": 3544,
+              "upper": -0.030697763958209064
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "XMRUSD": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1710558900000,
+            "endMs": 1786334400000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 276.2994791666667,
+          "selectionWindow": {
+            "confirmEndMs": 1786334400000,
+            "confirmStartMs": 1710558900000,
+            "fitStartMs": 1483232400000,
+            "selectStartMs": 1634783400000,
+            "selectEndMs": 1710558900000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.04684329758713139,
+            "lower": -0.07083756915108569,
+            "n": 2984,
+            "upper": -0.022849026023177097
+          },
+          "net": {
+            "expectancy": -0.07822590482573727,
+            "lower": -0.10261243183841551,
+            "n": 2984,
+            "upper": -0.05383937781305903
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 226.47589999999838,
+          "pairedP": 0.999000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.08172906976744183,
+          "selectExpectancyDelta": -0.0035031649417045646,
+          "selectTotalDelta": -40.693199999999905,
+          "select": {
+            "gross": {
+              "expectancy": -0.048789475253428805,
+              "lower": -0.07184326526114143,
+              "n": 3354,
+              "upper": -0.02573568524571617
+            },
+            "net": {
+              "expectancy": -0.08172906976744183,
+              "lower": -0.10516965806495392,
+              "n": 3354,
+              "upper": -0.05828848146992975
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "XRPUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1685627775000,
+            "endMs": 1786335300000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786335300000,
+            "confirmStartMs": 1685627775000,
+            "fitStartMs": 1383505200000,
+            "selectStartMs": 1584920250000,
+            "selectEndMs": 1685627775000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.012306301012079652,
+            "lower": -0.03493335693078044,
+            "n": 3063,
+            "upper": 0.01032075490662113
+          },
+          "net": {
+            "expectancy": -0.03534142997061704,
+            "lower": -0.05831861577045386,
+            "n": 3063,
+            "upper": -0.012364244170780223
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 308.63490000000127,
+          "pairedP": 0.951048951048951,
+          "reason": "fails",
+          "selectExpectancy": -0.03783585872970662,
+          "selectExpectancyDelta": -0.0024944287590895828,
+          "selectTotalDelta": -24.590899999999948,
+          "select": {
+            "gross": {
+              "expectancy": -0.010763429222443754,
+              "lower": -0.03242171829395685,
+              "n": 3511,
+              "upper": 0.01089485984906934
+            },
+            "net": {
+              "expectancy": -0.03783585872970662,
+              "lower": -0.05990372024050769,
+              "n": 3511,
+              "upper": -0.015767997218905556
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "XTZUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.09832819672131148,
+            "lower": -0.17746978769742194,
+            "n": 305,
+            "upper": -0.019186605745201007
+          },
+          "net": {
+            "expectancy": -0.7042239344262297,
+            "lower": -0.7858833842545663,
+            "n": 305,
+            "upper": -0.622564484597893
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 51.65949999999944,
+          "pairedP": 0.34165834165834164,
+          "reason": "fails",
+          "selectExpectancy": -0.35422122905027936,
+          "selectExpectancyDelta": 0.3500027053759503,
+          "selectTotalDelta": 24.571500000000043,
+          "select": {
+            "gross": {
+              "expectancy": 0.09414245810055862,
+              "lower": 0.03845851148971016,
+              "n": 537,
+              "upper": 0.14982640471140707
+            },
+            "net": {
+              "expectancy": -0.35422122905027936,
+              "lower": -0.42244642765873114,
+              "n": 537,
+              "upper": -0.2859960304418276
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "YMUSD": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763704125000,
+            "endMs": 1786412700000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786412700000,
+            "confirmStartMs": 1763704125000,
+            "fitStartMs": 1695578400000,
+            "selectStartMs": 1740995550000,
+            "selectEndMs": 1763704125000
+          },
+          "tranche": "holdout-cycle"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.008308625336927231,
+            "lower": -0.054202524820051494,
+            "n": 371,
+            "upper": 0.07081977549390596
+          },
+          "net": {
+            "expectancy": -0.018145283018867923,
+            "lower": -0.08125116901091291,
+            "n": 371,
+            "upper": 0.04496060297317707
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 6.507699999999986,
+          "pairedP": 0.5954045954045954,
+          "reason": "fails",
+          "selectExpectancy": -0.027509360730593607,
+          "selectExpectancyDelta": -0.009364077711725684,
+          "selectTotalDelta": -5.3172,
+          "select": {
+            "gross": {
+              "expectancy": 0.0039757990867579935,
+              "lower": -0.05926449148388983,
+              "n": 438,
+              "upper": 0.06721608965740582
+            },
+            "net": {
+              "expectancy": -0.027509360730593607,
+              "lower": -0.09121556031246449,
+              "n": 438,
+              "upper": 0.036196838851277266
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ZBUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763855325000,
+            "endMs": 1786412700000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786412700000,
+            "confirmStartMs": 1763855325000,
+            "fitStartMs": 1696183200000,
+            "selectStartMs": 1741297950000,
+            "selectEndMs": 1763855325000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.05531435768261966,
+            "lower": -0.11409324235077942,
+            "n": 397,
+            "upper": 0.0034645269855401103
+          },
+          "net": {
+            "expectancy": -0.19613929471032754,
+            "lower": -0.2605326249150724,
+            "n": 397,
+            "upper": -0.13174596450558268
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0.22000000000014097,
+          "pairedP": 0.985014985014985,
+          "reason": "fails",
+          "selectExpectancy": -0.19108670634920602,
+          "selectExpectancyDelta": 0.005052588361121518,
+          "selectTotalDelta": -18.440399999999812,
+          "select": {
+            "gross": {
+              "expectancy": -0.02133492063492066,
+              "lower": -0.07780568426155844,
+              "n": 504,
+              "upper": 0.03513584299171711
+            },
+            "net": {
+              "expectancy": -0.19108670634920602,
+              "lower": -0.25411464724866584,
+              "n": 504,
+              "upper": -0.1280587654497462
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ZCUSX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763709525000,
+            "endMs": 1786412700000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786412700000,
+            "confirmStartMs": 1763709525000,
+            "fitStartMs": 1695600000000,
+            "selectStartMs": 1741006350000,
+            "selectEndMs": 1763709525000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.004588732394366209,
+            "lower": -0.12029755489273003,
+            "n": 355,
+            "upper": 0.11112009010399762
+          },
+          "net": {
+            "expectancy": -0.18567521126760556,
+            "lower": -0.29084359019445133,
+            "n": 355,
+            "upper": -0.08050683234075977
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -43.019200000000154,
+          "pairedP": 0.5054945054945055,
+          "reason": "fails",
+          "selectExpectancy": -0.117599090909091,
+          "selectExpectancyDelta": 0.06807612035851456,
+          "selectTotalDelta": 1.2351999999999208,
+          "select": {
+            "gross": {
+              "expectancy": 0.0547243636363638,
+              "lower": -0.05208238323718604,
+              "n": 550,
+              "upper": 0.16153111050991364
+            },
+            "net": {
+              "expectancy": -0.117599090909091,
+              "lower": -0.23179452876927237,
+              "n": 550,
+              "upper": -0.0034036530489096467
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ZFUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.05734406779661013,
+            "lower": -0.23969980453217554,
+            "n": 59,
+            "upper": 0.12501166893895527
+          },
+          "net": {
+            "expectancy": -0.360815254237288,
+            "lower": -0.5973749541538139,
+            "n": 59,
+            "upper": -0.1242555543207621
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 9.855699999999914,
+          "pairedP": 0.4005994005994006,
+          "reason": "fails",
+          "selectExpectancy": -0.3667658536585365,
+          "selectExpectancyDelta": -0.005950599421248481,
+          "selectTotalDelta": -8.7867,
+          "select": {
+            "gross": {
+              "expectancy": -0.05739878048780483,
+              "lower": -0.22861303056460142,
+              "n": 82,
+              "upper": 0.11381546958899175
+            },
+            "net": {
+              "expectancy": -0.3667658536585365,
+              "lower": -0.5761821988831306,
+              "n": 82,
+              "upper": -0.15734950843394233
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ZLUSX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763709525000,
+            "endMs": 1786412700000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786412700000,
+            "confirmStartMs": 1763709525000,
+            "fitStartMs": 1695600000000,
+            "selectStartMs": 1741006350000,
+            "selectEndMs": 1763709525000
+          },
+          "tranche": "derived-4d"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.009464415584415548,
+            "lower": -0.07230875360518636,
+            "n": 385,
+            "upper": 0.05337992243635527
+          },
+          "net": {
+            "expectancy": -0.07053662337662324,
+            "lower": -0.13658527972348836,
+            "n": 385,
+            "upper": -0.004487967029758122
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -7.141599999999954,
+          "pairedP": 0.35564435564435565,
+          "reason": "fails",
+          "selectExpectancy": -0.0339736641221373,
+          "selectExpectancyDelta": 0.03656295925448594,
+          "selectTotalDelta": 9.354400000000002,
+          "select": {
+            "gross": {
+              "expectancy": 0.028767366412213762,
+              "lower": -0.026773050228976022,
+              "n": 524,
+              "upper": 0.08430778305340354
+            },
+            "net": {
+              "expectancy": -0.0339736641221373,
+              "lower": -0.09287458725186062,
+              "n": 524,
+              "upper": 0.02492725900758603
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ZMUSD": {
+      "heldOut": true,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763709525000,
+            "endMs": 1786412700000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786412700000,
+            "confirmStartMs": 1763709525000,
+            "fitStartMs": 1695600000000,
+            "selectStartMs": 1741006350000,
+            "selectEndMs": 1763709525000
+          },
+          "tranche": "holdout-cycle"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.019151785714285698,
+            "lower": -0.12551262324768925,
+            "n": 392,
+            "upper": 0.16381619467626063
+          },
+          "net": {
+            "expectancy": -0.10124846938775506,
+            "lower": -0.25488984144506577,
+            "n": 392,
+            "upper": 0.05239290266955565
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -28.963000000000108,
+          "pairedP": 0.7292707292707292,
+          "reason": "fails",
+          "selectExpectancy": -0.10208393194707,
+          "selectExpectancyDelta": -0.0008354625593149367,
+          "selectTotalDelta": -14.313000000000045,
+          "select": {
+            "gross": {
+              "expectancy": 0.021714744801512267,
+              "lower": -0.1008826158751578,
+              "n": 529,
+              "upper": 0.14431210547818235
+            },
+            "net": {
+              "expectancy": -0.10208393194707,
+              "lower": -0.23873421503228667,
+              "n": 529,
+              "upper": 0.034566351138146684
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ZNUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763797950000,
+            "endMs": 1786336200000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786336200000,
+            "confirmStartMs": 1763797950000,
+            "fitStartMs": 1696183200000,
+            "selectStartMs": 1741259700000,
+            "selectEndMs": 1763797950000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.04594712041884822,
+            "lower": -0.10516323295053043,
+            "n": 382,
+            "upper": 0.013268992112833992
+          },
+          "net": {
+            "expectancy": -0.18327041884816755,
+            "lower": -0.24655984404356657,
+            "n": 382,
+            "upper": -0.11998099365276856
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -1.4773999999998466,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.21148819875776417,
+          "selectExpectancyDelta": -0.02821777990959662,
+          "selectTotalDelta": -32.13950000000008,
+          "select": {
+            "gross": {
+              "expectancy": -0.044355279503105687,
+              "lower": -0.10276984266288866,
+              "n": 483,
+              "upper": 0.014059283656677288
+            },
+            "net": {
+              "expectancy": -0.21148819875776417,
+              "lower": -0.27440159368746814,
+              "n": 483,
+              "upper": -0.1485748038280602
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ZOUSX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": {
+            "startMs": 1763704800000,
+            "endMs": 1786406400000
+          },
+          "derived": true,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": {
+            "confirmEndMs": 1786406400000,
+            "confirmStartMs": 1763704800000,
+            "fitStartMs": 1695600000000,
+            "selectStartMs": 1741003200000,
+            "selectEndMs": 1763704800000
+          },
+          "tranche": "totality"
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.07313237704918032,
+            "lower": -0.032474352017857755,
+            "n": 244,
+            "upper": 0.1787391061162184
+          },
+          "net": {
+            "expectancy": -0.016865573770491794,
+            "lower": -0.1289841455686378,
+            "n": 244,
+            "upper": 0.0952529980276542
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -12.50830000000007,
+          "pairedP": 0.6923076923076923,
+          "reason": "fails",
+          "selectExpectancy": -0.030868339768339782,
+          "selectExpectancyDelta": -0.014002765997847989,
+          "selectTotalDelta": -3.879700000000006,
+          "select": {
+            "gross": {
+              "expectancy": 0.06765289575289582,
+              "lower": -0.04039915055602476,
+              "n": 259,
+              "upper": 0.17570494206181642
+            },
+            "net": {
+              "expectancy": -0.030868339768339782,
+              "lower": -0.1456872014222312,
+              "n": 259,
+              "upper": 0.08395052188555166
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ZRUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": 0.026902127659574452,
+            "lower": -0.14147414721578305,
+            "n": 94,
+            "upper": 0.19527840253493195
+          },
+          "net": {
+            "expectancy": -0.008154255319148922,
+            "lower": -0.18019231812627753,
+            "n": 94,
+            "upper": 0.16388380748797968
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 6.797900000000002,
+          "pairedP": 0.4855144855144855,
+          "reason": "fails",
+          "selectExpectancy": -0.1176891891891892,
+          "selectExpectancyDelta": -0.10953493387004029,
+          "selectTotalDelta": -16.651500000000006,
+          "select": {
+            "gross": {
+              "expectancy": -0.05236891891891887,
+              "lower": -0.23737296919527873,
+              "n": 148,
+              "upper": 0.13263513135744098
+            },
+            "net": {
+              "expectancy": -0.1176891891891892,
+              "lower": -0.3060596866440819,
+              "n": 148,
+              "upper": 0.0706813082657035
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ZSUSX": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": true,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.12129675675675673,
+            "lower": -0.2317158064650225,
+            "n": 185,
+            "upper": -0.01087770704849099
+          },
+          "net": {
+            "expectancy": -0.2781367567567567,
+            "lower": -0.4006410548065549,
+            "n": 185,
+            "upper": -0.1556324587069585
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -11.344400000000036,
+          "pairedP": 0.5354645354645354,
+          "reason": "fails",
+          "selectExpectancy": -0.20647380952380956,
+          "selectExpectancyDelta": 0.07166294723294714,
+          "selectTotalDelta": -0.576100000000018,
+          "select": {
+            "gross": {
+              "expectancy": -0.029766666666666667,
+              "lower": -0.1493967883671169,
+              "n": 252,
+              "upper": 0.08986345503378357
+            },
+            "net": {
+              "expectancy": -0.20647380952380956,
+              "lower": -0.3278689649027244,
+              "n": 252,
+              "upper": -0.08507865414489472
+            }
+          },
+          "derived": false
+        }
+      }
+    },
+    "ZTUSD": {
+      "heldOut": false,
+      "shipped": {
+        "declineCandidate": false,
+        "provenance": {
+          "confirmationWindow": null,
+          "derived": false,
+          "heldBack": false,
+          "known": true,
+          "overlapWithConfirmDays": 0,
+          "selectionWindow": null,
+          "tranche": null
+        },
+        "select": {
+          "gross": {
+            "expectancy": -0.5648428571428571,
+            "lower": -1.108260843999971,
+            "n": 7,
+            "upper": -0.021424870285743136
+          },
+          "net": {
+            "expectancy": -0.6194999999999998,
+            "lower": -1.138648960111854,
+            "n": 7,
+            "upper": -0.10035103988814564
+          }
+        },
+        "variant": "baseline"
+      },
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -18.36670000000001,
+          "pairedP": 1,
+          "reason": "THIN (26 filled)",
+          "selectExpectancy": -0.03550384615384611,
+          "selectExpectancyDelta": 0.5839961538461538,
+          "selectTotalDelta": 3.4134,
+          "select": {
+            "gross": {
+              "expectancy": 0.12395769230769228,
+              "lower": -0.43222531262904396,
+              "n": 26,
+              "upper": 0.6801406972444285
+            },
+            "net": {
+              "expectancy": -0.03550384615384611,
+              "lower": -0.6042893014637261,
+              "n": 26,
+              "upper": 0.533281609156034
+            }
+          },
+          "derived": false
+        }
+      }
+    }
+  },
+  "rules": {
+    "accept": "accepted iff beatsBaseline && earnsMoney per market on the emitted folds (gate v2, D4); M3 reported for accepted variants only",
+    "decline": "decline candidate iff on the select fold of the per-class corpus the shipped cell's NET expectancy 95% upper bound < 0 AND its GROSS expectancy 95% upper bound < 0 with at least 30 filled; the confirm read reports M3 for candidates and non-candidates alike",
+    "declineHash": "2e1521e201da99515655a86a48724800c90d87ec3545a12b0e936564f814a996"
+  },
+  "shardHashes": [
+    "256c74eb9032c30617b75fa247f6963a8cae26608a24c43fb53531c1ede5dd94"
+  ],
+  "shards": [
+    "../levelflow-cloud/docs/research/r4/review-window-96.jsonl"
+  ],
+  "verdictUnit": "market"
+}
