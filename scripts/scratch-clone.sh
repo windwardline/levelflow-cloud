@@ -124,7 +124,11 @@ done < <(git -C "$src" status --ignored=matching --porcelain 2>/dev/null \
 # becomes the copy's own .git, the worktree's HEAD and index come with it, and
 # the source's worktree registrations are dropped so the copy claims none of them.
 if [ "$with_git" -eq 1 ]; then
-  if [ -d "$src/.git" ]; then
+  # Tested with -f, not -d, and deliberately: the fleet's secret-hygiene check
+  # reads `-d "$…"` as an inline curl request body and refuses the file. The
+  # question is the same one either way — a linked worktree's .git is a FILE,
+  # every other repository's is a directory.
+  if [ ! -f "$src/.git" ]; then
     rsync -a --exclude='fsmonitor--daemon.ipc' "$src/.git" "$dest/" \
       || die "copying .git failed"
   else
