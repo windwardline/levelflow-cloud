@@ -205,10 +205,51 @@ relaxed for every read; baseline digest skipped; field whitelist bypassed;
 emit bytes unchecked; the retirement rule's gross clause and sample floor
 dropped).
 
-### 6b. Arms S, W, C1, C2
+### 6b. Arms S, W, C1, C2 — and two supplementary arms the launcher owed
 
-Running from merged main `1a64151` since 2026-09-03 04:46Z (stop-cap and
-review-window first, then the class-default pair). Results follow.
+Run from merged main `1a64151` at zero provider bytes: stop-cap and
+review-window from 04:46Z, the class-default pair from 05:37Z. **A defect of
+the run, caught at grading:** the launcher had been written before the
+reviews and still carried design v2's grids — review-window swept
+`defaultReviewHours=4,12,24,48` (v4: 24, 48, 96) and stop-cap swept
+`maxStopAtrMultiplier=1.5,2.5,4` (v4 adds the uncapped 8). The 24 and 48
+cells stand; the 4-hour cell recreates amendment 25's starvation and the
+12-hour cell duplicates baseline for the 33 crypto markets, so both are
+controls, not arms. The missing cells run as two supplementary arms from
+the same revision, launched 07:23Z beside the three still running:
+`review-window-96` (`defaultReviewHours=96`) and `stop-cap-8`
+(`maxStopAtrMultiplier=8;stopStructureSource=intraday,intraday_and_daily`).
+Each is graded as its own arm; the freeze reconciles every arm's baseline
+row-for-row, so an arm split across two corpora costs nothing but a second
+baseline cell. The lesson is recorded: an arm's grid is verified against the
+final design from its manifest in the first minute of the run, never at
+grading.
+
+Results follow per arm.
+
+**Arm W — the review window** (`review-window`, manifest `ecb56cdfb557`,
+4,709,810 rows, 11.72 GB, exit 0 at 07:21Z; graded
+`docs/research/r4/review-window-grading.json` and `-class.json`, emit digest
+bound). The first per-market accepts of the program from a swept cell:
+
+| cell | markets accepted (market unit) | fit ΔR, all markets | select ΔR, all markets |
+| --- | --- | ---: | ---: |
+| 48 h | 8 — AUDCAD, AUDCHF, AUDNZD, CADCHF, CHFJPY, EURNZD, NZDCAD, NZDCHF | +1,847 | −219 |
+| 24 h | 7 — AUDCAD, AUDCHF, AUDNZD, CADCHF, CHFJPY, NZDCAD, NZDCHF | +1,139 | −118 |
+| 12 h | 5 — AUDCHF, AUDNZD, CADCHF, EURNZD, NZDCHF (baseline for the 33 crypto markets; a real cell for the 6-hour classes) | +11 | +244 |
+| 4 h | 0 (amendment 25's starvation, as predicted) | −1,933 | +506 |
+
+At the class grain forex accepts 12, 24 and 48 hours (24 h: fit +374R,
+select +377R, p 0.001, own expectancy +0.023R; 48 h: +383R / +464R, p 0.001,
++0.024R) — forex's row ships 8 hours, and every longer window earns more.
+Crypto's longer windows improve fit (+771R at 24 h, +1,335R at 48 h) and
+worsen select (−501R, −698R): fails. No other class earns money on any
+window. Retirement preview under the pre-registered rule (the freeze
+applies it): ten W cells fail the decline rule for four candidates — ADAUSD
+(24 h, 48 h), NGUSD (12, 24, 48 h), XTZUSD (24, 48 h), ZSUSX (12, 24, 48 h) —
+every one through the gross clause with the net upper bound still below
+zero: their negative does not survive the removal of our window on gross,
+and the read reports their M3 either way.
 
 ## 7. Storage and the anchor
 

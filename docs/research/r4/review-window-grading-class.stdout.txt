@@ -1,0 +1,61 @@
+verdict unit: class — class pools (the 4c gate); fold source: emitted labels (no time re-cut)
+wrote docs/research/r4/review-window-grading-class.json
+folds: fit=fit select=select confirm=confirm SEALED (not derived: no --confirm-final — nothing burned; 1517683 rows withheld at the door) · holdout 20 markets excluded (read-time stratified; holdout: stratified-per-class-20pct — 20 markets excluded from every class pool (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only)
+corpus ecb56cdfb557 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26
+(data-absence rows held out of every fold denominator: 1534 — all variants, graded folds only, accepted rows; holdout excluded by read-time stratified recomputation, not the stamped flag)
+
+=== FOREX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=4            -621.6   -494.6    1.000 1264/1302   -0.004    0.016    0.012       0.0      -2.2   0.16     -26.0  fails
+defaultReviewHours=12            155.9    223.1    0.001 1198/1304    0.002    0.022    0.018       0.0       0.0   0.05     -29.3  ACCEPT — fit+select, paired p, and its OWN expectancy 0.022R positive beyond error (95% lower 0.018R)
+defaultReviewHours=24            373.9    377.4    0.001 1233/1304    0.003    0.023    0.019       0.3       0.0   0.03     -28.0  ACCEPT — fit+select, paired p, and its OWN expectancy 0.023R positive beyond error (95% lower 0.019R)
+defaultReviewHours=48            382.6    464.3    0.001 1242/1304    0.003    0.024    0.019       0.7       0.0   0.02     -27.0  ACCEPT — fit+select, paired p, and its OWN expectancy 0.024R positive beyond error (95% lower 0.019R)
+
+=== METALS ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=4              52.4      1.1    0.724   538/702   -0.010   -0.057   -0.084       0.0       4.7   0.22      -3.4  fails
+defaultReviewHours=12            -16.7     -0.4    0.870   311/724    0.003   -0.044   -0.070       0.6       0.0   0.07      -3.7  fails
+defaultReviewHours=24            -47.4      4.3    0.686   411/724    0.007   -0.040   -0.065      -2.7       0.0   0.03      -4.6  fails
+defaultReviewHours=48            -65.6    -14.7    0.966   440/724    0.002   -0.045   -0.070      -3.4       0.0   0.02      -4.6  fails
+
+=== FUTURES ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=4             143.9     -8.6    0.920   194/219   -0.009   -0.071   -0.093       0.0       0.2   0.19     -13.4  fails
+defaultReviewHours=12           -175.7    -73.6    1.000   197/220   -0.007   -0.069   -0.089       0.0       0.0   0.04     -14.9  fails
+defaultReviewHours=24           -247.4    -83.3    1.000   204/220   -0.005   -0.067   -0.087       0.0       0.0   0.01     -14.9  fails
+defaultReviewHours=48           -212.4    -96.8    1.000   206/220   -0.006   -0.068   -0.088       0.0       0.0   0.01     -16.0  fails
+
+=== INDICES ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=4               0.5      6.8    0.422    80/281   -0.006   -0.160   -0.221       0.0      -2.0   0.16      -3.4  fails
+defaultReviewHours=12              1.4      2.5    0.392    16/297    0.008   -0.147   -0.203       0.7       0.0   0.15      -3.4  fails
+defaultReviewHours=24              0.5      1.0    0.797   138/297    0.013   -0.142   -0.217      -3.0       0.0   0.05      -9.1  fails
+defaultReviewHours=48              0.6      3.2    0.769   142/297    0.018   -0.137   -0.213      -2.0       0.0   0.04      -9.1  fails
+
+=== ENERGIES ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=4              43.5     22.2    0.017    83/115    0.020   -0.182   -0.290       0.0      -3.7   0.35      -3.3  fails
+defaultReviewHours=12            -19.8    -22.9    1.000    88/137   -0.008   -0.210   -0.300      -3.2       0.0   0.09      -5.3  fails
+defaultReviewHours=24            -24.9    -35.6    1.000   106/137   -0.007   -0.208   -0.294      -6.1       0.0   0.04      -5.7  fails
+defaultReviewHours=48            -24.9    -45.2    1.000   108/137   -0.012   -0.214   -0.296      -6.7       0.0   0.04      -5.8  fails
+
+=== CRYPTO ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=4            -908.4   1445.9    0.001 1161/1163   -0.005   -0.157   -0.164       0.0       0.0   0.23     -23.0  fails
+defaultReviewHours=12              0.0      0.0    1.000    0/1163    0.000   -0.152   -0.159       0.0       0.0   0.04     -33.7  NO VERDICT — pairing 0 nonzero of 1163 shared days is below the statistic's floor (5)
+defaultReviewHours=24            771.3   -500.6    1.000 1110/1163    0.001   -0.151   -0.158       0.0       0.0   0.01     -34.4  fails
+defaultReviewHours=48           1335.1   -698.1    1.000 1138/1163    0.004   -0.148   -0.155       0.0       0.0   0.00     -34.2  fails
+
+=== AGRICULTURE ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=4             -12.0    -16.2    0.978   171/181   -0.048   -0.166   -0.211       0.0       0.5   0.21      -5.6  fails
+defaultReviewHours=12            -31.8    -17.9    0.978   170/182    0.003   -0.115   -0.166       0.0       0.0   0.10     -13.0  fails
+defaultReviewHours=24            -64.4    -23.1    0.982   174/182    0.011   -0.107   -0.158       0.0       0.0   0.04     -19.0  fails
+defaultReviewHours=48            -59.8    -18.4    0.958   177/182    0.018   -0.100   -0.151       0.0       0.0   0.03     -19.0  fails
+
+=== LIVESTOCK ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+defaultReviewHours=4               8.7     -0.3    0.922     10/11   -0.050   -0.053   -0.623       0.0      -1.6   0.21      -1.1  THIN (14 filled) — refuse
+defaultReviewHours=12             -4.1      2.2    0.973     30/69    0.021    0.019   -0.195       0.0      -7.9   0.11      -2.1  fails
+defaultReviewHours=24              0.0      0.0    1.000     0/112    0.000   -0.003   -0.158       0.0       0.0   0.01      -2.8  NO VERDICT — pairing 0 nonzero of 112 shared days is below the statistic's floor (5)
+defaultReviewHours=48              1.3     -4.3    1.000    14/112   -0.022   -0.025   -0.168       2.1       0.0   0.01      -2.8  fails
