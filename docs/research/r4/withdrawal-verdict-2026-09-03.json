@@ -110,7 +110,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.07490478668054103,
       "netUpper": -0.05017666004552126,
-      "reason": "measured -0.075R per filled setup (95% upper -0.050, n=2883) on data held back from every tuning step, and -0.054R (95% upper -0.030) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.075R per filled setup (95% upper -0.050, n=2883) on the confirmation fold the ledgered read opened once, and -0.054R (95% upper -0.030) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "AAVEUSD"
     },
     {
@@ -121,7 +121,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.6463756622516568,
       "netUpper": -0.6018115339816184,
-      "reason": "measured -0.646R per filled setup (95% upper -0.602, n=1208) on data held back from every tuning step, and -0.226R (95% upper -0.180) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.646R per filled setup (95% upper -0.602, n=1208) on the confirmation fold the ledgered read opened once, and -0.226R (95% upper -0.180) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "ALGOUSD"
     },
     {
@@ -132,7 +132,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.301356338028169,
       "netUpper": -0.17027277489852444,
-      "reason": "measured -0.301R per filled setup (95% upper -0.170, n=142) on data held back from every tuning step, and -0.224R (95% upper -0.093) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.301R per filled setup (95% upper -0.170, n=142) on the confirmation fold the ledgered read opened once, and -0.224R (95% upper -0.093) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "ASX"
     },
     {
@@ -143,7 +143,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -1.6714589473684214,
       "netUpper": -1.487258853439261,
-      "reason": "measured -1.671R per filled setup (95% upper -1.487, n=95) on data held back from every tuning step, and -0.372R (95% upper -0.233) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -1.671R per filled setup (95% upper -1.487, n=95) on the confirmation fold the ledgered read opened once, and -0.372R (95% upper -0.233) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "ATOMUSD"
     },
     {
@@ -154,7 +154,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.6420250630782173,
       "netUpper": -0.5969729126527588,
-      "reason": "measured -0.642R per filled setup (95% upper -0.597, n=1189) on data held back from every tuning step, and -0.198R (95% upper -0.150) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.642R per filled setup (95% upper -0.597, n=1189) on the confirmation fold the ledgered read opened once, and -0.198R (95% upper -0.150) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "AVAXUSD"
     },
     {
@@ -165,7 +165,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.291677614068441,
       "netUpper": -0.26114546366737523,
-      "reason": "measured -0.292R per filled setup (95% upper -0.261, n=2104) on data held back from every tuning step, and -0.105R (95% upper -0.076) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.292R per filled setup (95% upper -0.261, n=2104) on the confirmation fold the ledgered read opened once, and -0.105R (95% upper -0.076) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "BCHUSD"
     },
     {
@@ -176,7 +176,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.20910163649025082,
       "netUpper": -0.17453132905225127,
-      "reason": "measured -0.209R per filled setup (95% upper -0.175, n=2872) on data held back from every tuning step, and -0.169R (95% upper -0.135) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.209R per filled setup (95% upper -0.175, n=2872) on the confirmation fold the ledgered read opened once, and -0.169R (95% upper -0.135) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "CAKEUSD"
     },
     {
@@ -187,7 +187,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.0939842524916944,
       "netUpper": -0.06822424006593675,
-      "reason": "measured -0.094R per filled setup (95% upper -0.068, n=3010) on data held back from every tuning step, and -0.066R (95% upper -0.041) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.094R per filled setup (95% upper -0.068, n=3010) on the confirmation fold the ledgered read opened once, and -0.066R (95% upper -0.041) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "DASHUSD"
     },
     {
@@ -198,7 +198,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.11591195834732963,
       "netUpper": -0.09140204954049766,
-      "reason": "measured -0.116R per filled setup (95% upper -0.091, n=2977) on data held back from every tuning step, and -0.062R (95% upper -0.038) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.116R per filled setup (95% upper -0.091, n=2977) on the confirmation fold the ledgered read opened once, and -0.062R (95% upper -0.038) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "DOGEUSD"
     },
     {
@@ -209,7 +209,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.8993069952305252,
       "netUpper": -0.8407086760588639,
-      "reason": "measured -0.899R per filled setup (95% upper -0.841, n=629) on data held back from every tuning step, and -0.240R (95% upper -0.173) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.899R per filled setup (95% upper -0.841, n=629) on the confirmation fold the ledgered read opened once, and -0.240R (95% upper -0.173) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "DOTUSD"
     },
     {
@@ -220,7 +220,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -1.6324194528875378,
       "netUpper": -1.5127585716810241,
-      "reason": "measured -1.632R per filled setup (95% upper -1.513, n=329) on data held back from every tuning step, and -0.327R (95% upper -0.218) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -1.632R per filled setup (95% upper -1.513, n=329) on the confirmation fold the ledgered read opened once, and -0.327R (95% upper -0.218) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "DYDXUSD"
     },
     {
@@ -231,7 +231,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.31049137343927413,
       "netUpper": -0.2816557251119449,
-      "reason": "measured -0.310R per filled setup (95% upper -0.282, n=2643) on data held back from every tuning step, and -0.096R (95% upper -0.069) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.310R per filled setup (95% upper -0.282, n=2643) on the confirmation fold the ledgered read opened once, and -0.096R (95% upper -0.069) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "EGLDUSD"
     },
     {
@@ -242,7 +242,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.13429765494137383,
       "netUpper": -0.10879500954087067,
-      "reason": "measured -0.134R per filled setup (95% upper -0.109, n=2985) on data held back from every tuning step, and -0.076R (95% upper -0.051) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.134R per filled setup (95% upper -0.109, n=2985) on the confirmation fold the ledgered read opened once, and -0.076R (95% upper -0.051) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "ETCUSD"
     },
     {
@@ -253,7 +253,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.09101119155354465,
       "netUpper": -0.06683707027168168,
-      "reason": "measured -0.091R per filled setup (95% upper -0.067, n=3315) on data held back from every tuning step, and -0.046R (95% upper -0.022) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.091R per filled setup (95% upper -0.067, n=3315) on the confirmation fold the ledgered read opened once, and -0.046R (95% upper -0.022) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "GRTUSD"
     },
     {
@@ -264,7 +264,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.09980802036919165,
       "netUpper": -0.07563527473352635,
-      "reason": "measured -0.100R per filled setup (95% upper -0.076, n=3142) on data held back from every tuning step, and -0.064R (95% upper -0.041) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.100R per filled setup (95% upper -0.076, n=3142) on the confirmation fold the ledgered read opened once, and -0.064R (95% upper -0.041) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "HBARUSD"
     },
     {
@@ -275,7 +275,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.12980434329395413,
       "netUpper": -0.09877922523972266,
-      "reason": "measured -0.130R per filled setup (95% upper -0.099, n=2878) on data held back from every tuning step, and -0.091R (95% upper -0.060) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.130R per filled setup (95% upper -0.099, n=2878) on the confirmation fold the ledgered read opened once, and -0.091R (95% upper -0.060) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "IMXUSD"
     },
     {
@@ -286,7 +286,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.3306324234354195,
       "netUpper": -0.2951386893313045,
-      "reason": "measured -0.331R per filled setup (95% upper -0.295, n=1502) on data held back from every tuning step, and -0.069R (95% upper -0.036) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.331R per filled setup (95% upper -0.295, n=1502) on the confirmation fold the ledgered read opened once, and -0.069R (95% upper -0.036) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "LTCUSD"
     },
     {
@@ -297,7 +297,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.6801599597585518,
       "netUpper": -0.6331956733843287,
-      "reason": "measured -0.680R per filled setup (95% upper -0.633, n=994) on data held back from every tuning step, and -0.194R (95% upper -0.142) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.680R per filled setup (95% upper -0.633, n=994) on the confirmation fold the ledgered read opened once, and -0.194R (95% upper -0.142) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "NEARUSD"
     },
     {
@@ -308,7 +308,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.0680348973607037,
       "netUpper": -0.04320525152660058,
-      "reason": "measured -0.068R per filled setup (95% upper -0.043, n=2728) on data held back from every tuning step, and -0.033R (95% upper -0.009) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.068R per filled setup (95% upper -0.043, n=2728) on the confirmation fold the ledgered read opened once, and -0.033R (95% upper -0.009) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "SOLUSD"
     },
     {
@@ -319,7 +319,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -1.52013393258427,
       "netUpper": -1.4166805554896094,
-      "reason": "measured -1.520R per filled setup (95% upper -1.417, n=445) on data held back from every tuning step, and -0.542R (95% upper -0.448) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -1.520R per filled setup (95% upper -1.417, n=445) on the confirmation fold the ledgered read opened once, and -0.542R (95% upper -0.448) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "TRXUSD"
     },
     {
@@ -330,7 +330,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.09960558106676062,
       "netUpper": -0.07381442593975829,
-      "reason": "measured -0.100R per filled setup (95% upper -0.074, n=2831) on data held back from every tuning step, and -0.069R (95% upper -0.044) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.100R per filled setup (95% upper -0.074, n=2831) on the confirmation fold the ledgered read opened once, and -0.069R (95% upper -0.044) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "UNIUSD"
     },
     {
@@ -341,7 +341,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.10882787937119043,
       "netUpper": -0.07913846585560722,
-      "reason": "measured -0.109R per filled setup (95% upper -0.079, n=3117) on data held back from every tuning step, and -0.081R (95% upper -0.051) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.109R per filled setup (95% upper -0.079, n=3117) on the confirmation fold the ledgered read opened once, and -0.081R (95% upper -0.051) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "XLMUSD"
     },
     {
@@ -352,7 +352,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.1451507697947214,
       "netUpper": -0.11860582864336155,
-      "reason": "measured -0.145R per filled setup (95% upper -0.119, n=2728) on data held back from every tuning step, and -0.103R (95% upper -0.077) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.145R per filled setup (95% upper -0.119, n=2728) on the confirmation fold the ledgered read opened once, and -0.103R (95% upper -0.077) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
       "symbol": "XMRUSD"
     }
   ],
@@ -402,6 +402,30 @@
   ],
   "rule": "The HELD-BACK TEST, applied to every market: the read's shipped-cell m3 is confirmed-negative on at least 30 filled outcomes and BOTH the net and the gross 95% upper bounds are below zero. Net is the money (amendment 39); gross is amendment 36's precondition — a negative that rests on a cost we model is a defect in the parameter, not in the market. ENTERING the register also requires the read's own pre-registered nomination: the shipped cell was a decline candidate under DECLINE_RULE on the select fold and no accepted variant retired it. STAYING in the register requires the held-back test alone, because a standing decline is not a new hypothesis being dredged from the confirm fold but an existing verdict being re-tested on valid data. A market that fails the held-back test while declined is RESTORED, and so is one the read cannot judge at all: a decline may not stand on evidence this program has invalidated. A market that passes the held-back test without a nomination is neither declined nor cleared — it is named for the next act.",
   "ruleHash": "d71da668e939fafb6afd34d6a9141f3e889f28f09ff101c9ff745dc96f5bcd80",
+  "retired": [
+    {
+      "disposition": "retired",
+      "filled": 2901,
+      "grossExpectancy": -0.044469458807307884,
+      "grossUpper": -0.020658366248279287,
+      "m3": "confirmed-negative",
+      "measuredExpectancyR": -0.12990803171320287,
+      "netUpper": -0.10513797858145672,
+      "reason": "measured -0.130R per filled setup (95% upper -0.105, n=2901) on the confirmation fold, and the select fold DID nominate it — but an accepted variant retired the candidacy, and the retirement rule keeps the market",
+      "symbol": "ADAUSD"
+    },
+    {
+      "disposition": "retired",
+      "filled": 141,
+      "grossExpectancy": -0.33557801418439714,
+      "grossUpper": -0.18413073334217672,
+      "m3": "confirmed-negative",
+      "measuredExpectancyR": -1.9727524822695035,
+      "netUpper": -1.8018146546936102,
+      "reason": "measured -1.973R per filled setup (95% upper -1.802, n=141) on the confirmation fold, and the select fold DID nominate it — but an accepted variant retired the candidacy, and the retirement rule keeps the market",
+      "symbol": "XTZUSD"
+    }
+  ],
   "unjudged": [
     {
       "disposition": "unjudged",
@@ -957,24 +981,13 @@
   "unnominated": [
     {
       "disposition": "unnominated",
-      "filled": 2901,
-      "grossExpectancy": -0.044469458807307884,
-      "grossUpper": -0.020658366248279287,
-      "m3": "confirmed-negative",
-      "measuredExpectancyR": -0.12990803171320287,
-      "netUpper": -0.10513797858145672,
-      "reason": "measured -0.130R per filled setup (95% upper -0.105, n=2901) on held-back data, and -0.044R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
-      "symbol": "ADAUSD"
-    },
-    {
-      "disposition": "unnominated",
       "filled": 2290,
       "grossExpectancy": -0.3485259825327512,
       "grossUpper": -0.30789090372325334,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.5179703493449787,
       "netUpper": -0.4783527609425304,
-      "reason": "measured -0.518R per filled setup (95% upper -0.478, n=2290) on held-back data, and -0.349R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
+      "reason": "measured -0.518R per filled setup (95% upper -0.478, n=2290) on the confirmation fold, and -0.349R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
       "symbol": "ARWUSD"
     },
     {
@@ -985,7 +998,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.23762575962187762,
       "netUpper": -0.20668596956241445,
-      "reason": "measured -0.238R per filled setup (95% upper -0.207, n=2962) on held-back data, and -0.198R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
+      "reason": "measured -0.238R per filled setup (95% upper -0.207, n=2962) on the confirmation fold, and -0.198R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
       "symbol": "BNBUSD"
     },
     {
@@ -996,7 +1009,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.09762234443746044,
       "netUpper": -0.07496273475425702,
-      "reason": "measured -0.098R per filled setup (95% upper -0.075, n=3182) on held-back data, and -0.052R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
+      "reason": "measured -0.098R per filled setup (95% upper -0.075, n=3182) on the confirmation fold, and -0.052R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
       "symbol": "BTCUSD"
     },
     {
@@ -1007,7 +1020,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.08312185128983328,
       "netUpper": -0.06075441789170159,
-      "reason": "measured -0.083R per filled setup (95% upper -0.061, n=3295) on held-back data, and -0.051R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
+      "reason": "measured -0.083R per filled setup (95% upper -0.061, n=3295) on the confirmation fold, and -0.051R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
       "symbol": "ETHUSD"
     },
     {
@@ -1018,7 +1031,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.11476963673749144,
       "netUpper": -0.084252768683621,
-      "reason": "measured -0.115R per filled setup (95% upper -0.084, n=2918) on held-back data, and -0.092R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
+      "reason": "measured -0.115R per filled setup (95% upper -0.084, n=2918) on the confirmation fold, and -0.092R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
       "symbol": "LINKUSD"
     },
     {
@@ -1029,7 +1042,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.16416380952380946,
       "netUpper": -0.0649430502215406,
-      "reason": "measured -0.164R per filled setup (95% upper -0.065, n=105) on held-back data, and -0.135R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
+      "reason": "measured -0.164R per filled setup (95% upper -0.065, n=105) on the confirmation fold, and -0.135R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
       "symbol": "SP"
     },
     {
@@ -1040,7 +1053,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -1.5109361842105267,
       "netUpper": -1.418671915784898,
-      "reason": "measured -1.511R per filled setup (95% upper -1.419, n=304) on held-back data, and -0.458R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
+      "reason": "measured -1.511R per filled setup (95% upper -1.419, n=304) on the confirmation fold, and -0.458R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
       "symbol": "THETAUSD"
     },
     {
@@ -1051,7 +1064,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.23897919038583215,
       "netUpper": -0.19637247993478413,
-      "reason": "measured -0.239R per filled setup (95% upper -0.196, n=1581) on held-back data, and -0.163R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
+      "reason": "measured -0.239R per filled setup (95% upper -0.196, n=1581) on the confirmation fold, and -0.163R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
       "symbol": "TRUMPUSD"
     },
     {
@@ -1062,7 +1075,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.051551393908105286,
       "netUpper": -0.030333246728638234,
-      "reason": "measured -0.052R per filled setup (95% upper -0.030, n=3874) on held-back data, and -0.032R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
+      "reason": "measured -0.052R per filled setup (95% upper -0.030, n=3874) on the confirmation fold, and -0.032R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
       "symbol": "USDJPY"
     },
     {
@@ -1073,19 +1086,8 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.08120671296296286,
       "netUpper": -0.0576099453999207,
-      "reason": "measured -0.081R per filled setup (95% upper -0.058, n=3024) on held-back data, and -0.047R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
+      "reason": "measured -0.081R per filled setup (95% upper -0.058, n=3024) on the confirmation fold, and -0.047R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
       "symbol": "XRPUSD"
-    },
-    {
-      "disposition": "unnominated",
-      "filled": 141,
-      "grossExpectancy": -0.33557801418439714,
-      "grossUpper": -0.18413073334217672,
-      "m3": "confirmed-negative",
-      "measuredExpectancyR": -1.9727524822695035,
-      "netUpper": -1.8018146546936102,
-      "reason": "measured -1.973R per filled setup (95% upper -1.802, n=141) on held-back data, and -0.336R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
-      "symbol": "XTZUSD"
     },
     {
       "disposition": "unnominated",
@@ -1095,7 +1097,7 @@
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.40456749999999986,
       "netUpper": -0.18839662743572136,
-      "reason": "measured -0.405R per filled setup (95% upper -0.188, n=40) on held-back data, and -0.333R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
+      "reason": "measured -0.405R per filled setup (95% upper -0.188, n=40) on the confirmation fold, and -0.333R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
       "symbol": "ZFUSD"
     }
   ]

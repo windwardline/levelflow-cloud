@@ -588,6 +588,20 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
       WITHDRAWAL_RULE_HASH,
       "the artifact was written under a different withdrawal rule than this code registers",
     );
+    // THE PRIOR REGISTER IS BOUND TO A TRACKED ARTIFACT, not self-declared.
+    // Otherwise a market named there is laundered into the register: the stay
+    // clause admits it with no nomination and nothing notices.
+    const fourD = JSON.parse(
+      readFileSync("docs/research/baseline-2026-08-10/4d-cost-sensitivity.json", "utf8"),
+    ) as { verdicts: Record<string, { verdict: string }> };
+    assert.deepEqual(
+      verdict.priorRegister,
+      Object.entries(fourD.verdicts)
+        .filter(([, row]) => row.verdict.startsWith("DATA-NEGATIVE"))
+        .map(([symbol]) => symbol)
+        .sort(),
+      "the artifact's prior register is not the population the outgoing register was pinned to",
+    );
     const declined = verdict.declined.map((row) => row.symbol).sort();
     assert.ok(declined.length >= 20, `the verdict declines ${declined.length} markets — that is a shrunk artifact, not a register`);
     assert.deepEqual(
@@ -626,13 +640,23 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
     // (a standing decline is re-tested; a new one must also be nominated),
     // so re-deriving against TODAY's register would answer a different
     // question.
+    type Row = {
+      disposition: string;
+      filled: number | null;
+      grossUpper: number | null;
+      measuredExpectancyR: number | null;
+      netUpper: number | null;
+      reason: string;
+      symbol: string;
+    };
     const verdict = JSON.parse(
       readFileSync("docs/research/r4/withdrawal-verdict-2026-09-03.json", "utf8"),
     ) as {
-      declined: Array<{ disposition: string; symbol: string }>;
+      declined: Row[];
       priorRegister: string[];
-      restored: Array<{ symbol: string }>;
-      unnominated: Array<{ symbol: string }>;
+      restored: Row[];
+      retired?: Row[];
+      unnominated: Row[];
     };
     const read = readLedgeredArtifact(
       "docs/research/confirm-reads/ledgered-read-act3.json",
@@ -648,6 +672,21 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
     );
     assert.deepEqual(namesOf("restored"), verdict.restored.map((row) => row.symbol).sort());
     assert.deepEqual(namesOf("unnominated"), verdict.unnominated.map((row) => row.symbol).sort());
+    assert.deepEqual(namesOf("retired"), (verdict.retired ?? []).map((row) => row.symbol).sort());
+    // FIGURES, NOT ONLY NAMES. Symbol lists agreeing proves the population;
+    // it does not stop the artifact and the register drifting together to
+    // figures the read never produced.
+    const derivedBySymbol = new Map(derived.map((row) => [row.symbol, row]));
+    for (const row of [...verdict.declined, ...verdict.restored, ...(verdict.retired ?? []), ...verdict.unnominated]) {
+      const again = derivedBySymbol.get(row.symbol);
+      assert.ok(again, `${row.symbol} is in the artifact but not in the re-derivation`);
+      assert.equal(again.disposition, row.disposition, `${row.symbol}: disposition drifted`);
+      assert.equal(again.measuredExpectancyR, row.measuredExpectancyR, `${row.symbol}: net expectancy drifted`);
+      assert.equal(again.grossUpper, row.grossUpper, `${row.symbol}: gross bound drifted`);
+      assert.equal(again.netUpper, row.netUpper, `${row.symbol}: net bound drifted`);
+      assert.equal(again.filled, row.filled, `${row.symbol}: fill count drifted`);
+      assert.equal(again.reason, row.reason, `${row.symbol}: the sentence drifted from the rule that writes it`);
+    }
     assert.ok(
       namesOf("declined").length >= 5 && namesOf("stays").length >= 5,
       "both halves of the asymmetric rule must be exercised, or one clause is unmeasured",
