@@ -52,7 +52,7 @@ import {
   type SweepEmitRow,
   type SweepStats,
 } from "./sweepStats.ts";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { dirname, join, relative } from "node:path";
 import {
   sha256Hex,
@@ -322,7 +322,86 @@ export type VariantVerdict = {
 
 export type FoldNames = { confirm?: string; fit: string; select: string };
 
+/**
+ * A derived variant (R4 act 3): a post-hoc admission filter graded WITHOUT a
+ * sweep. `minRewardRisk` and the confidence threshold are read at admission
+ * from fields every row carries (`rewardRisk`, `confidenceScore`; the sweep's
+ * `accepted` is exactly baseline AND that test, `sweep.ts:1028`) with no
+ * inter-decision state, so a filter cell's rows are the baseline's rows with
+ * `accepted` re-decided. The gate re-decides it here: every baseline row is
+ * also added under the derived name with `accepted = accepted && predicate`,
+ * and everything downstream — day pairing, the permutation null, THIN, D4,
+ * the sealed door — is unchanged. `costShare` is a derived field,
+ * estimatedRoundTripCost / riskDistance, the cost weight per trade.
+ */
+export type DerivedFilter = {
+  field: string;
+  name: string;
+  op: ">=" | ">" | "<=" | "<";
+  predicate: string;
+  predicateHash: string;
+  value: number;
+};
+
+const DERIVED_OPS = new Set([">=", ">", "<=", "<"]);
+
+/** `name:field>=value;name:field<=value` — one entry per derived variant. */
+export function parseDerivedFilters(spec: string): DerivedFilter[] {
+  const filters: DerivedFilter[] = [];
+  for (const entry of spec.split(";").map((part) => part.trim()).filter((part) => part.length > 0)) {
+    const colon = entry.indexOf(":");
+    const name = colon < 0 ? "" : entry.slice(0, colon).trim();
+    const predicate = colon < 0 ? entry : entry.slice(colon + 1).trim();
+    if (name.length === 0) throw new Error(`--derive-filters: an entry needs a name before the colon, got ${JSON.stringify(entry)}`);
+    if (name === "baseline") throw new Error(`--derive-filters: ${JSON.stringify(name)} is the baseline's own name; a derived variant is compared against it`);
+    if (filters.some((existing) => existing.name === name)) throw new Error(`--derive-filters: ${JSON.stringify(name)} is named twice`);
+    const match = /^([A-Za-z_][A-Za-z0-9_]*)\s*(>=|<=|>|<)\s*(.+)$/.exec(predicate);
+    if (!match || !DERIVED_OPS.has(match[2])) {
+      throw new Error(`--derive-filters: ${JSON.stringify(entry)} is not a predicate of the form field>=value (ops: >=, >, <=, <)`);
+    }
+    const value = Number(match[3]);
+    if (!Number.isFinite(value)) throw new Error(`--derive-filters: ${JSON.stringify(entry)} compares against ${JSON.stringify(match[3])}, which is not a number`);
+    const canonical = `${match[1]}${match[2]}${value}`;
+    filters.push({
+      field: match[1],
+      name,
+      op: match[2] as DerivedFilter["op"],
+      predicate: canonical,
+      predicateHash: createHash("sha256").update(canonical).digest("hex"),
+      value,
+    });
+  }
+  return filters;
+}
+
+function derivedFieldOf(row: SweepEmitRow, field: string): number {
+  if (field === "costShare") {
+    const cost = row.estimatedRoundTripCost;
+    const risk = row.riskDistance;
+    if (typeof cost !== "number" || !Number.isFinite(cost) || typeof risk !== "number" || !(risk > 0)) {
+      throw new Error(`--derive-filters: ${row.symbol}'s baseline row carries no usable estimatedRoundTripCost/riskDistance, so costShare cannot be derived from this corpus`);
+    }
+    return cost / risk;
+  }
+  const value = row[field];
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`--derive-filters: ${row.symbol}'s baseline row carries no numeric ${field}; a derived variant cannot be graded on a corpus that did not emit its field`);
+  }
+  return value;
+}
+
+function derivedPasses(filter: DerivedFilter, value: number): boolean {
+  switch (filter.op) {
+    case ">=": return value >= filter.value;
+    case ">": return value > filter.value;
+    case "<=": return value <= filter.value;
+    case "<": return value < filter.value;
+  }
+}
+
 type GateOptions = {
+  /** Derived variants graded from the baseline's rows (R4 act 3); see DerivedFilter. */
+  deriveFilters?: DerivedFilter[];
   acknowledgePriorReads?: boolean;
   // The variant every other cell compares against. Defaults to the bare
   // "baseline" label; a 4c measurement grid that retires the confidence
@@ -1335,6 +1414,9 @@ export async function gradeCorpus(
   // Rows the door withheld (the confirm fold, unless this is the recorded
   // read) — stated in the label so the population read is explicit.
   let sealedRows = 0;
+  const derivedFilters = options.deriveFilters ?? [];
+  const derivedParent = options.baselineVariant ?? "baseline";
+  const emittedVariants = new Set<string>();
   for (const path of paths) {
     // THE ONE READ. The door seals the confirm fold by default (R4 act 1);
     // this is the only call in the repository allowed to open it, and only
@@ -1346,11 +1428,29 @@ export async function gradeCorpus(
       }
       // The emitted split label is the fold. Nothing here re-cuts time.
       addRowToCube(cube, row, { includeHoldout: true });
+      if (derivedFilters.length > 0) {
+        const emitted = typeof row.variant === "string" ? row.variant : "baseline";
+        emittedVariants.add(emitted);
+        if (emitted === derivedParent) {
+          for (const filter of derivedFilters) {
+            const passes = derivedPasses(filter, derivedFieldOf(row, filter.field));
+            addRowToCube(cube, { ...row, accepted: row.accepted !== false && passes, variant: filter.name }, { includeHoldout: true });
+          }
+        }
+      }
     }, {
       // Sealed unless this read is the recorded one.
       confirm: options.confirmFinal ? "read" : "sealed",
     });
     sealedRows += read.sealedRows;
+  }
+  for (const filter of derivedFilters) {
+    if (emittedVariants.has(filter.name)) {
+      throw new Error(
+        `--derive-filters: ${JSON.stringify(filter.name)} is also an emitted variant in this corpus; ` +
+          `a derived variant may not shadow a swept cell — name it differently`,
+      );
+    }
   }
 
   // Confirm-fold discipline by mechanism (LA-6): without confirmFinal the
@@ -2014,6 +2114,7 @@ async function main(): Promise<void> {
   // visible in the shell history as the read it files elsewhere.
   const VALUE_FLAGS = new Set([
     "--baseline",
+  "--derive-filters",
     "--confirm-log-dir",
     "--permutations",
     "--out",
@@ -2127,6 +2228,8 @@ async function main(): Promise<void> {
   const provenancePath = str("--provenance");
   const readArtifactPath = str("--read-out");
   const outPath = str("--out");
+  const deriveFilters = parseDerivedFilters(str("--derive-filters") ?? "");
+  const derivedByName = new Map(deriveFilters.map((filter) => [filter.name, filter]));
   if (paths.length === 0) {
     console.error(
       // The usage line names every flag the walker recognises. It had
@@ -2135,7 +2238,7 @@ async function main(): Promise<void> {
       // decide whether the held-back fold is opened — went unmentioned,
       // an enumeration in prose narrower than the code beside it.
       "Usage: npx tsx scripts/grid-totalr.ts <emit.jsonl> [more-shards.jsonl ...] " +
-        "[--baseline <variant>] [--permutations 1000] [--seed 7] " +
+        "[--baseline <variant>] [--derive-filters \"name:field>=value;…\"] [--permutations 1000] [--seed 7] " +
         "[--verdict-unit class|market] [--provenance <shipped-cell-provenance.json>] " +
         "[--read-out <ledgered-read.json>] [--out <per-market-grading.json>] " +
         "[--confirm-final] [--acknowledge-prior-reads] [--include-holdout] " +
@@ -2158,6 +2261,7 @@ async function main(): Promise<void> {
   } = await gradeCorpus(paths, {
     acknowledgePriorReads: args.includes("--acknowledge-prior-reads"),
     baselineVariant,
+    deriveFilters,
     confirmFinal: args.includes("--confirm-final"),
     confirmLogDir,
     includeHoldout: args.includes("--include-holdout"),
@@ -2231,6 +2335,7 @@ async function main(): Promise<void> {
           selectExpectancyDelta: verdict.selectExpectancyDelta,
           selectTotalDelta: verdict.selectTotalDelta,
           select: verdict.select,
+          derived: derivedByName.has(variant),
         };
       }
       markets[symbol] = {
@@ -2253,6 +2358,9 @@ async function main(): Promise<void> {
       corpusNote: read
         ? `the confirm fold WAS read in this run (readId ${read.readId}); the figures above are select-fold only`
         : "confirm fold sealed — not read; every figure here is a fit/select figure",
+      derived: Object.fromEntries(
+        [...derivedByName.values()].map((filter) => [filter.name, { field: filter.field, op: filter.op, parent: baselineVariant ?? "baseline", predicate: filter.predicate, predicateHash: filter.predicateHash, value: filter.value }]),
+      ),
       derivedAt: new Date().toISOString(),
       foldSource: "emitted",
       heldOut: heldOutSet,

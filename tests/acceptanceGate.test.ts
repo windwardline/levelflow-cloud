@@ -30,6 +30,7 @@ import {
   marketVerdicts,
   gradeCorpus,
   readGridCube,
+  parseDerivedFilters,
 } from "../scripts/grid-totalr.ts";
 import type { SweepEmitRow } from "../scripts/sweepStats.ts";
 
@@ -1652,6 +1653,114 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.equal(shipped.net!.n, 40);
     assert.ok(Math.abs(shipped.net!.expectancy + 0.5) < 1e-9);
     assert.deepEqual(Object.keys(verdict.select).sort(), Object.keys(shipped).sort());
+  });
+
+  describe("derived variants (R4 act 3): a post-hoc filter graded without a sweep", () => {
+    const DAY_MS = 86_400_000;
+    const start = Date.UTC(2025, 0, 6);
+    // 40 baseline days on select: even days admitted at a net payoff of 1.6 and
+    // paying +0.3R, odd days at 1.3 paying −0.6R — the [1.2,1.5) band as the
+    // corpus measured it, in miniature.
+    const rows = (): SweepEmitRow[] =>
+      Array.from({ length: 40 }, (_, day) => ({
+        accepted: true,
+        estimatedRoundTripCost: day % 2 === 0 ? 0.1 : 0.4,
+        exitAtMs: start + day * DAY_MS + 3_600_000,
+        grossRealizedR: day % 2 === 0 ? 0.35 : -0.5,
+        outcome: day % 2 === 0 ? "take_profit" : "stop_loss",
+        realizedR: day % 2 === 0 ? 0.3 : -0.6,
+        rewardRisk: day % 2 === 0 ? 1.6 : 1.3,
+        riskDistance: 1,
+        split: "test",
+        symbol: "EURUSD",
+        time: start + day * DAY_MS,
+        variant: "baseline",
+      }));
+
+    it("reproduces the baseline exactly when the floor is the one the baseline already applied (identity)", async () => {
+      const graded = await gradeCorpus(corpusWith(rows()), {
+        deriveFilters: parseDerivedFilters("floor=1.3:rewardRisk>=1.3"),
+        permutations: 30,
+        seed: 4,
+        verdictUnit: "market",
+      });
+      const derived = graded.verdicts.get("EURUSD")!.get("floor=1.3")!;
+      const shipped = graded.shipped.get("EURUSD")!.select;
+      assert.deepEqual(derived.select, shipped);
+      assert.equal(derived.selectFilled, 40);
+      assert.equal(derived.fitTotalDelta, 0);
+    });
+
+    it("keeps exactly the rows the predicate admits, and its figures match an independent sum (external anchor)", async () => {
+      const source = rows();
+      const kept = source.filter((row) => Number(row.rewardRisk) >= 1.5);
+      const graded = await gradeCorpus(corpusWith(source), {
+        deriveFilters: parseDerivedFilters("floor=1.5:rewardRisk>=1.5;cheap:costShare<=0.2"),
+        permutations: 30,
+        seed: 4,
+        verdictUnit: "market",
+      });
+      const floor = graded.verdicts.get("EURUSD")!.get("floor=1.5")!;
+      assert.equal(floor.select.net!.n, kept.length);
+      const mean = kept.reduce((sum, row) => sum + row.realizedR, 0) / kept.length;
+      assert.ok(Math.abs(floor.select.net!.expectancy - mean) < 1e-9);
+      assert.ok(Math.abs(floor.selectTotalDelta - (kept.length * 0.3 - (40 * (0.3 - 0.6) / 2))) < 1e-9);
+      // The cost-share field is derived from two row columns.
+      const cheap = graded.verdicts.get("EURUSD")!.get("cheap")!;
+      assert.equal(cheap.select.net!.n, 20);
+      assert.ok(Math.abs(cheap.select.net!.expectancy - 0.3) < 1e-9);
+    });
+
+    it("refuses a name that collides with an emitted variant, a malformed predicate, and a row without the field", async () => {
+      assert.throws(() => parseDerivedFilters("baseline:rewardRisk>=1.5"), /baseline/);
+      assert.throws(() => parseDerivedFilters("x:rewardRisk~1.5"), /predicate/);
+      assert.throws(() => parseDerivedFilters("x:rewardRisk>=abc"), /number/);
+      assert.throws(() => parseDerivedFilters(":rewardRisk>=1"), /name/);
+      const emitted = rows().map((row) => ({ ...row, variant: "floor=1.5" }));
+      await assert.rejects(
+        gradeCorpus(corpusWith([...rows(), ...emitted]), { deriveFilters: parseDerivedFilters("floor=1.5:rewardRisk>=1.5"), permutations: 20, seed: 4, verdictUnit: "market" }),
+        /floor=1\.5.*emitted/,
+      );
+      const bare = rows().map((row) => { const { rewardRisk: _dropped, ...rest } = row; void _dropped; return rest; });
+      await assert.rejects(
+        gradeCorpus(corpusWith(bare), { deriveFilters: parseDerivedFilters("floor=1.5:rewardRisk>=1.5"), permutations: 20, seed: 4, verdictUnit: "market" }),
+        /rewardRisk/,
+      );
+    });
+
+    it("derives nothing from the sealed fold: a derived run withholds the same rows and reads no confirm figure", async () => {
+      const withConfirm = [
+        ...rows(),
+        ...rows().map((row, index) => ({ ...row, split: "confirm", time: start + (100 + index) * DAY_MS, exitAtMs: start + (100 + index) * DAY_MS + 3_600_000 })),
+      ];
+      const plain = await gradeCorpus(corpusWith(withConfirm), { permutations: 20, seed: 4, verdictUnit: "market" });
+      const derived = await gradeCorpus(corpusWith(withConfirm), { deriveFilters: parseDerivedFilters("floor=1.5:rewardRisk>=1.5"), permutations: 20, seed: 4, verdictUnit: "market" });
+      assert.equal(derived.sealedRows, plain.sealedRows);
+      assert.ok(derived.sealedRows > 0);
+      assert.equal(derived.verdicts.get("EURUSD")!.get("floor=1.5")!.confirmTotalDelta, null);
+      assert.equal(derived.read, null);
+    });
+
+    it("names every derived variant in the sealed artifact with its predicate and hash", () => {
+      const dir = mkdtempSync(join(tmpdir(), "derived-out-"));
+      const out = join(dir, "grading.json");
+      const result = spawnSync(process.execPath, [
+        "./node_modules/.bin/tsx", "scripts/grid-totalr.ts", corpusWith(rows()),
+        "--verdict-unit", "market", "--permutations", "20", "--seed", "4",
+        "--derive-filters", "floor=1.5:rewardRisk>=1.5", "--out", out,
+      ], { cwd: process.cwd(), encoding: "utf8" });
+      assert.equal(result.status, 0, result.stderr);
+      const artifact = JSON.parse(readFileSync(out, "utf8")) as {
+        derived: Record<string, { field: string; op: string; parent: string; predicate: string; predicateHash: string; value: number }>;
+        markets: Record<string, { variants: Record<string, { derived?: boolean; select: { net: { n: number } | null } }> }>;
+      };
+      assert.deepEqual(Object.keys(artifact.derived), ["floor=1.5"]);
+      assert.equal(artifact.derived["floor=1.5"].predicate, "rewardRisk>=1.5");
+      assert.equal(artifact.derived["floor=1.5"].parent, "baseline");
+      assert.match(artifact.derived["floor=1.5"].predicateHash, /^[0-9a-f]{64}$/);
+      assert.equal(artifact.markets.EURUSD.variants["floor=1.5"].derived, true);
+      assert.equal(artifact.markets.EURUSD.variants["floor=1.5"].select.net!.n, 20);
+    });
   });
 
   it("refuses a recorded read whose shards carry a market the request did not name", async () => {
