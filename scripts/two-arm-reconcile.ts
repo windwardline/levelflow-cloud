@@ -133,6 +133,7 @@ export const SHARED_TERMS = [
 
 /** The counters the capture-all arm zeroes by construction (item H). */
 export const CAPTURE_ALL_ZEROED = [
+  "aboveCostShare",
   "belowConfidence",
   "belowPayoff",
   "belowThreshold",

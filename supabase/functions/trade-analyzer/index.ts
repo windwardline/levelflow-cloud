@@ -1313,7 +1313,9 @@ async function analyzeSetup(
 
   if (
     confidenceScore < calibration.confidenceThreshold ||
-    pricePlan.rewardRisk < calibration.minRewardRisk
+    pricePlan.rewardRisk < calibration.minRewardRisk ||
+    (calibration.maxCostShare !== undefined &&
+      pricePlan.executionQuality.costToRisk > calibration.maxCostShare)
   ) {
     return null;
   }
@@ -1663,6 +1665,19 @@ async function explainNoSetup(
       // read that output: these files are outside `tsconfig.tests.json`
       // because of their Deno globals, so `npm run check` never sees them and
       // ESLint does not flag an undefined dereference in them either.
+    } else if (
+      pricePlan && calibration.maxCostShare !== undefined &&
+      pricePlan.executionQuality.costToRisk > calibration.maxCostShare
+    ) {
+      // The cost weight per trade (R4 act 3): the round trip's share of the
+      // risk unit exceeded the market's cap. A cost story, named as one.
+      diagnostics.push(
+        `Trading costs would take ${
+          (pricePlan.executionQuality.costToRisk * 100).toFixed(0)
+        }% of the risk unit; Levelflow admits at most ${
+          (calibration.maxCostShare * 100).toFixed(0)
+        }% for this market.`,
+      );
     } else if (pricePlan && pricePlan.executionQuality.confidencePenalty > 0) {
       // 1b's rule again: a distinct cause carries its own sentence. This
       // printed the WHOLE penalty as "trading costs", and the penalty also

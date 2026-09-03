@@ -227,6 +227,13 @@ export type CategoryCalibration = {
   maxStopAtrMultiplier: number;
   minimumTargetRewardRisk: number;
   minRewardRisk: number;
+  // The cost weight per trade, as an admission cap (R4 act 3): a setup whose
+  // modelled round trip exceeds this share of its risk unit is declined.
+  // INERT BY DEFAULT — no class row and no symbol layer sets it, so the
+  // engine's behaviour is unchanged until a confirm read earns a value. The
+  // derived read over R3's rows accepted 0.15 for forex at the class grain
+  // (record §6a); nothing ships on that until the ledgered read.
+  maxCostShare?: number;
   newsPenaltyPerEvent: number;
   providerWarningPenalty: number;
   // Runner ceiling as a share of the window's expected move
