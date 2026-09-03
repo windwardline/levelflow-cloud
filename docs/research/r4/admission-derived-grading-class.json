@@ -2,6 +2,9 @@
   "analyzerVersion": "2026.09.01.platinum-group-rate-inverse",
   "anchor": "2026-08-26",
   "calendarHash": "5d04a7824ecae8c9183b98acc4b736777131c59a9dba672e2cd6382ecaff06dc",
+  "emitSha256": {
+    "021821537f28e5d2777543989baa0631a38840d592fad74c4bdb2429fb627c59": "23ee6b98504c3a9c1428aea5434a431fe15ef3e368dbed37fcdaf09c52c3712f"
+  },
   "corpusNote": "confirm fold sealed — not read; every figure here is a fit/select figure",
   "derived": {
     "payoffFloor=1.5": {
@@ -37,7 +40,7 @@
       "value": 0.2
     }
   },
-  "derivedAt": "2026-09-03T04:52:08.517Z",
+  "derivedAt": "2026-09-03T06:03:20.047Z",
   "foldSource": "emitted",
   "heldOut": [
     "AAVEUSD",
