@@ -1,0 +1,77 @@
+verdict unit: class — class pools (the 4c gate); fold source: emitted labels (no time re-cut)
+wrote docs/research/r4/stop-cap-grading-class.json
+folds: fit=fit select=select confirm=confirm SEALED (not derived: no --confirm-final — nothing burned; 2146443 rows withheld at the door) · holdout 20 markets excluded (read-time stratified; holdout: stratified-per-class-20pct — 20 markets excluded from every class pool (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only)
+corpus 50ac1efe16dc · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26
+(data-absence rows held out of every fold denominator: 2255 — all variants, graded folds only, accepted rows; holdout excluded by read-time stratified recomputation, not the stamped flag)
+
+=== FOREX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday   -2361.2  -1014.0    1.000 1299/1304   -0.013    0.007    0.003       0.0       0.0   0.02     -28.0  fails
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday_and_daily   -2303.7  -1002.5    1.000 1299/1304   -0.013    0.007    0.003       0.0       0.0   0.02     -28.0  fails
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday    -332.9   -102.4    0.993 1253/1304   -0.002    0.019    0.014       0.0       0.0   0.05     -25.5  fails
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily    -384.4    116.8    0.333 1292/1304    0.001    0.021    0.017       0.0       0.0   0.04     -27.2  fails
+maxStopAtrMultiplier=4,stopStructureSource=intraday       0.0      0.0    1.000    0/1304    0.000    0.020    0.016       0.0       0.0   0.07     -26.3  NO VERDICT — pairing 0 nonzero of 1304 shared days is below the statistic's floor (5)
+maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily      -1.7    236.1    0.024 1284/1304    0.003    0.023    0.019       0.0       0.0   0.05     -26.9  fails
+
+=== METALS ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday    -110.8    -38.0    0.995   714/720   -0.015   -0.062   -0.089       0.9      -1.9   0.04      -4.1  fails
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday_and_daily    -100.9    -38.9    0.996   717/720   -0.015   -0.062   -0.090       0.9      -1.9   0.04      -4.1  fails
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday     -31.7    -11.0    0.961   615/724   -0.003   -0.050   -0.076       0.4       0.0   0.09      -4.4  fails
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily     -56.0    -15.4    0.967   662/723   -0.004   -0.052   -0.077       0.8       0.4   0.08      -4.4  fails
+maxStopAtrMultiplier=4,stopStructureSource=intraday       0.0      0.0    1.000     0/724    0.000   -0.047   -0.073       0.0       0.0   0.10      -4.3  NO VERDICT — pairing 0 nonzero of 724 shared days is below the statistic's floor (5)
+maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily     -28.2     -1.8    0.842   457/723    0.000   -0.047   -0.073       0.8       0.4   0.09      -4.3  fails
+
+=== FUTURES ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday    -446.1   -206.9    1.000   219/219   -0.038   -0.100   -0.123      -0.1       0.2   0.05     -19.9  fails
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday_and_daily    -427.5   -211.6    1.000   219/219   -0.039   -0.101   -0.124      -0.1       0.2   0.05     -19.8  fails
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday      34.4    -71.7    0.981   216/219   -0.012   -0.074   -0.099       0.0       0.2   0.09     -50.5  fails
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily      48.2    -81.9    0.991   216/219   -0.013   -0.075   -0.100       0.0       0.2   0.09     -49.9  fails
+maxStopAtrMultiplier=4,stopStructureSource=intraday     394.4     88.3    0.075   208/219    0.017   -0.045   -0.067      -0.3       0.2   0.14     -30.1  fails
+maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily     344.3     17.7    0.686   210/219    0.006   -0.056   -0.078      -0.3       0.2   0.13     -32.7  fails
+
+=== INDICES ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday     -12.9     14.7    0.211   279/296    0.033   -0.122   -0.178      -2.8       0.4   0.11      -3.2  fails
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday_and_daily     -12.9     13.9    0.223   283/296    0.031   -0.123   -0.179      -2.9       0.4   0.11      -3.2  fails
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday       1.4     39.5    0.002   229/290    0.061   -0.094   -0.146      -5.1      -2.6   0.23      -3.5  fails
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily       2.6     37.2    0.002   242/292    0.058   -0.096   -0.148      -5.3      -1.4   0.22      -3.5  fails
+maxStopAtrMultiplier=4,stopStructureSource=intraday       0.0     48.5    0.001   173/284    0.064   -0.091   -0.147      -2.0      -4.8   0.25      -3.2  fails
+maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily       1.4     42.9    0.002   198/285    0.056   -0.099   -0.153      -4.7      -3.3   0.24      -3.3  fails
+
+=== ENERGIES ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday     -48.4    -20.6    0.980   124/125   -0.083   -0.285   -0.393      -1.4       3.8   0.12      -3.9  fails
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday_and_daily     -48.3    -21.9    0.983   124/125   -0.087   -0.289   -0.396      -1.4       3.8   0.12      -3.9  fails
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday     -30.2     -2.2    0.807   117/133   -0.003   -0.205   -0.302      -3.2      -1.5   0.17      -3.1  fails
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily     -33.9    -11.0    0.971   129/135   -0.003   -0.204   -0.296      -1.5      -0.8   0.17      -4.2  fails
+maxStopAtrMultiplier=4,stopStructureSource=intraday       0.0      0.0    1.000     0/137    0.000   -0.202   -0.298       0.0       0.0   0.22      -3.8  NO VERDICT — pairing 0 nonzero of 137 shared days is below the statistic's floor (5)
+maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily     -22.6    -19.5    1.000    98/137   -0.013   -0.215   -0.302       1.9       0.0   0.22      -3.8  fails
+
+=== CRYPTO ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday     228.8  -1124.8    1.000 1163/1163   -0.023   -0.175   -0.183       0.0       0.0   0.01     -36.0  fails
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday_and_daily     224.1  -1112.1    1.000 1163/1163   -0.023   -0.175   -0.182       0.0       0.0   0.01     -36.0  fails
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday     110.1   -583.3    1.000 1163/1163    0.004   -0.148   -0.154       0.0       0.0   0.03     -34.5  fails
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily     118.1   -555.5    1.000 1163/1163    0.005   -0.147   -0.154       0.0       0.0   0.03     -33.5  fails
+maxStopAtrMultiplier=4,stopStructureSource=intraday     288.8      5.1    0.789 1138/1163    0.017   -0.135   -0.142       0.0       0.0   0.05     -39.5  fails
+maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily     264.7    -18.8    0.850 1162/1163    0.018   -0.134   -0.141       0.0       0.0   0.05     -39.0  fails
+
+=== AGRICULTURE ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday    -122.6   -109.3    1.000   182/182   -0.068   -0.186   -0.238       0.0       0.0   0.10     -14.0  fails
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday_and_daily    -119.5   -111.3    1.000   182/182   -0.070   -0.188   -0.242       0.0       0.0   0.09     -14.1  fails
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday     -12.4    -64.0    1.000   181/182   -0.028   -0.147   -0.190       0.0       0.0   0.13      -8.4  fails
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily     -43.2    -77.4    1.000   180/182   -0.034   -0.153   -0.199       0.0       0.0   0.11     -12.2  fails
+maxStopAtrMultiplier=4,stopStructureSource=intraday      65.4      1.0    0.764   167/182    0.015   -0.104   -0.145       0.0       0.0   0.15      -7.0  fails
+maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily       6.0    -45.3    0.999   180/182   -0.011   -0.129   -0.175       0.0       0.0   0.12     -12.1  fails
+
+=== LIVESTOCK ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday       1.0      6.4    0.250     87/87    0.049    0.046   -0.139       0.0       2.8   0.05      -2.0  fails
+maxStopAtrMultiplier=1.5,stopStructureSource=intraday_and_daily       2.7      7.3    0.216     86/86    0.057    0.054   -0.126       0.0       2.0   0.05      -2.0  fails
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday      -3.5      6.7    0.769     52/52    0.093    0.091   -0.183       0.0      -6.2   0.04      -2.0  THIN (69 filled) — refuse
+maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily      -2.5      2.8    0.832     52/52    0.036    0.033   -0.180       0.0      -4.1   0.06      -2.0  THIN (70 filled) — refuse
+maxStopAtrMultiplier=4,stopStructureSource=intraday      -2.7      4.7    0.874     47/47    0.072    0.069   -0.235       0.0      -7.6   0.05      -2.0  THIN (61 filled) — refuse
+maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily      -1.9      0.8    0.939     47/47    0.008    0.005   -0.228       0.0      -5.5   0.06      -2.0  THIN (62 filled) — refuse

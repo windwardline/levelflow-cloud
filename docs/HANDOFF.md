@@ -1911,6 +1911,33 @@ that fixed it.
   and belongs beside R6; the capture branch can wait, but say which is deferred
   rather than leaving both unranked.
 
+### ▶ RESUME HERE — 2026-09-03 10:20 UTC (act 3 READ; supersedes the block below)
+
+**R4 act 3 is read.** The program's one confirm read ran 2026-09-03
+10:05–10:09Z after a clean sealed rehearsal: `docs/research/confirm-reads/`
+holds the ledger line (`confirm-log-f3b72ce8261a…jsonl`) and the artifact
+(`ledgered-read-act3.json`, artifactHash `3a17f23378f6`). Record:
+`docs/research/r4-act3-supplementary-arms-2026-09-03.md` §6d (the read) and
+§8 (owner items with vetted recommendations); design with three review
+tables: `docs/research/r4-act3-design-2026-09-03.md`.
+
+**What the fold said.** One confirmed result: forex's cost-share cap at
+0.15 (class grain; pool confirm ΔR +283R, ΔE +0.0064 [+0.0001, +0.0127] over
+77,537 fills; positive on every fold and on the six held-out members). All
+nine market candidates and the other three forex class cells are positive
+in point estimate and indistinguishable from zero. 46 of 91 shipped cells
+are confirmed negative on the held-back fold — crypto 32 of 33, the four
+forex majors, 32 of the 72 derived cells; 19 of the 22 decline candidates,
+of which 16 are withdrawal-defensible (list in §6d) and 3 retired on select.
+
+**Next (owner items, §8):** ship `maxCostShare: 0.15` on the forex class
+row with an `ANALYZER_VERSION` bump citing the read; withdraw the sixteen;
+re-derive the contradicted cells at a new anchor with the class-grain
+admission levers (the desk cannot unpark on the 2026-08-11 layer); act 4
+for the 22 late-listed markets under `--acknowledge-prior-reads`. **Do not**
+run `--confirm-final` on these dates again: the ledger refuses without
+acknowledgement, and the acknowledgement is an act-4 decision.
+
 ### ▶ RESUME HERE — 2026-09-02 23:00 UTC
 
 **R4 act 2 RAN: the per-market program on the tuning folds.** Owner-approved

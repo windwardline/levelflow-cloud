@@ -1,6 +1,14 @@
+import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
+import { resolveHeldOut } from "../scripts/sweepFolds.ts";
+import { createHash } from "node:crypto";
+import { freezeCandidates } from "../scripts/freeze-candidates.ts";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { readLedgeredArtifact } from "../scripts/ledgeredRead.ts";
+import { readLedgeredArtifact,
+  DELTA_RULE,
+  DELTA_RULE_HASH,
+  deltaOutcomeOf,
+} from "../scripts/ledgeredRead.ts";
 import {
   copyFileSync,
   existsSync,
@@ -30,6 +38,7 @@ import {
   marketVerdicts,
   gradeCorpus,
   readGridCube,
+  parseDerivedFilters,
 } from "../scripts/grid-totalr.ts";
 import type { SweepEmitRow } from "../scripts/sweepStats.ts";
 
@@ -1378,18 +1387,19 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // is decided on fit+select alone, so nothing about clearing the gate
   // implies the confirm fold covered the variant at all.
   const foldedCorpus = (
-    options: { extraRows?: SweepEmitRow[]; grid?: unknown[]; omitConfirmFor?: string[]; requestedSymbols?: string[] } = {},
+    options: { extraRows?: SweepEmitRow[]; grid?: unknown[]; omitConfirmFor?: string[]; requestedSymbols?: string[]; transform?: (row: SweepEmitRow) => SweepEmitRow } = {},
   ): string => {
     const omit = new Set(options.omitConfirmFor ?? []);
+    const transform = options.transform ?? ((row: SweepEmitRow) => row);
     const rows: SweepEmitRow[] = [...(options.extraRows ?? [])];
     for (let day = 0; day < 16; day += 1) {
       for (const [split, offset] of [["fit", 0], ["select", 40], ["confirm", 80]] as const) {
         for (const variant of ["baseline", "good"] as const) {
           if (split === "confirm" && omit.has(variant)) continue;
-          rows.push({
+          rows.push(transform({
             ...outcomeRow(variant, day + offset, variant === "good" ? 0.4 : 0.1),
             split,
-          });
+          }));
         }
       }
     }
@@ -1652,6 +1662,697 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.equal(shipped.net!.n, 40);
     assert.ok(Math.abs(shipped.net!.expectancy + 0.5) < 1e-9);
     assert.deepEqual(Object.keys(verdict.select).sort(), Object.keys(shipped).sort());
+  });
+
+  describe("derived variants (R4 act 3): a post-hoc filter graded without a sweep", () => {
+    const DAY_MS = 86_400_000;
+    const start = Date.UTC(2025, 0, 6);
+    // 40 baseline days on select: even days admitted at a net payoff of 1.6 and
+    // paying +0.3R, odd days at 1.3 paying −0.6R — the [1.2,1.5) band as the
+    // corpus measured it, in miniature.
+    const rows = (): SweepEmitRow[] =>
+      Array.from({ length: 40 }, (_, day) => ({
+        accepted: true,
+        estimatedRoundTripCost: day % 2 === 0 ? 0.1 : 0.4,
+        exitAtMs: start + day * DAY_MS + 3_600_000,
+        grossRealizedR: day % 2 === 0 ? 0.35 : -0.5,
+        outcome: day % 2 === 0 ? "take_profit" : "stop_loss",
+        realizedR: day % 2 === 0 ? 0.3 : -0.6,
+        rewardRisk: day % 2 === 0 ? 1.6 : 1.3,
+        riskDistance: 1,
+        split: "test",
+        symbol: "EURUSD",
+        time: start + day * DAY_MS,
+        variant: "baseline",
+      }));
+
+    it("reproduces the baseline exactly when the floor is the one the baseline already applied (identity)", async () => {
+      const graded = await gradeCorpus(corpusWith(rows()), {
+        deriveFilters: parseDerivedFilters("floor=1.3:rewardRisk>=1.3"),
+        permutations: 30,
+        seed: 4,
+        verdictUnit: "market",
+      });
+      const derived = graded.verdicts.get("EURUSD")!.get("floor=1.3")!;
+      const shipped = graded.shipped.get("EURUSD")!.select;
+      assert.deepEqual(derived.select, shipped);
+      assert.equal(derived.selectFilled, 40);
+      assert.equal(derived.fitTotalDelta, 0);
+    });
+
+    it("keeps exactly the rows the predicate admits, and its figures match an independent sum (external anchor)", async () => {
+      const source = rows();
+      const kept = source.filter((row) => Number(row.rewardRisk) >= 1.5);
+      const graded = await gradeCorpus(corpusWith(source), {
+        deriveFilters: parseDerivedFilters("floor=1.5:rewardRisk>=1.5;cheap:costShare<=0.2"),
+        permutations: 30,
+        seed: 4,
+        verdictUnit: "market",
+      });
+      const floor = graded.verdicts.get("EURUSD")!.get("floor=1.5")!;
+      assert.equal(floor.select.net!.n, kept.length);
+      const mean = kept.reduce((sum, row) => sum + row.realizedR, 0) / kept.length;
+      assert.ok(Math.abs(floor.select.net!.expectancy - mean) < 1e-9);
+      assert.ok(Math.abs(floor.selectTotalDelta - (kept.length * 0.3 - (40 * (0.3 - 0.6) / 2))) < 1e-9);
+      // The cost-share field is derived from two row columns.
+      const cheap = graded.verdicts.get("EURUSD")!.get("cheap")!;
+      assert.equal(cheap.select.net!.n, 20);
+      assert.ok(Math.abs(cheap.select.net!.expectancy - 0.3) < 1e-9);
+    });
+
+    it("never re-admits a row the engine declined: a derived variant is the baseline's ACCEPTED rows and the predicate", async () => {
+      const declined = Array.from({ length: 10 }, (_, index) => ({
+        accepted: false,
+        exitAtMs: start + (60 + index) * DAY_MS + 3_600_000,
+        grossRealizedR: 1.05,
+        outcome: "take_profit",
+        realizedR: 1,
+        rewardRisk: 1.6,
+        riskDistance: 1,
+        split: "test",
+        symbol: "EURUSD",
+        time: start + (60 + index) * DAY_MS,
+        variant: "baseline",
+      }));
+      const graded = await gradeCorpus(corpusWith([...rows(), ...declined]), {
+        deriveFilters: parseDerivedFilters("floor=1.5:rewardRisk>=1.5"),
+        permutations: 30,
+        seed: 4,
+        verdictUnit: "market",
+      });
+      const floor = graded.verdicts.get("EURUSD")!.get("floor=1.5")!;
+      assert.equal(floor.select.net!.n, 20, "the ten declined rows pass the predicate and are still not admitted");
+      assert.ok(Math.abs(floor.select.net!.expectancy - 0.3) < 1e-9);
+      assert.equal(graded.shipped.get("EURUSD")!.select.net!.n, 40);
+    });
+
+    it("reads decision-time fields only, decimal values only, and never an empty spec", () => {
+      assert.throws(() => parseDerivedFilters("x:realizedR>=0"), /not a decision-time field/);
+      assert.throws(() => parseDerivedFilters("x:maxFavorableMove>=0.5"), /not a decision-time field/);
+      assert.throws(() => parseDerivedFilters("x:rewardRisk>=0x10"), /decimal/);
+      assert.throws(() => parseDerivedFilters("x:rewardRisk>=1e3"), /decimal/);
+      assert.throws(() => parseDerivedFilters("   "), /empty/);
+      assert.equal(parseDerivedFilters("x:costShare<=0.15")[0].value, 0.15);
+    });
+
+    it("refuses a name that collides with an emitted variant, a malformed predicate, and a row without the field", async () => {
+      assert.throws(() => parseDerivedFilters("baseline:rewardRisk>=1.5"), /baseline/);
+      assert.throws(() => parseDerivedFilters("x:rewardRisk~1.5"), /predicate/);
+      assert.throws(() => parseDerivedFilters("x:rewardRisk>=abc"), /number/);
+      assert.throws(() => parseDerivedFilters(":rewardRisk>=1"), /name/);
+      const emitted = rows().map((row) => ({ ...row, variant: "floor=1.5" }));
+      await assert.rejects(
+        gradeCorpus(corpusWith([...rows(), ...emitted]), { deriveFilters: parseDerivedFilters("floor=1.5:rewardRisk>=1.5"), permutations: 20, seed: 4, verdictUnit: "market" }),
+        /floor=1\.5.*emitted/,
+      );
+      const bare = rows().map((row) => { const { rewardRisk: _dropped, ...rest } = row; void _dropped; return rest; });
+      await assert.rejects(
+        gradeCorpus(corpusWith(bare), { deriveFilters: parseDerivedFilters("floor=1.5:rewardRisk>=1.5"), permutations: 20, seed: 4, verdictUnit: "market" }),
+        /rewardRisk/,
+      );
+    });
+
+    it("derives nothing from the sealed fold: a derived run withholds the same rows and reads no confirm figure", async () => {
+      const withConfirm = [
+        ...rows(),
+        ...rows().map((row, index) => ({ ...row, split: "confirm", time: start + (100 + index) * DAY_MS, exitAtMs: start + (100 + index) * DAY_MS + 3_600_000 })),
+      ];
+      const plain = await gradeCorpus(corpusWith(withConfirm), { permutations: 20, seed: 4, verdictUnit: "market" });
+      const derived = await gradeCorpus(corpusWith(withConfirm), { deriveFilters: parseDerivedFilters("floor=1.5:rewardRisk>=1.5"), permutations: 20, seed: 4, verdictUnit: "market" });
+      assert.equal(derived.sealedRows, plain.sealedRows);
+      assert.ok(derived.sealedRows > 0);
+      assert.equal(derived.verdicts.get("EURUSD")!.get("floor=1.5")!.confirmTotalDelta, null);
+      assert.equal(derived.read, null);
+    });
+
+    it("names every derived variant in the sealed artifact with its predicate and hash", () => {
+      const dir = mkdtempSync(join(tmpdir(), "derived-out-"));
+      const out = join(dir, "grading.json");
+      const result = spawnSync(process.execPath, [
+        "./node_modules/.bin/tsx", "scripts/grid-totalr.ts", corpusWith(rows()),
+        "--verdict-unit", "market", "--permutations", "20", "--seed", "4",
+        "--derive-filters", "floor=1.5:rewardRisk>=1.5", "--out", out,
+      ], { cwd: process.cwd(), encoding: "utf8" });
+      assert.equal(result.status, 0, result.stderr);
+      const artifact = JSON.parse(readFileSync(out, "utf8")) as {
+        derived: Record<string, { field: string; op: string; parent: string; predicate: string; predicateHash: string; value: number }>;
+        markets: Record<string, { variants: Record<string, { derived?: boolean; select: { net: { n: number } | null } }> }>;
+      };
+      assert.deepEqual(Object.keys(artifact.derived), ["floor=1.5"]);
+      assert.equal(artifact.derived["floor=1.5"].predicate, "rewardRisk>=1.5");
+      assert.equal(artifact.derived["floor=1.5"].parent, "baseline");
+      assert.match(artifact.derived["floor=1.5"].predicateHash, /^[0-9a-f]{64}$/);
+      assert.equal(artifact.markets.EURUSD.variants["floor=1.5"].derived, true);
+      assert.equal(artifact.markets.EURUSD.variants["floor=1.5"].select.net!.n, 20);
+      // The class unit's artifact carries each market's CLASS verdicts, not nothing.
+      const classOut = join(dir, "grading-class.json");
+      const classRun = spawnSync(process.execPath, [
+        "./node_modules/.bin/tsx", "scripts/grid-totalr.ts", corpusWith(rows()),
+        "--verdict-unit", "class", "--permutations", "20", "--seed", "4",
+        "--derive-filters", "floor=1.5:rewardRisk>=1.5", "--out", classOut,
+      ], { cwd: process.cwd(), encoding: "utf8" });
+      assert.equal(classRun.status, 0, classRun.stderr);
+      const classArtifact = JSON.parse(readFileSync(classOut, "utf8")) as { verdictUnit: string; markets: Record<string, { variants: Record<string, { derived?: boolean }> }> };
+      assert.equal(classArtifact.verdictUnit, "class");
+      assert.equal(classArtifact.markets.EURUSD.variants["floor=1.5"].derived, true, "a member carries its class's verdicts");
+    });
+  });
+
+  describe("the freeze-driven read (R4 act 3): one command over the frozen candidates", () => {
+    // Rows for a second market in the folded fixture's own shape: fit days
+    // 0–15, select 40–55, confirm 80–95.
+    // A candidate is read on confirm only once the tuning folds accept it, so
+    // the second arm's variant wins on fit and select and is contradicted on
+    // confirm — the shape the read exists to catch.
+    const marketRows = (symbol: string, variant: string, realizedR: number, confirmR = realizedR): SweepEmitRow[] => {
+      const rows: SweepEmitRow[] = [];
+      // 32 days per fold: the market unit's 30-filled floor must be cleared for
+      // the candidate to be accepted rather than refused THIN. The folds pay
+      // differently (fit, select × 1.25, confirm as given) and every other
+      // day pays a little more, so no two fold sums coincide and every
+      // interval has width — a fixture where fit equals select or every row
+      // is one constant lets a swapped fold or a mirrored bound survive.
+      for (let day = 0; day < 32; day += 1) {
+        for (const [split, offset] of [["fit", 0], ["select", 40], ["confirm", 80]] as const) {
+          const base = split === "confirm" ? confirmR : split === "select" ? realizedR * 1.25 : realizedR;
+          rows.push({ ...outcomeRow(variant, day + offset, Number((base + (day % 2 === 0 ? 0.03 : -0.03)).toFixed(4)), undefined, symbol), split });
+        }
+      }
+      return rows;
+    };
+    const usdjpy = (variant: string, realizedR: number, confirmR = realizedR): SweepEmitRow[] => marketRows("USDJPY", variant, realizedR, confirmR);
+    // Five forex markets, so the stratified rule holds one out for the class read.
+    const fiveMarkets = () => ["USDJPY", "GBPUSD", "AUDUSD", "USDCAD"].flatMap((symbol) => [...marketRows(symbol, "baseline", 0.1), ...marketRows(symbol, "good", 0.4, 0.3)]);
+    // Five crypto members beside the forex five: the stratified rule holds one
+    // of each class out, and a class candidate's held-out members must be its
+    // own class's, never the roster's.
+    const cryptoMarkets = () => ["BTCUSD", "ETHUSD", "LTCUSD", "XRPUSD", "BCHUSD"].flatMap((symbol) => [...marketRows(symbol, "baseline", 0.1), ...marketRows(symbol, "good", 0.4, 0.3)]);
+    const manifestHashOf = (emitPath: string) => (JSON.parse(readFileSync(`${emitPath}.manifest.json`, "utf8")) as { manifestHash: string }).manifestHash;
+    const sha256Of = (path: string) => createHash("sha256").update(readFileSync(path)).digest("hex");
+    // The grading a freeze binds must carry the REAL tuning-fold figures: the
+    // read verifies its own against them before any burn. So the fixture
+    // grades the corpus (sealed) and copies each named cell's figures.
+    const gradingFor = async (
+      emitPath: string,
+      cells: Record<string, { variant: string; accepted: boolean }>,
+      options: { derived?: Record<string, unknown>; emitSha256?: Record<string, string> | null; figures?: boolean } = {},
+    ) => {
+      const graded = options.figures === false ? null : await gradeCorpus(emitPath, { permutations: 20, seed: 4, verdictUnit: "market" });
+      const figuresOf = (symbol: string, variant: string) => {
+        const verdict = graded?.verdicts.get(symbol)?.get(variant);
+        return verdict ? { fitTotalDelta: verdict.fitTotalDelta, pairedP: verdict.pairedP, selectTotalDelta: verdict.selectTotalDelta } : { fitTotalDelta: 10, pairedP: 0.01, selectTotalDelta: 5 };
+      };
+      return gradingBody(emitPath, cells, options, figuresOf);
+    };
+    const gradingBody = (
+      emitPath: string,
+      cells: Record<string, { variant: string; accepted: boolean }>,
+      options: { derived?: Record<string, unknown>; emitSha256?: Record<string, string> | null },
+      figuresOf: (symbol: string, variant: string) => { fitTotalDelta: number; pairedP: number | null; selectTotalDelta: number },
+    ) => ({
+      analyzerVersion: "test", anchor: "2026-08-11", calendarHash: "c".repeat(64), derivedAt: "2026-09-03T00:00:00.000Z", foldSource: "emitted",
+      ...(options.derived ? { derived: options.derived } : {}),
+      ...(options.emitSha256 === null ? {} : { emitSha256: options.emitSha256 ?? { [manifestHashOf(emitPath)]: sha256Of(emitPath) } }),
+      heldOut: [], holdoutRule: "stratified-per-class-20pct", rules: {}, shardHashes: [manifestHashOf(emitPath)], shards: [emitPath], verdictUnit: "market",
+      markets: Object.fromEntries(Object.entries(cells).map(([symbol, cell]) => [symbol, {
+        heldOut: false,
+        shipped: { declineCandidate: false, select: { gross: null, net: { expectancy: 0.1, lower: 0.05, n: 16, upper: 0.15 } }, variant: "baseline" },
+        variants: { [cell.variant]: { accepted: cell.accepted, ...figuresOf(symbol, cell.variant), reason: cell.accepted ? "accepted" : "fails", selectExpectancyDelta: 0.3 } },
+      }])),
+    });
+    const freeze = async (dir: string, arms: Array<{ arm: string; grading: unknown }>) => {
+      const named = arms.map(({ arm, grading }) => { const path = join(dir, `${arm}.json`); writeFileSync(path, JSON.stringify(grading)); return { arm, path }; });
+      const frozen = await freezeCandidates(named);
+      const path = join(dir, "frozen.json");
+      writeFileSync(path, JSON.stringify(frozen));
+      return { candidates: frozen, path };
+    };
+    const twoArms = async (dir: string) => {
+      const first = foldedCorpus({ extraRows: usdjpy("baseline", 0.1) });
+      const second = foldedCorpus({ extraRows: [...usdjpy("baseline", 0.1), ...usdjpy("y=2", 0.5, -0.6)], grid: [{}, { y: 2 }] });
+      assert.notEqual(manifestHashOf(first), manifestHashOf(second));
+      const frozen = await freeze(dir, [
+        { arm: "A", grading: await gradingFor(first, { EURUSD: { variant: "good", accepted: true }, USDJPY: { variant: "good", accepted: false } }) },
+        { arm: "B", grading: await gradingFor(second, { EURUSD: { variant: "good", accepted: false }, USDJPY: { variant: "y=2", accepted: true } }) },
+      ]);
+      return { first, frozen, second };
+    };
+
+    it("equals the plain confirm-final read over one corpus when the freeze names its variant (identity)", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const corpus = foldedCorpus();
+      const frozen = await freeze(dir, [{ arm: "A", grading: await gradingFor(corpus, { EURUSD: { variant: "good", accepted: true } }) }]);
+      const plain = await gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "plain-")), permutations: 100, seed: 4, verdictUnit: "market" });
+      const driven = await gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "driven-")), frozen, permutations: 100, seed: 4, verdictUnit: "market" });
+      assert.ok(plain.read && driven.read, "both runs read the fold");
+      assert.deepEqual(driven.shipped.get("EURUSD")!.confirm, plain.shipped.get("EURUSD")!.confirm);
+      assert.equal(driven.verdicts.get("EURUSD")!.get("good")!.confirmTotalDelta, plain.verdicts.get("EURUSD")!.get("good")!.confirmTotalDelta);
+      assert.equal(driven.sealedRows, plain.sealedRows);
+      const opened = readLedgeredArtifact(driven.read!.artifactPath, { manifestHash: driven.manifest.manifestHash });
+      assert.equal(opened.frozen!.frozenHash, frozen.candidates.frozenHash);
+      assert.deepEqual(opened.frozen!.arms, [{ arm: "A", shardHashes: [manifestHashOf(corpus)] }]);
+      assert.equal(opened.markets.EURUSD.candidate!.arm, "A");
+      assert.equal(opened.markets.EURUSD.candidate!.variant, "good");
+      assert.ok(["accepted", "rejected"].includes(opened.markets.EURUSD.candidate!.disposition), "the candidate's own disposition is recorded even when not accepted");
+      assert.equal(opened.rules.delta, DELTA_RULE);
+      assert.equal(opened.rules.deltaHash, DELTA_RULE_HASH);
+      assert.equal(opened.markets.EURUSD.retirement, null, "not a decline candidate: no retirement verdict to copy");
+      for (const read of opened.markets.EURUSD.accepted) {
+        assert.equal(typeof read.confirmExpectancyDeltaUpper, "number");
+        assert.ok(["confirmed", "contradicted", "indistinguishable", "unreadable"].includes(read.deltaOutcome));
+        assert.equal(read.deltaOutcome, deltaOutcomeOf({ lower: read.confirmExpectancyDeltaLower!, upper: read.confirmExpectancyDeltaUpper! }, read.confirmFilled, read.confirmBaseFilled));
+      }
+      assert.equal(typeof opened.markets.EURUSD.candidate!.reason, "string");
+      assert.notEqual(driven.read!.corpusId, plain.read!.corpusId, "a frozen read has its own identity");
+      const ledgerLine = JSON.parse(readFileSync(driven.read!.ledgerPath, "utf8").trim().split("\n").pop()!) as { frozenHash: string };
+      assert.equal(ledgerLine.frozenHash, frozen.candidates.frozenHash);
+    });
+
+    it("opens each market's candidate from its own arm and every arm's baseline once (two corpora, two grids)", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const { first, frozen, second } = await twoArms(dir);
+      assert.equal(frozen.candidates.markets.EURUSD.candidate!.variant, "good");
+      assert.equal(frozen.candidates.markets.USDJPY.candidate!.variant, "y=2");
+      const driven = await gradeCorpus([first, second], { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "driven-")), frozen, permutations: 100, seed: 4, verdictUnit: "market" });
+      assert.ok(driven.read, "the fold was read");
+      // The shipped cells' confirm figures are withheld (no provenance names them
+      // held back), so the baseline's fold count is read off the candidates' verdicts.
+      assert.equal(driven.verdicts.get("EURUSD")!.get("good")!.confirmBaseFilled, 16, "the baseline is read once, not once per arm");
+      assert.equal(driven.verdicts.get("USDJPY")!.get("y=2")!.confirmBaseFilled, 32);
+      // A market's only graded variant is its own frozen candidate; another
+      // market's candidate prints NO VERDICT for it (no rows), never a figure.
+      assert.deepEqual([...driven.verdicts.get("EURUSD")!.keys()], ["good"]);
+      assert.deepEqual([...driven.verdicts.get("USDJPY")!.keys()], ["y=2"]);
+      // Arm B's corpus also carries EURUSD "good" rows (the fixture emits them in
+      // every corpus); the read takes EURUSD's candidate from arm A ONLY, so the
+      // candidate's fills are one arm's, never two arms' summed.
+      const eurusdGood = driven.verdicts.get("EURUSD")!.get("good")!;
+      assert.equal(eurusdGood.fitFilled, 16, "fit rows from arm A only");
+      assert.equal(eurusdGood.selectFilled, 16, "select rows from arm A only");
+      assert.equal(eurusdGood.confirmFilled, 16, "confirm rows from arm A only");
+      const usdjpyVerdict = driven.verdicts.get("USDJPY")!.get("y=2")!;
+      assert.equal(usdjpyVerdict.accepted, true, "y=2 wins the tuning folds, so the read opens its confirm rows");
+      assert.equal(usdjpyVerdict.confirmFilled, 32);
+      assert.ok(usdjpyVerdict.confirmTotalDelta! < 0, "y=2's confirm rows came from arm B's corpus and contradict it");
+      const opened = readLedgeredArtifact(driven.read!.artifactPath, { manifestHash: driven.manifest.manifestHash });
+      assert.deepEqual(opened.shardHashes, [manifestHashOf(first), manifestHashOf(second)]);
+      assert.equal(opened.markets.USDJPY.candidate!.variant, "y=2");
+      assert.equal(opened.markets.USDJPY.candidate!.disposition, "accepted");
+      assert.equal(opened.markets.EURUSD.candidate!.arm, "A");
+    });
+
+    it("refuses a frozen read that is not confirm-final, a shard no arm bound, an arm whose corpus is missing, and derive-filters beside it", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const { first, frozen: both, second } = await twoArms(dir);
+      const onlyFirst = await freeze(mkdtempSync(join(dir, "one-")), [{ arm: "A", grading: await gradingFor(first, { EURUSD: { variant: "good", accepted: true } }) }]);
+      await assert.rejects(gradeCorpus(first, { frozen: onlyFirst, permutations: 20, seed: 4, verdictUnit: "market" }), /confirm-final/);
+      await assert.rejects(gradeCorpus(first, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l0-")), frozen: onlyFirst, permutations: 20, seed: 4, verdictUnit: "class" }), /--verdict-unit market/);
+      await assert.rejects(
+        gradeCorpus([first, second], { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l1-")), frozen: onlyFirst, permutations: 20, seed: 4, verdictUnit: "market" }),
+        /named by no arm/,
+      );
+      await assert.rejects(
+        gradeCorpus(first, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l2-")), frozen: both, permutations: 20, seed: 4, verdictUnit: "market" }),
+        /arm B's corpus .* is not among the shards/,
+      );
+      await assert.rejects(
+        gradeCorpus(first, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l3-")), deriveFilters: parseDerivedFilters("f:rewardRisk>=1.5"), frozen: onlyFirst, permutations: 20, seed: 4, verdictUnit: "market" }),
+        /--derive-filters may not be passed beside it/,
+      );
+    });
+
+    it("refuses a derived read of the fold that nothing froze", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const corpus = foldedCorpus();
+      await assert.rejects(
+        gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l-")), deriveFilters: parseDerivedFilters("f:rewardRisk>=1.5"), permutations: 20, seed: 4, verdictUnit: "market" }),
+        /nothing froze/,
+      );
+    });
+
+    it("refuses a frozen candidate that contributes no rows, rather than reading as silence", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const corpus = foldedCorpus();
+      const ghost = await freeze(dir, [{ arm: "A", grading: await gradingFor(corpus, { EURUSD: { variant: "ghost", accepted: true } }) }]);
+      await assert.rejects(
+        gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l-")), frozen: ghost, permutations: 20, seed: 4, verdictUnit: "market" }),
+        /no rows of that cell reached the gate/,
+      );
+    });
+
+    it("refuses a corpus whose bytes differ from the ones its arm was graded on, and a grading that bound none", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const corpus = foldedCorpus();
+      const wrong = await freeze(dir, [{ arm: "A", grading: await gradingFor(corpus, { EURUSD: { variant: "good", accepted: true } }, { emitSha256: { [manifestHashOf(corpus)]: "0".repeat(64) } }) }]);
+      await assert.rejects(
+        gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l1-")), frozen: wrong, permutations: 20, seed: 4, verdictUnit: "market" }),
+        /emit bytes differ/,
+      );
+      const unbound = await freeze(mkdtempSync(join(dir, "u-")), [{ arm: "A", grading: await gradingFor(corpus, { EURUSD: { variant: "good", accepted: true } }, { emitSha256: null }) }]);
+      await assert.rejects(
+        gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l2-")), frozen: unbound, permutations: 20, seed: 4, verdictUnit: "market" }),
+        /recorded no emit digest/,
+      );
+    });
+
+    it("refuses arms whose baseline rows are not the same rows, confirm fold included, without printing a figure", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const first = foldedCorpus({ extraRows: usdjpy("baseline", 0.1) });
+      const extra = Array.from({ length: 5 }, (_, day) => ({ ...outcomeRow("baseline", 96 + day, 0.1), split: "confirm" }));
+      const second = foldedCorpus({ extraRows: [...usdjpy("baseline", 0.1), ...usdjpy("y=2", 0.5, -0.6), ...extra], grid: [{}, { y: 2 }] });
+      const frozen = await freeze(dir, [
+        { arm: "A", grading: await gradingFor(first, { EURUSD: { variant: "good", accepted: true }, USDJPY: { variant: "good", accepted: false } }) },
+        { arm: "B", grading: await gradingFor(second, { EURUSD: { variant: "good", accepted: false }, USDJPY: { variant: "y=2", accepted: true } }) },
+      ]);
+      await assert.rejects(
+        gradeCorpus([first, second], { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l-")), frozen, permutations: 20, seed: 4, verdictUnit: "market" }),
+        (error: Error) => /baseline rows for EURUSD on the confirm fold differ/.test(error.message) && !/\d+ rows/.test(error.message),
+      );
+    });
+
+    it("refuses a derived name that means two predicates across arms, and a derived spec not parented on the baseline", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const first = foldedCorpus({ extraRows: usdjpy("baseline", 0.1) });
+      const second = foldedCorpus({ extraRows: usdjpy("baseline", 0.1), grid: [{}, { y: 2 }] });
+      const spec = (predicate: string, parent = "baseline") => ({ field: "rewardRisk", op: ">=", parent, predicate, predicateHash: createHash("sha256").update(predicate).digest("hex"), value: Number(predicate.split(">=")[1]) });
+      const collision = await freeze(dir, [
+        { arm: "A", grading: await gradingFor(first, { EURUSD: { variant: "d", accepted: true } }, { derived: { d: spec("rewardRisk>=1.5") } }) },
+        { arm: "B", grading: await gradingFor(second, { USDJPY: { variant: "d", accepted: true } }, { derived: { d: spec("rewardRisk>=1.6") } }) },
+      ]);
+      await assert.rejects(
+        gradeCorpus([first, second], { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l1-")), frozen: collision, permutations: 20, seed: 4, verdictUnit: "market" }),
+        /different predicates/,
+      );
+      const parented = await freeze(mkdtempSync(join(dir, "p-")), [
+        { arm: "A", grading: await gradingFor(first, { EURUSD: { variant: "d", accepted: true } }, { derived: { d: spec("rewardRisk>=1.5", "other") } }) },
+      ]);
+      await assert.rejects(
+        gradeCorpus(first, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l2-")), frozen: parented, permutations: 20, seed: 4, verdictUnit: "market" }),
+        /derived from other/,
+      );
+    });
+
+    it("keeps refusing shards of two grids as one measurement when no frozen file names the cells", async () => {
+      const first = foldedCorpus();
+      const second = foldedCorpus({ grid: [{}, { y: 2 }] });
+      await assert.rejects(gradeCorpus([first, second], { permutations: 20, seed: 4, verdictUnit: "market" }), /shard conditions differ/);
+    });
+
+    it("refuses a candidate whose tuning-fold figures are not the frozen ones, before any burn", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const corpus = foldedCorpus();
+      const grading = await gradingFor(corpus, { EURUSD: { variant: "good", accepted: true } });
+      (grading.markets as Record<string, { variants: Record<string, { fitTotalDelta: number }> }>).EURUSD.variants.good.fitTotalDelta = 999;
+      const frozen = await freeze(dir, [{ arm: "A", grading }]);
+      const ledgerDir = mkdtempSync(join(dir, "l-"));
+      await assert.rejects(
+        gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: ledgerDir, frozen, permutations: 20, seed: 4, verdictUnit: "market" }),
+        /differ from the frozen ones/,
+      );
+      assert.equal(readdirSync(ledgerDir).filter((name) => name.startsWith("confirm-log-")).length, 0, "no ledger line was written on a refusal");
+    });
+
+    it("refuses a baseline present on one side only (the digest is bidirectional)", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const first = foldedCorpus();
+      const second = foldedCorpus({ extraRows: [...usdjpy("baseline", 0.1), ...usdjpy("y=2", 0.5, -0.6)], grid: [{}, { y: 2 }] });
+      const frozen = await freeze(dir, [
+        { arm: "A", grading: await gradingFor(first, { EURUSD: { variant: "good", accepted: true } }) },
+        { arm: "B", grading: await gradingFor(second, { USDJPY: { variant: "y=2", accepted: true } }) },
+      ]);
+      await assert.rejects(
+        gradeCorpus([first, second], { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l-")), frozen, permutations: 20, seed: 4, verdictUnit: "market" }),
+        /baseline rows for USDJPY .* does not carry/,
+      );
+    });
+
+    // The class grain (R4 act 3): the read carries, per class per axis, one
+    // frozen candidate over the class's pooled members and its held-out
+    // members as the out-of-sample check, in the same burn as the market
+    // candidates.
+    const classGradingFor = async (emitPath: string, variant: string, heldOut: string[]) => {
+      const sealed = await gradeCorpus(emitPath, { permutations: 20, seed: 4, verdictUnit: "class" });
+      const verdict = sealed.verdicts.get("forex")!.get(variant)!;
+      const block = { [variant]: { accepted: verdict.accepted, fitTotalDelta: verdict.fitTotalDelta, pairedP: verdict.pairedP, reason: verdict.reason, selectExpectancyDelta: verdict.selectExpectancyDelta, selectTotalDelta: verdict.selectTotalDelta } };
+      const pooled = [...sealed.shipped.keys()].filter((symbol) => !heldOut.includes(symbol));
+      return {
+        analyzerVersion: "test", anchor: "2026-08-11", calendarHash: "c".repeat(64), derivedAt: "2026-09-03T00:00:00.000Z", foldSource: "emitted",
+        emitSha256: { [manifestHashOf(emitPath)]: sha256Of(emitPath) },
+        heldOut, holdoutRule: "stratified-per-class-20pct", rules: {}, shardHashes: [manifestHashOf(emitPath)], shards: [emitPath], verdictUnit: "class",
+        markets: Object.fromEntries(pooled.map((symbol) => [symbol, {
+          heldOut: false,
+          shipped: { declineCandidate: false, select: { gross: null, net: { expectancy: 0.1, lower: 0.05, n: 16, upper: 0.15 } }, variant: "baseline" },
+          variants: block,
+        }])),
+      };
+    };
+
+    it("reads a class candidate over the pooled members, equal to the plain class read, and its held-out members on the same cell", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-class-"));
+      const corpus = foldedCorpus({ extraRows: [...fiveMarkets(), ...cryptoMarkets()] });
+      const heldOut = [...resolveHeldOut([JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"))]).held].sort();
+      assert.equal(heldOut.length, 2, "the stratified rule holds one forex and one crypto market out");
+      const forexHeldOut = heldOut.filter((symbol) => getAssetType(symbol) === "forex");
+      assert.equal(forexHeldOut.length, 1);
+      // EURUSD carries a market candidate too, so its re-test family at the read must stay single-hypothesis.
+      const marketGrading = { ...(await gradingFor(corpus, { EURUSD: { variant: "good", accepted: true }, USDJPY: { variant: "good", accepted: false } })), heldOut };
+      const classGrading = await classGradingFor(corpus, "good", heldOut);
+      const gradingPath = join(dir, "A.json"); writeFileSync(gradingPath, JSON.stringify(marketGrading));
+      const classPath = join(dir, "A-class.json"); writeFileSync(classPath, JSON.stringify(classGrading));
+      const candidates = await freezeCandidates([{ arm: "A", path: gradingPath }], { classArms: [{ arm: "A", axis: "window", path: classPath, prefix: null }] });
+      const frozenPath = join(dir, "frozen.json"); writeFileSync(frozenPath, JSON.stringify(candidates));
+      const frozen = { candidates, path: frozenPath };
+      assert.equal(candidates.classes!.forex.window!.variant, "good");
+      assert.deepEqual(candidates.classes!.forex.window!.heldOutMembers, forexHeldOut, "a class candidate's held-out members are its own class's");
+      const plain = await gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "plain-")), permutations: 100, seed: 4, verdictUnit: "class" });
+      const classVerdict = plain.verdicts.get("forex")!.get("good")!;
+      const plainMarket = await gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "plain-market-")), permutations: 100, seed: 4, verdictUnit: "market" });
+      const driven = await gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "driven-")), frozen, permutations: 100, seed: 4, verdictUnit: "market" });
+      const opened = readLedgeredArtifact(driven.read!.artifactPath, { manifestHash: driven.manifest.manifestHash });
+      // The market candidate's re-test is single-hypothesis: its p is the plain market read's, with no class cell in its family.
+      assert.equal(opened.markets.EURUSD.candidate!.readPairedP, plainMarket.verdicts.get("EURUSD")!.get("good")!.pairedP);
+      assert.equal(opened.markets.EURUSD.candidate!.frozenPairedP, candidates.markets.EURUSD.candidate!.pairedP);
+      const own = opened.markets.EURUSD.candidateRead!;
+      // EURUSD's 16 fills sit below the market unit's floor, so the read's own
+      // re-test rejects it (THIN) and the gate's verdict carries no confirm
+      // figure — the candidate's read is carried regardless: 16 confirm days at
+      // +0.4 against 16 at +0.1 is +4.8R, judged unreadable below 30 filled.
+      assert.equal(opened.markets.EURUSD.candidate!.disposition, "rejected");
+      assert.equal(plainMarket.verdicts.get("EURUSD")!.get("good")!.confirmTotalDelta, null);
+      assert.ok(Math.abs(own.confirmTotalDelta! - 4.8) < 1e-9, "the candidate's confirm read is carried whatever the re-test says");
+      assert.equal(own.confirmFilled, 16);
+      assert.equal(own.deltaOutcome, "unreadable");
+      assert.ok(own.confirmExpectancyDeltaLower! <= own.confirmExpectancyDelta! && own.confirmExpectancyDelta! <= own.confirmExpectancyDeltaUpper!);
+      assert.ok(own.confirmExpectancyDeltaUpper! > own.confirmExpectancyDeltaLower!, "the interval has width");
+      const read = opened.classes!.forex.find((entry) => entry.axis === "window")!;
+      assert.equal(read.arm, "A");
+      assert.equal(read.variant, "good");
+      assert.deepEqual(read.pool.members, candidates.classes!.forex.window!.members);
+      assert.equal(read.pool.confirmTotalDelta, classVerdict.confirmTotalDelta, "the pool's confirm delta is the plain class read's, to the bit");
+      assert.equal(read.pool.confirmFilled, classVerdict.confirmFilled);
+      assert.equal(read.pool.confirmBaseFilled, classVerdict.confirmBaseFilled);
+      assert.ok(["confirmed", "contradicted", "indistinguishable", "unreadable"].includes(read.pool.deltaOutcome));
+      assert.deepEqual(read.heldOutPool!.members, forexHeldOut, "the held-out member is read on the same cell, apart");
+      assert.equal(typeof read.heldOutPool!.confirmTotalDelta, "number");
+      assert.equal(typeof read.heldOutPool!.fitTotalDelta, "number");
+      assert.ok(read.pool.fitTotalDelta !== read.pool.selectTotalDelta, "the fixture's folds pay differently, so a swapped fold cannot hide");
+      assert.ok(read.pool.confirmExpectancyDeltaLower! <= read.pool.confirmExpectancyDelta! && read.pool.confirmExpectancyDelta! <= read.pool.confirmExpectancyDeltaUpper!);
+      assert.deepEqual(read.frozen, { fitTotalDelta: candidates.classes!.forex.window!.fitTotalDelta, pairedP: candidates.classes!.forex.window!.pairedP, selectTotalDelta: candidates.classes!.forex.window!.selectTotalDelta });
+      // A member without a market candidate of its own carries none.
+      assert.equal(opened.markets.USDJPY.candidate, null);
+    });
+
+    it("opens a class candidate's rows from its own arm only, though another arm carries the same cell name", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-class-"));
+      const first = foldedCorpus({ extraRows: fiveMarkets() });
+      const second = foldedCorpus({ extraRows: fiveMarkets(), grid: [{}, { y: 2 }] });
+      const heldOut = [...resolveHeldOut([JSON.parse(readFileSync(`${first}.manifest.json`, "utf8"))]).held].sort();
+      const gradingA = { ...(await gradingFor(first, { EURUSD: { variant: "good", accepted: false } })), heldOut };
+      const gradingB = { ...(await gradingFor(second, { EURUSD: { variant: "good", accepted: false } })), heldOut };
+      const classA = await classGradingFor(first, "good", heldOut);
+      const pathA = join(dir, "A.json"); writeFileSync(pathA, JSON.stringify(gradingA));
+      const pathB = join(dir, "B.json"); writeFileSync(pathB, JSON.stringify(gradingB));
+      const classPath = join(dir, "A-class.json"); writeFileSync(classPath, JSON.stringify(classA));
+      const candidates = await freezeCandidates([{ arm: "A", path: pathA }, { arm: "B", path: pathB }], { classArms: [{ arm: "A", axis: "window", path: classPath, prefix: null }] });
+      const frozenPath = join(dir, "frozen.json"); writeFileSync(frozenPath, JSON.stringify(candidates));
+      const plain = await gradeCorpus(first, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "plain-")), permutations: 100, seed: 4, verdictUnit: "class" });
+      const classVerdict = plain.verdicts.get("forex")!.get("good")!;
+      const driven = await gradeCorpus([first, second], { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "driven-")), frozen: { candidates, path: frozenPath }, permutations: 100, seed: 4, verdictUnit: "market" });
+      const opened = readLedgeredArtifact(driven.read!.artifactPath, { manifestHash: driven.manifest.manifestHash });
+      const read = opened.classes!.forex[0];
+      assert.equal(read.pool.confirmFilled, classVerdict.confirmFilled, "arm B's rows of the same cell name never enter the pool");
+      assert.equal(read.pool.confirmTotalDelta, classVerdict.confirmTotalDelta);
+    });
+
+    it("tolerates a frozen figure drifted in the last bits and refuses one drifted by a millionth, on either fold", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-class-"));
+      const corpus = foldedCorpus({ extraRows: fiveMarkets() });
+      const heldOut = [...resolveHeldOut([JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"))]).held].sort();
+      const run = async (drift: number, fold: "fitTotalDelta" | "selectTotalDelta") => {
+        const marketGrading = { ...(await gradingFor(corpus, { EURUSD: { variant: "good", accepted: false } })), heldOut };
+        const classGrading = await classGradingFor(corpus, "good", heldOut);
+        for (const entry of Object.values(classGrading.markets)) (entry.variants as unknown as Record<string, Record<string, number>>).good[fold] += drift;
+        const gradingPath = join(dir, `A-${fold}-${drift}.json`); writeFileSync(gradingPath, JSON.stringify(marketGrading));
+        const classPath = join(dir, `A-class-${fold}-${drift}.json`); writeFileSync(classPath, JSON.stringify(classGrading));
+        const candidates = await freezeCandidates([{ arm: "A", path: gradingPath }], { classArms: [{ arm: "A", axis: "window", path: classPath, prefix: null }] });
+        const frozenPath = join(dir, `frozen-${fold}-${drift}.json`); writeFileSync(frozenPath, JSON.stringify(candidates));
+        return gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l-")), frozen: { candidates, path: frozenPath }, permutations: 20, seed: 4, verdictUnit: "market" });
+      };
+      assert.ok((await run(1e-13, "fitTotalDelta")).read, "two summation orders differ in the last bits; that is not a different figure");
+      await assert.rejects(run(1e-6, "fitTotalDelta"), /differ from the frozen ones/);
+      await assert.rejects(run(1e-6, "selectTotalDelta"), /differ from the frozen ones/, "the select fold is compared too");
+    });
+
+    it("rehearses the frozen read sealed: every check, no fold, no ledger", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-rehearse-"));
+      const corpus = foldedCorpus({ extraRows: fiveMarkets() });
+      const heldOut = [...resolveHeldOut([JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"))]).held].sort();
+      const marketGrading = { ...(await gradingFor(corpus, { EURUSD: { variant: "good", accepted: true } })), heldOut };
+      const classGrading = await classGradingFor(corpus, "good", heldOut);
+      const gradingPath = join(dir, "A.json"); writeFileSync(gradingPath, JSON.stringify(marketGrading));
+      const classPath = join(dir, "A-class.json"); writeFileSync(classPath, JSON.stringify(classGrading));
+      const candidates = await freezeCandidates([{ arm: "A", path: gradingPath }], { classArms: [{ arm: "A", axis: "window", path: classPath, prefix: null }] });
+      const frozenPath = join(dir, "frozen.json"); writeFileSync(frozenPath, JSON.stringify(candidates));
+      const ledgerDir = mkdtempSync(join(dir, "l-"));
+      const rehearsed = await gradeCorpus(corpus, { confirmLogDir: ledgerDir, frozen: { candidates, path: frozenPath }, permutations: 20, rehearse: true, seed: 4, verdictUnit: "market" });
+      assert.equal(rehearsed.read, null, "a rehearsal reads nothing");
+      assert.ok(rehearsed.sealedRows > 0, "the confirm rows stayed behind the door");
+      assert.equal(readdirSync(ledgerDir).filter((name) => name.startsWith("confirm-log-")).length, 0);
+      assert.equal(rehearsed.verdicts.get("EURUSD")!.get("good")!.confirmTotalDelta, null);
+      // The identity checks ran: a tampered frozen figure refuses in rehearsal too.
+      const tampered = JSON.parse(JSON.stringify(candidates)) as typeof candidates;
+      tampered.markets.EURUSD.candidate!.fitTotalDelta += 1;
+      await assert.rejects(
+        gradeCorpus(corpus, { confirmLogDir: mkdtempSync(join(dir, "l2-")), frozen: { candidates: tampered, path: frozenPath }, permutations: 20, rehearse: true, seed: 4, verdictUnit: "market" }),
+        /differ from the frozen ones/,
+      );
+      await assert.rejects(
+        gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l3-")), frozen: { candidates, path: frozenPath }, permutations: 20, rehearse: true, seed: 4, verdictUnit: "market" }),
+        /cannot be combined with --confirm-final/,
+      );
+      await assert.rejects(gradeCorpus(corpus, { permutations: 20, rehearse: true, seed: 4, verdictUnit: "market" }), /pass --frozen with it/);
+    });
+
+    it("rebuilds a derived class candidate for every member from the baseline rows, equal to its class grading", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-class-derived-"));
+      const withPayoff = (rowsIn: SweepEmitRow[]) => rowsIn.map((row, index) => ({ ...row, rewardRisk: index % 3 === 0 ? 1.3 : 1.6, riskDistance: 1, estimatedRoundTripCost: 0.1 }));
+      let counter = 0;
+      const corpus = foldedCorpus({ extraRows: withPayoff(fiveMarkets()), transform: (row) => ({ ...row, rewardRisk: counter++ % 3 === 0 ? 1.3 : 1.6, riskDistance: 1, estimatedRoundTripCost: 0.1 }) });
+      const heldOut = [...resolveHeldOut([JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"))]).held].sort();
+      const filters = parseDerivedFilters("floor:rewardRisk>=1.5");
+      const sealedClass = await gradeCorpus(corpus, { deriveFilters: filters, permutations: 20, seed: 4, verdictUnit: "class" });
+      const verdict = sealedClass.verdicts.get("forex")!.get("floor")!;
+      const pooled = [...sealedClass.shipped.keys()].filter((symbol) => !heldOut.includes(symbol) && getAssetType(symbol) === "forex");
+      const derivedSpec = { floor: { field: "rewardRisk", op: ">=", parent: "baseline", predicate: "rewardRisk>=1.5", predicateHash: filters[0].predicateHash, value: 1.5 } };
+      const classGrading = {
+        analyzerVersion: "test", anchor: "2026-08-11", calendarHash: "c".repeat(64), derived: derivedSpec, derivedAt: "2026-09-03T00:00:00.000Z", foldSource: "emitted",
+        emitSha256: { [manifestHashOf(corpus)]: sha256Of(corpus) }, heldOut, holdoutRule: "stratified-per-class-20pct", rules: {}, shardHashes: [manifestHashOf(corpus)], shards: [corpus], verdictUnit: "class",
+        markets: Object.fromEntries(pooled.map((symbol) => [symbol, { heldOut: false, shipped: { declineCandidate: false, select: { gross: null, net: { expectancy: 0.1, lower: 0.05, n: 16, upper: 0.15 } }, variant: "baseline" }, variants: { floor: { accepted: true, fitTotalDelta: verdict.fitTotalDelta, pairedP: verdict.pairedP, reason: verdict.reason, selectExpectancyDelta: verdict.selectExpectancyDelta, selectTotalDelta: verdict.selectTotalDelta } } }])),
+      };
+      const marketGrading = { ...(await gradingFor(corpus, { EURUSD: { variant: "good", accepted: false } }, { derived: derivedSpec })), heldOut };
+      const gradingPath = join(dir, "F.json"); writeFileSync(gradingPath, JSON.stringify(marketGrading));
+      const classPath = join(dir, "F-class.json"); writeFileSync(classPath, JSON.stringify(classGrading));
+      const candidates = await freezeCandidates([{ arm: "F", path: gradingPath }], { classArms: [{ arm: "F", axis: "payoffFloor", path: classPath, prefix: null }] });
+      assert.equal(candidates.classes!.forex.payoffFloor!.variant, "floor");
+      const frozenPath = join(dir, "frozen.json"); writeFileSync(frozenPath, JSON.stringify(candidates));
+      const rehearsed = await gradeCorpus(corpus, { confirmLogDir: mkdtempSync(join(dir, "l-")), frozen: { candidates, path: frozenPath }, permutations: 20, rehearse: true, seed: 4, verdictUnit: "market" });
+      assert.equal(rehearsed.read, null);
+      // The identity check passed inside the rehearsal, so the rebuilt pool equals the class grading's rows; the class read itself is asserted on the burn path.
+      const driven = await gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "driven-")), frozen: { candidates, path: frozenPath }, permutations: 20, seed: 4, verdictUnit: "market" });
+      const opened = readLedgeredArtifact(driven.read!.artifactPath, { manifestHash: driven.manifest.manifestHash });
+      const read = opened.classes!.forex.find((entry) => entry.axis === "payoffFloor")!;
+      assert.equal(read.variant, "floor");
+      assert.ok(Math.abs(read.pool.fitTotalDelta - verdict.fitTotalDelta) <= 1e-9);
+      assert.equal(typeof read.pool.confirmTotalDelta, "number");
+    });
+
+    it("judges a pool unreadable when the BASELINE side is below the floor, though the variant side clears it", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-class-floor-"));
+      // The four markets' baseline confirm rows are thinned to 5 days each (20 in the pool); their "good" rows keep 32 (128 in the pool).
+      const thin = fiveMarkets().filter((row) => !(row.variant === "baseline" && row.split === "confirm" && Number(row.time) >= Date.UTC(2025, 0, 6) + 85 * 86_400_000));
+      const corpus = foldedCorpus({ extraRows: thin, omitConfirmFor: ["baseline"] });
+      const heldOut = [...resolveHeldOut([JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"))]).held].sort();
+      const marketGrading = { ...(await gradingFor(corpus, { EURUSD: { variant: "good", accepted: false } })), heldOut };
+      const classGrading = await classGradingFor(corpus, "good", heldOut);
+      const gradingPath = join(dir, "A.json"); writeFileSync(gradingPath, JSON.stringify(marketGrading));
+      const classPath = join(dir, "A-class.json"); writeFileSync(classPath, JSON.stringify(classGrading));
+      const candidates = await freezeCandidates([{ arm: "A", path: gradingPath }], { classArms: [{ arm: "A", axis: "window", path: classPath, prefix: null }] });
+      const frozenPath = join(dir, "frozen.json"); writeFileSync(frozenPath, JSON.stringify(candidates));
+      const driven = await gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "driven-")), frozen: { candidates, path: frozenPath }, permutations: 20, seed: 4, verdictUnit: "market" });
+      const opened = readLedgeredArtifact(driven.read!.artifactPath, { manifestHash: driven.manifest.manifestHash });
+      const pool = opened.classes!.forex[0].pool;
+      assert.ok(pool.confirmFilled! >= 30, "the variant side clears the floor");
+      assert.ok(pool.confirmBaseFilled! < 30, "the baseline side does not");
+      assert.equal(pool.deltaOutcome, "unreadable");
+    });
+
+    it("re-tests a market candidate in a family of one, however many class cells share its rows", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-family-"));
+      // EURUSD carries its own candidate "x=1" — a WEAK cell (every other day
+      // below the baseline), so its p sits mid-range where a widened family
+      // would move it — and, through the class, the strong cell "good"; the
+      // oracle corpus holds x=1 alone.
+      const rename = (row: SweepEmitRow) =>
+        row.symbol === "EURUSD" && row.variant === "good"
+          ? { ...row, realizedR: Math.floor(Number(row.time) / 86_400_000) % 2 === 0 ? 0.25 : 0.0, variant: "x=1" }
+          : row;
+      const oracleCorpus = foldedCorpus({ extraRows: fiveMarkets().filter((row) => row.variant === "baseline"), transform: rename });
+      const corpus = foldedCorpus({ extraRows: [...fiveMarkets(), ...marketRows("EURUSD", "good", 0.5, 0.2)], transform: rename });
+      const heldOut = [...resolveHeldOut([JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"))]).held].sort();
+      const marketGrading = { ...(await gradingFor(corpus, { EURUSD: { variant: "x=1", accepted: true } })), heldOut };
+      const classGrading = await classGradingFor(corpus, "good", heldOut);
+      const gradingPath = join(dir, "A.json"); writeFileSync(gradingPath, JSON.stringify(marketGrading));
+      const classPath = join(dir, "A-class.json"); writeFileSync(classPath, JSON.stringify(classGrading));
+      const candidates = await freezeCandidates([{ arm: "A", path: gradingPath }], { classArms: [{ arm: "A", axis: "window", path: classPath, prefix: null }] });
+      assert.equal(candidates.markets.EURUSD.candidate!.variant, "x=1");
+      assert.equal(candidates.classes!.forex.window!.variant, "good");
+      const frozenPath = join(dir, "frozen.json"); writeFileSync(frozenPath, JSON.stringify(candidates));
+      const oracle = await gradeCorpus(oracleCorpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "oracle-")), permutations: 100, seed: 4, verdictUnit: "market" });
+      const driven = await gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "driven-")), frozen: { candidates, path: frozenPath }, permutations: 100, seed: 4, verdictUnit: "market" });
+      const opened = readLedgeredArtifact(driven.read!.artifactPath, { manifestHash: driven.manifest.manifestHash });
+      assert.equal(opened.markets.EURUSD.candidate!.variant, "x=1");
+      const singleP = oracle.verdicts.get("EURUSD")!.get("x=1")!.pairedP!;
+      assert.ok(singleP > 0.02 && singleP < 0.98, `the weak cell's p must sit mid-range for the family width to be observable, got ${singleP}`);
+      assert.equal(opened.markets.EURUSD.candidate!.readPairedP, singleP, "the read's p is the single-hypothesis p, as the freeze's per-market p was");
+      assert.equal(opened.classes!.forex[0].variant, "good");
+    });
+
+    it("refuses a class candidate whose pooled tuning-fold figures are not the frozen ones, before any burn", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-class-"));
+      const corpus = foldedCorpus({ extraRows: fiveMarkets() });
+      const heldOut = [...resolveHeldOut([JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"))]).held].sort();
+      const marketGrading = { ...(await gradingFor(corpus, { EURUSD: { variant: "good", accepted: false } })), heldOut };
+      const classGrading = await classGradingFor(corpus, "good", heldOut);
+      for (const entry of Object.values(classGrading.markets)) (entry.variants as Record<string, { selectTotalDelta: number }>).good.selectTotalDelta = 999;
+      const gradingPath = join(dir, "A.json"); writeFileSync(gradingPath, JSON.stringify(marketGrading));
+      const classPath = join(dir, "A-class.json"); writeFileSync(classPath, JSON.stringify(classGrading));
+      const candidates = await freezeCandidates([{ arm: "A", path: gradingPath }], { classArms: [{ arm: "A", axis: "window", path: classPath, prefix: null }] });
+      const frozenPath = join(dir, "frozen.json"); writeFileSync(frozenPath, JSON.stringify(candidates));
+      const ledgerDir = mkdtempSync(join(dir, "l-"));
+      await assert.rejects(
+        gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: ledgerDir, frozen: { candidates, path: frozenPath }, permutations: 20, seed: 4, verdictUnit: "market" }),
+        /class forex.*differ from the frozen ones/,
+      );
+      assert.equal(readdirSync(ledgerDir).filter((name) => name.startsWith("confirm-log-")).length, 0);
+    });
+
+    it("refuses a tampered frozen file at the command line", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const corpus = foldedCorpus();
+      writeFileSync(join(dir, "A.json"), JSON.stringify(await gradingFor(corpus, { EURUSD: { variant: "good", accepted: true } })));
+      const frozenPath = join(dir, "frozen.json");
+      const made = spawnSync(process.execPath, ["./node_modules/.bin/tsx", "scripts/freeze-candidates.ts", "--arms", `A=${join(dir, "A.json")}`, "--out", frozenPath], { cwd: process.cwd(), encoding: "utf8" });
+      assert.equal(made.status, 0, made.stderr);
+      const frozen = JSON.parse(readFileSync(frozenPath, "utf8")) as { markets: Record<string, { candidate: unknown }> };
+      frozen.markets.EURUSD.candidate = null;
+      writeFileSync(frozenPath, JSON.stringify(frozen));
+      const read = spawnSync(process.execPath, [
+        "./node_modules/.bin/tsx", "scripts/grid-totalr.ts", corpus, "--verdict-unit", "market", "--confirm-final",
+        "--confirm-log-dir", mkdtempSync(join(dir, "ledger-")), "--frozen", frozenPath, "--permutations", "20", "--seed", "4",
+      ], { cwd: process.cwd(), encoding: "utf8" });
+      assert.notEqual(read.status, 0);
+      assert.match(read.stderr, /frozenHash does not match/);
+    });
   });
 
   it("refuses a recorded read whose shards carry a market the request did not name", async () => {

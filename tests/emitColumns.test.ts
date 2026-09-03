@@ -111,7 +111,7 @@ describe("the columns are derived from the corpus, not from a list", () => {
     // capability is a different question, and putting it in the identity would
     // make a reader's capability check able to split a legitimate shard set.
     const conditions = readFileSync("scripts/grid-totalr.ts", "utf8");
-    const at = conditions.indexOf("const conditionsOf = (candidate: SweepManifest) =>");
+    const at = conditions.indexOf("const conditionsOf = (candidate: SweepManifest, withGrid = true) =>");
     assert.ok(at >= 0, "conditionsOf moved — re-anchor this assertion");
     const body = conditions.slice(at, at + 3000);
     assert.doesNotMatch(

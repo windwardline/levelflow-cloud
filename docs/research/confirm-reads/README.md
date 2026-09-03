@@ -152,3 +152,24 @@ select rows into a local fit, and under `--confirm-final` it relabelled a
 median 329 days of the held-back fold into select. It is retired; the emitted
 per-class labels are the only fold source, and `--verdict-unit market` is the
 per-market grain.
+
+
+## The read since R4 act 3
+
+The read is freeze-driven. `scripts/freeze-candidates.ts` binds every arm's
+tuning-fold grading by its bytes and freezes one candidate per market under a
+hashed rule (with the retirement rule's verdicts for the decline candidates);
+`grid-totalr --confirm-final --verdict-unit market --frozen <frozen-candidates.json> <every arm's corpus>`
+then opens the one baseline (from the first corpus, verified row-for-row
+against every other corpus's, confirm fold included) and each market's frozen
+candidate from its own arm, under ONE ledger line whose `frozenHash` names the
+file, and one calendar key over the requested roster. Every corpus is bound to
+the emit digest its arm's grading recorded. The same burn carries the class
+grain: per class per axis, the frozen class-unit candidate over the class's
+pooled members and, apart, its held-out members. Candidates are judged by
+DELTA_RULE on their confirm delta; the read verifies each candidate's
+tuning-fold figures against the frozen file before it opens the fold, and
+`--rehearse` runs every one of its checks with the fold withheld, so the
+refusals are found before the burn, never inside it. Nothing decides on the held-back fold
+after seeing it: the candidates were frozen before the command ran, and the
+door refuses a file altered or re-ruled since.

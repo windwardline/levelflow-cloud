@@ -136,7 +136,342 @@ multi-corpus read are pre-registered in the design §5.
 
 ## 6. Results
 
-Not yet run.
+### 6a. Arm F — the admission floor, graded as derived variants (no sweep)
+
+The gate gained `--derive-filters` (results PR): a derived variant is the
+baseline's rows with `accepted` re-decided by a predicate on a row field, so
+a post-hoc admission filter is graded under the gate's own rule without
+re-simulating. Reproduce-first, executed: a floor at the baseline's own value
+reproduces the baseline cell exactly, and the variants' figures equal an
+independent sum over the kept rows. Four derived variants over R3's
+per-class corpus, sealed (2,141,527 confirm rows withheld): `payoffFloor=1.5`
+and `=1.6` (`rewardRisk` ≥ the value; the runner target's net ratio, not the
+ladder's) and `costShareMax=0.15` and `=0.2` (`estimatedRoundTripCost /
+riskDistance` ≤ the value — the cost weight per trade, values from the fit
+fold's distribution: 0.15 keeps 89% of fills, 0.2 keeps 94%).
+
+**Market unit** (`docs/research/r4/admission-derived-grading.json`): no
+variant accepted for any market but one (EURAUD under `costShareMax=0.15`).
+The aggregate is large and out-of-sample consistent — `payoffFloor=1.5`
+select ΔR +2,444R, fit +1,563R; `costShareMax=0.15` select +7,368R, fit
++4,033R — but per market the filtered stream is still negative beyond its
+error (D4, "LOSES MONEY") or the paired-day test has nothing to pair (a
+filter that drops rows on fewer than five days).
+
+**Class unit** (`docs/research/r4/admission-derived-grading-class.json`),
+the 4c gate's grain and a class's own tuning folds:
+
+| class | variant | fit ΔR | select ΔR | paired p | own select E (lo95) | verdict |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| forex | payoffFloor=1.5 | +280 | +136 | 0.021 | +0.023 (+0.019) | **ACCEPT** |
+| forex | costShareMax=0.15 | +564 | +306 | 0.001 | +0.026 (+0.022) | **ACCEPT** |
+| forex | costShareMax=0.2 | +279 | +89 | 0.001 | +0.022 (+0.017) | **ACCEPT** |
+| forex | payoffFloor=1.6 | +352 | −819 | 1.000 | +0.018 | fails |
+| crypto | costShareMax=0.15 | +1,316 | +5,833 | 0.001 | −0.032 (−0.041) | fails D4 |
+| crypto | payoffFloor=1.5 | +437 | +1,860 | 0.001 | −0.122 (−0.130) | fails D4 |
+| futures | costShareMax=0.15 | +1,000 | +308 | 0.001 | −0.001 (−0.025) | fails D4 |
+| futures | payoffFloor=1.5 | +233 | +112 | 0.001 | −0.043 (−0.066) | fails D4 |
+| metals, indices, agriculture | all four | positive | positive | mixed | negative | fails D4 or THIN |
+| energies, livestock | all four | — | — | — | — | THIN or no verdict |
+
+The first accepted variants in the program, all three in forex: the
+admission filters beat the baseline on both folds at the class grain and the
+filtered stream earns money on its own. Crypto's cost-share cap moves the
+class by +5,833R on select (from −7,264R) and futures' by +308R, but neither
+class earns money after it, so the gate refuses both as pre-registered —
+the losses shrink, the sign does not change. The cost-share rule has no
+engine knob; shipping it is engine work after the read (owner item).
+
+Instrument discipline for §6a, executed on the real corpus after the
+fresh-eyes review (2026-09-03): a derived floor of 1.2 — below every class's
+shipped `minRewardRisk` — reproduces all 91 shipped cells figure for figure
+(identity on the corpus, not a fixture); and the pre-registered external
+anchor is met exactly once the population is named: the scratch counterfactual
+recomputed over the fit rows of the markets the class gate pools (the
+stratified holdout excluded) equals the gate's class-unit fit ΔR to the
+decimal — forex payoffFloor=1.5 +279.7, costShareMax=0.15 +563.7; crypto
++437.3 / +1,316.0; futures +233.2 / +999.9; agriculture +185.7 / +346.6;
+energies +83.4 / +108.8. The design §2 figures (forex +305 etc.) were the
+same counterfactual over every market; the difference is the holdout, not the
+instrument. Two facts the review made explicit: the class-unit accepts are
+informational — the freeze is per market and the read opens per-market
+candidates, so F contributes EURAUD alone to the read; and a derived
+predicate may read decision-time fields only (a whitelist), because an
+outcome column would let it look ahead. The freeze-driven read and the
+retirement rule are built beside the derived path (design §5), each with its
+identity test; nine mutations were landed and killed across the three
+(predicate inverted; AND-with-baseline dropped; arm check dropped; grid term
+relaxed for every read; baseline digest skipped; field whitelist bypassed;
+emit bytes unchecked; the retirement rule's gross clause and sample floor
+dropped).
+
+### 6b. Arms S, W, C1, C2 — and two supplementary arms the launcher owed
+
+Run from merged main `1a64151` at zero provider bytes: stop-cap and
+review-window from 04:46Z, the class-default pair from 05:37Z. **A defect of
+the run, caught at grading:** the launcher had been written before the
+reviews and still carried design v2's grids — review-window swept
+`defaultReviewHours=4,12,24,48` (v4: 24, 48, 96) and stop-cap swept
+`maxStopAtrMultiplier=1.5,2.5,4` (v4 adds the uncapped 8). The 24 and 48
+cells stand; the 4-hour cell recreates amendment 25's starvation and the
+12-hour cell duplicates baseline for the 33 crypto markets, so both are
+controls, not arms. The missing cells run as two supplementary arms from
+the same revision, launched 07:23Z beside the three still running:
+`review-window-96` (`defaultReviewHours=96`) and `stop-cap-8`
+(`maxStopAtrMultiplier=8;stopStructureSource=intraday,intraday_and_daily`).
+Each is graded as its own arm; the freeze reconciles every arm's baseline
+row-for-row, so an arm split across two corpora costs nothing but a second
+baseline cell. The lesson is recorded: an arm's grid is verified against the
+final design from its manifest in the first minute of the run, never at
+grading.
+
+Results follow per arm.
+
+**Arm W — the review window** (`review-window`, manifest `ecb56cdfb557`,
+4,709,810 rows, 11.72 GB, exit 0 at 07:21Z; graded
+`docs/research/r4/review-window-grading.json` and `-class.json`, emit digest
+bound). The first per-market accepts of the program from a swept cell:
+
+| cell | markets accepted (market unit) | fit ΔR, all markets | select ΔR, all markets |
+| --- | --- | ---: | ---: |
+| 48 h | 8 — AUDCAD, AUDCHF, AUDNZD, CADCHF, CHFJPY, EURNZD, NZDCAD, NZDCHF | +1,847 | −219 |
+| 24 h | 7 — AUDCAD, AUDCHF, AUDNZD, CADCHF, CHFJPY, NZDCAD, NZDCHF | +1,139 | −118 |
+| 12 h | 5 — AUDCHF, AUDNZD, CADCHF, EURNZD, NZDCHF (baseline for the 33 crypto markets; a real cell for the 6-hour classes) | +11 | +244 |
+| 4 h | 0 (amendment 25's starvation, as predicted) | −1,933 | +506 |
+
+At the class grain forex accepts 12, 24 and 48 hours (24 h: fit +374R,
+select +377R, p 0.001, own expectancy +0.023R; 48 h: +383R / +464R, p 0.001,
++0.024R) — forex's row ships 8 hours, and every longer window earns more.
+Crypto's longer windows improve fit (+771R at 24 h, +1,335R at 48 h) and
+worsen select (−501R, −698R): fails. No other class earns money on any
+window. Retirement preview under the pre-registered rule (the freeze
+applies it): ten W cells fail the decline rule for four candidates — ADAUSD
+(24 h, 48 h), NGUSD (12, 24, 48 h), XTZUSD (24, 48 h), ZSUSX (12, 24, 48 h) —
+every one through the gross clause with the net upper bound still below
+zero: their negative does not survive the removal of our window on gross,
+and the read reports their M3 either way.
+
+**Arm C2 — the class default with the gate off** (`class-default-gate-off`,
+manifest `d40510960b63`, 2,866,621 rows, 7.20 GB, exit 0 at 07:42Z; graded
+`docs/research/r4/class-default-gate-off-grading.json` and `-class.json`).
+AXES-6's question — is the invalidated derived layer worth anything against
+its absence? — answered in money. Each market on its class row with the
+per-symbol layer removed and the confidence gate off, crossed with the runner
+mode the token would otherwise silently revert:
+
+| class | derived markets | breakeven: select ΔR / fit ΔR | trail_tp1: select ΔR / fit ΔR |
+| --- | ---: | ---: | ---: |
+| forex | 28 | −8,782 / −18,669 | −2,544 / −8,070 |
+| crypto | 19 | −4,370 / −1,605 | −3,009 / +614 |
+| futures | 13 | −336 / −908 | −132 / −608 |
+| agriculture | 4 | −221 / −262 | −189 / −228 |
+| indices | 3 | −57 / −42 | −43 / −39 |
+| metals | 1 | −69 / −228 | −28 / −86 |
+| energies | 1 | −6 / −52 | −3 / −43 |
+
+No market accepts either cell; at the class grain every class fails, forex
+by −6,939R on select under breakeven and −2,243R under trail_tp1. The
+derived layer (its cap of 4 against the class clamp of 1.0, its sizing
+factor, its runner mode) is worth thousands of R relative to the class row,
+on both folds, in every class that carries it — the layer's cells still lose
+money absolutely in crypto, but they lose far less than the class default
+would. The lens's reading that crypto's sign flip is regime rather than the
+layer stands as narration only; what is measured is that removing the layer
+makes crypto worse by 3,000–4,400R on select.
+
+**Arm C1 — the class default with the gate on** (`class-default`, manifest
+`8cf24be8ed5b`, 2,866,621 rows, 7.16 GB, exit 0 at 07:46Z; graded
+`docs/research/r4/class-default-grading.json` and `-class.json`). The same
+picture with the class threshold restored: forex −8,784R / −18,657R
+(breakeven) and −2,548R / −8,062R (trail_tp1) on select / fit over its 28
+derived markets, crypto −4,361R / −1,609R and −3,000R / +610R, futures
+−327R / −886R and −124R / −597R; no market accepts either cell; every class
+fails at the class grain. The class threshold moves almost nothing on the
+derived markets (their layers ship threshold 0 and the class rows' 20–30
+remove few fills) except where it is high: WTI on the energies row
+(threshold 85) is THIN at 24 filled, the regression the review named. The
+22 graded class-row markets, whose token expands to nothing, return NO
+VERDICT (21) or THIN (1): the reproduction control the design counted, and
+the reason arm C grades 72 markets, not 97.
+
+**Multiplicity, stated before the freeze.** A dry run of the freeze over the
+four arms graded so far (W, C1, C2, F) finds 9 candidates — 8 from the window
+arm, EURAUD from the derived cost-share cap — against 1,638 (market, cell)
+tests, so the gate's own p ≤ 0.05 would hand out about 82 accepts by chance.
+Nine is below that count. Per-market acceptance on the tuning folds is
+therefore not evidence at the program level; it is the list the read opens.
+The four retirements (ADAUSD, NGUSD, XTZUSD, ZSUSX) each rest on two or more
+cells and none is labelled fragile.
+
+**Arm W96 — the 96-hour window** (`review-window-96`, manifest
+`256c74eb9032`, 1,919,083 rows, 4.78 GB, exit 0 at 08:33Z; graded
+`docs/research/r4/review-window-96-grading.json` and `-class.json`). The
+same eight forex markets accept (AUDCAD, AUDCHF, AUDNZD, CADCHF, CHFJPY,
+EURNZD, NZDCAD, NZDCHF; fit ΔR over all markets +2,352R, select −282R), and
+forex accepts at the class grain with the window family's best figures — fit
++378R, select +511R, p 0.001, own expectancy +0.024R. Across the family
+forex's select ΔR rises monotonically with the window: +223R at 12 h, +377R
+at 24 h, +464R at 48 h, +511R at 96 h, against a shipped 8 hours. No other
+class earns money at 96 h; crypto's fit improves by +1,812R while its select
+worsens by −836R, the same shape as at 24 and 48 h. The 96-hour cell would
+retire the same four candidates (ADAUSD, NGUSD, XTZUSD, ZSUSX), again on the
+gross clause.
+
+**Arm S — the stop cap × structure source** (`stop-cap`, manifest
+`50ac1efe16dc`, 6,652,005 rows, 16.76 GB, seven cells, exit 0 at 08:33Z;
+graded `docs/research/r4/stop-cap-grading.json` and `-class.json`). No
+market accepts any cell, at either grain. The clamp is real money for the
+class-row candidates but not the whole of their loss: under cap 4 their
+select net upper bounds rise from −0.46 to −0.20 (ALGOUSD), −0.99 to −0.28
+(DYDXUSD), −0.40 to −0.16 (ASX), −0.42 to −0.17 (AVAXUSD), −0.64 to −0.32
+(DOTUSD), −0.58 to −0.24 (NEARUSD), −0.45 to −0.26 (TRXUSD), −0.62 to −0.39
+(XTZUSD), −0.16 to −0.05 (ZSUSX) and stay below zero; HOUSD's reaches +0.04
+and it retires. The 1.5 cells tighten the 65 derived cells' stops and lose
+(forex fit −2,361R, select −1,014R); the 2.5 cells lose less; cap 4 with the
+intraday source is the shipped cell for 65 markets and returns NO VERDICT
+for them (the reproduction control), and cap 4 with the daily source is
+forex's near-miss at the class grain — fit −1.7R against select +236.1R at
+p 0.024, own expectancy +0.023R — the same cell R3 §5 and the research lens
+had already priced. Futures' cap 4 improves fit by +394R with the class still
+negative. Cap cells retire four candidates under the rule: ADAUSD (five
+cells), HOUSD (three), NGUSD (four), ZSUSX (three), on the gross clause.
+
+**Arm S8 — the uncapped stop** (`stop-cap-8`, manifest `ff568263e7e2`,
+2,790,378 rows, 7.00 GB, exit 0 at 08:54Z; graded
+`docs/research/r4/stop-cap-8-grading.json` and `-class.json`). Cap 8 with
+the daily source is the cell that crosses the class gate cap 4 missed: forex
+accepts it — fit +2.2R, select +248R, p 0.009, own expectancy +0.023R — the
+only swept stop cell accepted anywhere, and at the class grain only; no
+market accepts either cell. For the eight derived candidates shipping at cap
+4 the removal of the cap moves their select net upper bounds by hundredths
+(HBARUSD −0.050 → −0.028, EGLDUSD −0.268 → −0.237, WTI −0.105 → −0.086)
+except NGUSD, whose bound turns positive (−0.035 → +0.051) and which retires
+on the net clause; ADAUSD and HOUSD retire again. Futures' fit improves by
++591R and crypto's by +368R with both classes still negative. Amendment 36's
+cap removal is now complete for every candidate: eight of the eleven
+class-row candidates and seven of the eleven derived ones keep a negative
+net upper bound under every cap from 1.5 to uncapped.
+
+### 6c. The freeze
+
+`docs/research/r4/frozen-candidates.json` (frozenHash `9dc27b1a7fe3`), frozen
+before the read from the seven arms' gradings — S, S8, W, W96, C1, C2 and F
+(the derived variants over R3's corpus) — each bound by its grading's bytes,
+manifest hash and emit digest, every arm's shipped-cell select figures
+reconciled equal, removal arms S, S8, W and W96:
+
+| what | count |
+| --- | ---: |
+| markets frozen | 91 |
+| candidates (FREEZE_RULE: the accepted variant with the largest fit ΔR) | 9 |
+| — from W (24 h: AUDCHF; 12 h: CADCHF; 48 h: AUDCAD, CHFJPY, EURNZD) | 5 |
+| — from W96 (96 h: AUDNZD, NZDCAD, NZDCHF) | 3 |
+| — from F (costShareMax=0.15: EURAUD, rebuilt from the baseline rows at read time) | 1 |
+| decline candidates | 22 |
+| retired under RETIREMENT_RULE (ADAUSD 9 of 13 cells, NGUSD 10 of 13, ZSUSX 7 of 13, HOUSD 5 of 13, XTZUSD 3 of 13; none fragile) | 5 |
+| (market, cell) tests across the arms | 2,457 |
+| accepts the gate's p ≤ 0.05 would hand out by chance | 122.85 |
+
+Nine candidates against 123 expected by chance is the naive count. The
+money-and-law review of the read package corrected the denominator: D4 can
+only pass where the stream is select-positive, which is 15 forex markets
+carrying 405 of the cells, so the calibrated expectation is 5–10 accepts and
+nine is at chance per market; but the accepts cluster — the same eight
+markets accept at 24, 48 and 96 hours — which is a class-grain dose-response,
+not nine independent hits. That is why the read carries the class grain.
+
+**Re-frozen with the class grain (frozenHash `6b1e52e0e62b`).** The same
+review found that the program's only above-chance, shippable evidence — the
+forex class cells — had no path into a per-market read, and that a later
+class read over the same corpora could never be clean. The freeze therefore
+also carries, per class and per axis, the accepted class-unit variant with
+the largest fit ΔR: forex's window (W, 48 h: fit +383R, select +464R —
+chosen over 96 h's +378R / +511R by the pre-registered fit rule), stop (S8,
+cap 8 with the daily source: +2.2R / +248R), payoff floor (F, 1.5: +280R /
++136R) and cost-share cap (F, 0.15: +564R / +306R), each over the 22 pooled
+forex members with the six held-out forex members read on the same cell as
+the out-of-sample check — a check of the class candidate's selection, not
+of the window axis, since three of the six (AUDCHF, AUDNZD, NZDCHF) carry
+their own window candidates at the market grain. No other class accepts any
+cell on any axis. The class-grain multiplicity, stated honestly: 8 of 136
+class cells accept, in 4 of the 40 (arm, class) families, all forex, on
+overlapping rows; under the family-wise p the chance count is at most about
+two accepting families. The read judges every candidate's confirm delta by
+DELTA_RULE (registered and hashed before the read: confirmed iff the delta's
+lower bound is above zero with 30 filled on both sides, contradicted iff the
+upper bound is below zero); the absolute confirm figure of a cell not held
+back stays withheld. The final review of the package found two defects the
+live corpora would have hit — the class identity check compared sums taken
+in two orders and would have refused every class candidate at the thirteenth
+decimal, and the class cells widened each forex market's re-test family so
+that EURNZD's 48-hour candidate flipped to rejected (p 0.043 → 0.065) and
+lost its confirm delta from the artifact — and both are closed: the identity
+checks use the digest's tolerance; a market's re-test family is its own
+candidate alone, single-hypothesis as the freeze's per-market p was; and
+every frozen candidate's confirm read is carried unconditionally beside the
+read's own p, the freeze being the acceptance. A sealed rehearsal of the
+frozen path (`--rehearse`) now runs every check the read makes with the
+fold withheld, and is run on the real corpora before the burn. Residue
+stated: on the confirm fold the baseline digest checks counts and sums, not
+the decision-time fields a derived predicate reads; those rest on the same
+emitter. Act 4's read of the 22 late-listed markets will overlap this
+calendar and proceeds under `--acknowledge-prior-reads`, its leaked bit
+named.
+
+### 6d. The one read (2026-09-03 10:05–10:09Z)
+
+`docs/research/confirm-reads/ledgered-read-act3.json` (artifactHash
+`3a17f23378f6`, readId `65331372-2b86-4c57-9ef8-fb588846bfac`), one ledger line
+`confirm-log-f3b72ce8261a…jsonl` over the seven corpora (calendar
+`5d04a7824eca`, frozen `6b1e52e0e62b`), 97 symbols read, the fold opened once.
+The sealed rehearsal (`--rehearse`, 10:00–10:04Z) had passed every byte,
+baseline and identity check on the same corpora first.
+
+**Market candidates — all nine indistinguishable.** Every confirm delta is
+positive in total R and none clears its interval (DELTA_RULE): AUDCAD 48 h
++33.9R (ΔE −0.006 [−0.031, +0.019]), AUDCHF 24 h +75.7R, AUDNZD 96 h
++95.0R, CADCHF 12 h +41.3R, CHFJPY 48 h +46.9R, EURAUD costShareMax 0.15
++11.6R, EURNZD 48 h +21.7R, NZDCAD 96 h +41.3R, NZDCHF 96 h +70.4R; each on
+3,700–4,500 fills a side, each re-accepted at single-hypothesis with the
+read's p ≤ 0.018. Nothing contradicted; nothing confirmed at the market
+grain.
+
+**Class candidates — one confirmed.** Forex, 22 pooled members / 6 held out:
+
+| axis | cell | pool confirm ΔR | pool ΔE [95%] | n | DELTA_RULE | held-out ΔR, ΔE [95%] |
+| --- | --- | ---: | ---: | ---: | --- | ---: |
+| cost share | costShareMax=0.15 | **+283.0** | **+0.0064 [+0.0001, +0.0127]** | 77,537 / 84,184 | **confirmed** | +92.2, +0.0102 [−0.0016, +0.0219] |
+| window | 48 h | +467.4 | +0.0017 [−0.0044, +0.0079] | 93,776 / 84,184 | indistinguishable | +323.1, +0.0049 [−0.0065, +0.0163] |
+| stop | cap 8 + daily | +371.8 | +0.0039 [−0.0022, +0.0100] | 85,521 / 84,184 | indistinguishable | +194.2, +0.0069 [−0.0046, +0.0184] |
+| payoff floor | 1.5 | +130.1 | +0.0037 [−0.0026, +0.0100] | 79,139 / 84,184 | indistinguishable | +37.0, +0.0059 [−0.0058, +0.0176] |
+
+The cost-share cap is the program's one confirmed result: positive on fit
+(+564R), select (+306R), the held-back fold (+283R) and its held-out members
+(+92R), and confirmed by the pre-registered rule with a lower bound of
++0.0001 — by a hair, and stated as such. The other three forex cells are
+positive on every fold and on their held-out pools and not distinguishable
+from zero on the fold; the window's held-out pool (+323R over six markets)
+is the largest out-of-sample figure of the act and still spans zero.
+
+**Shipped cells — 46 of 91 confirmed negative on the held-back fold**, the
+only admissible outcome for a cell not held back: crypto 32 of 33, forex 4
+of 28 (EURUSD −0.035, GBPUSD −0.028, USDCAD −0.024, USDJPY −0.052 — the
+majors), agriculture 4 of 6, futures 3 of 18, indices 2 of 6, metals 1 of 2
+(XAUUSD −0.041); 32 of the 72 derived cells. The 15 select-positive forex
+cells are neither confirmed nor contradicted (their absolute figure is
+withheld by rule; none turned negative beyond error). Of the 22 decline
+candidates, 19 are confirmed negative; HOUSD, NGUSD and WTI are withheld.
+The five late-listed crypto markets read for the first time are all
+confirmed negative; XAGUSD is withheld.
+
+**Retirements against the fold.** Three of the five retired candidates
+(ADAUSD, XTZUSD, ZSUSX) are confirmed negative absolutely; amendment 36
+still bars their withdrawal on a removal that lifted their gross bound on
+select, and the read reports both facts side by side. Sixteen candidates
+are confirmed negative, not retired, and survived the cap and window
+removals on select: ALGOUSD, ASX, ATOMUSD, AVAXUSD, BCHUSD, DASHUSD, DOTUSD,
+DYDXUSD, EGLDUSD, HBARUSD, NEARUSD, SOLUSD, TRXUSD, UNIUSD, XLMUSD, XMRUSD —
+withdrawal-defensible under amendments 31 and 36, and never permanent.
 
 ## 7. Storage and the anchor
 
@@ -147,18 +482,54 @@ the 2026-08-26 pin, so no arm can reach the provider. Against R3's survey the
 carries one more intraday bar inside the window (65,107 against 65,106) after
 the 2026-09-02 18:03Z cache top-up, which was itself stopped by hand (exit
 143) once the allowance was back. Within an arm every comparison is against
-that arm's own baseline cell, so the one bar changes no verdict; it is
-recorded because a later reconciliation of BZUSD's baseline against R3's will
-otherwise read the difference as a defect.
+that arm's own baseline cell, so the one bar changes no verdict — and,
+checked before the read on the tuning folds (baseline rows digested per
+market and fold, confirm rows skipped before any outcome field was read),
+R3's baseline rows and act 3's are the same rows for all 166 (market, fold)
+keys, BZUSD included: the extra bar sits outside every decision. The read's
+own digest covers the confirm fold.
 
 The daily cache top-up (`com.windwardline.levelflow-cache-topup`, 07:00
 local) warms the same rolling stores the sweeps read, with no lock. It is
 unloaded for the run window and reloaded when the last arm exits.
 
-Corpora: not yet run.
+**Corpora** (all in the main checkout, gitignored, the read's inputs; sizes
+as written): stop-cap 16.76 GB (6,652,005 rows), review-window 11.72 GB
+(4,709,810), class-default 7.16 GB (2,866,621), class-default-gate-off 7.20 GB
+(2,866,621), stop-cap-8 7.00 GB (2,790,378), review-window-96 4.78 GB
+(1,919,083); 54.6 GB with the rejection sidecars, beside R3's 35.6 GB. Disk:
+247 GB free at launch, 192 GB free after the last arm; nothing copied, no
+scratch clone, the temp fixtures the test suite leaves are 29 MB. Tracked
+artifacts for the act: seven gradings at two units with their stdout, six
+manifests and stdout tables, the threshold and preflight artifacts, the
+frozen candidates — under 25 MB.
 
-## 8. Open items
+## 8. Owner items — each with the recommendation that survived the reviews
 
-- The six late-listed markets (ARWUSD, BNBUSD, CAKEUSD, THETAUSD, TRUMPUSD,
-  XAGUSD): unmeasurable at tuning grain; the one read measures them. Gate for
-  building an emit-time per-market fold spec: the read leaves them unmeasured.
+1. **Ship forex's cost-share cap.** Set `maxCostShare: 0.15` on the forex
+   class row (the knob merged inert in #572), bump `ANALYZER_VERSION`, and
+   cite this read. Confirmed by the pre-registered rule with a lower bound
+   of +0.0001 over 77,537 confirm fills, and positive on every fold and on
+   the held-out members; the derived read had already accepted it at the
+   class grain on fit and select. The margin is thin and the recommendation
+   says so; what it is not is manufactured — the cap moves no stop and no
+   target, it declines the trades the venue's bill makes worst.
+2. **Withdraw sixteen markets** (the list in §6d): confirmed negative on the
+   held-back fold after a select-fold negative that survived the cap and
+   window removals — amendment 36's standard met. Withdrawal is never
+   permanent; the dormant register re-probes them. Three more (ADAUSD,
+   XTZUSD, ZSUSX) are negative on the fold but retired on select; the rule
+   keeps them.
+3. **The shipped calibration loses on the held-back fold for half the
+   roster**, crypto almost entirely and the four forex majors among them.
+   The desk cannot unpark on the 2026-08-11 derived layer as it stands; the
+   next act re-derives the cells this read contradicted, with a new anchor
+   (the version bump makes it unavoidable) and the class-grain admission
+   levers this act found.
+4. **Act 4 — the 22 late-listed markets**: an emit-time per-market fold spec
+   and one corpus over them, read under `--acknowledge-prior-reads` (its
+   overlap with this calendar is pre-registered; the five crypto listings
+   read here are already confirmed negative on their shipped cells).
+5. **Housekeeping the session could not do:** 1.9 GB of a reviewer's
+   extracted rows in the session scratchpad (`rows/`), which the permission
+   layer would not let the session delete.

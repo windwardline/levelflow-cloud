@@ -581,6 +581,13 @@ const EXTRA_RUNS: Array<{ args: string[]; cwd?: "fixture"; label: string; reader
     label: "cost-sensitivity-verdict --ledgered-read",
     reader: "cost-sensitivity-verdict",
   },
+  // R4 act 3: a derived variant is built INSIDE the door's callback from the
+  // baseline's rows; this run proves that shape withholds the fold like any other.
+  {
+    args: ["F", "--permutations", "20", "--derive-filters", "x:rewardRisk>=1"],
+    label: "grid-totalr --derive-filters",
+    reader: "grid-totalr",
+  },
 ];
 
 // The one reader allowed to read the fold: the burner. Its ledger and its
