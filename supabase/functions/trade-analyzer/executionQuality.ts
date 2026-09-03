@@ -46,7 +46,29 @@ export type ExecutionQuality = {
   costPenalty: number;
   /** 100 - costPenalty*8: what `label` is derived from. See the label's own note. */
   costScore: number;
-  /** The modelled round trip as a share of the risk unit — the cost weight per trade (amendment 39). */
+  /**
+   * The modelled round trip as a share of the risk unit — the cost weight
+   * per trade (amendment 39) — UNROUNDED. This is the quantity the
+   * acceptance gate derives from an emitted row
+   * (`estimatedRoundTripCost / riskDistance`), so it is the quantity
+   * `maxCostShare` caps: the two must be the same number or the shipped
+   * rule is not the measured one. On R3's corpus 105 of 941,947 baseline
+   * rows sit in the band where a 0.15 cap reads differently against the
+   * 4-dp field below — 49 of them in the 19 forex markets the shipped cap
+   * governs.
+   *
+   * It divides by `riskDistance` itself, NOT by the floored denominator the
+   * display value uses: the gate divides by the emitted distance, and
+   * matching it is the entire point of the field. A plan with no distance
+   * between entry and stop never reaches admission — the geometry refuses
+   * it first — so the guard states that case rather than dividing by zero.
+   */
+  costShare: number;
+  /**
+   * The same weight rounded to 4 dp — the DISPLAY form. The emit records
+   * `estimatedRoundTripCost` and `riskDistance` and the gate divides them
+   * itself, so nothing downstream reads this field as a measurement.
+   */
   costToRisk: number;
   coveragePenalty: number;
   effectiveRewardRisk: number;
@@ -352,6 +374,12 @@ export function estimateExecutionQuality(
     costPenalty,
     costScore,
     coveragePenalty,
+    // The local `costToRisk` above floors its denominator; the gate divides
+    // by the emitted distance. Admission reads THIS field, so it is computed
+    // the gate's way and the display form keeps its floor.
+    costShare: riskDistance > 0
+      ? estimatedRoundTripCost / riskDistance
+      : Number.POSITIVE_INFINITY,
     costToRisk: Number(costToRisk.toFixed(4)),
     effectiveRewardRisk: roundPrice(effectiveRewardRisk),
     estimatedCommission,

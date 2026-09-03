@@ -126,11 +126,13 @@ describe("the engine records which decisions it declined, not just how many", ()
   });
 
   it("keeps belowThreshold an AGGREGATE, and holds it to its own identity", () => {
-    // The one counter with no ledger rows, deliberately: it counts the three
-    // branches of the acceptance gate, so appending there would double-count
-    // every rejection at that gate. Asserted rather than skipped — if a fourth
-    // branch is added and left out of the aggregate, it under-counts silently,
-    // and the exclusion below would hide that instead of catching it.
+    // The one counter with no ledger rows, deliberately: it counts the four
+    // branches of the acceptance gate — confidence, payoff, cost share and
+    // regime — so appending there would double-count every rejection at that
+    // gate. Asserted rather than skipped: a branch left out of the aggregate
+    // under-counts silently, and the exclusion below would hide that instead
+    // of catching it. (The cost-share branch was the fourth, 2026-09-03; this
+    // note said three while the assertion below already summed four.)
     assert.equal(
       byReason.belowThreshold,
       undefined,

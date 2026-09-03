@@ -246,7 +246,7 @@ rather than into that table.
 | | |
 | --- | --- |
 | Markets | **97 distinct** — the offering is 97 markets, presented per account type as forex 45 · crypto 33 · futures 27. Those three sum to 105 because the eight crypto CFDs (`FOREX_ACCOUNT_CRYPTO_CFDS`) are visible on BOTH the forex and crypto accounts and are counted twice; 105 is the sum of account-scoped VIEWS, never the roster. (A stale 106 stood here until round 8's CV-9; the 105 that replaced it was this same double-count, caught by the 2026-08-11 audit.) `defaultScanSymbols` is the roster and has always been 97 (amendment 32 executed 2026-08-09 in two acts: thirteen derivative rows dormant, then BRENT on the owner's F13 frame — its "stable" basis measured +1.10 against the recorded +1.67, a contract-month spread no line can honestly state) |
-| Engine | `2026.09.01.platinum-group-rate-inverse` — the version both R3 manifests record (`docs/research/r3/*.manifest.json`); this cell still read `2026.08.18.one-physics` on 2026-09-02, stale across D1 and the §6b-1 item-A bump. Earlier: `2026.08.18.one-physics` (R1a complete: D2's one R accountant on every filled resolution; live grading on the sweep's resolution tiering with the row's stored runner-protection mode and review window; the decision anchor on the last completed primary bar; no-bars expiries marked; calibration cells unchanged from `2026.08.11.declines`) — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Deployed and verified in production 2026-08-18: deploy run 380 (#362's merge) green end-to-end including the E2E chart gate, run 381 (#363's ops/docs merge) green after it |
+| Engine | `2026.09.03.forex-cost-share-cap` — the first calibration change any ledgered confirm read has earned: forex's class row caps the cost weight per trade at `maxCostShare: 0.15` (read `f3b72ce8261a…`, pooled confirm ΔR +283.0, ΔE +0.0064 [+0.0001, +0.0127] over 77,537 fills). Admission compares the UNROUNDED share (`executionQuality.costShare`), not the 4-dp display field the knob shipped with in #572 — 105 of R3's 941,947 baseline rows fall in the band where the two disagree at 0.15. Every other class row leaves the cap unset. Before it: `2026.09.01.platinum-group-rate-inverse` — the version both R3 manifests record (`docs/research/r3/*.manifest.json`); that cell still read `2026.08.18.one-physics` on 2026-09-02, stale across D1 and the §6b-1 item-A bump. Earlier: `2026.08.18.one-physics` (R1a complete: D2's one R accountant on every filled resolution; live grading on the sweep's resolution tiering with the row's stored runner-protection mode and review window; the decision anchor on the last completed primary bar; no-bars expiries marked; calibration cells unchanged from `2026.08.11.declines`) — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Deployed and verified in production 2026-08-18: deploy run 380 (#362's merge) green end-to-end including the E2E chart gate, run 381 (#363's ops/docs merge) green after it |
 | Public face | The parking page |
 | Gates | The seven `ci.yml` runs, named rather than counted: `check` · `lint` · `check:migrations` · `npm audit --audit-level=high` · `test` · `build` · `check:bundle`. This cell listed SIX and omitted `npm audit` — the same undercount the resume block was written to correct, reproduced in the cell a cold reader reaches first. No test count is given here: `npm test` is the authority, and two cells of this file disagreed by ~300 for days while both carried a disclaimer saying so |
 | Repo | `main` is the trunk; the 2026-08-10/11 programme landed as #307-#322. Check `gh pr list` before trusting any count here |
@@ -1911,7 +1911,31 @@ that fixed it.
   and belongs beside R6; the capture branch can wait, but say which is deferred
   rather than leaving both unranked.
 
-### ▶ RESUME HERE — 2026-09-03 10:20 UTC (act 3 READ; supersedes the block below)
+### ▶ RESUME HERE — 2026-09-03 19:30 UTC (the read's calibration change is LIVE)
+
+**The read's one confirmed result is shipped.** `feat/forex-cost-share-cap`:
+forex `maxCostShare: 0.15`, `ANALYZER_VERSION` →
+`2026.09.03.forex-cost-share-cap`, the read cited at the call site. The
+results branch merged first (#573, CI + Deploy green, production 200).
+
+**A defect the shipping found.** #572's knob capped
+`executionQuality.costToRisk` — the round-trip share ROUNDED to 4 dp for
+display — while the read's predicate was the raw quotient the gate derives
+from the emit. Measured on R3's corpus: **105 of 941,947** baseline rows sit
+in the band where the two verdicts differ at a 0.15 cap (44 markets, 19
+forex). The engine now caps `executionQuality.costShare` at all three sites
+and `tests/maxCostShare.test.ts` places a cap inside the band, so a return to
+the display form fails. The lesson generalises: when a read's predicate is
+derived from the emit, the shipped rule must read the emit's own quantity,
+not a rounded twin of it.
+
+**What is still due, in order.** (1) The sixteen withdrawals (§8 item 2) —
+recommendation stands, not executed. (2) Act 4's re-derivation of the cells
+this read contradicted, at a new anchor the version bump now forces (§8 item
+3). (3) The 22 late-listed markets under `--acknowledge-prior-reads` (§8 item
+4). The desk stays parked; nothing here unparks it.
+
+### ▶ RESUME HERE — 2026-09-03 10:20 UTC (act 3 READ; superseded by the block above)
 
 **R4 act 3 is read.** The program's one confirm read ran 2026-09-03
 10:05–10:09Z after a clean sealed rehearsal: `docs/research/confirm-reads/`
@@ -1923,7 +1947,10 @@ tables: `docs/research/r4-act3-design-2026-09-03.md`.
 
 **What the fold said.** One confirmed result: forex's cost-share cap at
 0.15 (class grain; pool confirm ΔR +283R, ΔE +0.0064 [+0.0001, +0.0127] over
-77,537 fills; positive on every fold and on the six held-out members). All
+77,537 fills; the sign agreeing on fit, select and the fold, the six
+held-out members point-positive but indistinguishable — and one crossing
+among the read's thirteen candidates, which the record states where the
+figure is quoted). All
 nine market candidates and the other three forex class cells are positive
 in point estimate and indistinguishable from zero. 46 of 91 shipped cells
 are confirmed negative on the held-back fold — crypto 32 of 33, the four

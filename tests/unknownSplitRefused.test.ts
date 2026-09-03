@@ -39,6 +39,11 @@ function row(symbol: string, split: string, index: number): Row {
     accepted: true,
     confidenceScore: 55 + (index % 30),
     entryPrice: price,
+    // The acceptance gates read the cost columns, and the readers refuse a
+    // corpus without them rather than skipping the cost-share gate. A 1%
+    // share sits under every cap, so no row here is declined by it and the
+    // refusal this file measures is still the split's.
+    estimatedRoundTripCost: risk * 0.01,
     exitAtMs: time + 4 * HOUR,
     filledAtMs: time + 15 * 60_000,
     grossRealizedR: index % 3 === 0 ? -0.98 : 0.37,

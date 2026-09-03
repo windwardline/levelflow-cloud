@@ -449,7 +449,15 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
     ];
     writeFileSync(
       emitPath,
-      rows.map((entry) => JSON.stringify(entry)).join("\n") + "\n",
+      // Every row carries the cost columns the acceptance gates read. The
+      // reader REFUSES a corpus that lacks them rather than skipping the
+      // cost-share gate (2026-09-03), and a fixture without them is a corpus
+      // the engine could not have produced since the emit carried them.
+      // 0.0001 / 0.01 is a 1% share — under every cap, so no fixture row's
+      // verdict turns on this default.
+      rows
+        .map((entry) => JSON.stringify({ estimatedRoundTripCost: 0.0001, riskDistance: 0.01, ...entry }))
+        .join("\n") + "\n",
     );
     const manifest = buildSweepManifest({
       acceptance: { captureAll: false, ignoreLowEdge: false },
@@ -759,7 +767,15 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
     ];
     writeFileSync(
       emitPath,
-      rows.map((entry) => JSON.stringify(entry)).join("\n") + "\n",
+      // Every row carries the cost columns the acceptance gates read. The
+      // reader REFUSES a corpus that lacks them rather than skipping the
+      // cost-share gate (2026-09-03), and a fixture without them is a corpus
+      // the engine could not have produced since the emit carried them.
+      // 0.0001 / 0.01 is a 1% share — under every cap, so no fixture row's
+      // verdict turns on this default.
+      rows
+        .map((entry) => JSON.stringify({ estimatedRoundTripCost: 0.0001, riskDistance: 0.01, ...entry }))
+        .join("\n") + "\n",
     );
     const manifest = buildSweepManifest({
       acceptance: (acceptance === undefined

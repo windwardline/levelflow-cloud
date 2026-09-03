@@ -317,7 +317,7 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     // engine-declined and builds no setup, so the live delta is PLUSD alone.
     assert.match(
       calibrationSrc,
-      /ANALYZER_VERSION = "2026\.09\.01\.platinum-group-rate-inverse"/,
+      /ANALYZER_VERSION = "2026\.09\.03\.forex-cost-share-cap"/,
     );
     assert.match(src, /ANALYZER_VERSION,\n/);
 

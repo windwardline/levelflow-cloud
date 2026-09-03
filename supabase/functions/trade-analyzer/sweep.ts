@@ -1028,10 +1028,12 @@ export function simulateSymbol(input: {
     const belowConfidence =
       scoreBreakdown.confidenceScore < calibration.confidenceThreshold;
     const belowPayoff = plan.rewardRisk < calibration.minRewardRisk;
-    // The cost weight per trade (R4 act 3): inert unless a calibration row
-    // sets maxCostShare, so every corpus swept before it is unchanged.
+    // The cost weight per trade (R4 act 3). Compared against the UNROUNDED
+    // share, which is what the acceptance gate derives from the emit — a cap
+    // read against the 4-dp field admits rows the read declined (105 of
+    // R3's 941,947 baseline rows sit in that band at 0.15).
     const aboveCostShare = calibration.maxCostShare !== undefined &&
-      plan.executionQuality.costToRisk > calibration.maxCostShare;
+      plan.executionQuality.costShare > calibration.maxCostShare;
     const regimeGated = calibration.blockedRegimes?.includes(regime.name) ??
       false;
     const accepted = !belowConfidence && !belowPayoff && !aboveCostShare && !regimeGated;
@@ -1042,7 +1044,7 @@ export function simulateSymbol(input: {
       else if (belowPayoff) reject("belowPayoff", latest.time);
       else if (aboveCostShare) reject("aboveCostShare", latest.time);
       else reject("regimeGated", latest.time);
-      // AN AGGREGATE, NOT A TWELFTH REASON: it counts the three branches
+      // AN AGGREGATE, NOT A TWELFTH REASON: it counts the four branches
       // above, so it takes the counter and NOT a ledger row — appending
       // here would double-count every rejection at this gate.
       rejections.belowThreshold += 1;

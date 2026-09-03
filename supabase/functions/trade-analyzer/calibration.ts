@@ -85,7 +85,15 @@ import { isKnownSymbol } from "./symbols.ts";
 // includes `expired_in_profit` and `expired_at_loss` — filled trades that
 // banked or lost real money and were excluded outright, because under a win
 // rate they were neither. (Prior: 2026.08.27.calendar-provenance.)
-export const ANALYZER_VERSION = "2026.09.01.platinum-group-rate-inverse";
+// 2026.09.03.forex-cost-share-cap: the forex class row caps the cost weight
+// per trade at `maxCostShare: 0.15`, so a forex setup whose modelled round
+// trip exceeds 15% of its risk unit is declined at admission. The accepted
+// population changes, so the cohort scopes again. Set by the one ledgered
+// confirm read of R4 act 3 (readId 65331372-…, artifact 3a17f23378f6) — the
+// only candidate it confirmed, and one crossing among its thirteen.
+// (Prior: 2026.09.01.platinum-group-rate-inverse, whose own entry this log
+// never received.)
+export const ANALYZER_VERSION = "2026.09.03.forex-cost-share-cap";
 
 export type AssetType =
   | "agriculture"
@@ -633,6 +641,30 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     defaultReviewHours: 8,
     entryOffsetDefault: 0.55,
     entryOffsetTrend: 0.55,
+    // SET 2026-09-03 by the one ledgered confirm read of R4 act 3 — readId
+    // 65331372-2b86-4c57-9ef8-fb588846bfac, artifact 3a17f23378f6
+    // (`docs/research/confirm-reads/ledgered-read-act3.json`, ledger line
+    // confirm-log-f3b72ce8261a… — that hash is the CORPUS id, not the read's).
+    // The forex class-grain candidate `costShareMax=0.15` is the ONLY
+    // candidate the read confirmed under the pre-registered delta rule:
+    // pooled confirm dR +283.0 and dE +0.0064 [+0.0001, +0.0127] over
+    // 77,537 fills, with the fit fold (+564R) and the select fold (+306R)
+    // agreeing in sign and the six held-out forex members point-positive
+    // (+92R) but INDISTINGUISHABLE from zero — the read's own word for them.
+    //
+    // Two things the record states and this comment must not bury: the lower
+    // bound is +0.0001, and this is one crossing among the 13 candidates the
+    // read judged, where under independence a single crossing by chance runs
+    // to roughly 28%. It ships because every fold agrees in sign, because
+    // the gate's own earns-money term passed at the class grain, and because
+    // the mechanism is a bill the venue actually charges — not because that
+    // one interval cleared zero.
+    //
+    // Every other class moved R but failed D4 — the losses shrink, the sign
+    // does not change — so no other row carries the cap. It declines trades;
+    // it moves no stop and no target, so nothing about a surviving trade's
+    // payoff is manufactured (amendment 39).
+    maxCostShare: 0.15,
     maxNewsPenalty: 8,
     maxProviderPenalty: 6,
     // DERIVED 2026-08-06, stop-cap grid over all 102 markets read by TOTAL R

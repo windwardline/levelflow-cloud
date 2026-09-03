@@ -84,10 +84,12 @@ const CLASSIFICATIONS: BrokerClassification[] = ["forex", "futures", "crypto"];
 type Row = {
   symbol: string;
   confidenceScore: number;
+  estimatedRoundTripCost?: number;
   outcome: string;
   realizedR: number | null;
   regime: string;
   rewardRisk: number;
+  riskDistance?: number;
   split: string;
   variant?: string;
 };
@@ -109,10 +111,40 @@ type Row = {
  * that moved between the sweep and this read must bind here. The flag records
  * what the sweep decided; this asks what the engine would decide today.
  */
+/**
+ * The cost weight per trade, derived the way the acceptance gate derives it:
+ * the emitted round trip over the emitted risk distance, never a rounded
+ * column. It REFUSES rather than skipping — a reader that silently drops a
+ * live gate because an older corpus lacks its columns reports a population
+ * production does not trade, and reports it as if it did.
+ */
+function costShareOfRow(row: Row): number {
+  const cost = row.estimatedRoundTripCost;
+  const risk = row.riskDistance;
+  if (typeof cost !== "number" || !Number.isFinite(cost) || typeof risk !== "number" || !(risk > 0)) {
+    throw new Error(
+      `${row.symbol}: the calibration caps the cost weight per trade but this corpus emits no usable ` +
+        `estimatedRoundTripCost/riskDistance, so the gate cannot be applied — re-sweep, or read a corpus that carries them`,
+    );
+  }
+  return cost / risk;
+}
+
 function passesOtherGates(row: Row): boolean {
   const calibration = getCategoryCalibration(row.symbol);
   if (row.confidenceScore < calibration.confidenceThreshold) return false;
   if (row.rewardRisk < calibration.minRewardRisk) return false;
+  // THE FOURTH GATE (2026-09-03). Forex caps the cost weight per trade, so a
+  // reader asking what the engine would decide TODAY must apply it or it
+  // over-admits exactly the rows production now refuses. The share is derived
+  // the way the acceptance gate derives it — the emitted round trip over the
+  // emitted risk distance — never from a rounded column.
+  if (
+    calibration.maxCostShare !== undefined &&
+    costShareOfRow(row) > calibration.maxCostShare
+  ) {
+    return false;
+  }
   return !(calibration.blockedRegimes ?? []).includes(row.regime as RegimeName);
 }
 

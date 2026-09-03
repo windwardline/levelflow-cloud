@@ -446,9 +446,23 @@ grain.
 | payoff floor | 1.5 | +130.1 | +0.0037 [−0.0026, +0.0100] | 79,139 / 84,184 | indistinguishable | +37.0, +0.0059 [−0.0058, +0.0176] |
 
 The cost-share cap is the program's one confirmed result: positive on fit
-(+564R), select (+306R), the held-back fold (+283R) and its held-out members
-(+92R), and confirmed by the pre-registered rule with a lower bound of
-+0.0001 — by a hair, and stated as such. The other three forex cells are
+(+564R), select (+306R) and the held-back fold (+283R), with its held-out
+members point-positive (+92R) but INDISTINGUISHABLE under the same rule —
+the held-out pool corroborates the sign, it does not add a verdict. Confirmed
+by the pre-registered rule with a lower bound of +0.0001 — by a hair, and
+stated as such.
+
+**And it is one crossing among thirteen.** The read judged 13 frozen
+candidates: nine market cells and four forex class cells. Exactly one
+cleared. Under independence a single crossing by chance across 13 candidates
+at a 95% two-sided interval runs to about 28% — the candidates share rows, so
+the true figure is lower, but it is not small, and no multiplicity adjustment
+was pre-registered for the read (the freeze priced its own, §6c). What
+carries the cap past that is not this interval: the sign agrees on fit,
+select, the fold and the held-out pool; the class-grain grading passed D4
+before the fold was opened; and the mechanism is a bill the venue charges.
+A result this thin is a candidate for re-measurement at the next anchor, and
+act 4 should carry it. The other three forex cells are
 positive on every fold and on their held-out pools and not distinguishable
 from zero on the fold; the window's held-out pool (+323R over six markets)
 is the largest out-of-sample figure of the act and still spans zero.
@@ -506,12 +520,31 @@ frozen candidates — under 25 MB.
 
 ## 8. Owner items — each with the recommendation that survived the reviews
 
-1. **Ship forex's cost-share cap.** Set `maxCostShare: 0.15` on the forex
-   class row (the knob merged inert in #572), bump `ANALYZER_VERSION`, and
-   cite this read. Confirmed by the pre-registered rule with a lower bound
-   of +0.0001 over 77,537 confirm fills, and positive on every fold and on
-   the held-out members; the derived read had already accepted it at the
-   class grain on fit and select. The margin is thin and the recommendation
+1. **Ship forex's cost-share cap — DONE 2026-09-03**, as the branch
+   `feat/forex-cost-share-cap`: `maxCostShare: 0.15` on the forex class row
+   (the knob merged inert in #572), `ANALYZER_VERSION` →
+   `2026.09.03.forex-cost-share-cap`, this read cited at the call site.
+   Shipping it exposed a defect in the knob itself, found by asking what the
+   engine would compare and measuring the answer: #572 capped
+   `executionQuality.costToRisk`, the round-trip share ROUNDED TO 4 dp for
+   display, while the read's predicate was the raw quotient the gate derives
+   from the emit (`estimatedRoundTripCost / riskDistance`). A scan of R3's
+   corpus put **105 of 941,947 baseline rows** in the band where the two
+   verdicts differ at a 0.15 cap — 44 markets, 19 of them forex. The scan
+   emulated `Number(x.toFixed(4))` in Python, so it was cross-checked against
+   the runtime that actually rounds: over the corpus's first 200,000 rows both
+   implementations report the same 42,499 baseline rows and the same 7
+   disagreements. So the
+   knob as merged would have shipped a rule the read did not confirm. The
+   engine now caps `executionQuality.costShare`, the unrounded field, at all
+   three sites (live admission, live diagnostic, sweep), and a test places a
+   cap inside the band and fails if admission reads the display form. The
+   original recommendation, unchanged: confirmed by the pre-registered rule
+   with a lower bound of +0.0001 over 77,537 confirm fills, the sign agreeing
+   on every fold and the held-out pool point-positive though
+   indistinguishable; the derived read had already accepted it at the class
+   grain on fit and select. It is one crossing among the read's thirteen
+   candidates and the record now says so where the figure is quoted. The margin is thin and the recommendation
    says so; what it is not is manufactured — the cap moves no stop and no
    target, it declines the trades the venue's bill makes worst.
 2. **Withdraw sixteen markets** (the list in §6d): confirmed negative on the
@@ -530,6 +563,7 @@ frozen candidates — under 25 MB.
    and one corpus over them, read under `--acknowledge-prior-reads` (its
    overlap with this calendar is pre-registered; the five crypto listings
    read here are already confirmed negative on their shipped cells).
-5. **Housekeeping the session could not do:** 1.9 GB of a reviewer's
-   extracted rows in the session scratchpad (`rows/`), which the permission
-   layer would not let the session delete.
+5. **Housekeeping — CLOSED 2026-09-03.** The 1.9 GB of a reviewer's
+   extracted rows (`rows/`) that the permission layer would not let the
+   session delete is gone; the whole of `/private/tmp/claude-501` measures
+   253 MB. Nothing for the owner to do.
