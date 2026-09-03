@@ -129,6 +129,35 @@ describe("maxCostShare caps the cost weight per trade", () => {
     assert.notEqual(quality.costShare, quality.costToRisk, "this fixture cannot tell the two apart — pick one that can");
   });
 
+  it("every cap site reads the unrounded share — pinned at the source, because one of them has no other reader", () => {
+    // index.ts carries Deno globals, so it sits outside tsconfig.tests.json
+    // and no test imports it; setupAnalysis.test.ts reads a COPY of its
+    // diagnostics. A copy cannot catch the original drifting, and it did not:
+    // reverting the live admission to the 4-dp field left the whole suite
+    // green until this pin existed (mutation M3, 2026-09-03).
+    const sites = (source: string) =>
+      source.match(/executionQuality\.\w+ > calibration\.maxCostShare/g) ?? [];
+    const analyzer = readFileSync("supabase/functions/trade-analyzer/index.ts", "utf8");
+    assert.deepEqual(
+      sites(analyzer),
+      [
+        "executionQuality.costShare > calibration.maxCostShare",
+        "executionQuality.costShare > calibration.maxCostShare",
+      ],
+      "the live admission and its diagnostic must both cap the unrounded share",
+    );
+    assert.ok(
+      analyzer.includes("(pricePlan.executionQuality.costShare * 100).toFixed(0)"),
+      "the diagnostic must quote the share it actually decided on",
+    );
+    const sweep = readFileSync("supabase/functions/trade-analyzer/sweep.ts", "utf8");
+    assert.deepEqual(
+      sites(sweep),
+      ["executionQuality.costShare > calibration.maxCostShare"],
+      "the sweep decides admission on the same field the live analyzer does, or a corpus grades a rule production does not run",
+    );
+  });
+
   it("a cap inside the rounding band declines the row the display form would have admitted", () => {
     // Derived from the fixture's own rows rather than hand-built: find a
     // setup whose 4-dp share rounds DOWN, then cap between the two. The
