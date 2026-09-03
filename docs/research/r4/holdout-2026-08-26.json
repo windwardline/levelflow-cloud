@@ -1,0 +1,32 @@
+{
+  "anchor": "2026-08-26",
+  "rule": "stratified-per-class-20pct",
+  "markets": [
+    "AAVEUSD",
+    "ARWUSD",
+    "AUDCHF",
+    "AUDNZD",
+    "BNBUSD",
+    "BZUSD",
+    "DASHUSD",
+    "EURUSD",
+    "GBPCAD",
+    "HEUSX",
+    "NGUSD",
+    "NSDQ",
+    "NZDCHF",
+    "NZDJPY",
+    "RTYUSD",
+    "THETAUSD",
+    "XLMUSD",
+    "XMRUSD",
+    "YMUSD",
+    "ZMUSD"
+  ],
+  "requestedSymbols": 97,
+  "rosterHash": "a1a410fda43ecf9ca6b54fad6a967cf7953807cd2c808bf01765dce8fe2bfd7e",
+  "manifestHashes": [
+    "ce146c6b8b63eedb709e759833bec570e2fd7e45737844248fd4932db62daab1",
+    "021821537f28e5d2777543989baa0631a38840d592fad74c4bdb2429fb627c59"
+  ]
+}

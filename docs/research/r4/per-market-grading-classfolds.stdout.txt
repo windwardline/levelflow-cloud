@@ -1,0 +1,920 @@
+verdict unit: market — every market on its own rows, singleton groups, 30-filled floor (R4); fold source: emitted labels (no time re-cut)
+
+shipped cell per market (91; held out by the stratified rule: 20, labelled, never dropped; decline rule = 2e1521e201da)
+holdout: holdout: stratified-per-class-20pct — 20 markets labelled HELD OUT per market (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only
+accepted (market, variant) pairs: 0 · expected false families at FWER 0.05 over 91 markets ≈ 4.5 (per-market families; D4's absolute term is the cross-market brake)
+market      held  select net E [95%] n              select gross E [95%] n            decline  tranche      m3
+AAVEUSD     OUT   -0.042 [-0.070, -0.015] n=2272     -0.021 [-0.048, 0.006] n=2272      no        totality     not-read
+ADAUSD            -0.097 [-0.120, -0.074] n=3380     -0.022 [-0.044, -0.000] n=3380     CANDIDATE derived-4d   not-read
+ALGOUSD           -0.501 [-0.543, -0.459] n=1468     -0.159 [-0.201, -0.116] n=1468     CANDIDATE shipped      not-read
+ASX               -0.556 [-0.715, -0.397] n=101      -0.451 [-0.608, -0.293] n=101      CANDIDATE shipped      not-read
+ATOMUSD           -0.909 [-0.966, -0.851] n=422      -0.243 [-0.315, -0.171] n=422      CANDIDATE shipped      not-read
+AUDCAD            0.054 [0.035, 0.074] n=3657        0.075 [0.056, 0.094] n=3657        no        derived-4d   not-read
+AUDCHF      OUT   0.078 [0.059, 0.097] n=3786        0.097 [0.079, 0.116] n=3786        no        holdout-cycle not-read
+AUDJPY            0.001 [-0.020, 0.021] n=3788       0.021 [0.001, 0.041] n=3788        no        derived-4d   not-read
+AUDNZD      OUT   0.076 [0.057, 0.095] n=3555        0.101 [0.083, 0.120] n=3555        no        holdout-cycle not-read
+AUDUSD            0.015 [-0.004, 0.035] n=3805       0.032 [0.012, 0.052] n=3805        no        derived-4d   not-read
+AVAXUSD           -0.477 [-0.532, -0.423] n=884      -0.149 [-0.203, -0.096] n=884      CANDIDATE shipped      not-read
+BCHUSD            -0.235 [-0.261, -0.209] n=2778     -0.061 [-0.086, -0.037] n=2778     CANDIDATE derived-4d   not-read
+BTCUSD            -0.029 [-0.050, -0.008] n=3436     0.008 [-0.013, 0.028] n=3436       no        derived-4d   not-read
+BZUSD       OUT   0.030 [-0.055, 0.116] n=358        0.069 [-0.014, 0.153] n=358        no        totality     not-read
+CADCHF            0.064 [0.045, 0.084] n=3558        0.087 [0.068, 0.106] n=3558        no        derived-4d   not-read
+CADJPY            -0.014 [-0.035, 0.006] n=3773      0.009 [-0.011, 0.029] n=3773       no        derived-4d   not-read
+CHFJPY            0.015 [-0.005, 0.036] n=3711       0.044 [0.025, 0.064] n=3711        no        derived-4d   not-read
+CLUSD             0.036 [-0.047, 0.119] n=346        0.076 [-0.006, 0.157] n=346        no        derived-4d   not-read
+DASHUSD     OUT   -0.057 [-0.081, -0.033] n=3123     -0.033 [-0.056, -0.009] n=3123     CANDIDATE totality     not-read
+DAX               -0.029 [-0.116, 0.059] n=216       -0.004 [-0.090, 0.083] n=216       no        totality     not-read
+DOGEUSD           -0.025 [-0.050, -0.001] n=2693     0.011 [-0.012, 0.035] n=2693       no        totality     not-read
+DOTUSD            -0.702 [-0.763, -0.642] n=540      -0.166 [-0.234, -0.098] n=540      CANDIDATE shipped      not-read
+DOW               -0.122 [-0.358, 0.114] n=43        -0.088 [-0.319, 0.144] n=43        no        shipped      not-read
+DYDXUSD           -1.071 [-1.149, -0.993] n=285      -0.320 [-0.453, -0.188] n=285      CANDIDATE shipped      not-read
+EGLDUSD           -0.309 [-0.350, -0.268] n=1296     -0.081 [-0.120, -0.042] n=1296     CANDIDATE totality     not-read
+ESUSD             -0.009 [-0.071, 0.052] n=399       0.007 [-0.053, 0.068] n=399        no        derived-4d   not-read
+ETCUSD            -0.026 [-0.052, -0.001] n=2498     0.020 [-0.004, 0.044] n=2498       no        totality     not-read
+ETHUSD            -0.039 [-0.060, -0.017] n=3348     -0.009 [-0.030, 0.012] n=3348      no        derived-4d   not-read
+EURAUD            0.020 [0.001, 0.040] n=3741        0.043 [0.024, 0.062] n=3741        no        derived-4d   not-read
+EURCAD            0.048 [0.030, 0.067] n=3723        0.077 [0.058, 0.095] n=3723        no        derived-4d   not-read
+EURCHF            0.016 [-0.005, 0.036] n=3241       0.051 [0.031, 0.071] n=3241        no        derived-4d   not-read
+EURGBP            0.036 [0.015, 0.057] n=3277        0.059 [0.039, 0.079] n=3277        no        derived-4d   not-read
+EURJPY            -0.001 [-0.021, 0.020] n=3633      0.031 [0.011, 0.050] n=3633        no        derived-4d   not-read
+EURNZD            0.053 [0.033, 0.072] n=3614        0.076 [0.057, 0.094] n=3614        no        derived-4d   not-read
+EURUSD      OUT   -0.034 [-0.053, -0.014] n=3817     -0.005 [-0.024, 0.015] n=3817      no        holdout-cycle not-read
+FILUSD            -1.919 [-2.255, -1.583] n=39       -0.187 [-0.405, 0.031] n=39        no        shipped      not-read
+GBPAUD            -0.005 [-0.026, 0.016] n=3504      0.019 [-0.002, 0.040] n=3504       no        derived-4d   not-read
+GBPCAD      OUT   0.022 [0.001, 0.043] n=3411        0.046 [0.025, 0.067] n=3411        no        holdout-cycle not-read
+GBPCHF            0.031 [0.011, 0.051] n=3571        0.054 [0.034, 0.074] n=3571        no        derived-4d   not-read
+GBPJPY            0.029 [0.009, 0.049] n=3563        0.046 [0.026, 0.066] n=3563        no        derived-4d   not-read
+GBPNZD            0.046 [0.026, 0.066] n=3611        0.071 [0.052, 0.091] n=3611        no        derived-4d   not-read
+GBPUSD            0.003 [-0.017, 0.023] n=3572       0.024 [0.004, 0.044] n=3572        no        derived-4d   not-read
+GCUSD             0.026 [-0.028, 0.079] n=547        0.034 [-0.019, 0.087] n=547        no        derived-4d   not-read
+GFUSX             -0.066 [-0.257, 0.124] n=97        -0.011 [-0.203, 0.182] n=97        no        shipped      not-read
+GRTUSD            -0.032 [-0.058, -0.007] n=2514     0.001 [-0.024, 0.026] n=2514       no        totality     not-read
+HBARUSD           -0.104 [-0.158, -0.050] n=640      -0.070 [-0.123, -0.016] n=640      CANDIDATE totality     not-read
+HEUSX       OUT   -1.028 [-3.177, 1.121] n=85        -0.399 [-1.490, 0.692] n=85        no        shipped      not-read
+HGUSD             -0.012 [-0.074, 0.050] n=454       0.008 [-0.054, 0.069] n=454        no        derived-4d   not-read
+HOUSD             -0.227 [-0.316, -0.139] n=332      -0.183 [-0.271, -0.094] n=332      CANDIDATE shipped      not-read
+IMXUSD            -0.062 [-0.111, -0.014] n=1128     -0.023 [-0.070, 0.025] n=1128      no        totality     not-read
+LEUSX             0.082 [-0.182, 0.345] n=73         0.154 [-0.104, 0.413] n=73         no        shipped      not-read
+LINKUSD           -0.042 [-0.071, -0.014] n=3311     -0.019 [-0.047, 0.009] n=3311      no        totality     not-read
+LTCUSD            -0.221 [-0.248, -0.194] n=2686     -0.024 [-0.048, 0.000] n=2686      no        derived-4d   not-read
+NEARUSD           -0.643 [-0.705, -0.581] n=638      -0.141 [-0.211, -0.071] n=638      CANDIDATE shipped      not-read
+NGUSD       OUT   -0.099 [-0.162, -0.035] n=494      -0.069 [-0.132, -0.006] n=494      CANDIDATE holdout-cycle not-read
+NIKKEI            -0.168 [-0.310, -0.026] n=107      -0.137 [-0.274, 0.000] n=107       no        shipped      not-read
+NQUSD             0.015 [-0.045, 0.076] n=423        0.024 [-0.036, 0.084] n=423        no        derived-4d   not-read
+NSDQ        OUT   -0.085 [-0.174, 0.005] n=148       -0.069 [-0.158, 0.021] n=148       no        holdout-cycle not-read
+NZDCAD            0.051 [0.032, 0.070] n=3693        0.071 [0.052, 0.090] n=3693        no        derived-4d   not-read
+NZDCHF      OUT   0.081 [0.062, 0.100] n=3558        0.101 [0.082, 0.119] n=3558        no        holdout-cycle not-read
+NZDJPY      OUT   0.029 [0.009, 0.049] n=3630        0.045 [0.025, 0.065] n=3630        no        holdout-cycle not-read
+NZDUSD            0.015 [-0.005, 0.034] n=3814       0.036 [0.017, 0.056] n=3814        no        derived-4d   not-read
+PAUSD             -0.106 [-0.199, -0.013] n=382      -0.046 [-0.139, 0.047] n=382       no        totality     not-read
+PLUSD             -0.063 [-0.141, 0.014] n=483       -0.040 [-0.116, 0.037] n=483       no        shipped      not-read
+RBUSD             -0.117 [-0.256, 0.021] n=323       -0.044 [-0.181, 0.092] n=323       no        shipped      not-read
+RTYUSD      OUT   -0.014 [-0.078, 0.049] n=401       0.007 [-0.057, 0.070] n=401        no        holdout-cycle not-read
+SIUSD             0.048 [-0.008, 0.104] n=486        0.079 [0.026, 0.132] n=486         no        derived-4d   not-read
+SOLUSD            -0.053 [-0.082, -0.024] n=2202     -0.033 [-0.062, -0.004] n=2202     CANDIDATE totality     not-read
+SP                -0.063 [-0.160, 0.034] n=146       -0.034 [-0.129, 0.061] n=146       no        derived-4d   not-read
+TRXUSD            -0.501 [-0.553, -0.449] n=1000     -0.175 [-0.225, -0.124] n=1000     CANDIDATE shipped      not-read
+UNIUSD            -0.079 [-0.106, -0.053] n=2531     -0.053 [-0.079, -0.027] n=2531     CANDIDATE totality     not-read
+USDCAD            0.003 [-0.019, 0.025] n=3289       0.030 [0.009, 0.051] n=3289        no        derived-4d   not-read
+USDCHF            -0.009 [-0.030, 0.012] n=3315      0.016 [-0.005, 0.036] n=3315       no        derived-4d   not-read
+USDJPY            -0.028 [-0.050, -0.007] n=3479     0.002 [-0.019, 0.023] n=3479       no        derived-4d   not-read
+WTI               -0.202 [-0.298, -0.105] n=298      -0.188 [-0.284, -0.092] n=298      CANDIDATE derived-4d   not-read
+XAUUSD            -0.047 [-0.073, -0.022] n=2507     0.020 [-0.005, 0.044] n=2507       no        derived-4d   not-read
+XLMUSD      OUT   -0.065 [-0.094, -0.036] n=3163     -0.046 [-0.074, -0.017] n=3163     CANDIDATE totality     not-read
+XMRUSD      OUT   -0.078 [-0.103, -0.054] n=2984     -0.047 [-0.071, -0.023] n=2984     CANDIDATE totality     not-read
+XRPUSD            -0.035 [-0.058, -0.012] n=3063     -0.012 [-0.035, 0.010] n=3063      no        derived-4d   not-read
+XTZUSD            -0.704 [-0.786, -0.623] n=305      -0.098 [-0.177, -0.019] n=305      CANDIDATE shipped      not-read
+YMUSD       OUT   -0.018 [-0.081, 0.045] n=371       0.008 [-0.054, 0.071] n=371        no        holdout-cycle not-read
+ZBUSD             -0.196 [-0.261, -0.132] n=397      -0.055 [-0.114, 0.003] n=397       no        totality     not-read
+ZCUSX             -0.186 [-0.291, -0.081] n=355      -0.005 [-0.120, 0.111] n=355       no        derived-4d   not-read
+ZFUSD             -0.361 [-0.597, -0.124] n=59       -0.057 [-0.240, 0.125] n=59        no        shipped      not-read
+ZLUSX             -0.071 [-0.137, -0.004] n=385      -0.009 [-0.072, 0.053] n=385       no        derived-4d   not-read
+ZMUSD       OUT   -0.101 [-0.255, 0.052] n=392       0.019 [-0.126, 0.164] n=392        no        holdout-cycle not-read
+ZNUSD             -0.183 [-0.247, -0.120] n=382      -0.046 [-0.105, 0.013] n=382       no        totality     not-read
+ZOUSX             -0.017 [-0.129, 0.095] n=244       0.073 [-0.032, 0.179] n=244        no        totality     not-read
+ZRUSD             -0.008 [-0.180, 0.164] n=94        0.027 [-0.141, 0.195] n=94         no        shipped      not-read
+ZSUSX             -0.278 [-0.401, -0.156] n=185      -0.121 [-0.232, -0.011] n=185      CANDIDATE shipped      not-read
+ZTUSD             -0.619 [-1.139, -0.100] n=7        -0.565 [-1.108, -0.021] n=7        no        shipped      not-read
+wrote docs/research/r4/per-market-grading-classfolds.json
+folds: fit=fit select=select confirm=confirm SEALED (not derived: no --confirm-final — nothing burned; 2141527 rows withheld at the door)
+corpus 021821537f28 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26
+(data-absence rows held out of every fold denominator: 3115 — all variants, graded folds only, accepted rows; holdout excluded by read-time stratified recomputation, not the stamped flag)
+
+=== EURUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -176.9    -93.3    1.000   931/987   -0.024   -0.058   -0.079       0.0       0.0   0.09      -5.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -225.4    -73.6    1.000   961/987   -0.019   -0.052   -0.074      -1.0       0.0   0.07      -6.3  fails
+runnerProtection=hold,stopStructureSource=intraday    -154.8   -113.2    1.000   931/987   -0.030   -0.063   -0.087       0.0       0.0   0.09      -4.9  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -161.4    -99.8    1.000   961/987   -0.025   -0.059   -0.084      -1.0       0.0   0.07      -6.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/987    0.000   -0.034   -0.053       0.0       0.0   0.09      -4.9  NO VERDICT — pairing 0 nonzero of 987 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -34.1     27.3    0.160   721/987    0.007   -0.026   -0.046      -1.0       0.0   0.07      -6.3  fails
+
+=== GBPUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -243.6    -98.8    1.000   873/926   -0.028   -0.025   -0.046       0.0       0.0   0.09      -3.8  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -240.7   -100.8    1.000   896/926   -0.028   -0.025   -0.047       0.2       0.0   0.06      -3.9  fails
+runnerProtection=hold,stopStructureSource=intraday    -199.3    -86.5    1.000   874/926   -0.024   -0.021   -0.046       0.0       0.0   0.09      -4.2  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -231.5    -88.3    1.000   896/926   -0.024   -0.022   -0.047       1.0       0.0   0.06      -4.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/926    0.000    0.003   -0.017       0.0       0.0   0.09      -3.5  NO VERDICT — pairing 0 nonzero of 926 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       7.7      6.3    0.676   645/926    0.002    0.004   -0.016       0.4       0.0   0.06      -3.5  fails
+
+=== USDJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -131.7    -90.5    1.000   852/916   -0.026   -0.054   -0.077       0.0       0.0   0.08      -5.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -171.2   -124.1    1.000   890/916   -0.035   -0.063   -0.086       0.1       0.0   0.06      -5.3  fails
+runnerProtection=hold,stopStructureSource=intraday    -100.8    -91.5    1.000   852/916   -0.026   -0.055   -0.080       0.0       0.0   0.08      -5.1  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -126.6   -102.0    1.000   890/916   -0.029   -0.057   -0.083       1.0       0.0   0.06      -5.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/916    0.000   -0.028   -0.050       0.0       0.0   0.08      -4.9  NO VERDICT — pairing 0 nonzero of 916 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -16.4    -21.9    0.993   698/916   -0.006   -0.034   -0.056       0.3       0.0   0.06      -5.3  fails
+
+=== AUDUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -197.2    -97.2    1.000   925/986   -0.026   -0.010   -0.031       0.0       0.0   0.08      -4.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -167.5   -114.7    1.000   954/986   -0.030   -0.015   -0.036       0.0       0.0   0.05      -4.1  fails
+runnerProtection=hold,stopStructureSource=intraday    -260.1    -23.7    0.977   925/986   -0.006    0.009   -0.015       0.0       0.0   0.08      -4.5  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -246.8    -27.5    0.977   954/986   -0.007    0.008   -0.017       0.0       0.0   0.05      -4.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/986    0.000    0.015   -0.004       0.0       0.0   0.08      -4.1  NO VERDICT — pairing 0 nonzero of 986 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      32.7     11.4    0.588   735/986    0.003    0.018   -0.002       0.0       0.0   0.05      -4.1  fails
+
+=== USDCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -205.5   -110.1    1.000   849/920   -0.033   -0.031   -0.053       0.0       0.0   0.06      -5.4  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -226.9   -101.5    1.000   888/920   -0.029   -0.026   -0.048       6.1       0.0   0.05      -5.4  fails
+runnerProtection=hold,stopStructureSource=intraday    -191.5   -114.9    1.000   849/920   -0.035   -0.032   -0.058       0.0       0.0   0.06      -5.4  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -210.9   -112.1    1.000   888/920   -0.032   -0.029   -0.055       7.4       0.0   0.05      -5.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/920    0.000    0.003   -0.019       0.0       0.0   0.06      -5.4  NO VERDICT — pairing 0 nonzero of 920 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -3.9     22.8    0.418   692/920    0.006    0.009   -0.012       4.5       0.0   0.05      -5.4  fails
+
+=== USDCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -170.1   -145.8    1.000   833/884   -0.044   -0.053   -0.075       0.0       0.0   0.08      -5.3  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -220.4   -171.9    1.000   866/884   -0.050   -0.059   -0.081      -0.4       0.0   0.04      -5.4  fails
+runnerProtection=hold,stopStructureSource=intraday    -228.7   -142.1    1.000   833/884   -0.043   -0.052   -0.077       0.0       0.0   0.08      -5.3  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -287.3   -161.4    1.000   866/884   -0.047   -0.056   -0.082      -0.1       0.0   0.04      -5.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/884    0.000   -0.009   -0.030       0.0       0.0   0.08      -5.3  NO VERDICT — pairing 0 nonzero of 884 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -23.7    -15.6    0.988   763/884   -0.004   -0.013   -0.035       1.3       0.0   0.04      -5.4  fails
+
+=== NZDUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -217.1   -142.3    1.000   910/970   -0.037   -0.023   -0.043       0.0       0.0   0.07      -5.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -269.1   -109.9    1.000   942/970   -0.029   -0.014   -0.035      -0.2       0.0   0.05      -5.2  fails
+runnerProtection=hold,stopStructureSource=intraday    -244.0   -122.7    1.000   910/970   -0.032   -0.017   -0.041       0.0       0.0   0.07      -5.2  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -290.5    -92.0    1.000   942/970   -0.024   -0.009   -0.034      -0.2       0.0   0.05      -5.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/970    0.000    0.015   -0.005       0.0       0.0   0.07      -5.2  NO VERDICT — pairing 0 nonzero of 970 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -40.9     57.8    0.010   798/970    0.015    0.029    0.010      -0.2       0.0   0.05      -5.2  fails
+
+=== NZDJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -238.9   -135.6    1.000   867/931   -0.037   -0.008   -0.030       0.0       0.0   0.07      -5.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -275.4   -125.6    1.000   903/931   -0.035   -0.006   -0.027       0.4       0.0   0.05      -5.2  fails
+runnerProtection=hold,stopStructureSource=intraday    -210.7   -121.3    1.000   868/931   -0.033   -0.005   -0.030       0.0       0.0   0.07      -7.2  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -244.0    -93.4    1.000   903/931   -0.026    0.003   -0.023       1.2       0.0   0.05      -8.1  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/931    0.000    0.029    0.009       0.0       0.0   0.07      -5.2  NO VERDICT — pairing 0 nonzero of 931 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -22.8     30.6    0.138   724/931    0.008    0.037    0.016       0.1       0.0   0.05      -5.2  fails
+
+=== NZDCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -271.8   -219.4    1.000   876/921   -0.062    0.019   -0.001       0.0       0.0   0.06      -5.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -320.0   -181.7    1.000   899/921   -0.052    0.029    0.009      -0.3       0.0   0.04      -5.2  fails
+runnerProtection=hold,stopStructureSource=intraday    -213.6   -174.0    1.000   876/921   -0.049    0.032    0.008       0.0       0.0   0.06      -5.1  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -273.0   -143.6    1.000   899/921   -0.042    0.039    0.015       0.1       0.0   0.04      -5.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/921    0.000    0.081    0.062       0.0       0.0   0.06      -5.1  NO VERDICT — pairing 0 nonzero of 921 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -11.8     63.2    0.001   705/921    0.015    0.095    0.077      -0.5       0.0   0.04      -5.2  fails
+
+=== NZDCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -320.9   -190.7    1.000   903/947   -0.052   -0.001   -0.021       0.0       0.0   0.07      -4.3  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -306.0   -180.6    1.000   933/947   -0.049    0.002   -0.018      -1.5       0.0   0.04      -4.3  fails
+runnerProtection=hold,stopStructureSource=intraday    -288.0   -110.3    1.000   903/947   -0.030    0.021   -0.003       0.0       0.0   0.07      -4.9  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -272.4    -92.3    1.000   933/947   -0.026    0.025    0.001      -2.6       0.0   0.04      -4.9  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/947    0.000    0.051    0.032       0.0       0.0   0.07      -3.8  NO VERDICT — pairing 0 nonzero of 947 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      27.8     23.6    0.316   828/947    0.005    0.056    0.037      -0.9       0.0   0.04      -4.2  fails
+
+=== GBPNZD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -308.6   -188.4    1.000   881/928   -0.052   -0.007   -0.027       0.0       0.0   0.06      -4.6  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -341.7   -160.8    1.000   916/928   -0.045    0.001   -0.019      -0.9       0.0   0.03      -5.0  fails
+runnerProtection=hold,stopStructureSource=intraday    -245.3   -211.4    1.000   881/928   -0.059   -0.013   -0.037       0.0       0.0   0.06      -4.9  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -240.0   -182.0    1.000   916/928   -0.050   -0.005   -0.030      -1.4       0.0   0.03      -5.5  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/928    0.000    0.046    0.026       0.0       0.0   0.06      -4.8  NO VERDICT — pairing 0 nonzero of 928 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -17.6     53.2    0.015   831/928    0.014    0.059    0.039      -0.7       0.0   0.03      -4.9  fails
+
+=== GBPJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -225.2   -106.8    1.000   859/902   -0.030   -0.001   -0.022       0.0       0.0   0.08      -4.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -241.3   -134.1    1.000   888/902   -0.037   -0.008   -0.030       0.1       0.0   0.04      -4.5  fails
+runnerProtection=hold,stopStructureSource=intraday    -262.2   -110.6    1.000   859/902   -0.031   -0.002   -0.027       0.0       0.0   0.08      -4.5  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -272.8   -145.4    1.000   888/902   -0.041   -0.011   -0.037       0.4       0.0   0.04      -4.8  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/902    0.000    0.029    0.009       0.0       0.0   0.08      -4.2  NO VERDICT — pairing 0 nonzero of 902 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -2.8     -9.9    0.937   745/902   -0.003    0.026    0.005      -0.1       0.0   0.04      -4.3  fails
+
+=== GBPCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -288.2   -141.6    1.000   869/920   -0.040   -0.008   -0.029       0.0       0.0   0.08      -5.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -291.9   -162.2    1.000   890/920   -0.045   -0.014   -0.035       0.0       0.0   0.06      -5.1  fails
+runnerProtection=hold,stopStructureSource=intraday    -184.3    -89.1    1.000   869/920   -0.025    0.006   -0.018       0.0       0.0   0.08      -5.6  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -191.2   -111.2    1.000   890/920   -0.031    0.000   -0.025       0.0       0.0   0.06      -5.6  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/920    0.000    0.031    0.011       0.0       0.0   0.08      -4.9  NO VERDICT — pairing 0 nonzero of 920 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       8.3     -6.3    0.924   652/920   -0.002    0.029    0.009       0.0       0.0   0.06      -4.9  fails
+
+=== GBPCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -289.6   -171.4    1.000   833/883   -0.050   -0.028   -0.050       0.0       0.0   0.08      -4.0  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -317.7   -172.4    1.000   867/883   -0.050   -0.028   -0.049      -0.2       0.0   0.04      -4.0  fails
+runnerProtection=hold,stopStructureSource=intraday    -212.0   -132.0    1.000   833/883   -0.039   -0.017   -0.042       0.0       0.0   0.08      -3.8  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -229.7   -145.5    1.000   867/883   -0.042   -0.020   -0.046      -1.1       0.0   0.04      -4.0  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/883    0.000    0.022    0.001       0.0       0.0   0.08      -3.8  NO VERDICT — pairing 0 nonzero of 883 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -0.7     24.5    0.248   757/883    0.007    0.028    0.007       0.7       0.0   0.04      -3.8  fails
+
+=== GBPAUD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -236.0   -129.3    1.000   831/888   -0.037   -0.042   -0.064       0.0       0.0   0.07      -4.9  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -214.5   -140.0    1.000   867/888   -0.039   -0.044   -0.066      -0.0       0.0   0.04      -4.9  fails
+runnerProtection=hold,stopStructureSource=intraday    -158.9   -123.4    1.000   831/888   -0.035   -0.040   -0.065       0.0       0.0   0.07      -4.9  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -140.6   -121.1    1.000   867/888   -0.034   -0.039   -0.065      -0.0       0.0   0.04      -4.9  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/888    0.000   -0.005   -0.026       0.0       0.0   0.07      -4.9  NO VERDICT — pairing 0 nonzero of 888 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      39.9      7.7    0.697   757/888    0.002   -0.003   -0.024      -0.0       0.0   0.04      -4.9  fails
+
+=== EURNZD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -302.7   -195.5    1.000   900/949   -0.054   -0.002   -0.022       0.0       0.0   0.06      -5.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -324.3   -214.0    1.000   938/949   -0.059   -0.007   -0.027      -0.3       0.0   0.03      -5.1  fails
+runnerProtection=hold,stopStructureSource=intraday    -245.6   -145.2    1.000   900/949   -0.040    0.012   -0.012       0.0       0.0   0.06      -5.2  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -262.1   -164.7    1.000   938/949   -0.046    0.007   -0.018      -0.8       0.0   0.03      -5.1  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/949    0.000    0.053    0.033       0.0       0.0   0.06      -5.2  NO VERDICT — pairing 0 nonzero of 949 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -22.3      9.6    0.653   835/949    0.001    0.054    0.034       0.1       0.0   0.03      -5.1  fails
+
+=== EURJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -173.4   -133.4    1.000   879/936   -0.037   -0.037   -0.058       0.0       0.0   0.07      -5.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -179.7   -116.6    1.000   910/936   -0.031   -0.032   -0.053      -0.4       0.0   0.04      -5.1  fails
+runnerProtection=hold,stopStructureSource=intraday    -174.9   -120.9    1.000   879/936   -0.033   -0.034   -0.058       0.0       0.0   0.07      -5.6  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -183.9   -100.9    1.000   910/936   -0.027   -0.028   -0.053      -0.4       0.0   0.04      -5.6  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/936    0.000   -0.001   -0.021       0.0       0.0   0.07      -4.9  NO VERDICT — pairing 0 nonzero of 936 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      11.5     36.9    0.068   767/936    0.010    0.009   -0.011      -0.4       0.0   0.04      -4.9  fails
+
+=== EURGBP ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -249.6   -142.3    1.000   806/860   -0.043   -0.007   -0.029       0.0       0.0   0.09      -4.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -269.0   -130.1    1.000   840/860   -0.040   -0.003   -0.025       0.1       0.0   0.05      -5.2  fails
+runnerProtection=hold,stopStructureSource=intraday    -198.3   -109.4    1.000   806/860   -0.033    0.003   -0.022       0.0       0.0   0.09      -4.2  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -222.8    -99.1    1.000   840/860   -0.030    0.006   -0.020      -0.2       0.0   0.05      -5.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/860    0.000    0.036    0.015       0.0       0.0   0.09      -4.2  NO VERDICT — pairing 0 nonzero of 860 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       2.2     22.1    0.340   742/860    0.006    0.042    0.021       0.3       0.0   0.05      -5.2  fails
+
+=== EURCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -373.8   -201.4    1.000   789/834   -0.062   -0.047   -0.068       0.0       0.0   0.07      -4.4  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -390.9   -229.5    1.000   808/834   -0.070   -0.054   -0.076       1.5       0.0   0.06      -4.3  fails
+runnerProtection=hold,stopStructureSource=intraday    -386.0   -191.3    1.000   790/834   -0.059   -0.043   -0.069       0.0       0.0   0.07      -4.6  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -411.7   -207.6    1.000   809/834   -0.063   -0.048   -0.074       0.6       0.0   0.06      -4.7  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/834    0.000    0.016   -0.005       0.0       0.0   0.07      -4.3  NO VERDICT — pairing 0 nonzero of 834 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -2.3    -19.4    1.000   539/834   -0.006    0.009   -0.012       2.1       0.0   0.06      -4.3  fails
+
+=== EURCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -250.4   -156.5    1.000   914/968   -0.042    0.006   -0.013       0.0       0.0   0.08      -5.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -286.8   -196.1    1.000   949/968   -0.053   -0.004   -0.024       2.1       0.0   0.05      -4.2  fails
+runnerProtection=hold,stopStructureSource=intraday    -194.9   -114.9    1.000   914/968   -0.031    0.018   -0.006       0.0       0.0   0.08      -4.8  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -222.6   -149.9    1.000   949/968   -0.040    0.008   -0.016       2.4       0.0   0.05      -4.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/968    0.000    0.048    0.030       0.0       0.0   0.08      -4.9  NO VERDICT — pairing 0 nonzero of 968 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -11.2     -6.0    0.932   839/968   -0.003    0.046    0.027       1.5       0.0   0.05      -4.2  fails
+
+=== EURAUD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -198.8   -149.0    1.000   898/953   -0.040   -0.019   -0.040       0.0       0.0   0.06      -5.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -219.6   -130.3    1.000   923/953   -0.035   -0.014   -0.035       1.2       0.0   0.04      -5.1  fails
+runnerProtection=hold,stopStructureSource=intraday    -112.6   -110.0    1.000   898/953   -0.029   -0.009   -0.033       0.0       0.0   0.06      -4.6  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -111.5    -92.0    1.000   923/953   -0.025   -0.004   -0.029       1.6       0.0   0.04      -4.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/953    0.000    0.020    0.001       0.0       0.0   0.06      -4.9  NO VERDICT — pairing 0 nonzero of 953 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       3.5     38.6    0.089   754/953    0.010    0.030    0.011       1.4       0.0   0.04      -4.9  fails
+
+=== CHFJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -215.3   -205.8    1.000   893/935   -0.055   -0.040   -0.061       0.0       0.0   0.06      -5.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -243.9   -211.0    1.000   910/934   -0.056   -0.041   -0.062      -0.0       2.6   0.05      -4.1  fails
+runnerProtection=hold,stopStructureSource=intraday    -150.2   -143.3    1.000   893/935   -0.039   -0.023   -0.048       0.0       0.0   0.06      -5.2  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -173.0   -155.2    1.000   910/934   -0.042   -0.026   -0.051      -0.0       2.6   0.05      -4.5  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/935    0.000    0.015   -0.005       0.0       0.0   0.06      -5.2  NO VERDICT — pairing 0 nonzero of 935 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -17.6     -1.1    0.759   658/934   -0.000    0.015   -0.005      -0.7       2.6   0.05      -3.9  fails
+
+=== CADJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -193.4   -117.0    1.000   895/963   -0.031   -0.045   -0.067       0.0       0.0   0.08      -4.0  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -199.7   -139.0    1.000   937/963   -0.036   -0.050   -0.072       0.0       0.0   0.04      -4.9  fails
+runnerProtection=hold,stopStructureSource=intraday    -162.4    -79.2    1.000   894/963   -0.021   -0.035   -0.060       0.0       0.0   0.08      -4.5  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -165.6    -76.7    1.000   937/963   -0.020   -0.034   -0.059       0.0       0.0   0.04      -4.7  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/963    0.000   -0.014   -0.035       0.0       0.0   0.08      -3.8  NO VERDICT — pairing 0 nonzero of 963 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -0.4     -5.0    0.896   836/963   -0.001   -0.015   -0.036       0.0       0.0   0.04      -4.7  fails
+
+=== CADCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -280.8   -196.2    1.000   876/926   -0.055    0.009   -0.011       0.0       0.0   0.07      -4.0  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -309.5   -194.9    1.000   904/926   -0.055    0.009   -0.011       0.2       0.0   0.04      -5.4  fails
+runnerProtection=hold,stopStructureSource=intraday    -205.4    -99.1    1.000   876/926   -0.028    0.036    0.012       0.0       0.0   0.07      -4.5  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -233.8    -64.9    1.000   904/926   -0.019    0.045    0.020       0.3       0.0   0.04      -5.9  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/926    0.000    0.064    0.045       0.0       0.0   0.07      -4.4  NO VERDICT — pairing 0 nonzero of 926 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -10.7     25.3    0.224   761/926    0.005    0.070    0.050       0.4       0.0   0.04      -5.2  fails
+
+=== AUDNZD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -409.7   -254.7    1.000   899/934   -0.072    0.005   -0.015       0.0       0.0   0.06      -4.8  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -444.5   -263.5    1.000   921/934   -0.074    0.002   -0.017       3.1       0.0   0.03      -5.2  fails
+runnerProtection=hold,stopStructureSource=intraday    -237.5   -189.8    1.000   899/934   -0.053    0.023   -0.001       0.0       0.0   0.06      -4.8  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -264.7   -182.3    1.000   921/934   -0.053    0.024   -0.000       7.3       0.0   0.03      -5.7  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/934    0.000    0.076    0.057       0.0       0.0   0.06      -4.9  NO VERDICT — pairing 0 nonzero of 934 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -8.2     24.3    0.442   810/934    0.002    0.079    0.060       5.7       0.0   0.03      -5.0  fails
+
+=== AUDJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -189.8   -128.8    1.000   926/979   -0.034   -0.033   -0.054       0.0       0.0   0.08      -3.9  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -217.4   -150.8    1.000   958/979   -0.039   -0.038   -0.060      -0.8       0.0   0.05      -5.1  fails
+runnerProtection=hold,stopStructureSource=intraday    -174.4   -129.0    1.000   926/979   -0.034   -0.033   -0.058       0.0       0.0   0.08      -4.8  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -197.0   -153.5    1.000   958/979   -0.040   -0.039   -0.064      -0.5       0.0   0.05      -5.1  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/979    0.000    0.001   -0.020       0.0       0.0   0.08      -3.8  NO VERDICT — pairing 0 nonzero of 979 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -13.4    -11.7    0.945   761/979   -0.003   -0.002   -0.023      -0.6       0.0   0.05      -5.1  fails
+
+=== AUDCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -247.6   -228.9    1.000  950/1006   -0.060    0.017   -0.002       0.0       0.0   0.06      -5.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -292.9   -198.3    1.000  981/1004   -0.053    0.025    0.006       0.2       0.8   0.04      -5.1  fails
+runnerProtection=hold,stopStructureSource=intraday    -132.2    -91.1    1.000  950/1006   -0.024    0.054    0.030       0.0       0.0   0.06      -5.0  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -177.9    -53.2    1.000  981/1004   -0.016    0.062    0.038      -0.3       0.8   0.04      -5.5  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000    0/1006    0.000    0.078    0.059       0.0       0.0   0.06      -4.9  NO VERDICT — pairing 0 nonzero of 1006 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -38.1     54.0    0.001  659/1004    0.012    0.089    0.071       0.4       0.8   0.04      -4.9  fails
+
+=== AUDCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -351.6   -177.4    1.000   898/948   -0.049    0.006   -0.014       0.0       0.0   0.06      -4.5  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -335.7   -183.7    1.000   930/948   -0.050    0.004   -0.016      -1.4       0.0   0.03      -5.1  fails
+runnerProtection=hold,stopStructureSource=intraday    -321.0    -49.2    1.000   898/948   -0.013    0.041    0.017       0.0       0.0   0.06      -4.6  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -318.7    -63.4    1.000   930/948   -0.018    0.036    0.011      -1.4       0.0   0.03      -4.6  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/948    0.000    0.054    0.035       0.0       0.0   0.06      -4.5  NO VERDICT — pairing 0 nonzero of 948 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      47.9     17.7    0.397   793/948    0.004    0.058    0.038      -1.7       0.0   0.03      -4.9  fails
+
+=== XAUUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -96.2    -27.7    1.000   654/724   -0.011   -0.058   -0.086       0.0       0.0   0.10      -3.9  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -134.6    -39.2    1.000   680/723   -0.014   -0.062   -0.089       0.8       0.4   0.09      -3.9  fails
+runnerProtection=hold,stopStructureSource=intraday    -163.4    -23.1    0.992   655/724   -0.009   -0.056   -0.087       0.0       0.0   0.10      -4.4  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -183.0    -41.7    1.000   681/723   -0.015   -0.062   -0.093       0.5       0.4   0.09      -4.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/724    0.000   -0.047   -0.073       0.0       0.0   0.10      -4.3  NO VERDICT — pairing 0 nonzero of 724 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -28.2     -1.8    0.869   457/723    0.000   -0.047   -0.073       0.8       0.4   0.09      -4.3  fails
+
+=== BZUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday      -9.5     -9.3    1.000   101/146   -0.026    0.004   -0.082       0.0       0.0   0.16      -3.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily      -8.3    -10.8    0.997   134/146   -0.030    0.000   -0.085      -0.5       0.0   0.12      -4.0  fails
+runnerProtection=hold,stopStructureSource=intraday       0.8     -1.1    0.865   105/146   -0.003    0.027   -0.066       0.0       0.0   0.16      -3.3  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.8     -2.0    0.865   134/146   -0.007    0.023   -0.069      -0.4       0.0   0.12      -4.0  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/146    0.000    0.030   -0.055       0.0       0.0   0.16      -3.2  NO VERDICT — pairing 0 nonzero of 146 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -0.1      1.5    0.738   110/146    0.002    0.032   -0.052       0.2       0.0   0.12      -4.0  fails
+
+=== CLUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -14.2     -0.3    0.838   116/144   -0.001    0.035   -0.053       0.0       0.0   0.15      -4.4  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -15.5    -12.0    0.966   136/144   -0.035    0.001   -0.081      -5.3       0.0   0.15      -5.0  fails
+runnerProtection=hold,stopStructureSource=intraday     -18.6      3.3    0.649   116/144    0.009    0.045   -0.048       0.0       0.0   0.15      -4.4  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -13.2    -10.3    0.910   136/144   -0.031    0.005   -0.081      -6.3       0.0   0.15      -5.0  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/144    0.000    0.036   -0.047       0.0       0.0   0.15      -4.2  NO VERDICT — pairing 0 nonzero of 144 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.1     -3.0    0.767   106/144   -0.012    0.024   -0.055      -4.4       0.0   0.15      -4.8  fails
+
+=== ESUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday      -9.8     -2.3    0.911   113/142   -0.006   -0.015   -0.080       0.0       0.0   0.18      -3.5  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -12.9     -5.5    0.972   118/142   -0.014   -0.023   -0.088       0.0       0.0   0.19      -3.5  fails
+runnerProtection=hold,stopStructureSource=intraday     -10.9      1.0    0.765   113/142    0.002   -0.007   -0.078       0.0       0.0   0.18      -3.5  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -12.5     -2.0    0.880   118/142   -0.005   -0.014   -0.086       0.0       0.0   0.19      -3.5  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/142    0.000   -0.009   -0.071       0.0       0.0   0.18      -3.5  NO VERDICT — pairing 0 nonzero of 142 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -2.3     -3.2    0.998    26/142   -0.008   -0.017   -0.079       0.0       0.0   0.19      -3.5  fails
+
+=== GCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.4      0.4    0.768   166/187    0.001    0.026   -0.031       0.0       0.0   0.13      -3.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       9.6     -4.3    0.955   170/187   -0.008    0.018   -0.040       0.0       0.0   0.13      -3.2  fails
+runnerProtection=hold,stopStructureSource=intraday      13.3      3.3    0.703   166/187    0.006    0.032   -0.031       0.0       0.0   0.13      -3.2  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily      25.6      2.1    0.732   170/187    0.004    0.030   -0.033       0.0       0.0   0.13      -3.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/187    0.000    0.026   -0.028       0.0       0.0   0.13      -3.2  NO VERDICT — pairing 0 nonzero of 187 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      11.5     -4.4    1.000    23/187   -0.008    0.018   -0.036       0.0       0.0   0.13      -3.2  fails
+
+=== HGUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -10.2    -12.1    1.000   141/155   -0.027   -0.039   -0.103       0.0       0.0   0.10      -4.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -26.5    -13.1    1.000   148/155   -0.028   -0.041   -0.109       0.2       0.0   0.08      -6.3  fails
+runnerProtection=hold,stopStructureSource=intraday     -12.5     -5.6    0.965   141/155   -0.012   -0.025   -0.095       0.0       0.0   0.10      -4.1  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -29.9     -5.2    0.940   148/155   -0.011   -0.023   -0.099      -0.3       0.0   0.08      -6.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/155    0.000   -0.012   -0.074       0.0       0.0   0.10      -4.1  NO VERDICT — pairing 0 nonzero of 155 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -27.8      0.6    0.822    78/155    0.001   -0.011   -0.078       0.4       0.0   0.08      -6.3  fails
+
+=== NGUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday      -3.8    -14.3    1.000   150/181   -0.029   -0.128   -0.191       0.0       0.0   0.20      -7.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       2.0     -5.0    0.912   174/181   -0.008   -0.106   -0.207       0.0       0.0   0.12     -13.5  fails
+runnerProtection=hold,stopStructureSource=intraday     -19.8    -21.2    1.000   150/181   -0.043   -0.142   -0.211       0.0       0.0   0.20      -6.7  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -10.3    -11.8    0.968   174/181   -0.021   -0.120   -0.224       0.0       0.0   0.12     -13.1  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/181    0.000   -0.099   -0.162       0.0       0.0   0.20      -6.7  NO VERDICT — pairing 0 nonzero of 181 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       3.3      8.2    0.680   158/181    0.019   -0.080   -0.180       0.0       0.0   0.12     -13.1  fails
+
+=== NQUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -11.6      2.8    0.695   134/148    0.007    0.022   -0.043       0.0       0.0   0.18      -3.0  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -11.0     -3.0    0.884   135/148   -0.007    0.008   -0.055      -0.5       0.0   0.18      -3.0  fails
+runnerProtection=hold,stopStructureSource=intraday     -21.6    -12.9    1.000   134/148   -0.031   -0.015   -0.085       0.0       0.0   0.18      -3.0  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -18.0    -18.2    1.000   135/148   -0.043   -0.028   -0.095      -0.5       0.0   0.18      -3.0  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/148    0.000    0.015   -0.045       0.0       0.0   0.18      -3.0  NO VERDICT — pairing 0 nonzero of 148 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       2.6     -5.7    0.996    20/148   -0.014    0.002   -0.056      -0.6       0.0   0.18      -3.0  fails
+
+=== RTYUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday      -9.1      2.5    0.632   128/152    0.006   -0.008   -0.077       0.0       0.0   0.15      -3.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily      -3.8      4.7    0.481   137/152    0.012   -0.003   -0.071       0.1       0.0   0.15      -3.1  fails
+runnerProtection=hold,stopStructureSource=intraday     -22.7      9.5    0.297   128/152    0.024    0.009   -0.067       0.0       0.0   0.15      -3.1  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -17.5     15.5    0.086   137/152    0.038    0.024   -0.052      -0.4       0.0   0.15      -3.1  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/152    0.000   -0.014   -0.078       0.0       0.0   0.15      -3.1  NO VERDICT — pairing 0 nonzero of 152 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       5.0      3.6    0.378    66/152    0.009   -0.005   -0.068       0.3       0.0   0.15      -3.1  fails
+
+=== SIUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -19.6     -8.5    0.999   156/169   -0.017    0.031   -0.029       0.0       0.0   0.10      -3.0  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -19.4     -9.8    0.999   160/169   -0.020    0.028   -0.031       0.0       0.0   0.09      -3.0  fails
+runnerProtection=hold,stopStructureSource=intraday     -29.8    -10.3    0.993   157/169   -0.021    0.027   -0.039       0.0       0.0   0.10      -3.3  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -32.5     -5.0    0.942   161/169   -0.010    0.038   -0.029       0.0       0.0   0.09      -3.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/169    0.000    0.048   -0.008       0.0       0.0   0.10      -3.0  NO VERDICT — pairing 0 nonzero of 169 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -2.9      1.4    0.719    64/169    0.003    0.051   -0.005       0.0       0.0   0.09      -3.0  fails
+
+=== YMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -14.5      0.3    0.776   121/136    0.001   -0.017   -0.086       0.0       0.0   0.18      -2.5  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -14.7     -0.9    0.864   123/136   -0.002   -0.021   -0.088       0.0       0.0   0.17      -2.7  fails
+runnerProtection=hold,stopStructureSource=intraday     -21.0      3.0    0.635   121/136    0.008   -0.010   -0.085       0.0       0.0   0.18      -2.5  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -19.1      1.0    0.758   123/136    0.003   -0.015   -0.090       0.0       0.0   0.17      -2.8  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/136    0.000   -0.018   -0.081       0.0       0.0   0.18      -2.3  NO VERDICT — pairing 0 nonzero of 136 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -0.4      1.3    0.618    33/136    0.004   -0.015   -0.078       0.0       0.0   0.17      -2.3  fails
+
+=== ZBUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -12.8     -0.2    0.857   110/160   -0.000   -0.197   -0.264       0.0       0.0   0.22      -3.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -17.7    -11.1    0.999   136/159   -0.035   -0.231   -0.302      -0.8      -0.7   0.18      -3.3  fails
+runnerProtection=hold,stopStructureSource=intraday      -3.2    -16.9    1.000   110/160   -0.043   -0.239   -0.308       0.0       0.0   0.22      -3.1  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily      -6.7    -27.5    1.000   136/159   -0.077   -0.274   -0.348      -1.3      -0.7   0.18      -3.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/160    0.000   -0.196   -0.261       0.0       0.0   0.22      -3.2  NO VERDICT — pairing 0 nonzero of 160 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.7     -8.9    0.999   111/159   -0.029   -0.225   -0.294      -0.6      -0.7   0.18      -3.3  fails
+
+=== ZNUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday      -1.2     -6.9    1.000   106/155   -0.018   -0.201   -0.266       0.0       0.0   0.24      -3.5  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -12.5    -12.6    1.000   135/155   -0.034   -0.217   -0.284      -0.0       0.0   0.19      -3.5  fails
+runnerProtection=hold,stopStructureSource=intraday      -7.4     -8.1    0.996   106/155   -0.021   -0.204   -0.275       0.0       0.0   0.24      -3.5  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -12.1     -9.5    0.995   135/155   -0.025   -0.209   -0.282       0.3       0.0   0.19      -3.5  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/155    0.000   -0.183   -0.247       0.0       0.0   0.24      -3.5  NO VERDICT — pairing 0 nonzero of 155 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -10.6     -7.4    0.997    92/155   -0.020   -0.203   -0.268      -0.7       0.0   0.19      -3.5  fails
+
+=== SP ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       1.1      0.4    0.712    25/146    0.003   -0.060   -0.155       0.0       0.0   0.40      -1.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       2.3      1.1    0.508    43/146    0.009   -0.055   -0.150      -0.2       0.0   0.37      -1.1  fails
+runnerProtection=hold,stopStructureSource=intraday       0.0      0.0    1.000     0/146    0.000   -0.063   -0.160       0.0       0.0   0.40      -1.1  NO VERDICT — pairing 0 nonzero of 146 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday_and_daily       1.4      0.5    0.487    21/146    0.005   -0.059   -0.156      -0.2       0.0   0.37      -1.1  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       3.8      3.5    0.154    51/146    0.024   -0.039   -0.134       0.0       0.0   0.40      -1.1  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       4.2      3.4    0.088    66/146    0.024   -0.039   -0.134      -1.0       0.0   0.37      -1.1  fails
+
+=== NSDQ ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday      -1.7     -2.0    1.000    36/148   -0.014   -0.098   -0.187       0.0       0.0   0.50      -1.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily      -4.4     -2.6    1.000    54/148   -0.017   -0.102   -0.192       0.0       0.0   0.49      -1.1  fails
+runnerProtection=hold,stopStructureSource=intraday      -2.2     -1.1    0.982    36/148   -0.008   -0.092   -0.183       0.0       0.0   0.50      -1.1  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily      -4.0     -1.7    0.994    54/148   -0.011   -0.096   -0.187       0.0       0.0   0.49      -1.1  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/148    0.000   -0.085   -0.174       0.0       0.0   0.50      -1.1  NO VERDICT — pairing 0 nonzero of 148 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -1.9     -0.9    0.997    22/148   -0.006   -0.091   -0.181       0.0       0.0   0.49      -1.1  fails
+
+=== NIKKEI ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000      0/93    0.000   -0.168   -0.310       0.0       0.0   0.07      -2.0  NO VERDICT — pairing 0 nonzero of 93 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000      0/93    0.000   -0.168   -0.310       0.0       0.0   0.07      -2.0  NO VERDICT — pairing 0 nonzero of 93 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday       0.0     -4.3    0.995     40/93   -0.040   -0.208   -0.362       0.0       0.0   0.07      -2.0  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0     -4.3    0.995     40/93   -0.040   -0.208   -0.362       0.0       0.0   0.07      -2.0  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      6.0    0.004     46/93    0.056   -0.112   -0.257       0.0       0.0   0.07      -2.0  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0      6.0    0.004     46/93    0.056   -0.112   -0.257       0.0       0.0   0.07      -2.0  fails
+
+=== DOW ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000      0/43    0.000   -0.122   -0.358       0.0       0.0   0.02      -1.2  NO VERDICT — pairing 0 nonzero of 43 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000      0/43    0.000   -0.122   -0.358       0.0       0.0   0.02      -1.2  NO VERDICT — pairing 0 nonzero of 43 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday       0.0      1.4    0.469     17/43    0.032   -0.090   -0.347       0.0       0.0   0.02      -1.2  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0      1.4    0.469     17/43    0.032   -0.090   -0.347       0.0       0.0   0.02      -1.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      1.3    0.368     23/43    0.031   -0.091   -0.324       0.0       0.0   0.02      -1.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0      1.3    0.368     23/43    0.031   -0.091   -0.324       0.0       0.0   0.02      -1.2  fails
+
+=== DAX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0     -7.6    1.000   122/200   -0.035   -0.064   -0.153       0.0       0.0   0.10      -1.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0     -7.1    1.000   128/197   -0.034   -0.063   -0.154       0.0       0.4   0.10      -1.1  fails
+runnerProtection=hold,stopStructureSource=intraday       0.0    -14.8    1.000   122/200   -0.069   -0.097   -0.195       0.0       0.0   0.10      -1.4  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0    -13.5    1.000   128/197   -0.064   -0.093   -0.192       0.0       0.4   0.10      -1.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/200    0.000   -0.029   -0.116       0.0       0.0   0.10      -1.1  NO VERDICT — pairing 0 nonzero of 200 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0     -1.7    0.964    24/197   -0.009   -0.037   -0.126       0.0       0.4   0.10      -1.1  fails
+
+=== ASX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000      0/93    0.000   -0.556   -0.715       0.0       0.0   0.03      -2.6  NO VERDICT — pairing 0 nonzero of 93 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000      0/93    0.000   -0.556   -0.715       0.0       0.0   0.03      -2.6  NO VERDICT — pairing 0 nonzero of 93 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday       0.0     -4.8    1.000     35/93   -0.047   -0.603   -0.766       0.0       0.0   0.03      -2.6  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0     -4.8    1.000     35/93   -0.047   -0.603   -0.766       0.0       0.0   0.03      -2.6  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      3.3    0.111     41/93    0.033   -0.523   -0.682       0.0       0.0   0.03      -2.6  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0      3.3    0.111     41/93    0.033   -0.523   -0.682       0.0       0.0   0.03      -2.6  fails
+
+=== WTI ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -17.0     -4.6    0.991    87/137   -0.015   -0.217   -0.316       0.0       0.0   0.22      -3.7  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -48.3    -21.6    1.000   126/137   -0.018   -0.220   -0.311       2.9       0.0   0.22      -3.7  fails
+runnerProtection=hold,stopStructureSource=intraday     -15.5     -4.7    0.979    87/137   -0.016   -0.218   -0.319       0.0       0.0   0.22      -4.2  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -41.4    -22.0    1.000   126/137   -0.020   -0.221   -0.315       4.7       0.0   0.22      -3.8  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/137    0.000   -0.202   -0.298       0.0       0.0   0.22      -3.8  NO VERDICT — pairing 0 nonzero of 137 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -22.6    -19.5    1.000    98/137   -0.013   -0.215   -0.302       1.9       0.0   0.22      -3.8  fails
+
+=== XRPUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -192.5    -80.3    1.000  932/1012   -0.026   -0.062   -0.089       0.0       0.0   0.04     -19.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -191.1    -85.5    1.000  976/1012   -0.026   -0.062   -0.089       1.6       0.0   0.03     -19.2  fails
+runnerProtection=hold,stopStructureSource=intraday     -69.4    -87.2    1.000  932/1012   -0.028   -0.064   -0.097       0.0       0.0   0.04     -19.2  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -57.0    -98.9    1.000  976/1012   -0.031   -0.066   -0.099       2.6       0.0   0.03     -19.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000    0/1012    0.000   -0.035   -0.058       0.0       0.0   0.04      -4.1  NO VERDICT — pairing 0 nonzero of 1012 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      14.4     -4.5    0.915  592/1012   -0.001   -0.036   -0.059       1.5       0.0   0.03      -4.1  fails
+
+=== SOLUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.6    0.828   677/756    0.000   -0.053   -0.084       0.0       0.0   0.04      -4.3  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0     -2.3    0.876   695/755   -0.001   -0.054   -0.085       0.0       0.4   0.03      -4.3  fails
+runnerProtection=hold,stopStructureSource=intraday       0.0      9.9    0.675   679/756    0.005   -0.049   -0.084       0.0       0.0   0.04      -4.4  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0      0.2    0.834   697/755    0.001   -0.053   -0.088       0.0       0.4   0.03      -4.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/756    0.000   -0.053   -0.082       0.0       0.0   0.04      -4.3  NO VERDICT — pairing 0 nonzero of 756 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0     -5.4    0.967   213/755   -0.002   -0.055   -0.084       0.0       0.4   0.03      -4.3  fails
+
+=== LTCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -227.9    -53.9    1.000   722/907   -0.020   -0.241   -0.269       0.0       0.0   0.06      -4.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -241.5    -52.0    1.000   823/892   -0.021   -0.242   -0.270       1.1      -7.2   0.04      -4.2  fails
+runnerProtection=hold,stopStructureSource=intraday    -116.2    -61.9    1.000   722/907   -0.023   -0.244   -0.274       0.0       0.0   0.06      -4.7  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -119.8    -47.3    0.999   823/892   -0.019   -0.240   -0.271       0.6      -7.2   0.04      -4.5  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/907    0.000   -0.221   -0.248       0.0       0.0   0.06      -4.2  NO VERDICT — pairing 0 nonzero of 907 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -4.9      2.4    0.936   605/892   -0.000   -0.221   -0.249       1.5      -7.2   0.04      -4.2  fails
+
+=== ETHUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -223.3    -63.8    1.000  949/1017   -0.019   -0.058   -0.081       0.0       0.0   0.05      -5.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -213.8    -51.8    1.000  971/1017   -0.015   -0.054   -0.077       1.8       0.0   0.04      -5.2  fails
+runnerProtection=hold,stopStructureSource=intraday     -71.1    -70.1    1.000  949/1017   -0.021   -0.060   -0.087       0.0       0.0   0.05      -5.2  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -58.3    -48.3    0.999  971/1017   -0.014   -0.053   -0.080       2.6       0.0   0.04      -5.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000    0/1017    0.000   -0.039   -0.060       0.0       0.0   0.05      -5.2  NO VERDICT — pairing 0 nonzero of 1017 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      10.3      9.9    0.430  424/1017    0.003   -0.035   -0.057       1.1       0.0   0.04      -5.2  fails
+
+=== BTCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -251.2   -113.8    1.000  984/1026   -0.033   -0.062   -0.084       0.0       0.0   0.05      -4.4  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -261.4   -106.3    1.000  996/1026   -0.031   -0.060   -0.082       1.2       0.0   0.04      -4.8  fails
+runnerProtection=hold,stopStructureSource=intraday       5.4   -101.6    1.000  984/1026   -0.030   -0.059   -0.085       0.0       0.0   0.05      -4.6  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       7.1    -87.4    1.000  996/1026   -0.025   -0.054   -0.080       1.2       0.0   0.04      -4.8  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000    0/1026    0.000   -0.029   -0.050       0.0       0.0   0.05      -4.4  NO VERDICT — pairing 0 nonzero of 1026 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -6.9      7.9    0.535  343/1026    0.002   -0.027   -0.047       0.7       0.0   0.04      -4.8  fails
+
+=== BCHUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -71.1    -38.5    1.000   754/929   -0.014   -0.249   -0.276       0.0       0.0   0.06      -5.4  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -67.4    -62.6    1.000   824/925   -0.021   -0.256   -0.283      -1.0      -2.9   0.05      -5.4  fails
+runnerProtection=hold,stopStructureSource=intraday     -23.0    -34.3    0.997   754/929   -0.012   -0.247   -0.277       0.0       0.0   0.06      -5.4  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -21.3    -56.9    1.000   824/925   -0.019   -0.254   -0.284      -1.5      -2.9   0.05      -5.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/929    0.000   -0.235   -0.261       0.0       0.0   0.06      -5.4  NO VERDICT — pairing 0 nonzero of 929 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -2.6    -20.1    0.998   526/925   -0.005   -0.241   -0.267      -1.5      -2.9   0.05      -5.4  fails
+
+=== ADAUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -59.8    -45.2    1.000  949/1028   -0.013   -0.110   -0.135       0.0       0.0   0.05      -4.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -68.6    -34.6    0.999  981/1028   -0.009   -0.106   -0.130       0.0       0.0   0.04      -4.2  fails
+runnerProtection=hold,stopStructureSource=intraday      -7.9    -28.7    0.994  949/1028   -0.008   -0.105   -0.133       0.0       0.0   0.05      -4.5  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -14.5    -21.7    0.973  981/1028   -0.005   -0.102   -0.130       0.0       0.0   0.04      -4.5  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000    0/1028    0.000   -0.097   -0.120       0.0       0.0   0.05      -4.2  NO VERDICT — pairing 0 nonzero of 1028 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -6.2     23.1    0.094  442/1028    0.008   -0.089   -0.112       0.0       0.0   0.04      -4.2  fails
+
+=== ZFUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000      0/48    0.000   -0.361   -0.597       0.0       0.0   0.05      -3.3  NO VERDICT — pairing 0 nonzero of 48 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000      0/48    0.000   -0.361   -0.597       0.0       0.0   0.05      -3.3  NO VERDICT — pairing 0 nonzero of 48 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday       1.7     -0.7    0.866     21/48   -0.013   -0.373   -0.636       0.0       0.0   0.05      -3.3  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       1.7     -0.7    0.866     21/48   -0.013   -0.373   -0.636       0.0       0.0   0.05      -3.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       1.8     -0.0    0.787     22/48   -0.000   -0.361   -0.583       0.0       0.0   0.05      -3.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       1.8     -0.0    0.787     22/48   -0.000   -0.361   -0.583       0.0       0.0   0.05      -3.3  fails
+
+=== ZTUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000       0/6    0.000   -0.619   -1.139       0.0       0.0   0.14      -1.1  THIN (7 filled) — refuse
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000       0/6    0.000   -0.619   -1.139       0.0       0.0   0.14      -1.1  THIN (7 filled) — refuse
+runnerProtection=hold,stopStructureSource=intraday       0.5     -0.1    1.000       3/6   -0.010   -0.629   -1.230       0.0       0.0   0.14      -1.5  THIN (7 filled) — refuse
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.5     -0.1    1.000       3/6   -0.010   -0.629   -1.230       0.0       0.0   0.14      -1.5  THIN (7 filled) — refuse
+runnerProtection=trail_tp1,stopStructureSource=intraday       2.7      0.4    1.000       2/6    0.054   -0.566   -1.161       0.0       0.0   0.14      -1.1  THIN (7 filled) — refuse
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       2.7      0.4    1.000       2/6    0.054   -0.566   -1.161       0.0       0.0   0.14      -1.1  THIN (7 filled) — refuse
+
+=== HOUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000     0/134    0.000   -0.227   -0.316       0.0       0.0   0.00      -4.2  NO VERDICT — pairing 0 nonzero of 134 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000     0/134    0.000   -0.227   -0.316       0.0       0.0   0.00      -4.2  NO VERDICT — pairing 0 nonzero of 134 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday       0.1     -2.1    0.810    44/134   -0.006   -0.234   -0.333       0.0       0.0   0.00      -5.3  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.1     -2.1    0.810    44/134   -0.006   -0.234   -0.333       0.0       0.0   0.00      -5.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday      26.2     12.3    0.001    36/134    0.037   -0.190   -0.281       0.0       0.0   0.00      -4.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      26.2     12.3    0.001    36/134    0.037   -0.190   -0.281       0.0       0.0   0.00      -4.2  fails
+
+=== RBUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000     0/146    0.000   -0.117   -0.256       0.0       0.0   0.02      -4.7  NO VERDICT — pairing 0 nonzero of 146 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000     0/146    0.000   -0.117   -0.256       0.0       0.0   0.02      -4.7  NO VERDICT — pairing 0 nonzero of 146 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday      13.1     19.7    0.049    70/146    0.061   -0.056   -0.210       0.0       0.0   0.02      -4.7  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily      13.1     19.7    0.049    70/146    0.061   -0.056   -0.210       0.0       0.0   0.02      -4.7  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday      21.5     10.5    0.041    63/146    0.032   -0.085   -0.222       0.0       0.0   0.02      -5.0  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      21.5     10.5    0.041    63/146    0.032   -0.085   -0.222       0.0       0.0   0.02      -5.0  fails
+
+=== PLUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000     0/166    0.000   -0.063   -0.141       0.0       0.0   0.02      -6.4  NO VERDICT — pairing 0 nonzero of 166 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000     0/166    0.000   -0.063   -0.141       0.0       0.0   0.02      -6.4  NO VERDICT — pairing 0 nonzero of 166 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday      -4.8      0.9    0.740   124/166    0.002   -0.061   -0.150       0.0       0.0   0.02      -6.4  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily      -4.8      0.9    0.740   124/166    0.002   -0.061   -0.150       0.0       0.0   0.02      -6.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday      26.2     20.8    0.001   138/166    0.043   -0.020   -0.096       0.0       0.0   0.02      -6.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      26.2     20.8    0.001   138/166    0.043   -0.020   -0.096       0.0       0.0   0.02      -6.4  fails
+
+=== PAUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday      -5.2     -4.4    0.873    99/152   -0.012   -0.118   -0.214       0.0       0.0   0.02      -4.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily      -5.2     -4.4    0.873    99/152   -0.012   -0.118   -0.214       0.0       0.0   0.02      -4.2  fails
+runnerProtection=hold,stopStructureSource=intraday     -16.7      3.3    0.517   105/152    0.009   -0.097   -0.205       0.0       0.0   0.02      -4.2  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -16.7      3.3    0.517   105/152    0.009   -0.097   -0.205       0.0       0.0   0.02      -4.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/152    0.000   -0.106   -0.199       0.0       0.0   0.02      -4.2  NO VERDICT — pairing 0 nonzero of 152 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0      0.0    1.000     0/152    0.000   -0.106   -0.199       0.0       0.0   0.02      -4.2  NO VERDICT — pairing 0 nonzero of 152 shared days is below the statistic's floor (5)
+
+=== ZCUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday      -7.2     -4.9    0.997    97/154   -0.014   -0.199   -0.306       0.0       0.0   0.23      -9.4  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -26.5    -24.5    0.999   138/151   -0.063   -0.248   -0.382      -0.9      -1.1   0.16     -15.7  fails
+runnerProtection=hold,stopStructureSource=intraday      10.0     -6.4    0.988    97/154   -0.018   -0.204   -0.313       0.0       0.0   0.23      -9.4  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily      -8.4    -15.8    0.994   138/151   -0.039   -0.224   -0.366      -1.4      -1.1   0.16     -15.7  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/154    0.000   -0.186   -0.291       0.0       0.0   0.23      -9.4  NO VERDICT — pairing 0 nonzero of 154 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -19.5    -17.1    0.996   117/151   -0.042   -0.228   -0.361      -0.7      -1.1   0.16     -15.7  fails
+
+=== ZSUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000     0/120    0.000   -0.278   -0.401       0.0       0.0   0.07      -2.7  NO VERDICT — pairing 0 nonzero of 120 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000     0/120    0.000   -0.278   -0.401       0.0       0.0   0.07      -2.7  NO VERDICT — pairing 0 nonzero of 120 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday       2.1     -1.7    0.865    46/120   -0.009   -0.287   -0.430       0.0       0.0   0.07      -3.4  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       2.1     -1.7    0.865    46/120   -0.009   -0.287   -0.430       0.0       0.0   0.07      -3.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       2.8      1.2    0.657    65/120    0.006   -0.272   -0.390       0.0       0.0   0.07      -2.7  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       2.8      1.2    0.657    65/120    0.006   -0.272   -0.390       0.0       0.0   0.07      -2.7  fails
+
+=== ZLUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday      -6.3     -5.6    0.989   123/149   -0.015   -0.085   -0.154       0.0       0.0   0.12      -3.5  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -23.7    -15.2    0.997   147/149   -0.032   -0.102   -0.170      -0.9       0.0   0.11      -3.0  fails
+runnerProtection=hold,stopStructureSource=intraday      -7.1    -17.1    1.000   123/149   -0.044   -0.115   -0.189       0.0       0.0   0.12      -3.5  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -19.5    -27.1    1.000   147/149   -0.060   -0.131   -0.204      -0.8       0.0   0.11      -3.5  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/149    0.000   -0.071   -0.137       0.0       0.0   0.12      -3.5  NO VERDICT — pairing 0 nonzero of 149 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -14.7    -10.5    0.996   128/149   -0.020   -0.091   -0.156      -0.7       0.0   0.11      -2.9  fails
+
+=== ZMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday      -5.1     -5.3    0.994   118/155   -0.014   -0.115   -0.270       0.0       0.0   0.14     -21.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -14.6    -12.9    0.992   146/154   -0.029   -0.130   -0.292      -2.2      -1.1   0.12     -21.2  fails
+runnerProtection=hold,stopStructureSource=intraday      -0.1    -22.4    0.997   118/155   -0.057   -0.158   -0.329       0.0       0.0   0.14     -21.2  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily      -7.1    -30.3    1.000   146/154   -0.072   -0.173   -0.349      -2.2      -1.1   0.12     -21.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/155    0.000   -0.101   -0.255       0.0       0.0   0.14     -21.2  NO VERDICT — pairing 0 nonzero of 155 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -10.3     -7.1    0.976   109/154   -0.014   -0.116   -0.276      -2.2      -1.1   0.12     -21.2  fails
+
+=== ZOUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday      -8.8    -14.0    1.000    75/151   -0.057   -0.074   -0.175       0.0       0.0   0.09      -2.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -30.8    -23.1    0.999   132/150   -0.096   -0.112   -0.224       0.0       0.9   0.02      -3.3  fails
+runnerProtection=hold,stopStructureSource=intraday       0.0      0.0    1.000     0/151    0.000   -0.017   -0.129       0.0       0.0   0.09      -2.7  NO VERDICT — pairing 0 nonzero of 151 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -19.7    -10.6    0.971   124/150   -0.044   -0.061   -0.184       0.0       0.9   0.02      -3.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday      -9.2     -7.9    0.977    90/151   -0.032   -0.049   -0.148       0.0       0.0   0.09      -2.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     -29.7    -19.4    0.998   135/150   -0.080   -0.097   -0.207       0.0       0.9   0.02      -3.3  fails
+
+=== ZRUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000      0/82    0.000   -0.008   -0.180       0.0       0.0   0.15      -2.7  NO VERDICT — pairing 0 nonzero of 82 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000      0/82    0.000   -0.008   -0.180       0.0       0.0   0.15      -2.7  NO VERDICT — pairing 0 nonzero of 82 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday       5.3     -2.0    0.962     27/82   -0.022   -0.030   -0.207       0.0       0.0   0.15      -2.7  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       5.3     -2.0    0.962     27/82   -0.022   -0.030   -0.207       0.0       0.0   0.15      -2.7  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       2.5      3.8    0.009     33/82    0.040    0.032   -0.141       0.0       0.0   0.15      -2.7  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       2.5      3.8    0.009     33/82    0.040    0.032   -0.141       0.0       0.0   0.15      -2.7  fails
+
+=== LEUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000      0/70    0.000    0.082   -0.182       0.0       0.0   0.00      -1.2  NO VERDICT — pairing 0 nonzero of 70 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000      0/70    0.000    0.082   -0.182       0.0       0.0   0.00      -1.2  NO VERDICT — pairing 0 nonzero of 70 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday      -7.4    -12.7    0.994     27/70   -0.174   -0.092   -0.463       0.0       0.0   0.00      -8.9  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily      -7.4    -12.7    0.994     27/70   -0.174   -0.092   -0.463       0.0       0.0   0.00      -8.9  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       1.9      0.5    0.756     34/70    0.007    0.088   -0.152       0.0       0.0   0.00      -1.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       1.9      0.5    0.756     34/70    0.007    0.088   -0.152       0.0       0.0   0.00      -1.2  fails
+
+=== GFUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000      0/91    0.000   -0.066   -0.257       0.0       0.0   0.01      -2.7  NO VERDICT — pairing 0 nonzero of 91 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000      0/91    0.000   -0.066   -0.257       0.0       0.0   0.01      -2.7  NO VERDICT — pairing 0 nonzero of 91 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday       0.5     -2.4    0.859     28/91   -0.024   -0.091   -0.320       0.0       0.0   0.01      -5.0  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.5     -2.4    0.859     28/91   -0.024   -0.091   -0.320       0.0       0.0   0.01      -5.0  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday      -1.8     -3.6    0.974     40/91   -0.037   -0.103   -0.272       0.0       0.0   0.01      -2.7  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -1.8     -3.6    0.974     40/91   -0.037   -0.103   -0.272       0.0       0.0   0.01      -2.7  fails
+
+=== HEUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000      0/80    0.000   -1.028   -3.177       0.0       0.0   0.01     -91.0  NO VERDICT — pairing 0 nonzero of 80 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000      0/80    0.000   -1.028   -3.177       0.0       0.0   0.01     -91.0  NO VERDICT — pairing 0 nonzero of 80 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday     -16.4    -14.2    0.894     25/80   -0.167   -1.196   -3.638       0.0       0.0   0.01    -131.4  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -16.4    -14.2    0.894     25/80   -0.167   -1.196   -3.638       0.0       0.0   0.01    -131.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       2.2     -0.2    0.804     38/80   -0.003   -1.031   -3.179       0.0       0.0   0.01     -90.8  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       2.2     -0.2    0.804     38/80   -0.003   -1.031   -3.179       0.0       0.0   0.01     -90.8  fails
+
+=== AAVEUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0    -60.3    1.000   708/770   -0.027   -0.069   -0.098       0.0       0.0   0.03      -4.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0    -39.4    1.000   730/768   -0.017   -0.059   -0.088       1.6      -2.2   0.03      -4.1  fails
+runnerProtection=hold,stopStructureSource=intraday       0.0    -54.0    1.000   708/770   -0.024   -0.066   -0.099       0.0       0.0   0.03      -4.1  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0    -31.5    0.994   730/768   -0.013   -0.056   -0.089       1.6      -2.2   0.03      -4.1  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/770    0.000   -0.042   -0.070       0.0       0.0   0.03      -4.1  NO VERDICT — pairing 0 nonzero of 770 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0     15.5    0.185   274/768    0.007   -0.035   -0.062       0.4      -2.2   0.03      -4.1  fails
+
+=== ALGOUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000     0/734    0.000   -0.501   -0.543       0.0       0.0   0.00      -4.7  NO VERDICT — pairing 0 nonzero of 734 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000     0/734    0.000   -0.501   -0.543       0.0       0.0   0.00      -4.7  NO VERDICT — pairing 0 nonzero of 734 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday       0.7    -22.5    0.994   345/734   -0.015   -0.517   -0.562       0.0       0.0   0.00      -4.7  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.7    -22.5    0.994   345/734   -0.015   -0.517   -0.562       0.0       0.0   0.00      -4.7  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       1.4     33.8    0.001   395/734    0.023   -0.478   -0.520       0.0       0.0   0.00      -4.7  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       1.4     33.8    0.001   395/734    0.023   -0.478   -0.520       0.0       0.0   0.00      -4.7  fails
+
+=== ATOMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000     0/308    0.000   -0.909   -0.966       0.0       0.0   0.00      -4.3  NO VERDICT — pairing 0 nonzero of 308 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000     0/308    0.000   -0.909   -0.966       0.0       0.0   0.00      -4.3  NO VERDICT — pairing 0 nonzero of 308 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday      -0.7     -3.6    0.965    41/308   -0.009   -0.917   -0.977       0.0       0.0   0.00      -4.3  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily      -0.7     -3.6    0.965    41/308   -0.009   -0.917   -0.977       0.0       0.0   0.00      -4.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.3      0.8    0.658    49/308    0.002   -0.907   -0.962       0.0       0.0   0.00      -4.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.3      0.8    0.658    49/308    0.002   -0.907   -0.962       0.0       0.0   0.00      -4.3  fails
+
+=== AVAXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000     0/430    0.000   -0.477   -0.532       0.0       0.0   0.01      -4.5  NO VERDICT — pairing 0 nonzero of 430 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000     0/430    0.000   -0.477   -0.532       0.0       0.0   0.01      -4.5  NO VERDICT — pairing 0 nonzero of 430 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday       0.0      4.0    0.595   204/430    0.005   -0.473   -0.534       0.0       0.0   0.01      -4.5  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0      4.0    0.595   204/430    0.005   -0.473   -0.534       0.0       0.0   0.01      -4.5  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0     17.0    0.052   228/430    0.019   -0.458   -0.511       0.0       0.0   0.01      -4.5  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0     17.0    0.052   228/430    0.019   -0.458   -0.511       0.0       0.0   0.01      -4.5  fails
+
+=== DASHUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -174.8    -48.4    1.000   863/933   -0.015   -0.073   -0.098       0.0       0.0   0.04      -4.3  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -177.8    -38.6    1.000   900/933   -0.012   -0.069   -0.095       1.6       0.0   0.03      -4.3  fails
+runnerProtection=hold,stopStructureSource=intraday    -110.9    -75.9    1.000   864/933   -0.024   -0.082   -0.110       0.0       0.0   0.04      -4.3  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily    -101.2    -75.0    1.000   900/933   -0.023   -0.080   -0.109       1.7       0.0   0.03      -4.3  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/933    0.000   -0.057   -0.081       0.0       0.0   0.04      -4.3  NO VERDICT — pairing 0 nonzero of 933 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.6      5.9    0.711   590/933    0.002   -0.055   -0.079       1.8       0.0   0.03      -4.3  fails
+
+=== DOGEUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -42.8    -87.0    1.000   793/856   -0.032   -0.058   -0.084       0.0       0.0   0.03      -4.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -47.9    -82.3    1.000   813/856   -0.030   -0.056   -0.082       1.5       0.0   0.03      -4.2  fails
+runnerProtection=hold,stopStructureSource=intraday     -12.1    -50.2    1.000   799/856   -0.019   -0.044   -0.075       0.0       0.0   0.03      -4.7  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -18.7    -45.5    1.000   816/856   -0.017   -0.042   -0.073       1.5       0.0   0.03      -4.7  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/856    0.000   -0.025   -0.050       0.0       0.0   0.03      -4.1  NO VERDICT — pairing 0 nonzero of 856 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -8.0      6.9    0.462   241/856    0.003   -0.023   -0.047       1.0       0.0   0.03      -4.1  fails
+
+=== DOTUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000     0/333    0.000   -0.702   -0.763       0.0       0.0   0.00      -3.9  NO VERDICT — pairing 0 nonzero of 333 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000     0/333    0.000   -0.702   -0.763       0.0       0.0   0.00      -3.9  NO VERDICT — pairing 0 nonzero of 333 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday       0.0     -0.1    0.773   104/333   -0.000   -0.703   -0.770       0.0       0.0   0.00      -3.9  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0     -0.1    0.773   104/333   -0.000   -0.703   -0.770       0.0       0.0   0.00      -3.9  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0     13.1    0.016   117/333    0.024   -0.678   -0.739       0.0       0.0   0.00      -3.9  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0     13.1    0.016   117/333    0.024   -0.678   -0.739       0.0       0.0   0.00      -3.9  fails
+
+=== DYDXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000     0/206    0.000   -1.071   -1.149       0.0       0.0   0.01      -4.1  NO VERDICT — pairing 0 nonzero of 206 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000     0/206    0.000   -1.071   -1.149       0.0       0.0   0.01      -4.1  NO VERDICT — pairing 0 nonzero of 206 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday       0.0     -3.9    1.000    10/206   -0.014   -1.085   -1.160       0.0       0.0   0.01      -4.1  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0     -3.9    1.000    10/206   -0.014   -1.085   -1.160       0.0       0.0   0.01      -4.1  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.1    0.761     9/206    0.000   -1.071   -1.148       0.0       0.0   0.01      -4.1  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0      0.1    0.761     9/206    0.000   -1.071   -1.148       0.0       0.0   0.01      -4.1  fails
+
+=== EGLDUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0     -0.1    0.845   348/479   -0.000   -0.309   -0.353       0.0       0.0   0.04      -5.4  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0     16.0    0.177   374/479    0.013   -0.296   -0.340      -1.0       0.0   0.05      -5.4  fails
+runnerProtection=hold,stopStructureSource=intraday       0.0     -7.3    0.938   351/479   -0.006   -0.315   -0.361       0.0       0.0   0.04      -5.4  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0     10.4    0.508   377/479    0.008   -0.301   -0.347      -1.0       0.0   0.05      -5.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/479    0.000   -0.309   -0.350       0.0       0.0   0.04      -5.4  NO VERDICT — pairing 0 nonzero of 479 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0     16.8    0.027   145/479    0.013   -0.296   -0.337      -0.8       0.0   0.05      -5.4  fails
+
+=== ETCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -116.6    -61.1    1.000   768/831   -0.024   -0.051   -0.078       0.0       0.0   0.04      -4.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -111.7    -58.1    1.000   797/828   -0.021   -0.048   -0.074       0.5      -1.7   0.04      -4.2  fails
+runnerProtection=hold,stopStructureSource=intraday     -69.2    -54.4    1.000   768/831   -0.022   -0.048   -0.079       0.0       0.0   0.04      -4.5  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -53.7    -56.5    1.000   797/828   -0.021   -0.047   -0.077       2.9      -1.7   0.04      -4.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/831    0.000   -0.026   -0.052       0.0       0.0   0.04      -4.2  NO VERDICT — pairing 0 nonzero of 831 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      10.4      5.8    0.755   403/828    0.003   -0.023   -0.048       1.4      -1.7   0.04      -4.2  fails
+
+=== FILUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000      0/32    0.000   -1.919   -2.255       0.0       0.0   0.00      -5.4  NO VERDICT — pairing 0 nonzero of 32 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000      0/32    0.000   -1.919   -2.255       0.0       0.0   0.00      -5.4  NO VERDICT — pairing 0 nonzero of 32 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday       0.0      0.0    1.000      0/32    0.000   -1.919   -2.255       0.0       0.0   0.00      -5.4  NO VERDICT — pairing 0 nonzero of 32 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0      0.0    1.000      0/32    0.000   -1.919   -2.255       0.0       0.0   0.00      -5.4  NO VERDICT — pairing 0 nonzero of 32 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000      0/32    0.000   -1.919   -2.255       0.0       0.0   0.00      -5.4  NO VERDICT — pairing 0 nonzero of 32 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0      0.0    1.000      0/32    0.000   -1.919   -2.255       0.0       0.0   0.00      -5.4  NO VERDICT — pairing 0 nonzero of 32 shared days is below the statistic's floor (5)
+
+=== GRTUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0    -23.6    0.999   740/786   -0.009   -0.042   -0.070       0.0       0.0   0.05      -4.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0    -22.9    0.998   750/786   -0.009   -0.041   -0.069       0.0       0.0   0.05      -4.2  fails
+runnerProtection=hold,stopStructureSource=intraday       0.0    -27.2    0.988   740/786   -0.011   -0.043   -0.075       0.0       0.0   0.05      -4.2  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0    -15.9    0.957   750/786   -0.006   -0.039   -0.070       0.0       0.0   0.05      -4.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/786    0.000   -0.032   -0.058       0.0       0.0   0.05      -4.2  NO VERDICT — pairing 0 nonzero of 786 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0      6.9    0.389   221/786    0.003   -0.030   -0.055       0.0       0.0   0.05      -4.2  fails
+
+=== HBARUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0    -21.3    1.000   176/193   -0.033   -0.137   -0.194       0.0       0.0   0.03      -5.0  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0    -25.8    1.000   181/193   -0.040   -0.144   -0.201       0.0       0.0   0.02      -5.0  fails
+runnerProtection=hold,stopStructureSource=intraday       0.0     -2.0    0.856   176/193   -0.003   -0.107   -0.174       0.0       0.0   0.03      -5.0  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0     -5.6    0.922   181/193   -0.008   -0.112   -0.180       0.0       0.0   0.02      -5.0  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/193    0.000   -0.104   -0.158       0.0       0.0   0.03      -5.0  NO VERDICT — pairing 0 nonzero of 193 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0     -7.1    1.000    52/193   -0.011   -0.115   -0.169       0.0       0.0   0.02      -5.0  fails
+
+=== IMXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0     -4.4    0.908   295/357   -0.004   -0.066   -0.109       0.0       0.0   0.03      -5.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0     10.1    0.509   314/357    0.009   -0.053   -0.096       0.0       0.0   0.03      -5.2  fails
+runnerProtection=hold,stopStructureSource=intraday       0.0      0.0    1.000     0/357    0.000   -0.062   -0.111       0.0       0.0   0.03      -5.2  NO VERDICT — pairing 0 nonzero of 357 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0     12.5    0.042   107/357    0.011   -0.051   -0.099       0.0       0.0   0.03      -5.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0     24.1    0.204   320/357    0.021   -0.041   -0.081       0.0       0.0   0.03      -5.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0     34.3    0.074   330/357    0.031   -0.032   -0.072       0.0       0.0   0.03      -5.2  fails
+
+=== LINKUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -13.8      6.0    0.678   865/958    0.002   -0.041   -0.065       0.0       0.0   0.02      -4.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily      -8.4     13.1    0.572   892/958    0.004   -0.038   -0.063       0.0       0.0   0.02      -4.2  fails
+runnerProtection=hold,stopStructureSource=intraday       0.0      0.0    1.000     0/958    0.000   -0.042   -0.071       0.0       0.0   0.02      -4.6  NO VERDICT — pairing 0 nonzero of 958 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday_and_daily       4.8      2.3    0.645   254/958    0.001   -0.042   -0.070       0.0       0.0   0.02      -4.6  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday      -7.3     81.5    0.027   912/958    0.025   -0.018   -0.040       0.0       0.0   0.02      -4.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -3.5     86.0    0.020   928/958    0.026   -0.016   -0.039       0.0       0.0   0.02      -4.2  fails
+
+=== NEARUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000     0/352    0.000   -0.643   -0.705       0.0       0.0   0.01      -4.5  NO VERDICT — pairing 0 nonzero of 352 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000     0/352    0.000   -0.643   -0.705       0.0       0.0   0.01      -4.5  NO VERDICT — pairing 0 nonzero of 352 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday       0.0      6.7    0.464   117/352    0.011   -0.632   -0.702       0.0       0.0   0.01      -4.5  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0      6.7    0.464   117/352    0.011   -0.632   -0.702       0.0       0.0   0.01      -4.5  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0     11.9    0.036   131/352    0.019   -0.624   -0.686       0.0       0.0   0.01      -4.5  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0     11.9    0.036   131/352    0.019   -0.624   -0.686       0.0       0.0   0.01      -4.5  fails
+
+=== TRXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000     0/540    0.000   -0.501   -0.553       0.0       0.0   0.00      -4.4  NO VERDICT — pairing 0 nonzero of 540 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000     0/540    0.000   -0.501   -0.553       0.0       0.0   0.00      -4.4  NO VERDICT — pairing 0 nonzero of 540 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday      61.2      2.7    0.689   244/540    0.003   -0.498   -0.556       0.0       0.0   0.00      -4.4  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily      61.2      2.7    0.689   244/540    0.003   -0.498   -0.556       0.0       0.0   0.00      -4.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday     107.8     19.5    0.020   279/540    0.020   -0.482   -0.532       0.0       0.0   0.00      -4.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily     107.8     19.5    0.020   279/540    0.020   -0.482   -0.532       0.0       0.0   0.00      -4.4  fails
+
+=== UNIUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0    -32.8    1.000   754/802   -0.013   -0.092   -0.121       0.0       0.0   0.02      -4.1  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0    -34.2    1.000   766/802   -0.013   -0.093   -0.122       0.0       0.0   0.02      -4.1  fails
+runnerProtection=hold,stopStructureSource=intraday       0.0     -2.3    0.831   754/802   -0.001   -0.080   -0.114       0.0       0.0   0.02      -4.1  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0      0.3    0.797   766/802    0.000   -0.079   -0.113       0.0       0.0   0.02      -4.1  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/802    0.000   -0.079   -0.106       0.0       0.0   0.02      -4.1  NO VERDICT — pairing 0 nonzero of 802 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0      0.6    0.772   215/802    0.000   -0.079   -0.106       0.0       0.0   0.02      -4.1  fails
+
+=== XLMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday     -93.4     -1.8    0.811   853/958   -0.001   -0.066   -0.090       0.0       0.0   0.02      -4.2  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily     -91.4     -8.6    0.887   899/958   -0.002   -0.068   -0.092       0.0       0.0   0.02      -4.2  fails
+runnerProtection=hold,stopStructureSource=intraday       0.0      0.0    1.000     0/958    0.000   -0.065   -0.094       0.0       0.0   0.02      -4.7  NO VERDICT — pairing 0 nonzero of 958 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday_and_daily      -3.2    -18.6    0.998   463/958   -0.006   -0.071   -0.099       0.0       0.0   0.02      -4.5  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday      31.8     66.5    0.037   914/958    0.021   -0.044   -0.067       0.0       0.0   0.02      -4.2  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      33.8     69.3    0.045   928/958    0.022   -0.043   -0.066       0.0       0.0   0.02      -4.2  fails
+
+=== XMRUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday    -186.6   -100.4    1.000   863/927   -0.034   -0.112   -0.137       0.0       0.0   0.03      -4.6  fails
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily    -183.2   -117.0    1.000   893/927   -0.038   -0.116   -0.142       0.0       0.0   0.02      -5.4  fails
+runnerProtection=hold,stopStructureSource=intraday    -104.5   -120.1    1.000   864/927   -0.040   -0.118   -0.147       0.0       0.0   0.03      -5.1  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily     -97.9   -145.9    1.000   894/927   -0.047   -0.126   -0.155       0.0       0.0   0.02      -5.4  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/927    0.000   -0.078   -0.103       0.0       0.0   0.03      -4.4  NO VERDICT — pairing 0 nonzero of 927 shared days is below the statistic's floor (5)
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       6.7    -23.4    1.000   561/927   -0.007   -0.085   -0.110       0.0       0.0   0.02      -5.4  fails
+
+=== XTZUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000     0/232    0.000   -0.704   -0.786       0.0       0.0   0.00      -3.5  NO VERDICT — pairing 0 nonzero of 232 shared days is below the statistic's floor (5)
+runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000     0/232    0.000   -0.704   -0.786       0.0       0.0   0.00      -3.5  NO VERDICT — pairing 0 nonzero of 232 shared days is below the statistic's floor (5)
+runnerProtection=hold,stopStructureSource=intraday      17.4      1.7    0.619    58/232    0.005   -0.699   -0.788       0.0       0.0   0.00      -3.5  fails
+runnerProtection=hold,stopStructureSource=intraday_and_daily      17.4      1.7    0.619    58/232    0.005   -0.699   -0.788       0.0       0.0   0.00      -3.5  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday      56.7      9.6    0.004    62/232    0.032   -0.673   -0.757       0.0       0.0   0.00      -3.5  fails
+runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      56.7      9.6    0.004    62/232    0.032   -0.673   -0.757       0.0       0.0   0.00      -3.5  fails

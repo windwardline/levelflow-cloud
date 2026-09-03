@@ -33,7 +33,12 @@
  * and R1b grows it further (#364 round 26, finding 1). The confirm fold
  * is sealed at that door (R4 act 1): its rows are withheld before this
  * report sees them, the count is printed beside the holdout line, and
- * every figure here is over the tuning folds only.
+ * every figure here is over the tuning folds only. The holdout is ONE
+ * population (R4 act 2): the stratified rule over the manifests' requested
+ * roster, verified against the anchor's tracked pin — a held-out market's
+ * line prints with its figures labelled HELD OUT and enters no category
+ * rollup; the row's stamped flag is printed as provenance and excludes
+ * nothing.
  *
  *   npx tsx scripts/account-type-report.ts <emit.jsonl> [more.jsonl ...]
  *     [--min-filled 300]
@@ -53,8 +58,10 @@ import {
   accountTypesOffering,
 } from "../src/lib/broker/visibility.ts";
 import type { BrokerClassification } from "../src/lib/profile.ts";
+import { describeHeldOut, resolveHeldOut } from "./sweepFolds.ts";
 import {
   addOutcome,
+  assertManifest,
   assertManifestedCorpusStreaming,
   clusteredStandardError,
   emptyStats,
@@ -246,8 +253,21 @@ async function main(): Promise<void> {
   // silently at the door left the member loop labelling it "NOT IN
   // CORPUS (never swept)" and counting it as a coverage gap, for ~1 in
   // 5 of the roster, in the report E8 inclusion decisions read.
-  let holdoutRows = 0;
-  const holdoutSymbols = new Set<string>();
+  // R4 act 2 (one holdout population): the set is the stratified rule over
+  // the manifests' requested roster, verified against the anchor's tracked
+  // pin when one stands — resolved BEFORE the first row, since the streaming
+  // door returns its manifest only after the last. A held-out market's rows
+  // are read and accumulated like any other's; its line prints with its
+  // figures labelled HELD OUT, and it enters no category rollup or clustered
+  // s.e. The row's stamped flag is counted as provenance and excludes nothing.
+  const corpusManifests = files.map((file) => assertManifest(file));
+  const holdout = resolveHeldOut(corpusManifests);
+  // The roster the sweep was ASKED for: a requested market with no tuning
+  // row is not "never swept" — every decision it carries sits in the sealed
+  // confirm fold (the six 2023-era listings on R3's per-class corpus).
+  const requested = new Set(corpusManifests.flatMap((manifest) => manifest.requestedSymbols ?? []));
+  let heldOutRows = 0;
+  let stampedRows = 0;
   const gatedRowsBySymbol = new Map<string, number>();
   // What the door withheld, summed over every file, and the folds it did
   // hand over by each corpus's own vocabulary — a set, because nothing
@@ -271,14 +291,12 @@ async function main(): Promise<void> {
       // holdout rows while kept/gated/dataAbsent stayed baseline-only —
       // two populations under one heading).
       if (row.variant && row.variant !== "baseline") return;
-      // 3e: holdout markets are excluded from every tuning-adjacent read;
-      // this report informs inclusion decisions, so it is one of them.
-      // Counted, never silent (#364 round 27, finding 2).
-      if (raw.holdout === true) {
-        holdoutRows += 1;
-        holdoutSymbols.add(row.symbol);
-        return;
-      }
+      // Provenance only: the driver's stamp is counted and excludes nothing.
+      if (raw.holdout === true) stampedRows += 1;
+      // A held-out market's rows are read like any other's — counted here,
+      // labelled where its line prints, pooled nowhere (#364 round 27,
+      // finding 2 kept it visible; R4 act 2 keeps its figures).
+      if (holdout.held.has(row.symbol)) heldOutRows += 1;
       if (!passesOtherGates(row)) {
         gated += 1;
         // Per symbol too (#364 round 30, finding 2): a market EVERY one
@@ -331,15 +349,16 @@ async function main(): Promise<void> {
     console.log(
       `(data-absence rows held out of every denominator: ${dataAbsentTotal}` +
         ` — baseline variant, ${foldsLabel}, rows clearing payoff+regime; ` +
-        `holdout excluded by the emit's stamped flag)`,
+        `held-out markets per the rule below)`,
     );
   }
-  if (holdoutRows > 0) {
-    console.log(
-      `(holdout markets excluded: ${holdoutRows} rows — baseline variant, ` +
-        `stamped flag)`,
-    );
-  }
+  // Printed whether or not anything was held out: a zero says the roster's
+  // classes were too small to hold a market out, not that nothing looked.
+  console.log(
+    `(${describeHeldOut(holdout)}; ${heldOutRows} rows on held-out markets ` +
+      `— baseline variant — read and labelled, pooled nowhere; stamped rows: ` +
+      `${stampedRows})`,
+  );
   // Stated whether or not anything was withheld: zero on a legacy corpus
   // means there was no confirm fold to seal, which is not an unsealed read.
   console.log(
@@ -392,18 +411,12 @@ async function main(): Promise<void> {
       let allGated = 0;
       for (const member of members) {
         const stats = bySymbol.get(member.levelflowSymbol!);
+        // Held out is a label, not an absence (R4 act 2): the market's rows
+        // were read and its line prints below with its figures; it enters
+        // no rollup. A held-out market with no rows at all is judged like
+        // any other absent or fully gated market.
+        const isHeldOut = holdout.held.has(member.levelflowSymbol!);
         if (!stats) {
-          // Held-out is policy, not a gap (#364 round 27, finding 2):
-          // the market was swept and its rows are reserved for the 3e
-          // confirmation read — the coverage-gap tally must not count
-          // it, or a fifth of the roster reads as "never swept".
-          if (holdoutSymbols.has(member.levelflowSymbol!)) {
-            heldOut += 1;
-            lines.push(
-              `      ${member.brokerName.padEnd(10)} — HELD OUT (3e confirmation set)`,
-            );
-            continue;
-          }
           // Fully gated is the reader's own doing, never a coverage gap
           // (#364 round 30, finding 2): the market was swept, and every
           // row fell to payoff+regime under the CURRENT calibration —
@@ -419,18 +432,31 @@ async function main(): Promise<void> {
             continue;
           }
           missing += 1;
-          lines.push(`      ${member.brokerName.padEnd(10)} — NOT IN CORPUS (never swept)`);
+          lines.push(
+            `      ${member.brokerName.padEnd(10)} — ${
+              requested.has(member.levelflowSymbol!)
+                ? "NO TUNING ROW (requested; every decision sits in the sealed confirm fold)"
+                : "NOT IN CORPUS (never swept)"
+            }`,
+          );
           continue;
         }
-        memberStats.push(stats);
-        rollup.ambiguous += stats.ambiguous;
-        rollup.dataAbsent += stats.dataAbsent;
-        rollup.n += stats.n;
-        rollup.filled += stats.filled;
-        rollup.wins += stats.wins;
-        rollup.stops += stats.stops;
-        rollup.rSum += stats.rSum;
-        rollup.rSumSq += stats.rSumSq;
+        if (isHeldOut) {
+          heldOut += 1;
+        } else {
+          memberStats.push(stats);
+          rollup.ambiguous += stats.ambiguous;
+          rollup.dataAbsent += stats.dataAbsent;
+          rollup.n += stats.n;
+          rollup.filled += stats.filled;
+          rollup.wins += stats.wins;
+          rollup.stops += stats.stops;
+          rollup.rSum += stats.rSum;
+          rollup.rSumSq += stats.rSumSq;
+          rollup.grossFilled += stats.grossFilled;
+          rollup.grossRSum += stats.grossRSum;
+          rollup.grossRSumSq += stats.grossRSumSq;
+        }
         // #364 round 25, finding 1: a market whose corpus rows are ALL
         // data-absence rows sits here with filled 0 — R1b emits those
         // rows (pre-R1b they landed in planRejected and the market hit
@@ -459,6 +485,9 @@ async function main(): Promise<void> {
           ? Math.abs(value) / se
           : null;
         const thin = stats.filled < minFilled ? " THIN" : "";
+        const heldOutLabel = isHeldOut
+          ? ` HELD OUT (${holdout.rule}; excluded from the rollup)`
+          : "";
         // #364 round 34, finding 3: the sigma>=2 test's only intrinsic
         // floor is rStdDev's TWO filled outcomes — at n=3 a
         // low-dispersion losing streak clears it with sigma in the
@@ -493,19 +522,20 @@ async function main(): Promise<void> {
             `${pct(stats.wins, stats.filled).padStart(4)} ${pct(stats.stops, stats.filled).padStart(5)} ` +
             `${String(stats.dataAbsent).padStart(8)} ` +
             `${(value === null ? "—" : value.toFixed(3)).padStart(7)} ` +
-            `±${se === null ? "—" : se.toFixed(3)}${thin}${flag}`,
+            `±${se === null ? "—" : se.toFixed(3)}${thin}${flag}${heldOutLabel}`,
         );
         if (excludeEligible) {
           if (stats.filled >= minFilled) {
             verdicts.push(
               `${classification}/${member.brokerName}: E=${value!.toFixed(3)} ` +
-                `±${se!.toFixed(3)} over ${stats.filled} filled — exclude`,
+                `±${se!.toFixed(3)} over ${stats.filled} filled — exclude` +
+                heldOutLabel,
             );
           } else {
             withheldVerdicts.push(
               `${classification}/${member.brokerName}: E=${value!.toFixed(3)} ` +
                 `±${se!.toFixed(3)} over ${stats.filled} filled ` +
-                `(< ${minFilled}) — withheld`,
+                `(< ${minFilled}) — withheld` + heldOutLabel,
             );
           }
         }
@@ -562,8 +592,9 @@ async function main(): Promise<void> {
       }
       if (heldOut > 0) {
         console.log(
-          `      (${heldOut} market(s) held out — 3e confirmation set, ` +
-            `swept but excluded from every tuning read)`,
+          `      (${heldOut} market(s) HELD OUT — ${holdout.rule}; listed ` +
+            `above with their figures, excluded from this rollup and its ` +
+            `clustered s.e.)`,
         );
       }
       if (allGated > 0) {

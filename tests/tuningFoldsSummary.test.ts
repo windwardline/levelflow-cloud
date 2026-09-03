@@ -12,6 +12,7 @@ import {
 } from "../scripts/sweepManifest.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
+import { rosterHashOf } from "../scripts/sweepFolds.ts";
 import {
   formatSummary,
   parseFolds,
@@ -69,7 +70,16 @@ function row(input: {
   };
 }
 
-/** EURUSD wins most and loses money; GBPUSD (held out) and XAUUSD are plain. */
+/**
+ * EURUSD wins most and loses money; GBPUSD, NZDCHF and XAUUSD are plain.
+ *
+ * Two holdout populations, differing by construction (R4 act 2): the rows
+ * and the manifest STAMP GBPUSD (the driver's sha256 mod 5), while the one
+ * population — the stratified rule over the requested roster — holds NZDCHF
+ * out of the three-market forex class (its sha256 rank is the lowest of the
+ * three, below EURUSD's). A class of two would hold nothing out and make the
+ * HELD OUT label vacuous, which is why forex has three.
+ */
 function fixtureRows(): Row[] {
   const rows: Row[] = [];
   let index = 0;
@@ -78,6 +88,7 @@ function fixtureRows(): Row[] {
       // Four small wins, two stops per fold: 4 x 0.2 - 2 x 1.0 = -1.2R
       rows.push(row({ index: index++, realizedR: step < 4 ? 0.2 : -1, split, symbol: "EURUSD" }));
       rows.push(row({ holdout: true, index: index++, realizedR: step % 2 === 0 ? 1 : -1, split, symbol: "GBPUSD" }));
+      rows.push(row({ index: index++, realizedR: step % 2 === 0 ? 1 : -1, split, symbol: "NZDCHF" }));
       rows.push(row({ index: index++, realizedR: step % 3 === 0 ? -1 : 0.8, split, symbol: "XAUUSD" }));
     }
     rows.push(row({ index: index++, realizedR: 0, split, symbol: "XAUUSD" }));
@@ -154,6 +165,19 @@ function writeCorpus(
   return emitPath;
 }
 
+/**
+ * A pin directory holding no pin, so every summary below resolves its set
+ * "unpinned" — the tracked docs/research/r4/ is this repo's, and a fixture
+ * roster at R3's anchor must not be read against R3's pin.
+ */
+const NO_PIN_DIR = join(mkdtempSync(join(tmpdir(), "tuning-folds-pins-")), "none");
+
+function summarize(
+  input: Parameters<typeof summarizeTuningFolds>[0],
+): ReturnType<typeof summarizeTuningFolds> {
+  return summarizeTuningFolds({ holdoutPinDir: NO_PIN_DIR, ...input });
+}
+
 /** Rewrite a manifest field the way an older driver would have left it. */
 function rewriteManifest(emitPath: string, mutate: (manifest: Record<string, unknown>) => void): void {
   const path = `${emitPath}.manifest.json`;
@@ -173,13 +197,17 @@ describe("the confirm fold is sealed", () => {
   });
 
   it("never lets confirm rows reach a figure, even though the corpus carries them", async () => {
-    const summary = await summarizeTuningFolds({
+    const summary = await summarize({
       folds: ["fit", "select"],
       minFilled: 3,
       paths: [writeCorpus(fixtureRows())],
     });
     // 80 confirm rows sit in the file; none is read.
     assert.equal(summary.rows.otherFolds, 80);
+    // 52 rows in the folds read are accepted: three forex and one metal, six
+    // each per fold (48), plus per fold one accepted-but-unfilled XAUUSD row
+    // and one hold-variant EURUSD row. The two not-accepted rows are not here.
+    assert.equal(summary.rows.accepted, 4 * 12 + 2 + 2);
     const eurusd = summary.bySymbolVariant.get("forex|EURUSD|baseline")!;
     // 12 filled, all in fit + select: 8 x 0.2 - 4 x 1.0 = -2.4R. Had a single
     // +5R confirm row been read the sign would flip.
@@ -190,7 +218,7 @@ describe("the confirm fold is sealed", () => {
 
   it("refuses a fold the manifest never declared", async () => {
     await assert.rejects(
-      summarizeTuningFolds({ folds: ["fit", "nonesuch"], minFilled: 3, paths: [writeCorpus(fixtureRows())] }),
+      summarize({ folds: ["fit", "nonesuch"], minFilled: 3, paths: [writeCorpus(fixtureRows())] }),
       /no "nonesuch"/,
     );
   });
@@ -201,32 +229,133 @@ describe("the confirm fold is sealed", () => {
       delete manifest.folds;
     });
     await assert.rejects(
-      summarizeTuningFolds({ folds: ["fit", "select"], minFilled: 3, paths: [path] }),
+      summarize({ folds: ["fit", "select"], minFilled: 3, paths: [path] }),
       /legacy two-split corpus/,
     );
   });
 });
 
 describe("what it counts, and what it keeps apart", () => {
-  it("excludes held-out markets from the class rollup and lists them per market", async () => {
-    const summary = await summarizeTuningFolds({
+  // The mutation case for one holdout population (R4 act 2): the stamped set
+  // and the stratified set differ — GBPUSD is stamped, NZDCHF is stratified —
+  // and the class pool must exclude the stratified market and NOT the
+  // stamped-only one. Before act 2 this test read the stamp: the forex pool
+  // was EURUSD alone and GBPUSD wore the label.
+  it("excludes the STRATIFIED held-out market from the class rollup, pools the stamped-only one, and labels per market", async () => {
+    const summary = await summarize({
       folds: ["fit", "select"],
       minFilled: 3,
       paths: [writeCorpus(fixtureRows())],
     });
+    assert.deepEqual(summary.holdout.markets, ["NZDCHF"]);
+    assert.deepEqual(summary.holdout.stamped, ["GBPUSD"]);
+    assert.equal(summary.holdout.rule, "stratified-per-class-20pct");
+    assert.equal(summary.holdout.basis, "requestedSymbols");
+    assert.equal(summary.holdout.pinned, false);
     const forexBaseline = summary.byClassVariant.get("forex|baseline")!;
-    // EURUSD alone: GBPUSD is held out and contributes to no class cell.
-    assert.equal(forexBaseline.net.filled, 12);
+    // EURUSD and GBPUSD: NZDCHF is held out and contributes to no class cell;
+    // GBPUSD's stamp excludes nothing.
+    assert.equal(forexBaseline.net.filled, 24);
+    assert.equal(Number(forexBaseline.net.rSum.toFixed(6)), -2.4);
     assert.equal(summary.rows.heldOut, 12);
+    assert.equal(summary.rows.stamped, 12);
+    const nzdchf = summary.bySymbolVariant.get("forex|NZDCHF|baseline")!;
+    assert.equal(nzdchf.holdout, true);
+    assert.equal(nzdchf.net.filled, 12);
     const gbpusd = summary.bySymbolVariant.get("forex|GBPUSD|baseline")!;
-    assert.equal(gbpusd.holdout, true);
+    assert.equal(gbpusd.holdout, false);
     assert.equal(gbpusd.net.filled, 12);
     const text = formatSummary(summary);
-    assert.match(text, /\| forex \| GBPUSD \| baseline \| HELD OUT \|/);
+    assert.match(text, /\| forex \| NZDCHF \| baseline \| HELD OUT \|/);
+    assert.match(text, /\| forex \| GBPUSD \| baseline \|  \|/);
+    // The header states the rule, the count, the pin state and the stamp.
+    assert.match(
+      text,
+      /^holdout: stratified-per-class-20pct — 1 markets excluded from every class pool, labelled HELD OUT per market \(unpinned — no .*holdout-2026-08-26\.json, computed from requestedSymbols\); stamped flag: 1 markets, provenance only$/m,
+    );
+    assert.match(text, /12 on held-out markets \(per-market lines only\) · 12 carrying the driver's stamp \(provenance only\)/);
+  });
+
+  it("verifies against the anchor's pin when one stands, and refuses a pin that names another set — executed", async () => {
+    const pinDir = mkdtempSync(join(tmpdir(), "tuning-folds-pin-"));
+    const pinPath = join(pinDir, "holdout-2026-08-26.json");
+    // A pin is specific to the REQUESTED roster: this fixture's four markets.
+    const rosterHash = rosterHashOf(["EURUSD", "GBPUSD", "NZDCHF", "XAUUSD"]);
+    writeFileSync(
+      pinPath,
+      JSON.stringify({ manifestHashes: ["0".repeat(64)], markets: ["NZDCHF"], rosterHash, rule: "stratified-per-class-20pct" }) + "\n",
+    );
+    const summary = await summarize({
+      folds: ["fit", "select"],
+      holdoutPinDir: pinDir,
+      minFilled: 3,
+      paths: [writeCorpus(fixtureRows())],
+    });
+    assert.equal(summary.holdout.pinned, true);
+    assert.equal(summary.holdout.pinPath, pinPath);
+    assert.match(formatSummary(summary), /\(pinned .*holdout-2026-08-26\.json\); stamped flag: 1 markets/);
+    // The stamp as a pin — the exact drift the one population replaces.
+    writeFileSync(
+      pinPath,
+      JSON.stringify({ manifestHashes: ["0".repeat(64)], markets: ["GBPUSD"], rosterHash, rule: "stratified-per-class-20pct" }) + "\n",
+    );
+    await assert.rejects(
+      summarize({ folds: ["fit", "select"], holdoutPinDir: pinDir, minFilled: 3, paths: [writeCorpus(fixtureRows())] }),
+      /heldOutSetDrift: .*pinned but not computed: GBPUSD; computed but not pinned: NZDCHF/,
+    );
+    // A pin of ANOTHER requested roster at the same anchor says nothing about
+    // this one: unpinned for this roster, computed, never drift.
+    writeFileSync(
+      pinPath,
+      JSON.stringify({
+        manifestHashes: ["0".repeat(64)],
+        markets: ["GBPUSD"],
+        rosterHash: rosterHashOf(["EURUSD", "GBPUSD"]),
+        rule: "stratified-per-class-20pct",
+      }) + "\n",
+    );
+    const other = await summarize({ folds: ["fit", "select"], holdoutPinDir: pinDir, minFilled: 3, paths: [writeCorpus(fixtureRows())] });
+    assert.equal(other.holdout.pinState, "other-roster");
+    assert.deepEqual(other.holdout.markets, ["NZDCHF"]);
+    assert.match(
+      formatSummary(other),
+      /\(unpinned for this roster — .*holdout-2026-08-26\.json pins another requested roster; computed from requestedSymbols \(roster [0-9a-f]{12}\)\)/,
+    );
+  });
+
+  it("computes over the symbols read when a manifest carries no requested roster, says so, and treats a standing pin as unpinnable rather than drift", async () => {
+    const path = writeCorpus(fixtureRows());
+    rewriteManifest(path, (manifest) => {
+      delete manifest.requestedSymbols;
+    });
+    // A pin naming a DIFFERENT set stands for the anchor: a symbols-read set
+    // cannot be compared to it, so the pin is reported as not consulted, and
+    // no drift is claimed.
+    const pinDir = mkdtempSync(join(tmpdir(), "tuning-folds-legacy-pin-"));
+    const pinPath = join(pinDir, "holdout-2026-08-26.json");
+    writeFileSync(
+      pinPath,
+      JSON.stringify({
+        manifestHashes: ["0".repeat(64)],
+        markets: ["GBPUSD"],
+        rosterHash: rosterHashOf(["EURUSD", "GBPUSD", "NZDCHF", "XAUUSD"]),
+        rule: "stratified-per-class-20pct",
+      }) + "\n",
+    );
+    const summary = await summarize({ folds: ["fit", "select"], holdoutPinDir: pinDir, minFilled: 3, paths: [path] });
+    assert.equal(summary.holdout.basis, "symbols-read");
+    assert.deepEqual(summary.holdout.markets, ["NZDCHF"]);
+    assert.equal(summary.holdout.pinned, false);
+    assert.equal(summary.holdout.pinStands, true);
+    assert.equal(summary.holdout.pinState, "symbols-read");
+    assert.match(
+      formatSummary(summary),
+      /\(computed over the symbols read — no requested roster in the manifest — so unpinnable; .*holdout-2026-08-26\.json not consulted\)/,
+    );
   });
 
   it("skips rows the sweep did not accept and says how many", async () => {
-    const summary = await summarizeTuningFolds({
+    const summary = await summarize({
       folds: ["fit", "select"],
       minFilled: 3,
       paths: [writeCorpus(fixtureRows())],
@@ -239,7 +368,7 @@ describe("what it counts, and what it keeps apart", () => {
   });
 
   it("carries the gross arm beside the net one, and the gross arm earns more", async () => {
-    const summary = await summarizeTuningFolds({
+    const summary = await summarize({
       folds: ["fit", "select"],
       minFilled: 3,
       paths: [writeCorpus(fixtureRows())],
@@ -251,7 +380,7 @@ describe("what it counts, and what it keeps apart", () => {
   });
 
   it("puts the rate beside the money and names the markets that win most while losing", async () => {
-    const summary = await summarizeTuningFolds({
+    const summary = await summarize({
       folds: ["fit", "select"],
       minFilled: 3,
       paths: [writeCorpus(fixtureRows())],
@@ -263,26 +392,30 @@ describe("what it counts, and what it keeps apart", () => {
   });
 
   it("marks a cell THIN below the floor and never prints an expectancy over zero filled", async () => {
-    const summary = await summarizeTuningFolds({
+    const summary = await summarize({
       folds: ["fit", "select"],
       minFilled: 30,
       paths: [writeCorpus(fixtureRows())],
     });
     const text = formatSummary(summary);
-    assert.match(text, /\| forex \| baseline \| 12 \| 12 \| 0 \|.*\| THIN \|/);
+    // 24: the forex pool is EURUSD and GBPUSD (R4 act 2 — the stamp no
+    // longer excludes GBPUSD; NZDCHF, the stratified market, is out).
+    assert.match(text, /\| forex \| baseline \| 24 \| 24 \| 0 \|.*\| THIN \|/);
     assert.match(text, /markets above the thin floor at baseline: 0/);
   });
 
   it("splits the per-fold table so select stands apart from fit", async () => {
-    const summary = await summarizeTuningFolds({
+    const summary = await summarize({
       folds: ["fit", "select"],
       minFilled: 3,
       paths: [writeCorpus(fixtureRows())],
     });
     const fit = summary.byClassVariantFold.get("forex|baseline|fit")!;
     const select = summary.byClassVariantFold.get("forex|baseline|select")!;
-    assert.equal(fit.net.filled, 6);
-    assert.equal(select.net.filled, 6);
+    // Six EURUSD and six GBPUSD per fold (R4 act 2 pools the stamped-only
+    // market); the held-out NZDCHF's six are in neither.
+    assert.equal(fit.net.filled, 12);
+    assert.equal(select.net.filled, 12);
     assert.equal(summary.byClassVariantFold.has("forex|baseline|confirm"), false);
   });
 
@@ -290,7 +423,7 @@ describe("what it counts, and what it keeps apart", () => {
     const first = writeCorpus(fixtureRows());
     const second = writeCorpus(fixtureRows(), { anchor: "2026-08-25" }, "other");
     await assert.rejects(
-      summarizeTuningFolds({ folds: ["fit", "select"], minFilled: 3, paths: [first, second] }),
+      summarize({ folds: ["fit", "select"], minFilled: 3, paths: [first, second] }),
       /two measurements cannot be summarised as one/,
     );
   });
@@ -298,7 +431,7 @@ describe("what it counts, and what it keeps apart", () => {
   it("pools two shards of one measurement", async () => {
     const first = writeCorpus(fixtureRows());
     const second = writeCorpus(fixtureRows(), {}, "other");
-    const summary = await summarizeTuningFolds({
+    const summary = await summarize({
       folds: ["fit", "select"],
       minFilled: 3,
       paths: [first, second],
@@ -349,5 +482,12 @@ describe("as a binary", () => {
     assert.equal(result.code, 0, result.stderr);
     assert.match(result.stdout, /confirm: SEALED, not read/);
     assert.match(result.stdout, /## Per market × variant/);
+    // The binary looks for the pin in the tracked directory, relative to its
+    // cwd — a temp directory here, so the fixture's anchor is unpinned and
+    // the header says so rather than reading R3's pin against a fixture.
+    assert.match(
+      result.stdout,
+      /holdout: stratified-per-class-20pct — 1 markets excluded from every class pool, labelled HELD OUT per market \(unpinned — no docs\/research\/r4\/holdout-2026-08-26\.json/,
+    );
   });
 });

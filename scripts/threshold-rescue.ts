@@ -19,6 +19,17 @@
 // corpus — `tuningFolds`). A rescue found here is a candidate for that
 // read, not a result.
 //
+// NO LEDGERED READ HERE, BY DESIGN (R4 act 2, review finding D2(d)). The
+// two purpose-confirm readers — roster-expectancy-audit and
+// cost-sensitivity-verdict — take `--ledgered-read` and print the shipped
+// cell's confirm figures from the one read's artifact. This screen takes
+// no such flag and consumes NOTHING from confirm: a threshold is a filter
+// with no confirmation path of its own, and a curve over thresholds served
+// from the held-back fold would be a selection on it. A rescue proposed
+// here becomes a supplementary grid arm (confidenceThreshold is a grid
+// axis) and is confirmed, if at all, as an accepted variant through the
+// one read.
+//
 // The corpus was swept with --capture-all at confidenceThreshold=0, so
 // every decision is present with its score; a threshold is a READ over
 // rows already measured, not a new assumption.

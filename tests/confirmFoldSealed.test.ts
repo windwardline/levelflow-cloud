@@ -18,6 +18,17 @@ import { buildSweepManifest, seriesFacts } from "../scripts/sweepManifest.ts";
 import { SEALED_FOLD } from "../scripts/sweepStats.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
+import {
+  ACCEPT_RULE,
+  artifactHashOf,
+  DECLINE_RULE,
+  DECLINE_RULE_HASH,
+  declineCandidateOf,
+  type Figure,
+  type LedgeredReadArtifact,
+  m3Of,
+  ADMISSIBILITY_RULE,
+} from "../scripts/ledgeredRead.ts";
 
 /**
  * THE CONFIRM FOLD IS SEALED — proven by execution, reader by reader.
@@ -47,6 +58,23 @@ import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
  *
  * Residue, stated: the confirm fold's row COUNT and data-absent count are
  * visible (readers state what they withheld); that is not an outcome.
+ *
+ * THE LEDGERED READ, IN THE FIXTURE (R4 act 2). The two purpose-confirm
+ * readers — roster-expectancy-audit and cost-sensitivity-verdict — take a
+ * `--ledgered-read <path>` and print the shipped cell's confirm figures
+ * from that artifact, verbatim. Every fixture directory carries ONE such
+ * artifact, `ledgered-read.json`, built at fixture time from the contract
+ * (`artifactHashOf`, the pre-registered rules) with CONSTANT figures that
+ * are not derived from the fixture's rows, and carrying the fixture
+ * manifests' hashes in `shardHashes`. The four fixtures share those hashes
+ * — `buildSweepManifest` hashes the manifest payload, never the emit bytes,
+ * and A, B and C differ only in confirm-row outcomes — so one artifact
+ * matches all four and the printed figures are constant across them BY
+ * CONSTRUCTION. That is not a leak: the ledger vouches for the figure, this
+ * guard vouches for the reader — that nothing it prints moves with the fold
+ * it reads through the door. The with-flag runs live in EXTRA_RUNS beside
+ * the without-flag ones, and the fixture test below checks the four
+ * artifacts are the same bytes rather than assuming it.
  */
 
 const execFileAsync = promisify(execFile);
@@ -271,7 +299,13 @@ const TREASURY = {
   lastTime: Date.UTC(2027, 0, 1),
 };
 
-function writeCorpus(dir: string, name: string, rows: Row[], captureAll: boolean, allRows: Row[]): string {
+function writeCorpus(
+  dir: string,
+  name: string,
+  rows: Row[],
+  captureAll: boolean,
+  allRows: Row[],
+): { manifestHash: string; path: string } {
   const emitPath = join(dir, name);
   writeFileSync(emitPath, rows.map((row) => JSON.stringify(row)).join("\n") + "\n");
   const manifest = buildSweepManifest({
@@ -322,6 +356,10 @@ function writeCorpus(dir: string, name: string, rows: Row[], captureAll: boolean
     ],
     generatedAt: "2026-09-02T20:00:00.000Z",
     grid: [{}, { runnerProtection: "hold" }],
+    // The roster the sweep was ASKED for — every symbol here survived, so it
+    // equals `symbols`. The held-out helper (R4 act 2, deliverable 4) draws
+    // its set from this field and refuses a manifest without it.
+    requestedSymbols: SYMBOLS.map(({ symbol }) => symbol),
     stepBars: 16,
     symbols: SYMBOLS.map(({ symbol }) => ({
       calibration: {},
@@ -339,7 +377,71 @@ function writeCorpus(dir: string, name: string, rows: Row[], captureAll: boolean
     warmupBars: 240,
   } as Parameters<typeof buildSweepManifest>[0]);
   writeFileSync(`${emitPath}.manifest.json`, JSON.stringify(manifest, null, 2) + "\n");
-  return emitPath;
+  return { manifestHash: manifest.manifestHash, path: emitPath };
+}
+
+/**
+ * The fixture's ledgered read: CONSTANT figures per market, chosen here and
+ * never derived from the fixture's rows, under the contract's own hash and
+ * pre-registered rules. Every consumer that prints from it prints the same
+ * thing on A, A′, B and C by construction (see the header).
+ */
+function ledgeredReadFor(shardHashes: string[], emitSha256: Record<string, string>): LedgeredReadArtifact {
+  const figure = (n: number, expectancy: number, halfWidth: number): Figure => ({
+    n,
+    expectancy,
+    lower: expectancy - halfWidth,
+    upper: expectancy + halfWidth,
+  });
+  const markets: LedgeredReadArtifact["markets"] = {};
+  SYMBOLS.forEach(({ symbol }, index) => {
+    const heldBack = index % 2 === 0;
+    const select = {
+      gross: figure(60, 0.03 - index * 0.02, 0.01),
+      net: figure(60, 0.01 - index * 0.02, 0.01),
+    };
+    const confirmNet = figure(40, 0.04 - index * 0.03, 0.02);
+    markets[symbol] = {
+      accepted: [],
+      heldOut: index === 1,
+      shipped: {
+        confirm: { gross: figure(40, 0.06 - index * 0.03, 0.02), net: confirmNet },
+        declineCandidate: declineCandidateOf(select),
+        m3: m3Of(confirmNet, heldBack),
+        provenance: {
+          derived: false,
+          heldBack,
+          known: true,
+          overlapWithConfirmDays: heldBack ? 0 : 30,
+          selectionWindow: null,
+          tranche: null,
+        },
+        select,
+        variant: BASELINE,
+      },
+    };
+  });
+  const base: Omit<LedgeredReadArtifact, "artifactHash"> = {
+    analyzerVersion: "2026.09.02.sealed-guard",
+    anchor: ANCHOR,
+    baselineVariant: BASELINE,
+    calendarKey: createHash("sha256").update("sealed-guard-calendar").digest("hex"),
+    corpusId: createHash("sha256").update("sealed-guard-corpus").digest("hex"),
+    emitSha256,
+    foldSource: "emitted",
+    holdout: { markets: ["GBPUSD"], rule: "stratified-per-class-20pct" },
+    includeHoldout: true,
+    ledgerPath: "docs/research/confirm-reads/confirm-log-sealed-guard.jsonl",
+    markets,
+    readAt: "2026-08-30T12:00:00.000Z",
+    readId: "sealed-guard-read",
+    rules: { accept: ACCEPT_RULE, admissibility: ADMISSIBILITY_RULE, decline: DECLINE_RULE, declineHash: DECLINE_RULE_HASH },
+    shardHashes,
+    symbolFilter: null,
+    symbolsRead: SYMBOLS.map(({ symbol }) => symbol),
+    verdictUnit: "market",
+  };
+  return { ...base, artifactHash: artifactHashOf(base) };
 }
 
 type Fixture = {
@@ -347,6 +449,7 @@ type Fixture = {
   dir: string;
   gated: string;
   hashes: string[];
+  ledgeredRead: string;
   out: string;
   sizes: string[];
 };
@@ -354,8 +457,27 @@ type Fixture = {
 function fixture(shape: Shape, label: string): Fixture {
   const dir = mkdtempSync(join(tmpdir(), `sealed-${label}-`));
   const rows = rowsFor(shape);
-  const captureAll = writeCorpus(dir, "capture-all.jsonl", rows, true, rows);
-  const gated = writeCorpus(dir, "gated.jsonl", rows.filter((row) => row.accepted === true), false, rows);
+  const { manifestHash, path: captureAll } = writeCorpus(dir, "capture-all.jsonl", rows, true, rows);
+  const { manifestHash: gatedHash, path: gated } = writeCorpus(
+    dir,
+    "gated.jsonl",
+    rows.filter((row) => row.accepted === true),
+    false,
+    rows,
+  );
+  // The ledgered read the two purpose-confirm readers open with
+  // --ledgered-read: constant figures, both manifests' hashes in
+  // shardHashes (see the header).
+  const ledgeredRead = join(dir, "ledgered-read.json");
+  const digest = (file: string) => createHash("sha256").update(readFileSync(file)).digest("hex");
+  writeFileSync(
+    ledgeredRead,
+    JSON.stringify(
+      ledgeredReadFor([manifestHash, gatedHash], { [manifestHash]: digest(captureAll), [gatedHash]: digest(gated) }),
+      null,
+      2,
+    ) + "\n",
+  );
   const out = join(dir, "out");
   mkdirSync(out);
   // A candidate file for the sizing pass: one accepted variant per market,
@@ -371,10 +493,11 @@ function fixture(shape: Shape, label: string): Fixture {
   );
   // The recorded-read artifacts the two picks-bound readers consult, in
   // the fixture's own tree: every market owns a derived cell (a recorded
-  // confirm read above zero) so each is read at the grid variant. The
-  // audit's fall-through branch reads a NAMED 4d-era baseline cell and
-  // refuses the empty one, which is what the R3 corpora carry — an R4
-  // instrument question, recorded, not a seal question.
+  // confirm read above zero). market-dossier reads each at the grid
+  // variant; the audit (R4 act 2) names the shipped cell from the
+  // manifest's grid — this fixture's grid is [{}, {runnerProtection:
+  // "hold"}], the R3 shape, so every market is read at the EMPTY cell and
+  // the derived map is an annotation beside it, never a row filter.
   const picksDir = join(dir, "docs/research/baseline-2026-08-10");
   mkdirSync(picksDir, { recursive: true });
   for (const cycle of ["4d", "4d-holdout", "4d-totality"]) {
@@ -392,7 +515,12 @@ function fixture(shape: Shape, label: string): Fixture {
     captureAll,
     dir,
     gated,
-    hashes: files.map((file) => createHash("sha256").update(readFileSync(file)).digest("hex")),
+    hashes: [
+      ...files.map((file) => createHash("sha256").update(readFileSync(file)).digest("hex")),
+      // The ledgered read's own hash binds the emit digests and so differs per fixture: masked like a corpus hash.
+      (JSON.parse(readFileSync(ledgeredRead, "utf8")) as { artifactHash: string }).artifactHash,
+    ],
+    ledgeredRead,
     out,
     sizes: files.map((file) => String(statSync(file).size)),
   };
@@ -400,7 +528,8 @@ function fixture(shape: Shape, label: string): Fixture {
 
 /**
  * The per-reader argument table. Tokens: F the capture-all corpus, G its
- * gated twin, O the fixture's artifact directory, C the candidate file.
+ * gated twin, O the fixture's artifact directory, C the candidate file, L
+ * the fixture's ledgered-read artifact.
  * Every reader runs from the repo root (some read tracked side inputs by
  * relative path) and every artifact writer is pointed at O.
  */
@@ -421,6 +550,10 @@ const READERS: Record<string, { args: string[]; cwd?: "fixture"; note?: string }
   },
   "geometry-evidence": { args: ["F"] },
   "grid-totalr": { args: ["F", "--permutations", "20"], note: "without --confirm-final: the sealed path" },
+  "holdout-set": {
+    args: ["M", "--out", "O/holdout.json"],
+    note: "manifest-derived: pins the fixture's requested roster, identical across A/B/C by construction",
+  },
   "market-dossier": { args: ["--net", "F", "--out", "O/dossier.json"], cwd: "fixture" },
   "roster-expectancy-audit": { args: ["F", "--out", "O/audit.json"], cwd: "fixture" },
   "stop-provenance": { args: ["F"] },
@@ -430,12 +563,23 @@ const READERS: Record<string, { args: string[]; cwd?: "fixture"; note?: string }
   "two-arm-reconcile": { args: ["--gated", "G", "--capture-all", "F"] },
 };
 
-// A second argv for a reader whose sealed path has a second shape.
-const EXTRA_RUNS: Array<{ label: string; reader: string; args: string[] }> = [
+// A second argv for a reader whose sealed path has a second shape. The
+// coverage check above is by reader NAME, so a second shape lives here.
+// The two ledgered-read consumers run WITH the flag as well as without:
+// their printed confirm figures come from the fixture's artifact, constant
+// across A, A′, B and C by construction (header), and the guard proves the
+// reader itself still moves with nothing on the fold.
+const EXTRA_RUNS: Array<{ args: string[]; cwd?: "fixture"; label: string; reader: string }> = [
   {
-    args: ["F", "--permutations", "20", "--per-market-folds"],
-    label: "grid-totalr --per-market-folds",
-    reader: "grid-totalr",
+    args: ["F", "--out", "O/audit.json", "--ledgered-read", "L"],
+    cwd: "fixture",
+    label: "roster-expectancy-audit --ledgered-read",
+    reader: "roster-expectancy-audit",
+  },
+  {
+    args: ["--paired", "F", "--cells", `EURUSD|${BASELINE};ZCUSX|${VARIANT}`, "--out", "O/cost.json", "--ledgered-read", "L"],
+    label: "cost-sensitivity-verdict --ledgered-read",
+    reader: "cost-sensitivity-verdict",
   },
 ];
 
@@ -481,7 +625,11 @@ function mask(text: string, fixtures: Fixture[]): string {
   );
   for (const entry of fixtures) {
     masked = masked.split(entry.dir).join("<dir>");
-    for (const hash of entry.hashes) masked = masked.split(hash).join("<sha256>");
+    for (const hash of entry.hashes) {
+      masked = masked.split(hash).join("<sha256>");
+      // Readers name a hash by its first twelve characters.
+      masked = masked.split(hash.slice(0, 12)).join("<sha256:12>");
+    }
     for (const size of entry.sizes) masked = masked.replace(new RegExp(`\\b${size}\\b`, "g"), "<bytes>");
   }
   return masked;
@@ -492,7 +640,7 @@ function isInput(entry: Fixture, full: string): boolean {
   const rel = relative(entry.dir, full);
   return rel === "capture-all.jsonl" || rel === "capture-all.jsonl.manifest.json" ||
     rel === "gated.jsonl" || rel === "gated.jsonl.manifest.json" ||
-    rel === "candidates.json" || rel.startsWith("docs/");
+    rel === "candidates.json" || rel === "ledgered-read.json" || rel.startsWith("docs/");
 }
 
 /**
@@ -538,6 +686,8 @@ async function run(
     token === "F" ? entry.captureAll
     : token === "G" ? entry.gated
     : token === "C" ? join(entry.dir, "candidates.json")
+    : token === "L" ? entry.ledgeredRead
+    : token === "M" ? `${entry.captureAll}.manifest.json`
     : token.startsWith("O/") ? join(out, token.slice(2))
     : token
   );
@@ -700,6 +850,20 @@ describe("the confirm fold is sealed: no reader's output moves with it", () => {
 
   it("fixtures A and A′ are byte-identical corpora, and B and C differ from A only in confirm rows", () => {
     assert.deepEqual(fixtures.a.hashes, fixtures.a2.hashes);
+    // The ledgered read is the same bytes in every fixture — the construction
+    // the header claims, checked rather than assumed. If it ever differs, a
+    // with-flag run's constancy would be proving nothing about the reader.
+    // …modulo the two fields that BIND it to its corpus's bytes (the emit
+    // digests and, through them, the artifact's own hash): those differ by
+    // construction between A and B/C, and the guard masks the hashes.
+    const modulo = (path: string) => {
+      const { artifactHash: _hash, emitSha256: _bytes, ...rest } = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+      return rest;
+    };
+    const ledgered = modulo(fixtures.a.ledgeredRead);
+    for (const [shape, other] of [["A′", fixtures.a2], ["B", fixtures.b], ["C", fixtures.c]] as const) {
+      assert.deepEqual(modulo(other.ledgeredRead), ledgered, `${shape}'s ledgered read differs from A's`);
+    }
     const parse = (path: string) => readFileSync(path, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Row);
     const a = parse(fixtures.a.captureAll);
     for (const [shape, other] of [["B", fixtures.b], ["C", fixtures.c]] as const) {

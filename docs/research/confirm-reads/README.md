@@ -108,3 +108,47 @@ outside the record. The flag exists so the executed tests can drive the real
 binaries without appending here; an operator grading a real corpus has no
 reason to pass it, and it is not an escape from the discipline —
 `--acknowledge-prior-reads` is the sanctioned one, and it still logs.
+
+
+## The read since R4 act 2 (2026-09-02)
+
+The read covers **every market's shipped cell** as well as the accepted
+variants: per market, the shipped cell's absolute confirm expectancy NET and
+GROSS with a 95% interval and n, M3's outcome against the pre-registered
+decline rule (`scripts/ledgeredRead.ts`, `DECLINE_RULE`, hashed into the
+artifact), and `heldBack` — whether the cell was selected on rows inside this
+corpus's confirm window, from `docs/research/r4/shipped-cell-provenance.json`.
+A market with no provenance is recorded as NOT held back, and no consumer may
+print a figure that is not held back. Consequently a `--confirm-final` run over
+a corpus holding confirm rows is a read whether or not any variant was
+accepted: **one burn for the whole program, taken once**, after every
+supplementary arm has been graded on select and frozen.
+
+The read writes two files: the ledger line, and the read's own artifact
+(`--read-out`, or `ledgered-read-<corpus>-<readId>.json` beside the ledger),
+whose `artifactHash` the line records. The line now carries `baselineVariant`,
+`verdictUnit`, `includeHoldout`, `symbolFilter`, `symbolsRead`, the holdout
+rule and set, `emitSha256` per shard (the bytes, which no manifest hash binds),
+`calendarKey` and `artifactHash`. Consumers open the artifact only through
+`readLedgeredArtifact(path, { manifestHash })`, which refuses a condemned,
+foreign, tampered or re-ruled artifact.
+
+**The held-back calendar.** LA-6 keyed the prior-read refusal on corpus
+identity, and a supplementary arm at the same anchor is a new identity — the
+same held-back fold could have been read twice under two grids. The ledger
+line records `confirmSpans`: per requested symbol (and every symbol the shards
+carry), the confirm window in DATES ONLY — no analyzer version, clock or fold
+shape enters it, because none of those makes the bars different bars. The
+prior-read scan refuses a read whose windows OVERLAP a recorded read's on any
+shared symbol, with the same acknowledgement escape; a recorded read on a
+manifest without `requestedSymbols`, or carrying a symbol its request did not
+name, is refused before the fold opens. `calendarKey` is only the hash of the
+spans, for the eye. A read at any verdict unit burns the calendar: the fold
+read is the same fold.
+
+**No per-market fold re-cut.** The 2026-08-11 totality mode re-cut each
+market's span from row instants; under the sealed door it demoted emitted
+select rows into a local fit, and under `--confirm-final` it relabelled a
+median 329 days of the held-back fold into select. It is retired; the emitted
+per-class labels are the only fold source, and `--verdict-unit market` is the
+per-market grain.

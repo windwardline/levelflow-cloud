@@ -42,6 +42,7 @@ import {
   assertManifestedCorpusStreaming,
   emptyStats,
   expectancy,
+  grossView,
   readLinesSync,
   rDeltaInterval95,
   rExpectancyInterval95,
@@ -52,13 +53,33 @@ import {
   type SweepStats,
 } from "./sweepStats.ts";
 import { randomUUID } from "node:crypto";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import {
   sha256Hex,
   stableStringify,
   type SweepManifest,
 } from "./sweepManifest.ts";
-import { stratifiedHoldout } from "./sweepFolds.ts";
+import { describeHeldOut, resolveHeldOut } from "./sweepFolds.ts";
+import {
+  ACCEPT_RULE,
+  ADMISSIBILITY_RULE,
+  type AcceptedVariantRead,
+  artifactHashOf,
+  DECLINE_RULE,
+  DECLINE_RULE_HASH,
+  declineCandidateOf,
+  type Figure,
+  type LedgeredReadArtifact,
+  m3Of,
+  type M3Outcome,
+  type ShippedCellRead,
+  sha256File,
+  stableJson,
+} from "./ledgeredRead.ts";
+import { writeResearchArtifact } from "./researchArtifact.ts";
+import {
+  readFileSync,
+} from "node:fs";
 import {
   describeNumericToken,
   describeToken,
@@ -124,11 +145,12 @@ function addRowToCube(
     if (row.accepted === false) {
       return;
     }
-    // 3e: holdout markets exist for the one confirmation read and are
-    // excluded from every tuning aggregate by default.
-    if (row.holdout === true && !options.includeHoldout) {
-      return;
-    }
+    // The driver's stamped `holdout` flag is PROVENANCE only (R4 act 2):
+    // the one holdout population is the stratified set the gate resolves
+    // over the requested roster, applied at verdict time. Nothing here
+    // reads the stamp; `options.includeHoldout` is kept on the signature
+    // for its callers and decides nothing in this function.
+    void options;
     const variant = typeof row.variant === "string" ? row.variant : "baseline";
     const split = typeof row.split === "string" ? row.split : "all";
     if (!cube.has(row.symbol)) {
@@ -957,6 +979,9 @@ function mergeInto(target: SweepStats, source: SweepStats | undefined): void {
   target.n += source.n;
   target.rSum += source.rSum;
   target.rSumSq += source.rSumSq;
+  target.grossFilled += source.grossFilled;
+  target.grossRSum += source.grossRSum;
+  target.grossRSumSq += source.grossRSumSq;
   target.stops += source.stops;
   target.wins += source.wins;
 }
@@ -970,17 +995,30 @@ export async function gradeCorpus(
   emitPathOrPaths: string | string[],
   options: GateOptions & {
     includeHoldout?: boolean;
-    // Totality (owner mandate, 2026-08-11): folds re-cut per MARKET over
-    // each market's own row span — 50/25/25 by decision time — with
-    // containment EXACT per row: a row whose exit crosses its fold's end
-    // is dropped, stricter than the emit-time embargo it replaces.
-    // row.split is ignored in this mode; the corpus's times are the
-    // authority.
-    perMarketFolds?: boolean;
+    // There is deliberately NO per-market fold re-cut here (R4 act 2,
+    // 2026-09-02). The totality mode of 2026-08-11 re-cut each market's
+    // span at 50/75% from row instants and discarded `row.split`; under
+    // the sealed door it never produced a market-local confirm cell but
+    // silently demoted emitted select rows into a local fit, and under
+    // --confirm-final it relabelled a median 329 days of the HELD-BACK
+    // fold into select, where acceptance is decided. The emitted per-class
+    // labels are the only fold source; the per-class calendar is the
+    // remedy for the starvation the re-cut was built for. Its absence is
+    // pinned by tests/acceptanceGate.test.ts.
     // The holdout cycle's surgical read: only these symbols enter the
     // cube at all, so a confirm-final run consults exactly the named
     // markets' held-back rows and nothing else's.
     symbolFilter?: Set<string>;
+    // The shipped-cell provenance artifact (scripts/shipped-cell-provenance.ts):
+    // whether each market's shipped cell was selected on rows inside this
+    // corpus's confirm window. Absent, every shipped-cell confirm figure is
+    // recorded as NOT held back — the conservative reading — and no
+    // consumer may print it.
+    provenancePath?: string;
+    // Where the ledgered read writes its artifact (scripts/ledgeredRead.ts).
+    // The read records the artifact's hash in its ledger line, so the
+    // artifact is written before the line; unnamed, it lands beside the ledger.
+    readArtifactPath?: string;
     // 4d: "market" grades every symbol on its own rows (singleton
     // groups, absolute sample floor); default stays the 4c class unit.
     verdictUnit?: "class" | "market";
@@ -1005,7 +1043,22 @@ export async function gradeCorpus(
   // (round 27: the stratified rule holds nothing out of a class under
   // three members, and the stamp is one shard's class-blind 1-in-5).
   heldOutMarkets: number;
+  /** The one holdout population — the stratified set over the roster, named. */
+  heldOutSet: string[];
   manifest: SweepManifest;
+  /** The held-back calendar this corpus's confirm fold names (R4 act 2). */
+  calendarKey: string;
+  /** The recorded read, when one happened: where it was filed and what it wrote. */
+  read: {
+    artifactHash: string;
+    artifactPath: string;
+    calendarKey: string;
+    corpusId: string;
+    ledgerPath: string;
+    readId: string;
+  } | null;
+  /** Every market's shipped cell, graded absolutely (select; confirm only under the read). */
+  shipped: Map<string, ShippedCellRead>;
   /** Rows the door withheld — the confirm fold unless this was the recorded read. */
   sealedRows: number;
   verdicts: Map<string, Map<string, VariantVerdict>>;
@@ -1117,6 +1170,81 @@ export async function gradeCorpus(
     throw new Error("gradeCorpus: no corpus paths given");
   }
   const firstConditions = conditionsOf(manifest);
+  // The held-back CALENDAR (R4 act 2): a later corpus over the same confirm
+  // windows — a supplementary arm at the same anchor — is a new identity,
+  // and LA-6 keyed the prior-read refusal on identity alone, so the same
+  // fold could be read twice under two grids. The calendar key names the
+  // fold itself; the scan below refuses a second read of it over
+  // overlapping markets without acknowledgement.
+  // The roster REQUESTED at sweep time, for the calendar overlap test: a
+  // subset read must not move what counts as overlapping. A recorded read
+  // needs the roster; a manifest without one is refused before the fold is
+  // opened (a read over "the symbols read" could dodge the overlap test).
+  const requestedUnion = new Set<string>();
+  for (let index = 0; index < shardManifests.length; index += 1) {
+    const requested = shardManifests[index].requestedSymbols;
+    if (!Array.isArray(requested) || requested.length === 0) {
+      if (options.confirmFinal) {
+        throw new Error(
+          `${paths[index]}: the manifest carries no requestedSymbols — a recorded read ` +
+            `needs the roster the sweep was asked for, so the held-back calendar can be ` +
+            `matched over it; a read over the symbols that happen to have rows could ` +
+            `dodge the one-burn-per-program refusal`,
+        );
+      }
+      for (const entry of shardManifests[index].symbols) requestedUnion.add(entry.symbol);
+    } else {
+      for (const symbol of requested) requestedUnion.add(symbol);
+    }
+  }
+  // The held-back CALENDAR, in DATES ONLY (R4 act 2, and its refuter): per
+  // requested symbol, the confirm window this corpus holds back — the class's
+  // fold on a per-class corpus, the global fold otherwise. An analyzer
+  // version, a clock name, a fold SHAPE (global versus by-class over the
+  // same dates) or a one-day shift are not different held-back periods; the
+  // bars are the same bars. The scan below matches a prior read by OVERLAP
+  // of these windows over shared symbols, and `calendarKey` is only the
+  // hash of the spans, for the ledger line's eye.
+  const spanOf = (folds: Array<{ name: string; startMs: number; endMs: number }> | undefined) => {
+    const confirm = folds?.find((fold) => fold.name === "confirm");
+    return confirm ? { endMs: confirm.endMs, startMs: confirm.startMs } : null;
+  };
+  // Spans over the requested roster AND every symbol the shards carry: a
+  // manifest whose rows name a market its request did not is refused under
+  // a recorded read (the fresh-eyes refuter walked an unrequested EURUSD
+  // past the overlap test that way), and the spans cover both populations
+  // regardless. Symbols are matched upper-cased.
+  const spanSymbols = new Set<string>([...requestedUnion].map((symbol) => symbol.toUpperCase()));
+  for (const shardManifest of shardManifests) {
+    for (const entry of shardManifest.symbols) {
+      const symbol = entry.symbol.toUpperCase();
+      if (options.confirmFinal && !requestedUnion.has(entry.symbol) && !requestedUnion.has(symbol)) {
+        throw new Error(
+          `${entry.symbol}: carried by a shard but absent from the manifests' requestedSymbols — ` +
+            `a recorded read matches the held-back calendar over the requested roster, and a ` +
+            `market that rode in outside it would dodge that match`,
+        );
+      }
+      spanSymbols.add(symbol);
+    }
+  }
+  const confirmSpans: Record<string, { endMs: number; startMs: number }> = {};
+  for (const symbol of [...spanSymbols].sort()) {
+    const span = manifest.foldsByClass
+      ? spanOf(manifest.foldsByClass[getAssetType(symbol)])
+      : spanOf(manifest.folds);
+    if (span) confirmSpans[symbol] = span;
+  }
+  const calendarKey = sha256Hex(stableJson(confirmSpans));
+  const overlapsCalendar = (recorded: Record<string, { endMs: number; startMs: number }> | undefined): string[] =>
+    recorded
+      ? Object.entries(recorded)
+        .filter(([symbol, span]) => {
+          const mine = confirmSpans[symbol.toUpperCase()];
+          return mine !== undefined && span.startMs < mine.endMs && mine.startMs < span.endMs;
+        })
+        .map(([symbol]) => symbol.toUpperCase())
+      : [];
   for (let index = 1; index < shardManifests.length; index += 1) {
     if (conditionsOf(shardManifests[index]) !== firstConditions) {
       throw new Error(
@@ -1175,51 +1303,15 @@ export async function gradeCorpus(
   // case above is not this case, and the earlier comment covered only
   // the former.
   const corpusId = sha256Hex(firstConditions);
-  const held = options.includeHoldout
-    ? new Set<string>()
-    : stratifiedHoldout([...unionSymbols], (symbol) => getAssetType(symbol));
-  // Per-market fold boundaries from the manifests' own measured series
-  // spans — no pre-pass over the corpus needed.
-  const marketSpans = new Map<string, { first: number; last: number }>();
-  if (options.perMarketFolds) {
-    for (const shardManifest of shardManifests) {
-      for (const entry of shardManifest.symbols) {
-        const series =
-          (entry as {
-            series?: Record<string, { firstTime?: number; lastTime?: number }>;
-          }).series?.["15min"];
-        if (
-          !Number.isFinite(series?.firstTime) ||
-          !Number.isFinite(series?.lastTime)
-        ) continue;
-        const current = marketSpans.get(entry.symbol);
-        marketSpans.set(entry.symbol, {
-          first: Math.min(current?.first ?? Infinity, series!.firstTime!),
-          last: Math.max(current?.last ?? -Infinity, series!.lastTime!),
-        });
-      }
-    }
-  }
-  const refold = (row: SweepEmitRow): SweepEmitRow | null => {
-    if (!options.perMarketFolds) return row;
-    const span = marketSpans.get(row.symbol);
-    const time = Number(row.time);
-    if (!span || !Number.isFinite(time)) return null;
-    const fitEnd = span.first + (span.last - span.first) * 0.5;
-    const selectEnd = span.first + (span.last - span.first) * 0.75;
-    const fold = time < fitEnd ? "fit" : time < selectEnd ? "select" : "confirm";
-    const foldEnd = fold === "fit"
-      ? fitEnd
-      : fold === "select"
-      ? selectEnd
-      : span.last + 1;
-    const exit = Number((row as { exitAtMs?: number }).exitAtMs);
-    if (Number.isFinite(exit) && exit > foldEnd) {
-      // Exact containment: this row's outcome leaked past its fold.
-      return null;
-    }
-    return { ...row, split: fold };
-  };
+  // The one holdout population: the stratified set over the roster. The
+  // class unit EXCLUDES it from its pools (cross-market tuning transfer is
+  // real there); the market unit grades every market on its own rows and
+  // LABELS the held-out ones (R4 act 2) — at market grain a holdout
+  // protects nothing, and dropping a market hides a number.
+  const holdout = resolveHeldOut(shardManifests);
+  const stratified = holdout.held;
+  const excludesHeldOut = !options.includeHoldout && options.verdictUnit !== "market";
+  const held = excludesHeldOut ? stratified : new Set<string>();
   // Rows the door withheld (the confirm fold, unless this is the recorded
   // read) — stated in the label so the population read is explicit.
   let sealedRows = 0;
@@ -1232,14 +1324,10 @@ export async function gradeCorpus(
       if (options.symbolFilter && !options.symbolFilter.has(row.symbol)) {
         return;
       }
-      const refolded = refold(row);
-      if (refolded === null) return;
-      addRowToCube(cube, refolded, { includeHoldout: true });
+      // The emitted split label is the fold. Nothing here re-cuts time.
+      addRowToCube(cube, row, { includeHoldout: true });
     }, {
-      // Sealed unless this read is the recorded one. Under --per-market-folds
-      // without confirmFinal, the re-cut therefore sees only the corpus's
-      // tuning rows: nothing from the emitted confirm period may be consumed,
-      // even re-labelled into a market's own select third.
+      // Sealed unless this read is the recorded one.
       confirm: options.confirmFinal ? "read" : "sealed",
     });
     sealedRows += read.sealedRows;
@@ -1449,11 +1537,14 @@ export async function gradeCorpus(
           );
         }
         const entry = parsed as {
+          calendarKey?: string;
+          confirmSpans?: Record<string, { endMs: number; startMs: number }>;
           corpusHash: string;
           identity?: string;
           readAt?: string;
           readId?: string;
           shardHashes?: string[];
+          symbolsRead?: string[];
         };
         const byIdentity = entry.corpusHash === corpusId;
         // A shard this read covers appearing in the entry's recorded
@@ -1469,12 +1560,26 @@ export async function gradeCorpus(
         // …and the retired key form: the first version keyed each entry
         // on a shard's own manifestHash.
         const byRetiredKey = shardHashes.has(entry.corpusHash);
-        if (!byIdentity && !byRetiredKey && !byShardOverlap) return;
+        const sharedDates = overlapsCalendar(entry.confirmSpans);
+        const byCalendar = sharedDates.length > 0 ||
+          (entry.calendarKey === calendarKey &&
+            (entry.symbolsRead ?? []).some((symbol) => requestedUnion.has(symbol)));
+        if (!byIdentity && !byRetiredKey && !byShardOverlap && !byCalendar) return;
         // One read is one entry; a readId repeated across the retired
         // per-directory ledgers is that read seen twice, not two reads.
         if (entry.readId) {
           if (seenReadIds.has(entry.readId)) return;
           seenReadIds.add(entry.readId);
+        }
+        if (byCalendar && !byIdentity && !byRetiredKey && !byShardOverlap) {
+          priorEvidence.push(
+            `${entry.readAt ?? "no timestamp"} in ${logPath} (matched by the SAME ` +
+              `HELD-BACK DATES over ${sharedDates.length > 0 ? sharedDates.length : "the recorded"} ` +
+              `shared markets${sharedDates.length > 0 ? ` (${sharedDates.slice(0, 5).join(", ")}${sharedDates.length > 5 ? ", …" : ""})` : ""}, ` +
+              `from another corpus ${entry.corpusHash.slice(0, 12)} — one burn per ` +
+              `program: a supplementary arm reads the fold its predecessor already read)`,
+          );
+          return;
         }
         const recorded = new Set(entry.shardHashes ?? []);
         const population = entry.shardHashes === undefined
@@ -1531,7 +1636,7 @@ export async function gradeCorpus(
   // A folded corpus names its own partition; a legacy two-split corpus
   // maps train->fit, test->select and has no confirm fold to read.
   const derived: FoldNames = options.foldNames ??
-    (manifest.folds || manifest.foldsByClass || options.perMarketFolds
+    (manifest.folds || manifest.foldsByClass
       ? { confirm: "confirm", fit: "fit", select: "select" }
       : { fit: "train", select: "test" });
   const foldNames: FoldNames = options.confirmFinal
@@ -1575,34 +1680,200 @@ export async function gradeCorpus(
   // a legacy two-split corpus; rounds 38–40 tightened acceptance three
   // times, so the zero-accept confirm run is a transition this change
   // set itself creates.
-  const confirmRead = options.confirmFinal === true &&
-    foldNames.confirm !== undefined &&
-    [...verdicts.values()].some((byVariant) =>
-      [...byVariant.values()].some(
-        (verdict) => verdict.confirmTotalDelta !== null,
-      )
+  // THE SHIPPED CELL, per market (R4 act 2): its select-fold expectancy
+  // NET and GROSS with a 95% interval, the pre-registered decline rule
+  // applied mechanically, and — only under the recorded read — its confirm
+  // figures with M3's outcome against that rule. A shipped cell is graded
+  // absolutely; a derived cell's positive select grade is in-sample (it was
+  // picked on nearly the same window), which the provenance states.
+  const baselineName = options.baselineVariant ?? "baseline";
+  const readingConfirm = options.confirmFinal === true && foldNames.confirm !== undefined;
+  // Provenance is optional and its absence is CONSERVATIVE: a market no
+  // provenance artifact names is read as `heldBack: false`, so its confirm
+  // figure comes out `not-held-back` and no consumer may print it as
+  // evidence (21 of 27 totality cells were selected inside the fold; an
+  // unknown one is treated the same way, never the other).
+  const provenance = loadProvenance(options.provenancePath);
+  if (readingConfirm && provenance === null) {
+    console.warn(
+      "LA-6: no --provenance artifact given — every shipped-cell confirm figure is " +
+        "recorded as not held back and no consumer will print one; pass " +
+        "docs/research/r4/shipped-cell-provenance.json for a read that can say otherwise",
     );
+  }
+  const figureOf = (cell: SweepStats | undefined): Figure | null => {
+    if (!cell || cell.filled === 0) return null;
+    const mean = expectancy(cell);
+    const interval = rExpectancyInterval95(cell);
+    if (mean === null || interval === null) return null;
+    return { expectancy: mean, lower: interval.lower, n: cell.filled, upper: interval.upper };
+  };
+  const shipped = new Map<string, ShippedCellRead>();
+  for (const symbol of [...cube.keys()].sort()) {
+    const cells = cube.get(symbol)!.get(baselineName);
+    const selectCell = cells?.get(foldNames.select);
+    const confirmCell = foldNames.confirm ? cells?.get(foldNames.confirm) : undefined;
+    const select = { gross: selectCell ? figureOf(grossView(selectCell)) : null, net: figureOf(selectCell) };
+    const confirm = readingConfirm
+      ? { gross: confirmCell ? figureOf(grossView(confirmCell)) : null, net: figureOf(confirmCell) }
+      : { gross: null, net: null };
+    const known = provenance?.get(symbol);
+    const prov = {
+      confirmationWindow: known?.confirmationWindow ?? null,
+      derived: known?.derived ?? false,
+      heldBack: known?.heldBack ?? false,
+      known: known !== undefined,
+      overlapWithConfirmDays: known?.overlapWithR3ConfirmDays ?? 0,
+      selectionWindow: known?.selectionWindow ?? null,
+      tranche: known?.tranche ?? null,
+    };
+    const m3 = readingConfirm ? m3Of(confirm.net, prov.heldBack) : "not-read";
+    // ADMISSIBILITY_RULE, mechanically: a figure for a cell not held back
+    // is kept only when the fold contradicts the prior positive read
+    // (confirmed-negative); otherwise it is WITHHELD here, so no consumer
+    // can print the winner's curse as evidence.
+    const admissible = !readingConfirm || prov.heldBack || m3 === "confirmed-negative";
+    shipped.set(symbol, {
+      confirm: admissible ? confirm : { gross: null, net: null },
+      declineCandidate: declineCandidateOf(select),
+      m3,
+      provenance: prov,
+      select,
+      variant: baselineName,
+    });
+  }
+  // The burn (LA-6): a confirm figure was produced — an accepted variant's
+  // delta, or any market's shipped-cell confirm figure. Since R4 act 2 the
+  // read covers every market's shipped cell, so a confirm-final run over a
+  // corpus with confirm rows is a read whether or not anything was accepted:
+  // one burn for the whole program, taken once.
+  const confirmRead = readingConfirm && (
+    [...verdicts.values()].some((byVariant) =>
+      [...byVariant.values()].some((verdict) => verdict.confirmTotalDelta !== null)
+    ) ||
+    // A withheld figure was still READ: the burn keys on the fold having
+    // been opened for any market's shipped cell, not on what was kept.
+    [...cube.keys()].some((symbol) =>
+      (cube.get(symbol)!.get(baselineName)?.get(foldNames.confirm!)?.filled ?? 0) > 0
+    )
+  );
+  let read: {
+    artifactHash: string;
+    artifactPath: string;
+    calendarKey: string;
+    corpusId: string;
+    ledgerPath: string;
+    readId: string;
+  } | null = null;
   if (confirmRead) {
-    const entry = JSON.stringify({
-      corpusHash: corpusId,
-      // The identity's PAYLOAD, not just its hash (#364 round 48,
-      // finding 2). conditionsOf grows, so corpusId is a moving target;
-      // recording what it was computed over lets a later reader see
-      // which definition a read was filed under instead of facing an
-      // opaque hash that no longer reproduces.
-      identity: firstConditions,
-      readAt: new Date().toISOString(),
-      // One id per READ, so a record found twice across the retired
-      // locations counts once (#364 round 44, finding 1).
-      readId: randomUUID(),
-      // The shard hashes this read actually covered, so the ledger
-      // records the population beside the identity — and the refusal
-      // above READS it, naming a subset read as such (#364 round 45,
-      // finding 3).
+    const readId = randomUUID();
+    const readAt = new Date().toISOString();
+    const emitSha256: Record<string, string> = {};
+    // Keyed by the shard's manifest hash, never its basename: two shards of
+    // one measurement in two directories share a basename.
+    for (let index = 0; index < paths.length; index += 1) {
+      emitSha256[shardManifests[index].manifestHash] = await sha256File(paths[index]);
+    }
+    const symbolsRead = [...cube.keys()].sort();
+    const m3OfVerdict = (verdict: VariantVerdict): M3Outcome =>
+      verdict.confirmExpectancyLower === null || verdict.confirmExpectancyUpper === null
+        ? "unreadable"
+        : verdict.confirmExpectancyLower > 0
+        ? "confirmed-profitable"
+        : verdict.confirmExpectancyUpper < 0
+        ? "contradicted"
+        : "indistinguishable";
+    const markets: LedgeredReadArtifact["markets"] = {};
+    for (const [symbol, cell] of shipped) {
+      const accepted: AcceptedVariantRead[] = [];
+      // Verdicts are keyed by the verdict GROUP — the market at the market
+      // unit, the class at the class unit (a symbol key found nothing there
+      // and the class-unit artifact listed no accepted variant at all).
+      const group = options.verdictUnit === "market" ? symbol : getAssetType(symbol);
+      for (const [variant, verdict] of verdicts.get(group) ?? []) {
+        if (!verdict.accepted) continue;
+        const m3 = m3OfVerdict(verdict);
+        // The variant rides the shipped cell's survivor-selected layer, so its
+        // ABSOLUTE confirm figures fall under the same admissibility rule as
+        // the shipped cell's; the delta against the baseline (both sides on
+        // the same layer) is conservative and stays.
+        const absoluteAdmissible = cell.provenance.heldBack || m3 === "contradicted";
+        accepted.push({
+          confirmBaseFilled: verdict.confirmBaseFilled,
+          confirmExpectancy: absoluteAdmissible ? verdict.confirmExpectancy : null,
+          confirmExpectancyDelta: verdict.confirmExpectancyDelta,
+          confirmExpectancyDeltaLower: verdict.confirmExpectancyDeltaLower,
+          confirmExpectancyLower: absoluteAdmissible ? verdict.confirmExpectancyLower : null,
+          confirmExpectancyUpper: absoluteAdmissible ? verdict.confirmExpectancyUpper : null,
+          confirmFilled: verdict.confirmFilled,
+          confirmTotalDelta: verdict.confirmTotalDelta,
+          gateDisposition: "accepted",
+          gateReason: verdict.reason,
+          m3: absoluteAdmissible ? m3 : "not-held-back",
+          variant,
+        });
+      }
+      markets[symbol] = { accepted, heldOut: stratified.has(symbol), shipped: cell };
+    }
+    const artifactBody: Omit<LedgeredReadArtifact, "artifactHash"> = {
+      analyzerVersion: manifest.analyzerVersion,
+      anchor: manifest.anchor,
+      baselineVariant: baselineName,
+      calendarKey,
+      corpusId,
+      emitSha256,
+      foldSource: "emitted",
+      holdout: {
+        basis: holdout.basis,
+        markets: [...stratified].sort(),
+        pinState: holdout.pinState,
+        rosterHash: holdout.rosterHash,
+        rule: holdout.rule,
+      },
+      includeHoldout: options.includeHoldout === true,
+      ledgerPath: canonicalLedgerPath,
+      markets,
+      readAt,
+      readId,
+      rules: { accept: ACCEPT_RULE, admissibility: ADMISSIBILITY_RULE, decline: DECLINE_RULE, declineHash: DECLINE_RULE_HASH },
       shardHashes: shardManifests.map((m) => m.manifestHash),
+      symbolFilter: options.symbolFilter ? [...options.symbolFilter].sort() : null,
+      // The cube's keys: every graded market — held-out markets included
+      // under the market unit (labelled), excluded under the class unit.
+      symbolsRead,
+      verdictUnit: options.verdictUnit ?? "class",
+    };
+    const artifactHash = artifactHashOf(artifactBody);
+    // The read writes its own artifact and records the artifact's hash in
+    // its ledger line; without a named path it lands beside the ledger.
+    const artifactPath = options.readArtifactPath ??
+      join(dirname(canonicalLedgerPath), `ledgered-read-${corpusId.slice(0, 12)}-${readId}.json`);
+    mkdirSync(dirname(artifactPath), { recursive: true });
+    // Through the shared writer: a standing INVALID banner at the path is
+    // carried forward, and a bannered artifact fails its own hash at the
+    // consumer's door — which is the right outcome for a condemned read.
+    writeResearchArtifact(artifactPath, { ...artifactBody, artifactHash });
+    const entry = JSON.stringify({
+      artifactHash,
+      artifactPath,
+      baselineVariant: baselineName,
+      calendarKey,
+      confirmSpans,
+      corpusHash: corpusId,
+      emitSha256,
+      holdout: artifactBody.holdout,
+      identity: firstConditions,
+      includeHoldout: artifactBody.includeHoldout,
+      readAt,
+      readId,
+      shardHashes: artifactBody.shardHashes,
+      symbolFilter: artifactBody.symbolFilter,
+      symbolsRead,
+      verdictUnit: artifactBody.verdictUnit,
     }) + "\n";
     mkdirSync(dirname(canonicalLedgerPath), { recursive: true });
     appendFileSync(canonicalLedgerPath, entry);
+    read = { artifactHash, artifactPath, calendarKey, corpusId, ledgerPath: canonicalLedgerPath, readId };
     // The tracked-ledger claim was a PROMISE in a change set whose
     // repeated law is mechanism (#364 round 46, smaller): a burn left
     // uncommitted is invisible to every other checkout, which is the
@@ -1636,15 +1907,74 @@ export async function gradeCorpus(
     );
   }
   return {
+    calendarKey,
     confirmRead,
     dataAbsentRows,
     foldNames,
     heldOutMarkets: held.size,
+    heldOutSet: [...stratified].sort(),
     manifest,
+    read,
     sealedRows,
+    shipped,
     verdicts,
   };
 }
+
+/** The provenance artifact's per-market entries, or null when no path was given. */
+function loadProvenance(path: string | undefined): Map<string, {
+  derived: boolean;
+  heldBack: boolean;
+  overlapWithR3ConfirmDays: number;
+  selectionWindow: { fitStartMs: number; selectStartMs: number; selectEndMs: number } | null;
+  confirmationWindow?: { startMs: number; endMs: number } | null;
+  tranche: string | null;
+}> | null {
+  if (!path) return null;
+  const parsed = JSON.parse(readFileSync(path, "utf8")) as {
+    INVALID?: string;
+    markets?: Record<string, {
+      derived: boolean;
+      heldBack: boolean;
+      overlapWithR3ConfirmDays: number;
+      selectionWindow: { fitStartMs: number; selectStartMs: number; selectEndMs: number } | null;
+      confirmationWindow?: { startMs: number; endMs: number } | null;
+      tranche: string | null;
+    }>;
+  };
+  if (typeof parsed.INVALID === "string") {
+    throw new Error(`${path}: the provenance artifact is condemned — "${parsed.INVALID.slice(0, 120)}"`);
+  }
+  if (!parsed.markets || typeof parsed.markets !== "object") {
+    throw new Error(`${path}: a provenance artifact carries a markets map or list; this one carries none`);
+  }
+  // The instrument writes a LIST of entries each naming its symbol; a map
+  // keyed by symbol is accepted too. Either way one entry per market.
+  const entries: Array<[string, NonNullable<typeof parsed.markets>[string]]> = Array.isArray(parsed.markets)
+    ? (parsed.markets as Array<{ symbol?: unknown } & NonNullable<typeof parsed.markets>[string]>).map((entry) => {
+      if (typeof entry.symbol !== "string") {
+        throw new Error(`${path}: a provenance entry carries no symbol — it cannot be joined to a market`);
+      }
+      return [entry.symbol, entry];
+    })
+    : Object.entries(parsed.markets);
+  const map = new Map<string, NonNullable<typeof parsed.markets>[string]>();
+  for (const [symbol, entry] of entries) {
+    if (map.has(symbol)) {
+      throw new Error(`${path}: ${symbol} appears twice — one provenance per market`);
+    }
+    const heldBack = (entry as { heldBack?: unknown }).heldBack;
+    if (heldBack === undefined) {
+      throw new Error(`${path}: ${symbol} carries no heldBack — a market whose provenance was never assessed cannot be read as held back`);
+    }
+    // `null` is the instrument saying UNDETERMINABLE (a non-derived market:
+    // the class row's derivation window is not in the artifacts). Read as
+    // not held back — the conservative side — never as held back.
+    map.set(symbol, { ...entry, heldBack: heldBack === true });
+  }
+  return map;
+}
+
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -1673,7 +2003,21 @@ async function main(): Promise<void> {
     "--baseline",
     "--confirm-log-dir",
     "--permutations",
+    "--out",
+    "--provenance",
+    "--read-out",
     "--seed",
+    "--verdict-unit",
+  ]);
+  // The flags that own no token. Declared so an UNKNOWN flag is refused by
+  // name rather than walked past in silence: until R4 act 2 the walker
+  // dropped any `--x` it did not know, which is how a no-op
+  // `--per-market-folds` passed the sealed guard for a day as if it were a
+  // second shape of this reader.
+  const BOOLEAN_FLAGS = new Set([
+    "--acknowledge-prior-reads",
+    "--confirm-final",
+    "--include-holdout",
   ]);
   // The sequential walker the sibling readers carry (#364 round 38,
   // smaller — the indexOf-per-flag Set that stood here covered only a
@@ -1683,6 +2027,14 @@ async function main(): Promise<void> {
   const paths: string[] = [];
   for (let i = 0; i < args.length; i += 1) {
     if (args[i].startsWith("--")) {
+      if (!VALUE_FLAGS.has(args[i]) && !BOOLEAN_FLAGS.has(args[i])) {
+        throw new Error(
+          `grid-totalr: unknown flag ${args[i]} — the flags this reader knows are ` +
+            `${[...VALUE_FLAGS, ...BOOLEAN_FLAGS].sort().join(", ")}; an unknown ` +
+            `flag is refused rather than ignored, because an ignored dial reads ` +
+            `as a run that honoured it`,
+        );
+      }
       if (VALUE_FLAGS.has(args[i])) i += 1;
       continue;
     }
@@ -1750,6 +2102,18 @@ async function main(): Promise<void> {
   const seed = num("--seed", 7);
   const baselineVariant = str("--baseline");
   const confirmLogDir = str("--confirm-log-dir");
+  // The verdict unit: "class" pools a class's markets (the 4c gate);
+  // "market" grades every market on its own rows (R4's per-market program).
+  const verdictUnitToken = str("--verdict-unit") ?? "class";
+  if (verdictUnitToken !== "class" && verdictUnitToken !== "market") {
+    throw new Error(
+      `--verdict-unit must be "class" or "market", not ${JSON.stringify(verdictUnitToken)}`,
+    );
+  }
+  const verdictUnit: "class" | "market" = verdictUnitToken;
+  const provenancePath = str("--provenance");
+  const readArtifactPath = str("--read-out");
+  const outPath = str("--out");
   if (paths.length === 0) {
     console.error(
       // The usage line names every flag the walker recognises. It had
@@ -1759,18 +2123,24 @@ async function main(): Promise<void> {
       // an enumeration in prose narrower than the code beside it.
       "Usage: npx tsx scripts/grid-totalr.ts <emit.jsonl> [more-shards.jsonl ...] " +
         "[--baseline <variant>] [--permutations 1000] [--seed 7] " +
+        "[--verdict-unit class|market] [--provenance <shipped-cell-provenance.json>] " +
+        "[--read-out <ledgered-read.json>] [--out <per-market-grading.json>] " +
         "[--confirm-final] [--acknowledge-prior-reads] [--include-holdout] " +
         "[--confirm-log-dir <dir>]",
     );
     process.exit(1);
   }
   const {
+    calendarKey,
     confirmRead,
     dataAbsentRows,
     foldNames,
     heldOutMarkets,
+    heldOutSet,
     manifest,
+    read,
     sealedRows,
+    shipped,
     verdicts,
   } = await gradeCorpus(paths, {
     acknowledgePriorReads: args.includes("--acknowledge-prior-reads"),
@@ -1779,8 +2149,122 @@ async function main(): Promise<void> {
     confirmLogDir,
     includeHoldout: args.includes("--include-holdout"),
     permutations,
+    provenancePath,
+    readArtifactPath,
     seed,
+    verdictUnit,
   });
+  console.log(
+    `verdict unit: ${verdictUnit} — ${
+      verdictUnit === "market"
+        ? "every market on its own rows, singleton groups, 30-filled floor (R4)"
+        : "class pools (the 4c gate)"
+    }; fold source: emitted labels (no time re-cut)`,
+  );
+  // THE SHIPPED CELL, per market (R4 act 2): select-fold net and gross
+  // expectancy with the 95% interval, the pre-registered decline rule
+  // applied mechanically, provenance, and M3 only under the recorded read.
+  // A derived cell's positive select grade is in-sample — it was picked on
+  // nearly this window — so the table prints the tranche beside it.
+  if (verdictUnit === "market") {
+    const fmt = (figure: { expectancy: number; lower: number; upper: number; n: number } | null) =>
+      figure
+        ? `${figure.expectancy.toFixed(3)} [${figure.lower.toFixed(3)}, ${figure.upper.toFixed(3)}] n=${figure.n}`
+        : "—";
+    console.log("");
+    const acceptedPairs = [...verdicts.values()].reduce(
+      (count, byVariant) => count + [...byVariant.values()].filter((verdict) => verdict.accepted).length,
+      0,
+    );
+    console.log(
+      `shipped cell per market (${shipped.size}; held out by the stratified rule: ${heldOutSet.length}, ` +
+        `labelled, never dropped; decline rule = ${DECLINE_RULE_HASH.slice(0, 12)})`,
+    );
+    console.log(
+      `holdout: ${
+        describeHeldOut(resolveHeldOut(paths.map((path) => assertManifest(path))), { labels: true, pools: false })
+      }`,
+    );
+    // Multiplicity is per market by design (one family per market's
+    // variants, FWER 0.05 within it, none across markets; D4's absolute
+    // term is the cross-market brake) — so the expected number of false
+    // families is printed beside the accepted count, never left implicit.
+    console.log(
+      `accepted (market, variant) pairs: ${acceptedPairs} · expected false families at FWER 0.05 ` +
+        `over ${shipped.size} markets ≈ ${(0.05 * shipped.size).toFixed(1)} (per-market families; ` +
+        `D4's absolute term is the cross-market brake)`,
+    );
+    console.log("market      held  select net E [95%] n              select gross E [95%] n            decline  tranche      m3");
+    for (const [symbol, cell] of shipped) {
+      console.log(
+        `${symbol.padEnd(11)} ${(heldOutSet.includes(symbol) ? "OUT" : "   ").padEnd(5)} ` +
+          `${fmt(cell.select.net).padEnd(34)} ${fmt(cell.select.gross).padEnd(34)} ` +
+          `${(cell.declineCandidate ? "CANDIDATE" : "no").padEnd(9)} ${(cell.provenance.tranche ?? "shipped").padEnd(12)} ${cell.m3}`,
+      );
+    }
+  }
+  if (outPath) {
+    const manifestHashes = paths.map((path) => assertManifest(path).manifestHash);
+    const markets: Record<string, unknown> = {};
+    for (const [symbol, cell] of shipped) {
+      const byVariant: Record<string, unknown> = {};
+      for (const [variant, verdict] of verdicts.get(symbol) ?? []) {
+        byVariant[variant] = {
+          accepted: verdict.accepted,
+          fitTotalDelta: verdict.fitTotalDelta,
+          pairedP: verdict.pairedP,
+          reason: verdict.reason,
+          selectExpectancy: verdict.selectExpectancy,
+          selectExpectancyDelta: verdict.selectExpectancyDelta,
+          selectTotalDelta: verdict.selectTotalDelta,
+        };
+      }
+      markets[symbol] = {
+        heldOut: heldOutSet.includes(symbol),
+        // No confirm-derived field here: this artifact is sealed by name,
+        // and M3 belongs only to the ledgered read's own artifact.
+        shipped: {
+          declineCandidate: cell.declineCandidate,
+          provenance: cell.provenance,
+          select: cell.select,
+          variant: cell.variant,
+        },
+        variants: byVariant,
+      };
+    }
+    writeResearchArtifact(outPath, {
+      analyzerVersion: manifest.analyzerVersion,
+      anchor: manifest.anchor,
+      calendarKey,
+      corpusNote: read
+        ? `the confirm fold WAS read in this run (readId ${read.readId}); the figures above are select-fold only`
+        : "confirm fold sealed — not read; every figure here is a fit/select figure",
+      derivedAt: new Date().toISOString(),
+      foldSource: "emitted",
+      heldOut: heldOutSet,
+      holdoutRule: "stratified-per-class-20pct",
+      markets,
+      rules: { accept: ACCEPT_RULE, decline: DECLINE_RULE, declineHash: DECLINE_RULE_HASH },
+      shardHashes: manifestHashes,
+      shards: paths.map((path) => relative(process.cwd(), path)),
+      verdictUnit,
+    });
+    console.log(`wrote ${outPath}`);
+  }
+  if (verdictUnit === "class") {
+    // Requested classes with no graded row are named, never left off the
+    // page: on a global-fold corpus every 2023-era class sits inside the
+    // sealed fold and would otherwise vanish from the report in silence.
+    const requestedClasses = new Set(
+      paths.flatMap((path) => (assertManifest(path).requestedSymbols ?? []).map((symbol) => getAssetType(symbol))),
+    );
+    const silent = [...requestedClasses].filter((className) => !verdicts.has(className)).sort();
+    if (silent.length > 0) {
+      console.log(
+        `classes requested but with no row in any tuning fold (every decision in the sealed fold): ${silent.join(", ")}`,
+      );
+    }
+  }
   const anyAccepted = [...verdicts.values()].some((byVariant) =>
     [...byVariant.values()].some((verdict) => verdict.accepted)
   );
@@ -1798,7 +2282,7 @@ async function main(): Promise<void> {
           // mere existence left a zero-accept run claiming "read once"
           // over a burned-log that was never written.
           ? confirmRead
-            ? ` confirm=${foldNames.confirm} (read once, accepted variants only)`
+            ? ` confirm=${foldNames.confirm} (READ once — every market's shipped cell and the accepted variants; recorded)`
             // #364 round 44, finding 3: confirmRead is false in two
             // structurally different states with opposite next moves —
             // nothing accepted (the 4c gate produced no pick, and the
@@ -1824,7 +2308,9 @@ async function main(): Promise<void> {
         args.includes("--include-holdout")
           ? " · holdout INCLUDED by --include-holdout (none excluded)"
           : heldOutMarkets > 0
-          ? ` · holdout ${heldOutMarkets} markets excluded (read-time stratified)`
+          ? ` · holdout ${heldOutMarkets} markets excluded (read-time stratified; ${
+            describeHeldOut(resolveHeldOut(paths.map((path) => assertManifest(path))), { labels: false, pools: true })
+          })`
           : ""
       }`,
   );

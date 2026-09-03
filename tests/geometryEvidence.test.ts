@@ -194,6 +194,10 @@ function foldedCorpus(rows: Array<Record<string, unknown>>): string {
     ],
     generatedAt: "2026-09-02T20:00:00.000Z",
     grid: [{}],
+    // The one holdout population is drawn over the REQUESTED roster (R4 act
+    // 2); a manifest without one is read over its symbols and says so, and
+    // this fixture states its roster the way the driver does.
+    requestedSymbols: ["EURUSD"],
     stepBars: 16,
     symbols: [{
       calibration: {},
@@ -272,10 +276,14 @@ describe("geometry-evidence — the confirm fold is sealed at the door", () => {
     assert.equal(sealed.code, 0, sealed.out);
     assert.equal(bare.code, 0, bare.out);
     // The headline states the withheld count — the population is never
-    // silent — and it is the one figure allowed to differ.
+    // silent — and it is the one figure allowed to differ. It also states the
+    // one holdout population (R4 act 2): the rule, the count (a one-market
+    // class holds nothing out, so 0), the pin state (the reader runs from a
+    // temp cwd, so the anchor's tracked pin is not found — "unpinned" is
+    // stated, never skipped) and the stamp as provenance.
     assert.match(
       sealed.out,
-      /4 baseline market-evidence rows \(holdout excluded by the emit's stamped flag; confirm fold sealed at the door: 2 rows withheld\)/,
+      /4 baseline market-evidence rows \(holdout: stratified-per-class-20pct — 0 markets excluded from every class pool \(unpinned — no docs\/research\/r4\/holdout-2026-08-26\.json, computed from requestedSymbols\); stamped flag: 0 markets, provenance only; 0 rows on held-out markets withheld from the five class tables, stamped rows: 0; confirm fold sealed at the door: 2 rows withheld\)/,
     );
     assert.match(
       bare.out,

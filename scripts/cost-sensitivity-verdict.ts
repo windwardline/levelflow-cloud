@@ -37,12 +37,23 @@
 // corpus — `tuningFolds`), and confirmation belongs to the one ledgered
 // read, grid-totalr --confirm-final.
 //
+// THE LEDGERED READ, PRINTED (R4 act 2). `--ledgered-read <path>` opens that
+// read's artifact through `readLedgeredArtifact`, the one door, bound to the
+// manifest hash of every shard read here, and prints per judged market the
+// shipped cell's GROSS confirm figure beside its NET one, the gate's M3, and
+// `declineCandidate` — the pre-registered rule the GATE applied on select,
+// carried in the artifact. Amendment 36's precondition (a negative must
+// survive the removal of our own modelled costs) reads the gross figure;
+// nothing here recomputes a rule or decides anything on the figure, and
+// without the flag the verdict below stays select-only and says so.
+//
 // The verdict rule:
 //   gross select E <= 0  -> genuinely data-negative. Withdrawal is
 //                           defensible: even at the venue's own
 //                           published bill the market loses.
 //   gross select E  > 0  -> the negative rests on OUR modeled cost.
 //                           DO NOT withdraw; disclose the sensitivity.
+import { resolve } from "node:path";
 import {
   assertManifest,
   assertManifestedCorpusSync,
@@ -50,6 +61,11 @@ import {
   tuningFolds,
 } from "./sweepStats.ts";
 import { flagReader } from "./flagReader.ts";
+import {
+  type LedgeredReadArtifact,
+  readLedgeredArtifact,
+  sha256File,
+} from "./ledgeredRead.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 
 type Acc = {
@@ -58,7 +74,12 @@ type Acc = {
   selectSumSq: number;
 };
 
-type Collected = { acc: Map<string, Acc>; sealedRows: number };
+type Collected = {
+  acc: Map<string, Acc>;
+  /** manifestHash of every shard read, deduplicated — what a ledgered read is bound to. */
+  manifestHashes: string[];
+  sealedRows: number;
+};
 
 /**
  * Single streaming pass, scalars only — the corpora are tens of GB and
@@ -80,6 +101,7 @@ function collect(
   column: "grossRealizedR" | "realizedR" = "realizedR",
 ): Collected {
   const acc = new Map<string, Acc>();
+  const manifestHashes: string[] = [];
   let sealedRows = 0;
   for (const path of paths) {
     // R0: the one-clock door — a corpus that cannot state its clock (or
@@ -89,6 +111,9 @@ function collect(
     // because the fold vocabulary must be known before the first row is
     // classified; the row door verifies it again and seals the confirm fold.
     const corpusManifest = assertManifest(path);
+    if (!manifestHashes.includes(corpusManifest.manifestHash)) {
+      manifestHashes.push(corpusManifest.manifestHash);
+    }
     const folds = tuningFolds(corpusManifest);
     const manifest = assertManifestedCorpusSync(path, (row) => {
       const symbol = row.symbol;
@@ -121,7 +146,7 @@ function collect(
     });
     sealedRows += manifest.sealedRows;
   }
-  return { acc, sealedRows };
+  return { acc, manifestHashes, sealedRows };
 }
 
 /**
@@ -178,6 +203,91 @@ function read(acc: Acc | undefined) {
   };
 }
 
+/** The ledgered read's shipped-cell figures for one judged market, verbatim. */
+type LedgeredRow = {
+  confirmGrossExpectancy: number | null;
+  confirmGrossLower: number | null;
+  confirmGrossN: number | null;
+  confirmGrossUpper: number | null;
+  confirmNetExpectancy: number | null;
+  confirmNetLower: number | null;
+  confirmNetN: number | null;
+  confirmNetUpper: number | null;
+  declineCandidate: boolean;
+  heldBack: boolean;
+  m3: string;
+  variant: string;
+};
+
+/**
+ * The ledgered read, opened through the one door once per shard's manifest
+ * hash, and its shipped-cell figures for the judged markets copied out under
+ * keys that name their source. Nothing is recomputed; nothing is decided.
+ */
+type ShardBinding = { emitSha256: string; manifestHash: string };
+
+async function bindShards(paths: readonly string[]): Promise<ShardBinding[]> {
+  return Promise.all(
+    paths.map(async (path) => ({ emitSha256: await sha256File(path), manifestHash: assertManifest(path).manifestHash })),
+  );
+}
+
+function ledgeredBlockOf(path: string, bindings: readonly ShardBinding[], judged: string[]) {
+  let artifact: LedgeredReadArtifact | undefined;
+  // Bound by manifest hash AND emit bytes (see roster-expectancy-audit).
+  for (const binding of bindings) {
+    artifact = readLedgeredArtifact(path, binding);
+  }
+  if (artifact === undefined) {
+    throw new Error(
+      `cost-sensitivity-verdict: no shard manifest to bind ${path} to — a ` +
+        `ledgered read travels only with the corpus it was read from.`,
+    );
+  }
+  const read = artifact;
+  const shipped: Record<string, LedgeredRow> = {};
+  const notInRead: string[] = [];
+  for (const symbol of [...judged].sort()) {
+    const market = read.markets[symbol];
+    if (market === undefined) {
+      notInRead.push(symbol);
+      continue;
+    }
+    const cell = market.shipped;
+    const gross = cell.confirm.gross;
+    const net = cell.confirm.net;
+    shipped[symbol] = {
+      confirmGrossExpectancy: gross?.expectancy ?? null,
+      confirmGrossLower: gross?.lower ?? null,
+      confirmGrossN: gross?.n ?? null,
+      confirmGrossUpper: gross?.upper ?? null,
+      confirmNetExpectancy: net?.expectancy ?? null,
+      confirmNetLower: net?.lower ?? null,
+      confirmNetN: net?.n ?? null,
+      confirmNetUpper: net?.upper ?? null,
+      declineCandidate: cell.declineCandidate,
+      heldBack: cell.provenance.heldBack,
+      m3: cell.m3,
+      variant: cell.variant,
+    };
+  }
+  return {
+    artifactHash: read.artifactHash,
+    calendarKey: read.calendarKey,
+    interval: `gate's t-interval, from the ledgered read ${read.readId}`,
+    notInRead,
+    path,
+    readAt: read.readAt,
+    readId: read.readId,
+    rules: read.rules,
+    shipped,
+    verdictUnit: read.verdictUnit,
+  };
+}
+
+const signed = (value: number | null): string =>
+  value === null ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(4)}`;
+
 async function main() {
   const argv = process.argv.slice(2);
   const VALUE_FLAGS = new Set([
@@ -185,6 +295,7 @@ async function main() {
     "--gross",
     "--paired",
     "--cells",
+    "--ledgered-read",
     "--out",
   ]);
   const { str } = flagReader(argv, VALUE_FLAGS);
@@ -215,6 +326,12 @@ async function main() {
   }
   const outPath = str("--out") ??
     "docs/research/baseline-2026-08-10/4d-cost-sensitivity.json";
+  // Resolved against the working directory ONCE, here, so the artifact
+  // records an absolute path: this script runs from the repo root and its
+  // default output sits in the docs tree, and a path recorded relative to
+  // either would name a different file from a different directory.
+  const ledgeredPath = str("--ledgered-read");
+  const ledgeredResolved = ledgeredPath === undefined ? null : resolve(ledgeredPath);
 
   // A run over zero rows cannot report a verdict — WIF-4, the law
   // roster-expectancy-audit states at its own door and this file had no
@@ -265,6 +382,15 @@ async function main() {
     grossPaths,
     cells,
     pairedPaths.length > 0 ? "grossRealizedR" : "realizedR",
+  );
+
+  // VALIDATED BEFORE ANYTHING IS WRITTEN: the ledgered read is bound to
+  // every shard of both arms, and a refusal here leaves no artifact behind
+  // that reads like a run carrying confirm figures.
+  const ledgeredRead = ledgeredResolved === null ? null : ledgeredBlockOf(
+    ledgeredResolved,
+    await bindShards([...new Set([...netPaths, ...grossPaths])]),
+    [...cells.keys()],
   );
 
   const verdicts: Record<string, unknown> = {};
@@ -321,7 +447,11 @@ async function main() {
   }
   const readable = cells.size - unreadable;
   writeResearchArtifact(outPath, {
+    confirmSource: ledgeredRead === null
+      ? "no ledgered read given — select only"
+      : `ledgered read ${ledgeredRead.readId} at ${ledgeredRead.path}`,
     derivedAt: new Date().toISOString(),
+    ledgeredRead,
     note: (inert > 0
       ? `${inert} of ${readable} readable markets produced IDENTICAL ` +
         `statistics in both arms; those carry no sensitivity finding and no ` +
@@ -351,6 +481,30 @@ async function main() {
       `${inert} cost model inert, ${unreadable} unreadable; ${SEALED_FOLD} sealed ` +
       `(net ${net.sealedRows}, gross ${gross.sealedRows} rows withheld) -> ${outPath}`,
   );
+  if (ledgeredRead === null) {
+    console.log("no ledgered read given — select only");
+  } else {
+    console.log(
+      `ledgered read ${ledgeredRead.readId} (${ledgeredRead.readAt}, calendar ` +
+        `${ledgeredRead.calendarKey.slice(0, 12)}, artifact ${ledgeredRead.artifactHash.slice(0, 12)}): ` +
+        `the shipped cell's GROSS confirm figure beside its NET one, verbatim`,
+    );
+    for (const [symbol, row] of Object.entries(ledgeredRead.shipped)) {
+      console.log(
+        `  ${symbol.padEnd(9)} ${row.variant}  confirm gross E ${signed(row.confirmGrossExpectancy)} ` +
+          `[${signed(row.confirmGrossLower)}, ${signed(row.confirmGrossUpper)}] n=${row.confirmGrossN ?? 0} | ` +
+          `net E ${signed(row.confirmNetExpectancy)} [${signed(row.confirmNetLower)}, ` +
+          `${signed(row.confirmNetUpper)}] n=${row.confirmNetN ?? 0}  M3=${row.m3}  ` +
+          `declineCandidate=${row.declineCandidate}  heldBack=${row.heldBack} (${ledgeredRead.interval})`,
+      );
+    }
+    if (ledgeredRead.notInRead.length > 0) {
+      console.log(
+        `  ${ledgeredRead.notInRead.length} judged market(s) not in the ledgered read: ` +
+          ledgeredRead.notInRead.join(", "),
+      );
+    }
+  }
   // WRITTEN FIRST, THEN REFUSED. The artifact is the evidence of the failure
   // and has to survive it; throwing before the write would leave an operator
   // with a non-zero exit and nothing to read.

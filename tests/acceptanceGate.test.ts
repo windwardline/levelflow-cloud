@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
+import { readLedgeredArtifact } from "../scripts/ledgeredRead.ts";
 import {
   copyFileSync,
   existsSync,
@@ -96,6 +97,8 @@ function corpusWith(rows: SweepEmitRow[]): string {
   );
   const manifest = buildSweepManifest({
     acceptance: { captureAll: false, ignoreLowEdge: false },
+    // The roster the sweep was asked for — a recorded read matches the held-back calendar over it (R4 act 2).
+    requestedSymbols: [...new Set(rows.map((row) => row.symbol))],
     analyzerVersion: "2026.08.09.test",
     anchor: "2026-08-10",
     barRejections: {},
@@ -697,15 +700,16 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
 });
 
 describe("holdout — excluded from tuning, present for the one confirmation read (3e)", () => {
-  it("keeps holdout rows out of the cube unless explicitly included", () => {
-    const rows = [
+  // R4 act 2: the stamp is provenance only. The one holdout population is
+  // the stratified set the gate resolves over the requested roster and
+  // applies at verdict time; the cube keeps every accepted row.
+  it("keeps stamped rows in the cube — the stamp excludes nothing", () => {
+    const rows: SweepEmitRow[] = [
       outcomeRow("baseline", 0, 0.5),
       { ...outcomeRow("baseline", 1, -5, "stop_loss", "GBPUSD"), holdout: true },
     ];
-    const excluded = readGridCube(rows);
-    assert.equal(excluded.has("GBPUSD"), false);
-    const included = readGridCube(rows, { includeHoldout: true });
-    assert.equal(included.has("GBPUSD"), true);
+    assert.equal(readGridCube(rows).has("GBPUSD"), true);
+    assert.equal(readGridCube(rows, { includeHoldout: true }).has("GBPUSD"), true);
   });
 });
 
@@ -733,6 +737,8 @@ describe("a folded corpus names its own partition (3c/3d)", () => {
     );
     const manifest = buildSweepManifest({
       acceptance: { captureAll: false, ignoreLowEdge: false },
+      // The roster the sweep was asked for — a recorded read matches the held-back calendar over it (R4 act 2).
+      requestedSymbols: ["EURUSD"],
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
@@ -799,6 +805,8 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     const manifest = buildSweepManifest({
       acceptance: acceptanceOverride ??
         { captureAll: false, ignoreLowEdge: false },
+      // The roster the sweep was asked for — a recorded read matches the held-back calendar over it (R4 act 2).
+      requestedSymbols: [...new Set(rows.map((row) => row.symbol))],
       ...(modeledCostScaleOverride !== undefined &&
         { modeledCostScale: modeledCostScaleOverride }),
       ...(decisionsOverride && { decisions: decisionsOverride }),
@@ -921,7 +929,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     const source = readFileSync("scripts/grid-totalr.ts", "utf8");
     assert.match(
       source,
-      /holdout \$\{heldOutMarkets\} markets excluded \(read-time stratified\)/,
+      /holdout \$\{heldOutMarkets\} markets excluded \(read-time stratified; \$\{/,
     );
     assert.doesNotMatch(source, /manifest\.holdoutSymbols\?\.length/);
   });
@@ -1370,10 +1378,10 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // is decided on fit+select alone, so nothing about clearing the gate
   // implies the confirm fold covered the variant at all.
   const foldedCorpus = (
-    options: { omitConfirmFor?: string[] } = {},
+    options: { extraRows?: SweepEmitRow[]; grid?: unknown[]; omitConfirmFor?: string[]; requestedSymbols?: string[] } = {},
   ): string => {
     const omit = new Set(options.omitConfirmFor ?? []);
-    const rows: SweepEmitRow[] = [];
+    const rows: SweepEmitRow[] = [...(options.extraRows ?? [])];
     for (let day = 0; day < 16; day += 1) {
       for (const [split, offset] of [["fit", 0], ["select", 40], ["confirm", 80]] as const) {
         for (const variant of ["baseline", "good"] as const) {
@@ -1393,6 +1401,8 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     );
     const manifest = buildSweepManifest({
       acceptance: { captureAll: false, ignoreLowEdge: false },
+      // The roster the sweep was asked for — a recorded read matches the held-back calendar over it (R4 act 2).
+      requestedSymbols: options.requestedSymbols ?? [...new Set(rows.map((row) => row.symbol))],
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-11",
       barRejections: {},
@@ -1411,7 +1421,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
         { decisionEndMs: 12, endMs: 13, name: "confirm", startMs: 9 },
       ],
       generatedAt: "2026-08-11T05:00:00.000Z",
-      grid: [{}, { good: true }],
+      grid: options.grid ?? [{}, { good: true }],
       stepBars: 16,
       symbols: [{
         calibration: {},
@@ -1485,7 +1495,228 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // Grading this corpus against "good" as the baseline makes the one
   // compared variant ("baseline", deltas −0.3 on every shared day)
   // fail both folds, so zero variants accept.
-  it("does not burn the log when a confirm-final run accepts nothing", async () => {
+  // R4 act 2 inverted this pin on purpose: the read covers every market's
+  // SHIPPED cell (absolute net and gross confirm expectancy, M3 against
+  // the pre-registered rule), so a confirm-final run over a corpus holding
+  // confirm rows is a read whether or not any variant was accepted — one
+  // burn for the whole program, recorded in the ledger AND in the read's
+  // own artifact. Before act 2 a zero-accept run read nothing.
+  // R4 act 2: the shipped cell's confirm figure is evidence only when the
+  // cell was NOT selected on rows inside this fold, and M3 speaks only
+  // against the pre-registered rule. Provenance decides `heldBack`; the
+  // decline rule is applied on select, mechanically, before any read.
+  it("reads the shipped cell with provenance: held-back figures get M3, the rest say not-held-back", async () => {
+    const DAY_MS = 86_400_000;
+    const start = Date.UTC(2024, 0, 1);
+    // A second market whose baseline loses in the confirm window, 40 filled.
+    const losing: SweepEmitRow[] = [];
+    for (let day = 0; day < 40; day += 1) {
+      losing.push({
+        accepted: true,
+        exitAtMs: start + (80 + day) * DAY_MS + 3_600_000,
+        grossRealizedR: day % 5 === 0 ? 0.2 : -0.45,
+        outcome: day % 5 === 0 ? "take_profit" : "stop_loss",
+        realizedR: day % 5 === 0 ? 0.2 : -0.5,
+        split: "confirm",
+        symbol: "USDJPY",
+        time: start + (80 + day) * DAY_MS,
+        variant: "baseline",
+      });
+    }
+    const emitPath = foldedCorpus({ extraRows: losing });
+    const provenancePath = join(dirname(emitPath), "provenance.json");
+    writeFileSync(
+      provenancePath,
+      JSON.stringify({
+        markets: {
+          EURUSD: {
+            derived: true,
+            heldBack: false,
+            overlapWithR3ConfirmDays: 120,
+            selectionWindow: { fitStartMs: 0, selectStartMs: 1, selectEndMs: 2 },
+            tranche: "totality",
+          },
+          USDJPY: { derived: false, heldBack: true, overlapWithR3ConfirmDays: 0, selectionWindow: null, tranche: null },
+        },
+      }),
+    );
+    const ledgerDir = mkdtempSync(join(tmpdir(), "gate-provenance-"));
+    const graded = await gradeCorpus(emitPath, {
+      confirmFinal: true,
+      confirmLogDir: ledgerDir,
+      permutations: 100,
+      provenancePath,
+      seed: 4,
+      verdictUnit: "market",
+    });
+    const eurusd = graded.shipped.get("EURUSD")!;
+    assert.equal(eurusd.provenance.known, true);
+    assert.equal(eurusd.provenance.tranche, "totality");
+    assert.equal(eurusd.m3, "not-held-back", "a cell selected inside the fold is never evidence");
+    const usdjpy = graded.shipped.get("USDJPY")!;
+    assert.equal(usdjpy.provenance.heldBack, true);
+    assert.equal(usdjpy.confirm.net!.n, 40);
+    assert.ok(usdjpy.confirm.net!.upper < 0);
+    assert.equal(usdjpy.m3, "confirmed-negative");
+    assert.ok(usdjpy.confirm.gross, "the gross confirm figure rides beside the net one");
+    assert.ok(usdjpy.confirm.gross!.expectancy > usdjpy.confirm.net!.expectancy);
+    const opened = readLedgeredArtifact(graded.read!.artifactPath, { manifestHash: graded.manifest.manifestHash });
+    assert.equal(opened.markets.USDJPY.shipped.m3, "confirmed-negative");
+    assert.equal(opened.markets.EURUSD.shipped.provenance.tranche, "totality");
+    assert.equal(opened.verdictUnit, "market");
+  });
+
+  it("refuses a condemned provenance artifact and one that cannot say whether a market is held back", async () => {
+    const emitPath = foldedCorpus();
+    const condemned = join(dirname(emitPath), "condemned.json");
+    writeFileSync(condemned, JSON.stringify({ INVALID: "clock defect", markets: {} }));
+    await assert.rejects(
+      gradeCorpus(emitPath, { confirmFinal: true, confirmLogDir: mkdtempSync(join(tmpdir(), "gate-p-")), permutations: 50, provenancePath: condemned, seed: 4 }),
+      /provenance artifact is condemned/,
+    );
+    const mute = join(dirname(emitPath), "mute.json");
+    writeFileSync(mute, JSON.stringify({ markets: { EURUSD: { derived: true, tranche: "totality" } } }));
+    await assert.rejects(
+      gradeCorpus(emitPath, { confirmFinal: true, confirmLogDir: mkdtempSync(join(tmpdir(), "gate-p-")), permutations: 50, provenancePath: mute, seed: 4 }),
+      /carries no heldBack/,
+    );
+    // UNDETERMINABLE (`heldBack: null`, a non-derived market whose class
+    // row's derivation window the instrument cannot see) reads as not held
+    // back — the conservative side — and the figure is not evidence.
+    const undeterminable = join(dirname(emitPath), "undeterminable.json");
+    writeFileSync(
+      undeterminable,
+      JSON.stringify({ markets: { EURUSD: { derived: false, heldBack: null, overlapWithR3ConfirmDays: null, selectionWindow: null, tranche: null } } }),
+    );
+    const graded = await gradeCorpus(emitPath, {
+      confirmFinal: true,
+      confirmLogDir: mkdtempSync(join(tmpdir(), "gate-p-")),
+      permutations: 50,
+      provenancePath: undeterminable,
+      seed: 4,
+    });
+    assert.equal(graded.shipped.get("EURUSD")!.provenance.heldBack, false);
+    assert.equal(graded.shipped.get("EURUSD")!.m3, "not-held-back");
+  });
+
+  it("applies the pre-registered decline rule on select, net and gross both, at the 30-filled floor", async () => {
+    const DAY_MS = 86_400_000;
+    const start = Date.UTC(2025, 0, 6);
+    const rowsFor = (gross: number): SweepEmitRow[] =>
+      Array.from({ length: 40 }, (_, day) => ({
+        accepted: true,
+        exitAtMs: start + day * DAY_MS + 3_600_000,
+        grossRealizedR: gross,
+        outcome: "stop_loss",
+        realizedR: -0.5,
+        split: "test",
+        symbol: "EURUSD",
+        time: start + day * DAY_MS,
+        variant: "baseline",
+      }));
+    const bothNegative = await gradeCorpus(corpusWith(rowsFor(-0.45)), { permutations: 50, seed: 4, verdictUnit: "market" });
+    assert.equal(bothNegative.shipped.get("EURUSD")!.declineCandidate, true);
+    assert.equal(bothNegative.shipped.get("EURUSD")!.m3, "not-read", "a sealed run reads no confirm figure");
+    const grossClears = await gradeCorpus(corpusWith(rowsFor(0.3)), { permutations: 50, seed: 4, verdictUnit: "market" });
+    assert.equal(grossClears.shipped.get("EURUSD")!.declineCandidate, false, "gross above zero: a cost defect, not a market");
+    assert.equal(grossClears.read, null);
+  });
+
+  it("refuses a recorded read whose shards carry a market the request did not name", async () => {
+    // The fresh-eyes refuter walked an unrequested EURUSD past the calendar
+    // overlap this way: spans were built over the request alone.
+    const emitPath = foldedCorpus({ requestedSymbols: ["GBPUSD"] });
+    await assert.rejects(
+      gradeCorpus(emitPath, { confirmFinal: true, confirmLogDir: mkdtempSync(join(tmpdir(), "gate-req-")), permutations: 50, seed: 4 }),
+      /EURUSD: carried by a shard but absent from the manifests' requestedSymbols/,
+    );
+    // Sealed, the same corpus grades — only a recorded read needs the roster.
+    const sealed = await gradeCorpus(emitPath, { permutations: 50, seed: 4 });
+    assert.equal(sealed.read, null);
+  });
+
+  it("lists the class unit's accepted variants under each market, and withholds their absolute confirm figures with the shipped cell's", async () => {
+    // Verdicts are keyed by the verdict GROUP; the artifact loop had looked
+    // a market up in a class-keyed map and listed nothing (fresh-eyes refuter).
+    const emitPath = foldedCorpus();
+    const graded = await gradeCorpus(emitPath, {
+      confirmFinal: true,
+      confirmLogDir: mkdtempSync(join(tmpdir(), "gate-group-")),
+      permutations: 100,
+      seed: 4,
+    });
+    assert.equal(graded.verdicts.get("forex")!.get("good")!.accepted, true);
+    const opened = readLedgeredArtifact(graded.read!.artifactPath, { manifestHash: graded.manifest.manifestHash });
+    const accepted = opened.markets.EURUSD.accepted;
+    assert.equal(accepted.length, 1, "the class unit's accepted variant is listed under its market");
+    assert.equal(accepted[0].variant, "good");
+    // No provenance: the shipped cell is not held back, and the variant rides
+    // its layer, so its ABSOLUTE confirm figures are withheld; the delta
+    // against the baseline (both sides on the same layer) stays.
+    assert.equal(accepted[0].confirmExpectancy, null);
+    assert.equal(accepted[0].confirmExpectancyLower, null);
+    assert.equal(accepted[0].m3, "not-held-back");
+    assert.notEqual(accepted[0].confirmTotalDelta, null);
+    assert.notEqual(accepted[0].confirmExpectancyDelta, null);
+    // Held back by provenance, the same variant's absolute figures are kept.
+    const provenancePath = join(dirname(emitPath), "held.json");
+    writeFileSync(
+      provenancePath,
+      JSON.stringify({ markets: { EURUSD: { derived: false, heldBack: true, overlapWithR3ConfirmDays: 0, selectionWindow: null, tranche: null } } }),
+    );
+    const held = await gradeCorpus(foldedCorpus(), {
+      confirmFinal: true,
+      confirmLogDir: mkdtempSync(join(tmpdir(), "gate-group-")),
+      permutations: 100,
+      provenancePath,
+      seed: 4,
+    });
+    const heldOpened = readLedgeredArtifact(held.read!.artifactPath, { manifestHash: held.manifest.manifestHash });
+    assert.notEqual(heldOpened.markets.EURUSD.accepted[0].confirmExpectancy, null);
+    assert.equal(heldOpened.markets.EURUSD.accepted[0].m3, "confirmed-profitable");
+  });
+
+  // R4 act 2: LA-6 keyed the prior-read refusal on corpus identity, and a
+  // supplementary arm at the same anchor is a NEW identity — the same
+  // held-back fold could be read twice under two grids. The ledger records
+  // the held-back DATES per requested symbol and the scan matches by
+  // overlap, so no engine version, clock name or fold shape can dodge it.
+  it("refuses a second read of the same held-back CALENDAR from a corpus with another grid", async () => {
+    const ledgerDir = mkdtempSync(join(tmpdir(), "gate-calendar-"));
+    const first = await gradeCorpus(foldedCorpus(), {
+      confirmFinal: true,
+      confirmLogDir: ledgerDir,
+      permutations: 100,
+      seed: 4,
+    });
+    assert.equal(first.confirmRead, true);
+    const otherGrid = foldedCorpus({ grid: [{}, { good: true, sizingHoursFactor: 2 }] });
+    const second = () =>
+      gradeCorpus(otherGrid, { confirmFinal: true, confirmLogDir: ledgerDir, permutations: 100, seed: 4 });
+    // A different grid is a different identity: the identity match alone
+    // would let this read through. The calendar match refuses it.
+    const otherId = (await gradeCorpus(otherGrid, { permutations: 100, seed: 4 })).read;
+    assert.equal(otherId, null, "a sealed run records nothing");
+    await assert.rejects(second(), /SAME HELD-BACK DATES/);
+    await assert.rejects(second(), /one burn per program/);
+    // Acknowledged, it reads — and files under its own identity, so the
+    // directory now holds two ledgers and two artifacts.
+    const acknowledged = await gradeCorpus(otherGrid, {
+      acknowledgePriorReads: true,
+      confirmFinal: true,
+      confirmLogDir: ledgerDir,
+      permutations: 100,
+      seed: 4,
+    });
+    assert.equal(acknowledged.confirmRead, true);
+    assert.equal(acknowledged.calendarKey, first.calendarKey);
+    assert.notEqual(acknowledged.read!.corpusId, first.read!.corpusId);
+    const filed = readdirSync(ledgerDir);
+    assert.equal(filed.filter((name) => name.startsWith("confirm-log-")).length, 2, filed.join(", "));
+    assert.equal(filed.filter((name) => name.startsWith("ledgered-read-")).length, 2, filed.join(", "));
+  });
+
+  it("reads every market's shipped cell even when no variant is accepted, and records it", async () => {
     const emitPath = foldedCorpus();
     const logPath = `${emitPath}.confirm-log.jsonl`;
     const graded = await gradeCorpus(emitPath, {
@@ -1497,9 +1728,34 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
     const verdict = graded.verdicts.get("forex")!.get("baseline")!;
     assert.equal(verdict.accepted, false);
-    assert.equal(verdict.confirmTotalDelta, null);
-    assert.equal(graded.confirmRead, false);
-    assert.equal(existsSync(logPath), false);
+    assert.equal(verdict.confirmTotalDelta, null, "no accepted variant, so no delta");
+    assert.equal(graded.confirmRead, true, "the shipped cells were read");
+    assert.equal(existsSync(logPath), true);
+    assert.ok(graded.read, "the read names where it was filed");
+    assert.ok(graded.shipped.size > 0);
+    for (const [symbol, cell] of graded.shipped) {
+      assert.equal(cell.variant, "good", `${symbol} graded at the named shipped cell`);
+      assert.ok(cell.select.net, `${symbol} carries a select figure`);
+      // No provenance was given, so nothing is held back; the fixture's
+      // shipped cell reads positive, which for a cell not held back is the
+      // winner's curse — WITHHELD by the admissibility rule, and the burn
+      // still counts (the fold was opened).
+      assert.equal(cell.confirm.net, null, `${symbol}'s inadmissible figure is withheld`);
+      assert.equal(cell.confirm.gross, null);
+      assert.equal(cell.m3, "not-held-back");
+    }
+    const opened = readLedgeredArtifact(graded.read!.artifactPath, {
+      manifestHash: graded.manifest.manifestHash,
+    });
+    assert.equal(opened.readId, graded.read!.readId);
+    assert.equal(opened.verdictUnit, "class");
+    assert.equal(opened.foldSource, "emitted");
+    assert.equal(Object.keys(opened.markets).length, graded.shipped.size);
+    const line = JSON.parse(readFileSync(logPath, "utf8").trim()) as Record<string, unknown>;
+    for (const field of ["artifactHash", "calendarKey", "emitSha256", "holdout", "symbolsRead", "verdictUnit", "baselineVariant"]) {
+      assert.ok(field in line, `the ledger line carries ${field}`);
+    }
+    assert.equal(line.artifactHash, graded.read!.artifactHash);
   });
 
   // #364 round 43, finding 1: a confirm delta needs evidence on BOTH
@@ -1527,8 +1783,11 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       "the baseline side must carry evidence for this to be the one-sided case",
     );
     assert.equal(good.confirmTotalDelta, null);
-    assert.equal(first.confirmRead, false);
-    assert.equal(existsSync(oneSidedLog), false);
+    // R4 act 2: the baseline side DID trade the confirm window, so the
+    // shipped cell was read and the read is recorded; the variant's delta
+    // stays null all the same.
+    assert.equal(first.confirmRead, true);
+    assert.equal(existsSync(oneSidedLog), true);
 
     // Neither side: the 0 − 0 = 0 shape, a figure over an absent
     // denominator that printed identically to a real net zero.
@@ -1545,6 +1804,8 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.equal(alsoGood.confirmFilled, 0);
     assert.equal(alsoGood.confirmBaseFilled, 0);
     assert.equal(alsoGood.confirmTotalDelta, null);
+    // Neither side traded the confirm window — no shipped-cell figure
+    // either — so nothing was read and nothing is recorded.
     assert.equal(second.confirmRead, false);
     assert.equal(existsSync(neitherLog), false);
 
@@ -1600,6 +1861,8 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     );
     const manifest = buildSweepManifest({
       acceptance: { captureAll: false, ignoreLowEdge: false },
+      // The roster the sweep was asked for — a recorded read matches the held-back calendar over it (R4 act 2).
+      requestedSymbols: [symbol],
       analyzerVersion: "2026.08.09.test",
       anchor: shard.anchor ?? "2026-08-11",
       barRejections: {},
@@ -1674,7 +1937,12 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       grade([wednesday, tuesday]),
       /has already been read 1 time\(s\)/,
     );
-    assert.equal(readdirSync(confirmLogDir).length, 1);
+    // A read is two files since R4 act 2: the ledger and the read's own
+    // artifact, named apart.
+    const filed = readdirSync(confirmLogDir).sort();
+    assert.equal(filed.length, 2, filed.join(", "));
+    assert.ok(filed.some((name) => name.startsWith("confirm-log-") && name.endsWith(".jsonl")));
+    assert.ok(filed.some((name) => name.startsWith("ledgered-read-") && name.endsWith(".json")));
   });
 
   // The half of round 45's scope that survives, and it survives by
@@ -1738,7 +2006,11 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     // per-directory fan-out could append to one shard's ledger and then
     // throw before the next, recording a read the caller never learned
     // about.
-    assert.deepEqual(readdirSync(confirmLogDir).length, 1);
+    // One ledger file for the corpus (content-addressed, one name) plus one
+    // artifact per read — two reads happened above.
+    const filed = readdirSync(confirmLogDir).sort();
+    assert.equal(filed.filter((name) => name.startsWith("confirm-log-")).length, 1, filed.join(", "));
+    assert.equal(filed.filter((name) => name.startsWith("ledgered-read-")).length, 2, filed.join(", "));
   });
 
   // #364 round 49, finding 1: the widened scan globs whole directories,
@@ -1771,10 +2043,14 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     const written = readdirSync(shardDir).filter((name) =>
       !before.includes(name)
     );
-    assert.deepEqual(written.length, 1);
+    assert.deepEqual(written.length, 2, written.join(", "));
     assert.ok(
-      written[0].startsWith("confirm-log-"),
-      `the ledger must be named apart from the emits; got ${written[0]}`,
+      written.some((name) => name.startsWith("confirm-log-")),
+      `the ledger must be named apart from the emits; got ${written.join(", ")}`,
+    );
+    assert.ok(
+      written.some((name) => name.startsWith("ledgered-read-")),
+      `the read's artifact must be named apart from the emits; got ${written.join(", ")}`,
     );
 
     // …and the emit sitting beside it is never mistaken for a record:
@@ -2245,10 +2521,15 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     // directory (#364 round 45, finding 1), which the run names
     // explicitly here: an executed test drives the REAL binary, and the
     // real binary's default is the repository's own confirm record.
-    const ledgerDir = mkdtempSync(join(tmpdir(), "gate-main-ledger-"));
+    // One ledger directory PER RUN since R4 act 2: the three fixtures below
+    // share one corpus identity, and the first read of it now burns (every
+    // shipped cell is read), so a second run against the same ledger is
+    // refused as a prior read — correct, and not what this test measures.
+    let ledgerDir = mkdtempSync(join(tmpdir(), "gate-main-ledger-"));
     const ledgersIn = (): string[] => readdirSync(ledgerDir);
-    const run = (emitPath: string, extra: string[]): string =>
-      execFileSync(
+    const run = (emitPath: string, extra: string[]): string => {
+      ledgerDir = mkdtempSync(join(tmpdir(), "gate-main-ledger-"));
+      return execFileSync(
         "npx",
         [
           "--no-install",
@@ -2262,6 +2543,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
         ],
         { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
       );
+    };
 
     // Zero-accept: grading against "good" leaves "baseline" failing
     // both folds, so no confirm figure is produced.
@@ -2270,12 +2552,12 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     // #364 round 44, finding 3: the two false-states of confirmRead have
     // opposite next moves, so they are named apart. Nothing accepted →
     // the 4c gate produced no pick and the confirm fold is irrelevant.
-    assert.match(
-      zeroOut,
-      /confirm=confirm NOT READ \(no variant was accepted, so there was no pick to confirm/,
-    );
-    assert.doesNotMatch(zeroOut, /read once/);
-    assert.deepEqual(ledgersIn(), []);
+    // R4 act 2: a zero-accept run still reads every market's shipped cell,
+    // so the report says READ and the ledger records it.
+    assert.match(zeroOut, /confirm=confirm \(READ once — every market's shipped cell and the accepted variants; recorded\)/);
+    assert.doesNotMatch(zeroOut, /NOT READ/);
+    assert.equal(ledgersIn().filter((name) => name.startsWith("confirm-log-")).length, 1);
+    assert.equal(ledgersIn().filter((name) => name.startsWith("ledgered-read-")).length, 1);
 
     // An accepted variant the confirm fold never covered says so on its
     // own row rather than printing a silent confirm column.
@@ -2287,19 +2569,17 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     );
     // …while something WAS accepted here, so the folds line names the
     // other cause: the pick is real and this fold cannot judge it.
-    assert.match(
-      oneSidedOut,
-      /confirm=confirm NOT READ \(accepted variants carried no filled outcomes on both sides/,
-    );
-    assert.deepEqual(ledgersIn(), []);
+    // The variant's note stands; the folds line says READ, because the
+    // baseline side traded the confirm window and the shipped cell was read.
+    assert.match(oneSidedOut, /confirm=confirm \(READ once — every market's shipped cell/);
 
     // The real read: the statement, the per-row figure with both
     // denominators, and the ledger all agree.
     const full = foldedCorpus();
     const fullOut = run(full, []);
-    assert.match(fullOut, /confirm=confirm \(read once, accepted variants only\)/);
+    assert.match(fullOut, /confirm=confirm \(READ once — every market's shipped cell and the accepted variants; recorded\)/);
     assert.match(fullOut, /confirm ΔR 4\.8 over 16\/16 filled/);
-    const ledgers = ledgersIn();
+    const ledgers = ledgersIn().filter((name) => name.startsWith("confirm-log-"));
     assert.equal(ledgers.length, 1);
     assert.equal(
       readFileSync(join(ledgerDir, ledgers[0]), "utf8").trim().split("\n")
@@ -2452,6 +2732,8 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
       JSON.stringify(
         buildSweepManifest({
           acceptance: { captureAll: false, ignoreLowEdge: false },
+          // The roster the sweep was asked for — a recorded read matches the held-back calendar over it (R4 act 2).
+          requestedSymbols: [...symbols],
           analyzerVersion: "2026.08.09.test",
           anchor: "2026-08-11",
           barRejections: {},
@@ -2572,12 +2854,15 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
       }
     >;
 
-    assert.equal(report.EURUSD.gateDisposition, "confirmed-profitable");
+    // No provenance in this fixture: EURUSD's shipped cell is not held back, so
+    // the pick's absolute confirm figures are withheld and its disposition says so;
+    // its delta against the baseline stays.
+    assert.equal(report.EURUSD.gateDisposition, "not-held-back");
     assert.ok((report.EURUSD.confirmTotalDelta ?? 0) > 0);
     // M3: the disposition is decided on the MONEY, so the interval it was
     // decided on rides in the artifact. A reader asked to trust a changed
     // verdict is owed the figure as well as the label.
-    assert.ok((report.EURUSD.confirmExpectancyLower ?? -1) > 0);
+    assert.equal(report.EURUSD.confirmExpectancyLower, null);
     // Not asserted strictly INSIDE the point estimate here: this fixture's
     // confirm outcomes are identical, so the sample has no dispersion and the
     // bound legitimately equals the mean. The strict case has its own fixture
@@ -2595,18 +2880,16 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
     // asked — and the read confirms nothing, because the interval spans zero.
     // Without this market the old rule and the new one agree on every row
     // here, and restoring `delta > 0` passes the entire suite.
-    assert.equal(report.USDCAD.gateDisposition, "indistinguishable");
+    assert.equal(report.USDCAD.gateDisposition, "not-held-back");
     assert.ok(
       (report.USDCAD.confirmTotalDelta ?? 0) > 0,
       `the retired rule must have CONFIRMED this pick, or the case is not ` +
         `the one M3 is about: delta ${report.USDCAD.confirmTotalDelta}`,
     );
-    assert.ok((report.USDCAD.confirmExpectancy ?? 0) > 0, "mean is positive");
-    assert.ok(
-      (report.USDCAD.confirmExpectancyLower ?? 0) < 0,
-      `but its lower bound does not clear zero: ` +
-        `${report.USDCAD.confirmExpectancyLower}`,
-    );
+    // USDCAD is not held back either (no provenance): its absolute confirm
+    // figures are withheld under the admissibility rule; the delta stays.
+    assert.equal(report.USDCAD.confirmExpectancy, null, "absolute figure withheld: the shipped cell is not held back");
+    assert.equal(report.USDCAD.confirmExpectancyLower, null);
     assert.equal(report.NZDUSD.gateDisposition, "missing-verdict");
     for (const symbol of ["GBPUSD", "USDJPY", "AUDUSD", "USDCHF", "NZDUSD"]) {
       assert.equal(report[symbol].confirmTotalDelta, null);
@@ -2621,9 +2904,12 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
     // own confirm-fold expectancy is positive BEYOND ITS ERROR, and
     // `indistinguishable` is the third outcome the old binary could not
     // express — the old code called every one of them "negative".
-    assert.equal(artifact.confirmedProfitable, 1);
+    // EURUSD and USDCAD are not held back (no provenance in this fixture):
+    // their absolute confirm figures are withheld and counted apart.
+    assert.equal(artifact.confirmedProfitable, 0);
     assert.equal(artifact.contradicted, 0);
-    assert.equal(artifact.indistinguishable, 1);
+    assert.equal(artifact.indistinguishable, 0);
+    assert.equal(artifact.notHeldBack, 2);
     assert.equal(
       artifact.confirmedPositive,
       undefined,
@@ -2653,35 +2939,38 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
     assert.equal(artifact.confirmRead, true);
     assert.equal(artifact.notReadReason, null);
     assert.ok(typeof artifact.readAt === "string");
-    assert.equal(readdirSync(ledgerDir).length, 1);
-    assert.match(stdout, /confirm read: 1 picks profitable beyond error, 0 contradicted, 1 indistinguishable from zero/);
+    // The ledger and the read's own artifact (R4 act 2).
+    assert.equal(readdirSync(ledgerDir).filter((name) => name.startsWith("confirm-log-")).length, 1);
+    assert.equal(readdirSync(ledgerDir).filter((name) => name.startsWith("ledgered-read-")).length, 1);
+    assert.match(stdout, /confirm read: 0 picks profitable beyond error, 0 contradicted, 0 indistinguishable from zero/);
     assert.match(stdout, /1 the gate could not judge, 1 thin/);
   });
 
-  it("burns nothing and names the cause when every pick is accepted but unevidenced", () => {
+  // R4 act 2: the read covers every market's shipped cell, so it happens
+  // and is recorded even when no pick carries confirm evidence; the pick's
+  // own disposition names its cause.
+  it("reads the shipped cells and names the pick's cause when every pick is accepted but unevidenced", () => {
     const { artifact, ledgerDir, stdout } = run(["USDCHF"]);
-    assert.equal(artifact.confirmRead, false);
-    assert.equal(artifact.readAt, null);
+    assert.equal(artifact.confirmRead, true);
+    assert.ok(typeof artifact.readAt === "string");
     assert.equal(artifact.unevidenced, 1);
-    assert.match(
-      artifact.notReadReason as string,
-      /carried no filled outcomes on both sides of the confirm fold/,
-    );
-    assert.deepEqual(readdirSync(ledgerDir), []);
-    assert.match(stdout, /confirm NOT READ \(nothing burned\)/);
+    assert.equal(artifact.notReadReason, null);
+    const report = artifact.confirmReport as Record<string, { gateDisposition: string }>;
+    assert.equal(report.USDCHF.gateDisposition, "accepted-but-unevidenced");
+    assert.equal(readdirSync(ledgerDir).filter((name) => name.startsWith("confirm-log-")).length, 1);
+    assert.match(stdout, /every market's shipped cell read and recorded/);
   });
 
-  it("burns nothing and names the other cause when no pick cleared the gate", () => {
+  it("reads the shipped cells and names the other cause when no pick cleared the gate", () => {
     const { artifact, ledgerDir } = run(["GBPUSD"]);
-    assert.equal(artifact.confirmRead, false);
-    assert.equal(artifact.readAt, null);
+    assert.equal(artifact.confirmRead, true);
+    assert.ok(typeof artifact.readAt === "string");
     assert.equal(artifact.refusedByGate, 1);
     assert.equal(artifact.unevidenced, 0);
-    assert.match(
-      artifact.notReadReason as string,
-      /1 refused by the 4c gate/,
-    );
-    assert.deepEqual(readdirSync(ledgerDir), []);
+    assert.equal(artifact.notReadReason, null);
+    const report = artifact.confirmReport as Record<string, { gateDisposition: string }>;
+    assert.equal(report.GBPUSD.gateDisposition, "refused-by-gate");
+    assert.equal(readdirSync(ledgerDir).filter((name) => name.startsWith("confirm-log-")).length, 1);
   });
 
   // The reason line splits with the counters, or it reproduces the same
@@ -2689,16 +2978,17 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
   // accepted === false, so a corpus of nothing but those had read "no
   // pick's variant was accepted" — true, and pointing at the
   // calibration when the remedy is the corpus's depth or the pairing.
-  it("names thin and unjudgeable picks apart in the reason, never as a lost gate", () => {
-    const { artifact } = run(["AUDUSD", "USDJPY"]);
-    assert.equal(artifact.confirmRead, false);
+  it("names thin and unjudgeable picks apart, never as a lost gate", () => {
+    const { artifact, stdout } = run(["AUDUSD", "USDJPY"]);
+    assert.equal(artifact.confirmRead, true);
     assert.equal(artifact.thin, 1);
     assert.equal(artifact.gateCouldNotJudge, 1);
     assert.equal(artifact.refusedByGate, 0);
-    const reason = artifact.notReadReason as string;
-    assert.match(reason, /1 thin — under the market grain's filled floor/);
-    assert.match(reason, /1 the gate could not judge/);
-    assert.doesNotMatch(reason, /refused by the 4c gate/);
+    assert.equal(artifact.notReadReason, null);
+    const report = artifact.confirmReport as Record<string, { gateDisposition: string }>;
+    assert.equal(report.AUDUSD.gateDisposition, "thin");
+    assert.equal(report.USDJPY.gateDisposition, "gate-could-not-judge");
+    assert.match(stdout, /0 refused by the gate, 1 the gate could not judge, 1 thin/);
   });
 });
 
@@ -2842,55 +3132,76 @@ describe("gradeCorpus — the holdout cycle's surgical read (symbolFilter)", () 
   });
 });
 
-describe("gradeCorpus — per-market folds cut over each market's OWN span (totality)", () => {
-  it("re-cuts fit/select/confirm from row times and drops boundary-leaking rows exactly", async () => {
+describe("gradeCorpus — the per-market time re-cut is retired (R4 act 2)", () => {
+  // The totality mode of 2026-08-11 re-cut each market's span at 50/75%
+  // from row instants and discarded `row.split`. Under the sealed door it
+  // never produced a market-local confirm cell but silently demoted emitted
+  // select rows into a local fit; under --confirm-final it relabelled a
+  // median 329 days of the HELD-BACK fold into select, where acceptance is
+  // decided. The emitted per-class labels are the only fold source now,
+  // and the market grain is the verdict unit, not a fold source.
+  const TSX = join(process.cwd(), "node_modules/.bin/tsx");
+  const run = (script: string, args: string[]) =>
+    spawnSync(TSX, [`scripts/${script}.ts`, ...args], {
+      cwd: process.cwd(),
+      encoding: "utf8",
+      env: { ...process.env, NODE_OPTIONS: "" },
+      timeout: 120_000,
+    });
+
+  it("the gate carries no re-cut: no option, no span table, no refold", () => {
+    const source = readFileSync("scripts/grid-totalr.ts", "utf8");
+    for (const token of ["perMarketFolds", "marketSpans", "refold("]) {
+      assert.ok(!source.includes(token), `grid-totalr.ts still carries ${token}`);
+    }
+    assert.match(source, /deliberately NO per-market fold re-cut/);
+  });
+
+  for (const script of ["derive-4d", "confirm-4d"]) {
+    it(`${script} refuses --per-market-folds by name, before any corpus is opened`, () => {
+      const result = run(script, ["--per-market-folds"]);
+      assert.equal(result.error, undefined, String(result.error));
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /--per-market-folds was retired on 2026-09-02/);
+      assert.match(result.stderr, /relabelled a median 329 days of the held-back fold/);
+    });
+  }
+
+  it("grid-totalr refuses an unknown flag by name rather than walking past it", () => {
+    const result = run("grid-totalr", ["--per-market-folds"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /unknown flag --per-market-folds/);
+    assert.match(result.stderr, /refused rather than ignored/);
+  });
+
+  it("grid-totalr refuses a verdict unit outside its domain", () => {
+    const result = run("grid-totalr", ["--verdict-unit", "nonesuch"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /--verdict-unit must be "class" or "market"/);
+  });
+
+  it("grid-totalr grades at the market unit on the emitted folds and says so", () => {
     const DAY_MS = 86_400_000;
     const start = Date.UTC(2025, 0, 6);
     const rows: SweepEmitRow[] = [];
-    // 200 days: the select quarter holds 50 filled rows, clear of the
-    // market unit's 30-filled floor.
-    for (let day = 0; day < 200; day += 1) {
+    for (let day = 0; day < 100; day += 1) {
       for (const [variant, r] of [["baseline", 0.1], ["wide", 0.2]] as const) {
         rows.push({
           accepted: true,
           exitAtMs: start + day * DAY_MS + 3_600_000,
           outcome: "take_profit",
           realizedR: r,
-          split: "ignored-by-refold",
+          split: day < 50 ? "train" : "test",
           symbol: "EURUSD",
           time: start + day * DAY_MS,
           variant,
         });
       }
     }
-    // The leaker: decided in the select quarter (day 120), exits in
-    // confirm (day 160) — dropped by exact containment.
-    rows.push({
-      accepted: true,
-      exitAtMs: start + 160 * DAY_MS,
-      outcome: "take_profit",
-      realizedR: 50,
-      split: "ignored-by-refold",
-      symbol: "EURUSD",
-      time: start + 120 * DAY_MS + 7_200_000,
-      variant: "wide",
-    });
     const emitPath = corpusWith(rows);
-    const { verdicts, foldNames } = await gradeCorpus(emitPath, {
-      includeHoldout: true,
-      perMarketFolds: true,
-      permutations: 200,
-      seed: 7,
-      verdictUnit: "market",
-    });
-    assert.equal(foldNames.fit, "fit");
-    const wide = verdicts.get("EURUSD")?.get("wide");
-    assert.ok(wide?.accepted, "steady gain across re-cut folds accepts");
-    // 50 select days for the variant; the +50R leaker was dropped, so
-    // the select delta stays the honest 50 x 0.1.
-    assert.ok(
-      Math.abs((wide?.selectTotalDelta ?? 0) - 5) < 1e-6,
-      `leaker must be dropped: selectTotalDelta ${wide?.selectTotalDelta}`,
-    );
+    const result = run("grid-totalr", [emitPath, "--verdict-unit", "market", "--permutations", "20"]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /verdict unit: market — every market on its own rows/);
+    assert.match(result.stdout, /fold source: emitted labels \(no time re-cut\)/);
   });
 });
