@@ -352,6 +352,31 @@ cap removal is now complete for every candidate: eight of the eleven
 class-row candidates and seven of the eleven derived ones keep a negative
 net upper bound under every cap from 1.5 to uncapped.
 
+### 6c. The freeze
+
+`docs/research/r4/frozen-candidates.json` (frozenHash `9dc27b1a7fe3`), frozen
+before the read from the seven arms' gradings — S, S8, W, W96, C1, C2 and F
+(the derived variants over R3's corpus) — each bound by its grading's bytes,
+manifest hash and emit digest, every arm's shipped-cell select figures
+reconciled equal, removal arms S, S8, W and W96:
+
+| what | count |
+| --- | ---: |
+| markets frozen | 91 |
+| candidates (FREEZE_RULE: the accepted variant with the largest fit ΔR) | 9 |
+| — from W (24 h: AUDCHF; 12 h: CADCHF; 48 h: AUDCAD, CHFJPY, EURNZD) | 5 |
+| — from W96 (96 h: AUDNZD, NZDCAD, NZDCHF) | 3 |
+| — from F (costShareMax=0.15: EURAUD, rebuilt from the baseline rows at read time) | 1 |
+| decline candidates | 22 |
+| retired under RETIREMENT_RULE (ADAUSD 9 of 13 cells, NGUSD 10 of 13, ZSUSX 7 of 13, HOUSD 5 of 13, XTZUSD 3 of 13; none fragile) | 5 |
+| (market, cell) tests across the arms | 2,457 |
+| accepts the gate's p ≤ 0.05 would hand out by chance | 122.85 |
+
+Nine candidates against 123 expected by chance: nothing on the tuning folds
+is evidence that any candidate is real, and the frozen file says so in its
+own numbers. The read opens exactly these nine cells and every market's
+shipped cell, once.
+
 ## 7. Storage and the anchor
 
 **Preflight, 2026-09-03 04:2xZ** (`docs/research/r4/preflight-survey-2026-09-03.txt`,
@@ -372,7 +397,16 @@ The daily cache top-up (`com.windwardline.levelflow-cache-topup`, 07:00
 local) warms the same rolling stores the sweeps read, with no lock. It is
 unloaded for the run window and reloaded when the last arm exits.
 
-Corpora: not yet run.
+**Corpora** (all in the main checkout, gitignored, the read's inputs; sizes
+as written): stop-cap 16.76 GB (6,652,005 rows), review-window 11.72 GB
+(4,709,810), class-default 7.16 GB (2,866,621), class-default-gate-off 7.20 GB
+(2,866,621), stop-cap-8 7.00 GB (2,790,378), review-window-96 4.78 GB
+(1,919,083); 54.6 GB with the rejection sidecars, beside R3's 35.6 GB. Disk:
+247 GB free at launch, 192 GB free after the last arm; nothing copied, no
+scratch clone, the temp fixtures the test suite leaves are 29 MB. Tracked
+artifacts for the act: seven gradings at two units with their stdout, six
+manifests and stdout tables, the threshold and preflight artifacts, the
+frozen candidates — under 25 MB.
 
 ## 8. Open items
 
