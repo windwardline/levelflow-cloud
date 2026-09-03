@@ -260,9 +260,12 @@ the 2026-08-26 pin, so no arm can reach the provider. Against R3's survey the
 carries one more intraday bar inside the window (65,107 against 65,106) after
 the 2026-09-02 18:03Z cache top-up, which was itself stopped by hand (exit
 143) once the allowance was back. Within an arm every comparison is against
-that arm's own baseline cell, so the one bar changes no verdict; it is
-recorded because a later reconciliation of BZUSD's baseline against R3's will
-otherwise read the difference as a defect.
+that arm's own baseline cell, so the one bar changes no verdict — and,
+checked before the read on the tuning folds (baseline rows digested per
+market and fold, confirm rows skipped before any outcome field was read),
+R3's baseline rows and act 3's are the same rows for all 166 (market, fold)
+keys, BZUSD included: the extra bar sits outside every decision. The read's
+own digest covers the confirm fold.
 
 The daily cache top-up (`com.windwardline.levelflow-cache-topup`, 07:00
 local) warms the same rolling stores the sweeps read, with no lock. It is
