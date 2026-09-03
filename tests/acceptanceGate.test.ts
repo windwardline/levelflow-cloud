@@ -1622,6 +1622,38 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.equal(grossClears.read, null);
   });
 
+  it("carries every variant's own select figures, net and gross, in the shipped cell's shape (R4 act 3)", async () => {
+    const DAY_MS = 86_400_000;
+    const start = Date.UTC(2025, 0, 6);
+    const rowsFor = (variant: string, realizedR: number, gross: number): SweepEmitRow[] =>
+      Array.from({ length: 40 }, (_, day) => ({
+        accepted: true,
+        exitAtMs: start + day * DAY_MS + 3_600_000,
+        grossRealizedR: gross,
+        outcome: realizedR > 0 ? "take_profit" : "stop_loss",
+        realizedR,
+        split: "test",
+        symbol: "EURUSD",
+        time: start + day * DAY_MS,
+        variant,
+      }));
+    const graded = await gradeCorpus(
+      corpusWith([...rowsFor("baseline", -0.5, -0.45), ...rowsFor("x=1", 0.2, 0.25)]),
+      { permutations: 50, seed: 4, verdictUnit: "market" },
+    );
+    const verdict = graded.verdicts.get("EURUSD")!.get("x=1")!;
+    assert.equal(verdict.select.net!.n, 40);
+    assert.ok(Math.abs(verdict.select.net!.expectancy - 0.2) < 1e-9);
+    assert.ok(verdict.select.net!.lower <= verdict.select.net!.expectancy && verdict.select.net!.expectancy <= verdict.select.net!.upper);
+    assert.equal(verdict.select.gross!.n, 40);
+    assert.ok(Math.abs(verdict.select.gross!.expectancy - 0.25) < 1e-9);
+    // The same quantity the shipped cell carries: a retirement rule reads one shape wherever it looks.
+    const shipped = graded.shipped.get("EURUSD")!.select;
+    assert.equal(shipped.net!.n, 40);
+    assert.ok(Math.abs(shipped.net!.expectancy + 0.5) < 1e-9);
+    assert.deepEqual(Object.keys(verdict.select).sort(), Object.keys(shipped).sort());
+  });
+
   it("refuses a recorded read whose shards carry a market the request did not name", async () => {
     // The fresh-eyes refuter walked an unrequested EURUSD past the calendar
     // overlap this way: spans were built over the request alone.
