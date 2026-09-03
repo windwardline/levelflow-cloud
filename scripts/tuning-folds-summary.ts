@@ -20,10 +20,12 @@
  * (amendment 39: a rate may sit beside money, never instead of it), net and
  * gross expectancy, net and gross total R, the class rollup's standard error
  * clustered by market (3a), and a THIN marker below `--min-filled`. Held-out
- * markets (the manifest's stamped 3e flag) are excluded from every class
- * rollup and listed per market as HELD OUT. Rows the sweep did not accept
- * (a capture-all arm) are counted and skipped: this describes the accepted
- * population.
+ * markets — the stratified set drawn over the requested roster (one holdout
+ * population, R4 act 2), verified against the anchor's tracked pin when one
+ * stands — are excluded from every class rollup and listed per market as
+ * HELD OUT; the row's stamped flag is counted as provenance and excludes
+ * nothing. Rows the sweep did not accept (a capture-all arm) are counted and
+ * skipped: this describes the accepted population.
  *
  * WHAT IT DOES NOT DO. It ranks nothing and accepts nothing — the acceptance
  * gate is `grid-totalr`, with its permutation null and its family-wise
@@ -35,10 +37,16 @@
 import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { flagReader, OperatorInputError } from "./flagReader.ts";
+import {
+  describeHeldOut,
+  type ResolvedHeldOut,
+  resolveHeldOut,
+} from "./sweepFolds.ts";
 import { type SweepManifest, stableStringify } from "./sweepManifest.ts";
 import {
   addOutcome,
   assertEmitColumns,
+  assertManifest,
   assertManifestedCorpusStreaming,
   clusteredStandardError,
   emptyStats,
@@ -96,6 +104,8 @@ export type TuningSummary = {
   columnsUnverifiable: boolean;
   foldWindows: Array<{ endMs: number; name: string; startMs: number }>;
   folds: string[];
+  /** The one holdout population this summary excluded on, and its pin state. */
+  holdout: ResolvedHeldOut;
   manifestHashes: string[];
   minFilled: number;
   rows: {
@@ -103,6 +113,8 @@ export type TuningSummary = {
     heldOut: number;
     notAccepted: number;
     otherFolds: number;
+    /** Rows carrying the driver's stamp — provenance, never a filter. */
+    stamped: number;
     total: number;
   };
 };
@@ -127,6 +139,9 @@ function mergeStats(into: SweepStats, from: SweepStats): void {
   into.n += from.n;
   into.rSum += from.rSum;
   into.rSumSq += from.rSumSq;
+  into.grossFilled += from.grossFilled;
+  into.grossRSum += from.grossRSum;
+  into.grossRSumSq += from.grossRSumSq;
   into.stops += from.stops;
   into.wins += from.wins;
 }
@@ -178,6 +193,8 @@ function declaredFolds(
 
 export async function summarizeTuningFolds(input: {
   folds: string[];
+  /** Where the anchor's pinned set is looked for; the tracked default when absent. */
+  holdoutPinDir?: string;
   minFilled: number;
   paths: string[];
 }): Promise<TuningSummary> {
@@ -193,6 +210,28 @@ export async function summarizeTuningFolds(input: {
     );
   }
   const wanted = new Set(input.folds);
+  // Every manifest first (the door's manifest half): one identity across the
+  // shards, refused before a row is read, and the held-out set drawn over
+  // their requested roster — the streaming door hands its manifest back only
+  // after the last row, and the set must stand before the first.
+  const manifests = input.paths.map((path) => assertManifest(path));
+  let identity: string | null = null;
+  for (const [index, manifest] of manifests.entries()) {
+    const record = manifest as unknown as Record<string, unknown>;
+    const shardIdentity = stableStringify(
+      Object.fromEntries(IDENTITY_TERMS.map((term) => [term, record[term]])),
+    );
+    if (identity === null) {
+      identity = shardIdentity;
+    } else if (identity !== shardIdentity) {
+      throw new Error(
+        `${input.paths[index]}: this shard's engine, anchor, depth, grid, ` +
+          `folds, clock, conditions, cost scales or acceptance mode differ ` +
+          `from the first shard's — two measurements cannot be summarised as one`,
+      );
+    }
+  }
+  const holdout = resolveHeldOut(manifests, input.holdoutPinDir);
   const summary: TuningSummary = {
     anchor: "",
     analyzerVersion: "",
@@ -202,14 +241,22 @@ export async function summarizeTuningFolds(input: {
     columnsUnverifiable: false,
     foldWindows: [],
     folds: input.folds,
+    holdout,
     manifestHashes: [],
     minFilled: input.minFilled,
-    rows: { accepted: 0, heldOut: 0, notAccepted: 0, otherFolds: 0, total: 0 },
+    rows: {
+      accepted: 0,
+      heldOut: 0,
+      notAccepted: 0,
+      otherFolds: 0,
+      stamped: 0,
+      total: 0,
+    },
   };
-  let identity: string | null = null;
+  let firstShard = true;
   for (const path of input.paths) {
-    // The manifest half of the door first, so a shard that cannot state its
-    // folds is refused before a single row of it is read.
+    // The row half of the door: the manifest verified again before a row is
+    // handed over, the confirm fold sealed.
     const manifest = await assertManifestedCorpusStreaming(path, (row) => {
       summary.rows.total += 1;
       if (row.accepted !== true) {
@@ -225,17 +272,19 @@ export async function summarizeTuningFolds(input: {
       const symbol = String(row.symbol);
       const variant = typeof row.variant === "string" ? row.variant : "baseline";
       const assetType = getAssetType(symbol);
-      const holdout = row.holdout === true;
+      // Provenance only: the stamp is counted and excludes nothing.
+      if (row.holdout === true) summary.rows.stamped += 1;
+      const heldOut = holdout.held.has(symbol);
       const symbolKey = `${assetType}|${symbol}|${variant}`;
       let symbolCell = summary.bySymbolVariant.get(symbolKey);
       if (!symbolCell) {
-        symbolCell = { ...cell(), assetType, holdout, symbol, variant };
+        symbolCell = { ...cell(), assetType, holdout: heldOut, symbol, variant };
         summary.bySymbolVariant.set(symbolKey, symbolCell);
       }
       addBoth(symbolCell, row);
-      if (holdout) {
-        // 3e: held-out markets enter no tuning aggregate. Listed per market
-        // with the flag, never rolled into a class.
+      if (heldOut) {
+        // Held-out markets enter no class aggregate. Listed per market with
+        // the label, never rolled into a class.
         summary.rows.heldOut += 1;
         return;
       }
@@ -285,21 +334,11 @@ export async function summarizeTuningFolds(input: {
     }
     const { unverifiable } = assertEmitColumns(path, manifest, REQUIRED_COLUMNS);
     if (unverifiable) summary.columnsUnverifiable = true;
-    const record = manifest as unknown as Record<string, unknown>;
-    const shardIdentity = stableStringify(
-      Object.fromEntries(IDENTITY_TERMS.map((term) => [term, record[term]])),
-    );
-    if (identity === null) {
-      identity = shardIdentity;
+    if (firstShard) {
+      firstShard = false;
       summary.anchor = manifest.anchor;
       summary.analyzerVersion = manifest.analyzerVersion;
       summary.foldWindows = windows.filter((window) => wanted.has(window.name));
-    } else if (identity !== shardIdentity) {
-      throw new Error(
-        `${path}: this shard's engine, anchor, depth, grid, folds, clock, ` +
-          `conditions, cost scales or acceptance mode differ from the first ` +
-          `shard's — two measurements cannot be summarised as one`,
-      );
     }
     summary.manifestHashes.push(manifest.manifestHash.slice(0, 12));
   }
@@ -339,7 +378,9 @@ export function formatSummary(summary: TuningSummary): string {
       } in other folds (not read; ${SEALED_FOLD} sealed at the door) · ${
         summary.rows.heldOut
       } on held-out ` +
-      `markets (per-market lines only)`,
+      `markets (per-market lines only) · ${summary.rows.stamped} carrying the ` +
+      `driver's stamp (provenance only)`,
+    describeHeldOut(summary.holdout),
     `thin floor: ${summary.minFilled} filled` +
       (summary.columnsUnverifiable
         ? " · NOTE: a manifest carries no emitColumns, so the gross columns " +

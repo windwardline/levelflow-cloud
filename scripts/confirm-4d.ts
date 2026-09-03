@@ -9,9 +9,8 @@
 // held-back data can never influence the pick — it can only pass or fail
 // it. The confirm read runs once, per corpus hash, into the burned log.
 import { readFileSync } from "node:fs";
-import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { gradeCorpus } from "./grid-totalr.ts";
-import { stratifiedHoldout } from "./sweepFolds.ts";
+import { resolveHeldOut } from "./sweepFolds.ts";
 import { assertManifest } from "./sweepStats.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 import {
@@ -119,7 +118,20 @@ async function main() {
   const baselineVariant = str("--baseline") ?? "baseline";
   const dir = str("--research-dir") ?? "docs/research/baseline-2026-08-10";
   const holdoutCycle = argv.includes("--holdout-cycle");
-  const perMarketFolds = argv.includes("--per-market-folds");
+  // Retired (R4 act 2, 2026-09-02): the per-market time re-cut relabelled
+  // the held-back fold into select under --confirm-final. The emitted
+  // per-class folds are the only fold source; the market grain is
+  // `verdictUnit: "market"` below, which this script has always passed.
+  if (argv.includes("--per-market-folds")) {
+    throw new Error(
+      "--per-market-folds was retired on 2026-09-02: it re-cut each market's " +
+        "span at 50/75% from row instants and, under --confirm-final, " +
+        "relabelled a median 329 days of the held-back fold into select. " +
+        "Grade on the emitted per-class folds (the per-class corpus " +
+        "docs/research/r3/capture-all-classfolds.jsonl); the per-market " +
+        "grain is already on.",
+    );
+  }
   const targetsFlag = str("--targets");
   const prefix = str("--prefix") ??
     (holdoutCycle ? "4d-holdout" : "4d");
@@ -231,29 +243,22 @@ async function main() {
   // variant; only the frozen picks' rows are reported.
   let symbolFilter: Set<string> | undefined;
   if (holdoutCycle) {
-    const union = new Set<string>();
-    for (const path of paths) {
-      for (const entry of assertManifest(path).symbols) {
-        union.add(entry.symbol);
-      }
-    }
-    symbolFilter = stratifiedHoldout(
-      [...union],
-      (symbol) => getAssetType(symbol),
-    );
+    // The ONE holdout population (R4 act 2): the stratified set over the
+    // REQUESTED roster, verified against the anchor's tracked pin — never
+    // over the symbols that happen to have rows.
+    symbolFilter = new Set(resolveHeldOut(paths.map((path) => assertManifest(path))).held);
   }
   if (targetsFlag) {
     symbolFilter = new Set(
       targetsFlag.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
     );
   }
-  const { confirmRead, verdicts } = await gradeCorpus(paths, {
+  const { confirmRead, heldOutSet, shipped, verdicts } = await gradeCorpus(paths, {
     acknowledgePriorReads: argv.includes("--acknowledge-prior-reads"),
     baselineVariant,
     confirmFinal: true,
     confirmLogDir: str("--confirm-log-dir"),
     includeHoldout: holdoutCycle || targetsFlag !== undefined,
-    perMarketFolds,
     permutations: num("--permutations", 1_000, {
     basis:
       "a permutation p-value is (1 + #{at least as extreme}) / " +
@@ -271,6 +276,7 @@ async function main() {
     string,
     {
       confirmTotalDelta: number | null;
+      heldOut: boolean;
       // The delta's two denominators travel with it (#364 rounds 43-44):
       // a null here is "the gate refused the pick" or "the confirm fold
       // could not judge it", and these are what tell them apart.
@@ -334,6 +340,7 @@ async function main() {
   let gateCouldNotJudge = 0;
   let thin = 0;
   let unevidenced = 0;
+  let notHeldBack = 0;
   let missingVerdict = 0;
   for (const [symbol, pick] of Object.entries(finalPicks)) {
     const verdict = verdicts.get(symbol)?.get(pick.variant);
@@ -343,8 +350,16 @@ async function main() {
     // the baseline to have filled in the confirm fold. A fold that covered the
     // pick and not its baseline can still say whether the pick earned
     // anything, and that case used to report no figure at all.
-    const lower = verdict?.confirmExpectancyLower ?? null;
-    const upper = verdict?.confirmExpectancyUpper ?? null;
+    // ADMISSIBILITY (R4 act 2): the pick rides the shipped cell's layer, so
+    // its absolute confirm figures are admissible only when that cell is
+    // held back, or when the fold contradicts it (upper bound below zero);
+    // the delta against the baseline stays. Nothing absolute is printed for
+    // a market that is not held back.
+    const heldBack = shipped.get(symbol)?.provenance.heldBack === true;
+    const rawUpper = verdict?.confirmExpectancyUpper ?? null;
+    const absoluteAdmissible = heldBack || (rawUpper !== null && rawUpper < 0);
+    const lower = absoluteAdmissible ? (verdict?.confirmExpectancyLower ?? null) : null;
+    const upper = absoluteAdmissible ? rawUpper : null;
     const measured = lower !== null && upper !== null;
     const disposition = !verdict
       ? "missing-verdict"
@@ -354,6 +369,8 @@ async function main() {
       ? "contradicted"
       : measured
       ? "indistinguishable"
+      : verdict.accepted && rawUpper !== null && !absoluteAdmissible
+      ? "not-held-back"
       : verdict.thin
       ? "thin"
       : verdict.noVerdict
@@ -362,12 +379,14 @@ async function main() {
       ? "accepted-but-unevidenced"
       : "refused-by-gate";
     confirmReport[symbol] = {
+      // Labelled, never dropped: the market unit grades every market (R4 act 2).
+      heldOut: heldOutSet.includes(symbol),
       confirmTotalDelta: delta,
       confirmFilled: verdict?.confirmFilled ?? null,
       confirmBaseFilled: verdict?.confirmBaseFilled ?? null,
       // The figure the disposition was decided on, beside the figure it
       // replaces. A reader asked to trust a changed verdict is owed both.
-      confirmExpectancy: verdict?.confirmExpectancy ?? null,
+      confirmExpectancy: absoluteAdmissible ? (verdict?.confirmExpectancy ?? null) : null,
       confirmExpectancyLower: lower,
       confirmExpectancyUpper: upper,
       // The comparison, REPORTED and not deciding (amendment 39: a rate or a
@@ -381,6 +400,7 @@ async function main() {
     if (disposition === "confirmed-profitable") confirmedProfitable += 1;
     else if (disposition === "contradicted") contradicted += 1;
     else if (disposition === "indistinguishable") indistinguishable += 1;
+    else if (disposition === "not-held-back") notHeldBack += 1;
     else if (!verdict) missingVerdict += 1;
     else if (verdict.thin) thin += 1;
     else if (verdict.noVerdict) gateCouldNotJudge += 1;
@@ -426,6 +446,7 @@ async function main() {
     gateCouldNotJudge,
     indistinguishable,
     missingVerdict,
+    notHeldBack,
     notReadReason: confirmRead
       ? null
       : notReadCauses.length > 0
@@ -441,13 +462,13 @@ async function main() {
     (confirmRead
       ? `confirm read: ${confirmedProfitable} picks profitable beyond error, ` +
         `${contradicted} contradicted, ${indistinguishable} indistinguishable ` +
-        `from zero`
+        `from zero (every market's shipped cell read and recorded in the ledgered-read artifact)`
       : `confirm NOT READ (nothing burned): ${confirmedProfitable} ` +
         `profitable, ${contradicted} contradicted, ${indistinguishable} ` +
         `indistinguishable`) +
       `, ${unreadable} without a figure ` +
       `(${refusedByGate} refused by the gate, ${gateCouldNotJudge} the ` +
-      `gate could not judge, ${thin} thin, ${unevidenced} accepted but ` +
+      `gate could not judge, ${thin} thin, ${notHeldBack} not held back (absolute figures withheld), ${unevidenced} accepted but ` +
       `unevidenced in the confirm fold, ${missingVerdict} with no verdict ` +
       `at all) -> ${prefix}-confirm-read.json`,
   );

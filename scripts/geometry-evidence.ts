@@ -4,8 +4,11 @@
  *
  * Reads ONE manifested, evidence-enriched corpus (legs, excursions, exit
  * clock, riskDistance on every record — PR #292/#293) and prints the five
- * questions' measurements per class. Baseline variant only; holdout
- * markets excluded (3e); capture-all rows kept where a question needs the
+ * questions' measurements per class. Baseline variant only; the stratified
+ * held-out set (one holdout population, R4 act 2 — verified against the
+ * anchor's tracked pin when one stands) withheld from the five class tables
+ * and counted in the headline, the row's stamped flag printed as provenance
+ * and withholding nothing; capture-all rows kept where a question needs the
  * full score range (Q3) and split out where it needs the accepted stream.
  * The confirm fold is sealed at the door (R4 act 1): its rows are withheld
  * before this file sees them, and the headline states how many.
@@ -15,7 +18,9 @@
 import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import type { ResolutionLeg } from "../supabase/functions/trade-analyzer/replay.ts";
+import { describeHeldOut, resolveHeldOut } from "./sweepFolds.ts";
 import {
+  assertManifest,
   assertManifestedCorpusStreaming,
   emptyStats,
   addOutcome,
@@ -187,11 +192,23 @@ async function main(): Promise<void> {
   // evidence fields the five questions read; the baseline/holdout
   // filter runs inside the callback so filtered rows are never held, and
   // the confirm fold never reaches it — the door seals that and counts it.
+  // The held-out set stands BEFORE the first row (R4 act 2, one holdout
+  // population): the streaming door hands its manifest back only after the
+  // last row, so the manifest half of the door is read first. The five
+  // questions are class tables, so held-out markets are withheld from the
+  // stream and counted; the stamp is counted as provenance and withholds
+  // nothing.
+  const holdout = resolveHeldOut([assertManifest(paths[0])]);
   const rows: EvidenceRow[] = [];
   let dataAbsentRows = 0;
+  let heldOutRows = 0;
+  let stampedRows = 0;
   const manifest = await assertManifestedCorpusStreaming(paths[0], (raw) => {
     const row = raw as EvidenceRow;
-    if ((row.variant ?? "baseline") !== "baseline" || row.holdout === true) {
+    if ((row.variant ?? "baseline") !== "baseline") return;
+    if (row.holdout === true) stampedRows += 1;
+    if (holdout.held.has(row.symbol)) {
+      heldOutRows += 1;
       return;
     }
     if (raw.noBarsInReviewWindow === true) {
@@ -221,6 +238,7 @@ async function main(): Promise<void> {
     throw new Error(
       `geometry-evidence: no readable baseline market-evidence row — ` +
         `${manifest.sealedRows} confirm row(s) sealed at the door, ` +
+        `${heldOutRows} on held-out markets withheld, ` +
         `${dataAbsentRows} data-absent; the five questions would print ` +
         `empty tables under a success code. Pass shards holding fit or ` +
         `select rows.`,
@@ -229,14 +247,18 @@ async function main(): Promise<void> {
   console.log(
     `corpus ${manifest.manifestHash.slice(0, 12)} · engine ${manifest.analyzerVersion} · ${
       rows.length - dataAbsentRows
-    } baseline market-evidence rows (holdout excluded by the emit's stamped ` +
-      `flag; confirm fold sealed at the door: ${manifest.sealedRows} rows ` +
-      `withheld)`,
+    } baseline market-evidence rows (${describeHeldOut(holdout, { labels: false, pools: true })}; ${
+      heldOutRows
+    } rows on held-out markets withheld from the five class tables, stamped ` +
+      `rows: ${stampedRows}; confirm fold sealed at the door: ${
+        manifest.sealedRows
+      } rows withheld)`,
   );
   if (dataAbsentRows > 0) {
     console.log(
       `(data-absence rows held out of the headline: ${dataAbsentRows}` +
-        ` — baseline variant, stamped holdout excluded; retained in the ` +
+        ` — baseline variant, held-out markets withheld per the rule above; ` +
+        `retained in the ` +
         `row stream, and every question filters to filled rows)`,
     );
   }

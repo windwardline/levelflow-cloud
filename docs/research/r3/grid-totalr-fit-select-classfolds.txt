@@ -1,5 +1,6 @@
-folds: fit=fit select=select confirm=confirm SEALED (not derived: no --confirm-final — nothing burned) · holdout 20 markets excluded (read-time stratified)
-corpus 50cf0f69921a · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26
+verdict unit: class — class pools (the 4c gate); fold source: emitted labels (no time re-cut)
+folds: fit=fit select=select confirm=confirm SEALED (not derived: no --confirm-final — nothing burned; 2141527 rows withheld at the door) · holdout 20 markets excluded (read-time stratified)
+corpus 021821537f28 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26
 (data-absence rows held out of every fold denominator: 2269 — all variants, graded folds only, accepted rows; holdout excluded by read-time stratified recomputation, not the stamped flag)
 
 === FOREX ===

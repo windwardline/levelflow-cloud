@@ -69,6 +69,16 @@ export type SweepStats = {
   rSumSq: number;
   stops: number;
   wins: number;
+  /**
+   * The GROSS column beside the net one (R4 act 2): `grossRealizedR` summed
+   * over the filled rows that carried a finite figure, and how many did.
+   * Amendment 36's precondition — a negative must survive the removal of
+   * our own modelled costs before it can withdraw a market — reads this
+   * through `grossView`, so the interval helpers serve both columns.
+   */
+  grossFilled: number;
+  grossRSum: number;
+  grossRSumSq: number;
 };
 
 export function emptyStats(): SweepStats {
@@ -81,7 +91,24 @@ export function emptyStats(): SweepStats {
     rSumSq: 0,
     stops: 0,
     wins: 0,
+    grossFilled: 0,
+    grossRSum: 0,
+    grossRSumSq: 0,
   };
+}
+
+/**
+ * The same record read through its gross column: `filled`, `rSum` and
+ * `rSumSq` become the gross tallies, so `expectancy`,
+ * `rExpectancyInterval95` and `rStandardError` apply unchanged. Rows
+ * without a gross figure are absent from it, which the count states.
+ */
+export function grossView(stats: SweepStats): SweepStats {
+  return { ...stats, filled: stats.grossFilled, rSum: stats.grossRSum, rSumSq: stats.grossRSumSq };
+}
+
+export function grossExpectancy(stats: SweepStats): number | null {
+  return stats.grossFilled > 0 ? stats.grossRSum / stats.grossFilled : null;
 }
 
 /**
@@ -137,6 +164,12 @@ export function addOutcome(stats: SweepStats, row: SweepEmitRow): void {
   if (Number.isFinite(realized)) {
     stats.rSum += realized;
     stats.rSumSq += realized * realized;
+  }
+  const gross = Number((row as { grossRealizedR?: unknown }).grossRealizedR);
+  if ((row as { grossRealizedR?: unknown }).grossRealizedR !== undefined && Number.isFinite(gross)) {
+    stats.grossFilled += 1;
+    stats.grossRSum += gross;
+    stats.grossRSumSq += gross * gross;
   }
   if (row.outcome === "take_profit" || row.outcome === "tp1_partial") {
     stats.wins += 1;

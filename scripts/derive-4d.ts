@@ -11,10 +11,9 @@
 // permutation, the 30-filled floor. Emits the candidate table the
 // feasibility join and the one confirm-final read consume — this script
 // never touches the confirm fold.
-import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { gradeCorpus, type VariantVerdict } from "./grid-totalr.ts";
 import { assertManifest } from "./sweepStats.ts";
-import { stratifiedHoldout } from "./sweepFolds.ts";
+import { resolveHeldOut } from "./sweepFolds.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 import {
   describeNumericToken,
@@ -37,6 +36,8 @@ const VALUE_FLAGS = new Set([
 ]);
 
 type MarketCandidates = {
+  /** In the stratified held-out set — graded and labelled, never dropped (R4 act 2). */
+  heldOut: boolean;
   // Every accepted variant, best first by select-fold expectancy delta.
   accepted: Array<{
     selectExpectancyDelta: number;
@@ -124,6 +125,20 @@ async function main() {
   const baselineVariant = str("--baseline") ?? "baseline";
   const outPath = str("--out") ??
     "docs/research/baseline-2026-08-10/4d-candidates.json";
+  // Retired (R4 act 2, 2026-09-02): the per-market time re-cut relabelled
+  // the held-back fold into select under --confirm-final. The emitted
+  // per-class folds are the only fold source; the market grain is
+  // `verdictUnit: "market"` below, which this script has always passed.
+  if (argv.includes("--per-market-folds")) {
+    throw new Error(
+      "--per-market-folds was retired on 2026-09-02: it re-cut each market's " +
+        "span at 50/75% from row instants and, under --confirm-final, " +
+        "relabelled a median 329 days of the held-back fold into select. " +
+        "Grade on the emitted per-class folds (the per-class corpus " +
+        "docs/research/r3/capture-all-classfolds.jsonl); the per-market " +
+        "grain is already on.",
+    );
+  }
   if (paths.length === 0) {
     throw new Error("derive-4d: no corpus shards given");
   }
@@ -135,16 +150,10 @@ async function main() {
   const holdoutCycle = argv.includes("--holdout-cycle");
   let symbolFilter: Set<string> | undefined;
   if (holdoutCycle) {
-    const union = new Set<string>();
-    for (const path of paths) {
-      for (const entry of assertManifest(path).symbols) {
-        union.add(entry.symbol);
-      }
-    }
-    symbolFilter = stratifiedHoldout(
-      [...union],
-      (symbol) => getAssetType(symbol),
-    );
+    // The ONE holdout population (R4 act 2): the stratified set over the
+    // REQUESTED roster, verified against the anchor's tracked pin — never
+    // over the symbols that happen to have rows.
+    symbolFilter = new Set(resolveHeldOut(paths.map((path) => assertManifest(path))).held);
     console.log(
       `holdout cycle: ${symbolFilter.size} held-out markets -> ${
         [...symbolFilter].sort().join(",")
@@ -155,7 +164,6 @@ async function main() {
   // Totality mode: explicit target list + per-market re-cut folds; the
   // targets ride the surgical filter and holdout members are included
   // (their rows are the whole point).
-  const perMarketFolds = argv.includes("--per-market-folds");
   const targetsFlag = str("--targets");
   if (targetsFlag) {
     symbolFilter = new Set(
@@ -163,10 +171,9 @@ async function main() {
     );
     console.log(`targets: ${symbolFilter.size} markets`);
   }
-  const { manifest, verdicts } = await gradeCorpus(paths, {
+  const { heldOutSet, manifest, verdicts } = await gradeCorpus(paths, {
     baselineVariant,
     includeHoldout: holdoutCycle || targetsFlag !== undefined,
-    perMarketFolds,
     permutations: num("--permutations", 1_000, {
     basis:
       "a permutation p-value is (1 + #{at least as extreme}) / " +
@@ -199,6 +206,8 @@ async function main() {
     const starved = rows.length > 0 &&
       rows.every(([, verdict]) => (verdict.fitFilled ?? 0) < 30);
     markets[symbol] = {
+      // Labelled, never dropped: the market unit grades every market (R4 act 2).
+      heldOut: heldOutSet.includes(symbol),
       accepted,
       measureOnly: accepted.length === 0,
       starved,

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-import { parseArgs } from "../scripts/replay-sweep.ts";
+import { describeOverride, parseArgs } from "../scripts/replay-sweep.ts";
 
 /**
  * R3's whole bandwidth plan is one flag, and until 2026-09-01 the flag did not
@@ -125,5 +125,21 @@ describe("the stdout table seals the confirm split's outcome columns", () => {
     // would collapse under its whitespace split and drop the row silently
     // (the 2026-09-02 design review measured exactly that).
     assert.doesNotMatch(source, /\["", "", ""\]/);
+  });
+});
+
+describe("a grid cell's name is the driver's, in one place", () => {
+  // Readers that must find the shipped cell in a manifest's grid name the
+  // cells with this function; a private copy would drift the day the
+  // driver's form changed (R4 act 2).
+  it("names the empty override baseline — the shipped configuration", () => {
+    assert.equal(describeOverride({}), "baseline");
+  });
+
+  it("names a cell by its key=value pairs in the order written", () => {
+    assert.equal(
+      describeOverride({ runnerProtection: "hold", stopStructureSource: "intraday" }),
+      "runnerProtection=hold,stopStructureSource=intraday",
+    );
   });
 });

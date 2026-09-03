@@ -17,6 +17,9 @@
 // invocation flag someone forgets.
 
 import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
+import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
+import type { SweepManifest } from "./sweepManifest.ts";
 
 export type FoldName = "confirm" | "fit" | "select";
 
@@ -192,6 +195,330 @@ export function stratifiedHoldout(
     for (const entry of ranked.slice(0, take)) held.add(entry.symbol);
   }
   return held;
+}
+
+/**
+ * ONE holdout population (R4 act 2, deliverable 4).
+ *
+ * Two holdouts had grown side by side: the driver's STAMP (`isHoldoutSymbol`,
+ * sha256 mod 5, written onto every row as `holdout` and into the manifest as
+ * `holdoutSymbols` — 19 of R3's 97) and the gate's read-time STRATIFIED set
+ * (`stratifiedHoldout`, sha256 rank within class — 20 of the 97). They share
+ * five markets and disagree in every class, and since 2026-08-11 the gate has
+ * tuned on 14 of the 19 stamped markets, so the stamp no longer names
+ * untainted markets. The stratified set is what the gate held out and what the
+ * shipped holdout-cycle cells were confirmed on. From here on it is the only
+ * set anything excludes on; the stamp is provenance a reader may print and
+ * never act on.
+ *
+ * Drawn over the union of the manifests' `requestedSymbols` — the roster ASKED
+ * for at sweep time — never over the symbols that survived: a subset read, or
+ * a market that dropped out at a door, would otherwise move another market's
+ * membership (66 of 97 single removals do). A manifest written before that
+ * field existed — every legacy corpus and fixture — is read over the symbols
+ * it carries, and the set SAYS so (`basis: "symbols-read"`): such a set is
+ * unpinnable, never mistaken for drift from a pin drawn over a request.
+ * Mirrors the rule the gate's three inline copies apply (grid-totalr,
+ * confirm-4d, derive-4d) so they can be switched to this helper without a
+ * change of set.
+ */
+export const HOLDOUT_RULE = "stratified-per-class-20pct" as const;
+
+/** Where an anchor's held-out set is pinned, relative to the repository root. */
+export const HOLDOUT_PIN_DIR = "docs/research/r4";
+
+/**
+ * What the set was drawn over. `requestedSymbols` is the roster asked for;
+ * `symbols-read` is the fallback for a manifest carrying no request — the
+ * weakest basis among the shards names the whole computation.
+ */
+export type HoldoutBasis = "requestedSymbols" | "symbols-read";
+
+export type HeldOutSet = {
+  basis: HoldoutBasis;
+  markets: string[];
+  /** sha256 of the sorted roster the set was drawn over — what a pin is specific to. */
+  rosterHash: string;
+  rule: typeof HOLDOUT_RULE;
+};
+
+/** The roster's identity: order- and duplicate-insensitive, so a re-sweep of the same request hashes alike. */
+export function rosterHashOf(roster: Iterable<string>): string {
+  return createHash("sha256")
+    .update([...new Set(roster)].sort().join("\n"))
+    .digest("hex");
+}
+
+/** The manifest terms the holdout reads — a whole manifest satisfies it. */
+export type HoldoutManifest = Pick<
+  SweepManifest,
+  "anchor" | "holdoutSymbols" | "manifestHash" | "requestedSymbols"
+> & { symbols?: ReadonlyArray<{ symbol: string }> };
+
+export function holdoutPinPath(anchor: string, dir = HOLDOUT_PIN_DIR): string {
+  return `${dir}/holdout-${anchor}.json`;
+}
+
+export function heldOutSet(manifests: readonly HoldoutManifest[]): HeldOutSet {
+  if (manifests.length === 0) {
+    throw new Error(
+      "heldOutSet: no manifests given — the held-out set is drawn from a " +
+        "corpus's requested roster, and there is none to draw from",
+    );
+  }
+  const roster = new Set<string>();
+  let basis: HoldoutBasis = "requestedSymbols";
+  for (const manifest of manifests) {
+    if (Array.isArray(manifest.requestedSymbols)) {
+      for (const symbol of manifest.requestedSymbols) roster.add(symbol);
+      continue;
+    }
+    if (!Array.isArray(manifest.symbols) || manifest.symbols.length === 0) {
+      throw new Error(
+        `heldOutSet: manifest ${manifest.manifestHash.slice(0, 12)} (anchor ${
+          manifest.anchor
+        }) carries neither requestedSymbols nor symbols — there is no roster ` +
+          `to draw a held-out set from`,
+      );
+    }
+    basis = "symbols-read";
+    for (const entry of manifest.symbols) roster.add(entry.symbol);
+  }
+  if (roster.size === 0) {
+    throw new Error(
+      "heldOutSet: the requested roster is EMPTY — a held-out set over nothing " +
+        "is not a set, and a manifest that requested no market is not a corpus " +
+        "to draw one from",
+    );
+  }
+  const markets = [
+    ...stratifiedHoldout([...roster], (symbol) => getAssetType(symbol)),
+  ].sort();
+  return { basis, markets, rosterHash: rosterHashOf(roster), rule: HOLDOUT_RULE };
+}
+
+/**
+ * How a computed set stands to a pin: `verified` — same roster, same set;
+ * `other-roster` — the pin names another requested roster, so it says
+ * nothing about this one; `symbols-read` — the set was drawn over survivors
+ * and cannot be compared to a pin drawn over a request; `absent` — no pin
+ * stands for the anchor. Drift is the one refusal: same roster, different
+ * set.
+ */
+export type PinState = "absent" | "other-roster" | "symbols-read" | "verified";
+
+/**
+ * Recompute the set and refuse by name if the tracked pin, drawn over THIS
+ * roster, names another set: a roster change moves membership, and a reader
+ * must never drift from the pinned set in silence. A pin is roster-specific
+ * (`rosterHash`): a manifest requesting a different roster at the same
+ * anchor is unpinned for its roster, never drifted, and a set drawn over the
+ * symbols read is unpinnable. The pin file itself is refused if malformed.
+ */
+export function verifyHeldOutSet(
+  manifests: readonly HoldoutManifest[],
+  pinnedPath: string,
+): HeldOutSet & { pinState: Exclude<PinState, "absent"> } {
+  let pinned: {
+    INVALID?: unknown;
+    manifestHashes?: unknown;
+    markets?: unknown;
+    rosterHash?: unknown;
+    rule?: unknown;
+  };
+  try {
+    pinned = JSON.parse(readFileSync(pinnedPath, "utf8")) as typeof pinned;
+  } catch (error) {
+    throw new Error(
+      `verifyHeldOutSet: ${pinnedPath} could not be read as JSON (${
+        String(error)
+      }) — the pinned held-out set is a tracked file, and a reader does not ` +
+        `proceed past one it cannot read`,
+    );
+  }
+  if (typeof pinned.INVALID === "string") {
+    throw new Error(
+      `verifyHeldOutSet: ${pinnedPath} carries an INVALID banner — ${
+        pinned.INVALID
+      }. Re-pin from validated manifests before reading against it`,
+    );
+  }
+  if (pinned.rule !== HOLDOUT_RULE) {
+    throw new Error(
+      `verifyHeldOutSet: ${pinnedPath} pins rule ${
+        JSON.stringify(pinned.rule)
+      }, not ${HOLDOUT_RULE} — a set drawn under another rule is not this ` +
+        `set; re-pin with scripts/holdout-set.ts`,
+    );
+  }
+  if (
+    !Array.isArray(pinned.markets) ||
+    !pinned.markets.every((market) => typeof market === "string")
+  ) {
+    throw new Error(
+      `verifyHeldOutSet: ${pinnedPath} pins no list of markets — re-pin with ` +
+        `scripts/holdout-set.ts`,
+    );
+  }
+  if (typeof pinned.rosterHash !== "string") {
+    throw new Error(
+      `verifyHeldOutSet: ${pinnedPath} pins no rosterHash, so it cannot say ` +
+        `which requested roster it was drawn over — re-pin with ` +
+        `scripts/holdout-set.ts`,
+    );
+  }
+  if (!Array.isArray(pinned.manifestHashes) || pinned.manifestHashes.length === 0) {
+    throw new Error(
+      `verifyHeldOutSet: ${pinnedPath} names no manifestHashes, so it cannot say which ` +
+        `manifests it was drawn from — deleting the claim is how an edited pin would dodge ` +
+        `the claimed-manifest check; re-pin with scripts/holdout-set.ts`,
+    );
+  }
+  const pinnedList = pinned.markets as string[];
+  if (new Set(pinnedList).size !== pinnedList.length) {
+    throw new Error(
+      `verifyHeldOutSet: ${pinnedPath} names a market twice — a pin is a set; ` +
+        `re-pin with scripts/holdout-set.ts`,
+    );
+  }
+  const computed = heldOutSet(manifests);
+  if (computed.basis === "symbols-read") {
+    return { ...computed, pinState: "symbols-read" };
+  }
+  if (computed.rosterHash !== pinned.rosterHash) {
+    // A pin that names one of THESE manifests but another roster is not
+    // another roster's pin — it is this pin, edited: refuse rather than
+    // let the reader proceed on its own set past a corrupted file.
+    const claims = Array.isArray(pinned.manifestHashes)
+      ? manifests.filter((manifest) => (pinned.manifestHashes as unknown[]).includes(manifest.manifestHash))
+      : [];
+    if (claims.length > 0) {
+      throw new Error(
+        `verifyHeldOutSet: ${pinnedPath} names manifest ${claims[0].manifestHash.slice(0, 12)} ` +
+          `among the manifests it was drawn from, yet pins rosterHash ${
+            String(pinned.rosterHash).slice(0, 12)
+          } while this roster hashes ${computed.rosterHash.slice(0, 12)} — the pin was ` +
+          `edited, not drawn over another roster; re-pin with scripts/holdout-set.ts`,
+      );
+    }
+    return { ...computed, pinState: "other-roster" };
+  }
+  const pinnedMarkets = [...(pinned.markets as string[])].sort();
+  const pinnedOnly = pinnedMarkets.filter(
+    (market) => !computed.markets.includes(market),
+  );
+  const computedOnly = computed.markets.filter(
+    (market) => !pinnedMarkets.includes(market),
+  );
+  if (pinnedOnly.length > 0 || computedOnly.length > 0) {
+    throw new Error(
+      `heldOutSetDrift: the set computed from the manifests' requestedSymbols ` +
+        `(${computed.markets.length} markets) differs from the set pinned at ` +
+        `${pinnedPath} for the same requested roster (${pinnedMarkets.length}) ` +
+        `— pinned but not computed: ${pinnedOnly.join(", ") || "none"}; ` +
+        `computed but not pinned: ${computedOnly.join(", ") || "none"}. The ` +
+        `rule or the pin moved, not the roster; re-pin with ` +
+        `scripts/holdout-set.ts only with the reason recorded — never read ` +
+        `against a pin that names a different set`,
+    );
+  }
+  return { ...computed, pinState: "verified" };
+}
+
+export type ResolvedHeldOut = HeldOutSet & {
+  anchor: string;
+  held: Set<string>;
+  /** The pin looked for, whether the file stands, how the set stands to it, and `pinned` when verified. */
+  pinPath: string;
+  pinStands: boolean;
+  pinState: PinState;
+  pinned: boolean;
+  /** The manifests' stamped `holdoutSymbols`, union, sorted — provenance only. */
+  stamped: string[];
+};
+
+/**
+ * The set a reader excludes on, verified against the anchor's tracked pin
+ * when one stands and computed when none does. One anchor per call: shards
+ * of two anchors are two measurements.
+ */
+export function resolveHeldOut(
+  manifests: readonly HoldoutManifest[],
+  pinDir = HOLDOUT_PIN_DIR,
+): ResolvedHeldOut {
+  const anchors = [...new Set(manifests.map((manifest) => manifest.anchor))].sort();
+  if (anchors.length === 0) {
+    throw new Error("resolveHeldOut: no manifests — there is no roster to draw a held-out set from");
+  }
+  // Shards of one measurement may carry different anchors (a sweep crossing
+  // midnight; a re-run dead shard) — the ledger's identity excludes the
+  // anchor for exactly that reason. The SET depends only on the roster; the
+  // PIN is per anchor, so a multi-anchor read is computed and reported
+  // unpinned rather than refused.
+  const pinPath = holdoutPinPath(anchors.length === 1 ? anchors[0] : anchors.join("+"), pinDir);
+  const pinStands = existsSync(pinPath);
+  // A symbols-read set is unpinnable whether or not a file stands; "absent"
+  // is reserved for a set that could have been pinned and was not.
+  const set: HeldOutSet & { pinState: PinState } = pinStands
+    ? verifyHeldOutSet(manifests, pinPath)
+    : (() => {
+      const computed = heldOutSet(manifests);
+      return {
+        ...computed,
+        pinState: computed.basis === "symbols-read" ? "symbols-read" : "absent",
+      };
+    })();
+  const stamped = [
+    ...new Set(manifests.flatMap((manifest) => manifest.holdoutSymbols ?? [])),
+  ].sort();
+  return {
+    basis: set.basis,
+    markets: set.markets,
+    rosterHash: set.rosterHash,
+    rule: set.rule,
+    anchor: anchors.join("+"),
+    held: new Set(set.markets),
+    pinPath,
+    pinStands,
+    pinState: set.pinState,
+    pinned: set.pinState === "verified",
+    stamped,
+  };
+}
+
+/** The one header line every reader states: the rule, the count, the basis and pin, the stamp. */
+/**
+ * One sentence a reader prints about the held-out set — stated for what THIS
+ * reader does with it: `pools` when it keeps the set out of class pools,
+ * `labels` when it marks held-out markets on per-market lines. A reader with
+ * neither prints the set as provenance only; the old one-template sentence
+ * claimed pools and labels for readers that had neither (act 2's refuter).
+ */
+export function describeHeldOut(
+  resolved: ResolvedHeldOut,
+  behaviour: { labels: boolean; pools: boolean } = { labels: true, pools: true },
+): string {
+  const does = [
+    behaviour.pools ? "excluded from every class pool" : null,
+    behaviour.labels ? "labelled HELD OUT per market" : null,
+  ].filter((part): part is string => part !== null);
+  const use = does.length > 0 ? does.join(", ") : "named as provenance only (this reader pools nothing and prints no per-market line)";
+  const basis = resolved.pinState === "verified"
+    ? `pinned ${resolved.pinPath}`
+    : resolved.pinState === "absent"
+    ? `unpinned — no ${resolved.pinPath}, computed from requestedSymbols`
+    : resolved.pinState === "other-roster"
+    ? `unpinned for this roster — ${resolved.pinPath} pins another requested ` +
+      `roster; computed from requestedSymbols (roster ${
+        resolved.rosterHash.slice(0, 12)
+      })`
+    : `computed over the symbols read — no requested roster in the manifest — ` +
+      `so unpinnable${
+        resolved.pinStands ? `; ${resolved.pinPath} not consulted` : ""
+      }`;
+  return `holdout: ${resolved.rule} — ${resolved.markets.length} markets ` +
+    `${use} (${basis}); ` +
+    `stamped flag: ${resolved.stamped.length} markets, provenance only`;
 }
 
 /**

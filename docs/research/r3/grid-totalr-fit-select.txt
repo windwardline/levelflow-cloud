@@ -1,5 +1,6 @@
-folds: fit=fit select=select confirm=confirm SEALED (not derived: no --confirm-final — nothing burned) · holdout 20 markets excluded (read-time stratified)
-corpus d0bb64d9e12f · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26
+verdict unit: class — class pools (the 4c gate); fold source: emitted labels (no time re-cut)
+folds: fit=fit select=select confirm=confirm SEALED (not derived: no --confirm-final — nothing burned; 2769596 rows withheld at the door) · holdout 20 markets excluded (read-time stratified)
+corpus ce146c6b8b63 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26
 (data-absence rows held out of every fold denominator: 1746 — all variants, graded folds only, accepted rows; holdout excluded by read-time stratified recomputation, not the stamped flag)
 
 === FOREX ===
@@ -20,15 +21,6 @@ runnerProtection=hold,stopStructureSource=intraday_and_daily    -116.5   -103.2 
 runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000     0/949    0.000   -0.066   -0.089       0.0       0.0   0.10      -4.7  NO VERDICT — pairing 0 nonzero of 949 shared days is below the statistic's floor (5)
 runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      -4.7    -23.6    0.993   620/948   -0.006   -0.072   -0.095      -3.1       0.4   0.08      -5.2  fails
 
-=== FUTURES ===
-variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
-runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=hold,stopStructureSource=intraday       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-
 === INDICES ===
 variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
 runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.4    0.759    36/182    0.002   -0.074   -0.159       0.0       0.0   0.41      -1.1  fails
@@ -38,15 +30,6 @@ runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0      1.7 
 runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      1.7    0.620    65/182    0.009   -0.067   -0.149       0.0       0.0   0.41      -1.1  fails
 runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0      3.2    0.500    78/181    0.018   -0.058   -0.142       1.8       1.2   0.37      -1.1  fails
 
-=== ENERGIES ===
-variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
-runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=hold,stopStructureSource=intraday       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-
 === CRYPTO ===
 variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
 runnerProtection=breakeven,stopStructureSource=intraday    -433.0  -1083.7    1.000 1531/1539   -0.027   -0.119   -0.126       0.0       0.0   0.03     -30.2  fails
@@ -55,21 +38,3 @@ runnerProtection=hold,stopStructureSource=intraday     -34.4   -439.0    1.000 1
 runnerProtection=hold,stopStructureSource=intraday_and_daily     -35.5   -420.6    1.000 1537/1539   -0.010   -0.102   -0.110       0.0       0.0   0.03     -33.1  fails
 runnerProtection=trail_tp1,stopStructureSource=intraday      51.9    190.9    0.001 1256/1539    0.005   -0.087   -0.094       0.0       0.0   0.03     -28.3  fails
 runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily      35.1    242.7    0.001 1467/1539    0.007   -0.085   -0.092       0.0       0.0   0.03     -28.3  fails
-
-=== AGRICULTURE ===
-variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
-runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=hold,stopStructureSource=intraday       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-
-=== LIVESTOCK ===
-variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
-runnerProtection=breakeven,stopStructureSource=intraday       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=breakeven,stopStructureSource=intraday_and_daily       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=hold,stopStructureSource=intraday       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=hold,stopStructureSource=intraday_and_daily       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=trail_tp1,stopStructureSource=intraday       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
-runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily       0.0      0.0    1.000       0/0    0.000        —        —       0.0       0.0   0.00       0.0  NO VERDICT — baseline "baseline" has no select-fold days in this group; no comparison is possible
