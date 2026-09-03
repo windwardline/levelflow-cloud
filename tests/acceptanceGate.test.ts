@@ -2266,6 +2266,26 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       assert.equal(typeof read.pool.confirmTotalDelta, "number");
     });
 
+    it("judges a pool unreadable when the BASELINE side is below the floor, though the variant side clears it", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-class-floor-"));
+      // The four markets' baseline confirm rows are thinned to 5 days each (20 in the pool); their "good" rows keep 32 (128 in the pool).
+      const thin = fiveMarkets().filter((row) => !(row.variant === "baseline" && row.split === "confirm" && Number(row.time) >= Date.UTC(2025, 0, 6) + 85 * 86_400_000));
+      const corpus = foldedCorpus({ extraRows: thin, omitConfirmFor: ["baseline"] });
+      const heldOut = [...resolveHeldOut([JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"))]).held].sort();
+      const marketGrading = { ...(await gradingFor(corpus, { EURUSD: { variant: "good", accepted: false } })), heldOut };
+      const classGrading = await classGradingFor(corpus, "good", heldOut);
+      const gradingPath = join(dir, "A.json"); writeFileSync(gradingPath, JSON.stringify(marketGrading));
+      const classPath = join(dir, "A-class.json"); writeFileSync(classPath, JSON.stringify(classGrading));
+      const candidates = await freezeCandidates([{ arm: "A", path: gradingPath }], { classArms: [{ arm: "A", axis: "window", path: classPath, prefix: null }] });
+      const frozenPath = join(dir, "frozen.json"); writeFileSync(frozenPath, JSON.stringify(candidates));
+      const driven = await gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "driven-")), frozen: { candidates, path: frozenPath }, permutations: 20, seed: 4, verdictUnit: "market" });
+      const opened = readLedgeredArtifact(driven.read!.artifactPath, { manifestHash: driven.manifest.manifestHash });
+      const pool = opened.classes!.forex[0].pool;
+      assert.ok(pool.confirmFilled! >= 30, "the variant side clears the floor");
+      assert.ok(pool.confirmBaseFilled! < 30, "the baseline side does not");
+      assert.equal(pool.deltaOutcome, "unreadable");
+    });
+
     it("refuses a class candidate whose pooled tuning-fold figures are not the frozen ones, before any burn", async () => {
       const dir = mkdtempSync(join(tmpdir(), "frozen-class-"));
       const corpus = foldedCorpus({ extraRows: fiveMarkets() });
