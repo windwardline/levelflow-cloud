@@ -46,7 +46,18 @@ export type ExecutionQuality = {
   costPenalty: number;
   /** 100 - costPenalty*8: what `label` is derived from. See the label's own note. */
   costScore: number;
-  /** The modelled round trip as a share of the risk unit — the cost weight per trade (amendment 39). */
+  /**
+   * The modelled round trip as a share of the risk unit — the cost weight
+   * per trade (amendment 39) — UNROUNDED. This is the quantity the
+   * acceptance gate derives from an emitted row
+   * (`estimatedRoundTripCost / riskDistance`), so it is the quantity
+   * `maxCostShare` caps: the two must be the same number or the shipped
+   * rule is not the measured one. On R3's corpus 105 of 941,947 baseline
+   * rows sit in the band where a 0.15 cap reads differently against the
+   * 4-dp field below (44 markets, 19 of them forex).
+   */
+  costShare: number;
+  /** The same weight rounded to 4 dp — the DISPLAY form, and what the emit records. */
   costToRisk: number;
   coveragePenalty: number;
   effectiveRewardRisk: number;
@@ -352,6 +363,9 @@ export function estimateExecutionQuality(
     costPenalty,
     costScore,
     coveragePenalty,
+    // The local `costToRisk` is the raw quotient; the field below is its
+    // 4-dp display form. Admission reads `costShare`, never the rounded one.
+    costShare: costToRisk,
     costToRisk: Number(costToRisk.toFixed(4)),
     effectiveRewardRisk: roundPrice(effectiveRewardRisk),
     estimatedCommission,

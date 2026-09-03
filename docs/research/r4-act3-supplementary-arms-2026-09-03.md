@@ -506,9 +506,22 @@ frozen candidates — under 25 MB.
 
 ## 8. Owner items — each with the recommendation that survived the reviews
 
-1. **Ship forex's cost-share cap.** Set `maxCostShare: 0.15` on the forex
-   class row (the knob merged inert in #572), bump `ANALYZER_VERSION`, and
-   cite this read. Confirmed by the pre-registered rule with a lower bound
+1. **Ship forex's cost-share cap — DONE 2026-09-03**, as the branch
+   `feat/forex-cost-share-cap`: `maxCostShare: 0.15` on the forex class row
+   (the knob merged inert in #572), `ANALYZER_VERSION` →
+   `2026.09.03.forex-cost-share-cap`, this read cited at the call site.
+   Shipping it exposed a defect in the knob itself, found by asking what the
+   engine would compare and measuring the answer: #572 capped
+   `executionQuality.costToRisk`, the round-trip share ROUNDED TO 4 dp for
+   display, while the read's predicate was the raw quotient the gate derives
+   from the emit (`estimatedRoundTripCost / riskDistance`). A scan of R3's
+   corpus put **105 of 941,947 baseline rows** in the band where the two
+   verdicts differ at a 0.15 cap — 44 markets, 19 of them forex — so the
+   knob as merged would have shipped a rule the read did not confirm. The
+   engine now caps `executionQuality.costShare`, the unrounded field, at all
+   three sites (live admission, live diagnostic, sweep), and a test places a
+   cap inside the band and fails if admission reads the display form. The
+   original recommendation, unchanged: Confirmed by the pre-registered rule with a lower bound
    of +0.0001 over 77,537 confirm fills, and positive on every fold and on
    the held-out members; the derived read had already accepted it at the
    class grain on fit and select. The margin is thin and the recommendation

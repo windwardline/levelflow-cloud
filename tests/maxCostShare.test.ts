@@ -6,16 +6,25 @@ import {
   getClassCalibration,
   getSymbolCalibrationOverride,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
+import { estimateExecutionQuality } from "../supabase/functions/trade-analyzer/executionQuality.ts";
 import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 import { GRID_OVERRIDE_KEYS } from "../scripts/sweepGrid.ts";
 
 /**
  * The cost weight per trade as an admission cap (R4 act 3, amendment 39's
- * named axis). `maxCostShare` is INERT until a calibration row sets it: no
- * class row and no symbol layer carries it, so every corpus swept before the
- * knob existed reproduces, and the derived read that accepted 0.15 for forex
- * at the class grain ships nothing until the ledgered confirm read.
+ * named axis). ONE row carries it: forex, at 0.15, set 2026-09-03 by the one
+ * ledgered confirm read (`docs/research/confirm-reads/ledgered-read-act3.json`,
+ * read f3b72ce8261a…) — the only candidate that read confirmed. Every other
+ * class moved R on the tuning folds and failed D4, so every other row leaves
+ * it unset and every corpus swept outside forex still reproduces.
+ *
+ * What the cap READS is load-bearing. The gate derived the confirmed
+ * predicate from the emit as `estimatedRoundTripCost / riskDistance` — the
+ * raw quotient — while `executionQuality.costToRisk` is that quotient rounded
+ * to 4 dp for display. On R3's corpus 105 of 941,947 baseline rows sit in the
+ * band where the two disagree at a 0.15 cap (44 markets, 19 of them forex),
+ * so admission compares `costShare`, and these tests pin that it does.
  */
 
 const startTime = Date.UTC(2024, 0, 2, 14, 30);
@@ -40,7 +49,9 @@ function triangleBars(count: number, period = 20, amplitude = 4): Bar[] {
   });
 }
 const base = {
-  calibrationOverride: { blockedRegimes: [], runnerWindowShare: 1, tp1RiskShare: 0.8 },
+  // EURUSD is forex, and forex now SHIPS a cap — so the uncapped reference
+  // these tests compare against has to unset it explicitly.
+  calibrationOverride: { blockedRegimes: [], maxCostShare: undefined, runnerWindowShare: 1, tp1RiskShare: 0.8 },
   dailyBars: dailyBars(80),
   primaryBars: triangleBars(600),
   stepBars: 16,
@@ -48,13 +59,18 @@ const base = {
   warmupBars: 120,
 };
 
-describe("maxCostShare is inert until a row sets it", () => {
-  it("no class row and no symbol layer carries it", () => {
+describe("maxCostShare caps the cost weight per trade", () => {
+  it("forex alone carries it, at the value the read confirmed", () => {
     const prov = JSON.parse(readFileSync("docs/research/r4/shipped-cell-provenance.json", "utf8")) as { markets: Array<{ symbol: string }> };
     const symbols = prov.markets.map((entry) => entry.symbol);
     assert.ok(symbols.length >= 90, "the roster artifact is the population, not a guess");
     for (const className of new Set(symbols.map((symbol) => getAssetType(symbol)))) {
-      assert.equal(getClassCalibration(className).maxCostShare, undefined, `${className}'s class row sets maxCostShare before any read earned it`);
+      const cap = getClassCalibration(className).maxCostShare;
+      if (className === "forex") {
+        assert.equal(cap, 0.15, "forex's cap is the figure the ledgered read confirmed, not a rounded retelling of it");
+      } else {
+        assert.equal(cap, undefined, `${className}'s class row sets maxCostShare, and no read earned it a value`);
+      }
     }
     for (const symbol of symbols) {
       assert.equal((getSymbolCalibrationOverride(symbol) as { maxCostShare?: number }).maxCostShare, undefined, `${symbol}'s layer sets maxCostShare before any read earned it`);
@@ -83,5 +99,64 @@ describe("maxCostShare is inert until a row sets it", () => {
       "the aggregate counts the fourth branch",
     );
     assert.equal(zero.rejectionLedger.filter((entry) => entry.reason === "aboveCostShare").length, zero.rejections.aboveCostShare, "the ledger names the reason on every declined instant");
+  });
+
+  it("the field it caps is the RAW quotient; costToRisk is that number rounded for display", () => {
+    // The acceptance gate derives `costShare` from an emitted row as
+    // estimatedRoundTripCost / riskDistance. The engine must cap the same
+    // quantity, or the shipped rule is not the measured one.
+    const entryPrice = 1.156;
+    const stopLoss = 1.1508;
+    const quality = estimateExecutionQuality({
+      assetType: "forex",
+      atr: 0.0012,
+      availableTimeframes: ["1day", "4hour", "1hour", "15min"],
+      dailyAtr: 0.006,
+      entryPrice,
+      latestClose: 1.158,
+      providerWarnings: [],
+      side: "buy" as const,
+      stopLoss,
+      symbol: "EURUSD",
+      takeProfit: 1.1664,
+    });
+    assert.equal(
+      quality.costShare,
+      quality.estimatedRoundTripCost / Math.max(Math.abs(entryPrice - stopLoss), 0.00001),
+      "costShare is the gate's own quotient, unrounded",
+    );
+    assert.equal(quality.costToRisk, Number(quality.costShare.toFixed(4)), "costToRisk is costShare at 4 dp");
+    assert.notEqual(quality.costShare, quality.costToRisk, "this fixture cannot tell the two apart — pick one that can");
+  });
+
+  it("a cap inside the rounding band declines the row the display form would have admitted", () => {
+    // Derived from the fixture's own rows rather than hand-built: find a
+    // setup whose 4-dp share rounds DOWN, then cap between the two. The
+    // read's predicate declines it; a cap read against `costToRisk` admits it.
+    const shareOf = (row: { estimatedRoundTripCost: number; riskDistance: number }) =>
+      row.estimatedRoundTripCost / Math.max(row.riskDistance, 0.00001);
+    const uncapped = simulateSymbol({ ...base, captureAll: true });
+    const bandIndex = uncapped.outcomes.findIndex((row) =>
+      row.accepted && Number(shareOf(row).toFixed(4)) < shareOf(row)
+    );
+    assert.ok(bandIndex >= 0, "no accepted row rounds down — the band cannot be exercised on this fixture");
+    const raw = shareOf(uncapped.outcomes[bandIndex]);
+    const cap = (Number(raw.toFixed(4)) + raw) / 2;
+    assert.ok(Number(raw.toFixed(4)) <= cap && cap < raw, "the cap must sit between the display form and the raw share");
+
+    const capped = simulateSymbol({
+      ...base,
+      captureAll: true,
+      calibrationOverride: { ...base.calibrationOverride, maxCostShare: cap },
+    });
+    assert.equal(capped.outcomes.length, uncapped.outcomes.length, "the same decision points, so the rows line up one for one");
+    assert.equal(capped.outcomes[bandIndex].accepted, false, "the band row survived, so admission is reading the rounded share");
+    for (const [index, row] of capped.outcomes.entries()) {
+      assert.equal(
+        row.accepted,
+        uncapped.outcomes[index].accepted && shareOf(row) <= cap,
+        `row ${index}: acceptance must be the other gates AND the read's own predicate`,
+      );
+    }
   });
 });

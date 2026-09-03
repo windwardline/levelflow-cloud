@@ -1315,7 +1315,7 @@ async function analyzeSetup(
     confidenceScore < calibration.confidenceThreshold ||
     pricePlan.rewardRisk < calibration.minRewardRisk ||
     (calibration.maxCostShare !== undefined &&
-      pricePlan.executionQuality.costToRisk > calibration.maxCostShare)
+      pricePlan.executionQuality.costShare > calibration.maxCostShare)
   ) {
     return null;
   }
@@ -1667,13 +1667,13 @@ async function explainNoSetup(
       // ESLint does not flag an undefined dereference in them either.
     } else if (
       pricePlan && calibration.maxCostShare !== undefined &&
-      pricePlan.executionQuality.costToRisk > calibration.maxCostShare
+      pricePlan.executionQuality.costShare > calibration.maxCostShare
     ) {
       // The cost weight per trade (R4 act 3): the round trip's share of the
       // risk unit exceeded the market's cap. A cost story, named as one.
       diagnostics.push(
         `Trading costs would take ${
-          (pricePlan.executionQuality.costToRisk * 100).toFixed(0)
+          (pricePlan.executionQuality.costShare * 100).toFixed(0)
         }% of the risk unit; Levelflow admits at most ${
           (calibration.maxCostShare * 100).toFixed(0)
         }% for this market.`,

@@ -163,11 +163,11 @@ function diagnosticsFor(
     );
   } else if (
     calibration.maxCostShare !== undefined &&
-    pricePlan.executionQuality.costToRisk > calibration.maxCostShare
+    pricePlan.executionQuality.costShare > calibration.maxCostShare
   ) {
     diagnostics.push(
       `Trading costs would take ${
-        (pricePlan.executionQuality.costToRisk * 100).toFixed(0)
+        (pricePlan.executionQuality.costShare * 100).toFixed(0)
       }% of the risk unit; Levelflow admits at most ${
         (calibration.maxCostShare * 100).toFixed(0)
       }% for this market.`,

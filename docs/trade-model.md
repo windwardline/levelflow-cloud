@@ -19,7 +19,7 @@
 > the defect and must be rebuilt (Phase 0) before anything is re-measured.
 
 
-Model version: `2026.09.01.platinum-group-rate-inverse` (**not yet deployed**
+Model version: `2026.09.03.forex-cost-share-cap` (**not yet deployed**
 — the desk is parked, so this version has never served a request. R2's D1:
 global learning derived `confidence_adjustment` from a WIN RATE against a
 neutral point of 0.5, which is break-even only when a win and a loss are the
@@ -377,7 +377,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.09.01.platinum-group-rate-inverse'
+   where o.analyzer_version = '2026.09.03.forex-cost-share-cap'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;
@@ -1745,13 +1745,33 @@ tuned at 15 minutes before that question is answered would repeat round
 ## The cost weight per trade as an admission cap (R4 act 3, 2026-09-03)
 
 `maxCostShare` is an optional calibration field: a setup whose modelled round
-trip (`executionQuality.costToRisk`, the round trip as a share of the risk
+trip (`executionQuality.costShare`, the round trip as a share of the risk
 unit) exceeds it is declined at admission, in the sweep as its own reason
 `aboveCostShare` inside the `belowThreshold` aggregate and in the live analyzer
-with a diagnostic that names the share and the cap. It is INERT: no class row
-and no symbol layer sets it, so every corpus swept before it existed
-reproduces and `ANALYZER_VERSION` is unchanged. The derived read over R3's
-rows accepted a cap of 0.15 for forex at the class grain
-(`docs/research/r4-act3-supplementary-arms-2026-09-03.md` §6a); a value ships
-only on the ledgered confirm read, as a one-line calibration change with that
-read as its evidence.
+with a diagnostic that names the share and the cap.
+
+**Forex carries it at 0.15 (2026-09-03); no other row sets it.** The value is
+the one candidate the program's single ledgered confirm read confirmed
+(`docs/research/confirm-reads/ledgered-read-act3.json`, read
+`f3b72ce8261a…`): at the class grain the pooled confirm delta is **+283.0R**
+and **+0.0064R per trade**, 95% interval **[+0.0001, +0.0127]** over 77,537
+fills, positive on the fit fold (+564R), the select fold (+306R) and the six
+held-out forex members (+92R). The lower bound clears zero by a hair, which
+is the honest description of it. Crypto's and futures' caps moved thousands
+of R on the tuning folds and failed the gate's own earns-money term — the
+losses shrink, the sign does not change — so those rows stay unset
+(`docs/research/r4-act3-supplementary-arms-2026-09-03.md` §6a, §6d).
+
+**What the cap reads is load-bearing.** The gate derived the confirmed
+predicate from the emit as `estimatedRoundTripCost / riskDistance` — the raw
+quotient. `executionQuality.costToRisk` is that same quotient rounded to 4 dp
+for display, and on R3's corpus **105 of 941,947 baseline rows** (44 markets,
+19 of them forex) fall in the band where the two disagree at a 0.15 cap. So
+admission compares `costShare`, the unrounded field, and
+`tests/maxCostShare.test.ts` pins that it does — including a cap placed
+inside the band, where a rounded comparison would admit the row the read
+declined. A cap that read the display form would not be the rule that was
+measured.
+
+The cap declines trades. It moves no stop and no target, so no surviving
+trade's payoff is manufactured (amendment 39).

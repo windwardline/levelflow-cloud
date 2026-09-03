@@ -85,7 +85,7 @@ import { isKnownSymbol } from "./symbols.ts";
 // includes `expired_in_profit` and `expired_at_loss` — filled trades that
 // banked or lost real money and were excluded outright, because under a win
 // rate they were neither. (Prior: 2026.08.27.calendar-provenance.)
-export const ANALYZER_VERSION = "2026.09.01.platinum-group-rate-inverse";
+export const ANALYZER_VERSION = "2026.09.03.forex-cost-share-cap";
 
 export type AssetType =
   | "agriculture"
@@ -633,6 +633,19 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     defaultReviewHours: 8,
     entryOffsetDefault: 0.55,
     entryOffsetTrend: 0.55,
+    // SET 2026-09-03 by the one ledgered confirm read of R4 act 3 (read
+    // f3b72ce8261a…, `docs/research/confirm-reads/ledgered-read-act3.json`).
+    // The forex class-grain candidate `costShareMax=0.15` is the ONLY
+    // candidate the read confirmed under the pre-registered delta rule:
+    // pooled confirm dR +283.0 and dE +0.0064 [+0.0001, +0.0127] over
+    // 77,537 fills, positive on the fit fold (+564R), the select fold
+    // (+306R) and the six held-out forex members (+92R). The lower bound
+    // clears zero narrowly and the record says so. Every other class moved
+    // R but failed D4 — the losses shrink, the sign does not change — so no
+    // other row carries the cap. It declines trades; it moves no stop and no
+    // target, so nothing about a surviving trade's payoff is manufactured
+    // (amendment 39).
+    maxCostShare: 0.15,
     maxNewsPenalty: 8,
     maxProviderPenalty: 6,
     // DERIVED 2026-08-06, stop-cap grid over all 102 markets read by TOTAL R
