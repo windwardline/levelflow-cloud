@@ -1772,7 +1772,9 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     // confirm — the shape the read exists to catch.
     const usdjpy = (variant: string, realizedR: number, confirmR = realizedR): SweepEmitRow[] => {
       const rows: SweepEmitRow[] = [];
-      for (let day = 0; day < 16; day += 1) {
+      // 32 days per fold: the market unit's 30-filled floor must be cleared for
+      // the candidate to be accepted rather than refused THIN.
+      for (let day = 0; day < 32; day += 1) {
         for (const [split, offset] of [["fit", 0], ["select", 40], ["confirm", 80]] as const) {
           rows.push({ ...outcomeRow(variant, day + offset, split === "confirm" ? confirmR : realizedR, undefined, "USDJPY"), split });
         }
@@ -1836,14 +1838,14 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       // The shipped cells' confirm figures are withheld (no provenance names them
       // held back), so the baseline's fold count is read off the candidates' verdicts.
       assert.equal(driven.verdicts.get("EURUSD")!.get("good")!.confirmBaseFilled, 16, "the baseline is read once, not once per arm");
-      assert.equal(driven.verdicts.get("USDJPY")!.get("y=2")!.confirmBaseFilled, 16);
+      assert.equal(driven.verdicts.get("USDJPY")!.get("y=2")!.confirmBaseFilled, 32);
       // A market's only graded variant is its own frozen candidate; another
       // market's candidate prints NO VERDICT for it (no rows), never a figure.
       assert.deepEqual([...driven.verdicts.get("EURUSD")!.keys()], ["good"]);
       assert.deepEqual([...driven.verdicts.get("USDJPY")!.keys()], ["y=2"]);
       const usdjpyVerdict = driven.verdicts.get("USDJPY")!.get("y=2")!;
       assert.equal(usdjpyVerdict.accepted, true, "y=2 wins the tuning folds, so the read opens its confirm rows");
-      assert.equal(usdjpyVerdict.confirmFilled, 16);
+      assert.equal(usdjpyVerdict.confirmFilled, 32);
       assert.ok(usdjpyVerdict.confirmTotalDelta! < 0, "y=2's confirm rows came from arm B's corpus and contradict it");
       const opened = readLedgeredArtifact(driven.read!.artifactPath, { manifestHash: driven.manifest.manifestHash });
       assert.deepEqual(opened.shardHashes, [manifestHashOf(first), manifestHashOf(second)]);
