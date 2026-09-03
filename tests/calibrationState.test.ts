@@ -580,6 +580,7 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
       readFileSync("docs/research/r4/withdrawal-verdict-2026-09-03.json", "utf8"),
     ) as {
       declined: Array<{ measuredExpectancyR: number; reason: string; symbol: string }>;
+      priorRegister: string[];
       restored: Array<{ symbol: string }>;
       ruleHash: string;
     };
