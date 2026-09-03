@@ -317,6 +317,25 @@ worsens by −836R, the same shape as at 24 and 48 h. The 96-hour cell would
 retire the same four candidates (ADAUSD, NGUSD, XTZUSD, ZSUSX), again on the
 gross clause.
 
+**Arm S — the stop cap × structure source** (`stop-cap`, manifest
+`50ac1efe16dc`, 6,652,005 rows, 16.76 GB, seven cells, exit 0 at 08:33Z;
+graded `docs/research/r4/stop-cap-grading.json` and `-class.json`). No
+market accepts any cell, at either grain. The clamp is real money for the
+class-row candidates but not the whole of their loss: under cap 4 their
+select net upper bounds rise from −0.46 to −0.20 (ALGOUSD), −0.99 to −0.28
+(DYDXUSD), −0.40 to −0.16 (ASX), −0.42 to −0.17 (AVAXUSD), −0.64 to −0.32
+(DOTUSD), −0.58 to −0.24 (NEARUSD), −0.45 to −0.26 (TRXUSD), −0.62 to −0.39
+(XTZUSD), −0.16 to −0.05 (ZSUSX) and stay below zero; HOUSD's reaches +0.04
+and it retires. The 1.5 cells tighten the 65 derived cells' stops and lose
+(forex fit −2,361R, select −1,014R); the 2.5 cells lose less; cap 4 with the
+intraday source is the shipped cell for 65 markets and returns NO VERDICT
+for them (the reproduction control), and cap 4 with the daily source is
+forex's near-miss at the class grain — fit −1.7R against select +236.1R at
+p 0.024, own expectancy +0.023R — the same cell R3 §5 and the research lens
+had already priced. Futures' cap 4 improves fit by +394R with the class still
+negative. Cap cells retire four candidates under the rule: ADAUSD (five
+cells), HOUSD (three), NGUSD (four), ZSUSX (three), on the gross clause.
+
 ## 7. Storage and the anchor
 
 **Preflight, 2026-09-03 04:2xZ** (`docs/research/r4/preflight-survey-2026-09-03.txt`,
