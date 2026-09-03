@@ -173,6 +173,20 @@ function addRowToCube(
   }
 }
 
+/**
+ * A cell's absolute figure: mean realized R with its 95% interval over the
+ * filled outcomes, or null when nothing filled. One shape for the shipped
+ * cell and for every variant, so a rule that reads an upper bound reads the
+ * same quantity wherever it looks.
+ */
+export function figureOf(cell: SweepStats | undefined): Figure | null {
+  if (!cell || cell.filled === 0) return null;
+  const mean = expectancy(cell);
+  const interval = rExpectancyInterval95(cell);
+  if (mean === null || interval === null) return null;
+  return { expectancy: mean, lower: interval.lower, n: cell.filled, upper: interval.upper };
+}
+
 export type VariantVerdict = {
   // One word for the row's disposition, with THIN carrying its count —
   // stated on the verdict rather than reconstructed by every printer.
@@ -285,6 +299,8 @@ export type VariantVerdict = {
   selectExpectancy: number | null;
   selectExpectancySe: number | null;
   selectExpectancyLower: number | null;
+  /** The variant's own select-fold figures, net and gross, in the shipped cell's shape (R4 act 3): a retirement or decline rule reads the upper bound here. */
+  select: { gross: Figure | null; net: Figure | null };
   // Censoring readout (LA-10): expiries / filled on the select fold, so a
   // sizing-factor cell carries its own license.
   selectExpiryShare: number | null;
@@ -952,6 +968,10 @@ function groupVerdicts(
         selectExpectancy,
         selectExpectancySe,
         selectExpectancyLower,
+        select: {
+          gross: figureOf(grossView(aggregate.variant.select)),
+          net: figureOf(aggregate.variant.select),
+        },
         selectExpiryShare: selectStats.filled > 0
           ? Number((expiries / selectStats.filled).toFixed(4))
           : null,
@@ -1701,13 +1721,6 @@ export async function gradeCorpus(
         "docs/research/r4/shipped-cell-provenance.json for a read that can say otherwise",
     );
   }
-  const figureOf = (cell: SweepStats | undefined): Figure | null => {
-    if (!cell || cell.filled === 0) return null;
-    const mean = expectancy(cell);
-    const interval = rExpectancyInterval95(cell);
-    if (mean === null || interval === null) return null;
-    return { expectancy: mean, lower: interval.lower, n: cell.filled, upper: interval.upper };
-  };
   const shipped = new Map<string, ShippedCellRead>();
   for (const symbol of [...cube.keys()].sort()) {
     const cells = cube.get(symbol)!.get(baselineName);
@@ -2217,6 +2230,7 @@ async function main(): Promise<void> {
           selectExpectancy: verdict.selectExpectancy,
           selectExpectancyDelta: verdict.selectExpectancyDelta,
           selectTotalDelta: verdict.selectTotalDelta,
+          select: verdict.select,
         };
       }
       markets[symbol] = {

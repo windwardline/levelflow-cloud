@@ -34,3 +34,5 @@ docs/research/r3/*.jsonl
 # The raw stdout logs stay local (the driver's table prints the SEALED confirm
 # fold's outcome columns per market); the tracked evidence is the redacted
 # *.stdout-redacted.txt beside them, which starvation-audit reads identically.
+docs/research/r4/*.jsonl
+docs/research/r4/*.jsonl.rejections.jsonl
