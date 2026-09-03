@@ -390,16 +390,33 @@ chosen over 96 h's +378R / +511R by the pre-registered fit rule), stop (S8,
 cap 8 with the daily source: +2.2R / +248R), payoff floor (F, 1.5: +280R /
 +136R) and cost-share cap (F, 0.15: +564R / +306R), each over the 22 pooled
 forex members with the six held-out forex members read on the same cell as
-the out-of-sample check. No other class accepts any cell on any axis. 136
-class cells were tested; the gate's p would hand out 6.8 by chance. The
-read judges every candidate's confirm delta by DELTA_RULE (registered and
-hashed before the read: confirmed iff the delta's lower bound is above zero
-with 30 filled on both sides, contradicted iff the upper bound is below
-zero); the absolute confirm figure of a cell not held back stays withheld.
-Pre-registered beside it: the artifact's per-market p is single-hypothesis
-where the freeze's was family-wise; and act 4's read of the 22 late-listed
-markets will overlap this calendar and proceeds under
-`--acknowledge-prior-reads`, its leaked bit named.
+the out-of-sample check — a check of the class candidate's selection, not
+of the window axis, since three of the six (AUDCHF, AUDNZD, NZDCHF) carry
+their own window candidates at the market grain. No other class accepts any
+cell on any axis. The class-grain multiplicity, stated honestly: 8 of 136
+class cells accept, in 4 of the 40 (arm, class) families, all forex, on
+overlapping rows; under the family-wise p the chance count is at most about
+two accepting families. The read judges every candidate's confirm delta by
+DELTA_RULE (registered and hashed before the read: confirmed iff the delta's
+lower bound is above zero with 30 filled on both sides, contradicted iff the
+upper bound is below zero); the absolute confirm figure of a cell not held
+back stays withheld. The final review of the package found two defects the
+live corpora would have hit — the class identity check compared sums taken
+in two orders and would have refused every class candidate at the thirteenth
+decimal, and the class cells widened each forex market's re-test family so
+that EURNZD's 48-hour candidate flipped to rejected (p 0.043 → 0.065) and
+lost its confirm delta from the artifact — and both are closed: the identity
+checks use the digest's tolerance; a market's re-test family is its own
+candidate alone, single-hypothesis as the freeze's per-market p was; and
+every frozen candidate's confirm read is carried unconditionally beside the
+read's own p, the freeze being the acceptance. A sealed rehearsal of the
+frozen path (`--rehearse`) now runs every check the read makes with the
+fold withheld, and is run on the real corpora before the burn. Residue
+stated: on the confirm fold the baseline digest checks counts and sums, not
+the decision-time fields a derived predicate reads; those rest on the same
+emitter. Act 4's read of the 22 late-listed markets will overlap this
+calendar and proceeds under `--acknowledge-prior-reads`, its leaked bit
+named.
 
 ## 7. Storage and the anchor
 

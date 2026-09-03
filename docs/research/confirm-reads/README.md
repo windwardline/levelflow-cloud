@@ -168,6 +168,8 @@ the emit digest its arm's grading recorded. The same burn carries the class
 grain: per class per axis, the frozen class-unit candidate over the class's
 pooled members and, apart, its held-out members. Candidates are judged by
 DELTA_RULE on their confirm delta; the read verifies each candidate's
-tuning-fold figures against the frozen file before it opens the fold. Nothing decides on the held-back fold
+tuning-fold figures against the frozen file before it opens the fold, and
+`--rehearse` runs every one of its checks with the fold withheld, so the
+refusals are found before the burn, never inside it. Nothing decides on the held-back fold
 after seeing it: the candidates were frozen before the command ran, and the
 door refuses a file altered or re-ruled since.

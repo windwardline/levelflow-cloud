@@ -105,13 +105,16 @@ export type ClassCandidateRead = {
   axis: string;
   variant: string;
   /** The frozen tuning-fold figures the read verified against its own before opening the fold. */
-  frozen: { fitTotalDelta: number; selectTotalDelta: number; pairedP: number | null };
+  frozen: { fitTotalDelta: number; selectTotalDelta: number | null; pairedP: number | null };
   pool: ClassPoolRead;
   heldOutPool: ClassPoolRead | null;
 };
 
 export type ClassPoolRead = {
   members: string[];
+  /** The pool's tuning-fold figures as the read computed them (identity-checked against the frozen ones for the pooled members). */
+  fitTotalDelta: number;
+  selectTotalDelta: number;
   confirmFilled: number | null;
   confirmBaseFilled: number | null;
   confirmTotalDelta: number | null;
@@ -153,7 +156,13 @@ export type LedgeredReadArtifact = {
   markets: Record<string, {
     heldOut: boolean;
     /** The frozen candidate this read opened for the market (frozen reads only); null when the freeze named none. */
-    candidate?: { arm: string; disposition: "accepted" | "rejected"; reason: string; variant: string } | null;
+    candidate?: { arm: string; disposition: "accepted" | "rejected"; frozenPairedP: number | null; readPairedP: number | null; reason: string; variant: string } | null;
+    /**
+     * The frozen candidate's confirm read, carried UNCONDITIONALLY (R4 act 3):
+     * the freeze is the acceptance; the read's own re-test is reported beside
+     * it, never allowed to hide the delta.
+     */
+    candidateRead?: ClassPoolRead | null;
     /** RETIREMENT_RULE's verdict for a decline candidate, copied from the frozen file so it sits beside M3. */
     retirement?: unknown;
     shipped: ShippedCellRead;

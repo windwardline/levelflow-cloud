@@ -435,6 +435,13 @@ type GateOptions = {
    * conditions is allowed to differ because the file names the cell.
    */
   frozen?: { candidates: FrozenCandidates; path: string };
+  /**
+   * A sealed rehearsal of the frozen path (R4 act 3): every check the read
+   * makes — bytes, baselines, identities, pools — with the confirm fold
+   * withheld and no ledger line. What the read would refuse, this refuses
+   * first; what it would open, this never opens.
+   */
+  rehearse?: boolean;
   acknowledgePriorReads?: boolean;
   // The variant every other cell compares against. Defaults to the bare
   // "baseline" label; a 4c measurement grid that retires the confidence
@@ -1307,9 +1314,13 @@ export async function gradeCorpus(
     throw new Error("gradeCorpus: no corpus paths given");
   }
   const frozen = options.frozen ?? null;
-  if (frozen && !options.confirmFinal) {
-    throw new Error("--frozen is the read's own shape: pass --confirm-final with it, or grade an arm on the tuning folds without it");
+  if (frozen && options.rehearse && options.confirmFinal) {
+    throw new Error("--rehearse is the sealed rehearsal of the frozen read; it cannot be combined with --confirm-final");
   }
+  if (frozen && !options.confirmFinal && !options.rehearse) {
+    throw new Error("--frozen is the read's own shape: pass --confirm-final with it (or --rehearse for the sealed rehearsal), or grade an arm on the tuning folds without it");
+  }
+  if (!frozen && options.rehearse) throw new Error("--rehearse rehearses a frozen read; pass --frozen with it");
   if (frozen && options.verdictUnit !== "market") {
     throw new Error("--frozen names one candidate per MARKET: pass --verdict-unit market with it");
   }
@@ -1592,6 +1603,8 @@ export async function gradeCorpus(
       }
     }, {
       // Sealed unless this read is the recorded one.
+      // A rehearsal never carries confirmFinal, so this line reads "sealed"
+      // for it by itself; the door's expression stays the one the guard pins.
       confirm: options.confirmFinal ? "read" : "sealed",
     });
     sealedRows += read.sealedRows;
@@ -1962,12 +1975,28 @@ export async function gradeCorpus(
       }
     }
   }
+  // Frozen (R4 act 3): a market's re-test family is its own candidate alone —
+  // single-hypothesis, as the freeze's per-market p was — so the class cells
+  // that share its rows never widen the family the freeze did not see.
+  const verdictCube: GridCube = frozen
+    ? new Map(
+      [...cube.entries()].map(([symbol, byVariant]) => [
+        symbol,
+        new Map([...byVariant.entries()].filter(([variant]) => variant === derivedParent || candidateOf(symbol)?.variant === variant)),
+      ]),
+    )
+    : cube;
   const verdicts =
     (options.verdictUnit === "market" ? marketVerdicts : classVerdicts)(
-      cube,
+      verdictCube,
       { ...options, foldNames },
     );
+  // Sums taken in two orders differ in the last bits (the class grading
+  // merged members in stream order; the read merges them sorted): the
+  // identity checks use the digest's tolerance, never bit equality.
+  const near = (a: number, b: number | null) => b !== null && Math.abs(a - b) <= 1e-9;
   const classReads: Record<string, ClassCandidateRead[]> = {};
+  const candidateReads = new Map<string, ClassPoolRead>();
   if (frozen) {
     // A market's only graded variant is its own frozen candidate: every other
     // arm's candidate has no rows here and would print THIN for nothing.
@@ -1989,7 +2018,7 @@ export async function gradeCorpus(
       // Identity before the burn: the tuning-fold figures this read computes
       // from the rows it ingests must equal the ones the freeze recorded, or
       // the rows are not the rows the candidate was frozen on.
-      if (verdict.fitTotalDelta !== market.candidate.fitTotalDelta || verdict.selectTotalDelta !== market.candidate.selectTotalDelta) {
+      if (!near(verdict.fitTotalDelta, market.candidate.fitTotalDelta) || !near(verdict.selectTotalDelta, market.candidate.selectTotalDelta)) {
         throw new Error(
           `${symbol}: the read's tuning-fold figures for ${market.candidate.variant} (fit ΔR ${verdict.fitTotalDelta}, select ΔR ${verdict.selectTotalDelta}) ` +
             `differ from the frozen ones (${market.candidate.fitTotalDelta}, ${market.candidate.selectTotalDelta}); the rows opened are not the rows the candidate was frozen on`,
@@ -2017,6 +2046,8 @@ export async function gradeCorpus(
       const selectTotalDelta = totalOf(v.select ?? emptyStats()) - totalOf(b.select ?? emptyStats());
       const delta = v.confirm && b.confirm ? rDeltaInterval95(v.confirm, b.confirm) : null;
       const read: ClassPoolRead = {
+        fitTotalDelta,
+        selectTotalDelta,
         confirmBaseFilled: b.confirm?.filled ?? null,
         confirmExpectancyDelta: delta?.delta ?? null,
         confirmExpectancyDeltaLower: delta?.lower ?? null,
@@ -2035,7 +2066,7 @@ export async function gradeCorpus(
         if (pool === null) {
           throw new Error(`${frozen.path} names ${candidate.variant} (arm ${candidate.arm}) for class ${cls} on the ${axis} axis, but no rows of that cell reached the gate for any pooled member; a read that reports nothing for a frozen candidate is refused`);
         }
-        if (pool.fitTotalDelta !== candidate.fitTotalDelta || pool.selectTotalDelta !== candidate.selectTotalDelta) {
+        if (!near(pool.fitTotalDelta, candidate.fitTotalDelta) || !near(pool.selectTotalDelta, candidate.selectTotalDelta)) {
           throw new Error(
             `class ${cls} (${axis}): the read's pooled tuning-fold figures for ${candidate.variant} (fit ΔR ${pool.fitTotalDelta}, select ΔR ${pool.selectTotalDelta}) ` +
               `differ from the frozen ones (${candidate.fitTotalDelta}, ${candidate.selectTotalDelta}); the rows opened are not the rows the class candidate was frozen on`,
@@ -2051,6 +2082,13 @@ export async function gradeCorpus(
           variant: candidate.variant,
         }];
       }
+    }
+    // Every frozen market candidate's confirm read, unconditionally: the
+    // freeze is the acceptance, and the read's own re-test may not hide it.
+    for (const [symbol, market] of Object.entries(frozen.candidates.markets)) {
+      if (market.candidate === null) continue;
+      const own = poolOf([symbol], market.candidate.variant);
+      if (own !== null) candidateReads.set(symbol, own.read);
     }
   }
   // The burn lands only once a confirm figure actually exists (#364
@@ -2200,14 +2238,14 @@ export async function gradeCorpus(
       }
       markets[symbol] = {
         accepted,
-        ...(frozen ? { retirement: frozen.candidates.markets[symbol]?.retirement ?? null } : {}),
+        ...(frozen ? { candidateRead: candidateReads.get(symbol) ?? null, retirement: frozen.candidates.markets[symbol]?.retirement ?? null } : {}),
         ...(frozen
           ? {
             candidate: candidateOf(symbol)
               ? (() => {
                 const cand = candidateOf(symbol)!;
                 const verdict = verdicts.get(group)?.get(cand.variant);
-                return { arm: cand.arm, disposition: verdict?.accepted ? "accepted" as const : "rejected" as const, reason: verdict?.reason ?? "no verdict", variant: cand.variant };
+                return { arm: cand.arm, disposition: verdict?.accepted ? "accepted" as const : "rejected" as const, frozenPairedP: cand.pairedP, readPairedP: verdict?.pairedP ?? null, reason: verdict?.reason ?? "no verdict", variant: cand.variant };
               })()
               : null,
           }
@@ -2429,7 +2467,8 @@ async function main(): Promise<void> {
     "--acknowledge-prior-reads",
     "--confirm-final",
     "--include-holdout",
-  ]);
+  "--rehearse",
+]);
   // The sequential walker the sibling readers carry (#364 round 38,
   // smaller — the indexOf-per-flag Set that stood here covered only a
   // flag's FIRST occurrence, so "--seed 7 --seed 8" walked "8" into
@@ -2537,7 +2576,7 @@ async function main(): Promise<void> {
       // decide whether the held-back fold is opened — went unmentioned,
       // an enumeration in prose narrower than the code beside it.
       "Usage: npx tsx scripts/grid-totalr.ts <emit.jsonl> [more-shards.jsonl ...] " +
-        "[--baseline <variant>] [--derive-filters \"name:field>=value;…\"] [--frozen <frozen-candidates.json>] [--permutations 1000] [--seed 7] " +
+        "[--baseline <variant>] [--derive-filters \"name:field>=value;…\"] [--frozen <frozen-candidates.json>] [--rehearse] [--permutations 1000] [--seed 7] " +
         "[--verdict-unit class|market] [--provenance <shipped-cell-provenance.json>] " +
         "[--read-out <ledgered-read.json>] [--out <per-market-grading.json>] " +
         "[--confirm-final] [--acknowledge-prior-reads] [--include-holdout] " +
@@ -2563,6 +2602,7 @@ async function main(): Promise<void> {
     baselineVariant,
     deriveFilters,
     frozen,
+    rehearse: args.includes("--rehearse"),
     confirmFinal: args.includes("--confirm-final"),
     confirmLogDir,
     includeHoldout: args.includes("--include-holdout"),
