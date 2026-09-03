@@ -34,6 +34,7 @@
  * The emit must carry its manifest beside it (2i): an undescribed corpus
  * is refused at the door.
  */
+import { type FrozenCandidates, verifyFrozenCandidates } from "./freeze-candidates.ts";
 import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import {
@@ -402,6 +403,14 @@ function derivedPasses(filter: DerivedFilter, value: number): boolean {
 type GateOptions = {
   /** Derived variants graded from the baseline's rows (R4 act 3); see DerivedFilter. */
   deriveFilters?: DerivedFilter[];
+  /**
+   * The freeze-driven read (R4 act 3): open only the (corpus, cell) pairs a
+   * verified frozen-candidates file names — every arm's baseline once, and per
+   * market the one frozen candidate from its own arm — under one ledger line
+   * and one calendar key. Requires confirmFinal; the grid term of the shard
+   * conditions is allowed to differ because the file names the cell.
+   */
+  frozen?: { candidates: FrozenCandidates; path: string };
   acknowledgePriorReads?: boolean;
   // The variant every other cell compares against. Defaults to the bare
   // "baseline" label; a 4c measurement grid that retires the confidence
@@ -1184,7 +1193,7 @@ export async function gradeCorpus(
   // never require a resweep. Rows for held-out markets never enter the
   // tuning cube.
   const cube: GridCube = new Map();
-  const conditionsOf = (candidate: SweepManifest) =>
+  const conditionsOf = (candidate: SweepManifest, withGrid = true) =>
     stableStringify({
       analyzerVersion: candidate.analyzerVersion,
       // R0 (#358 re-review): shards swept either side of a BAR_CLOCK bump
@@ -1231,7 +1240,7 @@ export async function gradeCorpus(
       grossCostScale: candidate.grossCostScale ?? null,
       folds: candidate.folds ?? null,
       foldsByClass: candidate.foldsByClass ?? null,
-      grid: candidate.grid,
+      grid: withGrid ? candidate.grid : null,
       stepBars: candidate.stepBars,
       // Only the DAY-STABLE curve facts join identity (#364 round 8,
       // finding 1): count and lastTime move with the run day — the
@@ -1268,7 +1277,32 @@ export async function gradeCorpus(
   if (!manifest) {
     throw new Error("gradeCorpus: no corpus paths given");
   }
-  const firstConditions = conditionsOf(manifest);
+  const frozen = options.frozen ?? null;
+  if (frozen && !options.confirmFinal) {
+    throw new Error("--frozen is the read's own shape: pass --confirm-final with it, or grade an arm on the tuning folds without it");
+  }
+  if (frozen && (options.deriveFilters ?? []).length > 0) {
+    throw new Error("--frozen rebuilds every derived variant from the frozen file; --derive-filters may not be passed beside it");
+  }
+  const armOfShard: Array<string | null> = shardManifests.map(() => null);
+  if (frozen) {
+    const armsByHash = new Map<string, string>();
+    for (const arm of frozen.candidates.arms) for (const hash of arm.shardHashes) armsByHash.set(hash, arm.arm);
+    shardManifests.forEach((shard, index) => {
+      const arm = armsByHash.get(shard.manifestHash);
+      if (arm === undefined) {
+        throw new Error(`${paths[index]}: manifest ${shard.manifestHash.slice(0, 12)} is named by no arm in ${frozen.path}; the frozen read opens only the corpora the freeze bound`);
+      }
+      armOfShard[index] = arm;
+    });
+    const present = new Set(shardManifests.map((shard) => shard.manifestHash));
+    for (const arm of frozen.candidates.arms) {
+      for (const hash of arm.shardHashes) {
+        if (!present.has(hash)) throw new Error(`arm ${arm.arm}'s corpus ${hash.slice(0, 12)} is not among the shards; the frozen read needs every arm's corpus on the command line`);
+      }
+    }
+  }
+  const firstConditions = conditionsOf(manifest, !frozen);
   // The held-back CALENDAR (R4 act 2): a later corpus over the same confirm
   // windows — a supplementary arm at the same anchor — is a new identity,
   // and LA-6 keyed the prior-read refusal on identity alone, so the same
@@ -1345,7 +1379,7 @@ export async function gradeCorpus(
         .map(([symbol]) => symbol.toUpperCase())
       : [];
   for (let index = 1; index < shardManifests.length; index += 1) {
-    if (conditionsOf(shardManifests[index]) !== firstConditions) {
+    if (conditionsOf(shardManifests[index], !frozen) !== firstConditions) {
       throw new Error(
         `${paths[index]}: shard conditions differ from ${paths[0]} — engine, clock, stated conditions, sweep depth (days), treasury curve, grid, folds, step or warmup do not match; these are not shards of one measurement`,
       );
@@ -1401,7 +1435,11 @@ export async function gradeCorpus(
   // to separate them would reintroduce the missed refusal. The re-run
   // case above is not this case, and the earlier comment covered only
   // the former.
-  const corpusId = sha256Hex(firstConditions);
+  const corpusId = sha256Hex(
+    frozen
+      ? stableStringify({ conditions: firstConditions, frozenHash: frozen.candidates.frozenHash, shards: shardManifests.map((shard) => shard.manifestHash).sort() })
+      : firstConditions,
+  );
   // The one holdout population: the stratified set over the roster. The
   // class unit EXCLUDES it from its pools (cross-market tuning transfer is
   // real there); the market unit grades every market on its own rows and
@@ -1414,10 +1452,25 @@ export async function gradeCorpus(
   // Rows the door withheld (the confirm fold, unless this is the recorded
   // read) — stated in the label so the population read is explicit.
   let sealedRows = 0;
-  const derivedFilters = options.deriveFilters ?? [];
   const derivedParent = options.baselineVariant ?? "baseline";
+  const candidateOf = (symbol: string) => frozen?.candidates.markets[symbol]?.candidate ?? null;
+  const derivedFilters: DerivedFilter[] = frozen
+    ? (() => {
+      const wanted = new Set(Object.values(frozen.candidates.markets).map((market) => market.candidate?.variant).filter((name): name is string => typeof name === "string"));
+      const rebuilt = new Map<string, DerivedFilter>();
+      for (const arm of frozen.candidates.arms) {
+        for (const [name, spec] of Object.entries(arm.derived ?? {})) {
+          if (!wanted.has(name)) continue;
+          const [filter] = parseDerivedFilters(`${name}:${spec.predicate}`);
+          if (filter.predicateHash !== spec.predicateHash) throw new Error(`${frozen.path}: arm ${arm.arm}'s derived variant ${name} carries predicate ${spec.predicate} whose hash does not match; the frozen file was altered`);
+          rebuilt.set(name, filter);
+        }
+      }
+      return [...rebuilt.values()];
+    })()
+    : options.deriveFilters ?? [];
   const emittedVariants = new Set<string>();
-  for (const path of paths) {
+  for (const [shardIndex, path] of paths.entries()) {
     // THE ONE READ. The door seals the confirm fold by default (R4 act 1);
     // this is the only call in the repository allowed to open it, and only
     // when the read will be recorded in the LA-6 ledger below.
@@ -1426,6 +1479,18 @@ export async function gradeCorpus(
       if (options.symbolFilter && !options.symbolFilter.has(row.symbol)) {
         return;
       }
+      if (frozen) {
+        // Only the named cells: every arm's baseline once (the freeze proved
+        // them the same rows), and per market the frozen candidate from its
+        // own arm. A derived candidate is rebuilt from the baseline rows below.
+        const emitted = typeof row.variant === "string" ? row.variant : "baseline";
+        if (emitted === derivedParent) {
+          if (shardIndex !== 0) return;
+        } else {
+          const candidate = candidateOf(row.symbol);
+          if (!candidate || candidate.arm !== armOfShard[shardIndex] || candidate.variant !== emitted) return;
+        }
+      }
       // The emitted split label is the fold. Nothing here re-cuts time.
       addRowToCube(cube, row, { includeHoldout: true });
       if (derivedFilters.length > 0) {
@@ -1433,6 +1498,7 @@ export async function gradeCorpus(
         emittedVariants.add(emitted);
         if (emitted === derivedParent) {
           for (const filter of derivedFilters) {
+            if (frozen && candidateOf(row.symbol)?.variant !== filter.name) continue;
             const passes = derivedPasses(filter, derivedFieldOf(row, filter.field));
             addRowToCube(cube, { ...row, accepted: row.accepted !== false && passes, variant: filter.name }, { includeHoldout: true });
           }
@@ -1926,9 +1992,17 @@ export async function gradeCorpus(
           variant,
         });
       }
-      markets[symbol] = { accepted, heldOut: stratified.has(symbol), shipped: cell };
+      markets[symbol] = {
+        accepted,
+        ...(frozen ? { candidate: candidateOf(symbol) ? { arm: candidateOf(symbol)!.arm, variant: candidateOf(symbol)!.variant } : null } : {}),
+        heldOut: stratified.has(symbol),
+        shipped: cell,
+      };
     }
     const artifactBody: Omit<LedgeredReadArtifact, "artifactHash"> = {
+      ...(frozen
+        ? { frozen: { arms: frozen.candidates.arms.map((arm) => ({ arm: arm.arm, shardHashes: [...arm.shardHashes] })), frozenHash: frozen.candidates.frozenHash, path: relative(process.cwd(), frozen.path), ruleHash: frozen.candidates.ruleHash } }
+        : {}),
       analyzerVersion: manifest.analyzerVersion,
       anchor: manifest.anchor,
       baselineVariant: baselineName,
@@ -1974,6 +2048,7 @@ export async function gradeCorpus(
       confirmSpans,
       corpusHash: corpusId,
       emitSha256,
+      frozenHash: frozen ? frozen.candidates.frozenHash : null,
       holdout: artifactBody.holdout,
       identity: firstConditions,
       includeHoldout: artifactBody.includeHoldout,
@@ -2115,6 +2190,7 @@ async function main(): Promise<void> {
   const VALUE_FLAGS = new Set([
     "--baseline",
   "--derive-filters",
+  "--frozen",
     "--confirm-log-dir",
     "--permutations",
     "--out",
@@ -2229,6 +2305,8 @@ async function main(): Promise<void> {
   const readArtifactPath = str("--read-out");
   const outPath = str("--out");
   const deriveFilters = parseDerivedFilters(str("--derive-filters") ?? "");
+  const frozenPath = str("--frozen");
+  const frozen = frozenPath === undefined ? undefined : { candidates: verifyFrozenCandidates(frozenPath), path: frozenPath };
   const derivedByName = new Map(deriveFilters.map((filter) => [filter.name, filter]));
   if (paths.length === 0) {
     console.error(
@@ -2238,7 +2316,7 @@ async function main(): Promise<void> {
       // decide whether the held-back fold is opened — went unmentioned,
       // an enumeration in prose narrower than the code beside it.
       "Usage: npx tsx scripts/grid-totalr.ts <emit.jsonl> [more-shards.jsonl ...] " +
-        "[--baseline <variant>] [--derive-filters \"name:field>=value;…\"] [--permutations 1000] [--seed 7] " +
+        "[--baseline <variant>] [--derive-filters \"name:field>=value;…\"] [--frozen <frozen-candidates.json>] [--permutations 1000] [--seed 7] " +
         "[--verdict-unit class|market] [--provenance <shipped-cell-provenance.json>] " +
         "[--read-out <ledgered-read.json>] [--out <per-market-grading.json>] " +
         "[--confirm-final] [--acknowledge-prior-reads] [--include-holdout] " +
@@ -2262,6 +2340,7 @@ async function main(): Promise<void> {
     acknowledgePriorReads: args.includes("--acknowledge-prior-reads"),
     baselineVariant,
     deriveFilters,
+    frozen,
     confirmFinal: args.includes("--confirm-final"),
     confirmLogDir,
     includeHoldout: args.includes("--include-holdout"),

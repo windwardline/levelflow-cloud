@@ -49,10 +49,13 @@ type GradingMarket = {
   variants: Record<string, GradingVariant>;
 };
 
+export type DerivedSpec = { field: string; op: string; parent: string; predicate: string; predicateHash: string; value: number };
+
 export type GradingArtifact = {
   anchor: string;
   analyzerVersion: string;
   calendarHash: string;
+  derived?: Record<string, DerivedSpec>;
   foldSource: string;
   heldOut: string[];
   holdoutRule: string;
@@ -75,6 +78,8 @@ export type FrozenCandidate = {
 export type FrozenMarket = {
   acceptedCount: number;
   candidate: FrozenCandidate | null;
+  /** Variants graded against this market across every arm — the multiplicity the read must state. */
+  cellsTested: number;
   declineCandidate: boolean;
   heldOut: boolean;
 };
@@ -86,6 +91,8 @@ export type FrozenArm = {
   artifactPath: string;
   artifactSha256: string;
   calendarHash: string;
+  /** The arm's derived variants (predicates graded from the parent corpus's rows), so the read can rebuild them without retyping. */
+  derived: Record<string, DerivedSpec>;
   shardHashes: string[];
   shards: string[];
   verdictUnit: string;
@@ -97,6 +104,8 @@ export type FrozenCandidates = {
   anchor: string;
   arms: FrozenArm[];
   calendarHash: string;
+  /** 0.05 × the cells tested across all markets: how many accepts the gate's own p would hand out by chance. */
+  expectedFalseAccepts: number;
   frozenAt: string;
   frozenHash: string;
   heldOut: string[];
@@ -198,9 +207,19 @@ export async function freezeCandidates(
     const accepted: FrozenCandidate[] = [];
     let declineCandidate: boolean | null = null;
     let heldOut: boolean | null = null;
+    let shippedSelect: string | null = null;
+    let cellsTested = 0;
     for (const { arm, artifact } of loaded) {
       const entry = artifact.markets[symbol];
       if (entry === undefined) continue;
+      // One baseline per program: every arm's shipped cell must be the same
+      // rows, or a cross-arm "largest fit ΔR" compares against two baselines.
+      const selectKey = stableJson(entry.shipped.select ?? null);
+      if (shippedSelect === null) shippedSelect = selectKey;
+      else if (shippedSelect !== selectKey) {
+        refuse(`${symbol}: arm ${arm}'s shipped-cell select figures differ from another arm's; the arms' baselines are not the same rows and cannot be frozen together`);
+      }
+      cellsTested += Object.keys(entry.variants ?? {}).length;
       if (declineCandidate === null) declineCandidate = entry.shipped.declineCandidate;
       else if (declineCandidate !== entry.shipped.declineCandidate) {
         refuse(`${symbol}: arm ${arm} reads the shipped cell's declineCandidate as ${entry.shipped.declineCandidate} where another arm read ${declineCandidate}; the arms' baselines are not the same cell`);
@@ -223,6 +242,7 @@ export async function freezeCandidates(
     markets[symbol] = {
       acceptedCount: accepted.length,
       candidate: chooseCandidate(accepted),
+      cellsTested,
       declineCandidate: declineCandidate ?? false,
       heldOut: heldOut ?? false,
     };
@@ -237,11 +257,13 @@ export async function freezeCandidates(
       artifactPath: relative(baseDir, resolve(path)),
       artifactSha256: sha256,
       calendarHash: artifact.calendarHash,
+      derived: artifact.derived ?? {},
       shardHashes: [...artifact.shardHashes],
       shards: [...artifact.shards],
       verdictUnit: artifact.verdictUnit,
     })),
     calendarHash: first.calendarHash,
+    expectedFalseAccepts: Number((0.05 * Object.values(markets).reduce((sum, market) => sum + market.cellsTested, 0)).toFixed(2)),
     frozenAt: (options.now ?? new Date()).toISOString(),
     heldOut: [...first.heldOut].sort(),
     holdoutRule: first.holdoutRule,
@@ -300,7 +322,8 @@ async function main(): Promise<void> {
   const declines = symbols.filter((symbol) => frozen.markets[symbol].declineCandidate).length;
   console.log(
     `frozen: ${frozen.arms.length} arm${frozen.arms.length === 1 ? "" : "s"}, ${symbols.length} markets, ` +
-      `${candidates} candidate${candidates === 1 ? "" : "s"}, ${declines} decline candidate${declines === 1 ? "" : "s"} ` +
+      `${candidates} candidate${candidates === 1 ? "" : "s"}, ${declines} decline candidate${declines === 1 ? "" : "s"}, ` +
+      `${frozen.expectedFalseAccepts} expected false accepts at p 0.05 ` +
       `-> ${out} (frozenHash ${frozen.frozenHash.slice(0, 12)})`,
   );
 }

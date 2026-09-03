@@ -1,3 +1,4 @@
+import { freezeCandidates } from "../scripts/freeze-candidates.ts";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { readLedgeredArtifact } from "../scripts/ledgeredRead.ts";
@@ -1760,6 +1761,127 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       assert.match(artifact.derived["floor=1.5"].predicateHash, /^[0-9a-f]{64}$/);
       assert.equal(artifact.markets.EURUSD.variants["floor=1.5"].derived, true);
       assert.equal(artifact.markets.EURUSD.variants["floor=1.5"].select.net!.n, 20);
+    });
+  });
+
+  describe("the freeze-driven read (R4 act 3): one command over the frozen candidates", () => {
+    // Rows for a second market in the folded fixture's own shape: fit days
+    // 0–15, select 40–55, confirm 80–95.
+    const usdjpy = (variant: string, realizedR: number): SweepEmitRow[] => {
+      const rows: SweepEmitRow[] = [];
+      for (let day = 0; day < 16; day += 1) {
+        for (const [split, offset] of [["fit", 0], ["select", 40], ["confirm", 80]] as const) {
+          rows.push({ ...outcomeRow(variant, day + offset, realizedR, undefined, "USDJPY"), split });
+        }
+      }
+      return rows;
+    };
+    const manifestHashOf = (emitPath: string) => (JSON.parse(readFileSync(`${emitPath}.manifest.json`, "utf8")) as { manifestHash: string }).manifestHash;
+    const gradingFor = (emitPath: string, cells: Record<string, { variant: string; accepted: boolean }>) => ({
+      analyzerVersion: "test", anchor: "2026-08-11", calendarHash: "c".repeat(64), derivedAt: "2026-09-03T00:00:00.000Z", foldSource: "emitted",
+      heldOut: [], holdoutRule: "stratified-per-class-20pct", rules: {}, shardHashes: [manifestHashOf(emitPath)], shards: [emitPath], verdictUnit: "market",
+      markets: Object.fromEntries(Object.entries(cells).map(([symbol, cell]) => [symbol, {
+        heldOut: false,
+        shipped: { declineCandidate: false, select: { gross: null, net: { expectancy: 0.1, lower: 0.05, n: 16, upper: 0.15 } }, variant: "baseline" },
+        variants: { [cell.variant]: { accepted: cell.accepted, fitTotalDelta: cell.accepted ? 10 : 0, pairedP: 0.01, reason: cell.accepted ? "accepted" : "fails", selectExpectancyDelta: 0.3, selectTotalDelta: 5 } },
+      }])),
+    });
+    const freeze = async (dir: string, arms: Array<{ arm: string; grading: unknown }>) => {
+      const named = arms.map(({ arm, grading }) => { const path = join(dir, `${arm}.json`); writeFileSync(path, JSON.stringify(grading)); return { arm, path }; });
+      const frozen = await freezeCandidates(named);
+      const path = join(dir, "frozen.json");
+      writeFileSync(path, JSON.stringify(frozen));
+      return { candidates: frozen, path };
+    };
+    const twoArms = async (dir: string) => {
+      const first = foldedCorpus({ extraRows: usdjpy("baseline", 0.1) });
+      const second = foldedCorpus({ extraRows: [...usdjpy("baseline", 0.1), ...usdjpy("y=2", -0.6)], grid: [{}, { y: 2 }] });
+      assert.notEqual(manifestHashOf(first), manifestHashOf(second));
+      const frozen = await freeze(dir, [
+        { arm: "A", grading: gradingFor(first, { EURUSD: { variant: "good", accepted: true }, USDJPY: { variant: "good", accepted: false } }) },
+        { arm: "B", grading: gradingFor(second, { EURUSD: { variant: "good", accepted: false }, USDJPY: { variant: "y=2", accepted: true } }) },
+      ]);
+      return { first, frozen, second };
+    };
+
+    it("equals the plain confirm-final read over one corpus when the freeze names its variant (identity)", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const corpus = foldedCorpus();
+      const frozen = await freeze(dir, [{ arm: "A", grading: gradingFor(corpus, { EURUSD: { variant: "good", accepted: true } }) }]);
+      const plain = await gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "plain-")), permutations: 100, seed: 4, verdictUnit: "market" });
+      const driven = await gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "driven-")), frozen, permutations: 100, seed: 4, verdictUnit: "market" });
+      assert.ok(plain.read && driven.read, "both runs read the fold");
+      assert.deepEqual(driven.shipped.get("EURUSD")!.confirm, plain.shipped.get("EURUSD")!.confirm);
+      assert.equal(driven.verdicts.get("EURUSD")!.get("good")!.confirmTotalDelta, plain.verdicts.get("EURUSD")!.get("good")!.confirmTotalDelta);
+      assert.equal(driven.sealedRows, plain.sealedRows);
+      const opened = readLedgeredArtifact(driven.read!.artifactPath, { manifestHash: driven.manifest.manifestHash });
+      assert.equal(opened.frozen!.frozenHash, frozen.candidates.frozenHash);
+      assert.deepEqual(opened.frozen!.arms, [{ arm: "A", shardHashes: [manifestHashOf(corpus)] }]);
+      assert.deepEqual(opened.markets.EURUSD.candidate, { arm: "A", variant: "good" });
+      assert.notEqual(driven.read!.corpusId, plain.read!.corpusId, "a frozen read has its own identity");
+      const ledgerLine = JSON.parse(readFileSync(driven.read!.ledgerPath, "utf8").trim().split("\n").pop()!) as { frozenHash: string };
+      assert.equal(ledgerLine.frozenHash, frozen.candidates.frozenHash);
+    });
+
+    it("opens each market's candidate from its own arm and every arm's baseline once (two corpora, two grids)", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const { first, frozen, second } = await twoArms(dir);
+      assert.equal(frozen.candidates.markets.EURUSD.candidate!.variant, "good");
+      assert.equal(frozen.candidates.markets.USDJPY.candidate!.variant, "y=2");
+      const driven = await gradeCorpus([first, second], { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "driven-")), frozen, permutations: 100, seed: 4, verdictUnit: "market" });
+      assert.ok(driven.read, "the fold was read");
+      // The shipped cells' confirm figures are withheld (no provenance names them
+      // held back), so the baseline's fold count is read off the candidates' verdicts.
+      assert.equal(driven.verdicts.get("EURUSD")!.get("good")!.confirmBaseFilled, 16, "the baseline is read once, not once per arm");
+      assert.equal(driven.verdicts.get("USDJPY")!.get("y=2")!.confirmBaseFilled, 16);
+      // A market's only graded variant is its own frozen candidate; another
+      // market's candidate prints NO VERDICT for it (no rows), never a figure.
+      const graded = (symbol: string) => [...driven.verdicts.get(symbol)!.entries()].filter(([, verdict]) => !verdict.noVerdict).map(([name]) => name);
+      assert.deepEqual(graded("EURUSD"), ["good"]);
+      assert.deepEqual(graded("USDJPY"), ["y=2"]);
+      assert.equal(driven.verdicts.get("EURUSD")!.get("y=2")!.noVerdict, true);
+      assert.ok(driven.verdicts.get("USDJPY")!.get("y=2")!.confirmTotalDelta! < 0, "y=2's confirm rows came from arm B's corpus");
+      const opened = readLedgeredArtifact(driven.read!.artifactPath, { manifestHash: driven.manifest.manifestHash });
+      assert.deepEqual(opened.shardHashes, [manifestHashOf(first), manifestHashOf(second)]);
+      assert.deepEqual(opened.markets.USDJPY.candidate, { arm: "B", variant: "y=2" });
+      assert.deepEqual(opened.markets.EURUSD.candidate, { arm: "A", variant: "good" });
+    });
+
+    it("refuses a frozen read that is not confirm-final, a shard no arm bound, an arm whose corpus is missing, and derive-filters beside it", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const { first, frozen: both, second } = await twoArms(dir);
+      const onlyFirst = await freeze(mkdtempSync(join(dir, "one-")), [{ arm: "A", grading: gradingFor(first, { EURUSD: { variant: "good", accepted: true } }) }]);
+      await assert.rejects(gradeCorpus(first, { frozen: onlyFirst, permutations: 20, seed: 4, verdictUnit: "market" }), /confirm-final/);
+      await assert.rejects(
+        gradeCorpus([first, second], { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l1-")), frozen: onlyFirst, permutations: 20, seed: 4, verdictUnit: "market" }),
+        /named by no arm/,
+      );
+      await assert.rejects(
+        gradeCorpus(first, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l2-")), frozen: both, permutations: 20, seed: 4, verdictUnit: "market" }),
+        /arm B's corpus .* is not among the shards/,
+      );
+      await assert.rejects(
+        gradeCorpus(first, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l3-")), deriveFilters: parseDerivedFilters("f:rewardRisk>=1.5"), frozen: onlyFirst, permutations: 20, seed: 4, verdictUnit: "market" }),
+        /--derive-filters may not be passed beside it/,
+      );
+    });
+
+    it("refuses a tampered frozen file at the command line", () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const corpus = foldedCorpus();
+      writeFileSync(join(dir, "A.json"), JSON.stringify(gradingFor(corpus, { EURUSD: { variant: "good", accepted: true } })));
+      const frozenPath = join(dir, "frozen.json");
+      const made = spawnSync(process.execPath, ["./node_modules/.bin/tsx", "scripts/freeze-candidates.ts", "--arms", `A=${join(dir, "A.json")}`, "--out", frozenPath], { cwd: process.cwd(), encoding: "utf8" });
+      assert.equal(made.status, 0, made.stderr);
+      const frozen = JSON.parse(readFileSync(frozenPath, "utf8")) as { markets: Record<string, { candidate: unknown }> };
+      frozen.markets.EURUSD.candidate = null;
+      writeFileSync(frozenPath, JSON.stringify(frozen));
+      const read = spawnSync(process.execPath, [
+        "./node_modules/.bin/tsx", "scripts/grid-totalr.ts", corpus, "--verdict-unit", "market", "--confirm-final",
+        "--confirm-log-dir", mkdtempSync(join(dir, "ledger-")), "--frozen", frozenPath, "--permutations", "20", "--seed", "4",
+      ], { cwd: process.cwd(), encoding: "utf8" });
+      assert.notEqual(read.status, 0);
+      assert.match(read.stderr, /frozenHash does not match/);
     });
   });
 

@@ -120,8 +120,12 @@ export type LedgeredReadArtifact = {
   symbolsRead: string[];
   verdictUnit: "class" | "market";
   rules: { decline: string; declineHash: string; accept: string; admissibility: string };
+  /** Present when the read was driven by a frozen-candidates file (R4 act 3): the file, its hash, and the arms it bound. */
+  frozen?: { arms: Array<{ arm: string; shardHashes: string[] }>; frozenHash: string; path: string; ruleHash: string };
   markets: Record<string, {
     heldOut: boolean;
+    /** The frozen candidate this read opened for the market (frozen reads only); null when the freeze named none. */
+    candidate?: { arm: string; variant: string } | null;
     shipped: ShippedCellRead;
     accepted: AcceptedVariantRead[];
   }>;

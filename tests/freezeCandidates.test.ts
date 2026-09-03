@@ -95,9 +95,12 @@ describe("the freeze binds every arm and chooses one candidate per market", () =
     assert.deepEqual(frozen.markets.AAA, {
       acceptedCount: 2,
       candidate: { arm: "W", fitTotalDelta: 25, pairedP: 0.01, selectExpectancyDelta: 0.005, selectTotalDelta: 12.5, variant: "y=3" },
+      cellsTested: 3,
       declineCandidate: false,
       heldOut: false,
     });
+    // 3 (AAA) + 1 (BBB) + 2 (CCC) + 1 (DDD) cells across both arms, at the gate's own p.
+    assert.equal(frozen.expectedFalseAccepts, 0.35);
     assert.equal(frozen.markets.BBB.candidate, null);
     assert.equal(frozen.markets.BBB.acceptedCount, 0);
     assert.equal(frozen.markets.CCC.heldOut, true);
@@ -150,6 +153,11 @@ describe("the freeze refuses what it must not consume", () => {
     (flipped.markets as Record<string, { shipped: { declineCandidate: boolean } }>).AAA.shipped.declineCandidate = true;
     await assert.rejects(freezeCandidates([{ arm: "S", path: base }, { arm: "W", path: write(dir, "e.json", flipped) }]), /declineCandidate/);
     await assert.rejects(freezeCandidates([{ arm: "S", path: base }, { arm: "S", path: base }]), /twice/);
+    const otherBaseline = grading();
+    (otherBaseline.markets as Record<string, { shipped: Record<string, unknown> }>).AAA.shipped.select = { net: { expectancy: 0.5, lower: 0.1, n: 99, upper: 0.9 }, gross: null };
+    const withSelect = grading();
+    (withSelect.markets as Record<string, { shipped: Record<string, unknown> }>).AAA.shipped.select = { net: { expectancy: -0.5, lower: -0.9, n: 99, upper: -0.1 }, gross: null };
+    await assert.rejects(freezeCandidates([{ arm: "S", path: write(dir, "s1.json", withSelect) }, { arm: "W", path: write(dir, "s2.json", otherBaseline) }]), /baselines are not the same rows/);
     await assert.rejects(freezeCandidates([]), /no arm/);
   });
 
@@ -187,7 +195,7 @@ describe("the freeze command", () => {
     const out = join(dir, "frozen.json");
     const result = run(["--arms", `S=${path}`, "--out", out]);
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /1 arm.*3 markets.*2 candidates.*1 decline candidate/s);
+    assert.match(result.stdout, /1 arm.*3 markets.*2 candidates.*1 decline candidate.*expected false accepts/s);
     const body = JSON.parse(readFileSync(out, "utf8")) as { frozenHash: string };
     assert.equal(verifyFrozenCandidates(out).frozenHash, body.frozenHash);
   });
