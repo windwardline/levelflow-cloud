@@ -1,0 +1,45 @@
+verdict unit: class — class pools (the 4c gate); fold source: emitted labels (no time re-cut)
+wrote docs/research/r4/class-default-grading-class.json
+folds: fit=fit select=select confirm=confirm SEALED (not derived: no --confirm-final — nothing burned; 924587 rows withheld at the door) · holdout 20 markets excluded (read-time stratified; holdout: stratified-per-class-20pct — 20 markets excluded from every class pool (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only)
+corpus 8cf24be8ed5b · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26
+(data-absence rows held out of every fold denominator: 988 — all variants, graded folds only, accepted rows; holdout excluded by read-time stratified recomputation, not the stamped flag)
+
+=== FOREX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven  -14871.4  -6941.2    1.000 1304/1304   -0.087   -0.067   -0.072       0.0       0.0   0.01     -34.6  fails
+symbolOverride=none,runnerProtection=trail_tp1   -6673.5  -2246.8    1.000 1304/1304   -0.028   -0.008   -0.013       0.0       0.0   0.01     -31.5  fails
+
+=== METALS ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven    -216.1    -76.6    0.999   717/719   -0.033   -0.080   -0.110       0.2      -4.6   0.04      -4.1  fails
+symbolOverride=none,runnerProtection=trail_tp1     -74.3    -31.5    0.951   708/719   -0.015   -0.062   -0.089       0.4      -4.6   0.04      -4.1  fails
+
+=== FUTURES ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven    -784.0   -293.2    1.000   215/220   -0.057   -0.119   -0.143       0.0       0.0   0.02     -19.3  fails
+symbolOverride=none,runnerProtection=trail_tp1    -496.4   -112.4    0.986   214/220   -0.021   -0.083   -0.107       0.0       0.0   0.02     -17.6  fails
+
+=== INDICES ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven     -20.2    -13.5    0.915   210/237   -0.096   -0.251   -0.324       0.2       0.1   0.04      -3.3  fails
+symbolOverride=none,runnerProtection=trail_tp1     -17.4      2.3    0.493   227/237   -0.060   -0.214   -0.287       0.4       0.1   0.04      -3.1  fails
+
+=== ENERGIES ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven     103.2     58.3    0.072     20/20    0.125   -0.076   -0.632       3.8     -42.2   0.08      -3.2  THIN (24 filled) — refuse
+symbolOverride=none,runnerProtection=trail_tp1     103.5     58.9    0.065     20/20    0.151   -0.051   -0.592       3.8     -42.2   0.08      -3.2  THIN (24 filled) — refuse
+
+=== CRYPTO ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven   -1208.6  -3043.8    1.000 1161/1163   -0.100   -0.252   -0.260       0.0       0.0   0.00     -36.4  fails
+symbolOverride=none,runnerProtection=trail_tp1     583.3  -1867.3    1.000 1163/1163   -0.069   -0.221   -0.229       0.0       0.0   0.00     -36.9  fails
+
+=== AGRICULTURE ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven    -180.1   -167.6    1.000   181/182   -0.154   -0.272   -0.346       0.0       0.0   0.09     -24.4  fails
+symbolOverride=none,runnerProtection=trail_tp1    -146.3   -139.3    1.000   182/182   -0.129   -0.248   -0.321       0.0       0.0   0.09     -24.1  fails
+
+=== LIVESTOCK ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven       0.0      0.0    1.000     0/112    0.000   -0.003   -0.158       0.0       0.0   0.01      -2.8  NO VERDICT — pairing 0 nonzero of 112 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1       0.2     -3.1    0.685    62/112   -0.018   -0.021   -0.162       0.0       0.0   0.01      -2.3  fails

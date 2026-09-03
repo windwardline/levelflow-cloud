@@ -279,6 +279,21 @@ would. The lens's reading that crypto's sign flip is regime rather than the
 layer stands as narration only; what is measured is that removing the layer
 makes crypto worse by 3,000–4,400R on select.
 
+**Arm C1 — the class default with the gate on** (`class-default`, manifest
+`8cf24be8ed5b`, 2,866,621 rows, 7.16 GB, exit 0 at 07:46Z; graded
+`docs/research/r4/class-default-grading.json` and `-class.json`). The same
+picture with the class threshold restored: forex −8,784R / −18,657R
+(breakeven) and −2,548R / −8,062R (trail_tp1) on select / fit over its 28
+derived markets, crypto −4,361R / −1,609R and −3,000R / +610R, futures
+−327R / −886R and −124R / −597R; no market accepts either cell; every class
+fails at the class grain. The class threshold moves almost nothing on the
+derived markets (their layers ship threshold 0 and the class rows' 20–30
+remove few fills) except where it is high: WTI on the energies row
+(threshold 85) is THIN at 24 filled, the regression the review named. The
+22 graded class-row markets, whose token expands to nothing, return NO
+VERDICT (21) or THIN (1): the reproduction control the design counted, and
+the reason arm C grades 72 markets, not 97.
+
 ## 7. Storage and the anchor
 
 **Preflight, 2026-09-03 04:2xZ** (`docs/research/r4/preflight-survey-2026-09-03.txt`,
