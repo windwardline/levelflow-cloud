@@ -90,9 +90,35 @@ export type AcceptedVariantRead = {
   confirmExpectancyUpper: number | null;
   confirmExpectancyDelta: number | null;
   confirmExpectancyDeltaLower: number | null;
+  /** The delta's 95% upper bound (R4 act 3): DELTA_RULE reads both ends. */
+  confirmExpectancyDeltaUpper: number | null;
+  /** DELTA_RULE's outcome for this candidate. */
+  deltaOutcome: DeltaOutcome;
   gateDisposition: string;
   gateReason: string;
   m3: M3Outcome;
+};
+
+/** One class-grain candidate's read: the class pool the tuning folds graded, and its held-out members as the out-of-sample check. */
+export type ClassCandidateRead = {
+  arm: string;
+  axis: string;
+  variant: string;
+  /** The frozen tuning-fold figures the read verified against its own before opening the fold. */
+  frozen: { fitTotalDelta: number; selectTotalDelta: number; pairedP: number | null };
+  pool: ClassPoolRead;
+  heldOutPool: ClassPoolRead | null;
+};
+
+export type ClassPoolRead = {
+  members: string[];
+  confirmFilled: number | null;
+  confirmBaseFilled: number | null;
+  confirmTotalDelta: number | null;
+  confirmExpectancyDelta: number | null;
+  confirmExpectancyDeltaLower: number | null;
+  confirmExpectancyDeltaUpper: number | null;
+  deltaOutcome: DeltaOutcome;
 };
 
 export type LedgeredReadArtifact = {
@@ -119,13 +145,17 @@ export type LedgeredReadArtifact = {
   symbolFilter: string[] | null;
   symbolsRead: string[];
   verdictUnit: "class" | "market";
-  rules: { decline: string; declineHash: string; accept: string; admissibility: string };
+  rules: { decline: string; declineHash: string; accept: string; admissibility: string; delta?: string; deltaHash?: string };
+  /** Class-grain candidates read in the same burn (R4 act 3): per class, per axis. */
+  classes?: Record<string, ClassCandidateRead[]>;
   /** Present when the read was driven by a frozen-candidates file (R4 act 3): the file, its hash, and the arms it bound. */
   frozen?: { arms: Array<{ arm: string; shardHashes: string[] }>; frozenHash: string; path: string; ruleHash: string };
   markets: Record<string, {
     heldOut: boolean;
     /** The frozen candidate this read opened for the market (frozen reads only); null when the freeze named none. */
     candidate?: { arm: string; disposition: "accepted" | "rejected"; reason: string; variant: string } | null;
+    /** RETIREMENT_RULE's verdict for a decline candidate, copied from the frozen file so it sits beside M3. */
+    retirement?: unknown;
     shipped: ShippedCellRead;
     accepted: AcceptedVariantRead[];
   }>;
@@ -169,6 +199,38 @@ export const ACCEPT_RULE =
  * prior positive read — is admissible, and the gate keeps the figure only in
  * that case.
  */
+/**
+ * The delta rule (R4 act 3, pre-registered before the read). On a calendar
+ * where no shipped cell is held back, a candidate's ABSOLUTE confirm figure
+ * is withheld (ADMISSIBILITY_RULE); the one figure the read can admit for it
+ * is its confirm DELTA against the shipped cell, with its interval. That
+ * delta is judged by this rule and no other: confirmed iff the delta's 95%
+ * lower bound is above zero with at least 30 filled on both sides;
+ * contradicted iff the upper bound is below zero with the same floor;
+ * indistinguishable when the interval spans zero; unreadable below the floor.
+ */
+export const DELTA_RULE =
+  "a candidate's confirm delta against the shipped cell is confirmed iff its 95% lower bound > 0 with >= 30 filled on both sides; " +
+  "contradicted iff its 95% upper bound < 0 with the same floor; indistinguishable when the interval spans zero; " +
+  "unreadable below the floor. The absolute confirm figure of a cell not held back is withheld (ADMISSIBILITY_RULE), never substituted.";
+export const DELTA_RULE_HASH = createHash("sha256").update(DELTA_RULE).digest("hex");
+export const DELTA_MIN_FILLED = 30;
+
+export type DeltaOutcome = "confirmed" | "contradicted" | "indistinguishable" | "unreadable";
+
+/** DELTA_RULE, mechanically. */
+export function deltaOutcomeOf(
+  delta: { lower: number; upper: number } | null,
+  filledVariant: number | null,
+  filledBase: number | null,
+): DeltaOutcome {
+  if (delta === null || filledVariant === null || filledBase === null) return "unreadable";
+  if (filledVariant < DELTA_MIN_FILLED || filledBase < DELTA_MIN_FILLED) return "unreadable";
+  if (delta.lower > 0) return "confirmed";
+  if (delta.upper < 0) return "contradicted";
+  return "indistinguishable";
+}
+
 export const ADMISSIBILITY_RULE =
   "for a shipped cell not held back — selected or confirmed positive on dates inside this fold — " +
   "only a confirmed-negative confirm figure (95% upper bound < 0, at least 30 filled) is admissible; " +
@@ -240,6 +302,9 @@ export function readLedgeredArtifact(path: string, options: OpenOptions): Ledger
   const recomputed = artifactHashOf(artifact as LedgeredReadArtifact);
   if (recomputed !== artifact.artifactHash) {
     throw new Error(`${path}: artifactHash ${String(artifact.artifactHash).slice(0, 12)} does not match its content (${recomputed.slice(0, 12)}) — edited after the read`);
+  }
+  if (artifact.rules!.delta !== undefined && artifact.rules!.deltaHash !== DELTA_RULE_HASH) {
+    throw new Error(`${path} was read under a different delta rule (deltaHash ${String(artifact.rules!.deltaHash)}); consumers read DELTA_RULE only`);
   }
   if (artifact.rules!.declineHash !== DECLINE_RULE_HASH) {
     throw new Error(

@@ -76,6 +76,9 @@ import {
   type ShippedCellRead,
   sha256File,
   stableJson,
+  DELTA_RULE,
+  DELTA_RULE_HASH,
+  deltaOutcomeOf,
 } from "./ledgeredRead.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 import {
@@ -274,6 +277,8 @@ export type VariantVerdict = {
    */
   confirmExpectancyDelta: number | null;
   confirmExpectancyDeltaLower: number | null;
+  /** The delta's upper bound (R4 act 3): DELTA_RULE reads both ends. */
+  confirmExpectancyDeltaUpper: number | null;
   fitTotalDelta: number;
   // The ENFORCED statistic (LA-3/LA-4): family-wise max-T sign-flip
   // permutation over shared-day deltas, one flip pattern per iteration
@@ -1063,6 +1068,10 @@ function groupVerdicts(
           ? rDeltaInterval95(aggregate.variant.confirm, aggregate.base.confirm)
             ?.lower ?? null
           : null,
+        confirmExpectancyDeltaUpper: accepted && foldNames.confirm
+          ? rDeltaInterval95(aggregate.variant.confirm, aggregate.base.confirm)
+            ?.upper ?? null
+          : null,
         fitTotalDelta,
         pairedP,
         permutationP,
@@ -1567,9 +1576,18 @@ export async function gradeCorpus(
   }
   if (frozen) {
     for (let index = 1; index < paths.length; index += 1) {
+      for (const key of baselineDigest[0].keys()) {
+        if (!baselineDigest[index].has(key)) {
+          const [symbol, split] = key.split("|");
+          throw new Error(`${paths[index]}: no baseline rows for ${symbol} on the ${split} fold, which ${paths[0]} carries; the arms do not share one baseline`);
+        }
+      }
       for (const [key, mine] of baselineDigest[index]) {
         const first = baselineDigest[0].get(key);
-        if (first === undefined) continue;
+        if (first === undefined) {
+          const [symbol, split] = key.split("|");
+          throw new Error(`${paths[index]}: baseline rows for ${symbol} on the ${split} fold, which ${paths[0]} does not carry; the arms do not share one baseline`);
+        }
         if (first.n !== mine.n || Math.abs(first.r - mine.r) > 1e-9 || Math.abs(first.g - mine.g) > 1e-9) {
           const [symbol, split] = key.split("|");
           // No figure is printed: the mismatch may sit on the held-back fold.
@@ -1938,10 +1956,20 @@ export async function gradeCorpus(
     // A candidate that contributed no rows would otherwise read as silence.
     for (const [symbol, market] of Object.entries(frozen.candidates.markets)) {
       if (market.candidate === null) continue;
-      if (!verdicts.get(symbol)?.has(market.candidate.variant)) {
+      const verdict = verdicts.get(symbol)?.get(market.candidate.variant);
+      if (verdict === undefined) {
         throw new Error(
           `${frozen.path} names ${market.candidate.variant} (arm ${market.candidate.arm}) for ${symbol}, but no rows of that cell reached the gate ` +
             "— the arm's corpus lacks them, the arm is not on the command line, or the name is not a variant of that corpus; a read that reports nothing for a frozen candidate is refused",
+        );
+      }
+      // Identity before the burn: the tuning-fold figures this read computes
+      // from the rows it ingests must equal the ones the freeze recorded, or
+      // the rows are not the rows the candidate was frozen on.
+      if (verdict.fitTotalDelta !== market.candidate.fitTotalDelta || verdict.selectTotalDelta !== market.candidate.selectTotalDelta) {
+        throw new Error(
+          `${symbol}: the read's tuning-fold figures for ${market.candidate.variant} (fit ΔR ${verdict.fitTotalDelta}, select ΔR ${verdict.selectTotalDelta}) ` +
+            `differ from the frozen ones (${market.candidate.fitTotalDelta}, ${market.candidate.selectTotalDelta}); the rows opened are not the rows the candidate was frozen on`,
         );
       }
     }
@@ -2073,6 +2101,14 @@ export async function gradeCorpus(
           confirmExpectancy: absoluteAdmissible ? verdict.confirmExpectancy : null,
           confirmExpectancyDelta: verdict.confirmExpectancyDelta,
           confirmExpectancyDeltaLower: verdict.confirmExpectancyDeltaLower,
+          confirmExpectancyDeltaUpper: verdict.confirmExpectancyDeltaUpper,
+          deltaOutcome: deltaOutcomeOf(
+            verdict.confirmExpectancyDeltaLower === null || verdict.confirmExpectancyDeltaUpper === null
+              ? null
+              : { lower: verdict.confirmExpectancyDeltaLower, upper: verdict.confirmExpectancyDeltaUpper },
+            verdict.confirmFilled,
+            verdict.confirmBaseFilled,
+          ),
           confirmExpectancyLower: absoluteAdmissible ? verdict.confirmExpectancyLower : null,
           confirmExpectancyUpper: absoluteAdmissible ? verdict.confirmExpectancyUpper : null,
           confirmFilled: verdict.confirmFilled,
@@ -2085,6 +2121,7 @@ export async function gradeCorpus(
       }
       markets[symbol] = {
         accepted,
+        ...(frozen ? { retirement: frozen.candidates.markets[symbol]?.retirement ?? null } : {}),
         ...(frozen
           ? {
             candidate: candidateOf(symbol)
@@ -2123,7 +2160,7 @@ export async function gradeCorpus(
       markets,
       readAt,
       readId,
-      rules: { accept: ACCEPT_RULE, admissibility: ADMISSIBILITY_RULE, decline: DECLINE_RULE, declineHash: DECLINE_RULE_HASH },
+      rules: { accept: ACCEPT_RULE, admissibility: ADMISSIBILITY_RULE, decline: DECLINE_RULE, declineHash: DECLINE_RULE_HASH, delta: DELTA_RULE, deltaHash: DELTA_RULE_HASH },
       shardHashes: shardManifests.map((m) => m.manifestHash),
       symbolFilter: options.symbolFilter ? [...options.symbolFilter].sort() : null,
       // The cube's keys: every graded market — held-out markets included

@@ -15,6 +15,9 @@ import {
   m3Of,
   readLedgeredArtifact,
   stableJson,
+  deltaOutcomeOf,
+  DELTA_RULE,
+  DELTA_RULE_HASH,
 } from "../scripts/ledgeredRead.ts";
 
 /**
@@ -167,5 +170,21 @@ describe("the consumer's door", () => {
   it("refuses an artifact missing a labelling field", () => {
     const { calendarHash: _absent, ...rest } = artifact();
     assert.throws(() => readLedgeredArtifact(written(rest), { manifestHash: "b".repeat(64) }), /carries no calendarHash/);
+  });
+});
+
+describe("DELTA_RULE (R4 act 3): the one figure a not-held-back candidate can earn", () => {
+  it("reads both ends of the delta's interval at the 30-filled floor", () => {
+    assert.equal(deltaOutcomeOf({ lower: 0.01, upper: 0.2 }, 40, 40), "confirmed");
+    assert.equal(deltaOutcomeOf({ lower: -0.3, upper: -0.01 }, 40, 40), "contradicted");
+    assert.equal(deltaOutcomeOf({ lower: -0.1, upper: 0.1 }, 40, 40), "indistinguishable");
+    assert.equal(deltaOutcomeOf({ lower: 0.01, upper: 0.2 }, 29, 40), "unreadable", "the variant side is below the floor");
+    assert.equal(deltaOutcomeOf({ lower: 0.01, upper: 0.2 }, 40, 29), "unreadable", "the baseline side is below the floor");
+    assert.equal(deltaOutcomeOf(null, 40, 40), "unreadable");
+    assert.equal(deltaOutcomeOf({ lower: 0, upper: 0.2 }, 40, 40), "indistinguishable", "a bound at zero is not above it");
+  });
+  it("is hashed, so a read under another rule refuses at the door", () => {
+    assert.match(DELTA_RULE_HASH, /^[0-9a-f]{64}$/);
+    assert.match(DELTA_RULE, /lower bound > 0/);
   });
 });
