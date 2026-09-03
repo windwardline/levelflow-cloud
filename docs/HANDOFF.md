@@ -1925,12 +1925,17 @@ a rule hashed into the artifact.
 DOTUSD, DYDXUSD, NEARUSD, SOLUSD, TRXUSD) — together **−5,000R over 9,863
 held-back fills**. Thirteen stay on re-based evidence. **Two are restored**:
 ZCUSX, whose gross upper bound is +0.063 so amendment 36's own clause refuses
-the withdrawal, and PAUSD, which the read cannot judge at all. Thirteen more
+the withdrawal, and PAUSD, which the read cannot judge at all. **Eleven more**
 pass the held-back test with no nomination behind them and are named in the
 artifact for act 4 rather than declined here — including BTCUSD, ETHUSD and
-USDJPY, which is the uncomfortable part and belongs in front of you.
+USDJPY, which is the uncomfortable part and belongs in front of you. ADAUSD
+and XTZUSD are not among them: the select fold DID nominate them and an
+accepted variant rescued the candidacy, so the retirement rule keeps them and
+they are their own disposition. And eight of the ten entering markets carry no
+per-market layer at all — act 3's arms stand in for tuning them; act 4 is
+where a per-market program would.
 
-**Still due, in order.** (1) Act 4: the 13 unnominated markets and the 22
+**Still due, in order.** (1) Act 4: the 11 unnominated markets and the 22
 late-listed ones, at a new anchor the two version bumps now force. (2) The
 re-derivation of the cells this read contradicted. The desk stays parked;
 nothing here unparks it.

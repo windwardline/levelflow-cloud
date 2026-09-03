@@ -557,10 +557,13 @@ frozen candidates — under 25 MB.
    SOLUSD, TRXUSD, together −5,000R over 9,863 held-back fills — thirteen
    stay on re-based evidence, and TWO ARE RESTORED: ZCUSX (gross upper +0.063,
    so amendment 36's own clause refuses the withdrawal) and PAUSD (no
-   admissible figure at all). Thirteen more pass the held-back test with no
-   nomination and are named for act 4 rather than declined. The six of the
-   original sixteen that were already declined are among the thirteen that
-   stay. Original recommendation, unchanged:
+   admissible figure at all). Eleven more pass the held-back test with no
+   nomination and are named for act 4 rather than declined; ADAUSD and XTZUSD
+   were nominated and an accepted variant rescued them, so the retirement rule
+   keeps them and they are their own disposition. The six of the original
+   sixteen that were already declined are among the thirteen that stay. Eight
+   of the ten entering markets carry no per-market layer — act 3's arms are
+   what stands in for tuning them. Original recommendation, unchanged:
 
    **Withdraw sixteen markets** (the list in §6d): confirmed negative on the
    held-back fold after a select-fold negative that survived the cap and

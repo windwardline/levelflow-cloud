@@ -1489,9 +1489,22 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
  * negative does not survive amendment 36's own clause, and PAUSD, which the
  * read cannot judge at all (its shipped cell is not held back, so the figure
  * is withheld) — a decline may not stand on evidence this program has
- * invalidated. Thirteen more markets pass the held-back test with no
- * nomination behind them; they are named in the artifact's `unnominated` list
- * for the next act, not declined here.
+ * invalidated. ELEVEN more markets pass the held-back test with no nomination
+ * behind them — BTCUSD, ETHUSD and USDJPY among them, together −4,125R — and
+ * are named in the artifact's `unnominated` list for the next act rather than
+ * declined here; declining them on the confirm fold alone would be the
+ * post-hoc selection this program exists to avoid. ADAUSD and XTZUSD were
+ * nominated and then RESCUED by an accepted variant, so the retirement rule
+ * keeps them; they are their own disposition, not "unnominated".
+ *
+ * WHAT THIS EVIDENCE IS NOT. Eight of the ten entering markets carry no
+ * per-symbol layer at all — they run on their class row, a number we chose,
+ * and no per-market program has ever been fitted to them. Act 3's arms are
+ * what stands in for that: the review window at 24, 48 and 96 hours, the stop
+ * cap out to 8, the class row itself against the derived layer, and the
+ * admission filters. None rescued them, which is the removal amendment 36
+ * requires — but it is not the same as a market tuned to itself, and act 4 is
+ * where that happens. Withdrawal is never permanent for exactly this reason.
  *
  * Every entry is a standing reentry candidate: accrued data that turns the
  * measurement positive returns the market, exactly as the amendment-32

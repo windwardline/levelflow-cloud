@@ -1832,7 +1832,16 @@ hashed into the artifact:
 | enter | 10 | ALGOUSD, ASX, ATOMUSD, AVAXUSD, BCHUSD, DOTUSD, DYDXUSD, NEARUSD, SOLUSD, TRXUSD — **-5,000R over 9,863 held-back fills** between them |
 | stay | 13 | re-based on the valid corpus, figure for figure |
 | restored | 2 | ZCUSX (gross upper **+0.063** — the negative does not survive amendment 36's own clause) and PAUSD (the read cannot judge it: its shipped cell is not held back, so the figure is withheld — and a decline may not stand on evidence this program has invalidated) |
-| named, not declined | 13 | pass the held-back test with no nomination behind them (-4,780R): the artifact's `unnominated` list, for the next act |
+| retired | 2 | ADAUSD and XTZUSD — the select fold DID nominate them and an accepted variant rescued the candidacy, so the retirement rule keeps them |
+| named, not declined | 11 | pass the held-back test with no nomination behind them (-4,125R over 23,575 fills), BTCUSD, ETHUSD and USDJPY among them: the artifact's `unnominated` list, for the next act |
+
+**What this evidence is not.** Eight of the ten entering markets carry no
+per-symbol layer — they run on their class row, a number we chose, and no
+per-market program has ever been fitted to them. Act 3's arms stand in for
+that: the review window at 24, 48 and 96 hours, the stop cap out to 8, the
+class row against the derived layer, and the admission filters. None rescued
+them, which is the removal amendment 36 requires — but it is not a market
+tuned to itself, and act 4 is where that happens.
 
 The register is pinned in both directions and re-derived: it must equal the
 artifact's declined set figure for figure and sentence for sentence, the
