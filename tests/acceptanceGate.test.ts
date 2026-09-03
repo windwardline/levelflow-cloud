@@ -2286,6 +2286,37 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       assert.equal(pool.deltaOutcome, "unreadable");
     });
 
+    it("re-tests a market candidate in a family of one, however many class cells share its rows", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "frozen-family-"));
+      // EURUSD carries its own candidate "x=1" — a WEAK cell (every other day
+      // below the baseline), so its p sits mid-range where a widened family
+      // would move it — and, through the class, the strong cell "good"; the
+      // oracle corpus holds x=1 alone.
+      const rename = (row: SweepEmitRow) =>
+        row.symbol === "EURUSD" && row.variant === "good"
+          ? { ...row, realizedR: Math.floor(Number(row.time) / 86_400_000) % 2 === 0 ? 0.25 : 0.0, variant: "x=1" }
+          : row;
+      const oracleCorpus = foldedCorpus({ extraRows: fiveMarkets().filter((row) => row.variant === "baseline"), transform: rename });
+      const corpus = foldedCorpus({ extraRows: [...fiveMarkets(), ...marketRows("EURUSD", "good", 0.5, 0.2)], transform: rename });
+      const heldOut = [...resolveHeldOut([JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"))]).held].sort();
+      const marketGrading = { ...(await gradingFor(corpus, { EURUSD: { variant: "x=1", accepted: true } })), heldOut };
+      const classGrading = await classGradingFor(corpus, "good", heldOut);
+      const gradingPath = join(dir, "A.json"); writeFileSync(gradingPath, JSON.stringify(marketGrading));
+      const classPath = join(dir, "A-class.json"); writeFileSync(classPath, JSON.stringify(classGrading));
+      const candidates = await freezeCandidates([{ arm: "A", path: gradingPath }], { classArms: [{ arm: "A", axis: "window", path: classPath, prefix: null }] });
+      assert.equal(candidates.markets.EURUSD.candidate!.variant, "x=1");
+      assert.equal(candidates.classes!.forex.window!.variant, "good");
+      const frozenPath = join(dir, "frozen.json"); writeFileSync(frozenPath, JSON.stringify(candidates));
+      const oracle = await gradeCorpus(oracleCorpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "oracle-")), permutations: 100, seed: 4, verdictUnit: "market" });
+      const driven = await gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "driven-")), frozen: { candidates, path: frozenPath }, permutations: 100, seed: 4, verdictUnit: "market" });
+      const opened = readLedgeredArtifact(driven.read!.artifactPath, { manifestHash: driven.manifest.manifestHash });
+      assert.equal(opened.markets.EURUSD.candidate!.variant, "x=1");
+      const singleP = oracle.verdicts.get("EURUSD")!.get("x=1")!.pairedP!;
+      assert.ok(singleP > 0.02 && singleP < 0.98, `the weak cell's p must sit mid-range for the family width to be observable, got ${singleP}`);
+      assert.equal(opened.markets.EURUSD.candidate!.readPairedP, singleP, "the read's p is the single-hypothesis p, as the freeze's per-market p was");
+      assert.equal(opened.classes!.forex[0].variant, "good");
+    });
+
     it("refuses a class candidate whose pooled tuning-fold figures are not the frozen ones, before any burn", async () => {
       const dir = mkdtempSync(join(tmpdir(), "frozen-class-"));
       const corpus = foldedCorpus({ extraRows: fiveMarkets() });
