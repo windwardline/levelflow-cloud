@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { WITHDRAWAL_RULE_HASH, withdrawalVerdicts } from "../scripts/register-verdict.ts";
+import { readLedgeredArtifact } from "../scripts/ledgeredRead.ts";
 import {
   ENGINE_DECLINED_MARKETS,
   getAssetType,
@@ -566,23 +568,89 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
     );
   });
 
-  it("the register IS the artifact — every entry traces to the cost-sensitivity verdict", () => {
-    const verdicts = JSON.parse(
-      readFileSync(
-        "docs/research/baseline-2026-08-10/4d-cost-sensitivity.json",
-        "utf8",
-      ),
+  it("the register IS the artifact — every entry traces to the ledgered read's withdrawal verdict", () => {
+    // REPOINTED 2026-09-03. The register used to be pinned to
+    // 4d-cost-sensitivity.json — the corpus the clock defect invalidated —
+    // so the pin held the register to evidence the program had condemned.
+    // It now derives from the one ledgered confirm read, through
+    // scripts/register-verdict.ts, and is asserted in BOTH directions: a
+    // curated list cannot pass, and neither can a rule quietly re-run under
+    // different terms, because the rule's own hash is asserted too.
+    const verdict = JSON.parse(
+      readFileSync("docs/research/r4/withdrawal-verdict-2026-09-03.json", "utf8"),
     ) as {
-      verdicts: Record<string, { grossConfirmE: number | null; verdict: string }>;
+      declined: Array<{ measuredExpectancyR: number; reason: string; symbol: string }>;
+      restored: Array<{ symbol: string }>;
+      ruleHash: string;
     };
-    const dataNegative = Object.entries(verdicts.verdicts)
-      .filter(([, row]) => row.verdict.startsWith("DATA-NEGATIVE"))
-      .map(([symbol]) => symbol)
-      .sort();
+    assert.equal(
+      verdict.ruleHash,
+      WITHDRAWAL_RULE_HASH,
+      "the artifact was written under a different withdrawal rule than this code registers",
+    );
+    const declined = verdict.declined.map((row) => row.symbol).sort();
+    assert.ok(declined.length >= 20, `the verdict declines ${declined.length} markets — that is a shrunk artifact, not a register`);
     assert.deepEqual(
       Object.keys(ENGINE_DECLINED_MARKETS).sort(),
-      dataNegative,
-      "the declined register must equal the data-negative population exactly",
+      declined,
+      "the declined register must equal the read's declined population exactly",
+    );
+    for (const row of verdict.declined) {
+      const entry = ENGINE_DECLINED_MARKETS[row.symbol];
+      assert.equal(
+        entry.measuredExpectancyR,
+        Number(row.measuredExpectancyR.toFixed(3)),
+        `${row.symbol}: the register's figure is not the read's`,
+      );
+      assert.equal(
+        entry.reason.replace(/\s+/g, " "),
+        row.reason.replace(/\s+/g, " "),
+        `${row.symbol}: the register's reason is not the artifact's sentence`,
+      );
+    }
+    for (const row of verdict.restored) {
+      assert.equal(
+        ENGINE_DECLINED_MARKETS[row.symbol],
+        undefined,
+        `${row.symbol} failed the withdrawal rule and must not be declined`,
+      );
+    }
+  });
+
+  it("the artifact re-derives from the read — the rule, not a curated list, produced it", () => {
+    // The OTHER direction, and the one a hand-edit gets past: the artifact
+    // above could be edited to match a curated register. So the rule is run
+    // again here, over the read itself, and must reproduce the artifact
+    // exactly — including its dispositions, not only its symbols. The prior
+    // register is read from the artifact because the rule is asymmetric
+    // (a standing decline is re-tested; a new one must also be nominated),
+    // so re-deriving against TODAY's register would answer a different
+    // question.
+    const verdict = JSON.parse(
+      readFileSync("docs/research/r4/withdrawal-verdict-2026-09-03.json", "utf8"),
+    ) as {
+      declined: Array<{ disposition: string; symbol: string }>;
+      priorRegister: string[];
+      restored: Array<{ symbol: string }>;
+      unnominated: Array<{ symbol: string }>;
+    };
+    const read = readLedgeredArtifact(
+      "docs/research/confirm-reads/ledgered-read-act3.json",
+      { manifestHash: "021821537f28e5d2777543989baa0631a38840d592fad74c4bdb2429fb627c59" },
+    );
+    const derived = withdrawalVerdicts(read, new Set(verdict.priorRegister));
+    const namesOf = (kind: string) =>
+      derived.filter((row) => row.disposition === kind).map((row) => row.symbol).sort();
+    assert.deepEqual(
+      [...namesOf("declined"), ...namesOf("stays")].sort(),
+      verdict.declined.map((row) => row.symbol).sort(),
+      "re-running the rule over the read does not reproduce the artifact's declined set",
+    );
+    assert.deepEqual(namesOf("restored"), verdict.restored.map((row) => row.symbol).sort());
+    assert.deepEqual(namesOf("unnominated"), verdict.unnominated.map((row) => row.symbol).sort());
+    assert.ok(
+      namesOf("declined").length >= 5 && namesOf("stays").length >= 5,
+      "both halves of the asymmetric rule must be exercised, or one clause is unmeasured",
     );
   });
 });

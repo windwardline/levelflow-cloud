@@ -11,8 +11,11 @@ import { getCategoryCalibration } from "../supabase/functions/trade-analyzer/cal
 import { knownSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 
 /**
- * The fifteen markets the engine will not build a setup for, and the sentence
- * they get.
+ * The markets the engine will not build a setup for, and the sentence they
+ * get. The population is the register's own — re-decided 2026-09-03 from the
+ * ledgered confirm read, 23 markets where it was 15 — so nothing here counts
+ * it. The historical notes below say 'fifteen' because that is how many
+ * there were when the defects they describe were live.
  *
  * ONE READER-FACING DEFECT, and two that were never on a screen. The first
  * version of this docblock called all three "reader-facing, all live", and

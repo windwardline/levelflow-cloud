@@ -1454,28 +1454,42 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
  * measured reason, instead of offering one the engine's own corpus says
  * loses money.
  *
- * CORRECTION 2026-08-11: the second half of that rule was never
- * actually tested. LEVELFLOW_MODELED_COST_SCALE scaled
- * estimatedRoundTripCost, which the resolver never reads — the fills are
- * handed estimatedSpread and estimatedSlippage directly (sweep.ts), so
- * the "published bill only" run removed nothing from realized R and
- * differed from the full-cost run only by admitting more setups through
- * the payoff gate. Eleven of the twenty rows came back bit-identical,
- * which was the proof it did nothing rather than the agreement it was
- * read as. Amendment 36's standard is therefore UNMET for this register.
+ * RE-DECIDED 2026-09-03 ON A VALID CORPUS, which is what this register was
+ * always waiting for. It used to be generated from `4d-cost-sensitivity.json`
+ * — the corpus the 2026-08-11 clock defect invalidated — and its own note
+ * said the entries stood "on the conservative reading only… re-decided, kept
+ * or restored, the moment a valid corpus exists". R3's re-swept corpus is
+ * that corpus and R4 act 3's ledgered confirm read is its verdict on data
+ * held back from every tuning step, so every entry below is now derived from
+ * that ONE artifact by `scripts/register-verdict.ts` and pinned against it in
+ * both directions (`docs/research/r4/withdrawal-verdict-2026-09-03.json`).
  *
- * These entries stand for now on the conservative reading only: the
- * corpus's clock defect (docs/research/) INFLATES measured expectancy,
- * so a market measured negative under it is very unlikely to be positive
- * under a correct measurement. They are re-decided — kept or restored —
- * the moment a valid corpus exists. Entry originally required: a
- * negative expectancy on the held-back fold at the market's own derived
- * cell. The register is generated from 4d-cost-sensitivity.json and
- * pinned against it in both directions.
+ * THE RULE, pre-registered and hashed into the artifact. The held-back test:
+ * the read's shipped-cell M3 is confirmed-negative on at least 30 filled
+ * outcomes and BOTH the net and gross 95% upper bounds are below zero. Net is
+ * the money (amendment 39); gross is amendment 36's precondition — a negative
+ * that rests on a cost WE model is a defect in the parameter, not in the
+ * market, and the gross column is the same decision re-resolved at the
+ * venue's published bill alone. ENTERING also requires the read's own
+ * pre-registered nomination (a decline candidate on the select fold that no
+ * accepted variant retired), so no entry is a hypothesis dredged from the
+ * confirm fold. STAYING requires the held-back test alone: a standing decline
+ * is an existing verdict being re-tested, not a new one being made.
  *
- * Every entry is a standing reentry candidate: accrued data that turns
- * the measurement positive returns the market, exactly as the dormant
- * register is re-probed each run.
+ * WHAT THAT CHANGED. Ten markets enter — ALGOUSD, ASX, ATOMUSD, AVAXUSD,
+ * BCHUSD, DOTUSD, DYDXUSD, NEARUSD, SOLUSD, TRXUSD — which lost 5,000R over
+ * 9,863 held-back fills between them. Thirteen entries stay on re-based
+ * evidence. TWO ARE RESTORED: ZCUSX, whose gross upper bound is +0.063 so its
+ * negative does not survive amendment 36's own clause, and PAUSD, which the
+ * read cannot judge at all (its shipped cell is not held back, so the figure
+ * is withheld) — a decline may not stand on evidence this program has
+ * invalidated. Thirteen more markets pass the held-back test with no
+ * nomination behind them; they are named in the artifact's `unnominated` list
+ * for the next act, not declined here.
+ *
+ * Every entry is a standing reentry candidate: accrued data that turns the
+ * measurement positive returns the market, exactly as the amendment-32
+ * dormant register is re-probed each run.
  */
 export type EngineDecline = {
   measuredExpectancyR: number;
@@ -1485,107 +1499,232 @@ export type EngineDecline = {
 
 export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
   AAVEUSD: {
-    measuredExpectancyR: -0.120,
+    measuredExpectancyR: -0.075,
     reason:
-      "measured -0.120R per setup (±0.028, n=571) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
+      "measured -0.075R per filled setup (95% upper -0.050, n=2883) on data held " +
+      "back from every tuning step, and -0.054R (95% upper -0.030) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
+    reprobe:
+      "It stays under analysis and returns if the measurement turns positive.",
+  },
+  ALGOUSD: {
+    measuredExpectancyR: -0.646,
+    reason:
+      "measured -0.646R per filled setup (95% upper -0.602, n=1208) on data held " +
+      "back from every tuning step, and -0.226R (95% upper -0.180) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
+    reprobe:
+      "It stays under analysis and returns if the measurement turns positive.",
+  },
+  ASX: {
+    measuredExpectancyR: -0.301,
+    reason:
+      "measured -0.301R per filled setup (95% upper -0.170, n=142) on data held " +
+      "back from every tuning step, and -0.224R (95% upper -0.093) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
+    reprobe:
+      "It stays under analysis and returns if the measurement turns positive.",
+  },
+  ATOMUSD: {
+    measuredExpectancyR: -1.671,
+    reason:
+      "measured -1.671R per filled setup (95% upper -1.487, n=95) on data held " +
+      "back from every tuning step, and -0.372R (95% upper -0.233) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
+    reprobe:
+      "It stays under analysis and returns if the measurement turns positive.",
+  },
+  AVAXUSD: {
+    measuredExpectancyR: -0.642,
+    reason:
+      "measured -0.642R per filled setup (95% upper -0.597, n=1189) on data held " +
+      "back from every tuning step, and -0.198R (95% upper -0.150) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
+    reprobe:
+      "It stays under analysis and returns if the measurement turns positive.",
+  },
+  BCHUSD: {
+    measuredExpectancyR: -0.292,
+    reason:
+      "measured -0.292R per filled setup (95% upper -0.261, n=2104) on data held " +
+      "back from every tuning step, and -0.105R (95% upper -0.076) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
   CAKEUSD: {
-    measuredExpectancyR: -0.218,
+    measuredExpectancyR: -0.209,
     reason:
-      "measured -0.218R per setup (±0.054, n=264) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
+      "measured -0.209R per filled setup (95% upper -0.175, n=2872) on data held " +
+      "back from every tuning step, and -0.169R (95% upper -0.135) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
   DASHUSD: {
-    measuredExpectancyR: -0.124,
+    measuredExpectancyR: -0.094,
     reason:
-      "measured -0.124R per setup (±0.025, n=799) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
+      "measured -0.094R per filled setup (95% upper -0.068, n=3010) on data held " +
+      "back from every tuning step, and -0.066R (95% upper -0.041) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
   DOGEUSD: {
-    measuredExpectancyR: -0.161,
+    measuredExpectancyR: -0.116,
     reason:
-      "measured -0.161R per setup (±0.024, n=815) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
+      "measured -0.116R per filled setup (95% upper -0.091, n=2977) on data held " +
+      "back from every tuning step, and -0.062R (95% upper -0.038) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
+    reprobe:
+      "It stays under analysis and returns if the measurement turns positive.",
+  },
+  DOTUSD: {
+    measuredExpectancyR: -0.899,
+    reason:
+      "measured -0.899R per filled setup (95% upper -0.841, n=629) on data held " +
+      "back from every tuning step, and -0.240R (95% upper -0.173) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
+    reprobe:
+      "It stays under analysis and returns if the measurement turns positive.",
+  },
+  DYDXUSD: {
+    measuredExpectancyR: -1.632,
+    reason:
+      "measured -1.632R per filled setup (95% upper -1.513, n=329) on data held " +
+      "back from every tuning step, and -0.327R (95% upper -0.218) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
   EGLDUSD: {
-    measuredExpectancyR: -0.368,
+    measuredExpectancyR: -0.31,
     reason:
-      "measured -0.368R per setup (±0.033, n=491) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
+      "measured -0.310R per filled setup (95% upper -0.282, n=2643) on data held " +
+      "back from every tuning step, and -0.096R (95% upper -0.069) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
   ETCUSD: {
-    measuredExpectancyR: -0.163,
+    measuredExpectancyR: -0.134,
     reason:
-      "measured -0.163R per setup (±0.024, n=880) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
+      "measured -0.134R per filled setup (95% upper -0.109, n=2985) on data held " +
+      "back from every tuning step, and -0.076R (95% upper -0.051) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
   GRTUSD: {
-    measuredExpectancyR: -0.077,
+    measuredExpectancyR: -0.091,
     reason:
-      "measured -0.077R per setup (±0.029, n=584) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
+      "measured -0.091R per filled setup (95% upper -0.067, n=3315) on data held " +
+      "back from every tuning step, and -0.046R (95% upper -0.022) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
   HBARUSD: {
-    measuredExpectancyR: -0.161,
+    measuredExpectancyR: -0.1,
     reason:
-      "measured -0.161R per setup (±0.037, n=391) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
+      "measured -0.100R per filled setup (95% upper -0.076, n=3142) on data held " +
+      "back from every tuning step, and -0.064R (95% upper -0.041) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
   IMXUSD: {
-    measuredExpectancyR: -0.108,
+    measuredExpectancyR: -0.13,
     reason:
-      "measured -0.108R per setup (±0.039, n=497) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
+      "measured -0.130R per filled setup (95% upper -0.099, n=2878) on data held " +
+      "back from every tuning step, and -0.091R (95% upper -0.060) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
   LTCUSD: {
-    measuredExpectancyR: -0.115,
+    measuredExpectancyR: -0.331,
     reason:
-      "measured -0.115R per setup (±0.017, n=1388) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
+      "measured -0.331R per filled setup (95% upper -0.295, n=1502) on data held " +
+      "back from every tuning step, and -0.069R (95% upper -0.036) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
-  PAUSD: {
-    measuredExpectancyR: -0.149,
+  NEARUSD: {
+    measuredExpectancyR: -0.68,
     reason:
-      "measured -0.149R per setup (±0.072, n=147) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
+      "measured -0.680R per filled setup (95% upper -0.633, n=994) on data held " +
+      "back from every tuning step, and -0.194R (95% upper -0.142) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
+    reprobe:
+      "It stays under analysis and returns if the measurement turns positive.",
+  },
+  SOLUSD: {
+    measuredExpectancyR: -0.068,
+    reason:
+      "measured -0.068R per filled setup (95% upper -0.043, n=2728) on data held " +
+      "back from every tuning step, and -0.033R (95% upper -0.009) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
+    reprobe:
+      "It stays under analysis and returns if the measurement turns positive.",
+  },
+  TRXUSD: {
+    measuredExpectancyR: -1.52,
+    reason:
+      "measured -1.520R per filled setup (95% upper -1.417, n=445) on data held " +
+      "back from every tuning step, and -0.542R (95% upper -0.448) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
   UNIUSD: {
-    measuredExpectancyR: -0.098,
+    measuredExpectancyR: -0.1,
     reason:
-      "measured -0.098R per setup (±0.028, n=588) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
+      "measured -0.100R per filled setup (95% upper -0.074, n=2831) on data held " +
+      "back from every tuning step, and -0.069R (95% upper -0.044) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
   XLMUSD: {
-    measuredExpectancyR: -0.108,
+    measuredExpectancyR: -0.109,
     reason:
-      "measured -0.108R per setup (±0.029, n=855) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
+      "measured -0.109R per filled setup (95% upper -0.079, n=3117) on data held " +
+      "back from every tuning step, and -0.081R (95% upper -0.051) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
   XMRUSD: {
-    measuredExpectancyR: -0.095,
+    measuredExpectancyR: -0.145,
     reason:
-      "measured -0.095R per setup (±0.024, n=803) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
-    reprobe:
-      "It stays under analysis and returns if the measurement turns positive.",
-  },
-  ZCUSX: {
-    measuredExpectancyR: -0.208,
-    reason:
-      "measured -0.208R per setup (±0.065, n=127) on data held back from every tuning step, under the FULL modeled cost (spread + slippage + commission) — see the 2026-08-11 correction: the published-bill-only test that this line once claimed did not reach the resolver and measured nothing",
+      "measured -0.145R per filled setup (95% upper -0.119, n=2728) on data held " +
+      "back from every tuning step, and -0.103R (95% upper -0.077) at the venue's " +
+      "published commission alone — the negative survives removing our own " +
+      "modelled spread and slippage",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
