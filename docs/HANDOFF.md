@@ -1952,7 +1952,7 @@ classfolds.json` + `.stdout.txt`): 91 of 97 markets graded (six have every
 row inside their class's confirm fold — ARWUSD, BNBUSD, CAKEUSD, THETAUSD,
 TRUMPUSD, XAGUSD); **no grid variant accepted against any market's shipped
 cell**; 44 shipped cells lose on select beyond their interval; **22 decline
-candidates** under the pre-registered rule (16 crypto; ADAUSD, ALGOUSD, ASX,
+candidates** under the pre-registered rule (17 crypto — corrected 2026-09-03; ADAUSD, ALGOUSD, ASX,
 ATOMUSD, AVAXUSD, BCHUSD, DASHUSD, DOTUSD, DYDXUSD, EGLDUSD, HBARUSD, HOUSD,
 NEARUSD, NGUSD, SOLUSD, TRXUSD, UNIUSD, WTI, XLMUSD, XMRUSD, XTZUSD, ZSUSX) —
 candidates only: amendment 36's cost clause is met, its window/cap/calendar

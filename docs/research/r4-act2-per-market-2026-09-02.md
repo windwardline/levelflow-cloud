@@ -98,7 +98,9 @@ confirm rows withheld at the door; stdout tracked as
 |---|---|
 | Markets requested | 97 |
 | Markets graded (rows in the tuning folds) | 91 |
-| Held out by the stratified rule (labelled, graded) | 20 |
+| Held out by the stratified rule (labelled) | 20 |
+| Held-out markets actually graded (corrected 2026-09-03: ARWUSD, BNBUSD and THETAUSD are held out AND late-listed, so they have no tuning row) | 17 |
+| Graded markets with no fit-fold rows (corrected 2026-09-03: acceptance was unreachable for them, since fit ΔR is 0 by construction; 12 crypto, 4 indices, 9 decline candidates — AAVEUSD, ASX, AVAXUSD, DAX, DOTUSD, DOW, DYDXUSD, EGLDUSD, FILUSD, GRTUSD, HBARUSD, IMXUSD, NEARUSD, NIKKEI, SOLUSD, UNIUSD) | 16 |
 | Grid variants accepted against a market's shipped cell (beats baseline AND earns money on select) | **0** |
 | Shipped cells whose select net upper bound is below zero | 44 |
 | Shipped cells whose select net lower bound is above zero (in-sample for derived cells) | 15 |
@@ -108,7 +110,9 @@ The 22 decline candidates: ADAUSD, ALGOUSD, ASX, ATOMUSD, AVAXUSD, BCHUSD,
 DASHUSD, DOTUSD, DYDXUSD, EGLDUSD, HBARUSD, HOUSD, NEARUSD, NGUSD, SOLUSD,
 TRXUSD, UNIUSD, WTI, XLMUSD, XMRUSD, XTZUSD, ZSUSX — by tranche: 11 class-row
 markets, 7 totality, 3 derived-4d, 1 holdout-cycle; four are held-out markets
-(DASHUSD, NGUSD, XLMUSD, XMRUSD). Sixteen are crypto. They are CANDIDATES:
+(DASHUSD, NGUSD, XLMUSD, XMRUSD). Seventeen are crypto (corrected 2026-09-03 from
+"sixteen" by recounting the artifact against the provenance classes: crypto 17,
+futures 2, indices 1, energies 1, agriculture 1). They are CANDIDATES:
 the rule satisfies amendment 36's cost clause (the loss survives removing
 modelled spread and slippage) and nothing else — the window, cap and calendar
 removals are act 3's arms, and withdrawal is never permanent.
