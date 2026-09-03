@@ -136,7 +136,62 @@ multi-corpus read are pre-registered in the design §5.
 
 ## 6. Results
 
-Not yet run.
+### 6a. Arm F — the admission floor, graded as derived variants (no sweep)
+
+The gate gained `--derive-filters` (results PR): a derived variant is the
+baseline's rows with `accepted` re-decided by a predicate on a row field, so
+a post-hoc admission filter is graded under the gate's own rule without
+re-simulating. Reproduce-first, executed: a floor at the baseline's own value
+reproduces the baseline cell exactly, and the variants' figures equal an
+independent sum over the kept rows. Four derived variants over R3's
+per-class corpus, sealed (2,141,527 confirm rows withheld): `payoffFloor=1.5`
+and `=1.6` (`rewardRisk` ≥ the value; the runner target's net ratio, not the
+ladder's) and `costShareMax=0.15` and `=0.2` (`estimatedRoundTripCost /
+riskDistance` ≤ the value — the cost weight per trade, values from the fit
+fold's distribution: 0.15 keeps 89% of fills, 0.2 keeps 94%).
+
+**Market unit** (`docs/research/r4/admission-derived-grading.json`): no
+variant accepted for any market but one (EURAUD under `costShareMax=0.15`).
+The aggregate is large and out-of-sample consistent — `payoffFloor=1.5`
+select ΔR +2,444R, fit +1,563R; `costShareMax=0.15` select +7,368R, fit
++4,033R — but per market the filtered stream is still negative beyond its
+error (D4, "LOSES MONEY") or the paired-day test has nothing to pair (a
+filter that drops rows on fewer than five days).
+
+**Class unit** (`docs/research/r4/admission-derived-grading-class.json`),
+the 4c gate's grain and a class's own tuning folds:
+
+| class | variant | fit ΔR | select ΔR | paired p | own select E (lo95) | verdict |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| forex | payoffFloor=1.5 | +280 | +136 | 0.021 | +0.023 (+0.019) | **ACCEPT** |
+| forex | costShareMax=0.15 | +564 | +306 | 0.001 | +0.026 (+0.022) | **ACCEPT** |
+| forex | costShareMax=0.2 | +279 | +89 | 0.001 | +0.022 (+0.017) | **ACCEPT** |
+| forex | payoffFloor=1.6 | +352 | −819 | 1.000 | +0.018 | fails |
+| crypto | costShareMax=0.15 | +1,316 | +5,833 | 0.001 | −0.032 (−0.041) | fails D4 |
+| crypto | payoffFloor=1.5 | +437 | +1,860 | 0.001 | −0.122 (−0.130) | fails D4 |
+| futures | costShareMax=0.15 | +1,000 | +308 | 0.001 | −0.001 (−0.025) | fails D4 |
+| futures | payoffFloor=1.5 | +233 | +112 | 0.001 | −0.043 (−0.066) | fails D4 |
+| metals, indices, agriculture | all four | positive | positive | mixed | negative | fails D4 or THIN |
+| energies, livestock | all four | — | — | — | — | THIN or no verdict |
+
+The first accepted variants in the program, all three in forex: the
+admission filters beat the baseline on both folds at the class grain and the
+filtered stream earns money on its own. Crypto's cost-share cap moves the
+class by +5,833R on select (from −7,264R) and futures' by +308R, but neither
+class earns money after it, so the gate refuses both as pre-registered —
+the losses shrink, the sign does not change. The cost-share rule has no
+engine knob; shipping it is engine work after the read (owner item).
+
+Instrument discipline for §6a: the derived path's identity and external-anchor
+tests are executed; a mutation that inverted the predicate failed both. The
+freeze-driven read and the retirement rule are built beside it (design §5),
+each with its identity test and a killed mutation (the arm check dropped;
+the gross clause dropped; the sample floor dropped).
+
+### 6b. Arms S, W, C1, C2
+
+Running from merged main `1a64151` since 2026-09-03 04:46Z (stop-cap and
+review-window first, then the class-default pair). Results follow.
 
 ## 7. Storage and the anchor
 

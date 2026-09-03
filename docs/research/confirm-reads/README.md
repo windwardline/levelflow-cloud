@@ -152,3 +152,16 @@ select rows into a local fit, and under `--confirm-final` it relabelled a
 median 329 days of the held-back fold into select. It is retired; the emitted
 per-class labels are the only fold source, and `--verdict-unit market` is the
 per-market grain.
+
+
+## The read since R4 act 3
+
+The read is freeze-driven. `scripts/freeze-candidates.ts` binds every arm's
+tuning-fold grading by its bytes and freezes one candidate per market under a
+hashed rule (with the retirement rule's verdicts for the decline candidates);
+`grid-totalr --confirm-final --verdict-unit market --frozen <frozen-candidates.json> <every arm's corpus>`
+then opens each arm's baseline once and each market's frozen candidate from
+its own arm, under ONE ledger line whose `frozenHash` names the file, and one
+calendar key over the requested roster. Nothing decides on the held-back fold
+after seeing it: the candidates were frozen before the command ran, and the
+door refuses a file altered or re-ruled since.
