@@ -1911,6 +1911,53 @@ that fixed it.
   and belongs beside R6; the capture branch can wait, but say which is deferred
   rather than leaving both unranked.
 
+### ▶ RESUME HERE — 2026-09-03 05:15 UTC (act 3 in flight; supersedes the block below)
+
+**R4 act 3 — the supplementary arms at the protected anchor.** Design v4 with
+both adversarial review tables: `docs/research/r4-act3-design-2026-09-03.md`;
+record: `docs/research/r4-act3-supplementary-arms-2026-09-03.md`. Code PR #571
+merged as `1a64151` (the class-default token, every variant's own select
+figures in the gate's artifact, the freeze instrument, three act-2
+corrections, the pre-registration artifacts). The results branch
+`r4/act3-results` (worktree `levelflow-cloud-r4act3`) carries the gate's
+derived variants (`--derive-filters`), the freeze-driven read (`--frozen`),
+the retirement rule in the freeze (`--removal-arms`), and the derived
+admission results.
+
+**What is running.** Four sweeps from clean merged `1a64151`, zero provider
+bytes, launched 2026-09-03 04:46Z under `caffeinate` (scratchpad
+`run-act3-arms.sh`, status `act3-arms.status`): `stop-cap`
+(`maxStopAtrMultiplier=1.5,2.5,4,8;stopStructureSource=intraday,intraday_and_daily`)
+‖ `review-window` (`defaultReviewHours=24,48,96`), then `class-default`
+(`symbolOverride=none;runnerProtection=breakeven,trail_tp1`) ‖ the same
+with `confidenceThreshold=0` (`run-c2.sh`, launched beside it). Emits in the
+main checkout's `docs/research/r4/<arm>.jsonl` (gitignored). The daily cache
+top-up LaunchAgent is UNLOADED for the window — reload it after the last arm:
+`launchctl load ~/Library/LaunchAgents/com.windwardline.levelflow-cache-topup.plist`.
+
+**What is measured already.** Arm F did not sweep: graded as derived
+variants over R3's per-class corpus, sealed. At the class grain, forex
+accepts three admission variants — `payoffFloor=1.5` (fit +280R, select
++136R, p 0.021, own E +0.023), `costShareMax=0.15` (+564 / +306, p 0.001,
+own E +0.026), `costShareMax=0.2` (+279 / +89) — the program's first accepted
+variants; crypto's cost-share cap moves +5,833R on select but the class stays
+negative (fails D4), futures likewise. Market unit: EURAUD only. The
+confidence threshold has no money in it (14 of 18 rescues THIN; the four
+survivors +36R). Record §4 and §6a.
+
+**Next, in order:** grade each arm at the market and class units
+(scratchpad `grade-arm.sh <arm>`); freeze
+(`freeze-candidates --arms "S=…;W=…;C1=…;C2=…;F=docs/research/r4/admission-derived-grading.json" --removal-arms S,W --out docs/research/r4/frozen-candidates.json`);
+record §6b–§8, HANDOFF, memory; results PR with the seven gates green; deploy
+check; reload the top-up; remove the worktree. **Do not** run
+`--confirm-final` — the read is after this act, one command, with the
+frozen file: `grid-totalr --confirm-final --verdict-unit market --frozen … <every arm's corpus>`.
+
+**Owner items (vetted):** the 22 late-listed markets (16 with no fit fold,
+9 of them decline candidates) need an emit-time per-market fold spec — act 4,
+a corpus over those 22; the cost-share admission rule as an engine knob if
+the read confirms it (engine work, ANALYZER_VERSION bump, new anchor).
+
 ### ▶ RESUME HERE — 2026-09-02 23:00 UTC
 
 **R4 act 2 RAN: the per-market program on the tuning folds.** Owner-approved
