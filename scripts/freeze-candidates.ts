@@ -269,10 +269,13 @@ const VALUE_FLAGS = new Set(["--arms", "--out"]);
 
 function parseArgs(argv: readonly string[]): { arms: Array<{ arm: string; path: string }>; out: string } {
   for (let index = 0; index < argv.length; index += 1) {
-    const token = argv[index];
-    if (!token.startsWith("--")) refuse(`unexpected argument ${token}; this command takes --arms "<name>=<grading.json>;…" and --out <path> only`);
-    if (!VALUE_FLAGS.has(token)) refuse(`unknown flag ${token}; this command takes --arms and --out only`);
-    index += 1;
+    if (argv[index].startsWith("--")) {
+      if (!VALUE_FLAGS.has(argv[index])) refuse(`unknown flag ${argv[index]}; this command takes --arms and --out only`);
+      // The walker consumes the following token only for a flag VALUE_FLAGS declares.
+      if (VALUE_FLAGS.has(argv[index])) index += 1;
+      continue;
+    }
+    refuse(`unexpected argument ${argv[index]}; this command takes --arms "<name>=<grading.json>;…" and --out <path> only`);
   }
   const { str } = flagReader(argv, VALUE_FLAGS);
   const armsSpec = str("--arms");
