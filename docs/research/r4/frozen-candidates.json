@@ -1,0 +1,1661 @@
+{
+  "analyzerVersion": "2026.09.01.platinum-group-rate-inverse",
+  "anchor": "2026-08-26",
+  "arms": [
+    {
+      "analyzerVersion": "2026.09.01.platinum-group-rate-inverse",
+      "anchor": "2026-08-26",
+      "arm": "S",
+      "artifactPath": "docs/research/r4/stop-cap-grading.json",
+      "artifactSha256": "4d81bdfbf38c8fac2fff7d00d2c1824e7c442817fb874c9ee31b5d1fbc6c1853",
+      "calendarHash": "5d04a7824ecae8c9183b98acc4b736777131c59a9dba672e2cd6382ecaff06dc",
+      "derived": {},
+      "emitSha256": {
+        "50ac1efe16dca44a460b3338e5c8b326417093dd517b973ceee8f19a0c116015": "eabe996ea7ac3089513047b0aeefbf9d6e896cfc98d1c9c832c55753a79f4a1e"
+      },
+      "shardHashes": [
+        "50ac1efe16dca44a460b3338e5c8b326417093dd517b973ceee8f19a0c116015"
+      ],
+      "shards": [
+        "../levelflow-cloud/docs/research/r4/stop-cap.jsonl"
+      ],
+      "verdictUnit": "market"
+    },
+    {
+      "analyzerVersion": "2026.09.01.platinum-group-rate-inverse",
+      "anchor": "2026-08-26",
+      "arm": "S8",
+      "artifactPath": "docs/research/r4/stop-cap-8-grading.json",
+      "artifactSha256": "59152313f56fe4482ab9a81f5acfa1d953fb3c016ba171b62fd8b1e6bbd80f2c",
+      "calendarHash": "5d04a7824ecae8c9183b98acc4b736777131c59a9dba672e2cd6382ecaff06dc",
+      "derived": {},
+      "emitSha256": {
+        "ff568263e7e290a2f7910c6c20332b45f048807f49cf474b0a9999dbbb1cec45": "e47a0646b374009d5dcd503a91c49484461c746ffccfef8e425093acc72f9b45"
+      },
+      "shardHashes": [
+        "ff568263e7e290a2f7910c6c20332b45f048807f49cf474b0a9999dbbb1cec45"
+      ],
+      "shards": [
+        "../levelflow-cloud/docs/research/r4/stop-cap-8.jsonl"
+      ],
+      "verdictUnit": "market"
+    },
+    {
+      "analyzerVersion": "2026.09.01.platinum-group-rate-inverse",
+      "anchor": "2026-08-26",
+      "arm": "W",
+      "artifactPath": "docs/research/r4/review-window-grading.json",
+      "artifactSha256": "d5469a9359fd76e445a46f01b61c29608951e763087b522fce9361671db7937a",
+      "calendarHash": "5d04a7824ecae8c9183b98acc4b736777131c59a9dba672e2cd6382ecaff06dc",
+      "derived": {},
+      "emitSha256": {
+        "ecb56cdfb557a47e5910b617b78bee23dc69dc2ab26c3294e0166442e55c36d7": "69b648ec0d87b0071f7688c83b29376e8210e5823d760fa39ff63928374babab"
+      },
+      "shardHashes": [
+        "ecb56cdfb557a47e5910b617b78bee23dc69dc2ab26c3294e0166442e55c36d7"
+      ],
+      "shards": [
+        "../levelflow-cloud/docs/research/r4/review-window.jsonl"
+      ],
+      "verdictUnit": "market"
+    },
+    {
+      "analyzerVersion": "2026.09.01.platinum-group-rate-inverse",
+      "anchor": "2026-08-26",
+      "arm": "W96",
+      "artifactPath": "docs/research/r4/review-window-96-grading.json",
+      "artifactSha256": "7942c2cf6f455da8103594b5ef481781787d3a669fcb5bd1e1aacaa59760970f",
+      "calendarHash": "5d04a7824ecae8c9183b98acc4b736777131c59a9dba672e2cd6382ecaff06dc",
+      "derived": {},
+      "emitSha256": {
+        "256c74eb9032c30617b75fa247f6963a8cae26608a24c43fb53531c1ede5dd94": "4ac425e4b1359a4f44d49c6536dab574328fdf52443aec0f61b92ccab6e6813a"
+      },
+      "shardHashes": [
+        "256c74eb9032c30617b75fa247f6963a8cae26608a24c43fb53531c1ede5dd94"
+      ],
+      "shards": [
+        "../levelflow-cloud/docs/research/r4/review-window-96.jsonl"
+      ],
+      "verdictUnit": "market"
+    },
+    {
+      "analyzerVersion": "2026.09.01.platinum-group-rate-inverse",
+      "anchor": "2026-08-26",
+      "arm": "C1",
+      "artifactPath": "docs/research/r4/class-default-grading.json",
+      "artifactSha256": "21c59fdbf4bec1d1fc3ed101d7ac566b8d01ae57eeb36742cd60f99210e283a4",
+      "calendarHash": "5d04a7824ecae8c9183b98acc4b736777131c59a9dba672e2cd6382ecaff06dc",
+      "derived": {},
+      "emitSha256": {
+        "8cf24be8ed5bc8a0b20de2277bf385a09bb92df6de6b54e9491f92016ea9d5ca": "ec7493ca9c64b3c8c5210f062625362cdd15cc6fcb672484aa84023c340bafe9"
+      },
+      "shardHashes": [
+        "8cf24be8ed5bc8a0b20de2277bf385a09bb92df6de6b54e9491f92016ea9d5ca"
+      ],
+      "shards": [
+        "../levelflow-cloud/docs/research/r4/class-default.jsonl"
+      ],
+      "verdictUnit": "market"
+    },
+    {
+      "analyzerVersion": "2026.09.01.platinum-group-rate-inverse",
+      "anchor": "2026-08-26",
+      "arm": "C2",
+      "artifactPath": "docs/research/r4/class-default-gate-off-grading.json",
+      "artifactSha256": "3996969b4269f7b0470a38fe2ca4adeee0b432762dd2781055a59e3297fb3d40",
+      "calendarHash": "5d04a7824ecae8c9183b98acc4b736777131c59a9dba672e2cd6382ecaff06dc",
+      "derived": {},
+      "emitSha256": {
+        "d40510960b634a4d552e3ead516c7021dcaca1da97a2e07b25bae3d138a32121": "1e005d551517b8d8527531d17b2014ce0a179f049c4605e59b797bfe5ac844c3"
+      },
+      "shardHashes": [
+        "d40510960b634a4d552e3ead516c7021dcaca1da97a2e07b25bae3d138a32121"
+      ],
+      "shards": [
+        "../levelflow-cloud/docs/research/r4/class-default-gate-off.jsonl"
+      ],
+      "verdictUnit": "market"
+    },
+    {
+      "analyzerVersion": "2026.09.01.platinum-group-rate-inverse",
+      "anchor": "2026-08-26",
+      "arm": "F",
+      "artifactPath": "docs/research/r4/admission-derived-grading.json",
+      "artifactSha256": "bfd5edbfce00caabdae630e7df9d85ca51f208fe567dc40bcb7b872c80c7c27c",
+      "calendarHash": "5d04a7824ecae8c9183b98acc4b736777131c59a9dba672e2cd6382ecaff06dc",
+      "derived": {
+        "payoffFloor=1.5": {
+          "field": "rewardRisk",
+          "op": ">=",
+          "parent": "baseline",
+          "predicate": "rewardRisk>=1.5",
+          "predicateHash": "28f99961950003ed6fa2d6242d3b3481419a4cdfb97c65286a83f5669577e895",
+          "value": 1.5
+        },
+        "payoffFloor=1.6": {
+          "field": "rewardRisk",
+          "op": ">=",
+          "parent": "baseline",
+          "predicate": "rewardRisk>=1.6",
+          "predicateHash": "eef4866d7c446348bd4d0d6cc20118574837118ee456f074d3b68e4ecc5d49cf",
+          "value": 1.6
+        },
+        "costShareMax=0.15": {
+          "field": "costShare",
+          "op": "<=",
+          "parent": "baseline",
+          "predicate": "costShare<=0.15",
+          "predicateHash": "d54d3cc7ff099fa70c060528492372e678d15ba44ad6798a9ac3ddd2c3312ffa",
+          "value": 0.15
+        },
+        "costShareMax=0.2": {
+          "field": "costShare",
+          "op": "<=",
+          "parent": "baseline",
+          "predicate": "costShare<=0.2",
+          "predicateHash": "5d3e0a8c5dc2370867804525a921045b2cb1dd2e4461a8490d6cc21c0e2cde92",
+          "value": 0.2
+        }
+      },
+      "emitSha256": {
+        "021821537f28e5d2777543989baa0631a38840d592fad74c4bdb2429fb627c59": "23ee6b98504c3a9c1428aea5434a431fe15ef3e368dbed37fcdaf09c52c3712f"
+      },
+      "shardHashes": [
+        "021821537f28e5d2777543989baa0631a38840d592fad74c4bdb2429fb627c59"
+      ],
+      "shards": [
+        "../levelflow-cloud/docs/research/r3/capture-all-classfolds.jsonl"
+      ],
+      "verdictUnit": "market"
+    }
+  ],
+  "calendarHash": "5d04a7824ecae8c9183b98acc4b736777131c59a9dba672e2cd6382ecaff06dc",
+  "expectedFalseAccepts": 122.85,
+  "frozenAt": "2026-09-03T08:57:15.234Z",
+  "heldOut": [
+    "AAVEUSD",
+    "ARWUSD",
+    "AUDCHF",
+    "AUDNZD",
+    "BNBUSD",
+    "BZUSD",
+    "DASHUSD",
+    "EURUSD",
+    "GBPCAD",
+    "HEUSX",
+    "NGUSD",
+    "NSDQ",
+    "NZDCHF",
+    "NZDJPY",
+    "RTYUSD",
+    "THETAUSD",
+    "XLMUSD",
+    "XMRUSD",
+    "YMUSD",
+    "ZMUSD"
+  ],
+  "holdoutRule": "stratified-per-class-20pct",
+  "markets": {
+    "AAVEUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": true,
+      "retirement": null
+    },
+    "ADAUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": true,
+        "retiringCells": [
+          {
+            "arm": "S",
+            "gross": {
+              "expectancy": -0.021331799163179954,
+              "lower": -0.04388452232139575,
+              "n": 3346,
+              "upper": 0.0012209239950358441
+            },
+            "net": {
+              "expectancy": -0.13620759115361647,
+              "lower": -0.16035465131229867,
+              "n": 3346,
+              "upper": -0.11206053099493427
+            },
+            "variant": "maxStopAtrMultiplier=1.5,stopStructureSource=intraday"
+          },
+          {
+            "arm": "S",
+            "gross": {
+              "expectancy": -0.020910520023909175,
+              "lower": -0.04345494528645011,
+              "n": 3346,
+              "upper": 0.0016339052386317547
+            },
+            "net": {
+              "expectancy": -0.1361733413030486,
+              "lower": -0.16032206557379988,
+              "n": 3346,
+              "upper": -0.11202461703229728
+            },
+            "variant": "maxStopAtrMultiplier=1.5,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "S",
+            "gross": {
+              "expectancy": -0.015879334500875662,
+              "lower": -0.03778492481055892,
+              "n": 3426,
+              "upper": 0.006026255808807602
+            },
+            "net": {
+              "expectancy": -0.10063312901342684,
+              "lower": -0.12367495648144522,
+              "n": 3426,
+              "upper": -0.07759130154540847
+            },
+            "variant": "maxStopAtrMultiplier=2.5,stopStructureSource=intraday"
+          },
+          {
+            "arm": "S",
+            "gross": {
+              "expectancy": -0.01301475982532754,
+              "lower": -0.0348128364242362,
+              "n": 3435,
+              "upper": 0.008783316773581119
+            },
+            "net": {
+              "expectancy": -0.09517484716157218,
+              "lower": -0.11815455039635306,
+              "n": 3435,
+              "upper": -0.0721951439267913
+            },
+            "variant": "maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "S",
+            "gross": {
+              "expectancy": -0.014054676048079725,
+              "lower": -0.03589246950763236,
+              "n": 3411,
+              "upper": 0.007783117411472912
+            },
+            "net": {
+              "expectancy": -0.08915945470536504,
+              "lower": -0.11203471626790143,
+              "n": 3411,
+              "upper": -0.06628419314282866
+            },
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "S8",
+            "gross": {
+              "expectancy": -0.015108763647093511,
+              "lower": -0.03696157838887642,
+              "n": 3389,
+              "upper": 0.006744051094689396
+            },
+            "net": {
+              "expectancy": -0.08797429920330485,
+              "lower": -0.1108296771221,
+              "n": 3389,
+              "upper": -0.0651189212845097
+            },
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "W",
+            "gross": {
+              "expectancy": -0.015847916666666642,
+              "lower": -0.03722316260540104,
+              "n": 3648,
+              "upper": 0.005527329272067751
+            },
+            "net": {
+              "expectancy": -0.08933503289473682,
+              "lower": -0.11169151170403574,
+              "n": 3648,
+              "upper": -0.0669785540854379
+            },
+            "variant": "defaultReviewHours=24"
+          },
+          {
+            "arm": "W",
+            "gross": {
+              "expectancy": -0.013272200263504595,
+              "lower": -0.034319545944906396,
+              "n": 3795,
+              "upper": 0.007775145417897207
+            },
+            "net": {
+              "expectancy": -0.0883408695652174,
+              "lower": -0.11036912651052719,
+              "n": 3795,
+              "upper": -0.06631261261990762
+            },
+            "variant": "defaultReviewHours=48"
+          },
+          {
+            "arm": "W96",
+            "gross": {
+              "expectancy": -0.013841152263374469,
+              "lower": -0.03479806231705303,
+              "n": 3888,
+              "upper": 0.007115757790304088
+            },
+            "net": {
+              "expectancy": -0.09146183127572025,
+              "lower": -0.11338220439135888,
+              "n": 3888,
+              "upper": -0.06954145816008162
+            },
+            "variant": "defaultReviewHours=96"
+          }
+        ],
+        "testedCells": 13
+      }
+    },
+    "ALGOUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "ASX": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "ATOMUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "AUDCAD": {
+      "acceptedCount": 3,
+      "candidate": {
+        "arm": "W",
+        "fitTotalDelta": 20.717400000001362,
+        "pairedP": 0.006993006993006993,
+        "selectExpectancyDelta": 0.007217846274143874,
+        "selectTotalDelta": 51.05080000000004,
+        "variant": "defaultReviewHours=48"
+      },
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "AUDCHF": {
+      "acceptedCount": 4,
+      "candidate": {
+        "arm": "W",
+        "fitTotalDelta": 24.980000000000224,
+        "pairedP": 0.002997002997002997,
+        "selectExpectancyDelta": 0.005991657789194915,
+        "selectTotalDelta": 53.62230000000022,
+        "variant": "defaultReviewHours=24"
+      },
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": true,
+      "retirement": null
+    },
+    "AUDJPY": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "AUDNZD": {
+      "acceptedCount": 4,
+      "candidate": {
+        "arm": "W96",
+        "fitTotalDelta": 45.84489999999994,
+        "pairedP": 0.000999000999000999,
+        "selectExpectancyDelta": 0.011716977842549783,
+        "selectTotalDelta": 91.06069999999966,
+        "variant": "defaultReviewHours=96"
+      },
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": true,
+      "retirement": null
+    },
+    "AUDUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "AVAXUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "BCHUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "BTCUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "BZUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": true,
+      "retirement": null
+    },
+    "CADCHF": {
+      "acceptedCount": 4,
+      "candidate": {
+        "arm": "W",
+        "fitTotalDelta": 24.454799999999707,
+        "pairedP": 0.022977022977022976,
+        "selectExpectancyDelta": 0.0034579655808904264,
+        "selectTotalDelta": 23.399500000000018,
+        "variant": "defaultReviewHours=12"
+      },
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "CADJPY": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "CHFJPY": {
+      "acceptedCount": 3,
+      "candidate": {
+        "arm": "W",
+        "fitTotalDelta": 15.265400000000113,
+        "pairedP": 0.003996003996003996,
+        "selectExpectancyDelta": 0.014029319504237513,
+        "selectTotalDelta": 62.98289999999997,
+        "variant": "defaultReviewHours=48"
+      },
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "CLUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "DASHUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": true,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "DAX": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "DOGEUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "DOTUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "DOW": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "DYDXUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "EGLDUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "ESUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "ETCUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "ETHUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "EURAUD": {
+      "acceptedCount": 1,
+      "candidate": {
+        "arm": "F",
+        "fitTotalDelta": 2.8964999999999463,
+        "pairedP": 0.03596403596403597,
+        "selectExpectancyDelta": 0.009883829199562169,
+        "selectTotalDelta": 30.10930000000019,
+        "variant": "costShareMax=0.15"
+      },
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "EURCAD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "EURCHF": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "EURGBP": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "EURJPY": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "EURNZD": {
+      "acceptedCount": 3,
+      "candidate": {
+        "arm": "W",
+        "fitTotalDelta": 24.722500000000082,
+        "pairedP": 0.04295704295704296,
+        "selectExpectancyDelta": 0.002677439056447163,
+        "selectTotalDelta": 30.99490000000003,
+        "variant": "defaultReviewHours=48"
+      },
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "EURUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": true,
+      "retirement": null
+    },
+    "FILUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "GBPAUD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "GBPCAD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": true,
+      "retirement": null
+    },
+    "GBPCHF": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "GBPJPY": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "GBPNZD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "GBPUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "GCUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "GFUSX": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "GRTUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "HBARUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "HEUSX": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": true,
+      "retirement": null
+    },
+    "HGUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "HOUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": true,
+        "retiringCells": [
+          {
+            "arm": "S",
+            "gross": {
+              "expectancy": -0.11107100977198692,
+              "lower": -0.22437095479680147,
+              "n": 307,
+              "upper": 0.002228935252827635
+            },
+            "net": {
+              "expectancy": -0.1373951140065146,
+              "lower": -0.2523417145732299,
+              "n": 307,
+              "upper": -0.02244851343979931
+            },
+            "variant": "maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "S",
+            "gross": {
+              "expectancy": -0.06331965065502183,
+              "lower": -0.18185329292844224,
+              "n": 229,
+              "upper": 0.05521399161839857
+            },
+            "net": {
+              "expectancy": -0.08317248908296941,
+              "lower": -0.20093585144247858,
+              "n": 229,
+              "upper": 0.03459087327653976
+            },
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday"
+          },
+          {
+            "arm": "S",
+            "gross": {
+              "expectancy": -0.07885016501650163,
+              "lower": -0.19376370833106957,
+              "n": 303,
+              "upper": 0.0360633782980663
+            },
+            "net": {
+              "expectancy": -0.09978052805280531,
+              "lower": -0.21640715236824293,
+              "n": 303,
+              "upper": 0.016846096262632296
+            },
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "S8",
+            "gross": {
+              "expectancy": 0.03683181818181819,
+              "lower": -0.10282088982807738,
+              "n": 176,
+              "upper": 0.17648452619171376
+            },
+            "net": {
+              "expectancy": 0.019703977272727272,
+              "lower": -0.1189156567868456,
+              "n": 176,
+              "upper": 0.15832361133230013
+            },
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday"
+          },
+          {
+            "arm": "S8",
+            "gross": {
+              "expectancy": -0.03661538461538461,
+              "lower": -0.15426957190940457,
+              "n": 299,
+              "upper": 0.08103880267863536
+            },
+            "net": {
+              "expectancy": -0.05441571906354516,
+              "lower": -0.17383010545715893,
+              "n": 299,
+              "upper": 0.06499866733006861
+            },
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily"
+          }
+        ],
+        "testedCells": 13
+      }
+    },
+    "IMXUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "LEUSX": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "LINKUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "LTCUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "NEARUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "NGUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": true,
+      "retirement": {
+        "fragile": false,
+        "retired": true,
+        "retiringCells": [
+          {
+            "arm": "S",
+            "gross": {
+              "expectancy": 0.12828392857142895,
+              "lower": 0.04898923744774608,
+              "n": 504,
+              "upper": 0.20757861969511182
+            },
+            "net": {
+              "expectancy": -0.1678716269841268,
+              "lower": -0.2787783330090038,
+              "n": 504,
+              "upper": -0.05696492095924981
+            },
+            "variant": "maxStopAtrMultiplier=1.5,stopStructureSource=intraday"
+          },
+          {
+            "arm": "S",
+            "gross": {
+              "expectancy": 0.12864762845849828,
+              "lower": 0.04474915355296054,
+              "n": 506,
+              "upper": 0.212546103364036
+            },
+            "net": {
+              "expectancy": -0.1692146245059287,
+              "lower": -0.2832282829335432,
+              "n": 506,
+              "upper": -0.055200966078314206
+            },
+            "variant": "maxStopAtrMultiplier=1.5,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "S",
+            "gross": {
+              "expectancy": -0.09559486166007891,
+              "lower": -0.19759599420913465,
+              "n": 506,
+              "upper": 0.006406270888976814
+            },
+            "net": {
+              "expectancy": -0.13726284584980214,
+              "lower": -0.23976496103583705,
+              "n": 506,
+              "upper": -0.03476073066376721
+            },
+            "variant": "maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "S",
+            "gross": {
+              "expectancy": -0.04876699604743083,
+              "lower": -0.14855340657198374,
+              "n": 506,
+              "upper": 0.05101941447712209
+            },
+            "net": {
+              "expectancy": -0.08002628458498014,
+              "lower": -0.18032505283807276,
+              "n": 506,
+              "upper": 0.020272483668112504
+            },
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "S8",
+            "gross": {
+              "expectancy": -0.022438315789473674,
+              "lower": -0.07829160553087808,
+              "n": 475,
+              "upper": 0.03341497395193073
+            },
+            "net": {
+              "expectancy": -0.0486183157894737,
+              "lower": -0.10521892721438172,
+              "n": 475,
+              "upper": 0.007982295635434337
+            },
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday"
+          },
+          {
+            "arm": "S8",
+            "gross": {
+              "expectancy": -0.01433003952569169,
+              "lower": -0.11296384606327832,
+              "n": 506,
+              "upper": 0.08430376701189495
+            },
+            "net": {
+              "expectancy": -0.04782411067193676,
+              "lower": -0.14710157444200053,
+              "n": 506,
+              "upper": 0.051453353098127014
+            },
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "W",
+            "gross": {
+              "expectancy": -0.045822504537205086,
+              "lower": -0.10915232682200306,
+              "n": 551,
+              "upper": 0.017507317747592885
+            },
+            "net": {
+              "expectancy": -0.06832141560798548,
+              "lower": -0.1321435766923681,
+              "n": 551,
+              "upper": -0.00449925452360285
+            },
+            "variant": "defaultReviewHours=12"
+          },
+          {
+            "arm": "W",
+            "gross": {
+              "expectancy": -0.04786845753899477,
+              "lower": -0.11191971496986335,
+              "n": 577,
+              "upper": 0.01618279989187381
+            },
+            "net": {
+              "expectancy": -0.07045805892547664,
+              "lower": -0.13509032630525902,
+              "n": 577,
+              "upper": -0.0058257915456942505
+            },
+            "variant": "defaultReviewHours=24"
+          },
+          {
+            "arm": "W",
+            "gross": {
+              "expectancy": -0.046719047619047605,
+              "lower": -0.11029697304649405,
+              "n": 588,
+              "upper": 0.016858877808398842
+            },
+            "net": {
+              "expectancy": -0.07005459183673471,
+              "lower": -0.13427501331238278,
+              "n": 588,
+              "upper": -0.005834170361086646
+            },
+            "variant": "defaultReviewHours=48"
+          },
+          {
+            "arm": "W96",
+            "gross": {
+              "expectancy": -0.04600372881355931,
+              "lower": -0.10938007052534446,
+              "n": 590,
+              "upper": 0.017372612898225837
+            },
+            "net": {
+              "expectancy": -0.06934711864406783,
+              "lower": -0.1333652741714387,
+              "n": 590,
+              "upper": -0.00532896311669695
+            },
+            "variant": "defaultReviewHours=96"
+          }
+        ],
+        "testedCells": 13
+      }
+    },
+    "NIKKEI": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "NQUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "NSDQ": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": true,
+      "retirement": null
+    },
+    "NZDCAD": {
+      "acceptedCount": 3,
+      "candidate": {
+        "arm": "W96",
+        "fitTotalDelta": 79.01210000000154,
+        "pairedP": 0.003996003996003996,
+        "selectExpectancyDelta": 0.005089880874839879,
+        "selectTotalDelta": 41.41810000000018,
+        "variant": "defaultReviewHours=96"
+      },
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "NZDCHF": {
+      "acceptedCount": 4,
+      "candidate": {
+        "arm": "W96",
+        "fitTotalDelta": 60.9256000000006,
+        "pairedP": 0.000999000999000999,
+        "selectExpectancyDelta": 0.00579025323885797,
+        "selectTotalDelta": 60.89539999999977,
+        "variant": "defaultReviewHours=96"
+      },
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": true,
+      "retirement": null
+    },
+    "NZDJPY": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": true,
+      "retirement": null
+    },
+    "NZDUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "PAUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "PLUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "RBUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "RTYUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": true,
+      "retirement": null
+    },
+    "SIUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "SOLUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "SP": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "TRXUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "UNIUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "USDCAD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "USDCHF": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "USDJPY": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "WTI": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "XAUUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "XLMUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": true,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "XMRUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": true,
+      "retirement": {
+        "fragile": false,
+        "retired": false,
+        "retiringCells": [],
+        "testedCells": 13
+      }
+    },
+    "XRPUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "XTZUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": true,
+        "retiringCells": [
+          {
+            "arm": "W",
+            "gross": {
+              "expectancy": -0.053721999999999985,
+              "lower": -0.12725052914828544,
+              "n": 350,
+              "upper": 0.019806529148285464
+            },
+            "net": {
+              "expectancy": -0.6454637142857144,
+              "lower": -0.7249894428030424,
+              "n": 350,
+              "upper": -0.5659379857683863
+            },
+            "variant": "defaultReviewHours=24"
+          },
+          {
+            "arm": "W",
+            "gross": {
+              "expectancy": 0.009626014319809069,
+              "lower": -0.05585377383404712,
+              "n": 419,
+              "upper": 0.07510580247366526
+            },
+            "net": {
+              "expectancy": -0.5406883054892602,
+              "lower": -0.6152990217325567,
+              "n": 419,
+              "upper": -0.4660775892459636
+            },
+            "variant": "defaultReviewHours=48"
+          },
+          {
+            "arm": "W96",
+            "gross": {
+              "expectancy": 0.09414245810055862,
+              "lower": 0.03845851148971016,
+              "n": 537,
+              "upper": 0.14982640471140707
+            },
+            "net": {
+              "expectancy": -0.35422122905027936,
+              "lower": -0.42244642765873114,
+              "n": 537,
+              "upper": -0.2859960304418276
+            },
+            "variant": "defaultReviewHours=96"
+          }
+        ],
+        "testedCells": 13
+      }
+    },
+    "YMUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": true,
+      "retirement": null
+    },
+    "ZBUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "ZCUSX": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "ZFUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "ZLUSX": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "ZMUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": true,
+      "retirement": null
+    },
+    "ZNUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "ZOUSX": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "ZRUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    },
+    "ZSUSX": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": true,
+      "heldOut": false,
+      "retirement": {
+        "fragile": false,
+        "retired": true,
+        "retiringCells": [
+          {
+            "arm": "S",
+            "gross": {
+              "expectancy": -0.07329461279461279,
+              "lower": -0.15019689463494823,
+              "n": 297,
+              "upper": 0.003607669045722642
+            },
+            "net": {
+              "expectancy": -0.21427979797979815,
+              "lower": -0.3025494551993668,
+              "n": 297,
+              "upper": -0.12601014076022946
+            },
+            "variant": "maxStopAtrMultiplier=1.5,stopStructureSource=intraday"
+          },
+          {
+            "arm": "S",
+            "gross": {
+              "expectancy": -0.06825220338983047,
+              "lower": -0.14549288135401867,
+              "n": 295,
+              "upper": 0.008988474574357724
+            },
+            "net": {
+              "expectancy": -0.21506610169491533,
+              "lower": -0.30393489552656683,
+              "n": 295,
+              "upper": -0.12619730786326383
+            },
+            "variant": "maxStopAtrMultiplier=1.5,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "S",
+            "gross": {
+              "expectancy": -0.05517659033078874,
+              "lower": -0.11880357586481469,
+              "n": 393,
+              "upper": 0.008450395203237204
+            },
+            "net": {
+              "expectancy": -0.11487608142493648,
+              "lower": -0.18302029644431472,
+              "n": 393,
+              "upper": -0.04673186640555825
+            },
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday"
+          },
+          {
+            "arm": "W",
+            "gross": {
+              "expectancy": -0.05558883928571428,
+              "lower": -0.17332000734229333,
+              "n": 224,
+              "upper": 0.062142328770864765
+            },
+            "net": {
+              "expectancy": -0.21926026785714292,
+              "lower": -0.338283512607787,
+              "n": 224,
+              "upper": -0.10023702310649886
+            },
+            "variant": "defaultReviewHours=12"
+          },
+          {
+            "arm": "W",
+            "gross": {
+              "expectancy": -0.026617226890756303,
+              "lower": -0.14883901005096845,
+              "n": 238,
+              "upper": 0.09560455626945583
+            },
+            "net": {
+              "expectancy": -0.20731134453781525,
+              "lower": -0.33135542256980266,
+              "n": 238,
+              "upper": -0.08326726650582784
+            },
+            "variant": "defaultReviewHours=24"
+          },
+          {
+            "arm": "W",
+            "gross": {
+              "expectancy": -0.03321183673469385,
+              "lower": -0.15483951333355866,
+              "n": 245,
+              "upper": 0.08841583986417098
+            },
+            "net": {
+              "expectancy": -0.20893918367346942,
+              "lower": -0.33213184523513867,
+              "n": 245,
+              "upper": -0.08574652211180016
+            },
+            "variant": "defaultReviewHours=48"
+          },
+          {
+            "arm": "W96",
+            "gross": {
+              "expectancy": -0.029766666666666667,
+              "lower": -0.1493967883671169,
+              "n": 252,
+              "upper": 0.08986345503378357
+            },
+            "net": {
+              "expectancy": -0.20647380952380956,
+              "lower": -0.3278689649027244,
+              "n": 252,
+              "upper": -0.08507865414489472
+            },
+            "variant": "defaultReviewHours=96"
+          }
+        ],
+        "testedCells": 13
+      }
+    },
+    "ZTUSD": {
+      "acceptedCount": 0,
+      "candidate": null,
+      "cellsTested": 27,
+      "declineCandidate": false,
+      "heldOut": false,
+      "retirement": null
+    }
+  },
+  "removalArms": [
+    "S",
+    "S8",
+    "W",
+    "W96"
+  ],
+  "retirementRule": "a decline candidate retires from candidacy iff some cell of a removal arm with >= 30 filled and >= 50% of the shipped cell's select fills (the floor applies to the net column, and to the gross column when the gross clause fires) has a select net upper bound >= 0 OR a select gross upper bound >= 0; the retiring cells are recorded; retirement resting on exactly one cell — whether one of k tested or the only cell tested — is labelled fragile; a retired market ships unchanged and its M3 is still reported.",
+  "retirementRuleHash": "8143e393710563fe40ad96859319a32f25e3687d4bf1733446e07c5ac90c2128",
+  "rule": "per market, among the variants the gate accepted in any arm, the one with the largest fit ΔR (ties: the smaller paired p, then the arm name, then the variant name); none when no arm accepted one. Frozen before the read; the read consumes this file and nothing else.",
+  "ruleHash": "bc7deeeda482434240f04cc367171a1f9585c1ff6ebdda9ec4a2b34688c945b3",
+  "frozenHash": "9dc27b1a7fe3d14210b19f382b72394ebc8a60ff71203a836579428acad320af"
+}
