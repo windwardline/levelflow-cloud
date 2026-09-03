@@ -547,7 +547,22 @@ frozen candidates — under 25 MB.
    candidates and the record now says so where the figure is quoted. The margin is thin and the recommendation
    says so; what it is not is manufactured — the cap moves no stop and no
    target, it declines the trades the venue's bill makes worst.
-2. **Withdraw sixteen markets** (the list in §6d): confirmed negative on the
+2. **Withdraw the markets the read condemns — DONE 2026-09-03**, and wider
+   than the recommendation, because the register itself was overdue for
+   re-decision: it was generated from the corpus the clock defect invalidated
+   and said so. `scripts/register-verdict.ts` now derives every entry from
+   this read under a hashed rule (held-back test on both columns; entering
+   also needs the select-fold nomination, staying does not). Ten markets
+   enter — ALGOUSD, ASX, ATOMUSD, AVAXUSD, BCHUSD, DOTUSD, DYDXUSD, NEARUSD,
+   SOLUSD, TRXUSD, together −5,000R over 9,863 held-back fills — thirteen
+   stay on re-based evidence, and TWO ARE RESTORED: ZCUSX (gross upper +0.063,
+   so amendment 36's own clause refuses the withdrawal) and PAUSD (no
+   admissible figure at all). Thirteen more pass the held-back test with no
+   nomination and are named for act 4 rather than declined. The six of the
+   original sixteen that were already declined are among the thirteen that
+   stay. Original recommendation, unchanged:
+
+   **Withdraw sixteen markets** (the list in §6d): confirmed negative on the
    held-back fold after a select-fold negative that survived the cap and
    window removals — amendment 36's standard met. Withdrawal is never
    permanent; the dormant register re-probes them. Three more (ADAUSD,

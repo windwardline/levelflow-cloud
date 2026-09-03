@@ -93,7 +93,13 @@ import { isKnownSymbol } from "./symbols.ts";
 // only candidate it confirmed, and one crossing among its thirteen.
 // (Prior: 2026.09.01.platinum-group-rate-inverse, whose own entry this log
 // never received.)
-export const ANALYZER_VERSION = "2026.09.03.forex-cost-share-cap";
+// 2026.09.03.register-redecision: the engine-declined register is re-derived
+// from the one ledgered confirm read instead of the corpus the clock defect
+// invalidated. Ten markets enter, thirteen stay on re-based evidence, and two
+// are restored — so the set of markets that can produce a setup at all
+// changes, and the cohort scopes again.
+// (Prior: 2026.09.03.forex-cost-share-cap.)
+export const ANALYZER_VERSION = "2026.09.03.register-redecision";
 
 export type AssetType =
   | "agriculture"

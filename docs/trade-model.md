@@ -19,7 +19,7 @@
 > the defect and must be rebuilt (Phase 0) before anything is re-measured.
 
 
-Model version: `2026.09.03.forex-cost-share-cap` (**not yet deployed**
+Model version: `2026.09.03.register-redecision` (**not yet deployed**
 — the desk is parked, so this version has never served a request. R2's D1:
 global learning derived `confidence_adjustment` from a WIN RATE against a
 neutral point of 0.5, which is break-even only when a win and a loss are the
@@ -377,7 +377,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.09.03.forex-cost-share-cap'
+   where o.analyzer_version = '2026.09.03.register-redecision'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;
@@ -1800,3 +1800,43 @@ basis would have admitted, which the cost PENALTY already carried.
 
 The cap declines trades. It moves no stop and no target, so no surviving
 trade's payoff is manufactured (amendment 39).
+
+## The engine-declined register, re-decided on a valid corpus (2026-09-03)
+
+`ENGINE_DECLINED_MARKETS` is the roster law's own mechanism: a market the
+engine will not build a setup for, while it stays in the menu, stays
+scannable and stays in every coverage count (amendment 31, the 2026-08-07
+roster ruling). It was generated from `4d-cost-sensitivity.json` — the corpus
+the 2026-08-11 clock defect invalidated — and said so, standing "on the
+conservative reading only… re-decided, kept or restored, the moment a valid
+corpus exists".
+
+**That corpus now exists.** Every entry is derived by
+`scripts/register-verdict.ts` from the one ledgered confirm read
+(`docs/research/confirm-reads/ledgered-read-act3.json`) into a tracked
+verdict (`docs/research/r4/withdrawal-verdict-2026-09-03.json`), under a rule
+hashed into the artifact:
+
+> The held-back test — M3 confirmed-negative on at least 30 filled outcomes,
+> with BOTH the net and the gross 95% upper bounds below zero. Net is the
+> money (amendment 39). Gross is amendment 36's precondition: a negative that
+> rests on a cost WE model is a defect in the parameter, not in the market.
+> **Entering** also requires the read's own pre-registered nomination — a
+> decline candidate on the select fold that no accepted variant retired — so
+> no entry is a hypothesis dredged from the confirm fold. **Staying** requires
+> the held-back test alone, because a standing decline is an existing verdict
+> being re-tested, not a new one being made.
+
+| disposition | markets | what the read measured |
+| --- | ---: | --- |
+| enter | 10 | ALGOUSD, ASX, ATOMUSD, AVAXUSD, BCHUSD, DOTUSD, DYDXUSD, NEARUSD, SOLUSD, TRXUSD — **-5,000R over 9,863 held-back fills** between them |
+| stay | 13 | re-based on the valid corpus, figure for figure |
+| restored | 2 | ZCUSX (gross upper **+0.063** — the negative does not survive amendment 36's own clause) and PAUSD (the read cannot judge it: its shipped cell is not held back, so the figure is withheld — and a decline may not stand on evidence this program has invalidated) |
+| named, not declined | 13 | pass the held-back test with no nomination behind them (-4,780R): the artifact's `unnominated` list, for the next act |
+
+The register is pinned in both directions and re-derived: it must equal the
+artifact's declined set figure for figure and sentence for sentence, the
+artifact must carry the rule hash the code registers, and the rule is re-run
+over the read to reproduce the artifact — so neither a curated register nor a
+hand-edited artifact passes. Every entry stays a standing reentry candidate;
+withdrawal is never permanent (amendment 36).
