@@ -33,11 +33,43 @@ export const FREEZE_RULE =
   "Frozen before the read; the read consumes this file and nothing else.";
 export const FREEZE_RULE_HASH = createHash("sha256").update(FREEZE_RULE).digest("hex");
 
+/**
+ * Amendment 36's removal test, pre-registered in the act-3 design (§5): a
+ * decline candidate retires from candidacy iff some cell of a REMOVAL arm
+ * (the cap arm, the window arm) with at least 30 filled and at least half
+ * of the shipped cell's select fills fails DECLINE_RULE — its net upper
+ * bound is at or above zero, OR its gross upper bound is. The retiring cell,
+ * its n and both figures are recorded; retirement by one cell of k is
+ * labelled fragile; a retired market ships unchanged and its M3 is still
+ * reported. The multiplicity points toward retention, which is amendment
+ * 31's asymmetry.
+ */
+export const RETIREMENT_RULE =
+  "a decline candidate retires from candidacy iff some cell of a removal arm with >= 30 filled and >= 50% of the shipped cell's " +
+  "select fills has a select net upper bound >= 0 OR a select gross upper bound >= 0; the retiring cells are recorded; " +
+  "retirement by exactly one cell of k tested is labelled fragile; a retired market ships unchanged and its M3 is still reported.";
+export const RETIREMENT_RULE_HASH = createHash("sha256").update(RETIREMENT_RULE).digest("hex");
+export const RETIREMENT_MIN_FILLED = 30;
+export const RETIREMENT_MIN_FILL_SHARE = 0.5;
+
+type FigureLike = { expectancy: number; lower: number; n: number; upper: number } | null;
+
+export type RetiringCell = { arm: string; gross: FigureLike; net: FigureLike; variant: string };
+
+export type Retirement = {
+  fragile: boolean;
+  retired: boolean;
+  retiringCells: RetiringCell[];
+  /** Cells of the removal arms that met the sample floor and were tested. */
+  testedCells: number;
+};
+
 type GradingVariant = {
   accepted: boolean;
   fitTotalDelta: number | null;
   pairedP: number | null;
   reason: string;
+  select?: { gross: FigureLike; net: FigureLike };
   selectExpectancyDelta: number | null;
   selectTotalDelta: number | null;
   [key: string]: unknown;
@@ -45,7 +77,7 @@ type GradingVariant = {
 
 type GradingMarket = {
   heldOut: boolean;
-  shipped: { declineCandidate: boolean; variant: string; [key: string]: unknown };
+  shipped: { declineCandidate: boolean; select?: { gross: FigureLike; net: FigureLike }; variant: string; [key: string]: unknown };
   variants: Record<string, GradingVariant>;
 };
 
@@ -82,6 +114,8 @@ export type FrozenMarket = {
   cellsTested: number;
   declineCandidate: boolean;
   heldOut: boolean;
+  /** RETIREMENT_RULE applied to a decline candidate over the removal arms; null for every other market. */
+  retirement: Retirement | null;
 };
 
 export type FrozenArm = {
@@ -111,6 +145,10 @@ export type FrozenCandidates = {
   heldOut: string[];
   holdoutRule: string;
   markets: Record<string, FrozenMarket>;
+  /** The arms whose cells count as amendment 36 removals for the retirement rule. */
+  removalArms: string[];
+  retirementRule: string;
+  retirementRuleHash: string;
   rule: string;
   ruleHash: string;
 };
@@ -177,11 +215,30 @@ function sameList(a: string[], b: string[]): boolean {
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
+/** RETIREMENT_RULE, mechanically, over one market's removal-arm cells. */
+export function retirementOf(
+  shippedSelectFilled: number,
+  cells: Array<{ arm: string; variant: string; select: { gross: FigureLike; net: FigureLike } | undefined }>,
+): Retirement {
+  const tested = cells.filter(({ select }) => {
+    const net = select?.net;
+    return net !== null && net !== undefined && net.n >= RETIREMENT_MIN_FILLED && net.n >= shippedSelectFilled * RETIREMENT_MIN_FILL_SHARE;
+  });
+  const retiring = tested
+    .filter(({ select }) => (select!.net!.upper >= 0) || (select!.gross !== null && select!.gross !== undefined && select!.gross.upper >= 0))
+    .map(({ arm, variant, select }) => ({ arm, gross: select!.gross ?? null, net: select!.net ?? null, variant }));
+  return { fragile: retiring.length === 1 && tested.length > 1, retired: retiring.length > 0, retiringCells: retiring, testedCells: tested.length };
+}
+
 export async function freezeCandidates(
   arms: ReadonlyArray<{ arm: string; path: string }>,
-  options: { baseDir?: string; now?: Date } = {},
+  options: { baseDir?: string; now?: Date; removalArms?: string[] } = {},
 ): Promise<FrozenCandidates> {
   if (arms.length === 0) refuse("no arm named; pass --arm <name>=<grading.json> at least once");
+  const removalArms = [...(options.removalArms ?? [])].sort();
+  for (const arm of removalArms) {
+    if (!arms.some((named) => named.arm === arm)) refuse(`removal arm ${arm} is not among the arms named; the retirement rule cannot read a corpus that was not frozen`);
+  }
   const seen = new Set<string>();
   for (const { arm } of arms) {
     if (seen.has(arm)) refuse(`arm ${arm} is named twice`);
@@ -209,6 +266,8 @@ export async function freezeCandidates(
     let heldOut: boolean | null = null;
     let shippedSelect: string | null = null;
     let cellsTested = 0;
+    let shippedSelectFilled = 0;
+    const removalCells: Array<{ arm: string; variant: string; select: { gross: FigureLike; net: FigureLike } | undefined }> = [];
     for (const { arm, artifact } of loaded) {
       const entry = artifact.markets[symbol];
       if (entry === undefined) continue;
@@ -220,6 +279,12 @@ export async function freezeCandidates(
         refuse(`${symbol}: arm ${arm}'s shipped-cell select figures differ from another arm's; the arms' baselines are not the same rows and cannot be frozen together`);
       }
       cellsTested += Object.keys(entry.variants ?? {}).length;
+      shippedSelectFilled = entry.shipped.select?.net?.n ?? 0;
+      if (removalArms.includes(arm)) {
+        for (const [variant, verdict] of Object.entries(entry.variants ?? {})) {
+          removalCells.push({ arm, select: verdict.select, variant });
+        }
+      }
       if (declineCandidate === null) declineCandidate = entry.shipped.declineCandidate;
       else if (declineCandidate !== entry.shipped.declineCandidate) {
         refuse(`${symbol}: arm ${arm} reads the shipped cell's declineCandidate as ${entry.shipped.declineCandidate} where another arm read ${declineCandidate}; the arms' baselines are not the same cell`);
@@ -245,6 +310,7 @@ export async function freezeCandidates(
       cellsTested,
       declineCandidate: declineCandidate ?? false,
       heldOut: heldOut ?? false,
+      retirement: declineCandidate === true && removalArms.length > 0 ? retirementOf(shippedSelectFilled, removalCells) : null,
     };
   }
   const body: Omit<FrozenCandidates, "frozenHash"> = {
@@ -268,6 +334,9 @@ export async function freezeCandidates(
     heldOut: [...first.heldOut].sort(),
     holdoutRule: first.holdoutRule,
     markets,
+    removalArms,
+    retirementRule: RETIREMENT_RULE,
+    retirementRuleHash: RETIREMENT_RULE_HASH,
     rule: FREEZE_RULE,
     ruleHash: FREEZE_RULE_HASH,
   };
@@ -281,15 +350,18 @@ export function verifyFrozenCandidates(path: string): FrozenCandidates {
   if (parsed.rule !== FREEZE_RULE || parsed.ruleHash !== FREEZE_RULE_HASH) {
     refuse(`${path} was frozen under a different rule (ruleHash ${String(parsed.ruleHash)}); the read consumes candidates frozen under FREEZE_RULE only`);
   }
+  if (parsed.retirementRule !== RETIREMENT_RULE || parsed.retirementRuleHash !== RETIREMENT_RULE_HASH) {
+    refuse(`${path} applied a different retirement rule (retirementRuleHash ${String(parsed.retirementRuleHash)}); the read consumes RETIREMENT_RULE only`);
+  }
   if (typeof parsed.frozenHash !== "string" || frozenHashOf(parsed) !== parsed.frozenHash) {
     refuse(`${path}: frozenHash does not match its content; the file was altered after it was frozen`);
   }
   return parsed;
 }
 
-const VALUE_FLAGS = new Set(["--arms", "--out"]);
+const VALUE_FLAGS = new Set(["--arms", "--out", "--removal-arms"]);
 
-function parseArgs(argv: readonly string[]): { arms: Array<{ arm: string; path: string }>; out: string } {
+function parseArgs(argv: readonly string[]): { arms: Array<{ arm: string; path: string }>; out: string; removalArms: string[] } {
   for (let index = 0; index < argv.length; index += 1) {
     // The walker consumes the following token only for a flag VALUE_FLAGS
     // declares; any other flag, and any positional token, is refused by name.
@@ -297,7 +369,7 @@ function parseArgs(argv: readonly string[]): { arms: Array<{ arm: string; path: 
       index += 1;
       continue;
     }
-    if (argv[index].startsWith("--")) refuse(`unknown flag ${argv[index]}; this command takes --arms and --out only`);
+    if (argv[index].startsWith("--")) refuse(`unknown flag ${argv[index]}; this command takes --arms, --removal-arms and --out only`);
     refuse(`unexpected argument ${argv[index]}; this command takes --arms "<name>=<grading.json>;…" and --out <path> only`);
   }
   const { str } = flagReader(argv, VALUE_FLAGS);
@@ -310,19 +382,22 @@ function parseArgs(argv: readonly string[]): { arms: Array<{ arm: string; path: 
   });
   const out = str("--out");
   if (out === undefined) refuse("--out is required: the frozen file is the read's only input and must be written somewhere named");
-  return { arms, out };
+  const removalArms = (str("--removal-arms") ?? "").split(",").map((name) => name.trim()).filter((name) => name.length > 0);
+  return { arms, out, removalArms };
 }
 
 async function main(): Promise<void> {
-  const { arms, out } = parseArgs(process.argv.slice(2));
-  const frozen = await freezeCandidates(arms);
+  const { arms, out, removalArms } = parseArgs(process.argv.slice(2));
+  const frozen = await freezeCandidates(arms, { removalArms });
   writeResearchArtifact(out, frozen as unknown as Record<string, unknown>);
   const symbols = Object.keys(frozen.markets);
   const candidates = symbols.filter((symbol) => frozen.markets[symbol].candidate !== null).length;
   const declines = symbols.filter((symbol) => frozen.markets[symbol].declineCandidate).length;
+  const retired = symbols.filter((symbol) => frozen.markets[symbol].retirement?.retired).length;
   console.log(
     `frozen: ${frozen.arms.length} arm${frozen.arms.length === 1 ? "" : "s"}, ${symbols.length} markets, ` +
-      `${candidates} candidate${candidates === 1 ? "" : "s"}, ${declines} decline candidate${declines === 1 ? "" : "s"}, ` +
+      `${candidates} candidate${candidates === 1 ? "" : "s"}, ${declines} decline candidate${declines === 1 ? "" : "s"}` +
+      (removalArms.length > 0 ? ` (${retired} retired by ${removalArms.join("+")}), ` : ", ") +
       `${frozen.expectedFalseAccepts} expected false accepts at p 0.05 ` +
       `-> ${out} (frozenHash ${frozen.frozenHash.slice(0, 12)})`,
   );

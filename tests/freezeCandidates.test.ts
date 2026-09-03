@@ -9,6 +9,8 @@ import {
   FREEZE_RULE,
   freezeCandidates,
   loadGradingArtifact,
+  RETIREMENT_RULE,
+  retirementOf,
   verifyFrozenCandidates,
 } from "../scripts/freeze-candidates.ts";
 import { sha256File } from "../scripts/ledgeredRead.ts";
@@ -98,6 +100,7 @@ describe("the freeze binds every arm and chooses one candidate per market", () =
       cellsTested: 3,
       declineCandidate: false,
       heldOut: false,
+      retirement: null,
     });
     // 3 (AAA) + 1 (BBB) + 2 (CCC) + 1 (DDD) cells across both arms, at the gate's own p.
     assert.equal(frozen.expectedFalseAccepts, 0.35);
@@ -122,6 +125,64 @@ describe("the freeze binds every arm and chooses one candidate per market", () =
       { arm: "S", variant: "a", fitTotalDelta: 5, pairedP: 0.01, selectExpectancyDelta: 0, selectTotalDelta: 0 },
     ])?.arm, "S");
     assert.equal(chooseCandidate([]), null);
+  });
+});
+
+describe("the retirement rule (amendment 36's removals), pre-registered and mechanical", () => {
+  const fig = (expectancy: number, lower: number, upper: number, n: number) => ({ expectancy, lower, n, upper });
+  const shippedN = 100;
+
+  it("retires a candidate when a removal-arm cell with the sample floor lifts the net OR the gross upper bound to zero", () => {
+    const retired = retirementOf(shippedN, [
+      { arm: "S", variant: "cap=8", select: { gross: fig(-0.02, -0.05, 0.01, 80), net: fig(-0.05, -0.09, -0.01, 80) } },
+      { arm: "S", variant: "cap=4", select: { gross: fig(-0.05, -0.09, -0.01, 80), net: fig(-0.06, -0.10, -0.02, 80) } },
+      { arm: "W", variant: "w=96", select: { gross: fig(-0.05, -0.09, -0.01, 90), net: fig(-0.02, -0.05, 0.02, 90) } },
+    ]);
+    assert.equal(retired.retired, true);
+    assert.equal(retired.testedCells, 3);
+    assert.deepEqual(retired.retiringCells.map((cell) => cell.variant), ["cap=8", "w=96"]);
+    assert.equal(retired.fragile, false);
+  });
+
+  it("does not count a cell below 30 filled or below half the shipped cell's fills, and labels one-of-k fragile", () => {
+    const result = retirementOf(shippedN, [
+      { arm: "S", variant: "starved", select: { gross: fig(0.5, 0.1, 0.9, 20), net: fig(0.5, 0.1, 0.9, 20) } },
+      { arm: "S", variant: "thin", select: { gross: fig(0.5, 0.1, 0.9, 40), net: fig(0.5, 0.1, 0.9, 40) } },
+      { arm: "S", variant: "cap=8", select: { gross: fig(-0.02, -0.05, 0.01, 80), net: fig(-0.05, -0.09, -0.01, 80) } },
+      { arm: "W", variant: "w=48", select: { gross: fig(-0.05, -0.09, -0.01, 80), net: fig(-0.06, -0.10, -0.02, 80) } },
+      { arm: "W", variant: "none", select: undefined },
+    ]);
+    assert.equal(result.testedCells, 2, "the starved, thin and figureless cells are not tests");
+    assert.equal(result.retired, true);
+    assert.equal(result.fragile, true, "one retiring cell of two tested");
+    const held = retirementOf(shippedN, [
+      { arm: "S", variant: "cap=8", select: { gross: fig(-0.05, -0.09, -0.01, 80), net: fig(-0.06, -0.10, -0.02, 80) } },
+    ]);
+    assert.equal(held.retired, false);
+    assert.equal(held.fragile, false);
+  });
+
+  it("applies the rule only to decline candidates over the named removal arms, and refuses a removal arm it was not given", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "freeze-"));
+    const s = grading({ shardHashes: ["1".repeat(64)] }, {
+      AAA: { heldOut: false, shipped: { declineCandidate: true, select: { gross: fig(-0.1, -0.2, -0.05, 100), net: fig(-0.1, -0.2, -0.05, 100) }, variant: "baseline" }, variants: { "cap=8": { ...variant(false, -3), select: { gross: fig(-0.02, -0.05, 0.01, 80), net: fig(-0.05, -0.09, -0.01, 80) } } } },
+      BBB: { heldOut: false, shipped: { declineCandidate: false, select: { gross: null, net: fig(0.1, 0.05, 0.15, 100) }, variant: "baseline" }, variants: { "cap=8": { ...variant(false, -3), select: { gross: fig(0.1, 0.05, 0.15, 80), net: fig(0.1, 0.05, 0.15, 80) } } } },
+    });
+    const f = grading({ shardHashes: ["2".repeat(64)] }, {
+      AAA: { heldOut: false, shipped: { declineCandidate: true, select: { gross: fig(-0.1, -0.2, -0.05, 100), net: fig(-0.1, -0.2, -0.05, 100) }, variant: "baseline" }, variants: { "floor=1.5": { ...variant(false, -3), select: { gross: fig(0.2, 0.1, 0.3, 80), net: fig(0.2, 0.1, 0.3, 80) } } } },
+    });
+    const frozen = await freezeCandidates([{ arm: "S", path: write(dir, "s.json", s) }, { arm: "F", path: write(dir, "f.json", f) }], { removalArms: ["S"] });
+    assert.deepEqual(frozen.removalArms, ["S"]);
+    assert.equal(frozen.retirementRule, RETIREMENT_RULE);
+    assert.equal(frozen.markets.AAA.retirement!.retired, true, "the cap cell's gross upper bound reaches zero");
+    assert.deepEqual(frozen.markets.AAA.retirement!.retiringCells.map((cell) => `${cell.arm}:${cell.variant}`), ["S:cap=8"], "the admission arm is not a removal arm, so its positive cell does not retire");
+    assert.equal(frozen.markets.BBB.retirement, null, "not a decline candidate");
+    await assert.rejects(freezeCandidates([{ arm: "S", path: write(dir, "s2.json", s) }], { removalArms: ["W"] }), /removal arm W/);
+    const out = write(dir, "frozen.json", frozen);
+    assert.equal(verifyFrozenCandidates(out).markets.AAA.retirement!.retired, true);
+    const reruled = JSON.parse(JSON.stringify(frozen)) as typeof frozen;
+    reruled.retirementRule = "net only";
+    assert.throws(() => verifyFrozenCandidates(write(dir, "r2.json", reruled)), /retirement rule/);
   });
 });
 
@@ -196,6 +257,9 @@ describe("the freeze command", () => {
     const result = run(["--arms", `S=${path}`, "--out", out]);
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /1 arm.*3 markets.*2 candidates.*1 decline candidate.*expected false accepts/s);
+    const withRemoval = run(["--arms", `S=${path}`, "--removal-arms", "S", "--out", join(dir, "frozen2.json")]);
+    assert.equal(withRemoval.status, 0, withRemoval.stderr);
+    assert.match(withRemoval.stdout, /retired by S/);
     const body = JSON.parse(readFileSync(out, "utf8")) as { frozenHash: string };
     assert.equal(verifyFrozenCandidates(out).frozenHash, body.frozenHash);
   });
