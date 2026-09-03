@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
+import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
+import { readLedgeredArtifact } from "../scripts/ledgeredRead.ts";
 import { describe, it } from "node:test";
 import {
   getAssetType,
@@ -61,13 +63,32 @@ const base = {
 
 describe("maxCostShare caps the cost weight per trade", () => {
   it("forex alone carries it, at the value the read confirmed", () => {
-    const prov = JSON.parse(readFileSync("docs/research/r4/shipped-cell-provenance.json", "utf8")) as { markets: Array<{ symbol: string }> };
-    const symbols = prov.markets.map((entry) => entry.symbol);
-    assert.ok(symbols.length >= 90, "the roster artifact is the population, not a guess");
+    // THE VALUE COMES FROM THE READ. It used to be a literal pinned by a
+    // literal — 0.15 asserted against 0.15 — which cannot catch a shipped cap
+    // that is not the confirmed one. The artifact is opened through the door
+    // that refuses a condemned, foreign or re-ruled read, the ONE confirmed
+    // forex class candidate on the cost-share axis is found by its verdict,
+    // and its own variant string carries the number.
+    const read = readLedgeredArtifact(
+      "docs/research/confirm-reads/ledgered-read-act3.json",
+      { manifestHash: "021821537f28e5d2777543989baa0631a38840d592fad74c4bdb2429fb627c59" },
+    );
+    const confirmed = (read.classes?.forex ?? []).filter(
+      (candidate) => candidate.axis === "costShare" && candidate.pool.deltaOutcome === "confirmed",
+    );
+    assert.equal(confirmed.length, 1, "the read confirmed exactly one forex cost-share candidate, or this pin is reading a different program");
+    const confirmedCap = Number(/^costShareMax=(\d+(?:\.\d+)?)$/.exec(confirmed[0].variant)?.[1]);
+    assert.ok(Number.isFinite(confirmedCap), `the confirmed candidate names no cap: ${confirmed[0].variant}`);
+
+    // THE POPULATION IS THE LIVE ROSTER, not a frozen research artifact. The
+    // provenance file names the 91 markets act 2 graded; a market added to the
+    // roster after it was written would never be checked here.
+    const symbols = [...defaultScanSymbols];
+    assert.ok(symbols.length >= 90, "the roster is the population, not a guess");
     for (const className of new Set(symbols.map((symbol) => getAssetType(symbol)))) {
       const cap = getClassCalibration(className).maxCostShare;
       if (className === "forex") {
-        assert.equal(cap, 0.15, "forex's cap is the figure the ledgered read confirmed, not a rounded retelling of it");
+        assert.equal(cap, confirmedCap, "forex's cap is not the figure the ledgered read confirmed");
       } else {
         assert.equal(cap, undefined, `${className}'s class row sets maxCostShare, and no read earned it a value`);
       }
@@ -135,8 +156,13 @@ describe("maxCostShare caps the cost weight per trade", () => {
     // diagnostics. A copy cannot catch the original drifting, and it did not:
     // reverting the live admission to the 4-dp field left the whole suite
     // green until this pin existed (mutation M3, 2026-09-03).
+    // COMMENTS STRIPPED FIRST. The pin used to match raw text, so a cap site
+    // commented out beside a live costToRisk one would have satisfied it —
+    // a guard that certifies prose is not a guard.
+    const codeOf = (source: string) =>
+      source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
     const sites = (source: string) =>
-      source.match(/executionQuality\.\w+ > calibration\.maxCostShare/g) ?? [];
+      codeOf(source).match(/executionQuality\.\w+ > calibration\.maxCostShare/g) ?? [];
     const analyzer = readFileSync("supabase/functions/trade-analyzer/index.ts", "utf8");
     assert.deepEqual(
       sites(analyzer),
@@ -200,6 +226,40 @@ describe("maxCostShare caps the cost weight per trade", () => {
     const unreachable = parseGridSpec("maxCostShare=1e9");
     assert.equal(unreachable.length, 1);
     assert.equal(unreachable[0].maxCostShare, 1e9);
+  });
+
+  it("a share exactly at the cap is admitted — the confirmed predicate is costShare <= cap", () => {
+    // The read's predicate keeps a row whose share EQUALS the cap; the engine
+    // declines on `>`. Those agree, and nothing pinned it: an engine that
+    // declined at equality would be a different rule from the measured one on
+    // every row that lands on the boundary. Driven through the sweep, with the
+    // cap set to a row's own share.
+    const shareOf = (row: { estimatedRoundTripCost: number; riskDistance: number }) =>
+      row.estimatedRoundTripCost / row.riskDistance;
+    const uncapped = simulateSymbol({ ...base, captureAll: true });
+    const index = uncapped.outcomes.findIndex((row) => row.accepted);
+    assert.ok(index >= 0, "the fixture accepts nothing — the boundary cannot be exercised");
+    const exact = shareOf(uncapped.outcomes[index]);
+    const capped = simulateSymbol({
+      ...base,
+      captureAll: true,
+      calibrationOverride: { ...base.calibrationOverride, maxCostShare: exact },
+    });
+    assert.equal(
+      capped.outcomes[index].accepted,
+      true,
+      "a setup whose cost share is exactly the cap must be ADMITTED — the read's predicate keeps it",
+    );
+    const justBelow = simulateSymbol({
+      ...base,
+      captureAll: true,
+      calibrationOverride: { ...base.calibrationOverride, maxCostShare: exact * (1 - 1e-9) },
+    });
+    assert.equal(
+      justBelow.outcomes[index].accepted,
+      false,
+      "and a cap a hair below that share must decline it, or the comparison is not firing at all",
+    );
   });
 
   it("a cap inside the rounding band declines the row the display form would have admitted", () => {
