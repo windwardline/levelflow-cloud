@@ -16,13 +16,14 @@
 // them is meaningless). Its own hash and the rule's hash make a tampered or
 // re-ruled file refuse when the read opens it.
 //
-//   npx tsx scripts/freeze-candidates.ts --arm S=docs/research/r4/stop-cap-grading.json \
-//     --arm W=docs/research/r4/review-window-grading.json --out docs/research/r4/frozen-candidates.json
+//   npx tsx scripts/freeze-candidates.ts \
+//     --arms "S=docs/research/r4/stop-cap-grading.json;W=docs/research/r4/review-window-grading.json" \
+//     --out docs/research/r4/frozen-candidates.json
 
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
-import { OperatorInputError } from "./flagReader.ts";
+import { flagReader, OperatorInputError } from "./flagReader.ts";
 import { sha256File, stableJson } from "./ledgeredRead.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 
@@ -264,27 +265,24 @@ export function verifyFrozenCandidates(path: string): FrozenCandidates {
   return parsed;
 }
 
-const VALUE_FLAGS = new Set(["--arm", "--out"]);
+const VALUE_FLAGS = new Set(["--arms", "--out"]);
 
 function parseArgs(argv: readonly string[]): { arms: Array<{ arm: string; path: string }>; out: string } {
-  const arms: Array<{ arm: string; path: string }> = [];
-  let out: string | undefined;
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
-    if (!token.startsWith("--")) refuse(`unexpected argument ${token}; this command takes --arm <name>=<grading.json> and --out <path> only`);
-    if (!VALUE_FLAGS.has(token)) refuse(`unknown flag ${token}; this command takes --arm and --out only`);
-    const value = argv[index + 1];
-    if (value === undefined || value.startsWith("--")) refuse(`${token} needs a value`);
+    if (!token.startsWith("--")) refuse(`unexpected argument ${token}; this command takes --arms "<name>=<grading.json>;…" and --out <path> only`);
+    if (!VALUE_FLAGS.has(token)) refuse(`unknown flag ${token}; this command takes --arms and --out only`);
     index += 1;
-    if (token === "--out") {
-      if (out !== undefined) refuse("--out given twice");
-      out = value;
-      continue;
-    }
-    const at = value.indexOf("=");
-    if (at <= 0 || at === value.length - 1) refuse(`--arm takes <name>=<grading.json>, got ${value}`);
-    arms.push({ arm: value.slice(0, at), path: value.slice(at + 1) });
   }
+  const { str } = flagReader(argv, VALUE_FLAGS);
+  const armsSpec = str("--arms");
+  if (armsSpec === undefined) refuse("--arms is required: name every arm as <name>=<grading.json>, separated by ;");
+  const arms = armsSpec.split(";").filter((entry) => entry.length > 0).map((entry) => {
+    const at = entry.indexOf("=");
+    if (at <= 0 || at === entry.length - 1) refuse(`--arms takes <name>=<grading.json> entries, got ${entry}`);
+    return { arm: entry.slice(0, at).trim(), path: entry.slice(at + 1).trim() };
+  });
+  const out = str("--out");
   if (out === undefined) refuse("--out is required: the frozen file is the read's only input and must be written somewhere named");
   return { arms, out };
 }

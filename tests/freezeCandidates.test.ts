@@ -173,10 +173,10 @@ describe("the freeze command", () => {
   it("refuses an unknown flag by name and a missing --out", () => {
     const dir = mkdtempSync(join(tmpdir(), "freeze-"));
     const path = write(dir, "a.json", grading());
-    const unknown = run(["--arm", `S=${path}`, "--out", join(dir, "f.json"), "--confirm-final"]);
+    const unknown = run(["--arms", `S=${path}`, "--out", join(dir, "f.json"), "--confirm-final"]);
     assert.notEqual(unknown.status, 0);
     assert.match(unknown.stderr, /--confirm-final/);
-    const noOut = run(["--arm", `S=${path}`]);
+    const noOut = run(["--arms", `S=${path}`]);
     assert.notEqual(noOut.status, 0);
     assert.match(noOut.stderr, /--out/);
   });
@@ -185,7 +185,7 @@ describe("the freeze command", () => {
     const dir = mkdtempSync(join(tmpdir(), "freeze-"));
     const path = write(dir, "a.json", grading());
     const out = join(dir, "frozen.json");
-    const result = run(["--arm", `S=${path}`, "--out", out]);
+    const result = run(["--arms", `S=${path}`, "--out", out]);
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /1 arm.*3 markets.*2 candidates.*1 decline candidate/s);
     const body = JSON.parse(readFileSync(out, "utf8")) as { frozenHash: string };
