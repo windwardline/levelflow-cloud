@@ -1801,6 +1801,17 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       assert.match(artifact.derived["floor=1.5"].predicateHash, /^[0-9a-f]{64}$/);
       assert.equal(artifact.markets.EURUSD.variants["floor=1.5"].derived, true);
       assert.equal(artifact.markets.EURUSD.variants["floor=1.5"].select.net!.n, 20);
+      // The class unit's artifact carries each market's CLASS verdicts, not nothing.
+      const classOut = join(dir, "grading-class.json");
+      const classRun = spawnSync(process.execPath, [
+        "./node_modules/.bin/tsx", "scripts/grid-totalr.ts", corpusWith(rows()),
+        "--verdict-unit", "class", "--permutations", "20", "--seed", "4",
+        "--derive-filters", "floor=1.5:rewardRisk>=1.5", "--out", classOut,
+      ], { cwd: process.cwd(), encoding: "utf8" });
+      assert.equal(classRun.status, 0, classRun.stderr);
+      const classArtifact = JSON.parse(readFileSync(classOut, "utf8")) as { verdictUnit: string; markets: Record<string, { variants: Record<string, { derived?: boolean }> }> };
+      assert.equal(classArtifact.verdictUnit, "class");
+      assert.equal(classArtifact.markets.EURUSD.variants["floor=1.5"].derived, true, "a member carries its class's verdicts");
     });
   });
 

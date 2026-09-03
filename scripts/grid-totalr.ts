@@ -2544,7 +2544,9 @@ async function main(): Promise<void> {
     const markets: Record<string, unknown> = {};
     for (const [symbol, cell] of shipped) {
       const byVariant: Record<string, unknown> = {};
-      for (const [variant, verdict] of verdicts.get(symbol) ?? []) {
+      // At the class unit a market carries its CLASS's verdicts (the pool it
+      // was graded in); the artifact had written none for it (R4 act 3).
+      for (const [variant, verdict] of verdicts.get(verdictUnit === "market" ? symbol : getAssetType(symbol)) ?? []) {
         byVariant[variant] = {
           accepted: verdict.accepted,
           fitTotalDelta: verdict.fitTotalDelta,
