@@ -1,0 +1,556 @@
+verdict unit: market — every market on its own rows, singleton groups, 30-filled floor (R4); fold source: emitted labels (no time re-cut)
+
+shipped cell per market (91; held out by the stratified rule: 20, labelled, never dropped; decline rule = 2e1521e201da)
+holdout: holdout: stratified-per-class-20pct — 20 markets labelled HELD OUT per market (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only
+accepted (market, variant) pairs: 0 · expected false families at FWER 0.05 over 91 markets ≈ 4.5 (per-market families; D4's absolute term is the cross-market brake)
+market      held  select net E [95%] n              select gross E [95%] n            decline  tranche      m3
+AAVEUSD     OUT   -0.042 [-0.070, -0.015] n=2272     -0.021 [-0.048, 0.006] n=2272      no        totality     not-read
+ADAUSD            -0.097 [-0.120, -0.074] n=3380     -0.022 [-0.044, -0.000] n=3380     CANDIDATE derived-4d   not-read
+ALGOUSD           -0.501 [-0.543, -0.459] n=1468     -0.159 [-0.201, -0.116] n=1468     CANDIDATE shipped      not-read
+ASX               -0.556 [-0.715, -0.397] n=101      -0.451 [-0.608, -0.293] n=101      CANDIDATE shipped      not-read
+ATOMUSD           -0.909 [-0.966, -0.851] n=422      -0.243 [-0.315, -0.171] n=422      CANDIDATE shipped      not-read
+AUDCAD            0.054 [0.035, 0.074] n=3657        0.075 [0.056, 0.094] n=3657        no        derived-4d   not-read
+AUDCHF      OUT   0.078 [0.059, 0.097] n=3786        0.097 [0.079, 0.116] n=3786        no        holdout-cycle not-read
+AUDJPY            0.001 [-0.020, 0.021] n=3788       0.021 [0.001, 0.041] n=3788        no        derived-4d   not-read
+AUDNZD      OUT   0.076 [0.057, 0.095] n=3555        0.101 [0.083, 0.120] n=3555        no        holdout-cycle not-read
+AUDUSD            0.015 [-0.004, 0.035] n=3805       0.032 [0.012, 0.052] n=3805        no        derived-4d   not-read
+AVAXUSD           -0.477 [-0.532, -0.423] n=884      -0.149 [-0.203, -0.096] n=884      CANDIDATE shipped      not-read
+BCHUSD            -0.235 [-0.261, -0.209] n=2778     -0.061 [-0.086, -0.037] n=2778     CANDIDATE derived-4d   not-read
+BTCUSD            -0.029 [-0.050, -0.008] n=3436     0.008 [-0.013, 0.028] n=3436       no        derived-4d   not-read
+BZUSD       OUT   0.030 [-0.055, 0.116] n=358        0.069 [-0.014, 0.153] n=358        no        totality     not-read
+CADCHF            0.064 [0.045, 0.084] n=3558        0.087 [0.068, 0.106] n=3558        no        derived-4d   not-read
+CADJPY            -0.014 [-0.035, 0.006] n=3773      0.009 [-0.011, 0.029] n=3773       no        derived-4d   not-read
+CHFJPY            0.015 [-0.005, 0.036] n=3711       0.044 [0.025, 0.064] n=3711        no        derived-4d   not-read
+CLUSD             0.036 [-0.047, 0.119] n=346        0.076 [-0.006, 0.157] n=346        no        derived-4d   not-read
+DASHUSD     OUT   -0.057 [-0.081, -0.033] n=3123     -0.033 [-0.056, -0.009] n=3123     CANDIDATE totality     not-read
+DAX               -0.029 [-0.116, 0.059] n=216       -0.004 [-0.090, 0.083] n=216       no        totality     not-read
+DOGEUSD           -0.025 [-0.050, -0.001] n=2693     0.011 [-0.012, 0.035] n=2693       no        totality     not-read
+DOTUSD            -0.702 [-0.763, -0.642] n=540      -0.166 [-0.234, -0.098] n=540      CANDIDATE shipped      not-read
+DOW               -0.122 [-0.358, 0.114] n=43        -0.088 [-0.319, 0.144] n=43        no        shipped      not-read
+DYDXUSD           -1.071 [-1.149, -0.993] n=285      -0.320 [-0.453, -0.188] n=285      CANDIDATE shipped      not-read
+EGLDUSD           -0.309 [-0.350, -0.268] n=1296     -0.081 [-0.120, -0.042] n=1296     CANDIDATE totality     not-read
+ESUSD             -0.009 [-0.071, 0.052] n=399       0.007 [-0.053, 0.068] n=399        no        derived-4d   not-read
+ETCUSD            -0.026 [-0.052, -0.001] n=2498     0.020 [-0.004, 0.044] n=2498       no        totality     not-read
+ETHUSD            -0.039 [-0.060, -0.017] n=3348     -0.009 [-0.030, 0.012] n=3348      no        derived-4d   not-read
+EURAUD            0.020 [0.001, 0.040] n=3741        0.043 [0.024, 0.062] n=3741        no        derived-4d   not-read
+EURCAD            0.048 [0.030, 0.067] n=3723        0.077 [0.058, 0.095] n=3723        no        derived-4d   not-read
+EURCHF            0.016 [-0.005, 0.036] n=3241       0.051 [0.031, 0.071] n=3241        no        derived-4d   not-read
+EURGBP            0.036 [0.015, 0.057] n=3277        0.059 [0.039, 0.079] n=3277        no        derived-4d   not-read
+EURJPY            -0.001 [-0.021, 0.020] n=3633      0.031 [0.011, 0.050] n=3633        no        derived-4d   not-read
+EURNZD            0.053 [0.033, 0.072] n=3614        0.076 [0.057, 0.094] n=3614        no        derived-4d   not-read
+EURUSD      OUT   -0.034 [-0.053, -0.014] n=3817     -0.005 [-0.024, 0.015] n=3817      no        holdout-cycle not-read
+FILUSD            -1.919 [-2.255, -1.583] n=39       -0.187 [-0.405, 0.031] n=39        no        shipped      not-read
+GBPAUD            -0.005 [-0.026, 0.016] n=3504      0.019 [-0.002, 0.040] n=3504       no        derived-4d   not-read
+GBPCAD      OUT   0.022 [0.001, 0.043] n=3411        0.046 [0.025, 0.067] n=3411        no        holdout-cycle not-read
+GBPCHF            0.031 [0.011, 0.051] n=3571        0.054 [0.034, 0.074] n=3571        no        derived-4d   not-read
+GBPJPY            0.029 [0.009, 0.049] n=3563        0.046 [0.026, 0.066] n=3563        no        derived-4d   not-read
+GBPNZD            0.046 [0.026, 0.066] n=3611        0.071 [0.052, 0.091] n=3611        no        derived-4d   not-read
+GBPUSD            0.003 [-0.017, 0.023] n=3572       0.024 [0.004, 0.044] n=3572        no        derived-4d   not-read
+GCUSD             0.026 [-0.028, 0.079] n=547        0.034 [-0.019, 0.087] n=547        no        derived-4d   not-read
+GFUSX             -0.066 [-0.257, 0.124] n=97        -0.011 [-0.203, 0.182] n=97        no        shipped      not-read
+GRTUSD            -0.032 [-0.058, -0.007] n=2514     0.001 [-0.024, 0.026] n=2514       no        totality     not-read
+HBARUSD           -0.104 [-0.158, -0.050] n=640      -0.070 [-0.123, -0.016] n=640      CANDIDATE totality     not-read
+HEUSX       OUT   -1.028 [-3.177, 1.121] n=85        -0.399 [-1.490, 0.692] n=85        no        shipped      not-read
+HGUSD             -0.012 [-0.074, 0.050] n=454       0.008 [-0.054, 0.069] n=454        no        derived-4d   not-read
+HOUSD             -0.227 [-0.316, -0.139] n=332      -0.183 [-0.271, -0.094] n=332      CANDIDATE shipped      not-read
+IMXUSD            -0.062 [-0.111, -0.014] n=1128     -0.023 [-0.070, 0.025] n=1128      no        totality     not-read
+LEUSX             0.082 [-0.182, 0.345] n=73         0.154 [-0.104, 0.413] n=73         no        shipped      not-read
+LINKUSD           -0.042 [-0.071, -0.014] n=3311     -0.019 [-0.047, 0.009] n=3311      no        totality     not-read
+LTCUSD            -0.221 [-0.248, -0.194] n=2686     -0.024 [-0.048, 0.000] n=2686      no        derived-4d   not-read
+NEARUSD           -0.643 [-0.705, -0.581] n=638      -0.141 [-0.211, -0.071] n=638      CANDIDATE shipped      not-read
+NGUSD       OUT   -0.099 [-0.162, -0.035] n=494      -0.069 [-0.132, -0.006] n=494      CANDIDATE holdout-cycle not-read
+NIKKEI            -0.168 [-0.310, -0.026] n=107      -0.137 [-0.274, 0.000] n=107       no        shipped      not-read
+NQUSD             0.015 [-0.045, 0.076] n=423        0.024 [-0.036, 0.084] n=423        no        derived-4d   not-read
+NSDQ        OUT   -0.085 [-0.174, 0.005] n=148       -0.069 [-0.158, 0.021] n=148       no        holdout-cycle not-read
+NZDCAD            0.051 [0.032, 0.070] n=3693        0.071 [0.052, 0.090] n=3693        no        derived-4d   not-read
+NZDCHF      OUT   0.081 [0.062, 0.100] n=3558        0.101 [0.082, 0.119] n=3558        no        holdout-cycle not-read
+NZDJPY      OUT   0.029 [0.009, 0.049] n=3630        0.045 [0.025, 0.065] n=3630        no        holdout-cycle not-read
+NZDUSD            0.015 [-0.005, 0.034] n=3814       0.036 [0.017, 0.056] n=3814        no        derived-4d   not-read
+PAUSD             -0.106 [-0.199, -0.013] n=382      -0.046 [-0.139, 0.047] n=382       no        totality     not-read
+PLUSD             -0.063 [-0.141, 0.014] n=483       -0.040 [-0.116, 0.037] n=483       no        shipped      not-read
+RBUSD             -0.117 [-0.256, 0.021] n=323       -0.044 [-0.181, 0.092] n=323       no        shipped      not-read
+RTYUSD      OUT   -0.014 [-0.078, 0.049] n=401       0.007 [-0.057, 0.070] n=401        no        holdout-cycle not-read
+SIUSD             0.048 [-0.008, 0.104] n=486        0.079 [0.026, 0.132] n=486         no        derived-4d   not-read
+SOLUSD            -0.053 [-0.082, -0.024] n=2202     -0.033 [-0.062, -0.004] n=2202     CANDIDATE totality     not-read
+SP                -0.063 [-0.160, 0.034] n=146       -0.034 [-0.129, 0.061] n=146       no        derived-4d   not-read
+TRXUSD            -0.501 [-0.553, -0.449] n=1000     -0.175 [-0.225, -0.124] n=1000     CANDIDATE shipped      not-read
+UNIUSD            -0.079 [-0.106, -0.053] n=2531     -0.053 [-0.079, -0.027] n=2531     CANDIDATE totality     not-read
+USDCAD            0.003 [-0.019, 0.025] n=3289       0.030 [0.009, 0.051] n=3289        no        derived-4d   not-read
+USDCHF            -0.009 [-0.030, 0.012] n=3315      0.016 [-0.005, 0.036] n=3315       no        derived-4d   not-read
+USDJPY            -0.028 [-0.050, -0.007] n=3479     0.002 [-0.019, 0.023] n=3479       no        derived-4d   not-read
+WTI               -0.202 [-0.298, -0.105] n=298      -0.188 [-0.284, -0.092] n=298      CANDIDATE derived-4d   not-read
+XAUUSD            -0.047 [-0.073, -0.022] n=2507     0.020 [-0.005, 0.044] n=2507       no        derived-4d   not-read
+XLMUSD      OUT   -0.065 [-0.094, -0.036] n=3163     -0.046 [-0.074, -0.017] n=3163     CANDIDATE totality     not-read
+XMRUSD      OUT   -0.078 [-0.103, -0.054] n=2984     -0.047 [-0.071, -0.023] n=2984     CANDIDATE totality     not-read
+XRPUSD            -0.035 [-0.058, -0.012] n=3063     -0.012 [-0.035, 0.010] n=3063      no        derived-4d   not-read
+XTZUSD            -0.704 [-0.786, -0.623] n=305      -0.098 [-0.177, -0.019] n=305      CANDIDATE shipped      not-read
+YMUSD       OUT   -0.018 [-0.081, 0.045] n=371       0.008 [-0.054, 0.071] n=371        no        holdout-cycle not-read
+ZBUSD             -0.196 [-0.261, -0.132] n=397      -0.055 [-0.114, 0.003] n=397       no        totality     not-read
+ZCUSX             -0.186 [-0.291, -0.081] n=355      -0.005 [-0.120, 0.111] n=355       no        derived-4d   not-read
+ZFUSD             -0.361 [-0.597, -0.124] n=59       -0.057 [-0.240, 0.125] n=59        no        shipped      not-read
+ZLUSX             -0.071 [-0.137, -0.004] n=385      -0.009 [-0.072, 0.053] n=385       no        derived-4d   not-read
+ZMUSD       OUT   -0.101 [-0.255, 0.052] n=392       0.019 [-0.126, 0.164] n=392        no        holdout-cycle not-read
+ZNUSD             -0.183 [-0.247, -0.120] n=382      -0.046 [-0.105, 0.013] n=382       no        totality     not-read
+ZOUSX             -0.017 [-0.129, 0.095] n=244       0.073 [-0.032, 0.179] n=244        no        totality     not-read
+ZRUSD             -0.008 [-0.180, 0.164] n=94        0.027 [-0.141, 0.195] n=94         no        shipped      not-read
+ZSUSX             -0.278 [-0.401, -0.156] n=185      -0.121 [-0.232, -0.011] n=185      CANDIDATE shipped      not-read
+ZTUSD             -0.619 [-1.139, -0.100] n=7        -0.565 [-1.108, -0.021] n=7        no        shipped      not-read
+wrote docs/research/r4/class-default-gate-off-grading.json
+folds: fit=fit select=select confirm=confirm SEALED (not derived: no --confirm-final — nothing burned; 924587 rows withheld at the door)
+corpus d40510960b63 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26
+(data-absence rows held out of every fold denominator: 1370 — all variants, graded folds only, accepted rows; holdout excluded by read-time stratified recomputation, not the stamped flag)
+
+=== EURUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -820.2   -395.8    1.000   985/985   -0.105   -0.139   -0.164      -1.1       1.6   0.02      -5.7  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -515.5   -202.5    1.000   985/985   -0.054   -0.088   -0.112      -1.1       1.6   0.02      -5.7  fails
+
+=== GBPUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -920.4   -349.1    1.000   926/926   -0.097   -0.094   -0.120       0.2       0.0   0.02      -5.7  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -550.7   -191.3    1.000   926/926   -0.053   -0.050   -0.075       0.5       0.0   0.02      -5.7  fails
+
+=== USDJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -879.5   -374.0    1.000   913/913   -0.107   -0.136   -0.162       0.2      -0.4   0.01      -6.5  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -626.1   -209.4    1.000   913/913   -0.060   -0.088   -0.114       0.4      -0.4   0.01      -6.5  fails
+
+=== AUDUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -626.8   -306.3    1.000   985/985   -0.080   -0.064   -0.089       0.0      -1.0   0.01      -5.2  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -290.9   -112.1    0.998   985/985   -0.029   -0.014   -0.038       0.0      -1.0   0.01      -5.2  fails
+
+=== USDCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -938.1   -400.3    1.000   920/920   -0.112   -0.109   -0.136       3.0       0.0   0.01      -5.7  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -557.1   -244.6    1.000   920/920   -0.069   -0.066   -0.091       0.4       0.0   0.01      -5.7  fails
+
+=== USDCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -846.4   -400.6    1.000   873/873   -0.122   -0.131   -0.158      -0.7       1.6   0.01      -5.7  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -559.1   -221.0    1.000   873/873   -0.067   -0.076   -0.103       0.1       1.6   0.01      -5.7  fails
+
+=== NZDUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -629.8   -248.1    1.000   970/970   -0.064   -0.050   -0.074       0.0       0.0   0.01      -5.4  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -331.9    -53.4    0.941   970/970   -0.014    0.001   -0.023       0.0       0.0   0.01      -5.4  fails
+
+=== NZDJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -607.2   -325.4    1.000   929/929   -0.089   -0.060   -0.085      -0.2      -0.3   0.01      -6.5  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -290.0   -137.0    1.000   929/929   -0.038   -0.009   -0.034      -0.6      -0.3   0.01      -6.5  fails
+
+=== NZDCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -576.4   -235.9    1.000   921/921   -0.067    0.014   -0.009      -1.3       0.0   0.01      -5.3  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -163.2     73.1    0.038   921/921    0.018    0.098    0.075      -1.2       0.0   0.01      -5.2  fails
+
+=== NZDCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -486.1   -248.1    1.000   946/946   -0.067   -0.016   -0.039      -1.2       0.1   0.01      -5.4  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -98.3     29.9    0.236   946/946    0.007    0.058    0.035      -0.2       0.1   0.01      -5.4  fails
+
+=== GBPNZD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -553.1   -219.9    1.000   927/927   -0.061   -0.015   -0.039      -0.8      -0.0   0.01      -6.4  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -136.4     20.7    0.379   927/927    0.005    0.050    0.027      -0.6      -0.0   0.01      -6.4  fails
+
+=== GBPJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -667.2   -361.5    1.000   902/902   -0.100   -0.071   -0.097      -0.4       0.0   0.01      -5.0  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -297.5   -204.9    1.000   902/902   -0.057   -0.028   -0.053      -0.2       0.0   0.01      -5.1  fails
+
+=== GBPCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -702.3   -276.8    1.000   920/920   -0.077   -0.045   -0.070       0.0       0.0   0.01      -5.1  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -249.8    -60.0    0.954   920/920   -0.017    0.014   -0.010       0.0       0.0   0.01      -4.9  fails
+
+=== GBPCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -581.1   -287.1    1.000   882/882   -0.083   -0.061   -0.086       0.1       0.3   0.01      -5.3  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -148.9    -35.9    0.874   882/882   -0.011    0.011   -0.014       1.1       0.3   0.01      -5.0  fails
+
+=== GBPAUD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -459.0   -260.4    1.000   887/887   -0.073   -0.078   -0.104       0.0       0.2   0.01      -5.1  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -53.7    -63.9    0.978   887/887   -0.018   -0.023   -0.048       0.0       0.2   0.01      -4.9  fails
+
+=== EURNZD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -574.4   -300.3    1.000   949/949   -0.082   -0.030   -0.054       1.4       0.0   0.01      -5.5  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -119.5    -33.8    0.863   949/949   -0.010    0.042    0.019       2.1       0.0   0.01      -5.5  fails
+
+=== EURJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -591.6   -271.8    1.000   936/936   -0.073   -0.074   -0.099      -0.6       0.0   0.01      -5.4  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -259.8    -57.7    0.936   936/936   -0.016   -0.016   -0.041      -0.6       0.0   0.01      -5.1  fails
+
+=== EURGBP ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -824.0   -336.2    1.000   859/859   -0.102   -0.066   -0.093       0.2       0.4   0.01      -5.5  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -427.5   -137.6    1.000   859/859   -0.042   -0.006   -0.032       0.5       0.4   0.01      -5.2  fails
+
+=== EURCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -731.9   -434.4    1.000   830/830   -0.139   -0.123   -0.150       2.5      -0.0   0.01      -6.5  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -338.4   -208.0    1.000   830/830   -0.066   -0.050   -0.077       2.7      -0.0   0.01      -6.5  fails
+
+=== EURCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -787.6   -334.6    1.000   968/968   -0.090   -0.041   -0.065       1.6       0.0   0.01      -6.7  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -338.0    -82.1    0.988   968/968   -0.022    0.026    0.003       1.8       0.0   0.01      -6.7  fails
+
+=== EURAUD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -620.6   -270.0    1.000   952/952   -0.071   -0.051   -0.075       1.0       0.4   0.01      -6.5  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -271.8    -53.7    0.948   952/952   -0.014    0.006   -0.018       1.7       0.4   0.01      -6.5  fails
+
+=== CHFJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -572.1   -328.7    1.000   934/934   -0.088   -0.072   -0.097      -2.1      -0.1   0.01      -5.4  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -202.9   -100.3    0.995   934/934   -0.027   -0.011   -0.036      -2.1      -0.1   0.01      -5.4  fails
+
+=== CADJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -652.8   -366.5    1.000   963/963   -0.096   -0.110   -0.135       0.0       0.0   0.01      -5.4  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -335.3   -156.4    1.000   963/963   -0.041   -0.055   -0.080       0.0       0.0   0.01      -5.4  fails
+
+=== CADCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -817.8   -262.5    1.000   926/926   -0.074   -0.009   -0.033       0.2       0.0   0.01      -5.5  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -418.0     21.2    0.354   926/926    0.004    0.068    0.045       0.3       0.0   0.01      -5.5  fails
+
+=== AUDNZD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -631.9   -366.9    1.000   900/900   -0.104   -0.028   -0.052       2.1      25.7   0.01      -5.5  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -83.5    -74.4    0.950   900/900   -0.020    0.056    0.032       5.4      25.7   0.01      -5.2  fails
+
+=== AUDJPY ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -447.7   -323.3    1.000   979/979   -0.084   -0.083   -0.108      -0.8       0.0   0.01      -5.2  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -144.1   -129.1    1.000   979/979   -0.033   -0.033   -0.057      -0.6       0.0   0.01      -5.2  fails
+
+=== AUDCHF ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -568.0   -232.6    1.000   999/999   -0.062    0.016   -0.007       0.2       2.0   0.01      -5.5  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -186.3     75.6    0.037   999/999    0.017    0.095    0.072       0.5       2.0   0.01      -5.5  fails
+
+=== AUDCAD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -554.7   -265.5    1.000   948/948   -0.072   -0.018   -0.041      -1.9       0.0   0.01      -6.4  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -75.7      4.1    0.492   948/948   -0.000    0.054    0.031      -1.6       0.0   0.01      -6.4  fails
+
+=== XAUUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -228.4    -69.0    0.997   717/719   -0.029   -0.076   -0.105       0.2      -4.6   0.04      -4.1  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -86.0    -27.7    0.929   708/719   -0.012   -0.060   -0.087       0.4      -4.6   0.04      -4.1  fails
+
+=== BZUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -59.4    -37.2    0.972   146/146   -0.099   -0.068   -0.177      -3.2       0.0   0.02      -7.2  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -45.2    -27.4    0.918   146/146   -0.073   -0.043   -0.148      -2.9       0.0   0.02      -7.0  fails
+
+=== CLUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -95.4    -68.0    1.000   144/144   -0.165   -0.129   -0.206     -10.0       0.0   0.03      -3.4  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -80.0    -53.6    0.997   144/144   -0.132   -0.096   -0.170      -9.1       0.0   0.03      -3.4  fails
+
+=== ESUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -47.1    -18.7    0.904   141/141   -0.049   -0.058   -0.146       0.0       0.7   0.03      -3.1  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -33.8    -10.9    0.812   141/141   -0.029   -0.038   -0.121       0.0       0.7   0.03      -3.1  fails
+
+=== GCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -30.1    -16.0    0.841   187/187   -0.029   -0.003   -0.079       0.0       0.0   0.01      -5.1  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       7.9     -6.7    0.720   187/187   -0.012    0.013   -0.056       0.0       0.0   0.01      -5.1  fails
+
+=== HGUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -164.3     -9.6    0.736   155/155   -0.020   -0.032   -0.110       0.2       0.0   0.01      -5.2  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -75.7     43.8    0.034   155/155    0.094    0.082    0.000       0.5       0.0   0.01      -5.2  fails
+
+=== NGUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0      67.3     38.4    0.108   181/181    0.078   -0.021   -0.131       0.0       0.0   0.02      -8.1  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     123.9     82.4    0.003   181/181    0.166    0.067   -0.045       0.0       0.0   0.02      -7.9  fails
+
+=== NQUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -51.9    -22.0    0.935   148/148   -0.050   -0.034   -0.114       1.6       0.0   0.03      -4.1  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -36.8     -9.4    0.792   148/148   -0.022   -0.006   -0.081       2.5       0.0   0.03      -4.1  fails
+
+=== RTYUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -77.4     -4.1    0.712   152/152   -0.009   -0.023   -0.109       2.3       0.0   0.03      -3.2  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -67.4      4.1    0.542   152/152    0.011   -0.004   -0.087       2.2       0.0   0.03      -3.2  fails
+
+=== SIUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -124.1    -68.6    1.000   169/169   -0.139   -0.091   -0.171      -1.0       0.0   0.01      -4.1  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -102.8    -53.4    1.000   169/169   -0.109   -0.061   -0.138      -1.0       0.0   0.01      -4.1  fails
+
+=== YMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -36.9    -35.5    0.991   135/135   -0.101   -0.119   -0.217       0.0      -0.6   0.04      -4.0  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -34.7    -30.7    0.985   135/135   -0.087   -0.106   -0.199       0.0      -0.6   0.04      -3.7  fails
+
+=== ZBUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -146.3    -22.0    0.977   157/157   -0.098   -0.294   -0.371      -0.8      -2.4   0.05      -4.2  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -141.0    -16.4    0.945   157/157   -0.081   -0.277   -0.353      -0.5      -2.4   0.05      -4.2  fails
+
+=== ZNUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -136.8    -68.4    1.000   153/153   -0.173   -0.356   -0.422       0.2       0.4   0.06      -4.4  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -122.4    -53.2    1.000   151/153   -0.133   -0.317   -0.383       0.6       0.4   0.06      -4.2  fails
+
+=== SP ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -25.6     -8.1    0.983   139/139   -0.055   -0.119   -0.241      -0.4      -3.3   0.10      -1.1  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -21.5     -3.8    0.899   139/139   -0.026   -0.089   -0.209       0.2      -3.3   0.10      -1.1  fails
+
+=== NSDQ ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -16.4     -9.9    0.969   147/147   -0.065   -0.149   -0.270       0.2      -0.1   0.09      -1.2  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -17.9     -7.0    0.922   147/147   -0.045   -0.130   -0.246       0.4      -0.1   0.09      -1.2  fails
+
+=== NIKKEI ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0    -13.7    0.950     11/93    0.027   -0.141   -0.234     -11.2       0.0   0.10      -2.0  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0     -1.9    0.140     54/93    0.079   -0.089   -0.183      -6.0       0.0   0.10      -2.0  fails
+
+=== DOW ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0     -9.9    1.000      0/43   -0.016   -0.137   -0.284      -9.9       0.0   0.05      -1.2  NO VERDICT — pairing 0 nonzero of 43 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0     -9.0    0.198     23/43   -0.008   -0.130   -0.270     -10.3       0.0   0.05      -1.2  fails
+
+=== DAX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0    -38.8    1.000   198/198   -0.165   -0.194   -0.292      -0.1       0.7   0.00      -2.1  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0    -32.5    1.000   198/198   -0.138   -0.167   -0.261       1.2       0.7   0.00      -2.1  fails
+
+=== ASX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0    -51.2    0.993     12/93   -0.006   -0.562   -0.672     -42.6       0.0   0.04      -2.9  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0    -47.3    0.922     48/93    0.014   -0.542   -0.651     -41.9       0.0   0.04      -2.9  fails
+
+=== WTI ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -52.2     -5.5    0.847     92/92   -0.140   -0.342   -0.496      -2.3     -10.6   0.06      -4.4  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -43.0     -2.9    0.812     92/92   -0.126   -0.328   -0.478      -2.1     -10.6   0.06      -4.4  fails
+
+=== XRPUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -77.7   -326.3    1.000   999/999   -0.111   -0.146   -0.175       0.2      -6.7   0.00      -5.5  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     170.4   -186.6    1.000   999/999   -0.064   -0.099   -0.127      -0.3      -6.7   0.00      -5.5  fails
+
+=== SOLUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0   -195.2    1.000   753/753   -0.078   -0.131   -0.167      11.1      -1.8   0.00     -11.2  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0   -145.7    1.000   753/753   -0.057   -0.110   -0.144       8.5      -1.8   0.00     -11.2  fails
+
+=== LTCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -192.4    167.0    1.000   560/560   -0.161   -0.382   -0.431      -5.1    -276.8   0.01      -4.2  THIN (1116 filled) — refuse
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0      67.9    191.8    0.998   560/560   -0.139   -0.360   -0.408      -4.8    -276.8   0.01      -4.2  THIN (1116 filled) — refuse
+
+=== ETHUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -146.2   -249.7    1.000   996/996   -0.080   -0.118   -0.146      -0.9      -4.9   0.00      -5.5  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     169.3   -114.9    0.999   996/996   -0.038   -0.076   -0.102      -0.4      -4.9   0.00      -5.5  fails
+
+=== BTCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -246.6   -308.8    1.000   985/985   -0.104   -0.133   -0.161       1.1      -2.2   0.00      -4.7  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0      86.4   -150.0    1.000   985/985   -0.053   -0.082   -0.108       1.6      -2.2   0.00      -4.7  fails
+
+=== BCHUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -151.9     50.5    1.000   637/637   -0.250   -0.485   -0.530      -3.8    -206.4   0.01      -4.5  THIN (1243 filled) — refuse
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -66.1     78.1    0.999   637/637   -0.228   -0.463   -0.507      -2.8    -206.4   0.01      -4.5  THIN (1243 filled) — refuse
+
+=== ADAUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -174.9   -429.6    1.000   991/991   -0.157   -0.254   -0.284       0.2     -14.1   0.00      -4.6  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0    -123.3   -347.4    1.000   991/991   -0.129   -0.226   -0.255       0.4     -14.1   0.00      -4.6  fails
+
+=== ZFUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       1.3      0.0    1.000      0/48    0.000   -0.361   -0.597       0.0       0.0   0.05      -3.3  NO VERDICT — pairing 0 nonzero of 48 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       3.5     -0.0    0.500     22/48   -0.000   -0.361   -0.583       0.0       0.0   0.05      -3.3  fails
+
+=== ZTUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0      -1.1      0.0    1.000       0/6    0.000   -0.619   -1.139       0.0       0.0   0.14      -1.1  THIN (7 filled) — refuse
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       1.6      0.4    1.000       2/6    0.054   -0.566   -1.161       0.0       0.0   0.14      -1.1  THIN (7 filled) — refuse
+
+=== HOUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0      -7.9      0.4    1.000     3/134    0.004   -0.223   -0.312      -0.1       0.0   0.00      -4.2  NO VERDICT — pairing 3 nonzero of 134 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0      19.6     12.7    0.002    39/134    0.040   -0.187   -0.278      -0.1       0.0   0.00      -4.2  fails
+
+=== RBUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -10.2      0.8    1.000     1/146    0.003   -0.114   -0.252       0.0       0.0   0.02      -4.7  NO VERDICT — pairing 1 nonzero of 146 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0      11.3     11.5    0.015    63/146    0.036   -0.081   -0.218       0.0       0.0   0.02      -5.0  fails
+
+=== PLUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.1     -1.0    1.000     1/166   -0.002   -0.065   -0.143       0.0       0.0   0.02      -6.4  NO VERDICT — pairing 1 nonzero of 166 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0      26.5     19.7    0.001   139/166    0.041   -0.022   -0.098       0.0       0.0   0.02      -6.4  fails
+
+=== PAUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0      -5.2     -4.4    0.755    99/152   -0.012   -0.118   -0.214       0.0       0.0   0.02      -4.2  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0      0.0    1.000     0/152    0.000   -0.106   -0.199       0.0       0.0   0.02      -4.2  NO VERDICT — pairing 0 nonzero of 152 shared days is below the statistic's floor (5)
+
+=== ZCUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -50.9    -65.1    0.999   149/150   -0.232   -0.417   -0.644      -0.8      -0.3   0.10     -23.6  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -47.6    -56.1    0.995   149/150   -0.203   -0.389   -0.616      -0.8      -0.3   0.10     -23.6  fails
+
+=== ZSUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0      -3.1      0.6    1.000     0/120    0.008   -0.271   -0.393       0.6       0.0   0.07      -2.7  NO VERDICT — pairing 0 nonzero of 120 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.9      2.0    0.386    65/120    0.015   -0.263   -0.381       0.9       0.0   0.07      -2.7  fails
+
+=== ZLUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -111.4    -62.6    1.000   148/148   -0.146   -0.216   -0.296      -0.0       0.9   0.05      -3.7  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -87.9    -51.1    0.999   148/148   -0.118   -0.189   -0.267       0.9       0.9   0.05      -3.7  fails
+
+=== ZMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -74.7    -53.6    0.931   150/151   -0.142   -0.244   -0.320      -2.0      14.2   0.07      -3.5  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -69.2    -44.8    0.840   149/151   -0.119   -0.221   -0.296      -1.7      14.2   0.07      -3.5  fails
+
+=== ZOUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -24.9    -39.6    0.997   119/119   -0.248   -0.265   -0.402       0.0       2.6   0.13      -2.5  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -23.4    -37.1    0.997   119/119   -0.233   -0.250   -0.386       0.0       2.6   0.13      -2.5  fails
+
+=== ZRUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       1.6      0.2    1.000      0/82    0.002   -0.006   -0.176       0.2       0.0   0.15      -2.7  NO VERDICT — pairing 0 nonzero of 82 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       3.7      4.3    0.004     33/82    0.046    0.037   -0.134       0.5       0.0   0.15      -2.7  fails
+
+=== LEUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       5.3      4.9    1.000      3/70    0.052    0.134   -0.109       3.3       0.0   0.00      -1.2  NO VERDICT — pairing 3 nonzero of 70 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       8.1      3.9    0.384     35/70    0.039    0.121   -0.096       1.9       0.0   0.00      -1.2  fails
+
+=== GFUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0      -8.0      4.3    1.000      0/91    0.046   -0.020   -0.204       4.3       0.0   0.02      -2.7  NO VERDICT — pairing 0 nonzero of 91 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0      -9.4     -0.3    0.833     40/91    0.002   -0.064   -0.225       3.3       0.0   0.02      -2.7  fails
+
+=== HEUSX ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.2     -2.2    1.000      1/80    0.085   -0.943   -2.866      -3.4       0.0   0.01     -91.0  NO VERDICT — pairing 1 nonzero of 80 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       2.4     -4.1    0.485     39/80    0.065   -0.963   -2.885      -4.3       0.0   0.01     -90.8  fails
+
+=== AAVEUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0   -290.6    1.000   766/766   -0.124   -0.166   -0.202      -0.4      -4.7   0.00      -4.7  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0   -232.7    1.000   766/766   -0.099   -0.141   -0.175       0.9      -4.7   0.00      -4.7  fails
+
+=== ALGOUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0      1.2    1.000     1/734    0.001   -0.500   -0.542       0.0       0.0   0.00      -4.7  NO VERDICT — pairing 1 nonzero of 734 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       1.4     34.2    0.001   395/734    0.024   -0.478   -0.519       0.0       0.0   0.00      -4.7  fails
+
+=== ATOMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0      0.0    1.000     0/308    0.000   -0.909   -0.966       0.0       0.0   0.00      -4.3  NO VERDICT — pairing 0 nonzero of 308 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.3      0.8    0.400    49/308    0.002   -0.907   -0.962       0.0       0.0   0.00      -4.3  fails
+
+=== AVAXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0     -1.1    1.000     1/430   -0.001   -0.478   -0.533       0.0       0.0   0.01      -4.5  NO VERDICT — pairing 1 nonzero of 430 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0     15.9    0.039   228/430    0.018   -0.459   -0.512       0.0       0.0   0.01      -4.5  fails
+
+=== DASHUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -177.2   -378.0    1.000   930/930   -0.129   -0.186   -0.219       1.8       0.9   0.00      -5.2  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0      48.0   -341.0    1.000   930/930   -0.116   -0.174   -0.205       2.1       0.9   0.00      -5.2  fails
+
+=== DOGEUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -159.3   -313.8    1.000   848/848   -0.123   -0.148   -0.180       2.1      -4.9   0.00      -4.9  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -99.1   -226.4    1.000   848/848   -0.089   -0.114   -0.145       1.9      -4.9   0.00      -4.9  fails
+
+=== DOTUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0      0.0    1.000     0/333    0.000   -0.702   -0.763       0.0       0.0   0.00      -3.9  NO VERDICT — pairing 0 nonzero of 333 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0     13.1    0.010   117/333    0.024   -0.678   -0.739       0.0       0.0   0.00      -3.9  fails
+
+=== DYDXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0      0.0    1.000     0/206    0.000   -1.071   -1.149       0.0       0.0   0.01      -4.1  NO VERDICT — pairing 0 nonzero of 206 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0      0.1    0.524     9/206    0.000   -1.071   -1.148       0.0       0.0   0.01      -4.1  fails
+
+=== EGLDUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0    -43.0    1.000   324/324   -0.449   -0.758   -0.823      -3.3    -116.1   0.01      -6.1  THIN (585 filled) — refuse
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0    -35.2    1.000   324/324   -0.436   -0.745   -0.809      -3.3    -116.1   0.01      -6.1  THIN (585 filled) — refuse
+
+=== ETCUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -13.9   -270.5    1.000   812/812   -0.103   -0.129   -0.160      14.0      -0.7   0.00      -4.8  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     241.0   -149.9    1.000   812/812   -0.057   -0.083   -0.113      25.5      -0.7   0.00      -4.8  fails
+
+=== FILUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0      0.0    1.000      0/32    0.000   -1.919   -2.255       0.0       0.0   0.00      -5.4  NO VERDICT — pairing 0 nonzero of 32 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0      0.0    1.000      0/32    0.000   -1.919   -2.255       0.0       0.0   0.00      -5.4  NO VERDICT — pairing 0 nonzero of 32 shared days is below the statistic's floor (5)
+
+=== GRTUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0   -287.4    1.000   786/786   -0.114   -0.146   -0.180       2.0       0.0   0.00      -5.0  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0   -235.3    1.000   786/786   -0.093   -0.126   -0.157       2.5       0.0   0.00      -5.0  fails
+
+=== HBARUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0   -101.8    1.000   189/189   -0.203   -0.307   -0.382       0.0       0.0   0.00      -4.3  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0    -90.4    1.000   189/189   -0.182   -0.286   -0.359       0.0       0.0   0.00      -4.0  fails
+
+=== IMXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0   -161.4    1.000   353/353   -0.148   -0.210   -0.265      -3.3       0.1   0.00      -5.2  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0   -152.7    1.000   353/353   -0.140   -0.202   -0.254      -3.9       0.1   0.00      -5.2  fails
+
+=== LINKUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -46.1   -305.5    1.000   951/951   -0.097   -0.139   -0.168       0.0      -6.8   0.00      -4.9  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     -29.9   -195.5    1.000   951/951   -0.063   -0.105   -0.132       0.0      -6.8   0.00      -4.9  fails
+
+=== NEARUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0      0.0    1.000     0/352    0.000   -0.643   -0.705       0.0       0.0   0.01      -4.5  NO VERDICT — pairing 0 nonzero of 352 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0     11.9    0.014   131/352    0.019   -0.624   -0.686       0.0       0.0   0.01      -4.5  fails
+
+=== TRXUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0      -0.8      0.0    1.000     0/540    0.000   -0.501   -0.553       0.0       0.0   0.00      -4.4  NO VERDICT — pairing 0 nonzero of 540 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     107.2     19.5    0.008   279/540    0.020   -0.482   -0.532       0.0       0.0   0.00      -4.4  fails
+
+=== UNIUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0       0.0   -268.0    1.000   799/799   -0.114   -0.193   -0.227      -1.0       0.7   0.00      -4.5  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0       0.0   -212.8    1.000   799/799   -0.091   -0.170   -0.202      -1.0       0.7   0.00      -4.5  fails
+
+=== XLMUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0     -69.7   -249.3    1.000   946/946   -0.086   -0.151   -0.180       0.0      -3.8   0.00      -4.5  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0      38.3   -122.1    0.994   946/946   -0.044   -0.109   -0.137       0.0      -3.8   0.00      -4.5  fails
+
+=== XMRUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0    -148.7   -408.8    1.000   898/898   -0.157   -0.236   -0.268       0.0     -18.1   0.00      -6.2  fails
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0     111.3   -340.2    1.000   898/898   -0.132   -0.210   -0.242       0.0     -18.1   0.00      -6.2  fails
+
+=== XTZUSD ===
+variant                         ΔR fit   ΔR sel  pairedP     pairs   ΔE sel    E sel   E lo95      comp      drop  expry  worstDay  verdict
+symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0      -1.0      0.0    1.000     0/232    0.000   -0.704   -0.786       0.0       0.0   0.00      -3.5  NO VERDICT — pairing 0 nonzero of 232 shared days is below the statistic's floor (5)
+symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0      55.7      9.6    0.001    62/232    0.032   -0.673   -0.757       0.0       0.0   0.00      -3.5  fails

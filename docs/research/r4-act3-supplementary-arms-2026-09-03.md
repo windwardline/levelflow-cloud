@@ -251,6 +251,34 @@ every one through the gross clause with the net upper bound still below
 zero: their negative does not survive the removal of our window on gross,
 and the read reports their M3 either way.
 
+**Arm C2 — the class default with the gate off** (`class-default-gate-off`,
+manifest `d40510960b63`, 2,866,621 rows, 7.20 GB, exit 0 at 07:42Z; graded
+`docs/research/r4/class-default-gate-off-grading.json` and `-class.json`).
+AXES-6's question — is the invalidated derived layer worth anything against
+its absence? — answered in money. Each market on its class row with the
+per-symbol layer removed and the confidence gate off, crossed with the runner
+mode the token would otherwise silently revert:
+
+| class | derived markets | breakeven: select ΔR / fit ΔR | trail_tp1: select ΔR / fit ΔR |
+| --- | ---: | ---: | ---: |
+| forex | 28 | −8,782 / −18,669 | −2,544 / −8,070 |
+| crypto | 19 | −4,370 / −1,605 | −3,009 / +614 |
+| futures | 13 | −336 / −908 | −132 / −608 |
+| agriculture | 4 | −221 / −262 | −189 / −228 |
+| indices | 3 | −57 / −42 | −43 / −39 |
+| metals | 1 | −69 / −228 | −28 / −86 |
+| energies | 1 | −6 / −52 | −3 / −43 |
+
+No market accepts either cell; at the class grain every class fails, forex
+by −6,939R on select under breakeven and −2,243R under trail_tp1. The
+derived layer (its cap of 4 against the class clamp of 1.0, its sizing
+factor, its runner mode) is worth thousands of R relative to the class row,
+on both folds, in every class that carries it — the layer's cells still lose
+money absolutely in crypto, but they lose far less than the class default
+would. The lens's reading that crypto's sign flip is regime rather than the
+layer stands as narration only; what is measured is that removing the layer
+makes crypto worse by 3,000–4,400R on select.
+
 ## 7. Storage and the anchor
 
 **Preflight, 2026-09-03 04:2xZ** (`docs/research/r4/preflight-survey-2026-09-03.txt`,
