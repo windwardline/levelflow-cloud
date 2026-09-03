@@ -199,6 +199,60 @@ describe("the scratch-copy contract", () => {
     }
   });
 
+  it("REFUSES a copy whose git resolves outside it — the proof is a guard, not a comment", () => {
+    // Removing the helper's own proof block left every other test passing:
+    // the outcome it protects is already correct, so nothing could see it go.
+    // A guard that cannot fire is not a guard, so the failure it exists for is
+    // forced here — a git shim on PATH that answers the proof's question with
+    // a directory outside the copy, exactly as a broken rebuild would.
+    const root = mkdtempSync(join(tmpdir(), "scratch-clone-proof-"));
+    try {
+      const origin = join(root, "origin");
+      mkdirSync(origin, { recursive: true });
+      spawnSync("git", ["init", "-q", origin]);
+      const git = (cwd: string, ...args: string[]) => {
+        const result = spawnSync("git", ["-C", cwd, ...args], { encoding: "utf8" });
+        assert.equal(result.status, 0, `git ${args.join(" ")} failed: ${result.stderr}`);
+        return result.stdout.trim();
+      };
+      git(origin, "config", "user.email", "scratch@test");
+      git(origin, "config", "user.name", "scratch");
+      writeFileSync(join(origin, ".gitignore"), "ignored/\n");
+      writeFileSync(join(origin, "kept.txt"), "kept\n");
+      mkdirSync(join(origin, "ignored"), { recursive: true });
+      writeFileSync(join(origin, "ignored", "heavy.bin"), "x");
+      git(origin, "add", "-A");
+      git(origin, "commit", "-qm", "init");
+
+      const realGit = spawnSync("bash", ["-lc", "command -v git"], { encoding: "utf8" }).stdout.trim();
+      assert.ok(realGit, "no git on PATH to shim");
+      const shimDir = join(root, "shim");
+      mkdirSync(shimDir, { recursive: true });
+      writeFileSync(
+        join(shimDir, "git"),
+        `#!/bin/sh\n` +
+          `if [ "$1" = "rev-parse" ] && [ "$2" = "--path-format=absolute" ] && [ "$3" = "--git-dir" ]; then\n` +
+          `  echo "${join(root, "elsewhere", ".git")}"\n  exit 0\nfi\nexec ${realGit} "$@"\n`,
+        { mode: 0o755 },
+      );
+      mkdirSync(join(root, "elsewhere", ".git"), { recursive: true });
+
+      const run = spawnSync("bash", [join(REPO, "scripts", "scratch-clone.sh"), join(root, "copy")], {
+        cwd: origin,
+        encoding: "utf8",
+        env: { ...process.env, PATH: `${shimDir}:${process.env.PATH ?? ""}` },
+      });
+      assert.notEqual(run.status, 0, "the helper accepted a copy whose git resolves outside it");
+      assert.match(
+        run.stderr,
+        /resolves to .*elsewhere.*outside the copy/,
+        `the refusal must name the cause; got: ${run.stderr}`,
+      );
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
   it("keeps .env.local out and .env.example in", () => {
     // Named apart because they differ by one character and the wrong call is
     // silent in both directions: excluding .env.example breaks a fresh copy,
