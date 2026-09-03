@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { readFileSync } from "node:fs";
+
 import {
   type MarketVerdict,
+  priorRegisterFrom,
+  withdrawalArtifact,
   WITHDRAWAL_MIN_FILLED,
   WITHDRAWAL_RULE,
   withdrawalVerdicts,
@@ -82,7 +86,11 @@ describe("the withdrawal rule means what its own sentence says", () => {
   });
 
   it("does NOT decline on a starved sample, whatever the intervals say", () => {
-    const thin = WITHDRAWAL_MIN_FILLED - 1;
+    // The floor is asserted as a NUMBER, not read from the constant the code
+    // under test uses: a test that says `WITHDRAWAL_MIN_FILLED - 1` moves with
+    // the constant and passes at a floor of zero, which is a disabled floor.
+    assert.equal(WITHDRAWAL_MIN_FILLED, 30, "amendment 25's market-unit floor is 30 filled outcomes");
+    const thin = 29;
     const verdicts = judge({
       AAAUSD: market({ candidate: true, gross: grossNegative(thin), net: negative(thin) }),
     });
@@ -141,6 +149,31 @@ describe("the withdrawal rule means what its own sentence says", () => {
         }),
       /carries no retirement records/,
     );
+  });
+
+  it("builds the tracked artifact from paths, prior register included", () => {
+    // main() used to be the only place the prior register was resolved, so a
+    // mutation replacing it with an empty set changed nothing any test could
+    // see — and an empty prior register turns every re-based decline into a
+    // market that must be nominated afresh. The builder is exported now, and
+    // this drives it over the real read.
+    const body = withdrawalArtifact({
+      manifestHash: "021821537f28e5d2777543989baa0631a38840d592fad74c4bdb2429fb627c59",
+      priorPath: "docs/research/baseline-2026-08-10/4d-cost-sensitivity.json",
+      readPath: "docs/research/confirm-reads/ledgered-read-act3.json",
+    });
+    const tracked = JSON.parse(
+      readFileSync("docs/research/r4/withdrawal-verdict-2026-09-03.json", "utf8"),
+    ) as Record<string, unknown>;
+    assert.deepEqual(
+      body.priorRegister,
+      priorRegisterFrom("docs/research/baseline-2026-08-10/4d-cost-sensitivity.json"),
+      "the builder's prior register is not the tracked artifact's population",
+    );
+    assert.ok((body.priorRegister as string[]).length >= 10, "an empty prior register would nominate every re-based decline afresh");
+    for (const key of ["declined", "restored", "retired", "unnominated", "cleared", "priorRegister", "ruleHash", "minFilled"]) {
+      assert.deepEqual(body[key], tracked[key], `the builder no longer reproduces the tracked artifact's ${key}`);
+    }
   });
 
   it("states every clause it applies — the prose and the code are one change set", () => {

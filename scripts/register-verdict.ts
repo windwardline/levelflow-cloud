@@ -222,6 +222,39 @@ export function priorRegisterFrom(path: string): string[] {
   return prior;
 }
 
+/**
+ * The artifact's body, built from paths alone — so the thing the tracked file
+ * is supposed to be can be constructed in a test rather than only by running
+ * the CLI. main() was the only place the prior register was resolved, which
+ * meant a mutation replacing it with an empty set changed nothing any test
+ * could see.
+ */
+export function withdrawalArtifact(options: {
+  manifestHash: string;
+  priorPath: string;
+  readPath: string;
+}): Record<string, unknown> {
+  const artifact = readLedgeredArtifact(options.readPath, { manifestHash: options.manifestHash });
+  const priorRegister = priorRegisterFrom(options.priorPath);
+  const verdicts = withdrawalVerdicts(artifact, new Set(priorRegister));
+  const of = (kind: MarketVerdict["disposition"]) => verdicts.filter((row) => row.disposition === kind);
+  return {
+    artifactHash: artifact.artifactHash,
+    cleared: of("cleared"),
+    declined: [...of("declined"), ...of("stays")].sort((a, b) => a.symbol.localeCompare(b.symbol)),
+    minFilled: WITHDRAWAL_MIN_FILLED,
+    priorRegister,
+    readAt: artifact.readAt,
+    readId: artifact.readId,
+    restored: of("restored"),
+    retired: of("retired"),
+    rule: WITHDRAWAL_RULE,
+    ruleHash: WITHDRAWAL_RULE_HASH,
+    unjudged: of("unjudged"),
+    unnominated: of("unnominated"),
+  };
+}
+
 function main(): void {
   const flags = flagReader(process.argv.slice(2), VALUE_FLAGS);
   const readPath = flags.str("--read");
@@ -234,49 +267,22 @@ function main(): void {
   }
   const outPath = flags.str("--out") ?? "docs/research/r4/withdrawal-verdict-2026-09-03.json";
   const priorPath = flags.str("--prior") ?? "docs/research/baseline-2026-08-10/4d-cost-sensitivity.json";
-  const artifact = readLedgeredArtifact(readPath, { manifestHash });
-  // THE PRIOR REGISTER IS READ FROM THE ARTIFACT THAT BUILT IT, never from the
-  // live code. Two reasons, both load-bearing. (1) The rule is asymmetric — a
-  // standing decline is re-tested, a new one must also be nominated — so the
-  // verdict depends on the register as it stood BEFORE this run; reading the
-  // live register makes the reader non-idempotent, and a second run after the
-  // register is rewritten reports 23 markets that "stay" and nothing that
-  // entered. (2) A self-declared prior register can launder a market into the
-  // register: name it, and the stay clause admits it without a nomination. The
-  // 4d cost-sensitivity artifact is what the outgoing register was pinned to,
-  // so the population is tracked, reviewable and outside this reader.
-  const priorRegister = priorRegisterFrom(priorPath);
-  const verdicts = withdrawalVerdicts(artifact, new Set(priorRegister));
-  const of = (kind: MarketVerdict["disposition"]) => verdicts.filter((v) => v.disposition === kind);
-  const declined = [...of("declined"), ...of("stays")].sort((a, b) => a.symbol.localeCompare(b.symbol));
-  const restored = of("restored");
-  const unnominated = of("unnominated");
-  writeResearchArtifact(outPath, {
-    artifactHash: artifact.artifactHash,
-    cleared: of("cleared"),
-    declined,
-    minFilled: WITHDRAWAL_MIN_FILLED,
-    priorRegister,
-    readAt: artifact.readAt,
-    readId: artifact.readId,
-    restored,
-    rule: WITHDRAWAL_RULE,
-    ruleHash: WITHDRAWAL_RULE_HASH,
-    retired: of("retired"),
-    unjudged: of("unjudged"),
-    unnominated,
-  });
-  const totalR = declined.reduce((sum, v) => sum + (v.measuredExpectancyR ?? 0) * (v.filled ?? 0), 0);
-  const lost = (rows: MarketVerdict[]) =>
-    rows.reduce((sum, v) => sum + (v.measuredExpectancyR ?? 0) * (v.filled ?? 0), 0);
-  console.log(`${verdicts.length} markets judged under rule ${WITHDRAWAL_RULE_HASH.slice(0, 12)}`);
+  const body = withdrawalArtifact({ manifestHash, priorPath, readPath });
+  const rows = (key: string) => body[key] as MarketVerdict[];
+  const declined = rows("declined");
+  const unnominated = rows("unnominated");
+  writeResearchArtifact(outPath, body);
+  const lost = (entries: MarketVerdict[]) =>
+    entries.reduce((sum, row) => sum + (row.measuredExpectancyR ?? 0) * (row.filled ?? 0), 0);
+  console.log(`${declined.length + rows("restored").length + rows("retired").length + rows("unnominated").length + rows("cleared").length + rows("unjudged").length} markets judged under rule ${WITHDRAWAL_RULE_HASH.slice(0, 12)}`);
   console.log(
-    `declined ${declined.length} (${of("declined").length} new, ${of("stays").length} re-based) · ` +
-      `restored ${restored.length} · retired ${of("retired").length} · unnominated ${unnominated.length} · ` +
-      `cleared ${of("cleared").length} · unjudged ${of("unjudged").length}`,
+    `declined ${declined.length} (${declined.filter((row) => row.disposition === "declined").length} new, ` +
+      `${declined.filter((row) => row.disposition === "stays").length} re-based) · restored ${rows("restored").length} · ` +
+      `retired ${rows("retired").length} · unnominated ${unnominated.length} · cleared ${rows("cleared").length} · ` +
+      `unjudged ${rows("unjudged").length}`,
   );
-  console.log(`the unnominated set lost ${lost(unnominated).toFixed(0)}R over ${unnominated.reduce((s, v) => s + (v.filled ?? 0), 0)} held-back fills — the next act's population, not this one's`);
-  console.log(`the declined set lost ${totalR.toFixed(0)}R over ${declined.reduce((s, v) => s + (v.filled ?? 0), 0)} held-back fills`);
+  console.log(`the unnominated set lost ${lost(unnominated).toFixed(0)}R over ${unnominated.reduce((sum, row) => sum + (row.filled ?? 0), 0)} held-back fills — the next act's population, not this one's`);
+  console.log(`the declined set lost ${lost(declined).toFixed(0)}R over ${declined.reduce((sum, row) => sum + (row.filled ?? 0), 0)} held-back fills`);
   console.log(`wrote ${outPath}`);
 }
 
