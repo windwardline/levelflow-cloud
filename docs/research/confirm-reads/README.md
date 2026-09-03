@@ -164,6 +164,10 @@ then opens the one baseline (from the first corpus, verified row-for-row
 against every other corpus's, confirm fold included) and each market's frozen
 candidate from its own arm, under ONE ledger line whose `frozenHash` names the
 file, and one calendar key over the requested roster. Every corpus is bound to
-the emit digest its arm's grading recorded. Nothing decides on the held-back fold
+the emit digest its arm's grading recorded. The same burn carries the class
+grain: per class per axis, the frozen class-unit candidate over the class's
+pooled members and, apart, its held-out members. Candidates are judged by
+DELTA_RULE on their confirm delta; the read verifies each candidate's
+tuning-fold figures against the frozen file before it opens the fold. Nothing decides on the held-back fold
 after seeing it: the candidates were frozen before the command ran, and the
 door refuses a file altered or re-ruled since.

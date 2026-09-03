@@ -7,7 +7,7 @@
   },
   "corpusNote": "confirm fold sealed — not read; every figure here is a fit/select figure",
   "derived": {},
-  "derivedAt": "2026-09-03T07:45:08.062Z",
+  "derivedAt": "2026-09-03T09:22:57.075Z",
   "foldSource": "emitted",
   "heldOut": [
     "AAVEUSD",
@@ -62,7 +62,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ALGOUSD": {
       "heldOut": false,
@@ -93,7 +142,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ASX": {
       "heldOut": false,
@@ -124,7 +222,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -25.555299999999995,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.23966389811738648,
+          "selectExpectancyDelta": -0.08504415912880572,
+          "selectTotalDelta": -121.63459999999998,
+          "select": {
+            "gross": {
+              "expectancy": -0.18091993355481728,
+              "lower": -0.23005833862456182,
+              "n": 903,
+              "upper": -0.13178152848507274
+            },
+            "net": {
+              "expectancy": -0.23966389811738648,
+              "lower": -0.28974160550011074,
+              "n": 903,
+              "upper": -0.1895861907346622
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -21.522100000000016,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2095874861572536,
+          "selectExpectancyDelta": -0.05496774716867284,
+          "selectTotalDelta": -94.47559999999999,
+          "select": {
+            "gross": {
+              "expectancy": -0.14281439645625693,
+              "lower": -0.19075243093682162,
+              "n": 903,
+              "upper": -0.09487636197569224
+            },
+            "net": {
+              "expectancy": -0.2095874861572536,
+              "lower": -0.2589218939956631,
+              "n": 903,
+              "upper": -0.16025307831884406
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ATOMUSD": {
       "heldOut": false,
@@ -155,7 +302,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "AUDCAD": {
       "heldOut": false,
@@ -186,7 +382,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "AUDJPY": {
       "heldOut": false,
@@ -217,7 +462,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "AUDUSD": {
       "heldOut": false,
@@ -248,7 +542,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "AVAXUSD": {
       "heldOut": false,
@@ -279,7 +622,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "BCHUSD": {
       "heldOut": false,
@@ -310,7 +702,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "BTCUSD": {
       "heldOut": false,
@@ -341,7 +782,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "CADCHF": {
       "heldOut": false,
@@ -372,7 +862,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "CADJPY": {
       "heldOut": false,
@@ -403,7 +942,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "CHFJPY": {
       "heldOut": false,
@@ -434,7 +1022,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "CLUSD": {
       "heldOut": false,
@@ -465,7 +1102,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -818.864999999997,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.11926818984114541,
+          "selectExpectancyDelta": -0.05737575956226092,
+          "selectTotalDelta": -297.4485000000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.04146352225926655,
+              "lower": -0.06495369900513229,
+              "n": 5099,
+              "upper": -0.017973345513400803
+            },
+            "net": {
+              "expectancy": -0.11926818984114541,
+              "lower": -0.14356382271072793,
+              "n": 5099,
+              "upper": -0.0949725569715629
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -522.1692999999989,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.0836318297705433,
+          "selectExpectancyDelta": -0.021739399491658803,
+          "selectTotalDelta": -115.73870000000011,
+          "select": {
+            "gross": {
+              "expectancy": 0.005348676211021791,
+              "lower": -0.01757458025595375,
+              "n": 5099,
+              "upper": 0.02827193267799733
+            },
+            "net": {
+              "expectancy": -0.0836318297705433,
+              "lower": -0.1073245728544738,
+              "n": 5099,
+              "upper": -0.059939086686612804
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "DAX": {
       "heldOut": false,
@@ -496,7 +1182,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -25.555299999999995,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.23966389811738648,
+          "selectExpectancyDelta": -0.08504415912880572,
+          "selectTotalDelta": -121.63459999999998,
+          "select": {
+            "gross": {
+              "expectancy": -0.18091993355481728,
+              "lower": -0.23005833862456182,
+              "n": 903,
+              "upper": -0.13178152848507274
+            },
+            "net": {
+              "expectancy": -0.23966389811738648,
+              "lower": -0.28974160550011074,
+              "n": 903,
+              "upper": -0.1895861907346622
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -21.522100000000016,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2095874861572536,
+          "selectExpectancyDelta": -0.05496774716867284,
+          "selectTotalDelta": -94.47559999999999,
+          "select": {
+            "gross": {
+              "expectancy": -0.14281439645625693,
+              "lower": -0.19075243093682162,
+              "n": 903,
+              "upper": -0.09487636197569224
+            },
+            "net": {
+              "expectancy": -0.2095874861572536,
+              "lower": -0.2589218939956631,
+              "n": 903,
+              "upper": -0.16025307831884406
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "DOGEUSD": {
       "heldOut": false,
@@ -527,7 +1262,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "DOTUSD": {
       "heldOut": false,
@@ -558,7 +1342,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "DOW": {
       "heldOut": false,
@@ -589,7 +1422,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -25.555299999999995,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.23966389811738648,
+          "selectExpectancyDelta": -0.08504415912880572,
+          "selectTotalDelta": -121.63459999999998,
+          "select": {
+            "gross": {
+              "expectancy": -0.18091993355481728,
+              "lower": -0.23005833862456182,
+              "n": 903,
+              "upper": -0.13178152848507274
+            },
+            "net": {
+              "expectancy": -0.23966389811738648,
+              "lower": -0.28974160550011074,
+              "n": 903,
+              "upper": -0.1895861907346622
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -21.522100000000016,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2095874861572536,
+          "selectExpectancyDelta": -0.05496774716867284,
+          "selectTotalDelta": -94.47559999999999,
+          "select": {
+            "gross": {
+              "expectancy": -0.14281439645625693,
+              "lower": -0.19075243093682162,
+              "n": 903,
+              "upper": -0.09487636197569224
+            },
+            "net": {
+              "expectancy": -0.2095874861572536,
+              "lower": -0.2589218939956631,
+              "n": 903,
+              "upper": -0.16025307831884406
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "DYDXUSD": {
       "heldOut": false,
@@ -620,7 +1502,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EGLDUSD": {
       "heldOut": false,
@@ -651,7 +1582,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ESUSD": {
       "heldOut": false,
@@ -682,7 +1662,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -818.864999999997,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.11926818984114541,
+          "selectExpectancyDelta": -0.05737575956226092,
+          "selectTotalDelta": -297.4485000000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.04146352225926655,
+              "lower": -0.06495369900513229,
+              "n": 5099,
+              "upper": -0.017973345513400803
+            },
+            "net": {
+              "expectancy": -0.11926818984114541,
+              "lower": -0.14356382271072793,
+              "n": 5099,
+              "upper": -0.0949725569715629
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -522.1692999999989,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.0836318297705433,
+          "selectExpectancyDelta": -0.021739399491658803,
+          "selectTotalDelta": -115.73870000000011,
+          "select": {
+            "gross": {
+              "expectancy": 0.005348676211021791,
+              "lower": -0.01757458025595375,
+              "n": 5099,
+              "upper": 0.02827193267799733
+            },
+            "net": {
+              "expectancy": -0.0836318297705433,
+              "lower": -0.1073245728544738,
+              "n": 5099,
+              "upper": -0.059939086686612804
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ETCUSD": {
       "heldOut": false,
@@ -713,7 +1742,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ETHUSD": {
       "heldOut": false,
@@ -744,7 +1822,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURAUD": {
       "heldOut": false,
@@ -775,7 +1902,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURCAD": {
       "heldOut": false,
@@ -806,7 +1982,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURCHF": {
       "heldOut": false,
@@ -837,7 +2062,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURGBP": {
       "heldOut": false,
@@ -868,7 +2142,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURJPY": {
       "heldOut": false,
@@ -899,7 +2222,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURNZD": {
       "heldOut": false,
@@ -930,7 +2302,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "FILUSD": {
       "heldOut": false,
@@ -961,7 +2382,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GBPAUD": {
       "heldOut": false,
@@ -992,7 +2462,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GBPCHF": {
       "heldOut": false,
@@ -1023,7 +2542,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GBPJPY": {
       "heldOut": false,
@@ -1054,7 +2622,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GBPNZD": {
       "heldOut": false,
@@ -1085,7 +2702,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GBPUSD": {
       "heldOut": false,
@@ -1116,7 +2782,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GCUSD": {
       "heldOut": false,
@@ -1147,7 +2862,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -818.864999999997,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.11926818984114541,
+          "selectExpectancyDelta": -0.05737575956226092,
+          "selectTotalDelta": -297.4485000000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.04146352225926655,
+              "lower": -0.06495369900513229,
+              "n": 5099,
+              "upper": -0.017973345513400803
+            },
+            "net": {
+              "expectancy": -0.11926818984114541,
+              "lower": -0.14356382271072793,
+              "n": 5099,
+              "upper": -0.0949725569715629
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -522.1692999999989,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.0836318297705433,
+          "selectExpectancyDelta": -0.021739399491658803,
+          "selectTotalDelta": -115.73870000000011,
+          "select": {
+            "gross": {
+              "expectancy": 0.005348676211021791,
+              "lower": -0.01757458025595375,
+              "n": 5099,
+              "upper": 0.02827193267799733
+            },
+            "net": {
+              "expectancy": -0.0836318297705433,
+              "lower": -0.1073245728544738,
+              "n": 5099,
+              "upper": -0.059939086686612804
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GFUSX": {
       "heldOut": false,
@@ -1178,7 +2942,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -2.6863000000000046,
+          "pairedP": 0.024975024975024976,
+          "reason": "fails",
+          "selectExpectancy": 0.04663333333333335,
+          "selectExpectancyDelta": 0.04944156862745099,
+          "selectTotalDelta": 9.151200000000003,
+          "select": {
+            "gross": {
+              "expectancy": 0.10452365591397847,
+              "lower": -0.0420175268984988,
+              "n": 186,
+              "upper": 0.25106483872645574
+            },
+            "net": {
+              "expectancy": 0.04663333333333335,
+              "lower": -0.10086651681301584,
+              "n": 186,
+              "upper": 0.19413318347968256
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1.2947000000000006,
+          "pairedP": 0.6943056943056943,
+          "reason": "fails",
+          "selectExpectancy": 0.01649139784946238,
+          "selectExpectancyDelta": 0.01929963314358002,
+          "selectTotalDelta": 3.5448000000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.07644032258064513,
+              "lower": -0.05385284318489887,
+              "n": 186,
+              "upper": 0.20673348834618915
+            },
+            "net": {
+              "expectancy": 0.01649139784946238,
+              "lower": -0.11451352863592804,
+              "n": 186,
+              "upper": 0.1474963243348528
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GRTUSD": {
       "heldOut": false,
@@ -1209,7 +3022,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "HBARUSD": {
       "heldOut": false,
@@ -1240,7 +3102,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "HGUSD": {
       "heldOut": false,
@@ -1271,7 +3182,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -818.864999999997,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.11926818984114541,
+          "selectExpectancyDelta": -0.05737575956226092,
+          "selectTotalDelta": -297.4485000000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.04146352225926655,
+              "lower": -0.06495369900513229,
+              "n": 5099,
+              "upper": -0.017973345513400803
+            },
+            "net": {
+              "expectancy": -0.11926818984114541,
+              "lower": -0.14356382271072793,
+              "n": 5099,
+              "upper": -0.0949725569715629
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -522.1692999999989,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.0836318297705433,
+          "selectExpectancyDelta": -0.021739399491658803,
+          "selectTotalDelta": -115.73870000000011,
+          "select": {
+            "gross": {
+              "expectancy": 0.005348676211021791,
+              "lower": -0.01757458025595375,
+              "n": 5099,
+              "upper": 0.02827193267799733
+            },
+            "net": {
+              "expectancy": -0.0836318297705433,
+              "lower": -0.1073245728544738,
+              "n": 5099,
+              "upper": -0.059939086686612804
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "HOUSD": {
       "heldOut": false,
@@ -1302,7 +3262,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -818.864999999997,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.11926818984114541,
+          "selectExpectancyDelta": -0.05737575956226092,
+          "selectTotalDelta": -297.4485000000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.04146352225926655,
+              "lower": -0.06495369900513229,
+              "n": 5099,
+              "upper": -0.017973345513400803
+            },
+            "net": {
+              "expectancy": -0.11926818984114541,
+              "lower": -0.14356382271072793,
+              "n": 5099,
+              "upper": -0.0949725569715629
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -522.1692999999989,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.0836318297705433,
+          "selectExpectancyDelta": -0.021739399491658803,
+          "selectTotalDelta": -115.73870000000011,
+          "select": {
+            "gross": {
+              "expectancy": 0.005348676211021791,
+              "lower": -0.01757458025595375,
+              "n": 5099,
+              "upper": 0.02827193267799733
+            },
+            "net": {
+              "expectancy": -0.0836318297705433,
+              "lower": -0.1073245728544738,
+              "n": 5099,
+              "upper": -0.059939086686612804
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "IMXUSD": {
       "heldOut": false,
@@ -1333,7 +3342,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "LEUSX": {
       "heldOut": false,
@@ -1364,7 +3422,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -2.6863000000000046,
+          "pairedP": 0.024975024975024976,
+          "reason": "fails",
+          "selectExpectancy": 0.04663333333333335,
+          "selectExpectancyDelta": 0.04944156862745099,
+          "selectTotalDelta": 9.151200000000003,
+          "select": {
+            "gross": {
+              "expectancy": 0.10452365591397847,
+              "lower": -0.0420175268984988,
+              "n": 186,
+              "upper": 0.25106483872645574
+            },
+            "net": {
+              "expectancy": 0.04663333333333335,
+              "lower": -0.10086651681301584,
+              "n": 186,
+              "upper": 0.19413318347968256
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1.2947000000000006,
+          "pairedP": 0.6943056943056943,
+          "reason": "fails",
+          "selectExpectancy": 0.01649139784946238,
+          "selectExpectancyDelta": 0.01929963314358002,
+          "selectTotalDelta": 3.5448000000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.07644032258064513,
+              "lower": -0.05385284318489887,
+              "n": 186,
+              "upper": 0.20673348834618915
+            },
+            "net": {
+              "expectancy": 0.01649139784946238,
+              "lower": -0.11451352863592804,
+              "n": 186,
+              "upper": 0.1474963243348528
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "LINKUSD": {
       "heldOut": false,
@@ -1395,7 +3502,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "LTCUSD": {
       "heldOut": false,
@@ -1426,7 +3582,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "NEARUSD": {
       "heldOut": false,
@@ -1457,7 +3662,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "NIKKEI": {
       "heldOut": false,
@@ -1488,7 +3742,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -25.555299999999995,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.23966389811738648,
+          "selectExpectancyDelta": -0.08504415912880572,
+          "selectTotalDelta": -121.63459999999998,
+          "select": {
+            "gross": {
+              "expectancy": -0.18091993355481728,
+              "lower": -0.23005833862456182,
+              "n": 903,
+              "upper": -0.13178152848507274
+            },
+            "net": {
+              "expectancy": -0.23966389811738648,
+              "lower": -0.28974160550011074,
+              "n": 903,
+              "upper": -0.1895861907346622
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -21.522100000000016,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2095874861572536,
+          "selectExpectancyDelta": -0.05496774716867284,
+          "selectTotalDelta": -94.47559999999999,
+          "select": {
+            "gross": {
+              "expectancy": -0.14281439645625693,
+              "lower": -0.19075243093682162,
+              "n": 903,
+              "upper": -0.09487636197569224
+            },
+            "net": {
+              "expectancy": -0.2095874861572536,
+              "lower": -0.2589218939956631,
+              "n": 903,
+              "upper": -0.16025307831884406
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "NQUSD": {
       "heldOut": false,
@@ -1519,7 +3822,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -818.864999999997,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.11926818984114541,
+          "selectExpectancyDelta": -0.05737575956226092,
+          "selectTotalDelta": -297.4485000000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.04146352225926655,
+              "lower": -0.06495369900513229,
+              "n": 5099,
+              "upper": -0.017973345513400803
+            },
+            "net": {
+              "expectancy": -0.11926818984114541,
+              "lower": -0.14356382271072793,
+              "n": 5099,
+              "upper": -0.0949725569715629
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -522.1692999999989,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.0836318297705433,
+          "selectExpectancyDelta": -0.021739399491658803,
+          "selectTotalDelta": -115.73870000000011,
+          "select": {
+            "gross": {
+              "expectancy": 0.005348676211021791,
+              "lower": -0.01757458025595375,
+              "n": 5099,
+              "upper": 0.02827193267799733
+            },
+            "net": {
+              "expectancy": -0.0836318297705433,
+              "lower": -0.1073245728544738,
+              "n": 5099,
+              "upper": -0.059939086686612804
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "NZDCAD": {
       "heldOut": false,
@@ -1550,7 +3902,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "NZDUSD": {
       "heldOut": false,
@@ -1581,7 +3982,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "PAUSD": {
       "heldOut": false,
@@ -1612,7 +4062,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -818.864999999997,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.11926818984114541,
+          "selectExpectancyDelta": -0.05737575956226092,
+          "selectTotalDelta": -297.4485000000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.04146352225926655,
+              "lower": -0.06495369900513229,
+              "n": 5099,
+              "upper": -0.017973345513400803
+            },
+            "net": {
+              "expectancy": -0.11926818984114541,
+              "lower": -0.14356382271072793,
+              "n": 5099,
+              "upper": -0.0949725569715629
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -522.1692999999989,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.0836318297705433,
+          "selectExpectancyDelta": -0.021739399491658803,
+          "selectTotalDelta": -115.73870000000011,
+          "select": {
+            "gross": {
+              "expectancy": 0.005348676211021791,
+              "lower": -0.01757458025595375,
+              "n": 5099,
+              "upper": 0.02827193267799733
+            },
+            "net": {
+              "expectancy": -0.0836318297705433,
+              "lower": -0.1073245728544738,
+              "n": 5099,
+              "upper": -0.059939086686612804
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "PLUSD": {
       "heldOut": false,
@@ -1643,7 +4142,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -818.864999999997,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.11926818984114541,
+          "selectExpectancyDelta": -0.05737575956226092,
+          "selectTotalDelta": -297.4485000000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.04146352225926655,
+              "lower": -0.06495369900513229,
+              "n": 5099,
+              "upper": -0.017973345513400803
+            },
+            "net": {
+              "expectancy": -0.11926818984114541,
+              "lower": -0.14356382271072793,
+              "n": 5099,
+              "upper": -0.0949725569715629
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -522.1692999999989,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.0836318297705433,
+          "selectExpectancyDelta": -0.021739399491658803,
+          "selectTotalDelta": -115.73870000000011,
+          "select": {
+            "gross": {
+              "expectancy": 0.005348676211021791,
+              "lower": -0.01757458025595375,
+              "n": 5099,
+              "upper": 0.02827193267799733
+            },
+            "net": {
+              "expectancy": -0.0836318297705433,
+              "lower": -0.1073245728544738,
+              "n": 5099,
+              "upper": -0.059939086686612804
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "RBUSD": {
       "heldOut": false,
@@ -1674,7 +4222,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -818.864999999997,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.11926818984114541,
+          "selectExpectancyDelta": -0.05737575956226092,
+          "selectTotalDelta": -297.4485000000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.04146352225926655,
+              "lower": -0.06495369900513229,
+              "n": 5099,
+              "upper": -0.017973345513400803
+            },
+            "net": {
+              "expectancy": -0.11926818984114541,
+              "lower": -0.14356382271072793,
+              "n": 5099,
+              "upper": -0.0949725569715629
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -522.1692999999989,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.0836318297705433,
+          "selectExpectancyDelta": -0.021739399491658803,
+          "selectTotalDelta": -115.73870000000011,
+          "select": {
+            "gross": {
+              "expectancy": 0.005348676211021791,
+              "lower": -0.01757458025595375,
+              "n": 5099,
+              "upper": 0.02827193267799733
+            },
+            "net": {
+              "expectancy": -0.0836318297705433,
+              "lower": -0.1073245728544738,
+              "n": 5099,
+              "upper": -0.059939086686612804
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "SIUSD": {
       "heldOut": false,
@@ -1705,7 +4302,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -818.864999999997,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.11926818984114541,
+          "selectExpectancyDelta": -0.05737575956226092,
+          "selectTotalDelta": -297.4485000000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.04146352225926655,
+              "lower": -0.06495369900513229,
+              "n": 5099,
+              "upper": -0.017973345513400803
+            },
+            "net": {
+              "expectancy": -0.11926818984114541,
+              "lower": -0.14356382271072793,
+              "n": 5099,
+              "upper": -0.0949725569715629
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -522.1692999999989,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.0836318297705433,
+          "selectExpectancyDelta": -0.021739399491658803,
+          "selectTotalDelta": -115.73870000000011,
+          "select": {
+            "gross": {
+              "expectancy": 0.005348676211021791,
+              "lower": -0.01757458025595375,
+              "n": 5099,
+              "upper": 0.02827193267799733
+            },
+            "net": {
+              "expectancy": -0.0836318297705433,
+              "lower": -0.1073245728544738,
+              "n": 5099,
+              "upper": -0.059939086686612804
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "SOLUSD": {
       "heldOut": false,
@@ -1736,7 +4382,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "SP": {
       "heldOut": false,
@@ -1767,7 +4462,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -25.555299999999995,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.23966389811738648,
+          "selectExpectancyDelta": -0.08504415912880572,
+          "selectTotalDelta": -121.63459999999998,
+          "select": {
+            "gross": {
+              "expectancy": -0.18091993355481728,
+              "lower": -0.23005833862456182,
+              "n": 903,
+              "upper": -0.13178152848507274
+            },
+            "net": {
+              "expectancy": -0.23966389811738648,
+              "lower": -0.28974160550011074,
+              "n": 903,
+              "upper": -0.1895861907346622
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -21.522100000000016,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2095874861572536,
+          "selectExpectancyDelta": -0.05496774716867284,
+          "selectTotalDelta": -94.47559999999999,
+          "select": {
+            "gross": {
+              "expectancy": -0.14281439645625693,
+              "lower": -0.19075243093682162,
+              "n": 903,
+              "upper": -0.09487636197569224
+            },
+            "net": {
+              "expectancy": -0.2095874861572536,
+              "lower": -0.2589218939956631,
+              "n": 903,
+              "upper": -0.16025307831884406
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "TRXUSD": {
       "heldOut": false,
@@ -1798,7 +4542,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "UNIUSD": {
       "heldOut": false,
@@ -1829,7 +4622,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "USDCAD": {
       "heldOut": false,
@@ -1860,7 +4702,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "USDCHF": {
       "heldOut": false,
@@ -1891,7 +4782,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "USDJPY": {
       "heldOut": false,
@@ -1922,7 +4862,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -14884.107399999983,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.06656081721771683,
+          "selectExpectancyDelta": -0.08687989186424802,
+          "selectTotalDelta": -6938.674700000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.018218014971927633,
+              "lower": -0.023466082245427376,
+              "n": 80150,
+              "upper": -0.012969947698427891
+            },
+            "net": {
+              "expectancy": -0.06656081721771683,
+              "lower": -0.07190504655181494,
+              "n": 80150,
+              "upper": -0.06121658788361871
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -6682.491899999988,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.007978033686837195,
+          "selectExpectancyDelta": -0.02829710833336839,
+          "selectTotalDelta": -2243.2646000000013,
+          "select": {
+            "gross": {
+              "expectancy": 0.04309348845913912,
+              "lower": 0.037995175058827955,
+              "n": 80150,
+              "upper": 0.04819180185945029
+            },
+            "net": {
+              "expectancy": -0.007978033686837195,
+              "lower": -0.013208184120717949,
+              "n": 80150,
+              "upper": -0.002747883252956442
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "WTI": {
       "heldOut": false,
@@ -1953,7 +4942,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -52.16409999999996,
+          "pairedP": 0.8501498501498501,
+          "reason": "fails",
+          "selectExpectancy": -0.34191041666666666,
+          "selectExpectancyDelta": -0.140173168344519,
+          "selectTotalDelta": -5.5291,
+          "select": {
+            "gross": {
+              "expectancy": -0.3319093749999999,
+              "lower": -0.4855649798711266,
+              "n": 192,
+              "upper": -0.17825377012887317
+            },
+            "net": {
+              "expectancy": -0.34191041666666666,
+              "lower": -0.49555033740589954,
+              "n": 192,
+              "upper": -0.18827049592743378
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -43.01350000000008,
+          "pairedP": 0.8071928071928072,
+          "reason": "fails",
+          "selectExpectancy": -0.3280380208333334,
+          "selectExpectancyDelta": -0.12630077251118574,
+          "selectTotalDelta": -2.8656000000000077,
+          "select": {
+            "gross": {
+              "expectancy": -0.31660625000000003,
+              "lower": -0.46621952427618174,
+              "n": 192,
+              "upper": -0.16699297572381833
+            },
+            "net": {
+              "expectancy": -0.3280380208333334,
+              "lower": -0.47782360146209113,
+              "n": 192,
+              "upper": -0.17825244020457562
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "XAUUSD": {
       "heldOut": false,
@@ -1984,7 +5022,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -228.397200000003,
+          "pairedP": 0.996003996003996,
+          "reason": "fails",
+          "selectExpectancy": -0.07633344195519334,
+          "selectExpectancyDelta": -0.029115811320969173,
+          "selectTotalDelta": -69.02399999999965,
+          "select": {
+            "gross": {
+              "expectancy": 0.004982077393075352,
+              "lower": -0.02246950206107421,
+              "n": 2455,
+              "upper": 0.03243365684722491
+            },
+            "net": {
+              "expectancy": -0.07633344195519334,
+              "lower": -0.10538392291573406,
+              "n": 2455,
+              "upper": -0.04728296099465262
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -86.00000000000108,
+          "pairedP": 0.935064935064935,
+          "reason": "fails",
+          "selectExpectancy": -0.05950309572301418,
+          "selectExpectancyDelta": -0.012285465088790012,
+          "selectTotalDelta": -27.705499999999816,
+          "select": {
+            "gross": {
+              "expectancy": 0.040653401221995976,
+              "lower": 0.014667552396936887,
+              "n": 2455,
+              "upper": 0.06663925004705507
+            },
+            "net": {
+              "expectancy": -0.05950309572301418,
+              "lower": -0.08682065409585044,
+              "n": 2455,
+              "upper": -0.032185537350177935
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "XRPUSD": {
       "heldOut": false,
@@ -2015,7 +5102,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "XTZUSD": {
       "heldOut": false,
@@ -2046,7 +5182,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -1210.8953000000013,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.2517136226484402,
+          "selectExpectancyDelta": -0.09968752075683063,
+          "selectTotalDelta": -3043.516700000002,
+          "select": {
+            "gross": {
+              "expectancy": -0.0958073964264162,
+              "lower": -0.1040329265070311,
+              "n": 38113,
+              "upper": -0.0875818663458013
+            },
+            "net": {
+              "expectancy": -0.2517136226484402,
+              "lower": -0.26022141775280017,
+              "n": 38113,
+              "upper": -0.24320582754408027
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": 581.1098000000006,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.22086436124157108,
+          "selectExpectancyDelta": -0.06883825934996149,
+          "selectTotalDelta": -1867.7587999999996,
+          "select": {
+            "gross": {
+              "expectancy": -0.05346510901792042,
+              "lower": -0.0612749565787988,
+              "n": 38113,
+              "upper": -0.04565526145704204
+            },
+            "net": {
+              "expectancy": -0.22086436124157108,
+              "lower": -0.2290595302989452,
+              "n": 38113,
+              "upper": -0.21266919218419694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZBUSD": {
       "heldOut": false,
@@ -2077,7 +5262,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -818.864999999997,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.11926818984114541,
+          "selectExpectancyDelta": -0.05737575956226092,
+          "selectTotalDelta": -297.4485000000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.04146352225926655,
+              "lower": -0.06495369900513229,
+              "n": 5099,
+              "upper": -0.017973345513400803
+            },
+            "net": {
+              "expectancy": -0.11926818984114541,
+              "lower": -0.14356382271072793,
+              "n": 5099,
+              "upper": -0.0949725569715629
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -522.1692999999989,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.0836318297705433,
+          "selectExpectancyDelta": -0.021739399491658803,
+          "selectTotalDelta": -115.73870000000011,
+          "select": {
+            "gross": {
+              "expectancy": 0.005348676211021791,
+              "lower": -0.01757458025595375,
+              "n": 5099,
+              "upper": 0.02827193267799733
+            },
+            "net": {
+              "expectancy": -0.0836318297705433,
+              "lower": -0.1073245728544738,
+              "n": 5099,
+              "upper": -0.059939086686612804
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZCUSX": {
       "heldOut": false,
@@ -2108,7 +5342,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -188.6688000000018,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.26848802039082464,
+          "selectExpectancyDelta": -0.15019166251275662,
+          "selectTotalDelta": -166.60210000000072,
+          "select": {
+            "gross": {
+              "expectancy": -0.11281053525913302,
+              "lower": -0.19182554987076156,
+              "n": 1177,
+              "upper": -0.03379552064750449
+            },
+            "net": {
+              "expectancy": -0.26848802039082464,
+              "lower": -0.3416726942674676,
+              "n": 1177,
+              "upper": -0.19530334651418169
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -154.32710000000145,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.24411750212404462,
+          "selectExpectancyDelta": -0.1258211442459766,
+          "selectTotalDelta": -137.9180000000006,
+          "select": {
+            "gross": {
+              "expectancy": -0.05449269328802015,
+              "lower": -0.1319239679363736,
+              "n": 1177,
+              "upper": 0.022938581360333297
+            },
+            "net": {
+              "expectancy": -0.24411750212404462,
+              "lower": -0.3169882302316323,
+              "n": 1177,
+              "upper": -0.17124677401645694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZFUSD": {
       "heldOut": false,
@@ -2139,7 +5422,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -818.864999999997,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.11926818984114541,
+          "selectExpectancyDelta": -0.05737575956226092,
+          "selectTotalDelta": -297.4485000000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.04146352225926655,
+              "lower": -0.06495369900513229,
+              "n": 5099,
+              "upper": -0.017973345513400803
+            },
+            "net": {
+              "expectancy": -0.11926818984114541,
+              "lower": -0.14356382271072793,
+              "n": 5099,
+              "upper": -0.0949725569715629
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -522.1692999999989,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.0836318297705433,
+          "selectExpectancyDelta": -0.021739399491658803,
+          "selectTotalDelta": -115.73870000000011,
+          "select": {
+            "gross": {
+              "expectancy": 0.005348676211021791,
+              "lower": -0.01757458025595375,
+              "n": 5099,
+              "upper": 0.02827193267799733
+            },
+            "net": {
+              "expectancy": -0.0836318297705433,
+              "lower": -0.1073245728544738,
+              "n": 5099,
+              "upper": -0.059939086686612804
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZLUSX": {
       "heldOut": false,
@@ -2170,7 +5502,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -188.6688000000018,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.26848802039082464,
+          "selectExpectancyDelta": -0.15019166251275662,
+          "selectTotalDelta": -166.60210000000072,
+          "select": {
+            "gross": {
+              "expectancy": -0.11281053525913302,
+              "lower": -0.19182554987076156,
+              "n": 1177,
+              "upper": -0.03379552064750449
+            },
+            "net": {
+              "expectancy": -0.26848802039082464,
+              "lower": -0.3416726942674676,
+              "n": 1177,
+              "upper": -0.19530334651418169
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -154.32710000000145,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.24411750212404462,
+          "selectExpectancyDelta": -0.1258211442459766,
+          "selectTotalDelta": -137.9180000000006,
+          "select": {
+            "gross": {
+              "expectancy": -0.05449269328802015,
+              "lower": -0.1319239679363736,
+              "n": 1177,
+              "upper": 0.022938581360333297
+            },
+            "net": {
+              "expectancy": -0.24411750212404462,
+              "lower": -0.3169882302316323,
+              "n": 1177,
+              "upper": -0.17124677401645694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZNUSD": {
       "heldOut": false,
@@ -2201,7 +5582,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -818.864999999997,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.11926818984114541,
+          "selectExpectancyDelta": -0.05737575956226092,
+          "selectTotalDelta": -297.4485000000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.04146352225926655,
+              "lower": -0.06495369900513229,
+              "n": 5099,
+              "upper": -0.017973345513400803
+            },
+            "net": {
+              "expectancy": -0.11926818984114541,
+              "lower": -0.14356382271072793,
+              "n": 5099,
+              "upper": -0.0949725569715629
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -522.1692999999989,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.0836318297705433,
+          "selectExpectancyDelta": -0.021739399491658803,
+          "selectTotalDelta": -115.73870000000011,
+          "select": {
+            "gross": {
+              "expectancy": 0.005348676211021791,
+              "lower": -0.01757458025595375,
+              "n": 5099,
+              "upper": 0.02827193267799733
+            },
+            "net": {
+              "expectancy": -0.0836318297705433,
+              "lower": -0.1073245728544738,
+              "n": 5099,
+              "upper": -0.059939086686612804
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZOUSX": {
       "heldOut": false,
@@ -2232,7 +5662,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -188.6688000000018,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.26848802039082464,
+          "selectExpectancyDelta": -0.15019166251275662,
+          "selectTotalDelta": -166.60210000000072,
+          "select": {
+            "gross": {
+              "expectancy": -0.11281053525913302,
+              "lower": -0.19182554987076156,
+              "n": 1177,
+              "upper": -0.03379552064750449
+            },
+            "net": {
+              "expectancy": -0.26848802039082464,
+              "lower": -0.3416726942674676,
+              "n": 1177,
+              "upper": -0.19530334651418169
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -154.32710000000145,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.24411750212404462,
+          "selectExpectancyDelta": -0.1258211442459766,
+          "selectTotalDelta": -137.9180000000006,
+          "select": {
+            "gross": {
+              "expectancy": -0.05449269328802015,
+              "lower": -0.1319239679363736,
+              "n": 1177,
+              "upper": 0.022938581360333297
+            },
+            "net": {
+              "expectancy": -0.24411750212404462,
+              "lower": -0.3169882302316323,
+              "n": 1177,
+              "upper": -0.17124677401645694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZRUSD": {
       "heldOut": false,
@@ -2263,7 +5742,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -188.6688000000018,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.26848802039082464,
+          "selectExpectancyDelta": -0.15019166251275662,
+          "selectTotalDelta": -166.60210000000072,
+          "select": {
+            "gross": {
+              "expectancy": -0.11281053525913302,
+              "lower": -0.19182554987076156,
+              "n": 1177,
+              "upper": -0.03379552064750449
+            },
+            "net": {
+              "expectancy": -0.26848802039082464,
+              "lower": -0.3416726942674676,
+              "n": 1177,
+              "upper": -0.19530334651418169
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -154.32710000000145,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.24411750212404462,
+          "selectExpectancyDelta": -0.1258211442459766,
+          "selectTotalDelta": -137.9180000000006,
+          "select": {
+            "gross": {
+              "expectancy": -0.05449269328802015,
+              "lower": -0.1319239679363736,
+              "n": 1177,
+              "upper": 0.022938581360333297
+            },
+            "net": {
+              "expectancy": -0.24411750212404462,
+              "lower": -0.3169882302316323,
+              "n": 1177,
+              "upper": -0.17124677401645694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZSUSX": {
       "heldOut": false,
@@ -2294,7 +5822,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -188.6688000000018,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.26848802039082464,
+          "selectExpectancyDelta": -0.15019166251275662,
+          "selectTotalDelta": -166.60210000000072,
+          "select": {
+            "gross": {
+              "expectancy": -0.11281053525913302,
+              "lower": -0.19182554987076156,
+              "n": 1177,
+              "upper": -0.03379552064750449
+            },
+            "net": {
+              "expectancy": -0.26848802039082464,
+              "lower": -0.3416726942674676,
+              "n": 1177,
+              "upper": -0.19530334651418169
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -154.32710000000145,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.24411750212404462,
+          "selectExpectancyDelta": -0.1258211442459766,
+          "selectTotalDelta": -137.9180000000006,
+          "select": {
+            "gross": {
+              "expectancy": -0.05449269328802015,
+              "lower": -0.1319239679363736,
+              "n": 1177,
+              "upper": 0.022938581360333297
+            },
+            "net": {
+              "expectancy": -0.24411750212404462,
+              "lower": -0.3169882302316323,
+              "n": 1177,
+              "upper": -0.17124677401645694
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZTUSD": {
       "heldOut": false,
@@ -2325,7 +5902,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "symbolOverride=none,runnerProtection=breakeven,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -818.864999999997,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.11926818984114541,
+          "selectExpectancyDelta": -0.05737575956226092,
+          "selectTotalDelta": -297.4485000000003,
+          "select": {
+            "gross": {
+              "expectancy": -0.04146352225926655,
+              "lower": -0.06495369900513229,
+              "n": 5099,
+              "upper": -0.017973345513400803
+            },
+            "net": {
+              "expectancy": -0.11926818984114541,
+              "lower": -0.14356382271072793,
+              "n": 5099,
+              "upper": -0.0949725569715629
+            }
+          },
+          "derived": false
+        },
+        "symbolOverride=none,runnerProtection=trail_tp1,confidenceThreshold=0": {
+          "accepted": false,
+          "fitTotalDelta": -522.1692999999989,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.0836318297705433,
+          "selectExpectancyDelta": -0.021739399491658803,
+          "selectTotalDelta": -115.73870000000011,
+          "select": {
+            "gross": {
+              "expectancy": 0.005348676211021791,
+              "lower": -0.01757458025595375,
+              "n": 5099,
+              "upper": 0.02827193267799733
+            },
+            "net": {
+              "expectancy": -0.0836318297705433,
+              "lower": -0.1073245728544738,
+              "n": 5099,
+              "upper": -0.059939086686612804
+            }
+          },
+          "derived": false
+        }
+      }
     }
   },
   "rules": {

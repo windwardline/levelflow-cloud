@@ -7,7 +7,7 @@
   },
   "corpusNote": "confirm fold sealed — not read; every figure here is a fit/select figure",
   "derived": {},
-  "derivedAt": "2026-09-03T08:56:26.556Z",
+  "derivedAt": "2026-09-03T09:21:05.643Z",
   "foldSource": "emitted",
   "heldOut": [
     "AAVEUSD",
@@ -62,7 +62,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ALGOUSD": {
       "heldOut": false,
@@ -93,7 +142,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ASX": {
       "heldOut": false,
@@ -124,7 +222,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 2.2055000000000096,
+          "pairedP": 0.001998001998001998,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1009R is not positive beyond its error (95% lower -0.1579R over 482 filled)",
+          "selectExpectancy": -0.10092240663900415,
+          "selectExpectancyDelta": 0.053697332349576604,
+          "selectTotalDelta": 46.13730000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.06150352697095436,
+              "lower": -0.11762486263540553,
+              "n": 482,
+              "upper": -0.005382191306503199
+            },
+            "net": {
+              "expectancy": -0.10092240663900415,
+              "lower": -0.15788930971029702,
+              "n": 482,
+              "upper": -0.04395550356771127
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 2.0811000000000064,
+          "pairedP": 0.001998001998001998,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0994R is not positive beyond its error (95% lower -0.1552R over 506 filled)",
+          "selectExpectancy": -0.0994096837944664,
+          "selectExpectancyDelta": 0.05521005519411436,
+          "selectTotalDelta": 44.48060000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.06780790513833992,
+              "lower": -0.12311444786379858,
+              "n": 506,
+              "upper": -0.012501362412881273
+            },
+            "net": {
+              "expectancy": -0.0994096837944664,
+              "lower": -0.15520419768569577,
+              "n": 506,
+              "upper": -0.04361516990323701
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ATOMUSD": {
       "heldOut": false,
@@ -155,7 +302,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "AUDCAD": {
       "heldOut": false,
@@ -186,7 +382,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "AUDJPY": {
       "heldOut": false,
@@ -217,7 +462,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "AUDUSD": {
       "heldOut": false,
@@ -248,7 +542,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "AVAXUSD": {
       "heldOut": false,
@@ -279,7 +622,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "BCHUSD": {
       "heldOut": false,
@@ -310,7 +702,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "BTCUSD": {
       "heldOut": false,
@@ -341,7 +782,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "CADCHF": {
       "heldOut": false,
@@ -372,7 +862,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "CADJPY": {
       "heldOut": false,
@@ -403,7 +942,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "CHFJPY": {
       "heldOut": false,
@@ -434,7 +1022,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "CLUSD": {
       "heldOut": false,
@@ -465,7 +1102,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 591.0400000000002,
+          "pairedP": 0.000999000999000999,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0285R is not positive beyond its error (95% lower -0.0504R over 4585 filled)",
+          "selectExpectancy": -0.028486870229007664,
+          "selectExpectancyDelta": 0.03340556004987683,
+          "selectTotalDelta": 180.0877,
+          "select": {
+            "gross": {
+              "expectancy": 0.009726870229007638,
+              "lower": -0.011690760278874602,
+              "n": 4585,
+              "upper": 0.031144500736889878
+            },
+            "net": {
+              "expectancy": -0.028486870229007664,
+              "lower": -0.050371487806642704,
+              "n": 4585,
+              "upper": -0.006602252651372625
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 514.8476999999998,
+          "pairedP": 0.27472527472527475,
+          "reason": "fails",
+          "selectExpectancy": -0.0520028750244475,
+          "selectExpectancyDelta": 0.009889555254437,
+          "selectTotalDelta": 44.80930000000012,
+          "select": {
+            "gross": {
+              "expectancy": -0.00942161157832976,
+              "lower": -0.03152267680372092,
+              "n": 5113,
+              "upper": 0.012679453647061403
+            },
+            "net": {
+              "expectancy": -0.0520028750244475,
+              "lower": -0.07458717924633526,
+              "n": 5113,
+              "upper": -0.029418570802559732
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "DAX": {
       "heldOut": false,
@@ -496,7 +1182,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 2.2055000000000096,
+          "pairedP": 0.001998001998001998,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1009R is not positive beyond its error (95% lower -0.1579R over 482 filled)",
+          "selectExpectancy": -0.10092240663900415,
+          "selectExpectancyDelta": 0.053697332349576604,
+          "selectTotalDelta": 46.13730000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.06150352697095436,
+              "lower": -0.11762486263540553,
+              "n": 482,
+              "upper": -0.005382191306503199
+            },
+            "net": {
+              "expectancy": -0.10092240663900415,
+              "lower": -0.15788930971029702,
+              "n": 482,
+              "upper": -0.04395550356771127
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 2.0811000000000064,
+          "pairedP": 0.001998001998001998,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0994R is not positive beyond its error (95% lower -0.1552R over 506 filled)",
+          "selectExpectancy": -0.0994096837944664,
+          "selectExpectancyDelta": 0.05521005519411436,
+          "selectTotalDelta": 44.48060000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.06780790513833992,
+              "lower": -0.12311444786379858,
+              "n": 506,
+              "upper": -0.012501362412881273
+            },
+            "net": {
+              "expectancy": -0.0994096837944664,
+              "lower": -0.15520419768569577,
+              "n": 506,
+              "upper": -0.04361516990323701
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "DOGEUSD": {
       "heldOut": false,
@@ -527,7 +1262,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "DOTUSD": {
       "heldOut": false,
@@ -558,7 +1342,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "DOW": {
       "heldOut": false,
@@ -589,7 +1422,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 2.2055000000000096,
+          "pairedP": 0.001998001998001998,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1009R is not positive beyond its error (95% lower -0.1579R over 482 filled)",
+          "selectExpectancy": -0.10092240663900415,
+          "selectExpectancyDelta": 0.053697332349576604,
+          "selectTotalDelta": 46.13730000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.06150352697095436,
+              "lower": -0.11762486263540553,
+              "n": 482,
+              "upper": -0.005382191306503199
+            },
+            "net": {
+              "expectancy": -0.10092240663900415,
+              "lower": -0.15788930971029702,
+              "n": 482,
+              "upper": -0.04395550356771127
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 2.0811000000000064,
+          "pairedP": 0.001998001998001998,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0994R is not positive beyond its error (95% lower -0.1552R over 506 filled)",
+          "selectExpectancy": -0.0994096837944664,
+          "selectExpectancyDelta": 0.05521005519411436,
+          "selectTotalDelta": 44.48060000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.06780790513833992,
+              "lower": -0.12311444786379858,
+              "n": 506,
+              "upper": -0.012501362412881273
+            },
+            "net": {
+              "expectancy": -0.0994096837944664,
+              "lower": -0.15520419768569577,
+              "n": 506,
+              "upper": -0.04361516990323701
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "DYDXUSD": {
       "heldOut": false,
@@ -620,7 +1502,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EGLDUSD": {
       "heldOut": false,
@@ -651,7 +1582,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ESUSD": {
       "heldOut": false,
@@ -682,7 +1662,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 591.0400000000002,
+          "pairedP": 0.000999000999000999,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0285R is not positive beyond its error (95% lower -0.0504R over 4585 filled)",
+          "selectExpectancy": -0.028486870229007664,
+          "selectExpectancyDelta": 0.03340556004987683,
+          "selectTotalDelta": 180.0877,
+          "select": {
+            "gross": {
+              "expectancy": 0.009726870229007638,
+              "lower": -0.011690760278874602,
+              "n": 4585,
+              "upper": 0.031144500736889878
+            },
+            "net": {
+              "expectancy": -0.028486870229007664,
+              "lower": -0.050371487806642704,
+              "n": 4585,
+              "upper": -0.006602252651372625
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 514.8476999999998,
+          "pairedP": 0.27472527472527475,
+          "reason": "fails",
+          "selectExpectancy": -0.0520028750244475,
+          "selectExpectancyDelta": 0.009889555254437,
+          "selectTotalDelta": 44.80930000000012,
+          "select": {
+            "gross": {
+              "expectancy": -0.00942161157832976,
+              "lower": -0.03152267680372092,
+              "n": 5113,
+              "upper": 0.012679453647061403
+            },
+            "net": {
+              "expectancy": -0.0520028750244475,
+              "lower": -0.07458717924633526,
+              "n": 5113,
+              "upper": -0.029418570802559732
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ETCUSD": {
       "heldOut": false,
@@ -713,7 +1742,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ETHUSD": {
       "heldOut": false,
@@ -744,7 +1822,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURAUD": {
       "heldOut": false,
@@ -775,7 +1902,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURCAD": {
       "heldOut": false,
@@ -806,7 +1982,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURCHF": {
       "heldOut": false,
@@ -837,7 +2062,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURGBP": {
       "heldOut": false,
@@ -868,7 +2142,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURJPY": {
       "heldOut": false,
@@ -899,7 +2222,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURNZD": {
       "heldOut": false,
@@ -930,7 +2302,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "FILUSD": {
       "heldOut": false,
@@ -961,7 +2382,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GBPAUD": {
       "heldOut": false,
@@ -992,7 +2462,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GBPCHF": {
       "heldOut": false,
@@ -1023,7 +2542,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GBPJPY": {
       "heldOut": false,
@@ -1054,7 +2622,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GBPNZD": {
       "heldOut": false,
@@ -1085,7 +2702,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GBPUSD": {
       "heldOut": false,
@@ -1116,7 +2782,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GCUSD": {
       "heldOut": false,
@@ -1147,7 +2862,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 591.0400000000002,
+          "pairedP": 0.000999000999000999,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0285R is not positive beyond its error (95% lower -0.0504R over 4585 filled)",
+          "selectExpectancy": -0.028486870229007664,
+          "selectExpectancyDelta": 0.03340556004987683,
+          "selectTotalDelta": 180.0877,
+          "select": {
+            "gross": {
+              "expectancy": 0.009726870229007638,
+              "lower": -0.011690760278874602,
+              "n": 4585,
+              "upper": 0.031144500736889878
+            },
+            "net": {
+              "expectancy": -0.028486870229007664,
+              "lower": -0.050371487806642704,
+              "n": 4585,
+              "upper": -0.006602252651372625
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 514.8476999999998,
+          "pairedP": 0.27472527472527475,
+          "reason": "fails",
+          "selectExpectancy": -0.0520028750244475,
+          "selectExpectancyDelta": 0.009889555254437,
+          "selectTotalDelta": 44.80930000000012,
+          "select": {
+            "gross": {
+              "expectancy": -0.00942161157832976,
+              "lower": -0.03152267680372092,
+              "n": 5113,
+              "upper": 0.012679453647061403
+            },
+            "net": {
+              "expectancy": -0.0520028750244475,
+              "lower": -0.07458717924633526,
+              "n": 5113,
+              "upper": -0.029418570802559732
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GFUSX": {
       "heldOut": false,
@@ -1178,7 +2942,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -2.6762999999999924,
+          "pairedP": 0.7692307692307693,
+          "reason": "THIN (61 filled)",
+          "selectExpectancy": 0.0692360655737705,
+          "selectExpectancyDelta": 0.07204430086788814,
+          "selectTotalDelta": 4.700799999999999,
+          "select": {
+            "gross": {
+              "expectancy": 0.11697868852459017,
+              "lower": -0.18399685589938145,
+              "n": 61,
+              "upper": 0.4179542329485618
+            },
+            "net": {
+              "expectancy": 0.0692360655737705,
+              "lower": -0.2354188322283411,
+              "n": 61,
+              "upper": 0.37389096337588207
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": -1.8630999999999975,
+          "pairedP": 0.8631368631368631,
+          "reason": "THIN (62 filled)",
+          "selectExpectancy": 0.004822580645161325,
+          "selectExpectancyDelta": 0.007630815939278964,
+          "selectTotalDelta": 0.7764000000000006,
+          "select": {
+            "gross": {
+              "expectancy": 0.05155000000000006,
+              "lower": -0.17794669382124217,
+              "n": 62,
+              "upper": 0.2810466938212423
+            },
+            "net": {
+              "expectancy": 0.004822580645161325,
+              "lower": -0.22842562474607137,
+              "n": 62,
+              "upper": 0.23807078603639403
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GRTUSD": {
       "heldOut": false,
@@ -1209,7 +3022,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "HBARUSD": {
       "heldOut": false,
@@ -1240,7 +3102,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "HGUSD": {
       "heldOut": false,
@@ -1271,7 +3182,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 591.0400000000002,
+          "pairedP": 0.000999000999000999,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0285R is not positive beyond its error (95% lower -0.0504R over 4585 filled)",
+          "selectExpectancy": -0.028486870229007664,
+          "selectExpectancyDelta": 0.03340556004987683,
+          "selectTotalDelta": 180.0877,
+          "select": {
+            "gross": {
+              "expectancy": 0.009726870229007638,
+              "lower": -0.011690760278874602,
+              "n": 4585,
+              "upper": 0.031144500736889878
+            },
+            "net": {
+              "expectancy": -0.028486870229007664,
+              "lower": -0.050371487806642704,
+              "n": 4585,
+              "upper": -0.006602252651372625
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 514.8476999999998,
+          "pairedP": 0.27472527472527475,
+          "reason": "fails",
+          "selectExpectancy": -0.0520028750244475,
+          "selectExpectancyDelta": 0.009889555254437,
+          "selectTotalDelta": 44.80930000000012,
+          "select": {
+            "gross": {
+              "expectancy": -0.00942161157832976,
+              "lower": -0.03152267680372092,
+              "n": 5113,
+              "upper": 0.012679453647061403
+            },
+            "net": {
+              "expectancy": -0.0520028750244475,
+              "lower": -0.07458717924633526,
+              "n": 5113,
+              "upper": -0.029418570802559732
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "HOUSD": {
       "heldOut": false,
@@ -1302,7 +3262,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 591.0400000000002,
+          "pairedP": 0.000999000999000999,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0285R is not positive beyond its error (95% lower -0.0504R over 4585 filled)",
+          "selectExpectancy": -0.028486870229007664,
+          "selectExpectancyDelta": 0.03340556004987683,
+          "selectTotalDelta": 180.0877,
+          "select": {
+            "gross": {
+              "expectancy": 0.009726870229007638,
+              "lower": -0.011690760278874602,
+              "n": 4585,
+              "upper": 0.031144500736889878
+            },
+            "net": {
+              "expectancy": -0.028486870229007664,
+              "lower": -0.050371487806642704,
+              "n": 4585,
+              "upper": -0.006602252651372625
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 514.8476999999998,
+          "pairedP": 0.27472527472527475,
+          "reason": "fails",
+          "selectExpectancy": -0.0520028750244475,
+          "selectExpectancyDelta": 0.009889555254437,
+          "selectTotalDelta": 44.80930000000012,
+          "select": {
+            "gross": {
+              "expectancy": -0.00942161157832976,
+              "lower": -0.03152267680372092,
+              "n": 5113,
+              "upper": 0.012679453647061403
+            },
+            "net": {
+              "expectancy": -0.0520028750244475,
+              "lower": -0.07458717924633526,
+              "n": 5113,
+              "upper": -0.029418570802559732
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "IMXUSD": {
       "heldOut": false,
@@ -1333,7 +3342,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "LEUSX": {
       "heldOut": false,
@@ -1364,7 +3422,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -2.6762999999999924,
+          "pairedP": 0.7692307692307693,
+          "reason": "THIN (61 filled)",
+          "selectExpectancy": 0.0692360655737705,
+          "selectExpectancyDelta": 0.07204430086788814,
+          "selectTotalDelta": 4.700799999999999,
+          "select": {
+            "gross": {
+              "expectancy": 0.11697868852459017,
+              "lower": -0.18399685589938145,
+              "n": 61,
+              "upper": 0.4179542329485618
+            },
+            "net": {
+              "expectancy": 0.0692360655737705,
+              "lower": -0.2354188322283411,
+              "n": 61,
+              "upper": 0.37389096337588207
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": -1.8630999999999975,
+          "pairedP": 0.8631368631368631,
+          "reason": "THIN (62 filled)",
+          "selectExpectancy": 0.004822580645161325,
+          "selectExpectancyDelta": 0.007630815939278964,
+          "selectTotalDelta": 0.7764000000000006,
+          "select": {
+            "gross": {
+              "expectancy": 0.05155000000000006,
+              "lower": -0.17794669382124217,
+              "n": 62,
+              "upper": 0.2810466938212423
+            },
+            "net": {
+              "expectancy": 0.004822580645161325,
+              "lower": -0.22842562474607137,
+              "n": 62,
+              "upper": 0.23807078603639403
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "LINKUSD": {
       "heldOut": false,
@@ -1395,7 +3502,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "LTCUSD": {
       "heldOut": false,
@@ -1426,7 +3582,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "NEARUSD": {
       "heldOut": false,
@@ -1457,7 +3662,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "NIKKEI": {
       "heldOut": false,
@@ -1488,7 +3742,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 2.2055000000000096,
+          "pairedP": 0.001998001998001998,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1009R is not positive beyond its error (95% lower -0.1579R over 482 filled)",
+          "selectExpectancy": -0.10092240663900415,
+          "selectExpectancyDelta": 0.053697332349576604,
+          "selectTotalDelta": 46.13730000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.06150352697095436,
+              "lower": -0.11762486263540553,
+              "n": 482,
+              "upper": -0.005382191306503199
+            },
+            "net": {
+              "expectancy": -0.10092240663900415,
+              "lower": -0.15788930971029702,
+              "n": 482,
+              "upper": -0.04395550356771127
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 2.0811000000000064,
+          "pairedP": 0.001998001998001998,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0994R is not positive beyond its error (95% lower -0.1552R over 506 filled)",
+          "selectExpectancy": -0.0994096837944664,
+          "selectExpectancyDelta": 0.05521005519411436,
+          "selectTotalDelta": 44.48060000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.06780790513833992,
+              "lower": -0.12311444786379858,
+              "n": 506,
+              "upper": -0.012501362412881273
+            },
+            "net": {
+              "expectancy": -0.0994096837944664,
+              "lower": -0.15520419768569577,
+              "n": 506,
+              "upper": -0.04361516990323701
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "NQUSD": {
       "heldOut": false,
@@ -1519,7 +3822,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 591.0400000000002,
+          "pairedP": 0.000999000999000999,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0285R is not positive beyond its error (95% lower -0.0504R over 4585 filled)",
+          "selectExpectancy": -0.028486870229007664,
+          "selectExpectancyDelta": 0.03340556004987683,
+          "selectTotalDelta": 180.0877,
+          "select": {
+            "gross": {
+              "expectancy": 0.009726870229007638,
+              "lower": -0.011690760278874602,
+              "n": 4585,
+              "upper": 0.031144500736889878
+            },
+            "net": {
+              "expectancy": -0.028486870229007664,
+              "lower": -0.050371487806642704,
+              "n": 4585,
+              "upper": -0.006602252651372625
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 514.8476999999998,
+          "pairedP": 0.27472527472527475,
+          "reason": "fails",
+          "selectExpectancy": -0.0520028750244475,
+          "selectExpectancyDelta": 0.009889555254437,
+          "selectTotalDelta": 44.80930000000012,
+          "select": {
+            "gross": {
+              "expectancy": -0.00942161157832976,
+              "lower": -0.03152267680372092,
+              "n": 5113,
+              "upper": 0.012679453647061403
+            },
+            "net": {
+              "expectancy": -0.0520028750244475,
+              "lower": -0.07458717924633526,
+              "n": 5113,
+              "upper": -0.029418570802559732
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "NZDCAD": {
       "heldOut": false,
@@ -1550,7 +3902,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "NZDUSD": {
       "heldOut": false,
@@ -1581,7 +3982,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "PAUSD": {
       "heldOut": false,
@@ -1612,7 +4062,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 591.0400000000002,
+          "pairedP": 0.000999000999000999,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0285R is not positive beyond its error (95% lower -0.0504R over 4585 filled)",
+          "selectExpectancy": -0.028486870229007664,
+          "selectExpectancyDelta": 0.03340556004987683,
+          "selectTotalDelta": 180.0877,
+          "select": {
+            "gross": {
+              "expectancy": 0.009726870229007638,
+              "lower": -0.011690760278874602,
+              "n": 4585,
+              "upper": 0.031144500736889878
+            },
+            "net": {
+              "expectancy": -0.028486870229007664,
+              "lower": -0.050371487806642704,
+              "n": 4585,
+              "upper": -0.006602252651372625
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 514.8476999999998,
+          "pairedP": 0.27472527472527475,
+          "reason": "fails",
+          "selectExpectancy": -0.0520028750244475,
+          "selectExpectancyDelta": 0.009889555254437,
+          "selectTotalDelta": 44.80930000000012,
+          "select": {
+            "gross": {
+              "expectancy": -0.00942161157832976,
+              "lower": -0.03152267680372092,
+              "n": 5113,
+              "upper": 0.012679453647061403
+            },
+            "net": {
+              "expectancy": -0.0520028750244475,
+              "lower": -0.07458717924633526,
+              "n": 5113,
+              "upper": -0.029418570802559732
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "PLUSD": {
       "heldOut": false,
@@ -1643,7 +4142,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 591.0400000000002,
+          "pairedP": 0.000999000999000999,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0285R is not positive beyond its error (95% lower -0.0504R over 4585 filled)",
+          "selectExpectancy": -0.028486870229007664,
+          "selectExpectancyDelta": 0.03340556004987683,
+          "selectTotalDelta": 180.0877,
+          "select": {
+            "gross": {
+              "expectancy": 0.009726870229007638,
+              "lower": -0.011690760278874602,
+              "n": 4585,
+              "upper": 0.031144500736889878
+            },
+            "net": {
+              "expectancy": -0.028486870229007664,
+              "lower": -0.050371487806642704,
+              "n": 4585,
+              "upper": -0.006602252651372625
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 514.8476999999998,
+          "pairedP": 0.27472527472527475,
+          "reason": "fails",
+          "selectExpectancy": -0.0520028750244475,
+          "selectExpectancyDelta": 0.009889555254437,
+          "selectTotalDelta": 44.80930000000012,
+          "select": {
+            "gross": {
+              "expectancy": -0.00942161157832976,
+              "lower": -0.03152267680372092,
+              "n": 5113,
+              "upper": 0.012679453647061403
+            },
+            "net": {
+              "expectancy": -0.0520028750244475,
+              "lower": -0.07458717924633526,
+              "n": 5113,
+              "upper": -0.029418570802559732
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "RBUSD": {
       "heldOut": false,
@@ -1674,7 +4222,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 591.0400000000002,
+          "pairedP": 0.000999000999000999,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0285R is not positive beyond its error (95% lower -0.0504R over 4585 filled)",
+          "selectExpectancy": -0.028486870229007664,
+          "selectExpectancyDelta": 0.03340556004987683,
+          "selectTotalDelta": 180.0877,
+          "select": {
+            "gross": {
+              "expectancy": 0.009726870229007638,
+              "lower": -0.011690760278874602,
+              "n": 4585,
+              "upper": 0.031144500736889878
+            },
+            "net": {
+              "expectancy": -0.028486870229007664,
+              "lower": -0.050371487806642704,
+              "n": 4585,
+              "upper": -0.006602252651372625
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 514.8476999999998,
+          "pairedP": 0.27472527472527475,
+          "reason": "fails",
+          "selectExpectancy": -0.0520028750244475,
+          "selectExpectancyDelta": 0.009889555254437,
+          "selectTotalDelta": 44.80930000000012,
+          "select": {
+            "gross": {
+              "expectancy": -0.00942161157832976,
+              "lower": -0.03152267680372092,
+              "n": 5113,
+              "upper": 0.012679453647061403
+            },
+            "net": {
+              "expectancy": -0.0520028750244475,
+              "lower": -0.07458717924633526,
+              "n": 5113,
+              "upper": -0.029418570802559732
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "SIUSD": {
       "heldOut": false,
@@ -1705,7 +4302,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 591.0400000000002,
+          "pairedP": 0.000999000999000999,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0285R is not positive beyond its error (95% lower -0.0504R over 4585 filled)",
+          "selectExpectancy": -0.028486870229007664,
+          "selectExpectancyDelta": 0.03340556004987683,
+          "selectTotalDelta": 180.0877,
+          "select": {
+            "gross": {
+              "expectancy": 0.009726870229007638,
+              "lower": -0.011690760278874602,
+              "n": 4585,
+              "upper": 0.031144500736889878
+            },
+            "net": {
+              "expectancy": -0.028486870229007664,
+              "lower": -0.050371487806642704,
+              "n": 4585,
+              "upper": -0.006602252651372625
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 514.8476999999998,
+          "pairedP": 0.27472527472527475,
+          "reason": "fails",
+          "selectExpectancy": -0.0520028750244475,
+          "selectExpectancyDelta": 0.009889555254437,
+          "selectTotalDelta": 44.80930000000012,
+          "select": {
+            "gross": {
+              "expectancy": -0.00942161157832976,
+              "lower": -0.03152267680372092,
+              "n": 5113,
+              "upper": 0.012679453647061403
+            },
+            "net": {
+              "expectancy": -0.0520028750244475,
+              "lower": -0.07458717924633526,
+              "n": 5113,
+              "upper": -0.029418570802559732
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "SOLUSD": {
       "heldOut": false,
@@ -1736,7 +4382,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "SP": {
       "heldOut": false,
@@ -1767,7 +4462,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 2.2055000000000096,
+          "pairedP": 0.001998001998001998,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1009R is not positive beyond its error (95% lower -0.1579R over 482 filled)",
+          "selectExpectancy": -0.10092240663900415,
+          "selectExpectancyDelta": 0.053697332349576604,
+          "selectTotalDelta": 46.13730000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.06150352697095436,
+              "lower": -0.11762486263540553,
+              "n": 482,
+              "upper": -0.005382191306503199
+            },
+            "net": {
+              "expectancy": -0.10092240663900415,
+              "lower": -0.15788930971029702,
+              "n": 482,
+              "upper": -0.04395550356771127
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 2.0811000000000064,
+          "pairedP": 0.001998001998001998,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0994R is not positive beyond its error (95% lower -0.1552R over 506 filled)",
+          "selectExpectancy": -0.0994096837944664,
+          "selectExpectancyDelta": 0.05521005519411436,
+          "selectTotalDelta": 44.48060000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.06780790513833992,
+              "lower": -0.12311444786379858,
+              "n": 506,
+              "upper": -0.012501362412881273
+            },
+            "net": {
+              "expectancy": -0.0994096837944664,
+              "lower": -0.15520419768569577,
+              "n": 506,
+              "upper": -0.04361516990323701
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "TRXUSD": {
       "heldOut": false,
@@ -1798,7 +4542,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "UNIUSD": {
       "heldOut": false,
@@ -1829,7 +4622,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "USDCAD": {
       "heldOut": false,
@@ -1860,7 +4702,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "USDCHF": {
       "heldOut": false,
@@ -1891,7 +4782,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "USDJPY": {
       "heldOut": false,
@@ -1922,7 +4862,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": -25.938900000000615,
+          "pairedP": 0.6543456543456544,
+          "reason": "fails",
+          "selectExpectancy": 0.02075168954593454,
+          "selectExpectancyDelta": 0.00043261489940334824,
+          "selectTotalDelta": 7.626500000000533,
+          "select": {
+            "gross": {
+              "expectancy": 0.04444957761351635,
+              "lower": 0.04021409868352111,
+              "n": 77654,
+              "upper": 0.048685056543511594
+            },
+            "net": {
+              "expectancy": 0.02075168954593454,
+              "lower": 0.01642443072169949,
+              "n": 77654,
+              "upper": 0.025078948370169593
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": true,
+          "fitTotalDelta": 2.1770000000037157,
+          "pairedP": 0.008991008991008992,
+          "reason": "accept",
+          "selectExpectancy": 0.02304346570756539,
+          "selectExpectancyDelta": 0.002724391061034198,
+          "selectTotalDelta": 247.78640000000155,
+          "select": {
+            "gross": {
+              "expectancy": 0.04910190783169263,
+              "lower": 0.04488491486023575,
+              "n": 80353,
+              "upper": 0.053318900803149515
+            },
+            "net": {
+              "expectancy": 0.02304346570756539,
+              "lower": 0.018721918790519113,
+              "n": 80353,
+              "upper": 0.02736501262461167
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "WTI": {
       "heldOut": false,
@@ -1953,7 +4942,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 32.14139999999993,
+          "pairedP": 0.015984015984015984,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1859R is not positive beyond its error (95% lower -0.2855R over 269 filled)",
+          "selectExpectancy": -0.18589739776951672,
+          "selectExpectancyDelta": 0.01583985055263093,
+          "selectTotalDelta": 10.1113,
+          "select": {
+            "gross": {
+              "expectancy": -0.1691185873605948,
+              "lower": -0.26869860519647065,
+              "n": 269,
+              "upper": -0.06953856952471894
+            },
+            "net": {
+              "expectancy": -0.18589739776951672,
+              "lower": -0.2855065936893745,
+              "n": 269,
+              "upper": -0.08628820184965896
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 3.1479999999999393,
+          "pairedP": 0.999000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.20538523676880227,
+          "selectExpectancyDelta": -0.003647988446654621,
+          "selectTotalDelta": -13.615600000000015,
+          "select": {
+            "gross": {
+              "expectancy": -0.18567771587743728,
+              "lower": -0.2741499708106184,
+              "n": 359,
+              "upper": -0.09720546094425614
+            },
+            "net": {
+              "expectancy": -0.20538523676880227,
+              "lower": -0.29350622640634283,
+              "n": 359,
+              "upper": -0.11726424713126173
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "XAUUSD": {
       "heldOut": false,
@@ -1984,7 +5022,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 20.667899999999747,
+          "pairedP": 0.3856143856143856,
+          "reason": "fails",
+          "selectExpectancy": -0.04574106851549757,
+          "selectExpectancyDelta": 0.0014765621187265987,
+          "selectTotalDelta": 6.2174999999999585,
+          "select": {
+            "gross": {
+              "expectancy": 0.02256896411092982,
+              "lower": -0.0022956811772777627,
+              "n": 2452,
+              "upper": 0.047433609399137405
+            },
+            "net": {
+              "expectancy": -0.04574106851549757,
+              "lower": -0.07167743670718996,
+              "n": 2452,
+              "upper": -0.019804700323805182
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": -15.042099999999493,
+          "pairedP": 0.5314685314685315,
+          "reason": "fails",
+          "selectExpectancy": -0.04433486635220125,
+          "selectExpectancyDelta": 0.002882764282022922,
+          "selectTotalDelta": 5.586700000000022,
+          "select": {
+            "gross": {
+              "expectancy": 0.02306764937106915,
+              "lower": -0.00143368639179918,
+              "n": 2544,
+              "upper": 0.04756898513393748
+            },
+            "net": {
+              "expectancy": -0.04433486635220125,
+              "lower": -0.069930893015512,
+              "n": 2544,
+              "upper": -0.018738839688890497
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "XRPUSD": {
       "heldOut": false,
@@ -2015,7 +5102,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "XTZUSD": {
       "heldOut": false,
@@ -2046,7 +5182,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 368.30049999999966,
+          "pairedP": 0.04295704295704296,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.1327R is not positive beyond its error (95% lower -0.1391R over 47515 filled)",
+          "selectExpectancy": -0.13270522150899713,
+          "selectExpectancyDelta": 0.019320880382612454,
+          "selectTotalDelta": 244.5560000000005,
+          "select": {
+            "gross": {
+              "expectancy": -0.0384659665368831,
+              "lower": -0.044482435700122405,
+              "n": 47515,
+              "upper": -0.03244949737364379
+            },
+            "net": {
+              "expectancy": -0.13270522150899713,
+              "lower": -0.13905372053760418,
+              "n": 47515,
+              "upper": -0.1263567224803901
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 341.69550000000044,
+          "pairedP": 0.15984015984015984,
+          "reason": "fails",
+          "selectExpectancy": -0.13215743723158235,
+          "selectExpectancyDelta": 0.019868664660027235,
+          "selectTotalDelta": 149.39560000000256,
+          "select": {
+            "gross": {
+              "expectancy": -0.03495746200858935,
+              "lower": -0.04094004367607262,
+              "n": 48432,
+              "upper": -0.02897488034110609
+            },
+            "net": {
+              "expectancy": -0.13215743723158235,
+              "lower": -0.13847985858228848,
+              "n": 48432,
+              "upper": -0.12583501588087623
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZBUSD": {
       "heldOut": false,
@@ -2077,7 +5262,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 591.0400000000002,
+          "pairedP": 0.000999000999000999,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0285R is not positive beyond its error (95% lower -0.0504R over 4585 filled)",
+          "selectExpectancy": -0.028486870229007664,
+          "selectExpectancyDelta": 0.03340556004987683,
+          "selectTotalDelta": 180.0877,
+          "select": {
+            "gross": {
+              "expectancy": 0.009726870229007638,
+              "lower": -0.011690760278874602,
+              "n": 4585,
+              "upper": 0.031144500736889878
+            },
+            "net": {
+              "expectancy": -0.028486870229007664,
+              "lower": -0.050371487806642704,
+              "n": 4585,
+              "upper": -0.006602252651372625
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 514.8476999999998,
+          "pairedP": 0.27472527472527475,
+          "reason": "fails",
+          "selectExpectancy": -0.0520028750244475,
+          "selectExpectancyDelta": 0.009889555254437,
+          "selectTotalDelta": 44.80930000000012,
+          "select": {
+            "gross": {
+              "expectancy": -0.00942161157832976,
+              "lower": -0.03152267680372092,
+              "n": 5113,
+              "upper": 0.012679453647061403
+            },
+            "net": {
+              "expectancy": -0.0520028750244475,
+              "lower": -0.07458717924633526,
+              "n": 5113,
+              "upper": -0.029418570802559732
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZCUSX": {
       "heldOut": false,
@@ -2108,7 +5342,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 84.06470000000024,
+          "pairedP": 0.5484515484515484,
+          "reason": "fails",
+          "selectExpectancy": -0.10518695652173912,
+          "selectExpectancyDelta": 0.013109401356328904,
+          "selectTotalDelta": 4.250299999999925,
+          "select": {
+            "gross": {
+              "expectancy": -0.030749565217391254,
+              "lower": -0.07557441200179355,
+              "n": 1380,
+              "upper": 0.01407528156701104
+            },
+            "net": {
+              "expectancy": -0.10518695652173912,
+              "lower": -0.14724004823239054,
+              "n": 1380,
+              "upper": -0.06313386481108771
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 16.068100000000186,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.12854388631857244,
+          "selectExpectancyDelta": -0.010247528440504416,
+          "selectTotalDelta": -45.07860000000019,
+          "select": {
+            "gross": {
+              "expectancy": -0.014174421678783829,
+              "lower": -0.06500619400126048,
+              "n": 1513,
+              "upper": 0.03665735064369282
+            },
+            "net": {
+              "expectancy": -0.12854388631857244,
+              "lower": -0.1746101868607253,
+              "n": 1513,
+              "upper": -0.08247758577641959
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZFUSD": {
       "heldOut": false,
@@ -2139,7 +5422,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 591.0400000000002,
+          "pairedP": 0.000999000999000999,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0285R is not positive beyond its error (95% lower -0.0504R over 4585 filled)",
+          "selectExpectancy": -0.028486870229007664,
+          "selectExpectancyDelta": 0.03340556004987683,
+          "selectTotalDelta": 180.0877,
+          "select": {
+            "gross": {
+              "expectancy": 0.009726870229007638,
+              "lower": -0.011690760278874602,
+              "n": 4585,
+              "upper": 0.031144500736889878
+            },
+            "net": {
+              "expectancy": -0.028486870229007664,
+              "lower": -0.050371487806642704,
+              "n": 4585,
+              "upper": -0.006602252651372625
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 514.8476999999998,
+          "pairedP": 0.27472527472527475,
+          "reason": "fails",
+          "selectExpectancy": -0.0520028750244475,
+          "selectExpectancyDelta": 0.009889555254437,
+          "selectTotalDelta": 44.80930000000012,
+          "select": {
+            "gross": {
+              "expectancy": -0.00942161157832976,
+              "lower": -0.03152267680372092,
+              "n": 5113,
+              "upper": 0.012679453647061403
+            },
+            "net": {
+              "expectancy": -0.0520028750244475,
+              "lower": -0.07458717924633526,
+              "n": 5113,
+              "upper": -0.029418570802559732
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZLUSX": {
       "heldOut": false,
@@ -2170,7 +5502,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 84.06470000000024,
+          "pairedP": 0.5484515484515484,
+          "reason": "fails",
+          "selectExpectancy": -0.10518695652173912,
+          "selectExpectancyDelta": 0.013109401356328904,
+          "selectTotalDelta": 4.250299999999925,
+          "select": {
+            "gross": {
+              "expectancy": -0.030749565217391254,
+              "lower": -0.07557441200179355,
+              "n": 1380,
+              "upper": 0.01407528156701104
+            },
+            "net": {
+              "expectancy": -0.10518695652173912,
+              "lower": -0.14724004823239054,
+              "n": 1380,
+              "upper": -0.06313386481108771
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 16.068100000000186,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.12854388631857244,
+          "selectExpectancyDelta": -0.010247528440504416,
+          "selectTotalDelta": -45.07860000000019,
+          "select": {
+            "gross": {
+              "expectancy": -0.014174421678783829,
+              "lower": -0.06500619400126048,
+              "n": 1513,
+              "upper": 0.03665735064369282
+            },
+            "net": {
+              "expectancy": -0.12854388631857244,
+              "lower": -0.1746101868607253,
+              "n": 1513,
+              "upper": -0.08247758577641959
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZNUSD": {
       "heldOut": false,
@@ -2201,7 +5582,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 591.0400000000002,
+          "pairedP": 0.000999000999000999,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0285R is not positive beyond its error (95% lower -0.0504R over 4585 filled)",
+          "selectExpectancy": -0.028486870229007664,
+          "selectExpectancyDelta": 0.03340556004987683,
+          "selectTotalDelta": 180.0877,
+          "select": {
+            "gross": {
+              "expectancy": 0.009726870229007638,
+              "lower": -0.011690760278874602,
+              "n": 4585,
+              "upper": 0.031144500736889878
+            },
+            "net": {
+              "expectancy": -0.028486870229007664,
+              "lower": -0.050371487806642704,
+              "n": 4585,
+              "upper": -0.006602252651372625
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 514.8476999999998,
+          "pairedP": 0.27472527472527475,
+          "reason": "fails",
+          "selectExpectancy": -0.0520028750244475,
+          "selectExpectancyDelta": 0.009889555254437,
+          "selectTotalDelta": 44.80930000000012,
+          "select": {
+            "gross": {
+              "expectancy": -0.00942161157832976,
+              "lower": -0.03152267680372092,
+              "n": 5113,
+              "upper": 0.012679453647061403
+            },
+            "net": {
+              "expectancy": -0.0520028750244475,
+              "lower": -0.07458717924633526,
+              "n": 5113,
+              "upper": -0.029418570802559732
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZOUSX": {
       "heldOut": false,
@@ -2232,7 +5662,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 84.06470000000024,
+          "pairedP": 0.5484515484515484,
+          "reason": "fails",
+          "selectExpectancy": -0.10518695652173912,
+          "selectExpectancyDelta": 0.013109401356328904,
+          "selectTotalDelta": 4.250299999999925,
+          "select": {
+            "gross": {
+              "expectancy": -0.030749565217391254,
+              "lower": -0.07557441200179355,
+              "n": 1380,
+              "upper": 0.01407528156701104
+            },
+            "net": {
+              "expectancy": -0.10518695652173912,
+              "lower": -0.14724004823239054,
+              "n": 1380,
+              "upper": -0.06313386481108771
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 16.068100000000186,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.12854388631857244,
+          "selectExpectancyDelta": -0.010247528440504416,
+          "selectTotalDelta": -45.07860000000019,
+          "select": {
+            "gross": {
+              "expectancy": -0.014174421678783829,
+              "lower": -0.06500619400126048,
+              "n": 1513,
+              "upper": 0.03665735064369282
+            },
+            "net": {
+              "expectancy": -0.12854388631857244,
+              "lower": -0.1746101868607253,
+              "n": 1513,
+              "upper": -0.08247758577641959
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZRUSD": {
       "heldOut": false,
@@ -2263,7 +5742,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 84.06470000000024,
+          "pairedP": 0.5484515484515484,
+          "reason": "fails",
+          "selectExpectancy": -0.10518695652173912,
+          "selectExpectancyDelta": 0.013109401356328904,
+          "selectTotalDelta": 4.250299999999925,
+          "select": {
+            "gross": {
+              "expectancy": -0.030749565217391254,
+              "lower": -0.07557441200179355,
+              "n": 1380,
+              "upper": 0.01407528156701104
+            },
+            "net": {
+              "expectancy": -0.10518695652173912,
+              "lower": -0.14724004823239054,
+              "n": 1380,
+              "upper": -0.06313386481108771
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 16.068100000000186,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.12854388631857244,
+          "selectExpectancyDelta": -0.010247528440504416,
+          "selectTotalDelta": -45.07860000000019,
+          "select": {
+            "gross": {
+              "expectancy": -0.014174421678783829,
+              "lower": -0.06500619400126048,
+              "n": 1513,
+              "upper": 0.03665735064369282
+            },
+            "net": {
+              "expectancy": -0.12854388631857244,
+              "lower": -0.1746101868607253,
+              "n": 1513,
+              "upper": -0.08247758577641959
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZSUSX": {
       "heldOut": false,
@@ -2294,7 +5822,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 84.06470000000024,
+          "pairedP": 0.5484515484515484,
+          "reason": "fails",
+          "selectExpectancy": -0.10518695652173912,
+          "selectExpectancyDelta": 0.013109401356328904,
+          "selectTotalDelta": 4.250299999999925,
+          "select": {
+            "gross": {
+              "expectancy": -0.030749565217391254,
+              "lower": -0.07557441200179355,
+              "n": 1380,
+              "upper": 0.01407528156701104
+            },
+            "net": {
+              "expectancy": -0.10518695652173912,
+              "lower": -0.14724004823239054,
+              "n": 1380,
+              "upper": -0.06313386481108771
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 16.068100000000186,
+          "pairedP": 0.99000999000999,
+          "reason": "fails",
+          "selectExpectancy": -0.12854388631857244,
+          "selectExpectancyDelta": -0.010247528440504416,
+          "selectTotalDelta": -45.07860000000019,
+          "select": {
+            "gross": {
+              "expectancy": -0.014174421678783829,
+              "lower": -0.06500619400126048,
+              "n": 1513,
+              "upper": 0.03665735064369282
+            },
+            "net": {
+              "expectancy": -0.12854388631857244,
+              "lower": -0.1746101868607253,
+              "n": 1513,
+              "upper": -0.08247758577641959
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZTUSD": {
       "heldOut": false,
@@ -2325,7 +5902,56 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday": {
+          "accepted": false,
+          "fitTotalDelta": 591.0400000000002,
+          "pairedP": 0.000999000999000999,
+          "reason": "LOSES MONEY — beat the baseline on every delta, but its own select-fold expectancy -0.0285R is not positive beyond its error (95% lower -0.0504R over 4585 filled)",
+          "selectExpectancy": -0.028486870229007664,
+          "selectExpectancyDelta": 0.03340556004987683,
+          "selectTotalDelta": 180.0877,
+          "select": {
+            "gross": {
+              "expectancy": 0.009726870229007638,
+              "lower": -0.011690760278874602,
+              "n": 4585,
+              "upper": 0.031144500736889878
+            },
+            "net": {
+              "expectancy": -0.028486870229007664,
+              "lower": -0.050371487806642704,
+              "n": 4585,
+              "upper": -0.006602252651372625
+            }
+          },
+          "derived": false
+        },
+        "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily": {
+          "accepted": false,
+          "fitTotalDelta": 514.8476999999998,
+          "pairedP": 0.27472527472527475,
+          "reason": "fails",
+          "selectExpectancy": -0.0520028750244475,
+          "selectExpectancyDelta": 0.009889555254437,
+          "selectTotalDelta": 44.80930000000012,
+          "select": {
+            "gross": {
+              "expectancy": -0.00942161157832976,
+              "lower": -0.03152267680372092,
+              "n": 5113,
+              "upper": 0.012679453647061403
+            },
+            "net": {
+              "expectancy": -0.0520028750244475,
+              "lower": -0.07458717924633526,
+              "n": 5113,
+              "upper": -0.029418570802559732
+            }
+          },
+          "derived": false
+        }
+      }
     }
   },
   "rules": {

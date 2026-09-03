@@ -7,7 +7,7 @@
   },
   "corpusNote": "confirm fold sealed — not read; every figure here is a fit/select figure",
   "derived": {},
-  "derivedAt": "2026-09-03T08:35:07.709Z",
+  "derivedAt": "2026-09-03T09:22:05.754Z",
   "foldSource": "emitted",
   "heldOut": [
     "AAVEUSD",
@@ -62,7 +62,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ALGOUSD": {
       "heldOut": false,
@@ -93,7 +118,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ASX": {
       "heldOut": false,
@@ -124,7 +174,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 3.2270000000000074,
+          "pairedP": 0.42957042957042957,
+          "reason": "fails",
+          "selectExpectancy": -0.14018522388059704,
+          "selectExpectancyDelta": 0.014434515107983714,
+          "selectTotalDelta": 0.8577999999999975,
+          "select": {
+            "gross": {
+              "expectancy": -0.09477985074626871,
+              "lower": -0.1706075507896968,
+              "n": 670,
+              "upper": -0.018952150702840634
+            },
+            "net": {
+              "expectancy": -0.14018522388059704,
+              "lower": -0.21747417228620006,
+              "n": 670,
+              "upper": -0.06289627547499402
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ATOMUSD": {
       "heldOut": false,
@@ -155,7 +230,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "AUDCAD": {
       "heldOut": false,
@@ -186,7 +286,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "AUDJPY": {
       "heldOut": false,
@@ -217,7 +342,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "AUDUSD": {
       "heldOut": false,
@@ -248,7 +398,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "AVAXUSD": {
       "heldOut": false,
@@ -279,7 +454,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "BCHUSD": {
       "heldOut": false,
@@ -310,7 +510,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "BTCUSD": {
       "heldOut": false,
@@ -341,7 +566,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "CADCHF": {
       "heldOut": false,
@@ -372,7 +622,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "CADJPY": {
       "heldOut": false,
@@ -403,7 +678,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "CHFJPY": {
       "heldOut": false,
@@ -434,7 +734,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "CLUSD": {
       "heldOut": false,
@@ -465,7 +790,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -229.36519999999905,
+          "pairedP": 0.998001998001998,
+          "reason": "fails",
+          "selectExpectancy": -0.06761755424063119,
+          "selectExpectancyDelta": -0.005725123961746695,
+          "selectTotalDelta": -100.68520000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.010008908612754809,
+              "lower": -0.029635319916163753,
+              "n": 6084,
+              "upper": 0.009617502690654135
+            },
+            "net": {
+              "expectancy": -0.06761755424063119,
+              "lower": -0.08780731704683238,
+              "n": 6084,
+              "upper": -0.04742779143443
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "DAX": {
       "heldOut": false,
@@ -496,7 +846,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 3.2270000000000074,
+          "pairedP": 0.42957042957042957,
+          "reason": "fails",
+          "selectExpectancy": -0.14018522388059704,
+          "selectExpectancyDelta": 0.014434515107983714,
+          "selectTotalDelta": 0.8577999999999975,
+          "select": {
+            "gross": {
+              "expectancy": -0.09477985074626871,
+              "lower": -0.1706075507896968,
+              "n": 670,
+              "upper": -0.018952150702840634
+            },
+            "net": {
+              "expectancy": -0.14018522388059704,
+              "lower": -0.21747417228620006,
+              "n": 670,
+              "upper": -0.06289627547499402
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "DOGEUSD": {
       "heldOut": false,
@@ -527,7 +902,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "DOTUSD": {
       "heldOut": false,
@@ -558,7 +958,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "DOW": {
       "heldOut": false,
@@ -589,7 +1014,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 3.2270000000000074,
+          "pairedP": 0.42957042957042957,
+          "reason": "fails",
+          "selectExpectancy": -0.14018522388059704,
+          "selectExpectancyDelta": 0.014434515107983714,
+          "selectTotalDelta": 0.8577999999999975,
+          "select": {
+            "gross": {
+              "expectancy": -0.09477985074626871,
+              "lower": -0.1706075507896968,
+              "n": 670,
+              "upper": -0.018952150702840634
+            },
+            "net": {
+              "expectancy": -0.14018522388059704,
+              "lower": -0.21747417228620006,
+              "n": 670,
+              "upper": -0.06289627547499402
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "DYDXUSD": {
       "heldOut": false,
@@ -620,7 +1070,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EGLDUSD": {
       "heldOut": false,
@@ -651,7 +1126,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ESUSD": {
       "heldOut": false,
@@ -682,7 +1182,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -229.36519999999905,
+          "pairedP": 0.998001998001998,
+          "reason": "fails",
+          "selectExpectancy": -0.06761755424063119,
+          "selectExpectancyDelta": -0.005725123961746695,
+          "selectTotalDelta": -100.68520000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.010008908612754809,
+              "lower": -0.029635319916163753,
+              "n": 6084,
+              "upper": 0.009617502690654135
+            },
+            "net": {
+              "expectancy": -0.06761755424063119,
+              "lower": -0.08780731704683238,
+              "n": 6084,
+              "upper": -0.04742779143443
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ETCUSD": {
       "heldOut": false,
@@ -713,7 +1238,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ETHUSD": {
       "heldOut": false,
@@ -744,7 +1294,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURAUD": {
       "heldOut": false,
@@ -775,7 +1350,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURCAD": {
       "heldOut": false,
@@ -806,7 +1406,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURCHF": {
       "heldOut": false,
@@ -837,7 +1462,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURGBP": {
       "heldOut": false,
@@ -868,7 +1518,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURJPY": {
       "heldOut": false,
@@ -899,7 +1574,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "EURNZD": {
       "heldOut": false,
@@ -930,7 +1630,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "FILUSD": {
       "heldOut": false,
@@ -961,7 +1686,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GBPAUD": {
       "heldOut": false,
@@ -992,7 +1742,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GBPCHF": {
       "heldOut": false,
@@ -1023,7 +1798,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GBPJPY": {
       "heldOut": false,
@@ -1054,7 +1854,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GBPNZD": {
       "heldOut": false,
@@ -1085,7 +1910,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GBPUSD": {
       "heldOut": false,
@@ -1116,7 +1966,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GCUSD": {
       "heldOut": false,
@@ -1147,7 +2022,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -229.36519999999905,
+          "pairedP": 0.998001998001998,
+          "reason": "fails",
+          "selectExpectancy": -0.06761755424063119,
+          "selectExpectancyDelta": -0.005725123961746695,
+          "selectTotalDelta": -100.68520000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.010008908612754809,
+              "lower": -0.029635319916163753,
+              "n": 6084,
+              "upper": 0.009617502690654135
+            },
+            "net": {
+              "expectancy": -0.06761755424063119,
+              "lower": -0.08780731704683238,
+              "n": 6084,
+              "upper": -0.04742779143443
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GFUSX": {
       "heldOut": false,
@@ -1178,7 +2078,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0.09199999999999697,
+          "pairedP": 0.993006993006993,
+          "reason": "fails",
+          "selectExpectancy": -0.023405288461538436,
+          "selectExpectancyDelta": -0.020597053167420797,
+          "selectTotalDelta": -4.390899999999996,
+          "select": {
+            "gross": {
+              "expectancy": 0.04492019230769232,
+              "lower": -0.0969014767826469,
+              "n": 208,
+              "upper": 0.18674186139803153
+            },
+            "net": {
+              "expectancy": -0.023405288461538436,
+              "lower": -0.16487602435986198,
+              "n": 208,
+              "upper": 0.1180654474367851
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "GRTUSD": {
       "heldOut": false,
@@ -1209,7 +2134,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "HBARUSD": {
       "heldOut": false,
@@ -1240,7 +2190,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "HGUSD": {
       "heldOut": false,
@@ -1271,7 +2246,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -229.36519999999905,
+          "pairedP": 0.998001998001998,
+          "reason": "fails",
+          "selectExpectancy": -0.06761755424063119,
+          "selectExpectancyDelta": -0.005725123961746695,
+          "selectTotalDelta": -100.68520000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.010008908612754809,
+              "lower": -0.029635319916163753,
+              "n": 6084,
+              "upper": 0.009617502690654135
+            },
+            "net": {
+              "expectancy": -0.06761755424063119,
+              "lower": -0.08780731704683238,
+              "n": 6084,
+              "upper": -0.04742779143443
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "HOUSD": {
       "heldOut": false,
@@ -1302,7 +2302,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -229.36519999999905,
+          "pairedP": 0.998001998001998,
+          "reason": "fails",
+          "selectExpectancy": -0.06761755424063119,
+          "selectExpectancyDelta": -0.005725123961746695,
+          "selectTotalDelta": -100.68520000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.010008908612754809,
+              "lower": -0.029635319916163753,
+              "n": 6084,
+              "upper": 0.009617502690654135
+            },
+            "net": {
+              "expectancy": -0.06761755424063119,
+              "lower": -0.08780731704683238,
+              "n": 6084,
+              "upper": -0.04742779143443
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "IMXUSD": {
       "heldOut": false,
@@ -1333,7 +2358,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "LEUSX": {
       "heldOut": false,
@@ -1364,7 +2414,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 0.09199999999999697,
+          "pairedP": 0.993006993006993,
+          "reason": "fails",
+          "selectExpectancy": -0.023405288461538436,
+          "selectExpectancyDelta": -0.020597053167420797,
+          "selectTotalDelta": -4.390899999999996,
+          "select": {
+            "gross": {
+              "expectancy": 0.04492019230769232,
+              "lower": -0.0969014767826469,
+              "n": 208,
+              "upper": 0.18674186139803153
+            },
+            "net": {
+              "expectancy": -0.023405288461538436,
+              "lower": -0.16487602435986198,
+              "n": 208,
+              "upper": 0.1180654474367851
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "LINKUSD": {
       "heldOut": false,
@@ -1395,7 +2470,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "LTCUSD": {
       "heldOut": false,
@@ -1426,7 +2526,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "NEARUSD": {
       "heldOut": false,
@@ -1457,7 +2582,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "NIKKEI": {
       "heldOut": false,
@@ -1488,7 +2638,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 3.2270000000000074,
+          "pairedP": 0.42957042957042957,
+          "reason": "fails",
+          "selectExpectancy": -0.14018522388059704,
+          "selectExpectancyDelta": 0.014434515107983714,
+          "selectTotalDelta": 0.8577999999999975,
+          "select": {
+            "gross": {
+              "expectancy": -0.09477985074626871,
+              "lower": -0.1706075507896968,
+              "n": 670,
+              "upper": -0.018952150702840634
+            },
+            "net": {
+              "expectancy": -0.14018522388059704,
+              "lower": -0.21747417228620006,
+              "n": 670,
+              "upper": -0.06289627547499402
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "NQUSD": {
       "heldOut": false,
@@ -1519,7 +2694,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -229.36519999999905,
+          "pairedP": 0.998001998001998,
+          "reason": "fails",
+          "selectExpectancy": -0.06761755424063119,
+          "selectExpectancyDelta": -0.005725123961746695,
+          "selectTotalDelta": -100.68520000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.010008908612754809,
+              "lower": -0.029635319916163753,
+              "n": 6084,
+              "upper": 0.009617502690654135
+            },
+            "net": {
+              "expectancy": -0.06761755424063119,
+              "lower": -0.08780731704683238,
+              "n": 6084,
+              "upper": -0.04742779143443
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "NZDCAD": {
       "heldOut": false,
@@ -1550,7 +2750,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "NZDUSD": {
       "heldOut": false,
@@ -1581,7 +2806,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "PAUSD": {
       "heldOut": false,
@@ -1612,7 +2862,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -229.36519999999905,
+          "pairedP": 0.998001998001998,
+          "reason": "fails",
+          "selectExpectancy": -0.06761755424063119,
+          "selectExpectancyDelta": -0.005725123961746695,
+          "selectTotalDelta": -100.68520000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.010008908612754809,
+              "lower": -0.029635319916163753,
+              "n": 6084,
+              "upper": 0.009617502690654135
+            },
+            "net": {
+              "expectancy": -0.06761755424063119,
+              "lower": -0.08780731704683238,
+              "n": 6084,
+              "upper": -0.04742779143443
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "PLUSD": {
       "heldOut": false,
@@ -1643,7 +2918,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -229.36519999999905,
+          "pairedP": 0.998001998001998,
+          "reason": "fails",
+          "selectExpectancy": -0.06761755424063119,
+          "selectExpectancyDelta": -0.005725123961746695,
+          "selectTotalDelta": -100.68520000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.010008908612754809,
+              "lower": -0.029635319916163753,
+              "n": 6084,
+              "upper": 0.009617502690654135
+            },
+            "net": {
+              "expectancy": -0.06761755424063119,
+              "lower": -0.08780731704683238,
+              "n": 6084,
+              "upper": -0.04742779143443
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "RBUSD": {
       "heldOut": false,
@@ -1674,7 +2974,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -229.36519999999905,
+          "pairedP": 0.998001998001998,
+          "reason": "fails",
+          "selectExpectancy": -0.06761755424063119,
+          "selectExpectancyDelta": -0.005725123961746695,
+          "selectTotalDelta": -100.68520000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.010008908612754809,
+              "lower": -0.029635319916163753,
+              "n": 6084,
+              "upper": 0.009617502690654135
+            },
+            "net": {
+              "expectancy": -0.06761755424063119,
+              "lower": -0.08780731704683238,
+              "n": 6084,
+              "upper": -0.04742779143443
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "SIUSD": {
       "heldOut": false,
@@ -1705,7 +3030,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -229.36519999999905,
+          "pairedP": 0.998001998001998,
+          "reason": "fails",
+          "selectExpectancy": -0.06761755424063119,
+          "selectExpectancyDelta": -0.005725123961746695,
+          "selectTotalDelta": -100.68520000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.010008908612754809,
+              "lower": -0.029635319916163753,
+              "n": 6084,
+              "upper": 0.009617502690654135
+            },
+            "net": {
+              "expectancy": -0.06761755424063119,
+              "lower": -0.08780731704683238,
+              "n": 6084,
+              "upper": -0.04742779143443
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "SOLUSD": {
       "heldOut": false,
@@ -1736,7 +3086,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "SP": {
       "heldOut": false,
@@ -1767,7 +3142,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 3.2270000000000074,
+          "pairedP": 0.42957042957042957,
+          "reason": "fails",
+          "selectExpectancy": -0.14018522388059704,
+          "selectExpectancyDelta": 0.014434515107983714,
+          "selectTotalDelta": 0.8577999999999975,
+          "select": {
+            "gross": {
+              "expectancy": -0.09477985074626871,
+              "lower": -0.1706075507896968,
+              "n": 670,
+              "upper": -0.018952150702840634
+            },
+            "net": {
+              "expectancy": -0.14018522388059704,
+              "lower": -0.21747417228620006,
+              "n": 670,
+              "upper": -0.06289627547499402
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "TRXUSD": {
       "heldOut": false,
@@ -1798,7 +3198,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "UNIUSD": {
       "heldOut": false,
@@ -1829,7 +3254,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "USDCAD": {
       "heldOut": false,
@@ -1860,7 +3310,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "USDCHF": {
       "heldOut": false,
@@ -1891,7 +3366,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "USDJPY": {
       "heldOut": false,
@@ -1922,7 +3422,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": true,
+          "fitTotalDelta": 378.05100000000243,
+          "pairedP": 0.000999000999000999,
+          "reason": "accept",
+          "selectExpectancy": 0.023911981639759432,
+          "selectExpectancyDelta": 0.003592906993228239,
+          "selectTotalDelta": 511.2374000000009,
+          "select": {
+            "gross": {
+              "expectancy": 0.04845291457513678,
+              "lower": 0.044312627848319956,
+              "n": 88452,
+              "upper": 0.0525932013019536
+            },
+            "net": {
+              "expectancy": 0.023911981639759432,
+              "lower": 0.01967813219384681,
+              "n": 88452,
+              "upper": 0.028145831085672052
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "WTI": {
       "heldOut": false,
@@ -1953,7 +3478,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -30.082899999999967,
+          "pairedP": 0.994005994005994,
+          "reason": "fails",
+          "selectExpectancy": -0.2082471887550202,
+          "selectExpectancyDelta": -0.006509940432872563,
+          "selectTotalDelta": -43.58940000000007,
+          "select": {
+            "gross": {
+              "expectancy": -0.18900461847389566,
+              "lower": -0.2702928164329961,
+              "n": 498,
+              "upper": -0.10771642051479521
+            },
+            "net": {
+              "expectancy": -0.2082471887550202,
+              "lower": -0.2900864790914009,
+              "n": 498,
+              "upper": -0.12640789841863953
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "XAUUSD": {
       "heldOut": false,
@@ -1984,7 +3534,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -84.42199999999997,
+          "pairedP": 0.8361638361638362,
+          "reason": "fails",
+          "selectExpectancy": -0.046734390651085145,
+          "selectExpectancyDelta": 0.00048323998313902494,
+          "selectTotalDelta": -21.59490000000001,
+          "select": {
+            "gross": {
+              "expectancy": 0.026282737896494174,
+              "lower": 0.002560543705168398,
+              "n": 2995,
+              "upper": 0.05000493208781995
+            },
+            "net": {
+              "expectancy": -0.046734390651085145,
+              "lower": -0.07158852915343718,
+              "n": 2995,
+              "upper": -0.02188025214873311
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "XRPUSD": {
       "heldOut": false,
@@ -2015,7 +3590,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "XTZUSD": {
       "heldOut": false,
@@ -2046,7 +3646,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": 1811.7262000000007,
+          "pairedP": 1,
+          "reason": "fails",
+          "selectExpectancy": -0.14708225302188505,
+          "selectExpectancyDelta": 0.004943848869724543,
+          "selectTotalDelta": -835.9849000000022,
+          "select": {
+            "gross": {
+              "expectancy": -0.021906816416751296,
+              "lower": -0.02825684423084527,
+              "n": 50217,
+              "upper": -0.015556788602657322
+            },
+            "net": {
+              "expectancy": -0.14708225302188505,
+              "lower": -0.1537649515507348,
+              "n": 50217,
+              "upper": -0.1403995544930353
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZBUSD": {
       "heldOut": false,
@@ -2077,7 +3702,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -229.36519999999905,
+          "pairedP": 0.998001998001998,
+          "reason": "fails",
+          "selectExpectancy": -0.06761755424063119,
+          "selectExpectancyDelta": -0.005725123961746695,
+          "selectTotalDelta": -100.68520000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.010008908612754809,
+              "lower": -0.029635319916163753,
+              "n": 6084,
+              "upper": 0.009617502690654135
+            },
+            "net": {
+              "expectancy": -0.06761755424063119,
+              "lower": -0.08780731704683238,
+              "n": 6084,
+              "upper": -0.04742779143443
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZCUSX": {
       "heldOut": false,
@@ -2108,7 +3758,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -67.21560000000022,
+          "pairedP": 0.6163836163836164,
+          "reason": "fails",
+          "selectExpectancy": -0.09228274668205425,
+          "selectExpectancyDelta": 0.02601361119601378,
+          "selectTotalDelta": -10.517700000000104,
+          "select": {
+            "gross": {
+              "expectancy": 0.027376110790536715,
+              "lower": -0.01982155302471613,
+              "n": 1733,
+              "upper": 0.07457377460578957
+            },
+            "net": {
+              "expectancy": -0.09228274668205425,
+              "lower": -0.142106875571322,
+              "n": 1733,
+              "upper": -0.04245861779278648
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZFUSD": {
       "heldOut": false,
@@ -2139,7 +3814,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -229.36519999999905,
+          "pairedP": 0.998001998001998,
+          "reason": "fails",
+          "selectExpectancy": -0.06761755424063119,
+          "selectExpectancyDelta": -0.005725123961746695,
+          "selectTotalDelta": -100.68520000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.010008908612754809,
+              "lower": -0.029635319916163753,
+              "n": 6084,
+              "upper": 0.009617502690654135
+            },
+            "net": {
+              "expectancy": -0.06761755424063119,
+              "lower": -0.08780731704683238,
+              "n": 6084,
+              "upper": -0.04742779143443
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZLUSX": {
       "heldOut": false,
@@ -2170,7 +3870,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -67.21560000000022,
+          "pairedP": 0.6163836163836164,
+          "reason": "fails",
+          "selectExpectancy": -0.09228274668205425,
+          "selectExpectancyDelta": 0.02601361119601378,
+          "selectTotalDelta": -10.517700000000104,
+          "select": {
+            "gross": {
+              "expectancy": 0.027376110790536715,
+              "lower": -0.01982155302471613,
+              "n": 1733,
+              "upper": 0.07457377460578957
+            },
+            "net": {
+              "expectancy": -0.09228274668205425,
+              "lower": -0.142106875571322,
+              "n": 1733,
+              "upper": -0.04245861779278648
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZNUSD": {
       "heldOut": false,
@@ -2201,7 +3926,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -229.36519999999905,
+          "pairedP": 0.998001998001998,
+          "reason": "fails",
+          "selectExpectancy": -0.06761755424063119,
+          "selectExpectancyDelta": -0.005725123961746695,
+          "selectTotalDelta": -100.68520000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.010008908612754809,
+              "lower": -0.029635319916163753,
+              "n": 6084,
+              "upper": 0.009617502690654135
+            },
+            "net": {
+              "expectancy": -0.06761755424063119,
+              "lower": -0.08780731704683238,
+              "n": 6084,
+              "upper": -0.04742779143443
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZOUSX": {
       "heldOut": false,
@@ -2232,7 +3982,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -67.21560000000022,
+          "pairedP": 0.6163836163836164,
+          "reason": "fails",
+          "selectExpectancy": -0.09228274668205425,
+          "selectExpectancyDelta": 0.02601361119601378,
+          "selectTotalDelta": -10.517700000000104,
+          "select": {
+            "gross": {
+              "expectancy": 0.027376110790536715,
+              "lower": -0.01982155302471613,
+              "n": 1733,
+              "upper": 0.07457377460578957
+            },
+            "net": {
+              "expectancy": -0.09228274668205425,
+              "lower": -0.142106875571322,
+              "n": 1733,
+              "upper": -0.04245861779278648
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZRUSD": {
       "heldOut": false,
@@ -2263,7 +4038,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -67.21560000000022,
+          "pairedP": 0.6163836163836164,
+          "reason": "fails",
+          "selectExpectancy": -0.09228274668205425,
+          "selectExpectancyDelta": 0.02601361119601378,
+          "selectTotalDelta": -10.517700000000104,
+          "select": {
+            "gross": {
+              "expectancy": 0.027376110790536715,
+              "lower": -0.01982155302471613,
+              "n": 1733,
+              "upper": 0.07457377460578957
+            },
+            "net": {
+              "expectancy": -0.09228274668205425,
+              "lower": -0.142106875571322,
+              "n": 1733,
+              "upper": -0.04245861779278648
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZSUSX": {
       "heldOut": false,
@@ -2294,7 +4094,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -67.21560000000022,
+          "pairedP": 0.6163836163836164,
+          "reason": "fails",
+          "selectExpectancy": -0.09228274668205425,
+          "selectExpectancyDelta": 0.02601361119601378,
+          "selectTotalDelta": -10.517700000000104,
+          "select": {
+            "gross": {
+              "expectancy": 0.027376110790536715,
+              "lower": -0.01982155302471613,
+              "n": 1733,
+              "upper": 0.07457377460578957
+            },
+            "net": {
+              "expectancy": -0.09228274668205425,
+              "lower": -0.142106875571322,
+              "n": 1733,
+              "upper": -0.04245861779278648
+            }
+          },
+          "derived": false
+        }
+      }
     },
     "ZTUSD": {
       "heldOut": false,
@@ -2325,7 +4150,32 @@
         },
         "variant": "baseline"
       },
-      "variants": {}
+      "variants": {
+        "defaultReviewHours=96": {
+          "accepted": false,
+          "fitTotalDelta": -229.36519999999905,
+          "pairedP": 0.998001998001998,
+          "reason": "fails",
+          "selectExpectancy": -0.06761755424063119,
+          "selectExpectancyDelta": -0.005725123961746695,
+          "selectTotalDelta": -100.68520000000001,
+          "select": {
+            "gross": {
+              "expectancy": -0.010008908612754809,
+              "lower": -0.029635319916163753,
+              "n": 6084,
+              "upper": 0.009617502690654135
+            },
+            "net": {
+              "expectancy": -0.06761755424063119,
+              "lower": -0.08780731704683238,
+              "n": 6084,
+              "upper": -0.04742779143443
+            }
+          },
+          "derived": false
+        }
+      }
     }
   },
   "rules": {

@@ -1,1 +1,1 @@
-frozen: 7 arms, 91 markets, 9 candidates, 22 decline candidates (5 retired by S+S8+W+W96), 122.85 expected false accepts at p 0.05 -> docs/research/r4/frozen-candidates.json (frozenHash 9dc27b1a7fe3)
+frozen: 7 arms, 91 markets, 9 candidates, 22 decline candidates (5 retired by S+S8+W+W96), 4 class candidates over 4 axes (136 class cells, 6.8 expected by chance), 122.85 expected false accepts at p 0.05 -> docs/research/r4/frozen-candidates.json (frozenHash 6b1e52e0e62b)

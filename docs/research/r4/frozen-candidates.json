@@ -170,8 +170,258 @@
     }
   ],
   "calendarHash": "5d04a7824ecae8c9183b98acc4b736777131c59a9dba672e2cd6382ecaff06dc",
+  "classAxes": [
+    {
+      "arms": [
+        {
+          "arm": "W",
+          "prefix": null
+        },
+        {
+          "arm": "W96",
+          "prefix": null
+        }
+      ],
+      "axis": "window"
+    },
+    {
+      "arms": [
+        {
+          "arm": "S",
+          "prefix": null
+        },
+        {
+          "arm": "S8",
+          "prefix": null
+        }
+      ],
+      "axis": "stop"
+    },
+    {
+      "arms": [
+        {
+          "arm": "F",
+          "prefix": "payoffFloor="
+        }
+      ],
+      "axis": "payoffFloor"
+    },
+    {
+      "arms": [
+        {
+          "arm": "F",
+          "prefix": "costShareMax="
+        }
+      ],
+      "axis": "costShare"
+    }
+  ],
+  "classCellsTested": 136,
+  "classes": {
+    "crypto": {
+      "window": null,
+      "stop": null,
+      "payoffFloor": null,
+      "costShare": null
+    },
+    "indices": {
+      "window": null,
+      "stop": null,
+      "payoffFloor": null,
+      "costShare": null
+    },
+    "forex": {
+      "window": {
+        "arm": "W",
+        "fitTotalDelta": 382.6399000000023,
+        "heldOutMembers": [
+          "AUDCHF",
+          "AUDNZD",
+          "EURUSD",
+          "GBPCAD",
+          "NZDCHF",
+          "NZDJPY"
+        ],
+        "members": [
+          "AUDCAD",
+          "AUDJPY",
+          "AUDUSD",
+          "CADCHF",
+          "CADJPY",
+          "CHFJPY",
+          "EURAUD",
+          "EURCAD",
+          "EURCHF",
+          "EURGBP",
+          "EURJPY",
+          "EURNZD",
+          "GBPAUD",
+          "GBPCHF",
+          "GBPJPY",
+          "GBPNZD",
+          "GBPUSD",
+          "NZDCAD",
+          "NZDUSD",
+          "USDCAD",
+          "USDCHF",
+          "USDJPY"
+        ],
+        "pairedP": 0.000999000999000999,
+        "selectTotalDelta": 464.3099000000002,
+        "variant": "defaultReviewHours=48"
+      },
+      "stop": {
+        "arm": "S8",
+        "fitTotalDelta": 2.1770000000037157,
+        "heldOutMembers": [
+          "AUDCHF",
+          "AUDNZD",
+          "EURUSD",
+          "GBPCAD",
+          "NZDCHF",
+          "NZDJPY"
+        ],
+        "members": [
+          "AUDCAD",
+          "AUDJPY",
+          "AUDUSD",
+          "CADCHF",
+          "CADJPY",
+          "CHFJPY",
+          "EURAUD",
+          "EURCAD",
+          "EURCHF",
+          "EURGBP",
+          "EURJPY",
+          "EURNZD",
+          "GBPAUD",
+          "GBPCHF",
+          "GBPJPY",
+          "GBPNZD",
+          "GBPUSD",
+          "NZDCAD",
+          "NZDUSD",
+          "USDCAD",
+          "USDCHF",
+          "USDJPY"
+        ],
+        "pairedP": 0.008991008991008992,
+        "selectTotalDelta": 247.78640000000155,
+        "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily"
+      },
+      "payoffFloor": {
+        "arm": "F",
+        "fitTotalDelta": 279.7423000000015,
+        "heldOutMembers": [
+          "AUDCHF",
+          "AUDNZD",
+          "EURUSD",
+          "GBPCAD",
+          "NZDCHF",
+          "NZDJPY"
+        ],
+        "members": [
+          "AUDCAD",
+          "AUDJPY",
+          "AUDUSD",
+          "CADCHF",
+          "CADJPY",
+          "CHFJPY",
+          "EURAUD",
+          "EURCAD",
+          "EURCHF",
+          "EURGBP",
+          "EURJPY",
+          "EURNZD",
+          "GBPAUD",
+          "GBPCHF",
+          "GBPJPY",
+          "GBPNZD",
+          "GBPUSD",
+          "NZDCAD",
+          "NZDUSD",
+          "USDCAD",
+          "USDCHF",
+          "USDJPY"
+        ],
+        "pairedP": 0.02097902097902098,
+        "selectTotalDelta": 136.34200000000055,
+        "variant": "payoffFloor=1.5"
+      },
+      "costShare": {
+        "arm": "F",
+        "fitTotalDelta": 563.6595000000013,
+        "heldOutMembers": [
+          "AUDCHF",
+          "AUDNZD",
+          "EURUSD",
+          "GBPCAD",
+          "NZDCHF",
+          "NZDJPY"
+        ],
+        "members": [
+          "AUDCAD",
+          "AUDJPY",
+          "AUDUSD",
+          "CADCHF",
+          "CADJPY",
+          "CHFJPY",
+          "EURAUD",
+          "EURCAD",
+          "EURCHF",
+          "EURGBP",
+          "EURJPY",
+          "EURNZD",
+          "GBPAUD",
+          "GBPCHF",
+          "GBPJPY",
+          "GBPNZD",
+          "GBPUSD",
+          "NZDCAD",
+          "NZDUSD",
+          "USDCAD",
+          "USDCHF",
+          "USDJPY"
+        ],
+        "pairedP": 0.000999000999000999,
+        "selectTotalDelta": 306.15250000000106,
+        "variant": "costShareMax=0.15"
+      }
+    },
+    "futures": {
+      "window": null,
+      "stop": null,
+      "payoffFloor": null,
+      "costShare": null
+    },
+    "livestock": {
+      "window": null,
+      "stop": null,
+      "payoffFloor": null,
+      "costShare": null
+    },
+    "energies": {
+      "window": null,
+      "stop": null,
+      "payoffFloor": null,
+      "costShare": null
+    },
+    "metals": {
+      "window": null,
+      "stop": null,
+      "payoffFloor": null,
+      "costShare": null
+    },
+    "agriculture": {
+      "window": null,
+      "stop": null,
+      "payoffFloor": null,
+      "costShare": null
+    }
+  },
+  "expectedFalseAcceptsClasses": 6.8,
   "expectedFalseAccepts": 122.85,
-  "frozenAt": "2026-09-03T08:57:15.234Z",
+  "frozenAt": "2026-09-03T09:28:26.196Z",
   "heldOut": [
     "AAVEUSD",
     "ARWUSD",
@@ -1657,5 +1907,5 @@
   "retirementRuleHash": "8143e393710563fe40ad96859319a32f25e3687d4bf1733446e07c5ac90c2128",
   "rule": "per market, among the variants the gate accepted in any arm, the one with the largest fit ΔR (ties: the smaller paired p, then the arm name, then the variant name); none when no arm accepted one. Frozen before the read; the read consumes this file and nothing else.",
   "ruleHash": "bc7deeeda482434240f04cc367171a1f9585c1ff6ebdda9ec4a2b34688c945b3",
-  "frozenHash": "9dc27b1a7fe3d14210b19f382b72394ebc8a60ff71203a836579428acad320af"
+  "frozenHash": "6b1e52e0e62be47df9237d8e57ba42797d415630c2907d4212d6b053454a5cf6"
 }

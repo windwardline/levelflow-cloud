@@ -372,10 +372,34 @@ reconciled equal, removal arms S, S8, W and W96:
 | (market, cell) tests across the arms | 2,457 |
 | accepts the gate's p ≤ 0.05 would hand out by chance | 122.85 |
 
-Nine candidates against 123 expected by chance: nothing on the tuning folds
-is evidence that any candidate is real, and the frozen file says so in its
-own numbers. The read opens exactly these nine cells and every market's
-shipped cell, once.
+Nine candidates against 123 expected by chance is the naive count. The
+money-and-law review of the read package corrected the denominator: D4 can
+only pass where the stream is select-positive, which is 15 forex markets
+carrying 405 of the cells, so the calibrated expectation is 5–10 accepts and
+nine is at chance per market; but the accepts cluster — the same eight
+markets accept at 24, 48 and 96 hours — which is a class-grain dose-response,
+not nine independent hits. That is why the read carries the class grain.
+
+**Re-frozen with the class grain (frozenHash `6b1e52e0e62b`).** The same
+review found that the program's only above-chance, shippable evidence — the
+forex class cells — had no path into a per-market read, and that a later
+class read over the same corpora could never be clean. The freeze therefore
+also carries, per class and per axis, the accepted class-unit variant with
+the largest fit ΔR: forex's window (W, 48 h: fit +383R, select +464R —
+chosen over 96 h's +378R / +511R by the pre-registered fit rule), stop (S8,
+cap 8 with the daily source: +2.2R / +248R), payoff floor (F, 1.5: +280R /
++136R) and cost-share cap (F, 0.15: +564R / +306R), each over the 22 pooled
+forex members with the six held-out forex members read on the same cell as
+the out-of-sample check. No other class accepts any cell on any axis. 136
+class cells were tested; the gate's p would hand out 6.8 by chance. The
+read judges every candidate's confirm delta by DELTA_RULE (registered and
+hashed before the read: confirmed iff the delta's lower bound is above zero
+with 30 filled on both sides, contradicted iff the upper bound is below
+zero); the absolute confirm figure of a cell not held back stays withheld.
+Pre-registered beside it: the artifact's per-market p is single-hypothesis
+where the freeze's was family-wise; and act 4's read of the 22 late-listed
+markets will overlap this calendar and proceeds under
+`--acknowledge-prior-reads`, its leaked bit named.
 
 ## 7. Storage and the anchor
 
