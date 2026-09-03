@@ -1767,11 +1767,14 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   describe("the freeze-driven read (R4 act 3): one command over the frozen candidates", () => {
     // Rows for a second market in the folded fixture's own shape: fit days
     // 0–15, select 40–55, confirm 80–95.
-    const usdjpy = (variant: string, realizedR: number): SweepEmitRow[] => {
+    // A candidate is read on confirm only once the tuning folds accept it, so
+    // the second arm's variant wins on fit and select and is contradicted on
+    // confirm — the shape the read exists to catch.
+    const usdjpy = (variant: string, realizedR: number, confirmR = realizedR): SweepEmitRow[] => {
       const rows: SweepEmitRow[] = [];
       for (let day = 0; day < 16; day += 1) {
         for (const [split, offset] of [["fit", 0], ["select", 40], ["confirm", 80]] as const) {
-          rows.push({ ...outcomeRow(variant, day + offset, realizedR, undefined, "USDJPY"), split });
+          rows.push({ ...outcomeRow(variant, day + offset, split === "confirm" ? confirmR : realizedR, undefined, "USDJPY"), split });
         }
       }
       return rows;
@@ -1795,7 +1798,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     };
     const twoArms = async (dir: string) => {
       const first = foldedCorpus({ extraRows: usdjpy("baseline", 0.1) });
-      const second = foldedCorpus({ extraRows: [...usdjpy("baseline", 0.1), ...usdjpy("y=2", -0.6)], grid: [{}, { y: 2 }] });
+      const second = foldedCorpus({ extraRows: [...usdjpy("baseline", 0.1), ...usdjpy("y=2", 0.5, -0.6)], grid: [{}, { y: 2 }] });
       assert.notEqual(manifestHashOf(first), manifestHashOf(second));
       const frozen = await freeze(dir, [
         { arm: "A", grading: gradingFor(first, { EURUSD: { variant: "good", accepted: true }, USDJPY: { variant: "good", accepted: false } }) },
@@ -1838,7 +1841,10 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       // market's candidate prints NO VERDICT for it (no rows), never a figure.
       assert.deepEqual([...driven.verdicts.get("EURUSD")!.keys()], ["good"]);
       assert.deepEqual([...driven.verdicts.get("USDJPY")!.keys()], ["y=2"]);
-      assert.ok(driven.verdicts.get("USDJPY")!.get("y=2")!.confirmTotalDelta! < 0, "y=2's confirm rows came from arm B's corpus");
+      const usdjpyVerdict = driven.verdicts.get("USDJPY")!.get("y=2")!;
+      assert.equal(usdjpyVerdict.accepted, true, "y=2 wins the tuning folds, so the read opens its confirm rows");
+      assert.equal(usdjpyVerdict.confirmFilled, 16);
+      assert.ok(usdjpyVerdict.confirmTotalDelta! < 0, "y=2's confirm rows came from arm B's corpus and contradict it");
       const opened = readLedgeredArtifact(driven.read!.artifactPath, { manifestHash: driven.manifest.manifestHash });
       assert.deepEqual(opened.shardHashes, [manifestHashOf(first), manifestHashOf(second)]);
       assert.deepEqual(opened.markets.USDJPY.candidate, { arm: "B", variant: "y=2" });
