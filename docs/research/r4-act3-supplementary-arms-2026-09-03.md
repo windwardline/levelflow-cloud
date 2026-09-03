@@ -418,6 +418,61 @@ emitter. Act 4's read of the 22 late-listed markets will overlap this
 calendar and proceeds under `--acknowledge-prior-reads`, its leaked bit
 named.
 
+### 6d. The one read (2026-09-03 10:05–10:09Z)
+
+`docs/research/confirm-reads/ledgered-read-act3.json` (artifactHash
+`3a17f23378f6`, readId `65331372-2b86-4c57-9ef8-fb588846bfac`), one ledger line
+`confirm-log-f3b72ce8261a…jsonl` over the seven corpora (calendar
+`5d04a7824eca`, frozen `6b1e52e0e62b`), 97 symbols read, the fold opened once.
+The sealed rehearsal (`--rehearse`, 10:00–10:04Z) had passed every byte,
+baseline and identity check on the same corpora first.
+
+**Market candidates — all nine indistinguishable.** Every confirm delta is
+positive in total R and none clears its interval (DELTA_RULE): AUDCAD 48 h
++33.9R (ΔE −0.006 [−0.031, +0.019]), AUDCHF 24 h +75.7R, AUDNZD 96 h
++95.0R, CADCHF 12 h +41.3R, CHFJPY 48 h +46.9R, EURAUD costShareMax 0.15
++11.6R, EURNZD 48 h +21.7R, NZDCAD 96 h +41.3R, NZDCHF 96 h +70.4R; each on
+3,700–4,500 fills a side, each re-accepted at single-hypothesis with the
+read's p ≤ 0.018. Nothing contradicted; nothing confirmed at the market
+grain.
+
+**Class candidates — one confirmed.** Forex, 22 pooled members / 6 held out:
+
+| axis | cell | pool confirm ΔR | pool ΔE [95%] | n | DELTA_RULE | held-out ΔR, ΔE [95%] |
+| --- | --- | ---: | ---: | ---: | --- | ---: |
+| cost share | costShareMax=0.15 | **+283.0** | **+0.0064 [+0.0001, +0.0127]** | 77,537 / 84,184 | **confirmed** | +92.2, +0.0102 [−0.0016, +0.0219] |
+| window | 48 h | +467.4 | +0.0017 [−0.0044, +0.0079] | 93,776 / 84,184 | indistinguishable | +323.1, +0.0049 [−0.0065, +0.0163] |
+| stop | cap 8 + daily | +371.8 | +0.0039 [−0.0022, +0.0100] | 85,521 / 84,184 | indistinguishable | +194.2, +0.0069 [−0.0046, +0.0184] |
+| payoff floor | 1.5 | +130.1 | +0.0037 [−0.0026, +0.0100] | 79,139 / 84,184 | indistinguishable | +37.0, +0.0059 [−0.0058, +0.0176] |
+
+The cost-share cap is the program's one confirmed result: positive on fit
+(+564R), select (+306R), the held-back fold (+283R) and its held-out members
+(+92R), and confirmed by the pre-registered rule with a lower bound of
++0.0001 — by a hair, and stated as such. The other three forex cells are
+positive on every fold and on their held-out pools and not distinguishable
+from zero on the fold; the window's held-out pool (+323R over six markets)
+is the largest out-of-sample figure of the act and still spans zero.
+
+**Shipped cells — 46 of 91 confirmed negative on the held-back fold**, the
+only admissible outcome for a cell not held back: crypto 32 of 33, forex 4
+of 28 (EURUSD −0.035, GBPUSD −0.028, USDCAD −0.024, USDJPY −0.052 — the
+majors), agriculture 4 of 6, futures 3 of 18, indices 2 of 6, metals 1 of 2
+(XAUUSD −0.041); 32 of the 72 derived cells. The 15 select-positive forex
+cells are neither confirmed nor contradicted (their absolute figure is
+withheld by rule; none turned negative beyond error). Of the 22 decline
+candidates, 19 are confirmed negative; HOUSD, NGUSD and WTI are withheld.
+The five late-listed crypto markets read for the first time are all
+confirmed negative; XAGUSD is withheld.
+
+**Retirements against the fold.** Three of the five retired candidates
+(ADAUSD, XTZUSD, ZSUSX) are confirmed negative absolutely; amendment 36
+still bars their withdrawal on a removal that lifted their gross bound on
+select, and the read reports both facts side by side. Sixteen candidates
+are confirmed negative, not retired, and survived the cap and window
+removals on select: ALGOUSD, ASX, ATOMUSD, AVAXUSD, BCHUSD, DASHUSD, DOTUSD,
+DYDXUSD, EGLDUSD, HBARUSD, NEARUSD, SOLUSD, TRXUSD, UNIUSD, XLMUSD, XMRUSD —
+withdrawal-defensible under amendments 31 and 36, and never permanent.
+
 ## 7. Storage and the anchor
 
 **Preflight, 2026-09-03 04:2xZ** (`docs/research/r4/preflight-survey-2026-09-03.txt`,
@@ -449,8 +504,32 @@ artifacts for the act: seven gradings at two units with their stdout, six
 manifests and stdout tables, the threshold and preflight artifacts, the
 frozen candidates — under 25 MB.
 
-## 8. Open items
+## 8. Owner items — each with the recommendation that survived the reviews
 
-- The six late-listed markets (ARWUSD, BNBUSD, CAKEUSD, THETAUSD, TRUMPUSD,
-  XAGUSD): unmeasurable at tuning grain; the one read measures them. Gate for
-  building an emit-time per-market fold spec: the read leaves them unmeasured.
+1. **Ship forex's cost-share cap.** Set `maxCostShare: 0.15` on the forex
+   class row (the knob merged inert in #572), bump `ANALYZER_VERSION`, and
+   cite this read. Confirmed by the pre-registered rule with a lower bound
+   of +0.0001 over 77,537 confirm fills, and positive on every fold and on
+   the held-out members; the derived read had already accepted it at the
+   class grain on fit and select. The margin is thin and the recommendation
+   says so; what it is not is manufactured — the cap moves no stop and no
+   target, it declines the trades the venue's bill makes worst.
+2. **Withdraw sixteen markets** (the list in §6d): confirmed negative on the
+   held-back fold after a select-fold negative that survived the cap and
+   window removals — amendment 36's standard met. Withdrawal is never
+   permanent; the dormant register re-probes them. Three more (ADAUSD,
+   XTZUSD, ZSUSX) are negative on the fold but retired on select; the rule
+   keeps them.
+3. **The shipped calibration loses on the held-back fold for half the
+   roster**, crypto almost entirely and the four forex majors among them.
+   The desk cannot unpark on the 2026-08-11 derived layer as it stands; the
+   next act re-derives the cells this read contradicted, with a new anchor
+   (the version bump makes it unavoidable) and the class-grain admission
+   levers this act found.
+4. **Act 4 — the 22 late-listed markets**: an emit-time per-market fold spec
+   and one corpus over them, read under `--acknowledge-prior-reads` (its
+   overlap with this calendar is pre-registered; the five crypto listings
+   read here are already confirmed negative on their shipped cells).
+5. **Housekeeping the session could not do:** 1.9 GB of a reviewer's
+   extracted rows in the session scratchpad (`rows/`), which the permission
+   layer would not let the session delete.
