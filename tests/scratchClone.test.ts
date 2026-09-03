@@ -1,6 +1,19 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { accessSync, constants, readdirSync, readFileSync, statSync } from "node:fs";
+import {
+  accessSync,
+  constants,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
@@ -125,6 +138,65 @@ describe("the scratch-copy contract", () => {
       assert.ok(wouldIgnore(heavy), `${heavy} is not ignored by git, so scratch-clone.sh would copy it`);
     }
     assert.equal(wouldIgnore("src/"), false, "check-ignore reports src as ignored — the probe is broken");
+  });
+
+  it("copies a LINKED WORKTREE into a repository of its own — executed", () => {
+    // A worktree's .git is a POINTER FILE, one line of `gitdir: <abs path>`.
+    // Copied verbatim it made the scratch copy's git resolve back to the
+    // SOURCE: `git ls-files` in the copy listed the source's files and a write
+    // would have landed in the source's worktree metadata. Nothing failed —
+    // it answered with another repository's tree, which no passing test run
+    // would show. Agents work in worktrees constantly, so this is executed
+    // against a real synthetic worktree rather than pinned in prose.
+    const root = mkdtempSync(join(tmpdir(), "scratch-clone-wt-"));
+    try {
+      const origin = join(root, "origin");
+      const git = (cwd: string, ...args: string[]) => {
+        const result = spawnSync("git", ["-C", cwd, ...args], { encoding: "utf8" });
+        assert.equal(result.status, 0, `git ${args.join(" ")} failed: ${result.stderr}`);
+        return result.stdout.trim();
+      };
+      mkdirSync(origin, { recursive: true });
+      spawnSync("git", ["init", "-q", origin]);
+      git(origin, "config", "user.email", "scratch@test");
+      git(origin, "config", "user.name", "scratch");
+      mkdirSync(join(origin, "src"), { recursive: true });
+      writeFileSync(join(origin, "src", "kept.txt"), "kept\n");
+      writeFileSync(join(origin, ".gitignore"), "ignored/\n.env.local\n");
+      git(origin, "add", "-A");
+      git(origin, "commit", "-qm", "init");
+      const worktree = join(root, "linked");
+      git(origin, "worktree", "add", "-q", worktree, "-b", "side");
+      // The helper refuses a source with no ignored paths present, because an
+      // exclusion that excluded nothing has proved nothing.
+      mkdirSync(join(worktree, "ignored"), { recursive: true });
+      writeFileSync(join(worktree, "ignored", "heavy.bin"), "x".repeat(1024));
+      writeFileSync(join(worktree, ".env.local"), "SECRET=1\n");
+
+      const dest = join(root, "copy");
+      const run = spawnSync("bash", [join(REPO, "scripts", "scratch-clone.sh"), dest], {
+        cwd: worktree,
+        encoding: "utf8",
+      });
+      assert.equal(run.status, 0, `the helper refused a worktree source: ${run.stderr}`);
+
+      const resolved = git(dest, "rev-parse", "--path-format=absolute", "--git-dir");
+      assert.ok(
+        resolved.startsWith(realpathSync(dest)),
+        `the copy's git directory is ${resolved}, outside the copy — it would answer with the source repository`,
+      );
+      assert.equal(git(dest, "rev-parse", "--abbrev-ref", "HEAD"), "side", "the copy lost the worktree's branch");
+      assert.equal(git(dest, "status", "--porcelain"), "", "the copy's index does not match its own tree");
+      assert.deepEqual(
+        git(dest, "ls-files").split("\n").sort(),
+        [".gitignore", "src/kept.txt"],
+        "the copy's tracked files are not its own",
+      );
+      assert.ok(!existsSync(join(dest, ".env.local")), "the ignored secret reached the copy");
+      assert.ok(!existsSync(join(dest, "ignored")), "the ignored heavy path reached the copy");
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
   });
 
   it("keeps .env.local out and .env.example in", () => {
