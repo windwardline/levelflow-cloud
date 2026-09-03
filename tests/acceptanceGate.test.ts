@@ -1843,6 +1843,13 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       // market's candidate prints NO VERDICT for it (no rows), never a figure.
       assert.deepEqual([...driven.verdicts.get("EURUSD")!.keys()], ["good"]);
       assert.deepEqual([...driven.verdicts.get("USDJPY")!.keys()], ["y=2"]);
+      // Arm B's corpus also carries EURUSD "good" rows (the fixture emits them in
+      // every corpus); the read takes EURUSD's candidate from arm A ONLY, so the
+      // candidate's fills are one arm's, never two arms' summed.
+      const eurusdGood = driven.verdicts.get("EURUSD")!.get("good")!;
+      assert.equal(eurusdGood.fitFilled, 16, "fit rows from arm A only");
+      assert.equal(eurusdGood.selectFilled, 16, "select rows from arm A only");
+      assert.equal(eurusdGood.confirmFilled, 16, "confirm rows from arm A only");
       const usdjpyVerdict = driven.verdicts.get("USDJPY")!.get("y=2")!;
       assert.equal(usdjpyVerdict.accepted, true, "y=2 wins the tuning folds, so the read opens its confirm rows");
       assert.equal(usdjpyVerdict.confirmFilled, 32);
