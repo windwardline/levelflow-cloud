@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   getAssetType,
@@ -147,8 +147,12 @@ describe("maxCostShare caps the cost weight per trade", () => {
       "the live admission and its diagnostic must both cap the unrounded share",
     );
     assert.ok(
-      analyzer.includes("(pricePlan.executionQuality.costShare * 100).toFixed(0)"),
+      analyzer.includes("(pricePlan.executionQuality.costShare * 100).toFixed(1)"),
       "the diagnostic must quote the share it actually decided on",
+    );
+    assert.ok(
+      analyzer.includes("(calibration.maxCostShare * 100).toFixed(1)"),
+      "and both halves of the sentence at the same precision, or a refusal reads as 15% exceeding 15%",
     );
     const sweep = readFileSync("supabase/functions/trade-analyzer/sweep.ts", "utf8");
     assert.deepEqual(
@@ -156,6 +160,31 @@ describe("maxCostShare caps the cost weight per trade", () => {
       ["executionQuality.costShare > calibration.maxCostShare"],
       "the sweep decides admission on the same field the live analyzer does, or a corpus grades a rule production does not run",
     );
+  });
+
+  it("every reader that re-applies the engine's gates applies this one too", () => {
+    // Two readers ask "what would the engine decide TODAY" and re-apply the
+    // gates against the current calibration. Both were written when there
+    // were three; a fourth that only production knows about makes each of
+    // them report a population production does not trade. Derived from the
+    // sources that declare the function, so a third reader cannot appear
+    // without either applying the gate or failing here.
+    const readers = readdirSync("scripts")
+      .filter((name) => name.endsWith(".ts"))
+      .map((name) => ({ name, source: readFileSync(`scripts/${name}`, "utf8") }))
+      .filter((file) => file.source.includes("function passesOtherGates("));
+    assert.ok(readers.length >= 2, "the gate-re-applying readers vanished — this pin is now measuring nothing");
+    for (const reader of readers) {
+      assert.match(
+        reader.source,
+        /maxCostShare !== undefined &&\s*\n?\s*costShareOfRow\(row\) > calibration\.maxCostShare/,
+        `scripts/${reader.name} re-applies the engine's gates but not the cost-share cap`,
+      );
+      assert.ok(
+        reader.source.includes("estimatedRoundTripCost/riskDistance, so the gate cannot be applied"),
+        `scripts/${reader.name} must REFUSE a corpus without the columns, never silently skip the gate`,
+      );
+    }
   });
 
   it("a cap inside the rounding band declines the row the display form would have admitted", () => {

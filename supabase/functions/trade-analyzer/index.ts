@@ -1671,11 +1671,15 @@ async function explainNoSetup(
     ) {
       // The cost weight per trade (R4 act 3): the round trip's share of the
       // risk unit exceeded the market's cap. A cost story, named as one.
+      // ONE DECIMAL, deliberately. At zero the sentence reads "15% of the
+      // risk unit; Levelflow admits at most 15%" on a share of 0.1504 — a
+      // refusal that looks like an equality, which reads as a bug to the
+      // operator and cannot be acted on.
       diagnostics.push(
         `Trading costs would take ${
-          (pricePlan.executionQuality.costShare * 100).toFixed(0)
+          (pricePlan.executionQuality.costShare * 100).toFixed(1)
         }% of the risk unit; Levelflow admits at most ${
-          (calibration.maxCostShare * 100).toFixed(0)
+          (calibration.maxCostShare * 100).toFixed(1)
         }% for this market.`,
       );
     } else if (pricePlan && pricePlan.executionQuality.confidencePenalty > 0) {
