@@ -744,15 +744,6 @@ function groupVerdicts(
   const random = mulberry32(options.seed ?? 7);
   const minFilled = options.minFilled ?? 0;
   const verdicts = new Map<string, Map<string, VariantVerdict>>();
-  if (frozen) {
-    // A market's only graded variant is its own frozen candidate: every other
-    // arm's candidate has no rows here and would print THIN for nothing.
-    for (const [group, byVariant] of verdicts) {
-      for (const name of [...byVariant.keys()]) {
-        if (candidateOf(group)?.variant !== name) byVariant.delete(name);
-      }
-    }
-  }
   const symbolsByClass = groups;
 
   const variants = new Set<string>();
@@ -1868,6 +1859,15 @@ export async function gradeCorpus(
       cube,
       { ...options, foldNames },
     );
+  if (frozen) {
+    // A market's only graded variant is its own frozen candidate: every other
+    // arm's candidate has no rows here and would print THIN for nothing.
+    for (const [group, byVariant] of verdicts) {
+      for (const name of [...byVariant.keys()]) {
+        if (candidateOf(group)?.variant !== name) byVariant.delete(name);
+      }
+    }
+  }
   // The burn lands only once a confirm figure actually exists (#364
   // round 41, finding 1; round 42, finding 1 finished the criterion):
   // after the verdicts are computed, and only when a confirm number
