@@ -8,13 +8,14 @@
     "npm": ">=11"
   },
   "scripts": {
-    "dev": "vite",
+    "audit:high": "node scripts/audit-high.mjs",
     "build": "tsc -b && vite build",
-    "preview": "vite preview",
     "check": "tsc -b --noEmit",
-    "lint": "eslint . --max-warnings 0",
     "check:bundle": "node scripts/check-bundle-budget.mjs",
     "check:migrations": "node scripts/check-migrations.mjs",
+    "dev": "vite",
+    "lint": "eslint . --max-warnings 0",
+    "preview": "vite preview",
     "test": "tsx --tsconfig tsconfig.tests.json --test tests/**/*.test.ts tests/**/*.test.tsx",
     "test:e2e": "env -u NO_COLOR playwright test"
   },
