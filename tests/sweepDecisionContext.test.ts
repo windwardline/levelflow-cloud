@@ -229,14 +229,49 @@ describe("the gate must be cheap — it runs inside the scan's 2s CPU budget", (
         volume: 1,
       };
     });
-    const started = performance.now();
-    for (let symbolIndex = 0; symbolIndex < 11; symbolIndex += 1) {
-      normalizeFmpBars(payload, 3_000, "America/New_York");
+    // The ceiling used to be wall-clock: `elapsed < 250` for eleven series.
+    // That measured the machine as much as the code. On a loaded laptop it read
+    // 261-578ms and failed on untouched main, so it produced local reds that
+    // were not defects — and a red that is not a defect is worse than no gate,
+    // because the next real one is indistinguishable from it.
+    //
+    // The property this exists to protect is the sentence above: the first
+    // series pays the Intl reads, the other ten hit the map. That is a RATIO,
+    // and a ratio cancels the machine out. Both halves are timed in the same
+    // process on the same hardware, so a slow runner slows both and the verdict
+    // does not move.
+    //
+    // The zone is deliberately one no other test touches. `wallClockCache` is
+    // module-level and keyed by zone, so a shared zone would arrive already
+    // warm from whichever test ran first and the cold half would measure
+    // nothing.
+    const coldZone = "Pacific/Chatham";
+
+    const coldStart = performance.now();
+    normalizeFmpBars(payload, 3_000, coldZone);
+    const cold = performance.now() - coldStart;
+
+    const warmRuns = 10;
+    const warmStart = performance.now();
+    for (let symbolIndex = 0; symbolIndex < warmRuns; symbolIndex += 1) {
+      normalizeFmpBars(payload, 3_000, coldZone);
     }
-    const elapsed = performance.now() - started;
+    const warmPerSeries = (performance.now() - warmStart) / warmRuns;
+
+    // A cold read too small to measure makes the ratio noise rather than
+    // evidence. Refuse instead of reporting a pass this run did not earn.
     assert.ok(
-      elapsed < 250,
-      `11 series x 3,000 bars decoded in ${elapsed.toFixed(0)}ms`,
+      cold >= 5,
+      `cold decode measured ${cold.toFixed(1)}ms, too small for the ratio below to mean anything — the payload or the zone cache changed shape`,
+    );
+
+    // Removing the memo makes every series pay the Intl reads, so warm rises to
+    // meet cold and the ratio collapses toward 1. Locally the memoized path is
+    // roughly 6x cheaper; 3x is the failure line, far enough from 1 to catch the
+    // regression and far enough from 6 to ignore scheduling noise.
+    assert.ok(
+      warmPerSeries * 3 < cold,
+      `wall-clock memo is not paying: cold series ${cold.toFixed(1)}ms vs warm ${warmPerSeries.toFixed(1)}ms/series (${(cold / warmPerSeries).toFixed(1)}x, needs > 3x)`,
     );
   });
 });
