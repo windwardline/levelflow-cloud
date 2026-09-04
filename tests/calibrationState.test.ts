@@ -540,7 +540,11 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
     );
   });
 
-  // SC-5 (readiness audit, 2026-08-11): the decline sentence published
+  // SC-5 (readiness audit, 2026-08-11), still enforced on a NEW reason since
+  // the 2026-09-03 re-decision: the figures are valid now, and the magnitude
+  // stays out of the operator's sentence because a per-setup R figure is not
+  // actionable (copy law §17f), not because it is untrustworthy.
+  // The decline sentence published
   // `measuredExpectancyR` to three decimals — a number derived from the
   // corpus the clock defect invalidated. The desk is parked, so no reader
   // has seen it, but it ships the moment the doors open. The DECLINE

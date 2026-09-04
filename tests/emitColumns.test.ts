@@ -288,12 +288,15 @@ describe("the corpus pins which markets the engine was declining", () => {
     );
   });
 
-  it("records SYMBOLS ONLY, never the invalidated expectancy", () => {
-    // Every `measuredExpectancyR` in the register comes from the corpus the
-    // 2026-08-11 clock defect invalidated. SC-5 withholds the magnitude from
-    // the operator for that reason and #471 removed the last place it leaked;
-    // writing it into a manifest would put an invalid number where provenance
-    // goes. `source.revision` recovers the figures with their caveats.
+  it("records SYMBOLS ONLY, never the expectancy", () => {
+    // The manifest names WHICH markets were declined, never by how much. The
+    // reason changed on 2026-09-03 and the rule did not: the figures used to
+    // come from the corpus the clock defect invalidated, so a manifest
+    // carrying them would have put an invalid number where provenance goes.
+    // They are re-derived from the ledgered confirm read now and they are
+    // valid — and a provenance record still states WHAT was excluded, not how
+    // badly each market read. `source.revision` recovers the figures with
+    // their caveats, which is where a figure belongs.
     const at = MANIFEST_SRC.indexOf("engineDeclined?: string[];");
     assert.ok(at >= 0, "engineDeclined is no longer a plain symbol list");
     const declarations = MANIFEST_SRC.match(/engineDeclined\??:[^;]*/g) ?? [];

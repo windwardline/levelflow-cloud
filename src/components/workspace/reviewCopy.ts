@@ -45,10 +45,14 @@ export const REVIEW_REWRITES: ReviewRewrite[] = [
   },
   {
     // The decline. Matched WITHOUT a number, because the analyzer withholds
-    // the magnitude deliberately: every `measuredExpectancyR` in the register
-    // comes from the corpus the clock defect invalidated, so quoting it to
-    // three decimals would publish a false precision. The direction survives
-    // and is the whole reason for the decline.
+    // the magnitude deliberately. The REASON changed on 2026-09-03 and the
+    // behaviour did not: it used to be that every `measuredExpectancyR` came
+    // from the corpus the clock defect invalidated, so three decimals would
+    // have been false precision. The register is re-derived from the one
+    // ledgered confirm read now and its figures are real — the magnitude stays
+    // out on copy law (§17f), because a per-setup expectancy in R is not
+    // something a reader can act on. The actionable facts are that the market
+    // produces no setup and that the refusal is re-probed.
     //
     // AND WITHOUT THE COST CLAUSE. Both sides of this rule used to end "after
     // the venue's published costs", and the claim was false on all fifteen

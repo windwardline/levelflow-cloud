@@ -71,7 +71,7 @@ describe("the decline sentence says only what the corpus supports", () => {
       assert.doesNotMatch(
         sentence,
         /-?\d+\.\d+\s*R/i,
-        `${symbol}: the magnitude comes from the invalidated corpus (SC-5)`,
+        `${symbol}: the operator's sentence carries no magnitude (SC-5 — a per-setup R figure is not actionable)`,
       );
       checked++;
     }
