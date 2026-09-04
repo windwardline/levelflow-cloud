@@ -125,7 +125,7 @@ jobs:
           npm run check
           npm run lint
           npm run check:migrations
-          npm audit --audit-level=high
+          npm run audit:high
           npm test
 
       # Q3/Q4: this gate used to run after Supabase migrations and Edge

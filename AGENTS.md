@@ -23,7 +23,7 @@ Every workflow this repository runs is named here by filename: `ci.yml`, `deploy
 `dependabot-auto-merge.yml`.
 
 `ci.yml` runs `npm ci` → check → lint → check:migrations →
-`npm audit --audit-level=high` → test → build → check:bundle on pushes and pull
+`npm run audit:high` → test → build → check:bundle on pushes and pull
 requests against `main`, plus `workflow_dispatch`, in one 15-minute Node 24 job with
 npm caching. Its job id `build` is the required-check name, and a new commit cancels
 the run in flight. E2E runs only at deploy time in `deploy.yml`. That workflow also
@@ -102,7 +102,7 @@ must be local and quick; `release:` runs before a pull request and may be slow;
 gate: npm run check
 gate: npm run lint
 gate: npm run check:migrations
-gate: npm audit --audit-level=high
+gate: npm run audit:high
 gate: npm test
 gate: npm run build
 gate: npm run check:bundle
