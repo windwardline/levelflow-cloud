@@ -19,7 +19,7 @@
 > the defect and must be rebuilt (Phase 0) before anything is re-measured.
 
 
-Model version: `2026.09.03.register-redecision` (**not yet deployed**
+Model version: `2026.09.04.removal-test-uniform` (**not yet deployed**
 — the desk is parked, so this version has never served a request. R2's D1:
 global learning derived `confidence_adjustment` from a WIN RATE against a
 neutral point of 0.5, which is break-even only when a win and a loss are the
@@ -377,7 +377,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.09.03.register-redecision'
+   where o.analyzer_version = '2026.09.04.removal-test-uniform'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;
@@ -1817,21 +1817,56 @@ corpus exists".
 verdict (`docs/research/r4/withdrawal-verdict-2026-09-03.json`), under a rule
 hashed into the artifact:
 
-> The confirmation-fold test — M3 confirmed-negative on at least 30 filled
-> outcomes, with BOTH the net and the gross 95% upper bounds below zero. Net is
-> the money (amendment 39). Gross is amendment 36's precondition: a negative
-> that rests on a cost WE model is a defect in the parameter, not in the market.
-> **Entering** also requires the read's own pre-registered nomination — a
-> decline candidate on the select fold that no accepted variant retired — so
-> no entry is a hypothesis dredged from the confirm fold. **Staying** requires
-> the held-back test alone, because a standing decline is an existing verdict
-> being re-tested, not a new one being made.
+> **Two tests, both applied entering or staying.**
+>
+> 1. The **confirmation-fold test** — M3 confirmed-negative on at least 30
+>    filled outcomes, with BOTH the net and the gross 95% upper bounds below
+>    zero. Net is the money (amendment 39); gross is amendment 36's **cost
+>    leg** — a negative resting on a cost we model is a defect in the
+>    parameter, not in the market.
+> 2. The **removal test** — amendment 36's **window and cap legs**, which say
+>    *before ANY withdrawal* and so bind a standing decline exactly as they
+>    bind a new one. Over the removal arms alone (the cap arms and the window
+>    arms, never an arm that ADDS an admission filter), a cell with at least 30
+>    filled and at least half the shipped cell's select fills **retires** the
+>    withdrawal when its select net upper bound reaches zero AND its net point
+>    estimate is no worse than the shipped cell's. Retirement is a **money**
+>    test: a gross bound crossing zero while the money in that cell stays worse
+>    is not a market that stopped losing. A market no cell could test is
+>    recorded as **never removal-tested**.
+>
+> **Entering** additionally requires the read's own pre-registered nomination —
+> a decline candidate on the select fold — so no entry is dredged from the
+> confirm fold.
+
+**What making the removal test uniform changed (2026-09-04).** The first
+version put the removal legs in the nomination clause alone, so every standing
+decline bypassed them: 13 of 23 entries had never been tested against a window
+or a cap. Applied uniformly, with retirement decided on money rather than on a
+bound crossing, the register moves **23 → 21**:
+
+- **Restored, because a review window retires the withdrawal:** AAVEUSD (96 h),
+  DOGEUSD (24 h), ETCUSD (24 h), IMXUSD (48 h) — in each the net upper bound
+  reaches zero without the money getting worse. A window is amendment 36's own
+  named example.
+- **Declined, because retirement is now money:** ADAUSD and XTZUSD. The
+  freeze's rule retired their candidacy on a select *gross* bound crossing zero
+  while their money stayed negative, so they were being served while the read
+  condemns them on both columns — **−655R over 3,042 filled setups**.
+- **CAKEUSD stays, recorded as never removal-tested:** this calendar leaves it
+  no select-fold rows a removal arm could grade, so the window and cap legs are
+  undischarged and the next act's calendar must reach it first.
+
+The floor is argued rather than inherited: 30 filled is the market unit's own,
+not amendment 25's 300-fill *exclusion* floor, because a declined market stays
+visible, scannable and re-probed — a weaker action than an exclusion. Two
+entries sit between the two floors, ATOMUSD (95) and ASX (142).
 
 | disposition | markets | what the read measured |
 | --- | ---: | --- |
-| enter | 10 | ALGOUSD, ASX, ATOMUSD, AVAXUSD, BCHUSD, DOTUSD, DYDXUSD, NEARUSD, SOLUSD, TRXUSD — **-5,000R over 9,863 confirmation-fold fills** between them |
-| stay | 13 | re-based on the valid corpus, figure for figure |
-| restored | 2 | ZCUSX (gross upper **+0.063** — the negative does not survive amendment 36's own clause) and PAUSD (the read cannot judge it: its shipped cell is not held back, so the figure is withheld — and a decline may not stand on evidence this program has invalidated) |
+| enter | 12 | ADAUSD, ALGOUSD, ASX, ATOMUSD, AVAXUSD, BCHUSD, DOTUSD, DYDXUSD, NEARUSD, SOLUSD, TRXUSD, XTZUSD — **-5,655R over 12,905 confirmation-fold fills** between them |
+| stay | 9 | re-based on the valid corpus, figure for figure |
+| restored | 6 | ZCUSX (gross upper **+0.063** — the negative does not survive amendment 36's own clause) and PAUSD (the read cannot judge it: its shipped cell is not held back, so the figure is withheld — and a decline may not stand on evidence this program has invalidated) |
 | retired | 2 | ADAUSD and XTZUSD — the select fold DID nominate them and an accepted variant rescued the candidacy, so the retirement rule keeps them |
 | named, not declined | 11 | pass the held-back test with no nomination behind them (-4,125R over 23,575 fills), BTCUSD, ETHUSD and USDJPY among them: the artifact's `unnominated` list, for the next act |
 
