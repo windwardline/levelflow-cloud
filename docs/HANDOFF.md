@@ -246,7 +246,7 @@ rather than into that table.
 | | |
 | --- | --- |
 | Markets | **97 distinct** — the offering is 97 markets, presented per account type as forex 45 · crypto 33 · futures 27. Those three sum to 105 because the eight crypto CFDs (`FOREX_ACCOUNT_CRYPTO_CFDS`) are visible on BOTH the forex and crypto accounts and are counted twice; 105 is the sum of account-scoped VIEWS, never the roster. (A stale 106 stood here until round 8's CV-9; the 105 that replaced it was this same double-count, caught by the 2026-08-11 audit.) `defaultScanSymbols` is the roster and has always been 97 (amendment 32 executed 2026-08-09 in two acts: thirteen derivative rows dormant, then BRENT on the owner's F13 frame — its "stable" basis measured +1.10 against the recorded +1.67, a contract-month spread no line can honestly state) |
-| Engine | `2026.09.03.register-redecision` — the engine-declined register re-derived from the one ledgered confirm read (23 markets: ten enter, thirteen stay on re-based evidence, ZCUSX and PAUSD restored); the ten that enter lost 5,000R over 9,863 confirmation-fold fills. Before it, `2026.09.03.forex-cost-share-cap` — the first calibration change any ledgered confirm read had earned: forex's class row caps the cost weight per trade at `maxCostShare: 0.15` (read `f3b72ce8261a…`, pooled confirm ΔR +283.0, ΔE +0.0064 [+0.0001, +0.0127] over 77,537 fills). Admission compares the UNROUNDED share (`executionQuality.costShare`), not the 4-dp display field the knob shipped with in #572 — 105 of R3's 941,947 baseline rows fall in the band where the two disagree at 0.15. Every other class row leaves the cap unset. Before it: `2026.09.01.platinum-group-rate-inverse` — the version both R3 manifests record (`docs/research/r3/*.manifest.json`); that cell still read `2026.08.18.one-physics` on 2026-09-02, stale across D1 and the §6b-1 item-A bump. Earlier: `2026.08.18.one-physics` (R1a complete: D2's one R accountant on every filled resolution; live grading on the sweep's resolution tiering with the row's stored runner-protection mode and review window; the decision anchor on the last completed primary bar; no-bars expiries marked; calibration cells unchanged from `2026.08.11.declines`) — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Deployed and verified in production 2026-08-18: deploy run 380 (#362's merge) green end-to-end including the E2E chart gate, run 381 (#363's ops/docs merge) green after it |
+| Engine | `2026.09.04.removal-test-uniform` — amendment 36's removal test (its window and cap legs) now binds a STANDING decline exactly as it binds a new one, and retirement is decided on money rather than on a bound crossing. The register holds **21**: AAVEUSD, DOGEUSD, ETCUSD and IMXUSD were restored because a review WINDOW retires their withdrawal, and ADAUSD and XTZUSD are declined because the freeze's gross-bound rule had been serving them while the read condemns them on both columns (−655R over 3,042 filled setups). CAKEUSD stays and is recorded as never removal-tested. Before it, `2026.09.03.register-redecision` — the register re-derived from the one ledgered confirm read (23 markets: ten enter, thirteen stay, ZCUSX and PAUSD restored). Before that, `2026.09.03.forex-cost-share-cap` — the first calibration change any ledgered confirm read had earned: forex's class row caps the cost weight per trade at `maxCostShare: 0.15` (read `f3b72ce8261a…`, pooled confirm ΔR +283.0, ΔE +0.0064 [+0.0001, +0.0127] over 77,537 fills). Admission compares the UNROUNDED share (`executionQuality.costShare`), not the 4-dp display field the knob shipped with in #572 — 105 of R3's 941,947 baseline rows fall in the band where the two disagree at 0.15. Every other class row leaves the cap unset. Before it: `2026.09.01.platinum-group-rate-inverse` — the version both R3 manifests record (`docs/research/r3/*.manifest.json`); that cell still read `2026.08.18.one-physics` on 2026-09-02, stale across D1 and the §6b-1 item-A bump. Earlier: `2026.08.18.one-physics` (R1a complete: D2's one R accountant on every filled resolution; live grading on the sweep's resolution tiering with the row's stored runner-protection mode and review window; the decision anchor on the last completed primary bar; no-bars expiries marked; calibration cells unchanged from `2026.08.11.declines`) — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Deployed and verified in production 2026-08-18: deploy run 380 (#362's merge) green end-to-end including the E2E chart gate, run 381 (#363's ops/docs merge) green after it |
 | Public face | The parking page |
 | Gates | The seven `ci.yml` runs, named rather than counted: `check` · `lint` · `check:migrations` · `npm audit --audit-level=high` · `test` · `build` · `check:bundle`. This cell listed SIX and omitted `npm audit` — the same undercount the resume block was written to correct, reproduced in the cell a cold reader reaches first. No test count is given here: `npm test` is the authority, and two cells of this file disagreed by ~300 for days while both carried a disclaimer saying so |
 | Repo | `main` is the trunk; the 2026-08-10/11 programme landed as #307-#322. Check `gh pr list` before trusting any count here |
@@ -1911,7 +1911,57 @@ that fixed it.
   and belongs beside R6; the capture branch can wait, but say which is deferred
   rather than leaving both unranked.
 
-### ▶ RESUME HERE — 2026-09-03 20:30 UTC (the register is re-decided)
+### ▶ RESUME HERE — 2026-09-04 05:00 UTC (the register moved twice; act 4 is refuted; a corpus was destroyed and is regenerating)
+
+**Four PRs landed and deployed** — #574 (forex `maxCostShare: 0.15`, the read's
+one confirmed candidate), #575 (its pins made real: the value now comes FROM the
+read, the population from the live roster, the source pin strips comments, the
+boundary is driven through the sweep), #576 (the fleet scratch-clone helper: a
+linked worktree's copy was bound to the SOURCE repository), #577 and #580 (the
+register, twice).
+
+**The register's second move is the one to read.** #577 re-derived it from the
+ledgered read; #580 then repaired what an adversarial round found underneath a
+finding of mine that the same round REFUTED. My claim — that the nomination
+clause was vacuous because 12 markets have no fit-fold rows — was wrong: the
+clause reads `retirement.retired` and never reads acceptance. What was real:
+the pre-registered rule TEXT described a test the code did not run, STAYING
+carried no removal test at all (13 of 23 entries had never been tested against
+a window or a cap), and retirement was a bound crossing rather than money. The
+register is **21** now. See `docs/trade-model.md`'s register section.
+
+**Act 4 is refuted and must not be run as designed** (#581,
+`docs/research/r4-act4-design-2026-09-04.md`). 87 agents, six surviving
+findings. The four markets carrying two thirds of its money have no unread
+rows, and rolling the anchor forward — the surviving fix — is free (313
+artifacts pin 2026-09-03, 0.00 GiB) but useless, because eight days of tail
+cannot carry a confirm fold. Those markets wait on calendar time.
+
+**Open, and it will still be open when you read this:** #582 makes the audit
+gate tell an npm advisory-endpoint outage from a vulnerability while still
+failing closed. npm's endpoint went down on 2026-09-03/04 and broke three runs
+including a production deploy. The PR is correctly BLOCKED by its own subject
+until the endpoint answers; auto-merge is armed.
+
+**An incident, and what it costs.** At 00:23 UTC a research agent in my own
+fan-out overwrote `docs/research/r3/capture-all-classfolds.jsonl` — 16.7 GB,
+shard 0 of the act-3 read — with a pickle cache, because my prompt said "never
+modify TRACKED files" and the corpora are gitignored. It is regenerating from
+the recorded revision `886fdf13` at the protected anchor for zero provider
+bytes, and the read artifact records the emit's sha256, so the restoration is
+VERIFIABLE rather than merely re-made. **Until that digest matches, no
+measurement taken from that corpus after 00:23 UTC may be used** — which
+includes the payoff-gap research below.
+
+**The next question, measured but not yet trustworthy.** Four lenses on
+amendment 39's standing priority ("closing that gap outranks any work that does
+not move it") converged: the realized ratio is ~0.45:1 and the loss is not
+costs and not the runner but the TP1 partial — "the gate's ratio is real but
+conditional on a 3.4% event, and the ladder sells half of it back". Every one
+of those numbers came off the corpus while it was being destroyed. Re-measure
+on the restored corpus before building anything on it.
+
+### ▶ RESUME HERE — 2026-09-03 20:30 UTC (the register is re-decided; superseded by the block above)
 
 **The engine-declined register no longer rests on the invalidated corpus.**
 It was generated from `4d-cost-sensitivity.json` — the corpus the 2026-08-11
