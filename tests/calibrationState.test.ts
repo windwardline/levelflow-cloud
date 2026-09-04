@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { WITHDRAWAL_RULE_HASH, withdrawalVerdicts } from "../scripts/register-verdict.ts";
+import { readLedgeredArtifact } from "../scripts/ledgeredRead.ts";
 import {
   ENGINE_DECLINED_MARKETS,
   getAssetType,
@@ -317,7 +320,7 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     // engine-declined and builds no setup, so the live delta is PLUSD alone.
     assert.match(
       calibrationSrc,
-      /ANALYZER_VERSION = "2026\.09\.03\.forex-cost-share-cap"/,
+      /ANALYZER_VERSION = "2026\.09\.03\.register-redecision"/,
     );
     assert.match(src, /ANALYZER_VERSION,\n/);
 
@@ -537,7 +540,11 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
     );
   });
 
-  // SC-5 (readiness audit, 2026-08-11): the decline sentence published
+  // SC-5 (readiness audit, 2026-08-11), still enforced on a NEW reason since
+  // the 2026-09-03 re-decision: the figures are valid now, and the magnitude
+  // stays out of the operator's sentence because a per-setup R figure is not
+  // actionable (copy law §17f), not because it is untrustworthy.
+  // The decline sentence published
   // `measuredExpectancyR` to three decimals — a number derived from the
   // corpus the clock defect invalidated. The desk is parked, so no reader
   // has seen it, but it ships the moment the doors open. The DECLINE
@@ -566,23 +573,139 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
     );
   });
 
-  it("the register IS the artifact — every entry traces to the cost-sensitivity verdict", () => {
-    const verdicts = JSON.parse(
-      readFileSync(
-        "docs/research/baseline-2026-08-10/4d-cost-sensitivity.json",
-        "utf8",
-      ),
+  it("the register IS the artifact — every entry traces to the ledgered read's withdrawal verdict", () => {
+    // REPOINTED 2026-09-03. The register used to be pinned to
+    // 4d-cost-sensitivity.json — the corpus the clock defect invalidated —
+    // so the pin held the register to evidence the program had condemned.
+    // It now derives from the one ledgered confirm read, through
+    // scripts/register-verdict.ts, and is asserted in BOTH directions: a
+    // curated list cannot pass, and neither can a rule quietly re-run under
+    // different terms, because the rule's own hash is asserted too.
+    const verdict = JSON.parse(
+      readFileSync("docs/research/r4/withdrawal-verdict-2026-09-03.json", "utf8"),
     ) as {
-      verdicts: Record<string, { grossConfirmE: number | null; verdict: string }>;
+      declined: Array<{ measuredExpectancyR: number; reason: string; symbol: string }>;
+      priorRegister: string[];
+      restored: Array<{ symbol: string }>;
+      rule: string;
+      ruleHash: string;
     };
-    const dataNegative = Object.entries(verdicts.verdicts)
-      .filter(([, row]) => row.verdict.startsWith("DATA-NEGATIVE"))
-      .map(([symbol]) => symbol)
-      .sort();
+    assert.equal(
+      verdict.ruleHash,
+      WITHDRAWAL_RULE_HASH,
+      "the artifact was written under a different withdrawal rule than this code registers",
+    );
+    // AND THE ARTIFACT'S OWN PROSE IS BOUND TO THAT HASH. The rule travels in
+    // the artifact as text beside its hash, and nothing checked that the two
+    // are the same rule: an edited sentence with the original hash reads as
+    // pre-registered and is not.
+    assert.equal(
+      createHash("sha256").update(verdict.rule).digest("hex"),
+      verdict.ruleHash,
+      "the artifact's printed rule is not the text its own hash names",
+    );
+    // THE PRIOR REGISTER IS BOUND TO A TRACKED ARTIFACT, not self-declared.
+    // Otherwise a market named there is laundered into the register: the stay
+    // clause admits it with no nomination and nothing notices.
+    const fourD = JSON.parse(
+      readFileSync("docs/research/baseline-2026-08-10/4d-cost-sensitivity.json", "utf8"),
+    ) as { verdicts: Record<string, { verdict: string }> };
+    assert.deepEqual(
+      verdict.priorRegister,
+      Object.entries(fourD.verdicts)
+        .filter(([, row]) => row.verdict.startsWith("DATA-NEGATIVE"))
+        .map(([symbol]) => symbol)
+        .sort(),
+      "the artifact's prior register is not the population the outgoing register was pinned to",
+    );
+    const declined = verdict.declined.map((row) => row.symbol).sort();
+    assert.ok(declined.length >= 20, `the verdict declines ${declined.length} markets — that is a shrunk artifact, not a register`);
     assert.deepEqual(
       Object.keys(ENGINE_DECLINED_MARKETS).sort(),
-      dataNegative,
-      "the declined register must equal the data-negative population exactly",
+      declined,
+      "the declined register must equal the read's declined population exactly",
+    );
+    for (const row of verdict.declined) {
+      const entry = ENGINE_DECLINED_MARKETS[row.symbol];
+      assert.equal(
+        entry.measuredExpectancyR,
+        Number(row.measuredExpectancyR.toFixed(3)),
+        `${row.symbol}: the register's figure is not the read's`,
+      );
+      assert.equal(
+        entry.reason.replace(/\s+/g, " "),
+        row.reason.replace(/\s+/g, " "),
+        `${row.symbol}: the register's reason is not the artifact's sentence`,
+      );
+    }
+    for (const row of verdict.restored) {
+      assert.equal(
+        ENGINE_DECLINED_MARKETS[row.symbol],
+        undefined,
+        `${row.symbol} failed the withdrawal rule and must not be declined`,
+      );
+    }
+  });
+
+  it("the artifact re-derives from the read — the rule, not a curated list, produced it", () => {
+    // The OTHER direction, and the one a hand-edit gets past: the artifact
+    // above could be edited to match a curated register. So the rule is run
+    // again here, over the read itself, and must reproduce the artifact
+    // exactly — including its dispositions, not only its symbols. The prior
+    // register is read from the artifact because the rule is asymmetric
+    // (a standing decline is re-tested; a new one must also be nominated),
+    // so re-deriving against TODAY's register would answer a different
+    // question.
+    type Row = {
+      disposition: string;
+      filled: number | null;
+      grossUpper: number | null;
+      measuredExpectancyR: number | null;
+      netUpper: number | null;
+      reason: string;
+      symbol: string;
+    };
+    const verdict = JSON.parse(
+      readFileSync("docs/research/r4/withdrawal-verdict-2026-09-03.json", "utf8"),
+    ) as {
+      declined: Row[];
+      priorRegister: string[];
+      restored: Row[];
+      retired?: Row[];
+      unnominated: Row[];
+    };
+    const read = readLedgeredArtifact(
+      "docs/research/confirm-reads/ledgered-read-act3.json",
+      { manifestHash: "021821537f28e5d2777543989baa0631a38840d592fad74c4bdb2429fb627c59" },
+    );
+    const derived = withdrawalVerdicts(read, new Set(verdict.priorRegister));
+    const namesOf = (kind: string) =>
+      derived.filter((row) => row.disposition === kind).map((row) => row.symbol).sort();
+    assert.deepEqual(
+      [...namesOf("declined"), ...namesOf("stays")].sort(),
+      verdict.declined.map((row) => row.symbol).sort(),
+      "re-running the rule over the read does not reproduce the artifact's declined set",
+    );
+    assert.deepEqual(namesOf("restored"), verdict.restored.map((row) => row.symbol).sort());
+    assert.deepEqual(namesOf("unnominated"), verdict.unnominated.map((row) => row.symbol).sort());
+    assert.deepEqual(namesOf("retired"), (verdict.retired ?? []).map((row) => row.symbol).sort());
+    // FIGURES, NOT ONLY NAMES. Symbol lists agreeing proves the population;
+    // it does not stop the artifact and the register drifting together to
+    // figures the read never produced.
+    const derivedBySymbol = new Map(derived.map((row) => [row.symbol, row]));
+    for (const row of [...verdict.declined, ...verdict.restored, ...(verdict.retired ?? []), ...verdict.unnominated]) {
+      const again = derivedBySymbol.get(row.symbol);
+      assert.ok(again, `${row.symbol} is in the artifact but not in the re-derivation`);
+      assert.equal(again.disposition, row.disposition, `${row.symbol}: disposition drifted`);
+      assert.equal(again.measuredExpectancyR, row.measuredExpectancyR, `${row.symbol}: net expectancy drifted`);
+      assert.equal(again.grossUpper, row.grossUpper, `${row.symbol}: gross bound drifted`);
+      assert.equal(again.netUpper, row.netUpper, `${row.symbol}: net bound drifted`);
+      assert.equal(again.filled, row.filled, `${row.symbol}: fill count drifted`);
+      assert.equal(again.reason, row.reason, `${row.symbol}: the sentence drifted from the rule that writes it`);
+    }
+    assert.ok(
+      namesOf("declined").length >= 5 && namesOf("stays").length >= 5,
+      "both halves of the asymmetric rule must be exercised, or one clause is unmeasured",
     );
   });
 });
