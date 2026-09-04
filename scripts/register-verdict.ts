@@ -40,8 +40,12 @@ import { writeResearchArtifact } from "./researchArtifact.ts";
  * starved verdict is a verdict about the configuration.
  */
 export const WITHDRAWAL_RULE =
-  "The HELD-BACK TEST, applied to every market: the read's shipped-cell m3 is confirmed-negative on " +
-  "at least 30 filled outcomes and BOTH the net and the gross 95% upper bounds are below zero. Net " +
+  "The CONFIRMATION-FOLD TEST, applied to every market: the read's shipped-cell m3 is confirmed-negative " +
+  "on at least 30 filled outcomes and BOTH the net and the gross 95% upper bounds are below zero. The " +
+  "fold was sealed from this program's tuning, but the shipped cells were DERIVED over dates inside it — " +
+  "the read records heldBack false for every market — so the figure is admissible only because it is " +
+  "NEGATIVE: a cell selected on the rows it is then judged on is biased toward the positive, and the " +
+  "contradiction is the direction that survives that bias (ADMISSIBILITY_RULE). Net " +
   "is the money (amendment 39); gross is amendment 36's precondition — a negative that rests on a " +
   "cost we model is a defect in the parameter, not in the market. ENTERING the register also " +
   "requires the read's own pre-registered nomination: the shipped cell was a decline candidate " +
@@ -137,6 +141,16 @@ export function withdrawalVerdicts(
     // and reading the object's presence as "retired" silently nominated
     // nothing (first run: 0 new declines against a 16-market recommendation).
     const retirement = markets[symbol].retirement;
+    // A CANDIDATE WITH NO RETIREMENT RECORD WAS NEVER REMOVAL-TESTED. The
+    // nomination clause promises that no accepted variant rescued the market;
+    // absent the record there is nothing to read, and treating that silence as
+    // "not rescued" declines a market the rule may keep. Refuse by name.
+    if (markets[symbol].shipped.declineCandidate === true && (retirement === null || retirement === undefined)) {
+      throw new Error(
+        `${symbol} is a decline candidate with no retirement record, so the rule cannot tell whether an accepted ` +
+          `variant rescued it — refusing rather than declining a market the retirement rule may keep`,
+      );
+    }
     const retired = retirement !== null && retirement !== undefined &&
       (retirement as { retired?: boolean }).retired === true;
     const candidate = markets[symbol].shipped.declineCandidate === true;
@@ -281,8 +295,8 @@ function main(): void {
       `retired ${rows("retired").length} · unnominated ${unnominated.length} · cleared ${rows("cleared").length} · ` +
       `unjudged ${rows("unjudged").length}`,
   );
-  console.log(`the unnominated set lost ${lost(unnominated).toFixed(0)}R over ${unnominated.reduce((sum, row) => sum + (row.filled ?? 0), 0)} held-back fills — the next act's population, not this one's`);
-  console.log(`the declined set lost ${lost(declined).toFixed(0)}R over ${declined.reduce((sum, row) => sum + (row.filled ?? 0), 0)} held-back fills`);
+  console.log(`the unnominated set lost ${lost(unnominated).toFixed(0)}R over ${unnominated.reduce((sum, row) => sum + (row.filled ?? 0), 0)} confirmation-fold fills — the next act's population, not this one's`);
+  console.log(`the declined set lost ${lost(declined).toFixed(0)}R over ${declined.reduce((sum, row) => sum + (row.filled ?? 0), 0)} confirmation-fold fills`);
   console.log(`wrote ${outPath}`);
 }
 

@@ -400,8 +400,6 @@
       "symbol": "ZCUSX"
     }
   ],
-  "rule": "The HELD-BACK TEST, applied to every market: the read's shipped-cell m3 is confirmed-negative on at least 30 filled outcomes and BOTH the net and the gross 95% upper bounds are below zero. Net is the money (amendment 39); gross is amendment 36's precondition — a negative that rests on a cost we model is a defect in the parameter, not in the market. ENTERING the register also requires the read's own pre-registered nomination: the shipped cell was a decline candidate under DECLINE_RULE on the select fold and no accepted variant retired it. STAYING in the register requires the held-back test alone, because a standing decline is not a new hypothesis being dredged from the confirm fold but an existing verdict being re-tested on valid data. A market that fails the held-back test while declined is RESTORED, and so is one the read cannot judge at all: a decline may not stand on evidence this program has invalidated. A market that passes the held-back test without a nomination is neither declined nor cleared — it is named for the next act.",
-  "ruleHash": "d71da668e939fafb6afd34d6a9141f3e889f28f09ff101c9ff745dc96f5bcd80",
   "retired": [
     {
       "disposition": "retired",
@@ -426,6 +424,8 @@
       "symbol": "XTZUSD"
     }
   ],
+  "rule": "The CONFIRMATION-FOLD TEST, applied to every market: the read's shipped-cell m3 is confirmed-negative on at least 30 filled outcomes and BOTH the net and the gross 95% upper bounds are below zero. The fold was sealed from this program's tuning, but the shipped cells were DERIVED over dates inside it — the read records heldBack false for every market — so the figure is admissible only because it is NEGATIVE: a cell selected on the rows it is then judged on is biased toward the positive, and the contradiction is the direction that survives that bias (ADMISSIBILITY_RULE). Net is the money (amendment 39); gross is amendment 36's precondition — a negative that rests on a cost we model is a defect in the parameter, not in the market. ENTERING the register also requires the read's own pre-registered nomination: the shipped cell was a decline candidate under DECLINE_RULE on the select fold and no accepted variant retired it. STAYING in the register requires the held-back test alone, because a standing decline is not a new hypothesis being dredged from the confirm fold but an existing verdict being re-tested on valid data. A market that fails the held-back test while declined is RESTORED, and so is one the read cannot judge at all: a decline may not stand on evidence this program has invalidated. A market that passes the held-back test without a nomination is neither declined nor cleared — it is named for the next act.",
+  "ruleHash": "104048d27fe5fca4bda00442c459a6fe64c6e8565506b679cae387042bbce5ab",
   "unjudged": [
     {
       "disposition": "unjudged",

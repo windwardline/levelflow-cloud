@@ -1465,13 +1465,13 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
  * — the corpus the 2026-08-11 clock defect invalidated — and its own note
  * said the entries stood "on the conservative reading only… re-decided, kept
  * or restored, the moment a valid corpus exists". R3's re-swept corpus is
- * that corpus and R4 act 3's ledgered confirm read is its verdict on data
- * held back from every tuning step, so every entry below is now derived from
+ * that corpus and R4 act 3's ledgered confirm read is its verdict on the
+ * confirmation fold, so every entry below is now derived from
  * that ONE artifact by `scripts/register-verdict.ts` and pinned against it in
  * both directions (`docs/research/r4/withdrawal-verdict-2026-09-03.json`).
  *
- * THE RULE, pre-registered and hashed into the artifact. The held-back test:
- * the read's shipped-cell M3 is confirmed-negative on at least 30 filled
+ * THE RULE, pre-registered and hashed into the artifact. The confirmation-fold
+ * test: the read's shipped-cell M3 is confirmed-negative on at least 30 filled
  * outcomes and BOTH the net and gross 95% upper bounds are below zero. Net is
  * the money (amendment 39); gross is amendment 36's precondition — a negative
  * that rests on a cost WE model is a defect in the parameter, not in the
@@ -1479,8 +1479,21 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
  * venue's published bill alone. ENTERING also requires the read's own
  * pre-registered nomination (a decline candidate on the select fold that no
  * accepted variant retired), so no entry is a hypothesis dredged from the
- * confirm fold. STAYING requires the held-back test alone: a standing decline
- * is an existing verdict being re-tested, not a new one being made.
+ * confirm fold. STAYING requires the confirmation-fold test alone: a standing
+ * decline is an existing verdict being re-tested, not a new one being made.
+ *
+ * WHAT "CONFIRMATION FOLD" DOES AND DOES NOT MEAN. The fold was sealed from
+ * this program's tuning — R4 never read it until the one ledgered read — but
+ * the shipped cells were DERIVED over dates inside it, and the read records
+ * `heldBack: false` for all 97 markets (thirteen of these entries overlap the
+ * fold by 237 to 804 days; two more overlap on their confirmation window; the
+ * remaining eight are class rows whose derivation window is not in the
+ * artifacts at all). So no figure here is "held back from every tuning step",
+ * and an earlier draft of this register said it was. What makes the figure
+ * admissible is that it is NEGATIVE: a cell selected on the rows it is then
+ * judged on is biased toward the positive, so a contradiction is the one
+ * direction that survives the bias. That is the ADMISSIBILITY_RULE, and it is
+ * a stronger argument than the false one it replaces.
  *
  * WHAT THAT CHANGED. Ten markets enter — ALGOUSD, ASX, ATOMUSD, AVAXUSD,
  * BCHUSD, DOTUSD, DYDXUSD, NEARUSD, SOLUSD, TRXUSD — which lost 5,000R over
@@ -1763,21 +1776,37 @@ export function engineDeclines(symbol: string): EngineDecline | null {
  * literals would drift and the coupling test in `tests/reviewCopyCoupling`
  * only extracts what the analyzer actually emits.
  *
- * WHAT IT NO LONGER CLAIMS. It used to end "...is negative after the venue's
- * published costs." That clause was false and this file's own header says so:
- * amendment 36's standard is UNMET for this register, and each entry's
- * `reason` records that the published-bill-only test "did not reach the
- * resolver and measured nothing" (`docs/research/remediation-program-2026-08-11.md`,
- * "the sentence shipped on all fifteen was false"). The engine's internal
- * record was corrected on 2026-08-11; the sentence the operator reads was not,
- * so the register and the screen disagreed for nineteen days.
+ * WHAT IT NO LONGER CLAIMS, AND WHAT IS NOW TRUE AGAIN. It used to end "...is
+ * negative after the venue's published costs." That clause was false when it
+ * shipped: amendment 36's standard was UNMET for the old register, because the
+ * published-bill-only test "did not reach the resolver and measured nothing"
+ * (`docs/research/remediation-program-2026-08-11.md` — "the sentence shipped on
+ * all fifteen was false"). The internal record was corrected on 2026-08-11 and
+ * the operator's sentence was not, so the register and the screen disagreed
+ * for nineteen days, which is why the clause is gone.
  *
- * What survives is what the corpus supports: the record is negative. The
- * MAGNITUDE stays withheld (SC-5) because every `measuredExpectancyR` here
- * comes from the corpus the clock defect invalidated, and the DIRECTION
- * survives that defect only because the defect inflates expectancy — a market
- * measured negative under it is very unlikely to be positive under a correct
- * measurement. The reprobe carries the way back in.
+ * The standard is MET for the register as re-decided on 2026-09-03: every
+ * entry now carries a gross figure — the same decision re-resolved at the
+ * venue's published commission alone — and the rule refuses to decline a
+ * market whose gross interval touches zero. The clause is still not restored
+ * to the sentence, because the sentence is not where that argument belongs
+ * (see below); the point is that the file no longer claims a standard it has
+ * since met.
+ *
+ * WHY THE MAGNITUDE IS STILL WITHHELD, ON A NEW REASON (2026-09-03). It used
+ * to be withheld because every `measuredExpectancyR` came from the corpus the
+ * clock defect invalidated — the direction survived that defect and the size
+ * did not. That premise is gone: the register is re-derived from the one
+ * ledgered confirm read on R3's valid corpus, and every figure it carries is
+ * now real and published in `docs/trade-model.md` and the verdict artifact.
+ *
+ * It stays withheld as a COPY-LAW choice (§17f: text says only what the
+ * surface cannot show). "−0.65R per setup over 1,208 outcomes" is not
+ * something an operator can act on — the actionable facts are that this market
+ * produces no setup and that the refusal is re-probed — so the sentence
+ * carries those and the number lives where a decision is made from it. If that
+ * trade ever looks wrong, the change is one string, and the figures are
+ * already in the register beside it.
  */
 export function engineDeclineSentence(decline: EngineDecline): string {
   return "Levelflow does not produce setups for this market: its own " +

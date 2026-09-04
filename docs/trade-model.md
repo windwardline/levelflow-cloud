@@ -1817,10 +1817,10 @@ corpus exists".
 verdict (`docs/research/r4/withdrawal-verdict-2026-09-03.json`), under a rule
 hashed into the artifact:
 
-> The held-back test — M3 confirmed-negative on at least 30 filled outcomes,
-> with BOTH the net and the gross 95% upper bounds below zero. Net is the
-> money (amendment 39). Gross is amendment 36's precondition: a negative that
-> rests on a cost WE model is a defect in the parameter, not in the market.
+> The confirmation-fold test — M3 confirmed-negative on at least 30 filled
+> outcomes, with BOTH the net and the gross 95% upper bounds below zero. Net is
+> the money (amendment 39). Gross is amendment 36's precondition: a negative
+> that rests on a cost WE model is a defect in the parameter, not in the market.
 > **Entering** also requires the read's own pre-registered nomination — a
 > decline candidate on the select fold that no accepted variant retired — so
 > no entry is a hypothesis dredged from the confirm fold. **Staying** requires
@@ -1829,11 +1829,24 @@ hashed into the artifact:
 
 | disposition | markets | what the read measured |
 | --- | ---: | --- |
-| enter | 10 | ALGOUSD, ASX, ATOMUSD, AVAXUSD, BCHUSD, DOTUSD, DYDXUSD, NEARUSD, SOLUSD, TRXUSD — **-5,000R over 9,863 held-back fills** between them |
+| enter | 10 | ALGOUSD, ASX, ATOMUSD, AVAXUSD, BCHUSD, DOTUSD, DYDXUSD, NEARUSD, SOLUSD, TRXUSD — **-5,000R over 9,863 confirmation-fold fills** between them |
 | stay | 13 | re-based on the valid corpus, figure for figure |
 | restored | 2 | ZCUSX (gross upper **+0.063** — the negative does not survive amendment 36's own clause) and PAUSD (the read cannot judge it: its shipped cell is not held back, so the figure is withheld — and a decline may not stand on evidence this program has invalidated) |
 | retired | 2 | ADAUSD and XTZUSD — the select fold DID nominate them and an accepted variant rescued the candidacy, so the retirement rule keeps them |
 | named, not declined | 11 | pass the held-back test with no nomination behind them (-4,125R over 23,575 fills), BTCUSD, ETHUSD and USDJPY among them: the artifact's `unnominated` list, for the next act |
+
+**What "confirmation fold" does and does not mean.** The fold was sealed from
+this program's tuning — R4 never opened it until the one ledgered read — but
+the shipped cells were *derived* over dates inside it, and the read records
+`heldBack: false` for all 97 markets. Thirteen of these entries overlap the
+fold by 237 to 804 days on their selection window; two more overlap on their
+confirmation window; the remaining eight are class rows whose derivation window
+is not in the artifacts at all. So no figure here is "held back from every
+tuning step", and an earlier draft of this section said it was. What makes the
+figure admissible is that it is **negative**: a cell selected on the rows it is
+then judged on is biased toward the positive, so a contradiction is the one
+direction that survives the bias. That is the admissibility rule, and it is a
+stronger argument than the false one it replaces.
 
 **What this evidence is not.** Eight of the ten entering markets carry no
 per-symbol layer — they run on their class row, a number we chose, and no

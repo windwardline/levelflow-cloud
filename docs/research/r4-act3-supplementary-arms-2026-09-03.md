@@ -554,7 +554,7 @@ frozen candidates — under 25 MB.
    this read under a hashed rule (held-back test on both columns; entering
    also needs the select-fold nomination, staying does not). Ten markets
    enter — ALGOUSD, ASX, ATOMUSD, AVAXUSD, BCHUSD, DOTUSD, DYDXUSD, NEARUSD,
-   SOLUSD, TRXUSD, together −5,000R over 9,863 held-back fills — thirteen
+   SOLUSD, TRXUSD, together −5,000R over 9,863 confirmation-fold fills — thirteen
    stay on re-based evidence, and TWO ARE RESTORED: ZCUSX (gross upper +0.063,
    so amendment 36's own clause refuses the withdrawal) and PAUSD (no
    admissible figure at all). Eleven more pass the held-back test with no

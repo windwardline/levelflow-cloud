@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -582,12 +583,22 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
       declined: Array<{ measuredExpectancyR: number; reason: string; symbol: string }>;
       priorRegister: string[];
       restored: Array<{ symbol: string }>;
+      rule: string;
       ruleHash: string;
     };
     assert.equal(
       verdict.ruleHash,
       WITHDRAWAL_RULE_HASH,
       "the artifact was written under a different withdrawal rule than this code registers",
+    );
+    // AND THE ARTIFACT'S OWN PROSE IS BOUND TO THAT HASH. The rule travels in
+    // the artifact as text beside its hash, and nothing checked that the two
+    // are the same rule: an edited sentence with the original hash reads as
+    // pre-registered and is not.
+    assert.equal(
+      createHash("sha256").update(verdict.rule).digest("hex"),
+      verdict.ruleHash,
+      "the artifact's printed rule is not the text its own hash names",
     );
     // THE PRIOR REGISTER IS BOUND TO A TRACKED ARTIFACT, not self-declared.
     // Otherwise a market named there is laundered into the register: the stay
