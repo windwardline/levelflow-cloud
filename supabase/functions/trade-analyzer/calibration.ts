@@ -99,7 +99,15 @@ import { isKnownSymbol } from "./symbols.ts";
 // are restored — so the set of markets that can produce a setup at all
 // changes, and the cohort scopes again.
 // (Prior: 2026.09.03.forex-cost-share-cap.)
-export const ANALYZER_VERSION = "2026.09.03.register-redecision";
+// 2026.09.04.removal-test-uniform: amendment 36's removal test — its window
+// and cap legs — now runs for a STANDING decline exactly as it runs for a new
+// one, and retirement is decided on MONEY rather than on a bound crossing. The
+// register moves 23 -> 21: AAVEUSD, DOGEUSD, ETCUSD and IMXUSD are restored
+// because a review window retires their withdrawal, and ADAUSD and XTZUSD are
+// declined because the bound-crossing rule had been serving them while the
+// read condemns them on both columns. The accepted population changes, so the
+// cohort scopes again. (Prior: 2026.09.03.register-redecision.)
+export const ANALYZER_VERSION = "2026.09.04.removal-test-uniform";
 
 export type AssetType =
   | "agriculture"
@@ -1530,13 +1538,14 @@ export type EngineDecline = {
 };
 
 export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
-  AAVEUSD: {
-    measuredExpectancyR: -0.075,
+  ADAUSD: {
+    measuredExpectancyR: -0.13,
     reason:
-      "measured -0.075R per filled setup (95% upper -0.050, n=2883) on the " +
-      "confirmation fold the ledgered read opened once, and -0.054R (95% upper " +
-      "-0.030) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "measured -0.130R per filled setup (95% upper -0.105, n=2901) on the " +
+      "confirmation fold the ledgered read opened once, and -0.044R (95% upper " +
+      "-0.021) at the venue's published commission alone — the negative survives " +
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1546,7 +1555,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.646R per filled setup (95% upper -0.602, n=1208) on the " +
       "confirmation fold the ledgered read opened once, and -0.226R (95% upper " +
       "-0.180) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1556,7 +1566,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.301R per filled setup (95% upper -0.170, n=142) on the " +
       "confirmation fold the ledgered read opened once, and -0.224R (95% upper " +
       "-0.093) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1566,7 +1577,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -1.671R per filled setup (95% upper -1.487, n=95) on the " +
       "confirmation fold the ledgered read opened once, and -0.372R (95% upper " +
       "-0.233) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1576,7 +1588,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.642R per filled setup (95% upper -0.597, n=1189) on the " +
       "confirmation fold the ledgered read opened once, and -0.198R (95% upper " +
       "-0.150) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1586,7 +1599,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.292R per filled setup (95% upper -0.261, n=2104) on the " +
       "confirmation fold the ledgered read opened once, and -0.105R (95% upper " +
       "-0.076) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1596,7 +1610,10 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.209R per filled setup (95% upper -0.175, n=2872) on the " +
       "confirmation fold the ledgered read opened once, and -0.169R (95% upper " +
       "-0.135) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage; NEVER REMOVAL-TESTED — this " +
+      "calendar leaves it no select-fold rows a removal arm could grade, so the " +
+      "window and cap legs of amendment 36 are undischarged and the next act's " +
+      "calendar must reach it first",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1606,17 +1623,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.094R per filled setup (95% upper -0.068, n=3010) on the " +
       "confirmation fold the ledgered read opened once, and -0.066R (95% upper " +
       "-0.041) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
-    reprobe:
-      "It stays under analysis and returns if the measurement turns positive.",
-  },
-  DOGEUSD: {
-    measuredExpectancyR: -0.116,
-    reason:
-      "measured -0.116R per filled setup (95% upper -0.091, n=2977) on the " +
-      "confirmation fold the ledgered read opened once, and -0.062R (95% upper " +
-      "-0.038) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1626,7 +1634,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.899R per filled setup (95% upper -0.841, n=629) on the " +
       "confirmation fold the ledgered read opened once, and -0.240R (95% upper " +
       "-0.173) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1636,7 +1645,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -1.632R per filled setup (95% upper -1.513, n=329) on the " +
       "confirmation fold the ledgered read opened once, and -0.327R (95% upper " +
       "-0.218) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1646,17 +1656,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.310R per filled setup (95% upper -0.282, n=2643) on the " +
       "confirmation fold the ledgered read opened once, and -0.096R (95% upper " +
       "-0.069) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
-    reprobe:
-      "It stays under analysis and returns if the measurement turns positive.",
-  },
-  ETCUSD: {
-    measuredExpectancyR: -0.134,
-    reason:
-      "measured -0.134R per filled setup (95% upper -0.109, n=2985) on the " +
-      "confirmation fold the ledgered read opened once, and -0.076R (95% upper " +
-      "-0.051) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1666,7 +1667,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.091R per filled setup (95% upper -0.067, n=3315) on the " +
       "confirmation fold the ledgered read opened once, and -0.046R (95% upper " +
       "-0.022) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1676,17 +1678,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.100R per filled setup (95% upper -0.076, n=3142) on the " +
       "confirmation fold the ledgered read opened once, and -0.064R (95% upper " +
       "-0.041) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
-    reprobe:
-      "It stays under analysis and returns if the measurement turns positive.",
-  },
-  IMXUSD: {
-    measuredExpectancyR: -0.13,
-    reason:
-      "measured -0.130R per filled setup (95% upper -0.099, n=2878) on the " +
-      "confirmation fold the ledgered read opened once, and -0.091R (95% upper " +
-      "-0.060) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1696,7 +1689,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.331R per filled setup (95% upper -0.295, n=1502) on the " +
       "confirmation fold the ledgered read opened once, and -0.069R (95% upper " +
       "-0.036) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1706,7 +1700,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.680R per filled setup (95% upper -0.633, n=994) on the " +
       "confirmation fold the ledgered read opened once, and -0.194R (95% upper " +
       "-0.142) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1716,7 +1711,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.068R per filled setup (95% upper -0.043, n=2728) on the " +
       "confirmation fold the ledgered read opened once, and -0.033R (95% upper " +
       "-0.009) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1726,7 +1722,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -1.520R per filled setup (95% upper -1.417, n=445) on the " +
       "confirmation fold the ledgered read opened once, and -0.542R (95% upper " +
       "-0.448) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1736,7 +1733,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.100R per filled setup (95% upper -0.074, n=2831) on the " +
       "confirmation fold the ledgered read opened once, and -0.069R (95% upper " +
       "-0.044) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1746,7 +1744,8 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.109R per filled setup (95% upper -0.079, n=3117) on the " +
       "confirmation fold the ledgered read opened once, and -0.081R (95% upper " +
       "-0.051) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },
@@ -1756,7 +1755,19 @@ export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
       "measured -0.145R per filled setup (95% upper -0.119, n=2728) on the " +
       "confirmation fold the ledgered read opened once, and -0.103R (95% upper " +
       "-0.077) at the venue's published commission alone — the negative survives " +
-      "removing our own modelled spread and slippage",
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
+    reprobe:
+      "It stays under analysis and returns if the measurement turns positive.",
+  },
+  XTZUSD: {
+    measuredExpectancyR: -1.973,
+    reason:
+      "measured -1.973R per filled setup (95% upper -1.802, n=141) on the " +
+      "confirmation fold the ledgered read opened once, and -0.336R (95% upper " +
+      "-0.184) at the venue's published commission alone — the negative survives " +
+      "removing our own modelled spread and slippage, and it survives all 13 " +
+      "removal cells that could test a window or a cap",
     reprobe:
       "It stays under analysis and returns if the measurement turns positive.",
   },

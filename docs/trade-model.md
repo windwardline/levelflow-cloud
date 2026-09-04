@@ -19,7 +19,7 @@
 > the defect and must be rebuilt (Phase 0) before anything is re-measured.
 
 
-Model version: `2026.09.03.register-redecision` (**not yet deployed**
+Model version: `2026.09.04.removal-test-uniform` (**not yet deployed**
 — the desk is parked, so this version has never served a request. R2's D1:
 global learning derived `confidence_adjustment` from a WIN RATE against a
 neutral point of 0.5, which is break-even only when a win and a loss are the
@@ -377,7 +377,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.09.03.register-redecision'
+   where o.analyzer_version = '2026.09.04.removal-test-uniform'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;
@@ -1829,9 +1829,9 @@ hashed into the artifact:
 
 | disposition | markets | what the read measured |
 | --- | ---: | --- |
-| enter | 10 | ALGOUSD, ASX, ATOMUSD, AVAXUSD, BCHUSD, DOTUSD, DYDXUSD, NEARUSD, SOLUSD, TRXUSD — **-5,000R over 9,863 confirmation-fold fills** between them |
-| stay | 13 | re-based on the valid corpus, figure for figure |
-| restored | 2 | ZCUSX (gross upper **+0.063** — the negative does not survive amendment 36's own clause) and PAUSD (the read cannot judge it: its shipped cell is not held back, so the figure is withheld — and a decline may not stand on evidence this program has invalidated) |
+| enter | 12 | ALGOUSD, ASX, ATOMUSD, AVAXUSD, BCHUSD, DOTUSD, DYDXUSD, NEARUSD, SOLUSD, TRXUSD — **-5,000R over 9,863 confirmation-fold fills** between them |
+| stay | 9 | re-based on the valid corpus, figure for figure |
+| restored | 6 | ZCUSX (gross upper **+0.063** — the negative does not survive amendment 36's own clause) and PAUSD (the read cannot judge it: its shipped cell is not held back, so the figure is withheld — and a decline may not stand on evidence this program has invalidated) |
 | retired | 2 | ADAUSD and XTZUSD — the select fold DID nominate them and an accepted variant rescued the candidacy, so the retirement rule keeps them |
 | named, not declined | 11 | pass the held-back test with no nomination behind them (-4,125R over 23,575 fills), BTCUSD, ETHUSD and USDJPY among them: the artifact's `unnominated` list, for the next act |
 

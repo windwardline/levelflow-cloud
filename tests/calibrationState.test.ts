@@ -3,7 +3,11 @@ import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { WITHDRAWAL_RULE_HASH, withdrawalVerdicts } from "../scripts/register-verdict.ts";
+import {
+  readRemovalGradings,
+  WITHDRAWAL_RULE_HASH,
+  withdrawalVerdicts,
+} from "../scripts/register-verdict.ts";
 import { readLedgeredArtifact } from "../scripts/ledgeredRead.ts";
 import {
   ENGINE_DECLINED_MARKETS,
@@ -320,7 +324,7 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     // engine-declined and builds no setup, so the live delta is PLUSD alone.
     assert.match(
       calibrationSrc,
-      /ANALYZER_VERSION = "2026\.09\.03\.register-redecision"/,
+      /ANALYZER_VERSION = "2026\.09\.04\.removal-test-uniform"/,
     );
     assert.match(src, /ANALYZER_VERSION,\n/);
 
@@ -678,7 +682,11 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
       "docs/research/confirm-reads/ledgered-read-act3.json",
       { manifestHash: "021821537f28e5d2777543989baa0631a38840d592fad74c4bdb2429fb627c59" },
     );
-    const derived = withdrawalVerdicts(read, new Set(verdict.priorRegister));
+    const derived = withdrawalVerdicts(
+      read,
+      new Set(verdict.priorRegister),
+      readRemovalGradings("docs/research/r4"),
+    );
     const namesOf = (kind: string) =>
       derived.filter((row) => row.disposition === kind).map((row) => row.symbol).sort();
     assert.deepEqual(

@@ -3,6 +3,12 @@
   "cleared": [
     {
       "disposition": "cleared",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 3905,
       "grossExpectancy": -0.01016719590268886,
       "grossUpper": 0.009610662902180852,
@@ -14,6 +20,85 @@
     },
     {
       "disposition": "cleared",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [
+          {
+            "arm": "review-window",
+            "filled": 3167,
+            "grossUpper": 0.0434493965146195,
+            "netExpectancy": 0.003909220082096628,
+            "netUpper": 0.024150636256530966,
+            "variant": "defaultReviewHours=4"
+          },
+          {
+            "arm": "review-window",
+            "filled": 3894,
+            "grossUpper": 0.05102883827823031,
+            "netExpectancy": 0.008279763739085766,
+            "netUpper": 0.028273969869967615,
+            "variant": "defaultReviewHours=24"
+          },
+          {
+            "arm": "review-window",
+            "filled": 3961,
+            "grossUpper": 0.048268758747075285,
+            "netExpectancy": 0.004543802070184316,
+            "netUpper": 0.024725853644488816,
+            "variant": "defaultReviewHours=48"
+          },
+          {
+            "arm": "review-window-96",
+            "filled": 3997,
+            "grossUpper": 0.048989749651648484,
+            "netExpectancy": 0.004671328496372283,
+            "netUpper": 0.024784829224850265,
+            "variant": "defaultReviewHours=96"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 3624,
+            "grossUpper": 0.04531830365634494,
+            "netExpectancy": 0.0033285596026490414,
+            "netUpper": 0.023800158509301034,
+            "variant": "maxStopAtrMultiplier=2.5,stopStructureSource=intraday"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 3630,
+            "grossUpper": 0.050160897900010736,
+            "netExpectancy": 0.0034657024793388375,
+            "netUpper": 0.024043821562883174,
+            "variant": "maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 3572,
+            "grossUpper": 0.04410854993280869,
+            "netExpectancy": 0.002786786114221733,
+            "netUpper": 0.023056062037644376,
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 3621,
+            "grossUpper": 0.049567064468397384,
+            "netExpectancy": 0.004496050814692039,
+            "netUpper": 0.02483043378667276,
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "stop-cap-8",
+            "filled": 3607,
+            "grossUpper": 0.04967368004963277,
+            "netExpectancy": 0.0058570002772386715,
+            "netUpper": 0.0261696999757753,
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily"
+          }
+        ],
+        "tested": true
+      },
       "filled": 3958,
       "grossExpectancy": -0.0021347650328448708,
       "grossUpper": 0.017529775719866726,
@@ -25,6 +110,77 @@
     },
     {
       "disposition": "cleared",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [
+          {
+            "arm": "review-window",
+            "filled": 3877,
+            "grossUpper": 0.049777171658481965,
+            "netExpectancy": 0.0032825638380190748,
+            "netUpper": 0.02389068318479739,
+            "variant": "defaultReviewHours=24"
+          },
+          {
+            "arm": "review-window",
+            "filled": 4004,
+            "grossUpper": 0.053108051630744516,
+            "netExpectancy": 0.006380719280719303,
+            "netUpper": 0.026878026073126657,
+            "variant": "defaultReviewHours=48"
+          },
+          {
+            "arm": "review-window-96",
+            "filled": 4049,
+            "grossUpper": 0.052419136364560984,
+            "netExpectancy": 0.005554112126451011,
+            "netUpper": 0.025953804501953802,
+            "variant": "defaultReviewHours=96"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 3590,
+            "grossUpper": 0.053659844579101765,
+            "netExpectancy": 0.00365002785515324,
+            "netUpper": 0.024879649678923605,
+            "variant": "maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 3289,
+            "grossUpper": 0.05147308274687518,
+            "netExpectancy": 0.0029108847674065197,
+            "netUpper": 0.02471861356394672,
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 3532,
+            "grossUpper": 0.056626307836389424,
+            "netExpectancy": 0.009173697621744078,
+            "netUpper": 0.0304165731441885,
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "stop-cap-8",
+            "filled": 3195,
+            "grossUpper": 0.05704460825372108,
+            "netExpectancy": 0.007919186228482042,
+            "netUpper": 0.029988833389535847,
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday"
+          },
+          {
+            "arm": "stop-cap-8",
+            "filled": 3503,
+            "grossUpper": 0.05914059342422831,
+            "netExpectancy": 0.010861689980017162,
+            "netUpper": 0.03217501044015537,
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily"
+          }
+        ],
+        "tested": true
+      },
       "filled": 3385,
       "grossExpectancy": 0.011610014771048715,
       "grossUpper": 0.03284159844557195,
@@ -36,6 +192,12 @@
     },
     {
       "disposition": "cleared",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 2791,
       "grossExpectancy": 0.01587767825152273,
       "grossUpper": 0.039656401313161053,
@@ -47,6 +209,12 @@
     },
     {
       "disposition": "cleared",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 322,
       "grossExpectancy": 0.000010869565217392865,
       "grossUpper": 0.06496463120539779,
@@ -58,6 +226,45 @@
     },
     {
       "disposition": "cleared",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [
+          {
+            "arm": "stop-cap",
+            "filled": 392,
+            "grossUpper": 0.16381619467626063,
+            "netExpectancy": -0.10124846938775506,
+            "netUpper": 0.05239290266955565,
+            "variant": "maxStopAtrMultiplier=2.5,stopStructureSource=intraday"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 381,
+            "grossUpper": 0.18996253323015277,
+            "netExpectancy": -0.09936929133858281,
+            "netUpper": 0.04697506463169916,
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 409,
+            "grossUpper": 0.21918272989249352,
+            "netExpectancy": -0.09941198044009789,
+            "netUpper": 0.057288458880802196,
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "stop-cap-8",
+            "filled": 357,
+            "grossUpper": 0.1468895498928131,
+            "netExpectancy": -0.09259523809523817,
+            "netUpper": 0.05708687675267207,
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday"
+          }
+        ],
+        "tested": true
+      },
       "filled": 338,
       "grossExpectancy": -0.010268343195266254,
       "grossUpper": 0.07907652145518107,
@@ -69,6 +276,12 @@
     },
     {
       "disposition": "cleared",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 342,
       "grossExpectancy": -0.00916608187134501,
       "grossUpper": 0.05494148072603467,
@@ -80,6 +293,29 @@
     },
     {
       "disposition": "cleared",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 12,
+        "retiringCells": [
+          {
+            "arm": "review-window",
+            "filled": 244,
+            "grossUpper": 0.1787391061162184,
+            "netExpectancy": -0.016865573770491794,
+            "netUpper": 0.0952529980276542,
+            "variant": "defaultReviewHours=24"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 244,
+            "grossUpper": 0.1787391061162184,
+            "netExpectancy": -0.016865573770491794,
+            "netUpper": 0.0952529980276542,
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday"
+          }
+        ],
+        "tested": true
+      },
       "filled": 190,
       "grossExpectancy": -0.10748631578947364,
       "grossUpper": 0.04618776902667111,
@@ -91,6 +327,14 @@
     },
     {
       "disposition": "cleared",
+      "frozenRetirement": {
+        "retired": true
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 220,
       "grossExpectancy": -0.053998636363636394,
       "grossUpper": 0.09162573299464707,
@@ -103,260 +347,402 @@
   ],
   "declined": [
     {
-      "disposition": "stays",
-      "filled": 2883,
-      "grossExpectancy": -0.05407408949011458,
-      "grossUpper": -0.029604068072547698,
+      "disposition": "declined",
+      "frozenRetirement": {
+        "retired": true
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
+      "filled": 2901,
+      "grossExpectancy": -0.044469458807307884,
+      "grossUpper": -0.020658366248279287,
       "m3": "confirmed-negative",
-      "measuredExpectancyR": -0.07490478668054103,
-      "netUpper": -0.05017666004552126,
-      "reason": "measured -0.075R per filled setup (95% upper -0.050, n=2883) on the confirmation fold the ledgered read opened once, and -0.054R (95% upper -0.030) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
-      "symbol": "AAVEUSD"
+      "measuredExpectancyR": -0.12990803171320287,
+      "netUpper": -0.10513797858145672,
+      "reason": "measured -0.130R per filled setup (95% upper -0.105, n=2901) on the confirmation fold the ledgered read opened once, and -0.044R (95% upper -0.021) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
+      "symbol": "ADAUSD"
     },
     {
       "disposition": "declined",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 1208,
       "grossExpectancy": -0.2261591059602649,
       "grossUpper": -0.1796114446635172,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.6463756622516568,
       "netUpper": -0.6018115339816184,
-      "reason": "measured -0.646R per filled setup (95% upper -0.602, n=1208) on the confirmation fold the ledgered read opened once, and -0.226R (95% upper -0.180) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.646R per filled setup (95% upper -0.602, n=1208) on the confirmation fold the ledgered read opened once, and -0.226R (95% upper -0.180) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "ALGOUSD"
     },
     {
       "disposition": "declined",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 142,
       "grossExpectancy": -0.22397535211267608,
       "grossUpper": -0.09332389205586714,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.301356338028169,
       "netUpper": -0.17027277489852444,
-      "reason": "measured -0.301R per filled setup (95% upper -0.170, n=142) on the confirmation fold the ledgered read opened once, and -0.224R (95% upper -0.093) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.301R per filled setup (95% upper -0.170, n=142) on the confirmation fold the ledgered read opened once, and -0.224R (95% upper -0.093) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "ASX"
     },
     {
       "disposition": "declined",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 95,
       "grossExpectancy": -0.37213684210526327,
       "grossUpper": -0.23272825188564059,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -1.6714589473684214,
       "netUpper": -1.487258853439261,
-      "reason": "measured -1.671R per filled setup (95% upper -1.487, n=95) on the confirmation fold the ledgered read opened once, and -0.372R (95% upper -0.233) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -1.671R per filled setup (95% upper -1.487, n=95) on the confirmation fold the ledgered read opened once, and -0.372R (95% upper -0.233) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "ATOMUSD"
     },
     {
       "disposition": "declined",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 1189,
       "grossExpectancy": -0.19796341463414638,
       "grossUpper": -0.14995421682368157,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.6420250630782173,
       "netUpper": -0.5969729126527588,
-      "reason": "measured -0.642R per filled setup (95% upper -0.597, n=1189) on the confirmation fold the ledgered read opened once, and -0.198R (95% upper -0.150) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.642R per filled setup (95% upper -0.597, n=1189) on the confirmation fold the ledgered read opened once, and -0.198R (95% upper -0.150) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "AVAXUSD"
     },
     {
       "disposition": "declined",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 2104,
       "grossExpectancy": -0.1049863593155893,
       "grossUpper": -0.07603961721736868,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.291677614068441,
       "netUpper": -0.26114546366737523,
-      "reason": "measured -0.292R per filled setup (95% upper -0.261, n=2104) on the confirmation fold the ledgered read opened once, and -0.105R (95% upper -0.076) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.292R per filled setup (95% upper -0.261, n=2104) on the confirmation fold the ledgered read opened once, and -0.105R (95% upper -0.076) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "BCHUSD"
     },
     {
       "disposition": "stays",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 0,
+        "retiringCells": [],
+        "tested": false
+      },
       "filled": 2872,
       "grossExpectancy": -0.16908986768802275,
       "grossUpper": -0.13465161982516505,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.20910163649025082,
       "netUpper": -0.17453132905225127,
-      "reason": "measured -0.209R per filled setup (95% upper -0.175, n=2872) on the confirmation fold the ledgered read opened once, and -0.169R (95% upper -0.135) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.209R per filled setup (95% upper -0.175, n=2872) on the confirmation fold the ledgered read opened once, and -0.169R (95% upper -0.135) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage; NEVER REMOVAL-TESTED — this calendar leaves it no select-fold rows a removal arm could grade, so the window and cap legs of amendment 36 are undischarged and the next act's calendar must reach it first",
       "symbol": "CAKEUSD"
     },
     {
       "disposition": "stays",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 3010,
       "grossExpectancy": -0.06637152823920271,
       "grossUpper": -0.040914053050444044,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.0939842524916944,
       "netUpper": -0.06822424006593675,
-      "reason": "measured -0.094R per filled setup (95% upper -0.068, n=3010) on the confirmation fold the ledgered read opened once, and -0.066R (95% upper -0.041) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.094R per filled setup (95% upper -0.068, n=3010) on the confirmation fold the ledgered read opened once, and -0.066R (95% upper -0.041) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "DASHUSD"
     },
     {
-      "disposition": "stays",
-      "filled": 2977,
-      "grossExpectancy": -0.06156399059455826,
-      "grossUpper": -0.03782612200121302,
-      "m3": "confirmed-negative",
-      "measuredExpectancyR": -0.11591195834732963,
-      "netUpper": -0.09140204954049766,
-      "reason": "measured -0.116R per filled setup (95% upper -0.091, n=2977) on the confirmation fold the ledgered read opened once, and -0.062R (95% upper -0.038) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
-      "symbol": "DOGEUSD"
-    },
-    {
       "disposition": "declined",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 629,
       "grossExpectancy": -0.23974610492845794,
       "grossUpper": -0.17286950070046112,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.8993069952305252,
       "netUpper": -0.8407086760588639,
-      "reason": "measured -0.899R per filled setup (95% upper -0.841, n=629) on the confirmation fold the ledgered read opened once, and -0.240R (95% upper -0.173) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.899R per filled setup (95% upper -0.841, n=629) on the confirmation fold the ledgered read opened once, and -0.240R (95% upper -0.173) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "DOTUSD"
     },
     {
       "disposition": "declined",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 329,
       "grossExpectancy": -0.32740091185410336,
       "grossUpper": -0.21803392895470505,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -1.6324194528875378,
       "netUpper": -1.5127585716810241,
-      "reason": "measured -1.632R per filled setup (95% upper -1.513, n=329) on the confirmation fold the ledgered read opened once, and -0.327R (95% upper -0.218) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -1.632R per filled setup (95% upper -1.513, n=329) on the confirmation fold the ledgered read opened once, and -0.327R (95% upper -0.218) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "DYDXUSD"
     },
     {
       "disposition": "stays",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 2643,
       "grossExpectancy": -0.09638793038214168,
       "grossUpper": -0.06881708867048625,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.31049137343927413,
       "netUpper": -0.2816557251119449,
-      "reason": "measured -0.310R per filled setup (95% upper -0.282, n=2643) on the confirmation fold the ledgered read opened once, and -0.096R (95% upper -0.069) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.310R per filled setup (95% upper -0.282, n=2643) on the confirmation fold the ledgered read opened once, and -0.096R (95% upper -0.069) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "EGLDUSD"
     },
     {
       "disposition": "stays",
-      "filled": 2985,
-      "grossExpectancy": -0.07555731993299833,
-      "grossUpper": -0.05070035156879957,
-      "m3": "confirmed-negative",
-      "measuredExpectancyR": -0.13429765494137383,
-      "netUpper": -0.10879500954087067,
-      "reason": "measured -0.134R per filled setup (95% upper -0.109, n=2985) on the confirmation fold the ledgered read opened once, and -0.076R (95% upper -0.051) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
-      "symbol": "ETCUSD"
-    },
-    {
-      "disposition": "stays",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 3315,
       "grossExpectancy": -0.04584060331825034,
       "grossUpper": -0.022192292053593656,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.09101119155354465,
       "netUpper": -0.06683707027168168,
-      "reason": "measured -0.091R per filled setup (95% upper -0.067, n=3315) on the confirmation fold the ledgered read opened once, and -0.046R (95% upper -0.022) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.091R per filled setup (95% upper -0.067, n=3315) on the confirmation fold the ledgered read opened once, and -0.046R (95% upper -0.022) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "GRTUSD"
     },
     {
       "disposition": "stays",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 3142,
       "grossExpectancy": -0.06419793125397834,
       "grossUpper": -0.040512600087847864,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.09980802036919165,
       "netUpper": -0.07563527473352635,
-      "reason": "measured -0.100R per filled setup (95% upper -0.076, n=3142) on the confirmation fold the ledgered read opened once, and -0.064R (95% upper -0.041) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.100R per filled setup (95% upper -0.076, n=3142) on the confirmation fold the ledgered read opened once, and -0.064R (95% upper -0.041) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "HBARUSD"
     },
     {
       "disposition": "stays",
-      "filled": 2878,
-      "grossExpectancy": -0.090748401667825,
-      "grossUpper": -0.059969338596339336,
-      "m3": "confirmed-negative",
-      "measuredExpectancyR": -0.12980434329395413,
-      "netUpper": -0.09877922523972266,
-      "reason": "measured -0.130R per filled setup (95% upper -0.099, n=2878) on the confirmation fold the ledgered read opened once, and -0.091R (95% upper -0.060) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
-      "symbol": "IMXUSD"
-    },
-    {
-      "disposition": "stays",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 1502,
       "grossExpectancy": -0.06888541944074567,
       "grossUpper": -0.03617214194696874,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.3306324234354195,
       "netUpper": -0.2951386893313045,
-      "reason": "measured -0.331R per filled setup (95% upper -0.295, n=1502) on the confirmation fold the ledgered read opened once, and -0.069R (95% upper -0.036) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.331R per filled setup (95% upper -0.295, n=1502) on the confirmation fold the ledgered read opened once, and -0.069R (95% upper -0.036) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "LTCUSD"
     },
     {
       "disposition": "declined",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 994,
       "grossExpectancy": -0.19444909456740467,
       "grossUpper": -0.14245262564245859,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.6801599597585518,
       "netUpper": -0.6331956733843287,
-      "reason": "measured -0.680R per filled setup (95% upper -0.633, n=994) on the confirmation fold the ledgered read opened once, and -0.194R (95% upper -0.142) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.680R per filled setup (95% upper -0.633, n=994) on the confirmation fold the ledgered read opened once, and -0.194R (95% upper -0.142) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "NEARUSD"
     },
     {
       "disposition": "declined",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 2728,
       "grossExpectancy": -0.03318819648093838,
       "grossUpper": -0.00898807265925216,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.0680348973607037,
       "netUpper": -0.04320525152660058,
-      "reason": "measured -0.068R per filled setup (95% upper -0.043, n=2728) on the confirmation fold the ledgered read opened once, and -0.033R (95% upper -0.009) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.068R per filled setup (95% upper -0.043, n=2728) on the confirmation fold the ledgered read opened once, and -0.033R (95% upper -0.009) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "SOLUSD"
     },
     {
       "disposition": "declined",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 445,
       "grossExpectancy": -0.5418262921348314,
       "grossUpper": -0.4480651618189915,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -1.52013393258427,
       "netUpper": -1.4166805554896094,
-      "reason": "measured -1.520R per filled setup (95% upper -1.417, n=445) on the confirmation fold the ledgered read opened once, and -0.542R (95% upper -0.448) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -1.520R per filled setup (95% upper -1.417, n=445) on the confirmation fold the ledgered read opened once, and -0.542R (95% upper -0.448) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "TRXUSD"
     },
     {
       "disposition": "stays",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 2831,
       "grossExpectancy": -0.06928004238784864,
       "grossUpper": -0.0438239037846237,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.09960558106676062,
       "netUpper": -0.07381442593975829,
-      "reason": "measured -0.100R per filled setup (95% upper -0.074, n=2831) on the confirmation fold the ledgered read opened once, and -0.069R (95% upper -0.044) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.100R per filled setup (95% upper -0.074, n=2831) on the confirmation fold the ledgered read opened once, and -0.069R (95% upper -0.044) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "UNIUSD"
     },
     {
       "disposition": "stays",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 3117,
       "grossExpectancy": -0.08079621430863007,
       "grossUpper": -0.05144506262283984,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.10882787937119043,
       "netUpper": -0.07913846585560722,
-      "reason": "measured -0.109R per filled setup (95% upper -0.079, n=3117) on the confirmation fold the ledgered read opened once, and -0.081R (95% upper -0.051) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.109R per filled setup (95% upper -0.079, n=3117) on the confirmation fold the ledgered read opened once, and -0.081R (95% upper -0.051) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "XLMUSD"
     },
     {
       "disposition": "stays",
+      "frozenRetirement": {
+        "retired": false
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 2728,
       "grossExpectancy": -0.10324072580645156,
       "grossUpper": -0.0771203323336944,
       "m3": "confirmed-negative",
       "measuredExpectancyR": -0.1451507697947214,
       "netUpper": -0.11860582864336155,
-      "reason": "measured -0.145R per filled setup (95% upper -0.119, n=2728) on the confirmation fold the ledgered read opened once, and -0.103R (95% upper -0.077) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage",
+      "reason": "measured -0.145R per filled setup (95% upper -0.119, n=2728) on the confirmation fold the ledgered read opened once, and -0.103R (95% upper -0.077) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
       "symbol": "XMRUSD"
+    },
+    {
+      "disposition": "declined",
+      "frozenRetirement": {
+        "retired": true
+      },
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
+      "filled": 141,
+      "grossExpectancy": -0.33557801418439714,
+      "grossUpper": -0.18413073334217672,
+      "m3": "confirmed-negative",
+      "measuredExpectancyR": -1.9727524822695035,
+      "netUpper": -1.8018146546936102,
+      "reason": "measured -1.973R per filled setup (95% upper -1.802, n=141) on the confirmation fold the ledgered read opened once, and -0.336R (95% upper -0.184) at the venue's published commission alone — the negative survives removing our own modelled spread and slippage, and it survives all 13 removal cells that could test a window or a cap",
+      "symbol": "XTZUSD"
     }
   ],
+  "floorNote": "30 is the market unit's floor, not amendment 25's 300-fill exclusion floor: a declined market stays visible, scannable and re-probed, which is a weaker action than an exclusion. ATOMUSD (95) and ASX (142) sit between the two floors.",
   "minFilled": 30,
+  "minFillShare": 0.5,
   "priorRegister": [
     "AAVEUSD",
     "CAKEUSD",
@@ -374,9 +760,247 @@
     "XMRUSD",
     "ZCUSX"
   ],
+  "removalArms": [
+    "review-window",
+    "review-window-96",
+    "stop-cap",
+    "stop-cap-8"
+  ],
   "readAt": "2026-09-03T10:09:18.628Z",
   "readId": "65331372-2b86-4c57-9ef8-fb588846bfac",
   "restored": [
+    {
+      "disposition": "restored",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [
+          {
+            "arm": "review-window-96",
+            "filled": 2693,
+            "grossUpper": 0.020621789741931996,
+            "netExpectancy": -0.02601767545488298,
+            "netUpper": 0.0001225880532976613,
+            "variant": "defaultReviewHours=96"
+          }
+        ],
+        "tested": true
+      },
+      "filled": 2883,
+      "grossExpectancy": -0.05407408949011458,
+      "grossUpper": -0.029604068072547698,
+      "m3": "confirmed-negative",
+      "measuredExpectancyR": -0.07490478668054103,
+      "netUpper": -0.05017666004552126,
+      "reason": "measured -0.075R per filled setup (95% upper -0.050, n=2883) on the confirmation fold — but 1 of 13 removal cells retire the withdrawal (review-window-96 defaultReviewHours=96: net -0.026 upper 0.000 over 2693 fills), so the negative does not survive removing a window or a cap we chose (amendment 36)",
+      "symbol": "AAVEUSD"
+    },
+    {
+      "disposition": "restored",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [
+          {
+            "arm": "review-window",
+            "filled": 2867,
+            "grossUpper": 0.0399038464211366,
+            "netExpectancy": -0.022045029647715358,
+            "netUpper": 0.002564355292576686,
+            "variant": "defaultReviewHours=24"
+          },
+          {
+            "arm": "review-window",
+            "filled": 2980,
+            "grossUpper": 0.048534428273936586,
+            "netExpectancy": -0.01282617449664427,
+            "netUpper": 0.01188014656499269,
+            "variant": "defaultReviewHours=48"
+          },
+          {
+            "arm": "review-window-96",
+            "filled": 3040,
+            "grossUpper": 0.048096655600871105,
+            "netExpectancy": -0.014782894736842089,
+            "netUpper": 0.009699883025347498,
+            "variant": "defaultReviewHours=96"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 2703,
+            "grossUpper": 0.039571153278683595,
+            "netExpectancy": -0.022678579356270805,
+            "netUpper": 0.0019553622152778186,
+            "variant": "maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 2642,
+            "grossUpper": 0.04262075329950857,
+            "netExpectancy": -0.016843754731264208,
+            "netUpper": 0.007739716391092721,
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 2668,
+            "grossUpper": 0.04342373724340545,
+            "netExpectancy": -0.01592391304347828,
+            "netUpper": 0.008506718055554294,
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "stop-cap-8",
+            "filled": 2624,
+            "grossUpper": 0.04086456119639846,
+            "netExpectancy": -0.017339367378048785,
+            "netUpper": 0.007199439446927781,
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday"
+          },
+          {
+            "arm": "stop-cap-8",
+            "filled": 2658,
+            "grossUpper": 0.04298872923451124,
+            "netExpectancy": -0.01671211437170806,
+            "netUpper": 0.007647416898652833,
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily"
+          }
+        ],
+        "tested": true
+      },
+      "filled": 2977,
+      "grossExpectancy": -0.06156399059455826,
+      "grossUpper": -0.03782612200121302,
+      "m3": "confirmed-negative",
+      "measuredExpectancyR": -0.11591195834732963,
+      "netUpper": -0.09140204954049766,
+      "reason": "measured -0.116R per filled setup (95% upper -0.091, n=2977) on the confirmation fold — but 8 of 13 removal cells retire the withdrawal (review-window defaultReviewHours=24: net -0.022 upper 0.003 over 2867 fills), so the negative does not survive removing a window or a cap we chose (amendment 36)",
+      "symbol": "DOGEUSD"
+    },
+    {
+      "disposition": "restored",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [
+          {
+            "arm": "review-window",
+            "filled": 2860,
+            "grossUpper": 0.05622465624836334,
+            "netExpectancy": -0.012077202797202804,
+            "netUpper": 0.011765986827342723,
+            "variant": "defaultReviewHours=24"
+          },
+          {
+            "arm": "review-window",
+            "filled": 3082,
+            "grossUpper": 0.060612558574275104,
+            "netExpectancy": -0.0076201817001946785,
+            "netUpper": 0.015520947199272555,
+            "variant": "defaultReviewHours=48"
+          },
+          {
+            "arm": "review-window-96",
+            "filled": 3235,
+            "grossUpper": 0.06742426075264599,
+            "netExpectancy": -0.001391746522411083,
+            "netUpper": 0.021442236288150177,
+            "variant": "defaultReviewHours=96"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 2613,
+            "grossUpper": 0.048182340304643564,
+            "netExpectancy": -0.024515269804822052,
+            "netUpper": 0.0006048555446668859,
+            "variant": "maxStopAtrMultiplier=2.5,stopStructureSource=intraday"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 2656,
+            "grossUpper": 0.049309492649474415,
+            "netExpectancy": -0.022441189759036164,
+            "netUpper": 0.0024410653739131323,
+            "variant": "maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 2607,
+            "grossUpper": 0.04640226076861063,
+            "netExpectancy": -0.02303141542002301,
+            "netUpper": 0.0016492247557377583,
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "stop-cap-8",
+            "filled": 2450,
+            "grossUpper": 0.04731414982089105,
+            "netExpectancy": -0.02447926530612244,
+            "netUpper": 0.0008278489971203402,
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday"
+          },
+          {
+            "arm": "stop-cap-8",
+            "filled": 2592,
+            "grossUpper": 0.046113374221418375,
+            "netExpectancy": -0.023289120370370363,
+            "netUpper": 0.001308074710535255,
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily"
+          }
+        ],
+        "tested": true
+      },
+      "filled": 2985,
+      "grossExpectancy": -0.07555731993299833,
+      "grossUpper": -0.05070035156879957,
+      "m3": "confirmed-negative",
+      "measuredExpectancyR": -0.13429765494137383,
+      "netUpper": -0.10879500954087067,
+      "reason": "measured -0.134R per filled setup (95% upper -0.109, n=2985) on the confirmation fold — but 8 of 13 removal cells retire the withdrawal (review-window defaultReviewHours=24: net -0.012 upper 0.012 over 2860 fills), so the negative does not survive removing a window or a cap we chose (amendment 36)",
+      "symbol": "ETCUSD"
+    },
+    {
+      "disposition": "restored",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [
+          {
+            "arm": "review-window",
+            "filled": 1303,
+            "grossUpper": 0.061031908157923094,
+            "netExpectancy": -0.03664159631619336,
+            "netUpper": 0.015355661191552787,
+            "variant": "defaultReviewHours=48"
+          },
+          {
+            "arm": "review-window-96",
+            "filled": 1349,
+            "grossUpper": 0.059915277387896024,
+            "netExpectancy": -0.03636730911786512,
+            "netUpper": 0.016405765540316572,
+            "variant": "defaultReviewHours=96"
+          },
+          {
+            "arm": "stop-cap-8",
+            "filled": 1096,
+            "grossUpper": 0.04589404466415894,
+            "netExpectancy": -0.04135948905109492,
+            "netUpper": 0.007103339199184079,
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily"
+          }
+        ],
+        "tested": true
+      },
+      "filled": 2878,
+      "grossExpectancy": -0.090748401667825,
+      "grossUpper": -0.059969338596339336,
+      "m3": "confirmed-negative",
+      "measuredExpectancyR": -0.12980434329395413,
+      "netUpper": -0.09877922523972266,
+      "reason": "measured -0.130R per filled setup (95% upper -0.099, n=2878) on the confirmation fold — but 3 of 13 removal cells retire the withdrawal (review-window defaultReviewHours=48: net -0.037 upper 0.015 over 1303 fills), so the negative does not survive removing a window or a cap we chose (amendment 36)",
+      "symbol": "IMXUSD"
+    },
     {
       "disposition": "restored",
       "filled": null,
@@ -390,6 +1014,12 @@
     },
     {
       "disposition": "restored",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 280,
       "grossExpectancy": -0.022889285714285723,
       "grossUpper": 0.06301196659207238,
@@ -403,29 +1033,131 @@
   "retired": [
     {
       "disposition": "retired",
-      "filled": 2901,
-      "grossExpectancy": -0.044469458807307884,
-      "grossUpper": -0.020658366248279287,
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [
+          {
+            "arm": "stop-cap",
+            "filled": 3465,
+            "grossUpper": 0.035801453935644635,
+            "netExpectancy": -0.0205083116883117,
+            "netUpper": 0.0005707157154686976,
+            "variant": "maxStopAtrMultiplier=2.5,stopStructureSource=intraday"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 3476,
+            "grossUpper": 0.03733500399975969,
+            "netExpectancy": -0.01883230724971231,
+            "netUpper": 0.002173926043528982,
+            "variant": "maxStopAtrMultiplier=2.5,stopStructureSource=intraday_and_daily"
+          }
+        ],
+        "tested": true
+      },
+      "filled": 3182,
+      "grossExpectancy": -0.05240559396605916,
+      "grossUpper": -0.030387304620428077,
       "m3": "confirmed-negative",
-      "measuredExpectancyR": -0.12990803171320287,
-      "netUpper": -0.10513797858145672,
-      "reason": "measured -0.130R per filled setup (95% upper -0.105, n=2901) on the confirmation fold, and the select fold DID nominate it — but an accepted variant retired the candidacy, and the retirement rule keeps the market",
-      "symbol": "ADAUSD"
+      "measuredExpectancyR": -0.09762234443746044,
+      "netUpper": -0.07496273475425702,
+      "reason": "measured -0.098R per filled setup (95% upper -0.075, n=3182) on the confirmation fold — but 2 of 13 removal cells retire the withdrawal (stop-cap maxStopAtrMultiplier=2.5,stopStructureSource=intraday: net -0.021 upper 0.001 over 3465 fills), so the negative does not survive removing a window or a cap we chose (amendment 36)",
+      "symbol": "BTCUSD"
     },
     {
       "disposition": "retired",
-      "filled": 141,
-      "grossExpectancy": -0.33557801418439714,
-      "grossUpper": -0.18413073334217672,
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [
+          {
+            "arm": "review-window",
+            "filled": 126,
+            "grossUpper": 0.08192063937368282,
+            "netExpectancy": -0.05280396825396829,
+            "netUpper": 0.052151804250017426,
+            "variant": "defaultReviewHours=4"
+          },
+          {
+            "arm": "review-window",
+            "filled": 149,
+            "grossUpper": 0.06460645274617874,
+            "netExpectancy": -0.05736778523489935,
+            "netUpper": 0.03803170134282285,
+            "variant": "defaultReviewHours=12"
+          },
+          {
+            "arm": "review-window",
+            "filled": 158,
+            "grossUpper": 0.25156276713303993,
+            "netExpectancy": 0.032817088607594934,
+            "netUpper": 0.20406291980484995,
+            "variant": "defaultReviewHours=24"
+          },
+          {
+            "arm": "review-window",
+            "filled": 159,
+            "grossUpper": 0.2917882997957292,
+            "netExpectancy": 0.06410440251572327,
+            "netUpper": 0.24458458725241136,
+            "variant": "defaultReviewHours=48"
+          },
+          {
+            "arm": "review-window-96",
+            "filled": 159,
+            "grossUpper": 0.2650239690829525,
+            "netExpectancy": 0.03828113207547169,
+            "netUpper": 0.21810817571168958,
+            "variant": "defaultReviewHours=96"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 146,
+            "grossUpper": 0.060624156373240076,
+            "netExpectancy": -0.06317671232876715,
+            "netUpper": 0.03361428221084599,
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday"
+          },
+          {
+            "arm": "stop-cap",
+            "filled": 149,
+            "grossUpper": 0.06513852086212646,
+            "netExpectancy": -0.058500000000000024,
+            "netUpper": 0.03897482766664301,
+            "variant": "maxStopAtrMultiplier=4,stopStructureSource=intraday_and_daily"
+          },
+          {
+            "arm": "stop-cap-8",
+            "filled": 138,
+            "grossUpper": 0.06360774401808017,
+            "netExpectancy": -0.06134057971014496,
+            "netUpper": 0.03579831418606752,
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday"
+          },
+          {
+            "arm": "stop-cap-8",
+            "filled": 142,
+            "grossUpper": 0.0804398311493923,
+            "netExpectancy": -0.04451197183098596,
+            "netUpper": 0.05368662464883704,
+            "variant": "maxStopAtrMultiplier=8,stopStructureSource=intraday_and_daily"
+          }
+        ],
+        "tested": true
+      },
+      "filled": 105,
+      "grossExpectancy": -0.1351238095238095,
+      "grossUpper": -0.037255187408459386,
       "m3": "confirmed-negative",
-      "measuredExpectancyR": -1.9727524822695035,
-      "netUpper": -1.8018146546936102,
-      "reason": "measured -1.973R per filled setup (95% upper -1.802, n=141) on the confirmation fold, and the select fold DID nominate it — but an accepted variant retired the candidacy, and the retirement rule keeps the market",
-      "symbol": "XTZUSD"
+      "measuredExpectancyR": -0.16416380952380946,
+      "netUpper": -0.0649430502215406,
+      "reason": "measured -0.164R per filled setup (95% upper -0.065, n=105) on the confirmation fold — but 9 of 13 removal cells retire the withdrawal (review-window defaultReviewHours=4: net -0.053 upper 0.052 over 126 fills), so the negative does not survive removing a window or a cap we chose (amendment 36)",
+      "symbol": "SP"
     }
   ],
-  "rule": "The CONFIRMATION-FOLD TEST, applied to every market: the read's shipped-cell m3 is confirmed-negative on at least 30 filled outcomes and BOTH the net and the gross 95% upper bounds are below zero. The fold was sealed from this program's tuning, but the shipped cells were DERIVED over dates inside it — the read records heldBack false for every market — so the figure is admissible only because it is NEGATIVE: a cell selected on the rows it is then judged on is biased toward the positive, and the contradiction is the direction that survives that bias (ADMISSIBILITY_RULE). Net is the money (amendment 39); gross is amendment 36's precondition — a negative that rests on a cost we model is a defect in the parameter, not in the market. ENTERING the register also requires the read's own pre-registered nomination: the shipped cell was a decline candidate under DECLINE_RULE on the select fold and no accepted variant retired it. STAYING in the register requires the held-back test alone, because a standing decline is not a new hypothesis being dredged from the confirm fold but an existing verdict being re-tested on valid data. A market that fails the held-back test while declined is RESTORED, and so is one the read cannot judge at all: a decline may not stand on evidence this program has invalidated. A market that passes the held-back test without a nomination is neither declined nor cleared — it is named for the next act.",
-  "ruleHash": "104048d27fe5fca4bda00442c459a6fe64c6e8565506b679cae387042bbce5ab",
+  "rule": "TWO TESTS, both applied to every market, entering or staying. (1) THE CONFIRMATION-FOLD TEST: the read's shipped-cell m3 is confirmed-negative on at least 30 filled outcomes and BOTH the net and the gross 95% upper bounds are below zero. The fold was sealed from this program's tuning, but the shipped cells were DERIVED over dates inside it — the read records heldBack false for every market — so the figure is admissible only because it is NEGATIVE: a cell selected on the rows it is then judged on is biased toward the positive, and the contradiction is the direction that survives that bias (ADMISSIBILITY_RULE). Net is the money (amendment 39); gross is amendment 36's cost leg — a negative that rests on a cost we model is a defect in the parameter, not in the market. (2) THE REMOVAL TEST, amendment 36's window and cap legs, which say 'before ANY withdrawal' and so bind a standing decline exactly as they bind a new one: over the removal arms alone (the cap arms and the window arms, never an arm that ADDS an admission filter), a cell carrying at least 30 filled outcomes and at least half the shipped cell's select fills RETIRES the withdrawal when its select net upper bound is at or above zero AND its net point estimate is no worse than the shipped cell's. Retirement is a MONEY test: a gross bound crossing zero while the money in that same cell stays negative is not a market that stopped losing (amendment 39). A market with no qualifying removal cell is recorded as NEVER REMOVAL-TESTED, and its reason says so rather than implying a test that did not run. ENTERING additionally requires the read's own pre-registered nomination: the shipped cell was a decline candidate under DECLINE_RULE on the select fold. A market that fails either test while declined is RESTORED, and so is one the read cannot judge at all: a decline may not stand on evidence this program has invalidated. A market that passes both tests without a nomination is neither declined nor cleared — it is named for the next act.",
+  "ruleHash": "a5b89a34d0f62a0346eb96f8649a55677360e8be5b022b7e387f3c39b83edc1d",
   "unjudged": [
     {
       "disposition": "unjudged",
@@ -981,6 +1713,12 @@
   "unnominated": [
     {
       "disposition": "unnominated",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 0,
+        "retiringCells": [],
+        "tested": false
+      },
       "filled": 2290,
       "grossExpectancy": -0.3485259825327512,
       "grossUpper": -0.30789090372325334,
@@ -992,6 +1730,12 @@
     },
     {
       "disposition": "unnominated",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 0,
+        "retiringCells": [],
+        "tested": false
+      },
       "filled": 2962,
       "grossExpectancy": -0.19798605671843347,
       "grossUpper": -0.16731749038103094,
@@ -1003,17 +1747,12 @@
     },
     {
       "disposition": "unnominated",
-      "filled": 3182,
-      "grossExpectancy": -0.05240559396605916,
-      "grossUpper": -0.030387304620428077,
-      "m3": "confirmed-negative",
-      "measuredExpectancyR": -0.09762234443746044,
-      "netUpper": -0.07496273475425702,
-      "reason": "measured -0.098R per filled setup (95% upper -0.075, n=3182) on the confirmation fold, and -0.052R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
-      "symbol": "BTCUSD"
-    },
-    {
-      "disposition": "unnominated",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 3295,
       "grossExpectancy": -0.051464977238239853,
       "grossUpper": -0.029497477403037823,
@@ -1025,6 +1764,12 @@
     },
     {
       "disposition": "unnominated",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 2918,
       "grossExpectancy": -0.09218084304318043,
       "grossUpper": -0.06187314605466587,
@@ -1036,17 +1781,12 @@
     },
     {
       "disposition": "unnominated",
-      "filled": 105,
-      "grossExpectancy": -0.1351238095238095,
-      "grossUpper": -0.037255187408459386,
-      "m3": "confirmed-negative",
-      "measuredExpectancyR": -0.16416380952380946,
-      "netUpper": -0.0649430502215406,
-      "reason": "measured -0.164R per filled setup (95% upper -0.065, n=105) on the confirmation fold, and -0.135R at the published commission alone — but the read's select fold never nominated it, so declining it now would be a hypothesis dredged from the confirm fold",
-      "symbol": "SP"
-    },
-    {
-      "disposition": "unnominated",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 0,
+        "retiringCells": [],
+        "tested": false
+      },
       "filled": 304,
       "grossExpectancy": -0.4583575657894735,
       "grossUpper": -0.35345551412142284,
@@ -1058,6 +1798,12 @@
     },
     {
       "disposition": "unnominated",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 0,
+        "retiringCells": [],
+        "tested": false
+      },
       "filled": 1581,
       "grossExpectancy": -0.1627837444655283,
       "grossUpper": -0.12059182770311744,
@@ -1069,6 +1815,12 @@
     },
     {
       "disposition": "unnominated",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 3874,
       "grossExpectancy": -0.032212700051626214,
       "grossUpper": -0.011318202111148753,
@@ -1080,6 +1832,12 @@
     },
     {
       "disposition": "unnominated",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 3024,
       "grossExpectancy": -0.04695988756613755,
       "grossUpper": -0.0238638489187354,
@@ -1091,6 +1849,12 @@
     },
     {
       "disposition": "unnominated",
+      "frozenRetirement": null,
+      "removal": {
+        "cellsTested": 13,
+        "retiringCells": [],
+        "tested": true
+      },
       "filled": 40,
       "grossExpectancy": -0.33341249999999983,
       "grossUpper": -0.1301809559876647,
