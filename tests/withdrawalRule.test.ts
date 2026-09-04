@@ -141,6 +141,21 @@ describe("the withdrawal rule means what its own sentence says", () => {
     assert.match(verdicts.get("AAAUSD")!.reason, /invalidated/);
   });
 
+  it("refuses a CANDIDATE with no retirement record, even when other markets have one", () => {
+    // The whole-read check above cannot see this: one market carries a record,
+    // so the read looks judgeable, and the candidate without one is silently
+    // treated as un-rescued — which declines a market the retirement rule may
+    // keep. Removing this refusal left every other test passing.
+    assert.throws(
+      () =>
+        judge({
+          AAAUSD: market({ candidate: true, gross: grossNegative(400), net: negative(400), noRetirementRecord: true }),
+          BBBUSD: market({ candidate: true, gross: grossNegative(400), net: negative(400) }),
+        }),
+      /AAAUSD is a decline candidate with no retirement record/,
+    );
+  });
+
   it("refuses a read with no retirement records rather than nominating every candidate", () => {
     assert.throws(
       () =>
