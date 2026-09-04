@@ -212,6 +212,32 @@ describe("the withdrawal rule means what its own sentence says", () => {
     assert.match(verdicts.get("AAAUSD")!.reason, /invalidated/);
   });
 
+  it("reports NOT TESTED when every removal cell falls below the floor, not merely when no arm is read", () => {
+    // The no-arms case exercises the early return. This one reaches the other
+    // exit: arms ARE read and the market HAS a shipped select figure, but every
+    // cell is too thin to count — which is still a removal test that did not
+    // happen, and reporting it as one lets an untested withdrawal stand.
+    const arms = [{
+      arm: "stop-cap",
+      markets: {
+        AAAUSD: {
+          shipped: { select: { net: { expectancy: -0.05, n: 400 } } },
+          variants: {
+            "maxStopAtrMultiplier=8": { select: { gross: { upper: -0.02 }, net: { expectancy: -0.05, n: 120, upper: -0.01 } } },
+          },
+        },
+      },
+    }];
+    const verdicts = judge(
+      { AAAUSD: market({ candidate: true, gross: grossNegative(400), net: negative(400) }) },
+      [],
+      arms,
+    );
+    assert.equal(verdicts.get("AAAUSD")?.removal?.cellsTested, 0, "a cell under the fill-share floor is not a tested cell");
+    assert.equal(verdicts.get("AAAUSD")?.removal?.tested, false, "no qualifying cell means the removal test did not run");
+    assert.match(verdicts.get("AAAUSD")!.reason, /NEVER REMOVAL-TESTED/);
+  });
+
   it("builds the tracked artifact from paths, prior register and removal arms included", () => {
     // main() was once the only place the prior register was resolved, so a
     // mutation replacing it with an empty set changed nothing any test could
