@@ -273,6 +273,77 @@ Forex clears its bar by 1.4 points and is the only class that does; crypto
 sits 6.3 points under it. That is the R3 record's "forex the only net-positive
 class", now with the mechanism beside it.
 
+### 8b. The banked fraction, priced — the R2b round's first standing question
+
+`scripts/banked-fraction.ts` (`tests/bankedFraction.test.ts`, 12 cases
+hand-computed; census-registered, both shapes; eight guard mutations each
+killed by its own case and reverted by blob hash — control disabled, fraction
+on the wrong leg, commission dropped, held-out ignored, sealed count, CLI
+seal, unfilled priced, sell read as buy). The share of the position banked at
+TP1 is the literal `0.5` in `realizedRFromLegs`; R2b §4.1 asked for it to be
+varied and said it was exact arithmetic on the emitted legs. It is:
+`R(f) = f·tp1R + (1−f)·exitR − commission/risk`, and at ½ that arithmetic
+reproduced the emitted `realizedR` on **308,111 of 308,111** priced rows
+(391,352 of 391,352 whole-roster) — the reader refuses a corpus it cannot
+reproduce. Outputs tracked: `docs/research/r3/banked-fraction-capture-all.txt`
+and `…-include-holdout.txt`.
+
+It is the allocation question alone: the exit path is the emitted one at
+every fraction, because the runner's protection re-arms on the TP1 touch and
+not on the size banked; spread and slippage ride in the leg prices and the
+commission is charged once per row. A row with no tp1 leg prices the same at
+every fraction.
+
+Verdict form (20 markets held out), net R by banked fraction:
+
+| fold | class | filled | R(0) | R(¼) | **R(½) shipped** | R(¾) | R(1) | best f | Δ best vs ½ |
+|---|---|---|---|---|---|---|---|---|---|
+| fit | forex | 174,503 | +3,201.9 | +1,553.6 | **−94.7** | −1,743.0 | −3,391.4 | 0 | +3,296.6 |
+| fit | crypto | 7,052 | +414.5 | +546.2 | **+677.9** | +809.5 | +941.2 | 1 | +263.4 |
+| fit | metals | 3,995 | −257.1 | −299.7 | **−342.3** | −384.9 | −427.5 | 0 | +85.2 |
+| select | forex | 78,932 | +2,704.0 | +2,153.9 | **+1,603.8** | +1,053.7 | +503.6 | 0 | +1,100.2 |
+| select | crypto | 40,220 | −3,593.2 | −3,646.2 | **−3,699.1** | −3,752.1 | −3,805.0 | 0 | +105.9 |
+| select | metals | 3,227 | −164.7 | −188.4 | **−212.1** | −235.8 | −259.5 | 0 | +47.4 |
+| select | pooled | 122,561 | −1,066.2 | −1,693.8 | **−2,321.4** | −2,949.0 | −3,576.6 | 0 | +1,255.2 |
+
+Whole roster, select: pooled −1,265.0 at ½ → **+259.0 at 0**; forex +2,507.9
+→ +3,902.6. R is linear in f, so the sign of the slope is the whole story,
+and in forex it is the same sign on both tuning folds.
+
+**Why, measured on the same rows** (baseline, tuning folds, whole roster; an
+ad-hoc pass bucketing each row's runner exit against its TP1 price):
+
+| outcome | protection | rows | exit at TP1 | below | above | mean (exit − TP1) R |
+|---|---|---|---|---|---|---|
+| tp1_partial | trail_tp1 | 249,117 | 227,358 (91.3%) | 19,473 | 2,286 | −0.007 |
+| tp1_partial | hold | 3,490 | — | 2,625 | 865 | −0.689 |
+| tp1_partial | breakeven | 2,102 | — | 2,081 | 21 | −0.567 |
+| take_profit | trail_tp1 | 9,928 | 192 | — | 9,736 | +1.325 |
+| take_profit | hold / breakeven | 2,000 | 21 | — | 1,979 | +1.52 / +1.61 |
+
+Under `trail_tp1` — 97.8% of partial rows — the lock sits AT the TP1 price,
+so on a pullback the runner half pays what the banked half paid, to within
+0.007 R. The partial protects nothing there; what it does is sell half of
+every target reached, +1.3 R per take_profit row on the runner half. Only
+under `hold` and `breakeven` (2.2% of partial rows) does the partial protect
+money, about 0.6 R per such row — which is why crypto, where those
+protections sit, reads best at f = 1 on fit and f = 0 on select while forex
+reads f = 0 on both.
+
+**What this is and is not.** It is a measurement with an exact control. It
+is NOT the standing rejection's subject (2026-08-30: raising `tp1RiskShare`
+to lift the blended payoff — a level moved for a printed figure); the
+fraction moves no level, and the figure it is judged on is net realised R
+on the tuning folds. It is not a decision. A banked share other than ½
+cannot be swept today — the builder types `takeProfit1` as a number and
+`CategoryCalibration` has no field for the share (R2b §4.2) — so pricing it
+through the program means: a calibration field for the banked share, the
+grid axis, the builder and resolver reading it, `ladderRewardRisk` following
+it, tests, then arms at the protected anchor for zero bytes, one confirm
+read. That, and whether E8's execution rules let a full-size position ride
+a stop moved to TP1, are the refuter round's questions — and the second is
+the one that can kill it.
+
 Reading, as measurement only: the gate's 1.78:1 is paid in full on 3.4% of
 fills; 65% of fills bank a partial worth 0.35 R; the realized ratio is 0.41:1,
 which puts break-even at a 70.7% win share, and the select fold wins 70.06%.

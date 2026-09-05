@@ -1977,6 +1977,17 @@ fold. Position for the refuters (§3c of the note): the cap stays shipped
 (amendment 36 — a flaw of our own making), the read stands as a record, and
 the next program proves single-cache inputs from the manifests before it reads.
 
+**The banked fraction is priced (21:50 UTC) and it is the largest lever seen
+on a valid instrument.** `scripts/banked-fraction.ts` (R2b §4.1's question,
+exact arithmetic on legs, control 308,111/308,111) says forex realised R
+falls with every quarter banked at TP1 on BOTH tuning folds — R(0) beats the
+shipped ½ by +3,297 R on fit (174,503 fills) and +1,100 R on select
+(78,932); whole-roster select goes from −1,265 R to +259 R. Mechanism, on
+the same rows: under `trail_tp1` (97.8% of partials) the lock sits at the TP1
+price, so the partial protects nothing on a pullback and sells half of every
+target reached. Note §8b. Not a decision: the share is a literal, not a
+field, and the refuters must attack E8's execution rules first.
+
 **Work still due, in order:** (1) the successor lands → record rows, bytes,
 manifest, sha256 in the post-mortem note; re-run the act-3 readers on it and
 price the drift; (2) refuter round on the four design questions and on the

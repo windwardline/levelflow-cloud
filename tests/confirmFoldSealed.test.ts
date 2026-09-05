@@ -167,7 +167,9 @@ function decisionRow(symbol: string, price: number, variant: string, split: stri
   const entry = price * (1 + ((index % 7) - 3) * 0.0004);
   const stop = entry - risk;
   const tp1 = entry + 0.35 * risk;
-  const target = entry + 1.5 * risk;
+  // 1.75, not 1.5: with the commission above at zero the shipped blend of the
+  // legs is then exactly R_OF (see estimatedCommission).
+  const target = entry + 1.75 * risk;
   return withOutcome({
     accepted,
     atr: risk * 0.3,
@@ -181,7 +183,10 @@ function decisionRow(symbol: string, price: number, variant: string, split: stri
     dailyVisibleCount: 500 + index,
     entryPrice: entry,
     entryProvenance: "trend_offset",
-    estimatedCommission: risk * 0.02,
+    // Zero, as forex bills it: the shipped blend of the legs then IS the row's
+    // realizedR (½ × 0.35 + ½ × 1.75 = 1.05; ½ × 0.35 + ½ × 0.35 = 0.35), which
+    // banked-fraction re-derives and refuses a corpus that contradicts.
+    estimatedCommission: 0,
     estimatedRoundTripCost: risk * 0.06,
     estimatedSlippage: risk * 0.01,
     estimatedSpread: risk * 0.02,
@@ -536,6 +541,7 @@ function fixture(shape: Shape, label: string): Fixture {
 const READERS: Record<string, { args: string[]; cwd?: "fixture"; note?: string }> = {
   "account-type-report": { args: ["F", "--min-filled", "1"] },
   "ag-class-derivation": { args: ["F"] },
+  "banked-fraction": { args: ["F"] },
   "confidence-bands": { args: ["F"] },
   "cost-sensitivity-verdict": {
     args: ["--paired", "F", "--cells", `EURUSD|${BASELINE};ZCUSX|${VARIANT}`, "--out", "O/cost.json"],
@@ -571,6 +577,11 @@ const READERS: Record<string, { args: string[]; cwd?: "fixture"; note?: string }
 // across A, A′, B and C by construction (header), and the guard proves the
 // reader itself still moves with nothing on the fold.
 const EXTRA_RUNS: Array<{ args: string[]; cwd?: "fixture"; label: string; reader: string }> = [
+  {
+    args: ["F", "--include-holdout"],
+    label: "banked-fraction --include-holdout",
+    reader: "banked-fraction",
+  },
   {
     args: ["F", "--include-holdout"],
     label: "payoff-decomposition --include-holdout",
