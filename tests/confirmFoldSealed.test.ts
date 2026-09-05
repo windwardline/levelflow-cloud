@@ -555,6 +555,7 @@ const READERS: Record<string, { args: string[]; cwd?: "fixture"; note?: string }
     note: "manifest-derived: pins the fixture's requested roster, identical across A/B/C by construction",
   },
   "market-dossier": { args: ["--net", "F", "--out", "O/dossier.json"], cwd: "fixture" },
+  "payoff-decomposition": { args: ["F"] },
   "roster-expectancy-audit": { args: ["F", "--out", "O/audit.json"], cwd: "fixture" },
   "stop-provenance": { args: ["F"] },
   "sweep-analysis": { args: ["--emit", "F"] },
@@ -570,6 +571,11 @@ const READERS: Record<string, { args: string[]; cwd?: "fixture"; note?: string }
 // across A, A′, B and C by construction (header), and the guard proves the
 // reader itself still moves with nothing on the fold.
 const EXTRA_RUNS: Array<{ args: string[]; cwd?: "fixture"; label: string; reader: string }> = [
+  {
+    args: ["F", "--include-holdout"],
+    label: "payoff-decomposition --include-holdout",
+    reader: "payoff-decomposition",
+  },
   {
     args: ["F", "--out", "O/audit.json", "--ledgered-read", "L"],
     cwd: "fixture",
