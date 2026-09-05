@@ -1959,10 +1959,23 @@ page. Pinned research spends nothing and is unaffected.
 +5,896 R, mean win +0.387 R against mean loss −0.934 R, **realized payoff
 0.414**, win share 70.06% against a break-even of 70.70% at that payoff; the
 gate's planned 1.78:1 is paid in full on 3.44% of fills and 65% bank a partial
-worth 0.35 R. This corroborates the four-lens finding but is an ad-hoc
-instrument and unrefuted: **no proposal built on it may be acted on until the
-refuter round runs.** Amendment 39 governs; nothing closes this gap by moving a
+worth 0.35 R. The instrument is now tracked — `scripts/payoff-decomposition.ts`,
+sealed at the door, census-registered, its control reproducing the ad-hoc
+figures field for field; per class (held-out excluded) forex clears its
+break-even by 1.4 points and no other class does. This corroborates the
+four-lens finding but the finding is unrefuted: **no proposal built on it may
+be acted on until the refuter round runs.** Amendment 39 governs; nothing closes this gap by moving a
 target or a stop.
+
+**The read straddled two caches (found 20:20 UTC).** Every act-3 arm was built
+on 2026-09-03 07:21–08:54 UTC, after the 18:02 UTC warm had changed six
+symbols' bars — USDCAD among them — and before the 08:55 UTC top-up changed
+ten more. The one confirmed candidate, forex `costShareMax=0.15`, has a
+confirm CI of [+0.00005, +0.01269]: a lower-bound margin of ~4 R against a
+perturbation bounded at ~±10 R from USDCAD's two extra bars in the confirm
+fold. Position for the refuters (§3c of the note): the cap stays shipped
+(amendment 36 — a flaw of our own making), the read stands as a record, and
+the next program proves single-cache inputs from the manifests before it reads.
 
 **Work still due, in order:** (1) the successor lands → record rows, bytes,
 manifest, sha256 in the post-mortem note; re-run the act-3 readers on it and
