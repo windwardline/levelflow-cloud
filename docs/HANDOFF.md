@@ -1918,6 +1918,13 @@ that fixed it.
 deploy and the security sweep are green). Every merged worktree is removed.
 Local `main` is at that merge.
 
+**CORRECTION 22:10 UTC: the corpus IS restored — the rebuild's sha256 is the
+recorded `23ee6b98…` on the same 6,634,732 rows.** The paragraph that follows
+was written from the manifest's cache facts before the digest existed, and
+its "cannot" is refuted; the cache drift changed the manifest, not the bytes.
+Kept as written because the error is the lesson (measure, do not infer). The
+restored corpus sits at the record's path beside the committed manifest.
+
 **The corpus restoration promised below did not and cannot happen.** Read
 `docs/research/r3-corpus-irreproducibility-2026-09-05.md` before touching any
 corpus. In one paragraph: the restoration launched on 2026-09-04 omitted
@@ -1967,7 +1974,10 @@ four-lens finding but the finding is unrefuted: **no proposal built on it may
 be acted on until the refuter round runs.** Amendment 39 governs; nothing closes this gap by moving a
 target or a stop.
 
-**The read straddled two caches (found 20:20 UTC).** Every act-3 arm was built
+**The read straddled two caches (found 20:20 UTC) — REFUTED at 22:15 UTC by
+measurement: an act-3 arm's baseline rows are byte-identical to the restored
+shard 0's, 935,241 of 935,241, so the caches differed in their manifests'
+facts and in no emitted row; the margin was never exposed (note §3d).** Every act-3 arm was built
 on 2026-09-03 07:21–08:54 UTC, after the 18:02 UTC warm had changed six
 symbols' bars — USDCAD among them — and before the 08:55 UTC top-up changed
 ten more. The one confirmed candidate, forex `costShareMax=0.15`, has a
@@ -1986,7 +1996,13 @@ shipped ½ by +3,297 R on fit (174,503 fills) and +1,100 R on select
 the same rows: under `trail_tp1` (97.8% of partials) the lock sits at the TP1
 price, so the partial protects nothing on a pullback and sells half of every
 target reached. Note §8b. Not a decision: the share is a literal, not a
-field, and the refuters must attack E8's execution rules first.
+field. The design for the refuter round is
+`docs/research/banked-share-design-2026-09-05.md` — money map, what it is
+not (the 2026-08-30 rejection was a level, this is an allocation), the
+behaviour-neutral field to build first, the pre-registered arm and read, and
+E8's execution reality answered from the record: no stop-loss rule exists
+(PRIMARY), and the 2% Daily Profit Cap is where a full-size runner is priced,
+by money, not by prohibition.
 
 **Work still due, in order:** (1) the successor lands → record rows, bytes,
 manifest, sha256 in the post-mortem note; re-run the act-3 readers on it and

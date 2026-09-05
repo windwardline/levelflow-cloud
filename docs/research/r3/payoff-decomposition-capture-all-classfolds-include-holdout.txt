@@ -1,0 +1,142 @@
+corpus 021821537f28 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26 · variant baseline
+folds read: fit, select · confirm: SEALED, not read (2141527 rows withheld at the door)
+rows 6634732: 439939 decomposed · 857954 not accepted · 0 in other folds · 3118950 other variants · 75920 unfilled · 442 data-absent · 0 held out
+held-out markets INCLUDED in every pool (--include-holdout): AAVEUSD, ARWUSD, AUDCHF, AUDNZD, BNBUSD, BZUSD, DASHUSD, EURUSD, GBPCAD, HEUSX, NGUSD, NSDQ, NZDCHF, NZDJPY, RTYUSD, THETAUSD, XLMUSD, XMRUSD, YMUSD, ZMUSD — a whole-roster measurement, not a verdict's
+
+wins = take_profit + tp1_partial; stops = stop_loss; rest = expiries and ambiguous, held fixed when the break-even is solved. payoff = mean win / |mean stop|, realised. break-even = the win share at which expectancy is zero at that payoff and that rest.
+
+=== FIT ===
+| class | filled | net R | gross R | E (net) | mean win | mean stop | payoff | win share | break-even | rest share | rest mean | planned RR | ladder RR |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| agriculture | 3226 | -427.8 | -67.3 | -0.1326 | 0.450 | -1.070 | 0.421 | 53.9% | 62.7% | 14.1% | -0.234 | 1.59 | 0.85 |
+| crypto | 28319 | 1172.4 | 3218.8 | 0.0414 | 0.402 | -1.016 | 0.395 | 72.6% | 69.7% | 3.8% | -0.270 | 1.97 | 1.12 |
+| energies | 577 | -115.9 | -98.4 | -0.2009 | 0.671 | -1.178 | 0.570 | 41.1% | 51.9% | 23.1% | -0.234 | 1.47 | 1.01 |
+| forex | 221766 | 520.0 | 4846.4 | 0.0023 | 0.404 | -1.033 | 0.392 | 67.7% | 67.5% | 7.9% | -0.244 | 1.85 | 1.09 |
+| futures | 12126 | -1401.6 | -860.2 | -0.1156 | 0.471 | -0.960 | 0.491 | 51.3% | 59.4% | 14.8% | -0.212 | 1.91 | 1.10 |
+| indices | 475 | -22.3 | -16.7 | -0.0469 | 0.409 | -1.024 | 0.400 | 46.1% | 49.4% | 39.6% | -0.225 | 1.98 | 1.14 |
+| livestock | 517 | -70.2 | -39.0 | -0.1358 | 0.555 | -1.197 | 0.463 | 58.8% | 66.6% | 5.2% | -0.596 | 1.76 | 1.04 |
+| metals | 5497 | -502.8 | -108.0 | -0.0915 | 0.422 | -1.019 | 0.414 | 58.3% | 64.6% | 10.9% | -0.212 | 1.61 | 0.90 |
+| **pooled** | 272503 | -848.2 | 6875.6 | -0.0031 | 0.408 | -1.028 | 0.397 | 67.0% | 67.2% | 8.0% | -0.242 | 1.86 | 1.08 |
+
+| class | outcome | n | share | mean net R | mean gross R | mean forgone runner R |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| agriculture | tp1_partial | 1491 | 46.2% | 0.3167 | 0.3285 | 0.2395 |
+| agriculture | stop_loss | 1032 | 32.0% | -1.0703 | -0.7612 | 0.0000 |
+| agriculture | expired_at_loss | 341 | 10.6% | -0.3111 | -0.1390 | 0.0000 |
+| agriculture | take_profit | 249 | 7.7% | 1.2490 | 1.0653 | 0.2794 |
+| agriculture | expired_in_profit | 96 | 3.0% | 0.1687 | 0.2091 | 0.0000 |
+| agriculture | ambiguous | 17 | 0.5% | -0.9675 | -0.5577 | 0.1982 |
+| crypto | tp1_partial | 19473 | 68.8% | 0.3508 | 0.3634 | 0.1838 |
+| crypto | stop_loss | 6683 | 23.6% | -1.0162 | -0.7580 | 0.0000 |
+| crypto | take_profit | 1079 | 3.8% | 1.3216 | 1.2491 | 0.2605 |
+| crypto | expired_at_loss | 756 | 2.7% | -0.3366 | -0.1941 | 0.0000 |
+| crypto | expired_in_profit | 228 | 0.8% | 0.1719 | 0.2375 | 0.0000 |
+| crypto | ambiguous | 100 | 0.4% | -0.7761 | -0.4597 | 0.2277 |
+| energies | tp1_partial | 218 | 37.8% | 0.6363 | 0.6417 | 0.0912 |
+| energies | stop_loss | 207 | 35.9% | -1.1784 | -1.1172 | 0.0000 |
+| energies | expired_at_loss | 96 | 16.6% | -0.4083 | -0.3731 | 0.0000 |
+| energies | expired_in_profit | 37 | 6.4% | 0.2178 | 0.2498 | 0.0000 |
+| energies | take_profit | 19 | 3.3% | 1.0752 | 1.0299 | 0.1177 |
+| forex | tp1_partial | 143934 | 64.9% | 0.3738 | 0.3760 | 0.1012 |
+| forex | stop_loss | 54138 | 24.4% | -1.0330 | -0.9636 | 0.0000 |
+| forex | expired_at_loss | 12889 | 5.8% | -0.3363 | -0.3019 | 0.0000 |
+| forex | take_profit | 6170 | 2.8% | 1.1204 | 1.0651 | 0.1789 |
+| forex | expired_in_profit | 4012 | 1.8% | 0.1256 | 0.1464 | 0.0000 |
+| forex | ambiguous | 623 | 0.3% | -0.7087 | -0.5888 | 0.2422 |
+| futures | tp1_partial | 5751 | 47.4% | 0.4073 | 0.4127 | 0.1641 |
+| futures | stop_loss | 4117 | 34.0% | -0.9599 | -0.8562 | 0.0000 |
+| futures | expired_at_loss | 1242 | 10.2% | -0.3284 | -0.2489 | 0.0000 |
+| futures | expired_in_profit | 489 | 4.0% | 0.1543 | 0.1969 | 0.0000 |
+| futures | take_profit | 468 | 3.9% | 1.2560 | 1.1629 | 0.2373 |
+| futures | ambiguous | 59 | 0.5% | -0.8024 | -0.6847 | 0.1590 |
+| indices | tp1_partial | 205 | 43.2% | 0.3676 | 0.3761 | 0.1880 |
+| indices | expired_at_loss | 130 | 27.4% | -0.3913 | -0.3737 | 0.0000 |
+| indices | stop_loss | 68 | 14.3% | -1.0235 | -1.0130 | 0.0000 |
+| indices | expired_in_profit | 58 | 12.2% | 0.1465 | 0.1606 | 0.0000 |
+| indices | take_profit | 14 | 2.9% | 1.0225 | 1.0241 | 0.0627 |
+| livestock | tp1_partial | 208 | 40.2% | 0.2395 | 0.2477 | 0.4781 |
+| livestock | stop_loss | 186 | 36.0% | -1.1973 | -1.0105 | 0.0000 |
+| livestock | take_profit | 96 | 18.6% | 1.2372 | 1.1591 | 0.2378 |
+| livestock | ambiguous | 13 | 2.5% | -0.9315 | -0.8166 | 0.2434 |
+| livestock | expired_at_loss | 12 | 2.3% | -0.3702 | -0.3173 | 0.0000 |
+| livestock | expired_in_profit | 2 | 0.4% | 0.2360 | 0.2640 | 0.0000 |
+| metals | tp1_partial | 3031 | 55.1% | 0.3849 | 0.3938 | 0.1169 |
+| metals | stop_loss | 1696 | 30.9% | -1.0194 | -0.8226 | 0.0000 |
+| metals | expired_at_loss | 438 | 8.0% | -0.3190 | -0.1982 | 0.0000 |
+| metals | take_profit | 172 | 3.1% | 1.0838 | 0.8845 | 0.2166 |
+| metals | expired_in_profit | 151 | 2.7% | 0.1093 | 0.1922 | 0.0000 |
+| metals | ambiguous | 9 | 0.2% | -0.3981 | -0.1063 | 0.5465 |
+| **pooled** | tp1_partial | 174311 | 64.0% | 0.3722 | 0.3759 | 0.1145 |
+| **pooled** | stop_loss | 68127 | 25.0% | -1.0280 | -0.9310 | 0.0000 |
+| **pooled** | expired_at_loss | 15904 | 5.8% | -0.3356 | -0.2873 | 0.0000 |
+| **pooled** | take_profit | 8267 | 3.0% | 1.1585 | 1.0918 | 0.1970 |
+| **pooled** | expired_in_profit | 5073 | 1.9% | 0.1317 | 0.1588 | 0.0000 |
+| **pooled** | ambiguous | 821 | 0.3% | -0.7291 | -0.5777 | 0.2369 |
+
+=== SELECT ===
+| class | filled | net R | gross R | E (net) | mean win | mean stop | payoff | win share | break-even | rest share | rest mean | planned RR | ladder RR |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| agriculture | 1655 | -189.1 | 0.2 | -0.1143 | 0.486 | -1.042 | 0.466 | 53.1% | 60.6% | 14.5% | -0.240 | 1.53 | 0.81 |
+| crypto | 54627 | -7264.1 | -2099.3 | -0.1330 | 0.383 | -1.067 | 0.359 | 62.4% | 71.6% | 3.7% | -0.285 | 1.93 | 1.07 |
+| energies | 298 | -60.1 | -56.0 | -0.2017 | 0.659 | -1.184 | 0.557 | 41.9% | 52.9% | 22.5% | -0.253 | 1.46 | 1.00 |
+| forex | 100689 | 2507.9 | 4882.7 | 0.0249 | 0.393 | -1.039 | 0.378 | 70.1% | 68.4% | 7.5% | -0.236 | 1.70 | 1.00 |
+| futures | 6644 | -361.0 | -62.6 | -0.0543 | 0.492 | -0.944 | 0.521 | 55.3% | 59.1% | 13.2% | -0.226 | 1.90 | 1.11 |
+| indices | 761 | -107.3 | -79.9 | -0.1410 | 0.387 | -1.086 | 0.356 | 51.1% | 60.7% | 21.7% | -0.200 | 2.01 | 1.12 |
+| livestock | 255 | -87.9 | -23.7 | -0.3446 | 0.730 | -1.771 | 0.412 | 56.5% | 70.2% | 1.2% | -0.579 | 1.97 | 1.15 |
+| metals | 2507 | -118.4 | 49.7 | -0.0472 | 0.423 | -1.002 | 0.422 | 61.3% | 64.7% | 10.7% | -0.244 | 1.68 | 0.95 |
+| **pooled** | 167436 | -5680.0 | 2611.2 | -0.0339 | 0.395 | -1.048 | 0.377 | 66.6% | 68.9% | 6.7% | -0.244 | 1.78 | 1.03 |
+
+| class | outcome | n | share | mean net R | mean gross R | mean forgone runner R |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| agriculture | tp1_partial | 750 | 45.3% | 0.3167 | 0.3277 | 0.2318 |
+| agriculture | stop_loss | 536 | 32.4% | -1.0416 | -0.7494 | 0.0000 |
+| agriculture | expired_at_loss | 178 | 10.8% | -0.3101 | -0.1011 | 0.0000 |
+| agriculture | take_profit | 129 | 7.8% | 1.4684 | 1.2765 | 0.2533 |
+| agriculture | expired_in_profit | 52 | 3.1% | 0.1595 | 0.2255 | 0.0000 |
+| agriculture | ambiguous | 10 | 0.6% | -1.0805 | -0.2303 | 0.0000 |
+| crypto | tp1_partial | 30956 | 56.7% | 0.3042 | 0.3158 | 0.2019 |
+| crypto | stop_loss | 18496 | 33.9% | -1.0671 | -0.8053 | 0.0000 |
+| crypto | take_profit | 3136 | 5.7% | 1.1607 | 1.0713 | 0.1859 |
+| crypto | expired_at_loss | 1584 | 2.9% | -0.3645 | -0.2359 | 0.0000 |
+| crypto | expired_in_profit | 394 | 0.7% | 0.1112 | 0.1742 | 0.0000 |
+| crypto | ambiguous | 61 | 0.1% | -0.7923 | -0.5683 | 0.2072 |
+| energies | tp1_partial | 115 | 38.6% | 0.6171 | 0.6216 | 0.0931 |
+| energies | stop_loss | 106 | 35.6% | -1.1841 | -1.1647 | 0.0000 |
+| energies | expired_at_loss | 45 | 15.1% | -0.4585 | -0.3999 | 0.0000 |
+| energies | expired_in_profit | 21 | 7.0% | 0.2305 | 0.2539 | 0.0000 |
+| energies | take_profit | 10 | 3.4% | 1.1410 | 0.9862 | 0.0971 |
+| energies | ambiguous | 1 | 0.3% | -1.1908 | -1.1908 | 0.0000 |
+| forex | tp1_partial | 68106 | 67.6% | 0.3670 | 0.3698 | 0.0973 |
+| forex | stop_loss | 22558 | 22.4% | -1.0393 | -0.9503 | 0.0000 |
+| forex | expired_at_loss | 5444 | 5.4% | -0.3304 | -0.2857 | 0.0000 |
+| forex | take_profit | 2503 | 2.5% | 1.0927 | 1.0248 | 0.1836 |
+| forex | expired_in_profit | 1802 | 1.8% | 0.1291 | 0.1548 | 0.0000 |
+| forex | ambiguous | 276 | 0.3% | -0.7686 | -0.5678 | 0.1964 |
+| futures | tp1_partial | 3389 | 51.0% | 0.4107 | 0.4167 | 0.1752 |
+| futures | stop_loss | 2088 | 31.4% | -0.9444 | -0.8349 | 0.0000 |
+| futures | expired_at_loss | 619 | 9.3% | -0.3401 | -0.2554 | 0.0000 |
+| futures | take_profit | 288 | 4.3% | 1.4497 | 1.3926 | 0.1879 |
+| futures | expired_in_profit | 229 | 3.4% | 0.1539 | 0.1916 | 0.0000 |
+| futures | ambiguous | 31 | 0.5% | -0.7451 | -0.5924 | 0.2393 |
+| indices | tp1_partial | 353 | 46.4% | 0.3126 | 0.3175 | 0.2259 |
+| indices | stop_loss | 207 | 27.2% | -1.0861 | -0.9817 | 0.0000 |
+| indices | expired_at_loss | 113 | 14.8% | -0.3609 | -0.3207 | 0.0000 |
+| indices | expired_in_profit | 52 | 6.8% | 0.1508 | 0.1725 | 0.0000 |
+| indices | take_profit | 36 | 4.7% | 1.1137 | 1.0692 | 0.1795 |
+| livestock | stop_loss | 108 | 42.4% | -1.7712 | -1.1734 | 0.0000 |
+| livestock | tp1_partial | 94 | 36.9% | 0.2972 | 0.3053 | 0.4825 |
+| livestock | take_profit | 50 | 19.6% | 1.5444 | 1.5140 | 0.2360 |
+| livestock | expired_at_loss | 2 | 0.8% | -0.3623 | -0.1681 | 0.0000 |
+| livestock | ambiguous | 1 | 0.4% | -1.0123 | -1.0123 | 0.0000 |
+| metals | tp1_partial | 1472 | 58.7% | 0.3894 | 0.4006 | 0.1114 |
+| metals | stop_loss | 702 | 28.0% | -1.0024 | -0.8025 | 0.0000 |
+| metals | expired_at_loss | 206 | 8.2% | -0.3339 | -0.2535 | 0.0000 |
+| metals | take_profit | 66 | 2.6% | 1.1719 | 1.0081 | 0.2302 |
+| metals | expired_in_profit | 57 | 2.3% | 0.1367 | 0.2061 | 0.0000 |
+| metals | ambiguous | 4 | 0.2% | -1.0473 | -0.6822 | 0.0000 |
+| **pooled** | tp1_partial | 105235 | 62.9% | 0.3499 | 0.3556 | 0.1325 |
+| **pooled** | stop_loss | 44801 | 26.8% | -1.0481 | -0.8815 | 0.0000 |
+| **pooled** | expired_at_loss | 8191 | 4.9% | -0.3385 | -0.2700 | 0.0000 |
+| **pooled** | take_profit | 6218 | 3.7% | 1.1560 | 1.0745 | 0.1872 |
+| **pooled** | expired_in_profit | 2607 | 1.6% | 0.1306 | 0.1646 | 0.0000 |
+| **pooled** | ambiguous | 384 | 0.2% | -0.7832 | -0.5650 | 0.1934 |

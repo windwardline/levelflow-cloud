@@ -1,0 +1,33 @@
+corpus 021821537f28 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26 · variant baseline
+folds read: fit, select · confirm: SEALED, not read (2141527 rows withheld at the door)
+rows 6634732: 439939 priced · 857954 not accepted · 0 in other folds · 3118950 other variants · 75920 unfilled · 442 data-absent · 0 held out
+control: 439939 rows reproduced their emitted realizedR at the shipped fraction 0.5 (tolerance 0.00011)
+held-out markets INCLUDED in every pool (--include-holdout): AAVEUSD, ARWUSD, AUDCHF, AUDNZD, BNBUSD, BZUSD, DASHUSD, EURUSD, GBPCAD, HEUSX, NGUSD, NSDQ, NZDCHF, NZDJPY, RTYUSD, THETAUSD, XLMUSD, XMRUSD, YMUSD, ZMUSD — a whole-roster measurement, not a verdict's
+
+allocation only: the exit path is the emitted one at every fraction (the runner's protection re-arms on the TP1 touch, not on the size banked); costs are the emitted commission — spread and slippage ride in the leg prices. Rows without a tp1 leg price the same at every fraction.
+
+=== FIT ===
+| class | filled | tp1 rows | no-tp1 rows | shipped R (½) | banked half | runner half | costs | no-tp1 R | R(0) | R(0.25) | R(0.5) | R(0.75) | R(1) | best f | Δ best vs ½ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| agriculture | 3226 | 1744 | 1482 | -427.8 | 416.9 | 477.8 | -110.2 | -1212.2 | -366.9 | -397.3 | -427.8 | -458.2 | -488.6 | 0 | 60.8 |
+| crypto | 28319 | 20571 | 7748 | 1172.4 | 4862.7 | 4223.9 | -823.6 | -7090.5 | 533.6 | 853.0 | 1172.4 | 1491.7 | 1811.1 | 1 | 638.8 |
+| energies | 577 | 237 | 340 | -115.9 | 95.6 | 104.1 | -40.6 | -275.1 | -107.4 | -111.7 | -115.9 | -120.2 | -124.5 | 0 | 8.6 |
+| forex | 221766 | 150252 | 71514 | 520.0 | 30727.4 | 34881.8 | -4837.9 | -60251.3 | 4674.3 | 2597.1 | 520.0 | -1557.2 | -3634.4 | 0 | 4154.3 |
+| futures | 12126 | 6228 | 5898 | -1401.6 | 1497.3 | 1587.5 | -151.1 | -4335.3 | -1311.3 | -1356.4 | -1401.6 | -1446.7 | -1491.8 | 0 | 90.2 |
+| indices | 475 | 219 | 256 | -22.3 | 44.2 | 50.5 | -5.0 | -112.0 | -15.9 | -19.1 | -22.3 | -25.5 | -28.7 | 0 | 6.4 |
+| livestock | 517 | 306 | 211 | -70.2 | 84.4 | 96.9 | -12.7 | -238.8 | -57.7 | -64.0 | -70.2 | -76.4 | -82.6 | 0 | 12.5 |
+| metals | 5497 | 3207 | 2290 | -502.8 | 650.8 | 771.2 | -67.5 | -1857.3 | -382.4 | -442.6 | -502.8 | -563.0 | -623.2 | 0 | 120.4 |
+| **pooled** | 272503 | 182764 | 89739 | -848.2 | 38379.2 | 42193.6 | -6048.6 | -75372.5 | 2966.2 | 1059.0 | -848.2 | -2755.4 | -4662.6 | 0 | 3814.4 |
+
+=== SELECT ===
+| class | filled | tp1 rows | no-tp1 rows | shipped R (½) | banked half | runner half | costs | no-tp1 R | R(0) | R(0.25) | R(0.5) | R(0.75) | R(1) | best f | Δ best vs ½ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| agriculture | 1655 | 879 | 776 | -189.1 | 222.9 | 266.2 | -62.2 | -616.0 | -145.8 | -167.5 | -189.1 | -210.7 | -232.4 | 0 | 43.3 |
+| crypto | 54627 | 34104 | 20523 | -7264.1 | 7100.8 | 7737.2 | -1778.6 | -20323.4 | -6627.7 | -6945.9 | -7264.1 | -7582.3 | -7900.4 | 0 | 636.4 |
+| energies | 298 | 125 | 173 | -60.1 | 50.6 | 55.6 | -23.8 | -142.5 | -55.0 | -57.6 | -60.1 | -62.7 | -65.2 | 0 | 5.1 |
+| forex | 100689 | 70664 | 30025 | 2507.9 | 14503.6 | 15898.2 | -2651.1 | -25242.7 | 3902.6 | 3205.2 | 2507.9 | 1810.6 | 1113.3 | 0 | 1394.6 |
+| futures | 6644 | 3684 | 2960 | -361.0 | 936.5 | 950.6 | -75.1 | -2173.1 | -347.0 | -354.0 | -361.0 | -368.1 | -375.1 | 0 | 14.1 |
+| indices | 761 | 389 | 372 | -107.3 | 80.0 | 92.2 | -21.7 | -257.8 | -95.1 | -101.2 | -107.3 | -113.4 | -119.6 | 0 | 12.3 |
+| livestock | 255 | 144 | 111 | -87.9 | 47.9 | 62.5 | -5.2 | -193.0 | -73.3 | -80.6 | -87.9 | -95.2 | -102.5 | 0 | 14.6 |
+| metals | 2507 | 1538 | 969 | -118.4 | 317.3 | 352.8 | -19.7 | -768.8 | -82.9 | -100.6 | -118.4 | -136.1 | -153.9 | 0 | 35.5 |
+| **pooled** | 167436 | 111527 | 55909 | -5680.0 | 23259.6 | 25415.3 | -4637.4 | -49717.4 | -3524.2 | -4602.1 | -5680.0 | -6757.8 | -7835.7 | 0 | 2155.8 |
