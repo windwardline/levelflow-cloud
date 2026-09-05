@@ -1911,6 +1911,66 @@ that fixed it.
   and belongs beside R6; the capture branch can wait, but say which is deferred
   rather than leaving both unranked.
 
+### ▶ RESUME HERE — 2026-09-05 20:30 UTC (the act-3 corpus cannot be restored; FMP dropped the intraday plan; the payoff gap is measured on the intact corpus)
+
+**#582 is merged and deployed** (npm's advisory endpoint answered again at
+19:4x UTC; the failed build was re-run, auto-merge completed at 19:50 UTC, the
+deploy and the security sweep are green). Every merged worktree is removed.
+Local `main` is at that merge.
+
+**The corpus restoration promised below did not and cannot happen.** Read
+`docs/research/r3-corpus-irreproducibility-2026-09-05.md` before touching any
+corpus. In one paragraph: the restoration launched on 2026-09-04 omitted
+`--grid` and retyped the symbol list, so it built a one-cell corpus in the
+wrong order (2.33 GB — removed, the committed manifest restored from git).
+Worse, the exact recipe cannot reproduce the record either: the first cache
+top-ups after the seven-day 429 stand-down re-fetched their three-day overlap
+straddling the pinned anchor and rewrote bars at and before 2026-08-26 for 16
+of 97 symbols (plus one calendar item), about sixteen hours BEFORE the
+clobber. Pins reproduce a run within their anchor day only. No snapshot, no
+Time Machine, and R2 holds only the minute bank. The act-3 read's artifacts
+stand as a record of decisions taken on bytes that existed; they are not a
+replay. A **successor** — same recipe, same revision `886fdf13`, current cache
+— is building as `docs/research/r3/capture-all-classfolds-2026-09-05.jsonl`
+(launched 19:57 UTC, zero provider bytes; status in `classfolds.status.log`).
+Its manifest will be tracked beside the original's; the manifest delta is the
+cache drift and a reader re-run on it prices that drift. Four design fixes
+(top-ups honour pins; per-series content hashes in the manifest; the cache
+archived off-box per corpus; launchers out of the scratchpad) are QUESTIONS
+awaiting the refuter round — the weekly agent limit resets 2026-09-06 07:00 ET.
+
+**FMP changed plan on 2026-09-04 between 18:53 and 20:38 UTC.**
+`historical-chart/5min`, `historical-chart/1min` and `economic-calendar`
+return `402 Restricted Endpoint: not available under your current
+subscription`; `quote`, `treasury-rates` and `historical-price-eod/full` still
+200 (probed 2026-09-05 20:10 UTC). Not a 429 — it does not drain by time. The
+cache top-up fails hard on the calendar fetch (correctly labelled a real
+failure by its wrapper; the `machine-status: 2 failing` line is this), the
+minute bank's circuit is open with permanent loss beginning ~2026-09-06
+19:19 UTC, and production's `marketLoader.ts:350` fetches `historical-chart/`,
+so **the desk cannot unpark on this plan**. Owner item: the FMP subscription
+page. Pinned research spends nothing and is unaffected.
+
+**The intact corpus is verified and the payoff gap is measured on it.**
+`capture-all.jsonl`: 6,660,138 rows (the emitted count) and sha256
+`5ab22837cb163cee…`, recorded for the first time. On its select fold
+(baseline, accepted, filled, confirm skipped before aggregation — the same
+2,769,596 rows the door withholds): 157,035 fills, net −1,265 R on gross
++5,896 R, mean win +0.387 R against mean loss −0.934 R, **realized payoff
+0.414**, win share 70.06% against a break-even of 70.70% at that payoff; the
+gate's planned 1.78:1 is paid in full on 3.44% of fills and 65% bank a partial
+worth 0.35 R. This corroborates the four-lens finding but is an ad-hoc
+instrument and unrefuted: **no proposal built on it may be acted on until the
+refuter round runs.** Amendment 39 governs; nothing closes this gap by moving a
+target or a stop.
+
+**Work still due, in order:** (1) the successor lands → record rows, bytes,
+manifest, sha256 in the post-mortem note; re-run the act-3 readers on it and
+price the drift; (2) refuter round on the four design questions and on the
+payoff-gap finding; (3) whatever survives ships with mutation-tested guards;
+(4) the FMP plan is the owner's, and until it is restored nothing that
+fetches intraday bars or the calendar can run.
+
 ### ▶ RESUME HERE — 2026-09-04 05:00 UTC (the register moved twice; act 4 is refuted; a corpus was destroyed and is regenerating)
 
 **Four PRs landed and deployed** — #574 (forex `maxCostShare: 0.15`, the read's
