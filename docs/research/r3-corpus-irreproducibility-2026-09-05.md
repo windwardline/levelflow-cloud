@@ -1,5 +1,20 @@
 # The act-3 corpus cannot be restored — post-mortem, 2026-09-05
 
+**CORRECTED 2026-09-05 22:10 UTC — the corpus IS restored, byte for byte.**
+The rebuild of §5 finished with sha256
+`23ee6b98504c3a9c1428aea5434a431fe15ef3e368dbed37fcdaf09c52c3712f` —
+exactly the digest the act-3 read recorded for the destroyed corpus — on
+6,634,732 rows and 16,709,806,104 bytes, with 2,523,837 rejection-ledger rows
+and 1,841 decisions, the same as the record. §3 below argued from the
+manifest's cache facts that the bytes could not come back; the digest says
+the cache drift changed the manifest's facts (series counts, calendar census,
+grid registration) and not one emitted byte. §3 is kept as written because
+the reasoning error is the lesson: I inferred a row difference from an input
+difference without measuring it, when the recorded digest was the measure.
+The restored corpus sits at the record's path beside the committed manifest
+`021821537f28`; the rebuild's own manifest (`1d1a8e7bdf5b`) is tracked beside
+it as the witness of what the cache looked like on 2026-09-05.
+
 **Status: facts verified on the machine, design questions NOT yet refuted.**
 The weekly agent limit was exhausted on 2026-09-04; the refuter round on §6
 runs after it resets (2026-09-06 07:00 ET). Nothing in §6 is a decision.
@@ -40,7 +55,7 @@ in the R3 launcher (`run-r3-classfolds.sh`, transcript of 2026-09-02):
 
 A restoration must be derived from the manifest, never retyped.
 
-## 3. Even the exact recipe cannot reproduce the bytes
+## 3. Even the exact recipe cannot reproduce the bytes — REFUTED by the digest (see the correction above; kept as the record of the error)
 
 The one-cell run is still a witness: everything it shares with the record it
 reproduced, except the cache. Manifest against manifest, key by key —
@@ -139,6 +154,28 @@ For the refuter round, two questions and my position on each:
    the read stands as a record; the next program builds every arm and its
    baseline on one cache, and proves it from the manifests before reading.
 
+### 3d. §3b and §3c, refuted by measurement (22:15 UTC)
+
+With the corpus back, the concern could be measured instead of bounded. The
+baseline rows of `docs/research/r4/stop-cap.jsonl` — an act-3 arm built on
+2026-09-03 on the "mid" cache at revision `1a64151a` — against the restored
+shard 0's baseline rows, keyed by symbol and decision time: **935,241 of
+935,241 byte-identical, none missing on either side.** The six symbols whose
+series facts differed between the two caches produced the same emitted rows,
+byte for byte. The read's baseline and arms were on identical inputs; the
+"straddle" existed in the manifests' cache facts and nowhere else. The
+forex `costShareMax=0.15` confirmation's margin was never exposed. §3b's
+table stands as a description of the cache; §3c's positions stand with
+nothing left to argue: nothing to withdraw, nothing to void, and the next
+program still proves single-cache inputs from the manifests before it reads
+— now knowing that a fact difference is not a row difference until measured.
+
+The tuning-fold readers on the restored corpus (`tuning-folds-summary`,
+`grid-totalr` fit/select) reproduce the record's tracked outputs line for
+line; the one diff is a longer holdout caption the reader gained after
+2026-09-02. Recorded so the next reader of this note does not repeat the
+inference: a cache fact moved, the bytes did not.
+
 ## 4. What stands
 
 - The act-3 read's artifacts are committed with their input hashes
@@ -158,7 +195,19 @@ For the refuter round, two questions and my position on each:
   2026-09-02 19:06 UTC after the gate on each capture-all corpus was shown to
   equal the gate on its gated twin; only their rejection sidecars remain.
 
-## 5. The successor
+## 5. The successor — which turned out to be the original
+
+Result (2026-09-05 22:07 UTC, 2 h 10 min, zero provider bytes): rows
+6,634,732; bytes 16,709,806,104; sha256 `23ee6b98504c3a9c…` = the recorded
+digest; manifest `1d1a8e7bdf5b…` (7 grid cells, same symbol order, 1,841
+decisions, 2,523,837 rejection rows — identical to `021821537f28` in every
+hashed term except the cache facts: 16 symbols' series counts, the calendar
+census, and `gridRegistration`, where ~50 symbols' partially-formed final
+bars were repaired by the top-up's overlap re-fetch, AUDUSD from 20
+violations to 0). The tuning-fold readers on it must therefore reproduce the
+record's outputs line for line, corpus-hash line aside — that diff is the
+proof the readers are deterministic on the bytes, and it is recorded below.
+
 
 `docs/research/r3/capture-all-classfolds-2026-09-05.jsonl`: the §2 recipe, at
 `886fdf13`, from a clean worktree with 0 untracked files (`--cache-dir` pointing
@@ -182,6 +231,14 @@ worth in money. Fill in when it lands: rows, bytes, manifest, sha256.
    slices only), the way the minute bank already is?
 4. Launchers and logs for multi-hour jobs live outside the session scratchpad.
    (Applied today: the successor's status goes to `classfolds.status.log`.)
+
+Weighed again after the digest matched (§3d): question 2's content hashes
+would have differed too — the sliced series did change — and would have
+invited the same wrong inference; the emit digest is the oracle, and the
+manifest should carry it (it does, on the read artifact; it should also sit
+in the manifest itself). Question 3 keeps its force: an archived cache makes
+a rebuild possible when the drift does reach a row. Question 1 reduces how
+often that happens.
 
 ## 7. FMP changed plan on 2026-09-04
 
@@ -330,6 +387,25 @@ money, about 0.6 R per such row — which is why crypto, where those
 protections sit, reads best at f = 1 on fit and f = 0 on select while forex
 reads f = 0 on both.
 
+**On the restored per-class-fold corpus** (`banked-fraction-capture-all-classfolds.txt`,
+control 346,226 of 346,226), net R by banked fraction, select fold, with the
+fit fold's best f beside it:
+
+| class | filled | R(0) | **R(½) shipped** | R(1) | best f (select) | Δ best vs ½ | best f (fit) |
+|---|---|---|---|---|---|---|---|
+| forex | 78,932 | +2,704.0 | **+1,603.8** | +503.6 | 0 | +1,100.2 | 0 |
+| crypto | 43,085 | −6,056.8 | **−6,550.0** | −7,043.3 | 0 | +493.2 | 1 |
+| futures | 5,020 | −313.4 | **−310.7** | −308.0 | 1 | +2.7 | 0 |
+| metals | 2,507 | −82.9 | **−118.4** | −153.9 | 0 | +35.5 | 0 |
+| agriculture | 1,263 | −127.3 | **−149.4** | −171.6 | 0 | +22.2 | 0 |
+| indices | 613 | −86.5 | **−94.8** | −103.1 | 0 | +8.3 | 0 |
+| energies | 298 | −55.0 | **−60.1** | −65.2 | 0 | +5.1 | 0 |
+| livestock | 170 | +10.5 | **−0.5** | −11.5 | 0 | +11.0 | 0 |
+| pooled | 131,888 | −4,007.3 | **−5,680.1** | −7,352.8 | 0 | +1,672.8 | 0 |
+
+Six classes read f = 0 on both folds; crypto flips (fit 1, select 0) and
+futures is flat (±3 R). The slope is a property of `trail_tp1`, not of forex.
+
 **What this is and is not.** It is a measurement with an exact control. It
 is NOT the standing rejection's subject (2026-08-30: raising `tp1RiskShare`
 to lift the blended payoff — a level moved for a printed figure); the
@@ -343,6 +419,25 @@ it, tests, then arms at the protected anchor for zero bytes, one confirm
 read. That, and whether E8's execution rules let a full-size position ride
 a stop moved to TP1, are the refuter round's questions — and the second is
 the one that can kill it.
+
+**On the restored per-class-fold corpus (all eight classes; verdict form;
+`payoff-decomposition-capture-all-classfolds.txt`), select fold:**
+
+| class | filled | net R | gross R | payoff | win share | break-even | planned RR / ladder RR |
+|---|---|---|---|---|---|---|---|
+| forex | 78,932 | +1,603.8 | +3,493.6 | 0.377 | 69.8% | 68.4% | 1.69 / 1.00 |
+| crypto | 43,085 | −6,550.0 | −1,664.3 | 0.359 | 61.1% | 71.5% | 1.96 / 1.07 |
+| futures | 5,020 | −310.7 | −59.1 | 0.529 | 55.4% | 59.8% | 1.94 / 1.12 |
+| metals | 2,507 | −118.4 | +49.7 | 0.422 | 61.3% | 64.7% | 1.68 / 0.95 |
+| agriculture | 1,263 | −149.4 | −7.3 | 0.493 | 51.5% | 59.5% | 1.54 / 0.83 |
+| indices | 613 | −94.8 | −69.7 | 0.343 | 55.1% | 65.7% | 2.01 / 1.11 |
+| energies | 298 | −60.1 | −56.0 | 0.557 | 41.9% | 52.9% | 1.46 / 1.00 |
+| livestock | 170 | −0.5 | +10.2 | 0.815 | 54.7% | 54.9% | 2.05 / 1.21 |
+| pooled | 131,888 | −5,680.1 | +1,697.1 | 0.377 | 65.9% | 68.9% | 1.79 / 1.03 |
+
+Forex is the only class above its break-even, by 1.4 points; every other
+class sits 0.2 (livestock) to 11.0 (energies) points under it, and the
+realised payoff runs 0.34–0.82 against planned 1.46–2.05 everywhere.
 
 Reading, as measurement only: the gate's 1.78:1 is paid in full on 3.4% of
 fills; 65% of fills bank a partial worth 0.35 R; the realized ratio is 0.41:1,
