@@ -2004,6 +2004,21 @@ E8's execution reality answered from the record: no stop-loss rule exists
 (PRIMARY), and the 2% Daily Profit Cap is where a full-size runner is priced,
 by money, not by prohibition.
 
+**THE FEED WINDOW (found 2026-09-06 01:20–02:00 UTC; measured by hand, then
+mechanised; NOT yet refuted).** FMP's forex intraday history for 2021–2024
+does not cohere with its own daily bars — the 5-minute range exceeds the
+day's daily bar by 1–6% on the USD majors and 35–120% on AUDNZD, in one step
+at 2021-01 and reverting by 2024-10, on all 28 pairs; metals show nothing.
+The corpus's forex outcome mix steps in that month (stops 28% → 16%, TP 4.0%
+→ 1.5%) and forex's entire net-positive money (+2,918 R, 2021–22H1) sits on
+those years, which cover the select fold's last 17 months and ~60% of the
+confirm fold. `docs/research/feed-character-witness-2026-09-06.md`. The
+witness (`scripts/feedCharacter.ts`, `scripts/feed-character.ts`, tracked
+table `docs/research/r3/feed-character.txt`) generalises it: 104 of 194
+stores escape — every forex pair 2021–23, crypto 2017–2020, HOUSD/RBUSD
+2025–26. A refuter round (`feed-window-round-2026-09-06.js`) follows the
+banked-share round; no forex verdict moves until it lands.
+
 **Work still due, in order:** (1) the successor lands → record rows, bytes,
 manifest, sha256 in the post-mortem note; re-run the act-3 readers on it and
 price the drift; (2) refuter round on the four design questions and on the
