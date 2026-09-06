@@ -895,6 +895,51 @@ describe("the driver writes the manifest beside the emit", () => {
   // stores could not have been detected from the manifest, because the manifest
   // did not carry the fact. Pinned as source shape, like the rest of this
   // driver's wiring.
+  it("runs the daily-containment witness in the driver on both intraday tiers and records it per market", () => {
+    const script = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.match(
+      script,
+      /dailyContainment\(fiveMinuteBars, dailyBars\)/,
+      "the 5-minute series is judged against the daily series the sweep actually loaded",
+    );
+    assert.match(
+      script,
+      /dailyContainment\(primaryBars, dailyBars\)/,
+      "and the 15-minute series too — the corpus reads both",
+    );
+    const call = script.indexOf("dailyContainment(fiveMinuteBars");
+    const push = script.indexOf("manifestSymbols.push(");
+    assert.ok(call >= 0 && push >= 0 && call < push, "judged before pushed");
+    assert.match(
+      script,
+      /feedCharacter,\n/,
+      "and the record rides into the manifest as a fact — no refusal: what a refused store means for a sweep is the remedy round's question, and a fact the manifest never carried cannot be re-judged later",
+    );
+  });
+
+  it("carries a market's feed character into the hashed symbols", () => {
+    const base = manifestInput();
+    const withWitness = buildSweepManifest({
+      ...base,
+      symbols: base.symbols.map((entry) => ({
+        ...entry,
+        feedCharacter: {
+          "5min": {
+            baseline: { barRangeRatio: 0.054, rangeRatio: 1 },
+            escapeYears: [2021],
+            judgedDays: 4426,
+            verdict: "escapes",
+            years: { "2020": { days: 258, escapeShare: 0.11, escapedBy: [], medianBarRangeRatio: 0.0534, medianRangeRatio: 1, underShare: 0.12 }, "2021": { days: 257, escapeShare: 0.288, escapedBy: ["bar-range-drift"], medianBarRangeRatio: 0.0818, medianRangeRatio: 1.019, underShare: 0.101 } },
+          },
+        },
+      })),
+    });
+    const without = buildSweepManifest(base);
+    assert.deepEqual(withWitness.symbols[0].feedCharacter?.["5min"].escapeYears, [2021]);
+    assert.notEqual(withWitness.manifestHash, without.manifestHash, "a witness the manifest carries is part of what it hashes");
+    assert.equal(without.symbols[0].feedCharacter, undefined);
+  });
+
   it("runs the grid registration in the driver and refuses an ungridded pair", () => {
     const script = readFileSync("scripts/replay-sweep.ts", "utf8");
     assert.match(
