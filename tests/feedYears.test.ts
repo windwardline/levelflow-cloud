@@ -3,6 +3,8 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { type DailyContainment, formatFeedCharacter } from "../scripts/feedCharacter.ts";
+import { OperatorInputError } from "../scripts/flagReader.ts";
 import {
   describeYearMap,
   parseWitnessTable,
@@ -72,6 +74,51 @@ describe("the year map", () => {
     assert.equal(parsed.has("NOSUCH"), false);
     // A year token that is not one refuses the table: dropped, it would read as contained.
     assert.throws(() => parseWitnessTable("EURUSD 5min ESCAPES: 2021, twenty-two\n"), /names a year that is not one/);
+    // A blank token — a trailing comma from a hand edit — coerces to 0 and must not pass as a year.
+    assert.throws(() => parseWitnessTable("EURUSD 5min ESCAPES: 2021,\n"), /names a year that is not one — ""/);
+    assert.throws(() => parseWitnessTable("EURUSD 5min ESCAPES: 2021, 22\n"), /names a year that is not one — "22"/);
+    // Two verdict lines for one store — two witness runs concatenated — are refused, never last-write-wins.
+    assert.throws(() => parseWitnessTable("EURUSD 5min ESCAPES: 2021\nEURUSD 5min contained\n"), /two verdict lines/);
+  });
+
+  it("reads back exactly what the witness writes — the writer and the parser are one format", () => {
+    const witness = (verdict: DailyContainment["verdict"], escapeYears: number[]): DailyContainment => ({
+      baseline: verdict === "unjudgeable" ? null : { barRangeRatio: 0.05, rangeRatio: 1 },
+      escapeYears,
+      judgedDays: verdict === "unjudgeable" ? 0 : 100,
+      verdict,
+      years: new Map(),
+    });
+    const text = [
+      formatFeedCharacter("EURUSD", "5min", witness("escapes", [2021, 2022])),
+      formatFeedCharacter("EURUSD", "15min", witness("escapes", [2021])),
+      formatFeedCharacter("XAUUSD", "5min", witness("contained", [])),
+      formatFeedCharacter("GFUSX", "5min", witness("unjudgeable", [])),
+    ].join("\n");
+    const parsed = parseWitnessTable(text);
+    assert.deepEqual([...parsed.get("EURUSD")!], [2021, 2022]);
+    assert.deepEqual([...parsed.get("XAUUSD")!], []);
+    assert.deepEqual([...parsed.get("GFUSX")!], []);
+    assert.equal(parsed.size, 3);
+  });
+
+  it("names a table it cannot read as operator input, not a defect", () => {
+    assert.throws(
+      () => resolveYearMap({ manifests: [manifestWith([{ symbol: "EURUSD" }])], witnessTablePath: "/nonexistent/feed-character.txt" }),
+      (error: unknown) => error instanceof OperatorInputError && /cannot read the witness table \(ENOENT\)/.test(error.message),
+    );
+  });
+
+  it("counts symbols, not entries: two shards naming one market both carrying the field read as one manifest map, and a shard without it is mixed", () => {
+    const both = resolveYearMap({
+      manifests: [manifestWith([{ symbol: "EURUSD", escapeYears: [2021] }]), manifestWith([{ symbol: "EURUSD", escapeYears: [2021] }, { symbol: "XAUUSD", escapeYears: [] }])],
+    });
+    assert.equal(both.source, "manifest");
+    assert.equal(both.bucketOf("EURUSD", 2021), "escaping");
+    assert.throws(
+      () => resolveYearMap({ manifests: [manifestWith([{ symbol: "EURUSD", escapeYears: [2021] }]), manifestWith([{ symbol: "EURUSD" }])] }),
+      /mixed map is refused; missing: EURUSD/,
+    );
   });
 
   it("reads a manifest that carries the field, and says so", () => {

@@ -15,6 +15,8 @@
  * others is refused as mixed: one source per read, never a guess per symbol.
  */
 import { readFileSync } from "node:fs";
+import type { FeedCharacterRecord } from "./feedCharacter.ts";
+import { OperatorInputError } from "./flagReader.ts";
 
 export const YEAR_BUCKETS = ["contained", "escaping"] as const;
 export type YearBucket = (typeof YEAR_BUCKETS)[number];
@@ -23,8 +25,16 @@ export type YearsFilter = "all" | YearBucket;
 /** The tier the map reads; the engine resolves setups on it. */
 export const MAP_TIER = "5min";
 
+/**
+ * What the map reads off a manifest — typed against the manifest's own record
+ * so a renamed field breaks the build here instead of reading every symbol as
+ * contained.
+ */
 type ManifestLike = {
-  symbols: Array<{ symbol: string; feedCharacter?: Record<string, { escapeYears?: number[] }> }>;
+  readonly symbols: ReadonlyArray<{
+    readonly symbol: string;
+    readonly feedCharacter?: Readonly<Record<string, Pick<FeedCharacterRecord, "escapeYears">>>;
+  }>;
 };
 
 export type YearMap = {
@@ -44,8 +54,11 @@ export function yearOf(timeMs: number): number {
  * `SYMBOL 5min unjudgeable` — followed by indented year lines. Only the
  * MAP_TIER's verdict line is read; an unjudgeable or contained store maps to
  * no escaping years; an ABSENT store is not in the map at all. A year token
- * that is not an integer refuses the whole table: dropping it would turn an
- * escaping year into a contained one.
+ * that is not a four-digit year refuses the whole table (a blank token — a
+ * trailing comma — coerces to 0 and would pass an integer check): dropping it
+ * would turn an escaping year into a contained one. A symbol whose MAP_TIER
+ * line appears twice — two witness runs concatenated — is refused too: this
+ * reader will not choose between them.
  */
 export function parseWitnessTable(text: string): Map<string, Set<number>> {
   const out = new Map<string, Set<number>>();
@@ -54,13 +67,16 @@ export function parseWitnessTable(text: string): Map<string, Set<number>> {
     if (line.startsWith(" ") || line.length === 0) continue;
     const match = /^([A-Z0-9^]+) (\S+) (ESCAPES: (.*)|contained|unjudgeable)$/.exec(line);
     if (!match || match[2] !== MAP_TIER) continue;
+    if (out.has(match[1])) {
+      throw new Error(`witness table: ${match[1]} ${MAP_TIER} has two verdict lines — this reader will not choose between them`);
+    }
     const years = match[4]
       ? match[4].split(",").map((value) => {
-          const year = Number(value.trim());
-          if (!Number.isInteger(year)) {
-            throw new Error(`witness table: ${match[1]} ${MAP_TIER} names a year that is not one — "${value.trim()}" — a dropped token would read as a contained year`);
+          const token = value.trim();
+          if (!/^\d{4}$/.test(token)) {
+            throw new Error(`witness table: ${match[1]} ${MAP_TIER} names a year that is not one — "${token}" — a dropped token would read as a contained year`);
           }
-          return year;
+          return Number(token);
         })
       : [];
     out.set(match[1], new Set(years));
@@ -68,34 +84,44 @@ export function parseWitnessTable(text: string): Map<string, Set<number>> {
   return out;
 }
 
+/** A table that cannot be read is operator input, not a defect: one clean line, no stack. */
+function readWitnessTable(path: string): string {
+  try {
+    return readFileSync(path, "utf8");
+  } catch (error) {
+    const code = error instanceof Error && "code" in error ? String((error as { code: unknown }).code) : "unreadable";
+    throw new OperatorInputError(`--witness ${path}: cannot read the witness table (${code}) — name the tracked table, e.g. docs/research/r3/feed-character.txt`);
+  }
+}
+
 export function resolveYearMap(input: { manifests: ManifestLike[]; witnessTablePath?: string }): YearMap {
+  // Per symbol, never per entry: two shards naming the same market must not
+  // count as two symbols carrying the field, nor hide one shard without it.
   const symbols = new Set<string>();
+  const withoutField = new Set<string>();
   const fromManifest = new Map<string, Set<number>>();
-  let carried = 0;
   for (const manifest of input.manifests) {
     for (const entry of manifest.symbols) {
       symbols.add(entry.symbol);
       const tier = entry.feedCharacter?.[MAP_TIER];
-      if (tier) {
-        carried += 1;
-        fromManifest.set(entry.symbol, new Set(tier.escapeYears ?? []));
-      }
+      if (tier) fromManifest.set(entry.symbol, new Set(tier.escapeYears));
+      else withoutField.add(entry.symbol);
     }
   }
-  if (carried > 0 && carried < symbols.size) {
-    const missing = [...symbols].filter((symbol) => !fromManifest.has(symbol)).sort();
+  if (fromManifest.size > 0 && withoutField.size > 0) {
+    const missing = [...withoutField].sort();
     throw new Error(
-      `the manifest carries feedCharacter on ${carried} of ${symbols.size} symbols — a mixed map is refused; ` +
+      `the manifest carries feedCharacter on ${fromManifest.size} of ${symbols.size} symbols — a mixed map is refused; ` +
         `missing: ${missing.join(", ")}`,
     );
   }
   let map: Map<string, Set<number>>;
   let source: YearMap["source"];
-  if (carried === symbols.size && symbols.size > 0) {
+  if (fromManifest.size === symbols.size && symbols.size > 0) {
     map = fromManifest;
     source = "manifest";
   } else if (input.witnessTablePath) {
-    map = parseWitnessTable(readFileSync(input.witnessTablePath, "utf8"));
+    map = parseWitnessTable(readWitnessTable(input.witnessTablePath));
     source = "witness";
   } else {
     throw new Error(

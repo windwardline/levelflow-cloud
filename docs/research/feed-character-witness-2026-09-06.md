@@ -148,7 +148,11 @@ with the rest.
   script's regex took the first `"time"` key on the line, which on a row
   whose `legs` precede `time` is a leg's fill time — 25 New-Year crypto rows
   (12 fit, 13 select) landed in the wrong year. The reader reads the row's
-  own `time`; its table is the figure of record.
+  own `time`; its table is the figure of record. The attribution rule, stated
+  once: a row is placed by the UTC year of its decision time (`time`), not by
+  the bars its review window resolved on — a setup decided on 2020-12-30
+  whose window ran into 2021 counts as contained, and the reader's header
+  says so.
 - **No verdict on any forex figure.** Amendment 36's standard runs both ways:
   a market may not be withdrawn on a flawed input of our own making, and a
   market may not be confirmed on one either. Which forex verdicts stand is

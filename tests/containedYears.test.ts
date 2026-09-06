@@ -188,7 +188,10 @@ describe("the split, from the manifest's own year map", () => {
     const text = formatContainedYears(await read([writeCorpus(fixtureRows(), YEAR_MAP)]));
     assert.match(text, /year map: manifest feedCharacter/);
     assert.match(text, /confirm: SEALED, not read \(10 rows withheld at the door\)/);
-    assert.match(text, /\| forex \| select \| escaping \| 2 \|/);
+    assert.match(text, /placed by the UTC year of its decision time/);
+    // Gross R prints beside its own denominator: the rows that carried a gross figure.
+    assert.match(text, /\| gross R \| gross n \| E \(net\) \|/);
+    assert.match(text, /\| forex \| select \| escaping \| 2 \| 4\.0 \| 4\.0 \| 2 \|/);
   });
 
   it("the CLI refuses the sealed fold by name and runs the split otherwise", () => {

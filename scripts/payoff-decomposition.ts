@@ -362,7 +362,7 @@ export async function decomposePayoff(input: {
   const years: YearsFilter = input.years ?? "all";
   const yearMap = years === "all"
     ? null
-    : resolveYearMap({ manifests: manifests as unknown as Parameters<typeof resolveYearMap>[0]["manifests"], witnessTablePath: input.witnessTablePath });
+    : resolveYearMap({ manifests, witnessTablePath: input.witnessTablePath });
   if (yearMap) {
     const unplaceable = manifests.flatMap((manifest) => manifest.symbols.map((entry) => entry.symbol))
       .filter((symbol, index, all) => all.indexOf(symbol) === index && !heldOut.has(symbol) && yearMap.bucketOf(symbol, 2000) === "unknown")

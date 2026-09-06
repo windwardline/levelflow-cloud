@@ -280,7 +280,7 @@ export async function bankedFraction(input: {
   // resolved BEFORE a row is read: an absent verdict is not a contained one.
   const yearMap = years === "all"
     ? null
-    : resolveYearMap({ manifests: manifests as unknown as Parameters<typeof resolveYearMap>[0]["manifests"], witnessTablePath: input.witnessTablePath });
+    : resolveYearMap({ manifests, witnessTablePath: input.witnessTablePath });
   if (yearMap) {
     const unplaceable = manifests.flatMap((manifest) => manifest.symbols.map((entry) => entry.symbol))
       .filter((symbol, index, all) => all.indexOf(symbol) === index && !heldOut.has(symbol) && yearMap.bucketOf(symbol, 2000) === "unknown")
