@@ -12,6 +12,7 @@ import {
   formatFeedCharacter,
   MIN_BARS_PER_DAY,
   RANGE_DRIFT_LIMIT,
+  serializeContainment,
 } from "../scripts/feedCharacter.ts";
 
 /**
@@ -186,6 +187,27 @@ describe("daily containment — the witness", () => {
     assert.match(text, /baseline range 1\.000 bar/);
     assert.match(text, /2018 days 365 range 1\.350 .* ESCAPES \(range-drift/);
     assert.match(text, /2017 days 365 range 1\.000 .* escape 0\.0% under 0\.0%$/m);
+  });
+});
+
+describe("the manifest form", () => {
+  it("serialises a witness as plain JSON with years as sorted string keys, stable under a round trip", () => {
+    const { daily, intraday } = store((y) => (y === 2018 ? 0.0035 : 0));
+    const w = dailyContainment(intraday, daily);
+    const record = serializeContainment(w);
+    assert.equal(record.verdict, "escapes");
+    assert.deepEqual(record.escapeYears, [2018]);
+    assert.equal(record.judgedDays, w.judgedDays);
+    assert.deepEqual(Object.keys(record.years), ["2015", "2016", "2017", "2018", "2019", "2020"]);
+    assert.deepEqual(record.years["2018"].escapedBy, w.years.get(2018)!.escapedBy);
+    assert.equal(record.years["2016"].days, 366);
+    assert.equal(record.baseline!.rangeRatio, w.baseline!.rangeRatio);
+    // JSON-safe and stable: what the manifest hashes is what a reader gets back.
+    assert.deepEqual(JSON.parse(JSON.stringify(record)), record);
+    const unjudged = serializeContainment(dailyContainment([], daily));
+    assert.equal(unjudged.verdict, "unjudgeable");
+    assert.equal(unjudged.baseline, null);
+    assert.deepEqual(unjudged.years, {});
   });
 });
 

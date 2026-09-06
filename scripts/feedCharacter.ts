@@ -191,6 +191,34 @@ export function dailyContainment(intraday: OhlcBar[], daily: OhlcBar[]): DailyCo
   };
 }
 
+/** The witness in the manifest's shape: plain JSON, years as string keys in ascending order. */
+export type FeedCharacterRecord = {
+  baseline: { barRangeRatio: number; rangeRatio: number } | null;
+  escapeYears: number[];
+  judgedDays: number;
+  verdict: DailyContainment["verdict"];
+  years: Record<string, YearFacts>;
+};
+
+/**
+ * The manifest form of a witness. Stable and JSON-safe: what the manifest
+ * hashes is exactly what a reader parses back, and a Map would hash to `{}`.
+ */
+export function serializeContainment(witness: DailyContainment): FeedCharacterRecord {
+  const years: Record<string, YearFacts> = {};
+  for (const year of [...witness.years.keys()].sort((a, b) => a - b)) {
+    const facts = witness.years.get(year)!;
+    years[String(year)] = { ...facts, escapedBy: [...facts.escapedBy] };
+  }
+  return {
+    baseline: witness.baseline ? { ...witness.baseline } : null,
+    escapeYears: [...witness.escapeYears],
+    judgedDays: witness.judgedDays,
+    verdict: witness.verdict,
+    years,
+  };
+}
+
 /** One store's witness as text: the verdict line, then one line per year. */
 export function formatFeedCharacter(symbol: string, timeframe: string, witness: DailyContainment): string {
   const head = witness.verdict === "escapes"

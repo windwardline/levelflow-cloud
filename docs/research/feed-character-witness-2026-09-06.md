@@ -119,11 +119,17 @@ with the rest.
   day it ran, on the very stores the corpus was built from; a gate that
   refuses the present state blocks every merge and decides nothing. It becomes
   a gate when the remedy round says what a refused store means for a sweep.
-- **No manifest field yet.** The sweep records `gridRegistration` per symbol
-  and refuses on it; recording `dailyContainment` per symbol and per year is
-  the natural next step, and whether readers then refuse rows from escaping
-  years, stratify by them, or the fold calendar avoids them is the remedy
-  question — round 2's, not this change set's.
+- **The manifest carries it; nothing refuses on it.** Since the change set
+  after #588, every sweep records `feedCharacter` per symbol — the witness
+  on both intraday tiers against the daily series the sweep loaded, per
+  year, in the manifest's hashed `symbols` (`scripts/replay-sweep.ts` beside
+  `gridRegistration`, `scripts/sweepManifest.ts` passthrough,
+  `serializeContainment` for the JSON form). A corpus built from here on
+  says which of its years escaped; whether readers then refuse rows from
+  those years, stratify by them, or the fold calendar avoids them is the
+  remedy question — round 2's, not this change set's. The act-3 corpus of
+  record predates the field; `docs/research/r3/feed-character.txt` is its
+  witness, run on the same cache.
 - **No verdict on any forex figure.** Amendment 36's standard runs both ways:
   a market may not be withdrawn on a flawed input of our own making, and a
   market may not be confirmed on one either. Which forex verdicts stand is

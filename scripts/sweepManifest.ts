@@ -9,6 +9,7 @@
 // the provider-boundary rejection tally. Item 3's aggregation readers
 // assert manifestHash before touching a single row.
 
+import type { FeedCharacterRecord } from "./feedCharacter.ts";
 import { createHash } from "node:crypto";
 import {
   type CrossSeriesClock,
@@ -884,6 +885,13 @@ export type SweepManifest = {
      * 1.000 against a real 4-hour displacement on nine of them.
      */
     gridRegistration?: GridRegistration;
+    /**
+     * The daily-containment witness per intraday tier (2026-09-06): each
+     * tier's range measured against the daily bars, per year, with the drift
+     * verdict. A fact the manifest carries so a reader can refuse or stratify
+     * by year; the sweep itself refuses nothing on it.
+     */
+    feedCharacter?: Record<string, FeedCharacterRecord>;
     providerSymbol: string;
     series: Record<string, SeriesFacts>;
     // R0f: the venue session anchor — the ONLY ABSOLUTE intraday witness,
@@ -933,6 +941,7 @@ export function buildSweepManifest(input: {
     crossSeriesClock?: CrossSeriesClock;
     crossSeriesDensity?: CrossSeriesDensity;
     gridRegistration?: GridRegistration;
+    feedCharacter?: Record<string, FeedCharacterRecord>;
     sessionAnchor?: SessionAnchorWitness;
     providerSymbol: string;
     series: Record<string, SeriesFacts>;
@@ -975,6 +984,7 @@ export function buildSweepManifest(input: {
     calibrationHash: sha256Hex(stableStringify(entry.calibration)),
     ...(entry.symbolOverride && { symbolOverride: entry.symbolOverride }),
     ...(entry.gridRegistration && { gridRegistration: entry.gridRegistration }),
+    ...(entry.feedCharacter && { feedCharacter: entry.feedCharacter }),
     ...(entry.sessionAnchor && { sessionAnchor: entry.sessionAnchor }),
     ...(entry.crossSeriesClock && {
       crossSeriesClock: entry.crossSeriesClock,
