@@ -2017,7 +2017,14 @@ witness (`scripts/feedCharacter.ts`, `scripts/feed-character.ts`, tracked
 table `docs/research/r3/feed-character.txt`) generalises it: 104 of 194
 stores escape — every forex pair 2021–23, crypto 2017–2020, HOUSD/RBUSD
 2025–26. Every sweep from here on records the witness per market in its manifest
-(`feedCharacter`, both tiers, per year — a fact, not a refusal). A refuter
+(`feedCharacter`, both tiers, per year — a fact, not a refusal). The readers
+stratify on it (change set after #589): `--years contained|escaping` on
+`banked-fraction` and `payoff-decomposition`, `scripts/contained-years.ts`
+for the money split, one year map (`scripts/feedYears.ts`) for all three.
+On select the split is stark: forex contained −1,321.1 R over 55,419 fills
+(−0.024 R/fill) against escaping +2,925.0 R over 23,513 (+0.124 R/fill);
+pooled contained −6,254.8 R against escaping +574.7 R
+(`docs/research/r3/contained-years-capture-all-classfolds.txt`). A refuter
 round (`feed-window-round-2026-09-06.js`) follows the banked-share round; no
 forex verdict moves until it lands.
 

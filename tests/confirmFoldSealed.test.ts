@@ -457,10 +457,14 @@ type Fixture = {
   ledgeredRead: string;
   out: string;
   sizes: string[];
+  /** A witness table naming every fixture market contained — the year map for readers that stratify by feed character. */
+  witness: string;
 };
 
 function fixture(shape: Shape, label: string): Fixture {
   const dir = mkdtempSync(join(tmpdir(), `sealed-${label}-`));
+  const witness = join(dir, "feed-character.txt");
+  writeFileSync(witness, SYMBOLS.map(({ symbol }) => `${symbol} 5min contained`).join("\n") + "\n");
   const rows = rowsFor(shape);
   const { manifestHash, path: captureAll } = writeCorpus(dir, "capture-all.jsonl", rows, true, rows);
   const { manifestHash: gatedHash, path: gated } = writeCorpus(
@@ -527,6 +531,7 @@ function fixture(shape: Shape, label: string): Fixture {
     ],
     ledgeredRead,
     out,
+    witness,
     sizes: files.map((file) => String(statSync(file).size)),
   };
 }
@@ -543,6 +548,7 @@ const READERS: Record<string, { args: string[]; cwd?: "fixture"; note?: string }
   "ag-class-derivation": { args: ["F"] },
   "banked-fraction": { args: ["F"] },
   "confidence-bands": { args: ["F"] },
+  "contained-years": { args: ["F", "--witness", "W"], note: "the year map from a witness table the fixture writes; the manifest predates the field" },
   "cost-sensitivity-verdict": {
     args: ["--paired", "F", "--cells", `EURUSD|${BASELINE};ZCUSX|${VARIANT}`, "--out", "O/cost.json"],
   },
@@ -577,6 +583,8 @@ const READERS: Record<string, { args: string[]; cwd?: "fixture"; note?: string }
 // across A, A′, B and C by construction (header), and the guard proves the
 // reader itself still moves with nothing on the fold.
 const EXTRA_RUNS: Array<{ args: string[]; cwd?: "fixture"; label: string; reader: string }> = [
+  { args: ["F", "--years", "contained", "--witness", "W"], label: "banked-fraction --years contained", reader: "banked-fraction" },
+  { args: ["F", "--years", "escaping", "--witness", "W"], label: "payoff-decomposition --years escaping", reader: "payoff-decomposition" },
   {
     args: ["F", "--include-holdout"],
     label: "banked-fraction --include-holdout",
@@ -712,6 +720,7 @@ async function run(
     : token === "C" ? join(entry.dir, "candidates.json")
     : token === "L" ? entry.ledgeredRead
     : token === "M" ? `${entry.captureAll}.manifest.json`
+    : token === "W" ? entry.witness
     : token.startsWith("O/") ? join(out, token.slice(2))
     : token
   );

@@ -125,11 +125,30 @@ with the rest.
   year, in the manifest's hashed `symbols` (`scripts/replay-sweep.ts` beside
   `gridRegistration`, `scripts/sweepManifest.ts` passthrough,
   `serializeContainment` for the JSON form). A corpus built from here on
-  says which of its years escaped; whether readers then refuse rows from
-  those years, stratify by them, or the fold calendar avoids them is the
-  remedy question — round 2's, not this change set's. The act-3 corpus of
-  record predates the field; `docs/research/r3/feed-character.txt` is its
-  witness, run on the same cache.
+  says which of its years escaped. The act-3 corpus of record predates the
+  field; `docs/research/r3/feed-character.txt` is its witness, run on the
+  same cache.
+- **The readers stratify on it; nothing refuses on it.** `scripts/feedYears.ts`
+  resolves every symbol-year to `contained` or `escaping` — from the
+  manifest's `feedCharacter` when the corpus carries it, else from the
+  tracked witness table (`--witness`), always the 5-minute tier the engine
+  resolves on. `banked-fraction` and `payoff-decomposition` take
+  `--years contained|escaping`; `scripts/contained-years.ts` prints fills and
+  net R per class, fold and bucket (tracked:
+  `docs/research/r3/contained-years-capture-all-classfolds.txt`). A market
+  the map cannot place refuses the read before a row is read — an absent
+  verdict is not a contained one — and a manifest with the field on some
+  symbols and not others is refused as mixed. Whether readers refuse those
+  years outright or the fold calendar avoids them is still the remedy
+  question — round 2's, not this change set's.
+- **The reader reproduces the hand split, and corrects it by two fills.**
+  `contained-years` matches `money-in-escaping-years-2026-09-06.log` exactly
+  for forex and every non-crypto class; crypto differs by two fills per
+  fold. Measured (`first-time-key-vs-row-time-2026-09-06.log`): the hand
+  script's regex took the first `"time"` key on the line, which on a row
+  whose `legs` precede `time` is a leg's fill time — 25 New-Year crypto rows
+  (12 fit, 13 select) landed in the wrong year. The reader reads the row's
+  own `time`; its table is the figure of record.
 - **No verdict on any forex figure.** Amendment 36's standard runs both ways:
   a market may not be withdrawn on a flawed input of our own making, and a
   market may not be confirmed on one either. Which forex verdicts stand is

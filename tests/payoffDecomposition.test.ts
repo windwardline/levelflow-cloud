@@ -298,6 +298,52 @@ describe("what a win pays and what a loss costs", () => {
   });
 });
 
+describe("stratified by feed character", () => {
+  it("--years contained and --years escaping split the fold by the witness's year map, and refuse without one", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "payoff-years-"));
+    const table = join(dir, "feed-character.txt");
+    writeFileSync(table, "EURUSD 5min ESCAPES: 2025\nGBPUSD 5min contained\nNZDCHF 5min contained\nXAUUSD 5min contained\n");
+    const path = writeCorpus(fixtureRows());
+    const escaping = await decomposePayoff({ folds: ["fit", "select"], holdoutPinDir: NO_PIN_DIR, paths: [path], variant: "baseline", witnessTablePath: table, years: "escaping" });
+    assert.equal(escaping.yearMapSource, "witness");
+    const forexE = escaping.cells.get("forex|select")!;
+    // EURUSD's nine filled select rows: net 0.1, no GBPUSD.
+    assert.equal(forexE.filled, 9);
+    near(forexE.rSum, 0.1);
+    assert.equal(escaping.cells.has("forex|fit"), false);
+    const contained = await decomposePayoff({ folds: ["fit", "select"], holdoutPinDir: NO_PIN_DIR, paths: [path], variant: "baseline", witnessTablePath: table, years: "contained" });
+    const forexC = contained.cells.get("forex|select")!;
+    assert.equal(forexC.filled, 3);
+    near(forexC.rSum, 6);
+    assert.equal(contained.cells.get("forex|fit")!.filled, 12);
+    assert.equal(escaping.rows.otherYears + contained.rows.otherYears, escaping.rows.counted + contained.rows.counted);
+    await assert.rejects(decomposePayoff({ folds: ["fit"], holdoutPinDir: NO_PIN_DIR, paths: [path], variant: "baseline", years: "contained" }), /no year map/);
+    assert.match(formatDecomposition(contained), /years: contained · year map: witness table/);
+  });
+
+  it("refuses before reading a row when the year map cannot place a market the read would decompose", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "payoff-years-short-"));
+    const table = join(dir, "feed-character.txt");
+    // GBPUSD and XAUUSD are missing: an absent verdict is not a contained one.
+    writeFileSync(table, "EURUSD 5min ESCAPES: 2025\nNZDCHF 5min contained\n");
+    const path = writeCorpus(fixtureRows());
+    await assert.rejects(
+      decomposePayoff({ folds: ["fit", "select"], holdoutPinDir: NO_PIN_DIR, paths: [path], variant: "baseline", witnessTablePath: table, years: "contained" }),
+      /cannot place 2 market\(s\).*GBPUSD, XAUUSD/,
+    );
+  });
+
+  it("does not refuse on a held-out market the map cannot place — its rows reach no cell", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "payoff-years-heldout-"));
+    const table = join(dir, "feed-character.txt");
+    writeFileSync(table, "EURUSD 5min ESCAPES: 2025\nGBPUSD 5min contained\nXAUUSD 5min contained\n");
+    const path = writeCorpus(fixtureRows());
+    const summary = await decomposePayoff({ folds: ["fit", "select"], holdoutPinDir: NO_PIN_DIR, paths: [path], variant: "baseline", witnessTablePath: table, years: "contained" });
+    assert.deepEqual(summary.holdout.markets, ["NZDCHF"]);
+    assert.equal(summary.cells.get("forex|select")!.filled, 3);
+  });
+});
+
 describe("what it keeps apart", () => {
   it("counts unfilled, not-accepted and other-variant rows out, and says so", async () => {
     const summary = await decompose([writeCorpus(fixtureRows())]);
