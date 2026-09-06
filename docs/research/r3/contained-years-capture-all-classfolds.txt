@@ -4,39 +4,39 @@ year map: witness table docs/research/r3/feed-character.txt (5min tier)
 rows 6634732: 346226 split · 857954 not accepted · 0 in other folds · 3118950 other variants · 75920 unfilled · 442 data-absent · 93713 held out
 holdout: stratified-per-class-20pct — 20 markets excluded from every class pool (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only
 
-escaping = years the feed-character witness names for the market (5min tier); contained = the rest. A verdict on either bucket is the remedy round's, not this reader's.
+escaping = years the feed-character witness names for the market (5min tier); contained = the rest. A row is placed by the UTC year of its decision time (`time`), not by the bars its review window resolved on. A verdict on either bucket is the remedy round's, not this reader's.
 
 === FIT ===
-| class | fold | bucket | filled | net R | gross R | E (net) |
-| --- | --- | --- | ---: | ---: | ---: | ---: |
-| agriculture | fit | contained | 2512 | -353.0 | -40.3 | -0.1405 |
-| crypto | fit | contained | 2308 | -119.1 | 55.1 | -0.0516 |
-| crypto | fit | escaping | 19084 | 561.9 | 2295.2 | 0.0294 |
-| energies | fit | contained | 577 | -115.9 | -98.4 | -0.2009 |
-| forex | fit | contained | 174503 | -94.7 | 3356.9 | -0.0005 |
-| futures | fit | contained | 9138 | -1148.2 | -685.8 | -0.1256 |
-| futures | fit | escaping | 99 | -47.1 | -43.9 | -0.4753 |
-| indices | fit | contained | 280 | -14.9 | -11.1 | -0.0533 |
-| livestock | fit | contained | 289 | -10.9 | -9.2 | -0.0377 |
-| livestock | fit | escaping | 51 | -0.7 | 3.6 | -0.0137 |
-| metals | fit | contained | 5497 | -502.8 | -108.0 | -0.0915 |
-| **pooled** | fit | contained | 195104 | -2359.5 | 2459.3 | -0.0121 |
-| **pooled** | fit | escaping | 19234 | 514.2 | 2254.9 | 0.0267 |
+| class | fold | bucket | filled | net R | gross R | gross n | E (net) |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| agriculture | fit | contained | 2512 | -353.0 | -40.3 | 2512 | -0.1405 |
+| crypto | fit | contained | 2308 | -119.1 | 55.1 | 2308 | -0.0516 |
+| crypto | fit | escaping | 19084 | 561.9 | 2295.2 | 19084 | 0.0294 |
+| energies | fit | contained | 577 | -115.9 | -98.4 | 577 | -0.2009 |
+| forex | fit | contained | 174503 | -94.7 | 3356.9 | 174503 | -0.0005 |
+| futures | fit | contained | 9138 | -1148.2 | -685.8 | 9138 | -0.1256 |
+| futures | fit | escaping | 99 | -47.1 | -43.9 | 99 | -0.4753 |
+| indices | fit | contained | 280 | -14.9 | -11.1 | 280 | -0.0533 |
+| livestock | fit | contained | 289 | -10.9 | -9.2 | 289 | -0.0377 |
+| livestock | fit | escaping | 51 | -0.7 | 3.6 | 51 | -0.0137 |
+| metals | fit | contained | 5497 | -502.8 | -108.0 | 5497 | -0.0915 |
+| **pooled** | fit | contained | 195104 | -2359.5 | 2459.3 | 195104 | -0.0121 |
+| **pooled** | fit | escaping | 19234 | 514.2 | 2254.9 | 19234 | 0.0267 |
 
 === SELECT ===
-| class | fold | bucket | filled | net R | gross R | E (net) |
-| --- | --- | --- | ---: | ---: | ---: | ---: |
-| agriculture | select | contained | 1263 | -149.4 | -7.3 | -0.1183 |
-| crypto | select | contained | 33134 | -4361.1 | -1190.0 | -0.1316 |
-| crypto | select | escaping | 9951 | -2189.0 | -474.3 | -0.2200 |
-| energies | select | contained | 298 | -60.1 | -56.0 | -0.2017 |
-| forex | select | contained | 55419 | -1321.1 | 91.5 | -0.0238 |
-| forex | select | escaping | 23513 | 2925.0 | 3402.2 | 0.1244 |
-| futures | select | contained | 4365 | -197.4 | 15.9 | -0.0452 |
-| futures | select | escaping | 655 | -113.3 | -75.1 | -0.1730 |
-| indices | select | contained | 530 | -46.8 | -31.9 | -0.0883 |
-| indices | select | escaping | 83 | -48.0 | -37.8 | -0.5783 |
-| livestock | select | contained | 170 | -0.5 | 10.2 | -0.0028 |
-| metals | select | contained | 2507 | -118.4 | 49.7 | -0.0472 |
-| **pooled** | select | contained | 97686 | -6254.8 | -1117.8 | -0.0640 |
-| **pooled** | select | escaping | 34202 | 574.7 | 2814.9 | 0.0168 |
+| class | fold | bucket | filled | net R | gross R | gross n | E (net) |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| agriculture | select | contained | 1263 | -149.4 | -7.3 | 1263 | -0.1183 |
+| crypto | select | contained | 33134 | -4361.1 | -1190.0 | 33134 | -0.1316 |
+| crypto | select | escaping | 9951 | -2189.0 | -474.3 | 9951 | -0.2200 |
+| energies | select | contained | 298 | -60.1 | -56.0 | 298 | -0.2017 |
+| forex | select | contained | 55419 | -1321.1 | 91.5 | 55419 | -0.0238 |
+| forex | select | escaping | 23513 | 2925.0 | 3402.2 | 23513 | 0.1244 |
+| futures | select | contained | 4365 | -197.4 | 15.9 | 4365 | -0.0452 |
+| futures | select | escaping | 655 | -113.3 | -75.1 | 655 | -0.1730 |
+| indices | select | contained | 530 | -46.8 | -31.9 | 530 | -0.0883 |
+| indices | select | escaping | 83 | -48.0 | -37.8 | 83 | -0.5783 |
+| livestock | select | contained | 170 | -0.5 | 10.2 | 170 | -0.0028 |
+| metals | select | contained | 2507 | -118.4 | 49.7 | 2507 | -0.0472 |
+| **pooled** | select | contained | 97686 | -6254.8 | -1117.8 | 97686 | -0.0640 |
+| **pooled** | select | escaping | 34202 | 574.7 | 2814.9 | 34202 | 0.0168 |

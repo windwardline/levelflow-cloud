@@ -1,6 +1,7 @@
 /**
  * contained-years — the money split the feed-window question needs, as a
- * tracked number: per class and tuning fold, fills, net R and gross R in
+ * tracked number: per class and tuning fold, fills, net R and gross R (with
+ * the count of rows that carried a gross figure — its own denominator) in
  * the years the feed-character witness names (`escaping`) against the years
  * it does not (`contained`), and pooled.
  *
@@ -122,7 +123,7 @@ export async function containedYears(input: {
       if (!declared.has(fold)) throw new OperatorInputError(`${input.paths[index]}: the manifest declares no "${fold}" fold (it declares ${[...declared].sort().join(", ")})`);
     }
   }
-  const yearMap = resolveYearMap({ manifests: manifests as unknown as Parameters<typeof resolveYearMap>[0]["manifests"], witnessTablePath: input.witnessTablePath });
+  const yearMap = resolveYearMap({ manifests, witnessTablePath: input.witnessTablePath });
   const holdout = resolveHeldOut(manifests, input.holdoutPinDir);
   const heldOut = new Set(holdout.markets);
   // Every symbol this read will place must be placeable BEFORE a row is read:
@@ -202,15 +203,15 @@ export function formatContainedYears(summary: ContainedYearsSummary): string {
   lines.push(`rows ${summary.rows.total}: ${summary.rows.counted} split · ${summary.rows.notAccepted} not accepted · ${summary.rows.otherFolds} in other folds · ${summary.rows.otherVariants} other variants · ${summary.rows.unfilled} unfilled · ${summary.rows.dataAbsent} data-absent · ${summary.rows.heldOut} held out`);
   lines.push(describeHeldOut(summary.holdout, { labels: false, pools: true }));
   lines.push("");
-  lines.push("escaping = years the feed-character witness names for the market (5min tier); contained = the rest. A verdict on either bucket is the remedy round's, not this reader's.");
+  lines.push("escaping = years the feed-character witness names for the market (5min tier); contained = the rest. A row is placed by the UTC year of its decision time (`time`), not by the bars its review window resolved on. A verdict on either bucket is the remedy round's, not this reader's.");
   for (const fold of summary.folds) {
     lines.push("");
     lines.push(`=== ${fold.toUpperCase()} ===`);
-    lines.push("| class | fold | bucket | filled | net R | gross R | E (net) |");
-    lines.push("| --- | --- | --- | ---: | ---: | ---: | ---: |");
+    lines.push("| class | fold | bucket | filled | net R | gross R | gross n | E (net) |");
+    lines.push("| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |");
     for (const [key, cell] of summary.cells) {
       if (cell.fold !== fold) continue;
-      lines.push(`| ${key.startsWith("pooled|") ? "**pooled**" : cell.assetType} | ${fold} | ${cell.bucket} | ${cell.filled} | ${fmt(cell.rSum)} | ${fmt(cell.grossFilled > 0 ? cell.grossSum : null)} | ${fmt(cell.expectancy, 4)} |`);
+      lines.push(`| ${key.startsWith("pooled|") ? "**pooled**" : cell.assetType} | ${fold} | ${cell.bucket} | ${cell.filled} | ${fmt(cell.rSum)} | ${fmt(cell.grossFilled > 0 ? cell.grossSum : null)} | ${cell.grossFilled} | ${fmt(cell.expectancy, 4)} |`);
     }
   }
   return lines.join("\n");
