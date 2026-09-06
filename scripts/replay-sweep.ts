@@ -16,6 +16,7 @@
 //                          the run date) instead of a fixed lookback
 //     [--discover]         report discovered depth per symbol and exit
 
+import { dailyContainment, type FeedCharacterRecord, serializeContainment } from "./feedCharacter.ts";
 import {
   ANALYZER_VERSION,
   type AssetType,
@@ -574,6 +575,7 @@ async function main() {
     // so `sessionAnchor` compiled against a type that never mentioned it and
     // a typo would have been silent.
     gridRegistration?: GridRegistration;
+    feedCharacter?: Record<string, FeedCharacterRecord>;
     providerSymbol: string;
     series: Record<string, SeriesFacts>;
     sessionAnchor?: SessionAnchorWitness;
@@ -1075,6 +1077,17 @@ async function main() {
     // session-interior markets. This asks whether a parent brackets its own
     // children, which no timezone can change.
     const grid = gridRegistration(primaryBars, fiveMinuteBars);
+    // The daily-containment witness (2026-09-06), one tier up from the grid
+    // test: each intraday series measured against the daily series, per
+    // year. RECORDED, not judged — the sweep refuses nothing on it. The
+    // forex feed's 2021–2024 window and crypto's 2017–2020 one were found by
+    // hand on the cache this sweep reads; a manifest that carries the facts
+    // lets a reader refuse or stratify by year, and one that does not
+    // cannot be re-judged after the corpus exists.
+    const feedCharacter: Record<string, FeedCharacterRecord> = {
+      "5min": serializeContainment(dailyContainment(fiveMinuteBars, dailyBars)),
+      "15min": serializeContainment(dailyContainment(primaryBars, dailyBars)),
+    };
     if (grid.verdict !== "registered") {
       throw new Error(
         `cacheClockWitnessRefused: ${symbol} 15min parents do not bracket ` +
@@ -1237,6 +1250,7 @@ async function main() {
       crossSeriesClock: registration,
       crossSeriesDensity,
       gridRegistration: grid,
+      feedCharacter,
       providerSymbol,
       series,
       ...(sessionAnchor && { sessionAnchor }),

@@ -2016,8 +2016,10 @@ confirm fold. `docs/research/feed-character-witness-2026-09-06.md`. The
 witness (`scripts/feedCharacter.ts`, `scripts/feed-character.ts`, tracked
 table `docs/research/r3/feed-character.txt`) generalises it: 104 of 194
 stores escape — every forex pair 2021–23, crypto 2017–2020, HOUSD/RBUSD
-2025–26. A refuter round (`feed-window-round-2026-09-06.js`) follows the
-banked-share round; no forex verdict moves until it lands.
+2025–26. Every sweep from here on records the witness per market in its manifest
+(`feedCharacter`, both tiers, per year — a fact, not a refusal). A refuter
+round (`feed-window-round-2026-09-06.js`) follows the banked-share round; no
+forex verdict moves until it lands.
 
 **Work still due, in order:** (1) the successor lands → record rows, bytes,
 manifest, sha256 in the post-mortem note; re-run the act-3 readers on it and
