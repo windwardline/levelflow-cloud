@@ -22,6 +22,11 @@
  *
  *   tsx scripts/payoff-decomposition.ts <emit.jsonl> [more shards...]
  *     [--folds fit,select] [--variant baseline] [--include-holdout]
+ *     [--years all|contained|escaping [--witness docs/research/r3/feed-character.txt]]
+ *
+ * `--years` stratifies by feed character (scripts/feedYears.ts): the year map
+ * comes from the manifest's `feedCharacter` or from the tracked witness table;
+ * rows outside the named bucket are counted, never decomposed. Default `all`.
  *
  * `--include-holdout` pools the held-out markets too, labelled as such — the
  * form that reproduces a whole-roster measurement, never the form a verdict
@@ -41,11 +46,12 @@ import {
   assertManifestedCorpusStreaming,
   type SweepEmitRow,
 } from "./sweepStats.ts";
+import { describeYearMap, resolveYearMap, type YearMap, yearOf, type YearsFilter } from "./feedYears.ts";
 import { parseFolds, SEALED_FOLD } from "./tuning-folds-summary.ts";
 
 export { parseFolds, SEALED_FOLD };
 
-const VALUE_FLAGS = new Set(["--folds", "--variant"]);
+const VALUE_FLAGS = new Set(["--folds", "--variant", "--years", "--witness"]);
 const BOOLEAN_FLAGS = new Set(["--include-holdout"]);
 
 /** Terms every shard of one decomposition must share, or it is two measurements. */
@@ -120,8 +126,12 @@ export type PayoffSummary = {
   folds: string[];
   holdout: ResolvedHeldOut;
   includeHoldout: boolean;
+  years: YearsFilter;
+  yearMapSource: YearMap["source"] | null;
+  witnessTablePath?: string;
   rows: {
     counted: number;
+    otherYears: number;
     dataAbsent: number;
     heldOut: number;
     notAccepted: number;
@@ -304,6 +314,8 @@ export async function decomposePayoff(input: {
   includeHoldout?: boolean;
   paths: string[];
   variant: string;
+  witnessTablePath?: string;
+  years?: YearsFilter;
 }): Promise<PayoffSummary> {
   if (input.paths.length === 0) {
     throw new OperatorInputError(
@@ -347,6 +359,18 @@ export async function decomposePayoff(input: {
   }
   const holdout = resolveHeldOut(manifests, input.holdoutPinDir);
   const heldOut = new Set(input.includeHoldout ? [] : holdout.markets);
+  const years: YearsFilter = input.years ?? "all";
+  const yearMap = years === "all"
+    ? null
+    : resolveYearMap({ manifests: manifests as unknown as Parameters<typeof resolveYearMap>[0]["manifests"], witnessTablePath: input.witnessTablePath });
+  if (yearMap) {
+    const unplaceable = manifests.flatMap((manifest) => manifest.symbols.map((entry) => entry.symbol))
+      .filter((symbol, index, all) => all.indexOf(symbol) === index && !heldOut.has(symbol) && yearMap.bucketOf(symbol, 2000) === "unknown")
+      .sort();
+    if (unplaceable.length > 0) {
+      throw new OperatorInputError(`the year map (${yearMap.source}) cannot place ${unplaceable.length} market(s) this read would decompose: ${unplaceable.join(", ")}`);
+    }
+  }
   const raw = new Map<string, RawCell>();
   const summary: PayoffSummary = {
     analyzerVersion: manifests[0].analyzerVersion,
@@ -356,8 +380,12 @@ export async function decomposePayoff(input: {
     folds: [...input.folds],
     holdout,
     includeHoldout: Boolean(input.includeHoldout),
+    years,
+    yearMapSource: yearMap ? yearMap.source : null,
+    ...(input.witnessTablePath && { witnessTablePath: input.witnessTablePath }),
     rows: {
       counted: 0,
+      otherYears: 0,
       dataAbsent: 0,
       heldOut: 0,
       notAccepted: 0,
@@ -400,6 +428,16 @@ export async function decomposePayoff(input: {
       if (heldOut.has(symbol)) {
         summary.rows.heldOut += 1;
         return;
+      }
+      if (yearMap) {
+        const time = finite(row.time);
+        if (time === null) {
+          throw new Error(`${path}: a filled ${symbol} row carries no finite time — a stratified read cannot place it`);
+        }
+        if (yearMap.bucketOf(symbol, yearOf(time)) !== years) {
+          summary.rows.otherYears += 1;
+          return;
+        }
       }
       const realized = finite(row.realizedR);
       if (realized === null) {
@@ -445,7 +483,12 @@ export function formatDecomposition(summary: PayoffSummary): string {
     `folds read: ${summary.folds.join(", ")} · ${SEALED_FOLD}: SEALED, not read (${summary.rows.sealed} rows withheld at the door)`,
   );
   lines.push(
-    `rows ${summary.rows.total}: ${summary.rows.counted} decomposed · ${summary.rows.notAccepted} not accepted · ${summary.rows.otherFolds} in other folds · ${summary.rows.otherVariants} other variants · ${summary.rows.unfilled} unfilled · ${summary.rows.dataAbsent} data-absent · ${summary.rows.heldOut} held out`,
+    `rows ${summary.rows.total}: ${summary.rows.counted} decomposed · ${summary.rows.notAccepted} not accepted · ${summary.rows.otherFolds} in other folds · ${summary.rows.otherVariants} other variants · ${summary.rows.unfilled} unfilled · ${summary.rows.dataAbsent} data-absent · ${summary.rows.heldOut} held out · ${summary.rows.otherYears} in other years`,
+  );
+  lines.push(
+    summary.years === "all"
+      ? "years: all (no feed-character stratification)"
+      : `years: ${summary.years} · ${describeYearMap(summary.yearMapSource, summary.witnessTablePath)}`,
   );
   lines.push(
     summary.includeHoldout
@@ -509,7 +552,11 @@ async function main(): Promise<void> {
   if (!variant) {
     throw new OperatorInputError("--variant names no variant — the default is baseline");
   }
-  const summary = await decomposePayoff({ folds, includeHoldout, paths, variant });
+  const yearsArg = (str("--years") ?? "all").trim();
+  if (yearsArg !== "all" && yearsArg !== "contained" && yearsArg !== "escaping") {
+    throw new OperatorInputError(`--years must be all, contained or escaping — got "${yearsArg}"`);
+  }
+  const summary = await decomposePayoff({ folds, includeHoldout, paths, variant, witnessTablePath: str("--witness") ?? undefined, years: yearsArg });
   console.log(formatDecomposition(summary));
 }
 

@@ -297,6 +297,54 @@ describe("what the allocation is worth", () => {
   });
 });
 
+describe("stratified by feed character", () => {
+  it("--years contained and --years escaping split the fold by the witness's year map, and refuse without one", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "banked-years-"));
+    const table = join(dir, "feed-character.txt");
+    // The fixture's select rows all fall in 2025: EURUSD's 2025 escapes, GBPUSD's does not.
+    writeFileSync(table, "EURUSD 5min ESCAPES: 2025\nGBPUSD 5min contained\nNZDCHF 5min contained\nXAUUSD 5min contained\n");
+    const path = writeCorpus(fixtureRows());
+    const escaping = await read([path], { witnessTablePath: table, years: "escaping" });
+    assert.equal(escaping.yearMapSource, "witness");
+    const forexE = escaping.cells.get("forex|select")!;
+    // EURUSD A, B, C, D, H: shipped 0.2 + 1.0 − 1 + 0.3 + 0.25 = 0.75 over 5 fills.
+    assert.equal(forexE.filled, 5);
+    near(forexE.shippedTotal, 0.75);
+    assert.equal(escaping.cells.has("forex|fit"), false);
+    // Sixteen rows reach the year filter (eight filled per fold); five are EURUSD select rows in the escaping year.
+    assert.equal(escaping.rows.otherYears, 11);
+    const contained = await read([path], { witnessTablePath: table, years: "contained" });
+    const forexC = contained.cells.get("forex|select")!;
+    assert.equal(forexC.filled, 1);
+    near(forexC.shippedTotal, 1.25);
+    assert.equal(contained.cells.get("forex|fit")!.filled, 6);
+    const all = await read([path], { witnessTablePath: table, years: "all" });
+    assert.equal(all.rows.otherYears, 0);
+    assert.equal(all.cells.get("forex|select")!.filled, 6);
+    await assert.rejects(read([path], { years: "contained" }), /no year map/);
+    assert.match(formatBankedFraction(escaping), /years: escaping · year map: witness table/);
+  });
+
+  it("refuses before reading a row when the year map cannot place a market the read would price", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "banked-years-short-"));
+    const table = join(dir, "feed-character.txt");
+    // GBPUSD and XAUUSD are missing: an absent verdict is not a contained one.
+    writeFileSync(table, "EURUSD 5min ESCAPES: 2025\nNZDCHF 5min contained\n");
+    const path = writeCorpus(fixtureRows());
+    await assert.rejects(read([path], { witnessTablePath: table, years: "escaping" }), /cannot place 2 market\(s\).*GBPUSD, XAUUSD/);
+  });
+
+  it("does not refuse on a held-out market the map cannot place — its rows reach no cell", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "banked-years-heldout-"));
+    const table = join(dir, "feed-character.txt");
+    writeFileSync(table, "EURUSD 5min ESCAPES: 2025\nGBPUSD 5min contained\nXAUUSD 5min contained\n");
+    const path = writeCorpus(fixtureRows());
+    const summary = await read([path], { witnessTablePath: table, years: "contained" });
+    assert.deepEqual(summary.holdout.markets, ["NZDCHF"]);
+    assert.equal(summary.yearMapSource, "witness");
+  });
+});
+
 describe("the control, and what it keeps apart", () => {
   it("refuses a corpus on which the shipped fraction does not reproduce realizedR", async () => {
     const rows = fixtureRows();

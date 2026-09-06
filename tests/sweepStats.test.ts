@@ -1920,6 +1920,13 @@ describe("every emit reader passes the one-clock door (R0) — the population, n
       "its only line split is resolveSweepSource reading `git status " +
       "--porcelain` — one status line per path, never a corpus emit; the " +
       "manifest builder writes corpora and reads none",
+    "feedYears.ts":
+      "its only line split is parseWitnessTable reading the tracked witness " +
+      "TABLE (docs/research/r3/feed-character.txt) — a reader's printed " +
+      "verdict lines, never a corpus emit, with no manifest for the door to " +
+      "judge; the readers that consult the map (contained-years, " +
+      "banked-fraction, payoff-decomposition) each pass the door before a " +
+      "corpus row is read",
     "symbolCensus.ts":
       "reads TYPESCRIPT SOURCE, not a corpus emit — it walks src/, scripts/ " +
       "and supabase/functions/ with the TypeScript AST to find declarations " +
