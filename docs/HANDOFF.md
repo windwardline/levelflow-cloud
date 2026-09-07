@@ -2044,6 +2044,16 @@ amendment-34 breach independent of the share — and five mechanised
 follow-ups), post-mortem note §3d/§8b corrected, tracked
 `banked-fraction-capture-all-classfolds-{contained,escaping}.txt`.
 
+**AMENDMENT 42 LANDED (2026-09-07, change set after #595):** the desk
+instructs the stop rule the market is graded under — the ladder card, the
+open trade state and the Guide render the stamped runner protection's
+sentence (`src/lib/protectionCopy.ts`: breakeven / trail_tp1 / hold; an
+unstamped row reads breakeven, the physics it was graded under; a stranger
+refuses). Round 1's one owner item, approved under the standing approval of
+refuter-surviving recommendations; recorded as amendment 42 in the rulings
+file, §7 and the guide-content spec carry the three sentences. Copy only:
+no engine change, no version bump.
+
 **Work still due, in order:** (1) the round-1 follow-ups (§0 of the design;
 the slippage-priced and same-bar-aware `banked-fraction` and the by-money
 `payoff-decomposition` landed in the change set after #592, tracked tables
@@ -2053,7 +2063,8 @@ forex admissible at the class grain on the reader's per-market test, 22 of 22
 markets, what fails it is D4's absolute term; still due: a paired share
 interval); (2) round 2's remedy question — what a
 witness-refused symbol-year means for a sweep: refuse, stratify, or a fold
-calendar that avoids it; (3) the owner item above; (4) the FMP plan is the
+calendar that avoids it; (3) the owner item above — DONE, amendment 42 in the
+change set after #595; (4) the FMP plan is the
 owner's, and until it is restored nothing that fetches intraday bars or the
 calendar can run, and no new calendar exists to re-read the share on.
 

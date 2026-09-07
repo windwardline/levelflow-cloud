@@ -1,4 +1,5 @@
 import { formatNumber } from "../components/workspace/advisorFormat";
+import { afterTargetOneInstruction, ladderInstruction } from "./protectionCopy";
 import type { OutcomeEvidenceRow, TradeSetupRow } from "./tradeAnalyzer";
 
 export type TradeStatus = "pending" | "open";
@@ -16,12 +17,10 @@ export type TradeState = {
   tp1Banked: boolean;
 };
 
-// Spec §7, verbatim — the same pinned sentence AdvisorRecommendationPanel.tsx
-// renders on the ladder card (and languageGuard.test.ts pins there). The
-// "open, pre-Target-1" trade state reuses it exactly rather than a second,
-// driftable paraphrase of the same rule.
-const CANONICAL_LADDER_INSTRUCTION =
-  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — the banked half is yours either way.";
+// Spec §7 (amendment 42): the two-target instruction is the stamped mode's
+// sentence — src/lib/protectionCopy.ts owns the three, AdvisorRecommendationPanel
+// renders the same one on the ladder card, and languageGuard.test.ts pins them
+// there. The "open, pre-Target-1" state reuses it rather than a paraphrase.
 
 // setup_status enum values (supabase/init.sql) once a setup is no longer
 // live: the position closed one way or another (filled + resolved, or
@@ -135,8 +134,12 @@ export function deriveTradeState(
 
   if (feedback.tp1Hit === true) {
     return {
-      instruction:
-        `Target 1 hit — bank half, move stop to ${formatEntry(setup)}`,
+      instruction: afterTargetOneInstruction({
+        entry: formatEntry(setup),
+        riskModel: setup.risk_model,
+        stop: formatLevel(setup.stop_loss),
+        targetOne: formatLevel(setup.take_profit_1),
+      }),
       progressR,
       status: "open",
       tp1Banked: true,
@@ -144,7 +147,7 @@ export function deriveTradeState(
   }
 
   return {
-    instruction: CANONICAL_LADDER_INSTRUCTION,
+    instruction: ladderInstruction(setup.risk_model),
     progressR,
     status: "open",
     tp1Banked: false,
@@ -173,8 +176,12 @@ export function entryHasFilled(setup: OutcomeEvidenceRow): boolean {
 }
 
 function formatEntry(setup: TradeSetupRow): string {
-  const entry = Number(setup.limit_entry);
-  return Number.isFinite(entry) ? formatNumber(entry) : "—";
+  return formatLevel(setup.limit_entry);
+}
+
+function formatLevel(value: unknown): string {
+  const level = Number(value);
+  return value !== null && value !== undefined && Number.isFinite(level) ? formatNumber(level) : "—";
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

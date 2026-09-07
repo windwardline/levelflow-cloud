@@ -84,6 +84,13 @@ matching field on your platform.
 > **Set your take-profit at Target 2. When price reaches Target 1,
 > close half and move your stop to your entry — the banked half is
 > yours either way.**
+>
+> — for a market graded under breakeven. Since amendment 42
+> (2026-09-07) each setup names its own stop rule, the one the engine
+> grades that market under, and the callout teaches all three:
+> trail_tp1 — **"… close half and move your stop to Target 1 — the
+> banked half is yours either way."**; hold — **"… close half and leave
+> your stop where it is — the banked half is yours either way."**
 
 In platform terms, that is four moments:
 
@@ -91,11 +98,13 @@ In platform terms, that is four moments:
    the stop loss and set the take-profit at Target 2. Until price
    reaches your entry, the order shows as **pending** — nothing to do.
 2. **Target 1 hits.** Close half the position (a partial close), and
-   modify the stop loss to your entry price. Half the profit is real
-   money now; what remains risks only the round-trip cost.
+   set the stop loss where the setup's rule says — at your entry, at
+   Target 1, or left where it is. Half the profit is real money now;
+   what remains risks what that rule allows: the round-trip cost at
+   your entry, nothing below Target 1, or the full risk where it is.
 3. **The finish.** The remaining half either reaches Target 2 — your
-   take-profit closes it — or returns to your entry and closes for the
-   cost of the trip. The banked half keeps the trade ahead.
+   take-profit closes it — or closes at your stop rule or when the
+   window ends. The banked half keeps the trade ahead.
 4. **The stop hits first.** The trade closes for a full loss of what you
    risked. This is the common case the payoff is built to outweigh, not
    a failure of the setup.
@@ -215,6 +224,12 @@ checked.
 - **Move your stop to your entry** — edit the stop-loss order to the
   price you entered at. From there, the worst case for what remains is
   breaking even.
+- **Move your stop to Target 1** — edit the stop-loss order to the
+  Target 1 price. From there, the worst case for what remains is closing
+  at Target 1. (amendment 42)
+- **Leave your stop where it is** — leave the stop-loss order at the
+  level the setup gave it. What remains can still lose the full risk;
+  the banked half is already yours. (amendment 42)
 - **Pending** — your order is placed but has not filled. Nothing to do.
 - **Payoff** — what the setup pays at Target 2 measured against what it
   risks at the stop. A payoff of 2:1 risks one to make two.

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LADDER_INSTRUCTIONS, PROTECTION_TERMS, RUNNER_PROTECTIONS } from "../../lib/protectionCopy";
 import { useEffect } from "react";
 import { useIsMobileViewport } from "../../hooks/useMobileViewport";
 import {
@@ -100,11 +101,9 @@ const VOCABULARY: Array<{ body: string; term: string }> = [
     body: "Close half your position and take that profit now.",
     term: "Bank half",
   },
-  {
-    body:
-      "Edit the stop-loss order to the price you entered at. From there, the worst case for what remains is breaking even.",
-    term: "Move your stop to your entry",
-  },
+  // The stop rule after Target 1 is the stamped mode's (amendment 42): the
+  // three terms teach the three sentences a setup can carry.
+  ...RUNNER_PROTECTIONS.map((mode) => PROTECTION_TERMS[mode]),
   {
     body: "Your order is placed but has not filled. Nothing to do.",
     term: "Pending",
@@ -119,7 +118,7 @@ const VOCABULARY: Array<{ body: string; term: string }> = [
   },
   {
     body:
-      "First target hit and half banked; the rest closed at your moved stop or when the window ended, without reaching Target 2.",
+      "First target hit and half banked; the rest closed at your stop or when the window ended, without reaching Target 2.",
     term: "Banked half",
   },
   {
@@ -160,14 +159,10 @@ const VOCABULARY: Array<{ body: string; term: string }> = [
   },
 ];
 
-// Spec §7/§3, verbatim, load-bearing — the same pinned sentence
-// AdvisorRecommendationPanel.tsx's ladder card and tradeState.ts's open
-// pre-Target-1 state both render (and languageGuard.test.ts pins in all
-// three places). Kept as one single-line constant, like those two, so a
-// direct source-text `.includes()` check never has to fight JSX's
-// line-wrapping whitespace collapse.
-const CANONICAL_LADDER_INSTRUCTION =
-  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — the banked half is yours either way.";
+// Spec §7/§3 (amendment 42): the callout teaches all three two-target
+// sentences — one per stamped protection mode — because a setup renders the
+// one its market is graded under. src/lib/protectionCopy.ts owns them and
+// languageGuard.test.ts pins them there.
 
 type GuidePanelProps = {
   // A How this works link elsewhere in the app asked for one section of the
@@ -326,8 +321,19 @@ function GuideDeck() {
       </GuideSection>
 
       <GuideSection id="targets-and-stops">
+        <p>
+          Each setup names its stop rule after Target 1 — the rule the
+          engine grades that market under. It is one of these three:
+        </p>
         <blockquote className="border-l-[3px] border-accent bg-accent/5 py-3 pl-4 pr-4 text-base font-semibold leading-7 text-ink sm:text-lg">
-          {CANONICAL_LADDER_INSTRUCTION}
+          <div className="grid gap-3">
+            {RUNNER_PROTECTIONS.map((mode) => (
+              <p key={mode}>
+                <span className="block text-xs font-medium uppercase tracking-wide text-ink-muted">{PROTECTION_TERMS[mode].term}</span>
+                {LADDER_INSTRUCTIONS[mode]}
+              </p>
+            ))}
+          </div>
         </blockquote>
         <p>In platform terms, that is four moments:</p>
         <ol className="grid list-decimal gap-2 ps-5">
@@ -340,15 +346,18 @@ function GuideDeck() {
           </li>
           <li>
             <strong className="text-ink">Target 1 hits.</strong> Close
-            half the position (a partial close), and modify the stop
-            loss to your entry price. Half the profit is real money
-            now; what remains risks only the round-trip cost.
+            half the position (a partial close), and set the stop loss
+            where the setup's rule says — at your entry, at Target 1, or
+            left where it is. Half the profit is real money now; what
+            remains risks what that rule allows: the round-trip cost at
+            your entry, nothing below Target 1, or the full risk where
+            it is.
           </li>
           <li>
             <strong className="text-ink">The finish.</strong> The
             remaining half either reaches Target 2 — your take-profit
-            closes it — or returns to your entry and closes for the
-            cost of the trip. The banked half keeps the trade ahead.
+            closes it — or closes at your stop rule or when the window
+            ends. The banked half keeps the trade ahead.
           </li>
           <li>
             <strong className="text-ink">The stop hits first.</strong>{" "}
