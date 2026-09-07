@@ -109,8 +109,9 @@ measured in-minus-out expectancy differences are +0.0472, +0.0291, +0.0726 and
 **1.4× and 3.4×** the money it stood for. (An earlier version of this sentence
 said "well under half", and a later one said two of the four defeated that on a
 criterion it did not apply evenly. No count is needed. As fractions of half —
-0.05 — the four deltas are 145.2 %, 94.4 %, 78.2 % and 58.2 %. Only +0.0291 is
-comfortably well under half.) Amendment 39 puts realized R in charge
+0.05 — the four deltas are 94.4 %, 58.2 %, 145.2 % and 78.2 %, in the fold
+order used everywhere else. Only fit held-out (+0.0291, 58.2 %) is comfortably
+well under half.) Amendment 39 puts realized R in charge
 wherever it exists, and here it exists on all four folds, so those four
 numbers are the effect.
 
