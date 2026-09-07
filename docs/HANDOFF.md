@@ -2134,18 +2134,30 @@ excluding zero. (Life-of-trade censoring is a real caveat; the round's
 uncensored random-entry null agrees at t = −0.01.) No exit geometry can
 rescue an engine whose entries carry no direction.
 
-2. **The geometry is wrong in a measurable, fixable way, worth ~0.10 R/fill.**
-By UTC hour of decision, in 16:00–21:59 vs outside: E +0.0361 [lo95 +0.0304]
-fit and +0.0324 [+0.0222] select in-pool, +0.0321 [+0.0208] fit held-out,
-+0.0137 [−0.0056] select held-out — three of four clear. Positive in 9 of 10
-fit years, 4 of 4 select years, 20 of 22 markets, and in-span expectancy beats
-out-of-span on 22 of 22. THE MECHANISM: Target 1 rate is flat (0.63 vs 0.65)
-and Target 2 is HIGHER out of span; what changes is the STOP RATE, 17.8 % in
-span against 27.8 % out. Out of span the trade travels further relative to its
-stop in both directions.
+2. **The hour of decision separates money, by +0.029 to +0.073 R/fill.**
+By UTC hour, in 16:00–21:59 vs outside. IN-SPAN E: +0.0361 [lo95 +0.0304] fit
+in-pool, +0.0324 [+0.0222] select in-pool, +0.0321 [+0.0208] fit held-out,
++0.0137 [−0.0056] select held-out — three of four clear. OUT-OF-SPAN E:
+−0.0111, −0.0402, **+0.0030** (fit held-out, net **+107.1 R** over 35,713
+fills, lo95 −0.0037), −0.0254. Read that third one: on the fit fold's only
+out-of-sample evidence, the population a gate DISCARDS is net profitable.
+The four in-minus-out deltas are +0.0472, +0.0291, +0.0726, +0.0391 R/fill —
+that range is the effect. Concentration is IN-POOL only (9 of 10 fit years,
+4 of 4 select years, 20 of 22 markets, 22 of 22 on expectancy); out-of-sample
+concentration was never measured. THE MECHANISM: Target 1 rate is flat
+(0.63 vs 0.65) and Target 2 is HIGHER out of span; what changes is the STOP
+RATE, on all four folds — 0.177/0.266, 0.190/0.255, 0.178/0.278, 0.197/0.271,
+a gap of 6.5 to 10.0 points. Out of span the trade travels further relative to
+its stop in both directions. A ~0.10 R/fill figure was carried here earlier;
+it was the widest gap times a one-unit stop, gross mediator arithmetic, and
+roughly double every measured delta. Amendment 39: the four deltas govern.
 
-**THE RECOMMENDATION: gate the hours. A STOP-CLOCK FIX WAS RECOMMENDED HERE
-AND IS WITHDRAWN — do not rebuild it.** An earlier draft of the note argued
+**THE RECOMMENDATION: gate the hours. A STOP-CLOCK FIX WAS RECOMMENDED IN THE
+NOTE'S FIRST DRAFT AND IS WITHDRAWN — do not rebuild it.** That draft was never
+merged, so no committed version of this file or the note ever carried the
+recommendation; searching the history for it will find nothing. It is recorded
+here because the reasoning is worth not repeating, not because it stood. The
+draft argued
 that `expectedWindowMove = dailyAtr × sqrt(reviewHours × sizingHoursFactor /
 24)` sizes the stop without an hour term, so the fix was to make that clock
 hour-aware. Both halves failed. The formula (`pricePlan.ts:651-654`) caps
@@ -2158,15 +2170,16 @@ its own terms: within quintiles of relative stop width, out-of-span expectancy
 is worse at EVERY width, the widest out-of-span quintile still trails what the
 span earns at half the width, Target 1 is exactly 0.4000 R with standard
 deviation zero (so widening a stop re-denominates rather than pays), and each
-span has an interior width optimum at Q3. Re-sizing the stop cannot recover
-what gating separates.
+IN-SPAN curve has an interior width optimum at Q3 while both out-of-span curves
+rise monotonically to Q5. Re-sizing the stop cannot recover what gating
+separates.
 
 Gating stands as the candidate, with its costs stated: it discards ~77.5 % of
 forex volume, its held-out select bound does not clear zero (+0.0137, lower
 −0.0056), it fails the market grain amendment 33 requires on a power argument
 rather than an absence, and the gate cannot presently return a verdict on it
-at all (next paragraph). It is a pre-registration for the next calendar, NOT a
-ship.
+at all (next paragraph) — and on the fit held-out fold the volume it discards
+is net positive. It is a pre-registration for the next calendar, NOT a ship.
 
 **A structural finding about the gate.** `grid-totalr.ts` makes `thin` the
 first conjunct of `beatsBaseline`, and `thin` fires when a variant keeps under

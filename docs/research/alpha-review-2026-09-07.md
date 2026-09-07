@@ -54,6 +54,7 @@ Forex contained years, split by the UTC hour the decision was made — inside
 | fit | in-pool | in | 39,065 | +1,412.1 | +0.0361 | **+0.0304** | 0.177 | 0.630 |
 | fit | in-pool | out | 135,438 | −1,506.8 | −0.0111 | −0.0146 | 0.266 | 0.652 |
 | fit | held-out | in | 10,457 | +335.7 | +0.0321 | **+0.0208** | 0.190 | 0.628 |
+| fit | held-out | out | 35,713 | **+107.1** | +0.0030 | −0.0037 | 0.255 | 0.661 |
 | select | in-pool | in | 12,471 | +403.5 | +0.0324 | **+0.0222** | 0.178 | 0.627 |
 | select | in-pool | out | 42,948 | −1,724.7 | −0.0402 | −0.0464 | 0.278 | 0.637 |
 | select | held-out | in | 3,624 | +49.8 | +0.0137 | −0.0056 | 0.197 | 0.618 |
@@ -63,18 +64,45 @@ Three of the four in-span cells clear zero, including both fit cells and the
 in-pool select fold. The one that does not is the smallest, 3,624 held-out
 select fills, and it is still point-positive.
 
-**It is not concentrated.** In-span is positive in 9 of 10 fit years and 4 of
-4 select years; in-span net R is positive on 20 of 22 markets, and in-span
-expectancy beats out-of-span on **22 of 22**.
+**The out-of-span side is not uniformly negative, and the exception matters.**
+Three of the four out-of-span cells lose. The fourth, fit held-out, is **net
+positive at +107.1 R over 35,713 fills**, though its 95 % lower bound (−0.0037)
+does not clear zero. This is the only out-of-sample evidence on the fit fold,
+and on it the population a gate would discard *makes money*. An earlier version
+of this note omitted this row from the table, which understated the cost of
+gating on precisely the fold where that cost is best measured.
+
+**It is not concentrated — measured in-pool.** In-span is positive in 9 of 10
+fit years and 4 of 4 select years; in-span net R is positive on 20 of 22
+markets, and in-span expectancy beats out-of-span on **22 of 22**. Every one of
+those counts is computed on the in-pool populations
+(`hour-mechanism-2026-09-07.txt:13,17`). Out-of-sample concentration was not
+measured, and nothing here should be read as if it were.
 
 **And the mechanism is visible in the outcome mix.** The Target 1 rate barely
 moves (0.63 in span, 0.65 out) and the Target 2 rate is actually *higher* out
-of span. What changes is the stop rate: **17.8 % in span against 27.8 % out**,
-a gap of ten points, which at a one-risk-unit stop is worth about 0.10 R per
-fill on its own. The excursion shape says the same thing: out of span the
-trade travels further relative to its stop in *both* directions
-(+0.5128/−0.5710) than in span (+0.4867/−0.4914). The stop is too tight for
-the movement those windows actually face.
+of span. What changes is the stop rate, on every fold:
+
+| fold | pool | stop rate in span | out of span | gap |
+|---|---|---:|---:|---:|
+| fit | in-pool | 0.177 | 0.266 | 8.9 pts |
+| fit | held-out | 0.190 | 0.255 | 6.5 pts |
+| select | in-pool | 0.178 | 0.278 | **10.0 pts** |
+| select | held-out | 0.197 | 0.271 | 7.4 pts |
+
+The gap is present on all four and is **widest on select in-pool**, the fold
+this note quotes when it needs one number. The excursion shape says the same
+thing: on that fold, out of span the trade travels further relative to its stop
+in *both* directions (+0.5128/−0.5710) than in span (+0.4867/−0.4914). Do not
+read the ten-point figure as the effect's size; read the 6.5-to-10-point range.
+
+**What the gap is not.** Multiplying a ten-point stop-rate gap by a one-unit
+stop gives ~0.10 R per fill, and an earlier version of this note printed that
+as the prize. It is a mediator's gross arithmetic, not a measured delta. The
+measured in-minus-out expectancy differences are +0.0472, +0.0291, +0.0726 and
++0.0391 R per fill on the four folds above — every one of them well under half
+the 0.10 figure. Amendment 39 puts realized R in charge wherever it exists, and
+here it exists on all four folds, so those four numbers are the effect.
 
 **A tempting explanation, and why this note rejects it.** The obvious reading
 of a ten-point stop-rate gap is that the stop is built with no hour-of-day
@@ -116,11 +144,14 @@ re-denominate rather than recover.**
 Two further measurements make that concrete. Target 1 sits at exactly
 **0.4000 R on every row, standard deviation zero** — the ladder's payoff is
 invariant to stop width by construction, so widening a stop moves Target 1
-further away in price while leaving it in the same place in R. And within each
-span the width curve has an **interior optimum at the third quintile**
-(fit in-span +0.0440 at 18 bps, select in-span +0.0558 at 14 bps), falling
-away on both sides. A global stop-multiplier sweep cannot see that, which is
-consistent with the arm's own finding that both tails lose.
+further away in price while leaving it in the same place in R. And **on the two
+in-span curves only**, the width curve has an interior optimum at the third
+quintile (fit in-span +0.0440 at 18 bps, select in-span +0.0558 at 14 bps),
+falling away on both sides. The two out-of-span curves have no interior
+optimum — they rise monotonically to Q5, as stated two paragraphs above. A
+global stop-multiplier sweep cannot see an in-span interior optimum, which is
+consistent with the arm's own finding that both tails lose; but the interior
+optimum is a property of the span, not of the width axis everywhere.
 
 ## 3. What follows
 
@@ -150,20 +181,39 @@ it. That also means part of what looks like edge inside the span may simply be
 the model over-charging there — which the cost work of the same day already
 found in one direction, and which nothing here settles.
 
-**And the interior optimum in relative stop width is its own candidate**, at
-the market grain: the engine's shipped geometry is not at the measured peak,
-and the peak is visible within both spans and both folds.
+**And the in-span interior optimum in relative stop width is its own
+candidate**, at the market grain: within the span the engine's shipped geometry
+is not at the measured peak, on both folds (fit Q3 +0.0440 at 18 bps, select Q3
++0.0558 at 14 bps). The candidate is confined to the span. Out of span there is
+no peak to move toward — those curves rise monotonically to the widest
+quintile — so this is a refinement available only if the hours are gated
+first, not an independent second lever.
 
 ## 4. A structural finding about the gate itself
 
-`grid-totalr.ts` computes `beatsBaseline = !thin && …`, where `thin` fires
-when a variant keeps fewer than half the select fold's fills. Any selective
+`grid-totalr.ts` computes `beatsBaseline = !thin && …` (`:973`), and
+`earnsMoney` (`:918-919`) is never consulted once `thin` fires. Any selective
 admission rule — and every candidate in this review that showed promise is
 selective — is refused before its money is ever consulted. The gate as written
 cannot express a verdict on the class of rule most likely to help. That is not
 a reason to weaken it; it is a reason to give selective rules a verdict path
 of their own, judged on per-fill expectancy with proper bounds rather than on
 a total delta against a fold they deliberately do not cover.
+
+Two details matter to whoever builds that path, because both would silently
+defeat a partial repair:
+
+- **`thin` is a disjunction** (`:920-922`): it fires when the variant keeps
+  under half the select fold's fills **or** when it keeps fewer than
+  `minFilled`. A repair that addresses only the half-fold leg leaves the
+  second gate standing in front of exactly the same rules.
+- **A thin variant is not recorded as having no verdict.** `noVerdict` is
+  itself `!thin && (…)` (`:999-1001`), and `reason` becomes
+  `THIN (n filled)`. So a selective rule is filed as a *measured failure*,
+  under the disposition round 39's own rule reserves for losses — the rule
+  quoted three lines above that code, which says an unresolvable pairing is no
+  verdict and never the same "fails" as a measured loss. The gate does not
+  merely lack a path for selective rules; it mis-files them.
 
 ## 5. Everything else the review measured
 
