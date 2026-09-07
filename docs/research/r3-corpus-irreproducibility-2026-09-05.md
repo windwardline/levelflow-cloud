@@ -160,7 +160,10 @@ With the corpus back, the concern could be measured instead of bounded. The
 baseline rows of `docs/research/r4/stop-cap.jsonl` — an act-3 arm built on
 2026-09-03 on the "mid" cache at revision `1a64151a` — against the restored
 shard 0's baseline rows, keyed by symbol and decision time: **935,241 of
-935,241 byte-identical, none missing on either side.** The six symbols whose
+935,241 byte-identical, none missing on either side** — the arm's baseline
+population; the corpus of record itself holds 941,947 baseline rows (fit
+379,224 · select 258,954 · confirm 303,769, a count only) with zero duplicate
+keys (`baseline-rows-vs-keys-2026-09-06.log`). The six symbols whose
 series facts differed between the two caches produced the same emitted rows,
 byte for byte. The read's baseline and arms were on identical inputs; the
 "straddle" existed in the manifests' cache facts and nowhere else. The
@@ -347,9 +350,13 @@ and `…-include-holdout.txt`.
 
 It is the allocation question alone: the exit path is the emitted one at
 every fraction, because the runner's protection re-arms on the TP1 touch and
-not on the size banked; spread and slippage ride in the leg prices and the
-commission is charged once per row. A row with no tp1 leg prices the same at
-every fraction.
+not on the size banked; spread rides in the leg prices, slippage rides ONLY
+in gapped prints (FR-7 — a non-gapped stop exit prints at its level, so a
+share below ½ moves money onto a leg the resolver never slips; round 1 bounds
+the optimism at S/2, forex select +1,100.2 → +785.2 R), and the commission is
+charged once per row. A row with no tp1 leg prices the same at every fraction.
+Round 1's verdict on the share is §0 of `banked-share-design-2026-09-05.md`:
+nothing ships.
 
 Verdict form (20 markets held out), net R by banked fraction:
 

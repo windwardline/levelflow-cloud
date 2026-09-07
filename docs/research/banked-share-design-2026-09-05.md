@@ -1,11 +1,134 @@
 # The banked share — design for the refuter round (2026-09-05)
 
-**Status: DESIGN, not decided, not built.** It goes to the refuter round when
-the agent limit resets (2026-09-06 07:00 ET). Nothing here ships before a
-round has attacked every section and the survivors are recorded. Amendment 39
+**Status (round 1, 2026-09-06): MEASURED, NOT CONFIRMABLE ON THIS CORPUS —
+nothing ships; the share stays ½ in the engine.** The verdict and the
+corrections it forced are §0; the sections after it are the design as it went
+to the round, amended in place where a finding was verified. Amendment 39
 governs: profit is the measure, win rate is a result, no ratio may be
 manufactured. The figure this design is judged on is net realised R on the
 tuning folds and one confirm read — never the payoff ratio it prints.
+
+## 0. Round 1 verdict (2026-09-06)
+
+**Nothing ships. The share stays ½ in the engine. The lever is real, measured,
+and not confirmable on this corpus.** The round's refuters (seven dimensions,
+two independent refuters each, 283 raw findings) attacked every section; the
+verify phase ran budget-bound (one lens per merged finding); every claim below
+was also reproduced by hand against a tracked artifact before it was written
+here. The design is judged by net realised R, never by the printed slope.
+
+**What decided it (verified):**
+
+1. **The forex slope is a clean-years property, and the clean-years cell is
+   still a loss.** Stratified by the feed-character witness (#590,
+   `banked-fraction --years`, tracked `…-classfolds-contained.txt` and
+   `…-escaping.txt`): on select's contained years forex reads R(½) −1,321.1 R
+   → R(0) −274.3 R over 55,419 fills (Δ +1,046.8 of the +1,100.2 R the class
+   showed); on its escaping years R(½) +2,925.0 R → R(0) +2,978.3 R over
+   23,513 fills (Δ +53.4, +0.002 R per fill). Every dollar forex makes at any
+   share sits in the years the witness names as feed artifact, and on the
+   years it does not name the share-0 cell is net negative — it fails D4's
+   absolute term, so no forex share cell can be accepted (fit contained:
+   −94.7 → +3,201.9 R, the slope intact; select is the fold the gate reads).
+2. **The pre-registered confirm read is unavailable and uninformative.**
+   §4's "ONE ledgered confirm read of this program" is a second read of act
+   3's burned calendar (anchor 2026-08-26): the ledger refuses it without
+   `--acknowledge-prior-reads` (`grid-totalr.ts`, LA-6), and the acknowledged
+   path is reserved for act 4's late-listed markets. Were it read, ~60 % of
+   the confirm fold's forex rows sit in escaping years, where the slope is
+   +0.002 R per fill: the read would decide nothing.
+3. **The slope is overstated by the stop leg's missing slippage.** Three
+   verifiers reproduced it: the resolver prints a non-gapped stop exit at its
+   level (`replay.ts:526-533`), so the half that share 0 moves from a limit
+   print to the lock's stop print is charged no slippage. Charging the
+   sweep's own `estimatedSlippage` on that half (a hybrid model, named as
+   such — neither the resolver's gap-only rule nor the gate's every-side rule)
+   bounds the correction at S/2: forex select +1,100.2 → +785.2 R (S = 629.9 R
+   over 51,706 stop-print rows), forex fit +3,296.6 → +2,718.8, crypto select
+   +493.2 → +287.7, pooled select +1,672.7 → +1,062.6; futures' "flat ±3 R"
+   becomes best f = 1 on both folds, inside friction either way. Signs
+   survive; magnitudes in §1 are upper bounds.
+4. **At share 0 the whole position rides the same-bar convention.** 60 % of
+   forex select's lock exits (31,654 of 52,800) and 19 % of its take_profit
+   exits (372 of 1,962) resolve on the TP1 touch bar, priced at the lock with
+   the stop assumed moved inside the bar (FR-3). The corpus carries no latency
+   and cannot price a lock placed one bar late; the design's §5 never said how
+   a live E8 account arms it. Exposure measured, sensitivity unpriceable —
+   a stated dependency of any share below ½, not a figure.
+5. **The class grain hides the mechanism.** Amendment 33 governs grain ("per
+   market, never per class"), not amendments 25/31 as §4 cites. Crypto's flip
+   is regime: fit escaping years read best f = 1 (Δ +447.7 R over 19,084
+   fills) while select contained years read best f = 0 (Δ +444.1 R over
+   33,134); futures' class cell averages opposite-signed protection modes.
+   Any future share read is per market × protection mode × feed character.
+
+**Corrections to the record (verified):**
+
+- §1's "whole-roster select turns from −1,265 R at ½ to +259 R at 0" is the
+  global-folds corpus's figure. On the corpus of record the whole roster
+  reads −5,680.0 R at ½ → −3,524.2 R at 0 (`…-classfolds-include-holdout.txt`).
+- "Spread and slippage ride in the leg prices" (note §8b, the reader's
+  docstring) is true of spread only: slippage rides only in gapped prints
+  (FR-7). Corrected in both places; the reader's printed sentence changes
+  with the slippage column (follow-up 1).
+- The payoff reader's win bucket is by label: on select it holds 1,327
+  money-negative rows (−416.4 R, 1,231 of them crypto) that amendment 39
+  does not call wins; no stop_loss row carries positive R
+  (`win-sign-by-label-2026-09-06.log`). Follow-up 2 prints wins by money.
+- Note §3d's "935,241 of 935,241 byte-identical" is the act-3 arm's baseline
+  population, every row of which is in the corpus of record; the corpus
+  itself holds 941,947 baseline rows (fit 379,224 · select 258,954 · confirm
+  303,769, a count only) with zero duplicate (symbol, time) keys
+  (`baseline-rows-vs-keys-2026-09-06.log`). The refuter's "6,706 duplicates"
+  is refuted; the 6,706 are rows the arm never emitted.
+- §2's "allocation, not a level" reaches the right conclusion on the wrong
+  ground: amendment 39 names "the partial's size" as the sanctioned repair
+  axis in its own text; that sentence, not the level/allocation distinction,
+  is what admits the question.
+- §4's "3.4 % take_profit share" is the whole-roster pooled figure; forex's
+  own is 2.5–2.8 %. §5's "two rules bound a day" never bind the same E8
+  account (the Daily Profit Cap is Pro's; Best-Day is the Challenge lines');
+  the news-window rule prohibits SL/TP edits on E8 One Performance, and the
+  share-0 lock is an SL edit. §5 is superseded by this verdict: with nothing
+  shipping, the cap question is moot until a cell can pass the gate.
+- §3 item 6 puts the ANALYZER_VERSION bump in the behaviour-neutral PR,
+  against the repo's rule; the neutrality oracle as written (reproduce the
+  recorded digest) cannot pass at any HEAD after #574, so it proves nothing.
+  Both stand corrected for whenever §3 is built; it is not built now.
+
+**Owner item (one, with the recommendation the refuters converged on):**
+
+- The desk instructs breakeven physics ("move your stop to your entry") on
+  every market while calibration grades 65–72 of 97 markets under
+  `trail_tp1` — an amendment-34 breach already live, independent of the
+  share, worth 3,244.6 R of divergence on forex select between the instructed
+  and the graded path (baseline trail_tp1 +1,603.8 R against the corpus's own
+  breakeven arm −1,640.8 R on the same 78,932 fills; fit 5,323.7 R;
+  `protection-gap-2026-09-06.log`). The strings are owner-approved verbatim spec text
+  (§7/§17b/§17d), so the fix is a spec amendment: render the stamped
+  protection mode's instruction per market (hold / breakeven / trail_tp1),
+  copy only, pins updated, ANALYZER_VERSION unchanged. Recommendation:
+  approve; the desk is parked, so it lands before unpark.
+
+**Follow-ups, mechanised, in order by money:** (1) `banked-fraction` prints
+R_adj(f) beside R(f) with S per class and fold, and the same-bar exposure
+shares, so the reader states its own caveats; (2) `payoff-decomposition`
+prints wins by money beside wins by label; (3) a share read uses a paired
+per-row interval, never `rDeltaInterval95`'s unpaired one; (4) the emit's
+sha256 is written into the manifest at build end (cache-design Q2), and the
+neutrality oracle is a strip-and-hash against a HEAD rebuild; (5) a per-market
+share reader (amendment 33). None of these moves money; each sharpens the
+instrument for the next calendar, which needs FMP's intraday plan restored.
+
+**Cache-design questions (note §6), verdicts:** Q1 "top-ups honour pins" is
+killed as written — every nightly top-up pins its own day, so it forbids the
+repair the overlap exists for; the protected slice is already past its one
+exposure window. Q2 adopt as the emit digest in the manifest, not per-series
+hashes as a drift oracle. Q3 adopt: one archive per cache state on the bank's
+R2 layout, because the cache is now an unrecoverable dataset (402 since
+2026-09-04). Q4 as applied failed the note's own rule (an untracked launcher
+that already pointed at a removed worktree): derive the launch from the
+tracked manifest and record argv in it.
 
 ## 1. The money map (verified on the intact corpus, 2026-09-05)
 
@@ -37,7 +160,9 @@ R is linear in f, so the slope's sign is the whole story. In forex it is the
 same sign on both tuning folds and the magnitude is the largest seen on a
 valid instrument: +1,100 R on the select fold is +0.014 R per fill on a class
 whose shipped select expectancy is +0.020 R per fill. Whole-roster select
-turns from −1,265 R at ½ to +259 R at 0.
+turns from −1,265 R at ½ to +259 R at 0 — *on the global-folds corpus; on the
+corpus of record the whole roster reads −5,680.0 R at ½ → −3,524.2 R at 0,
+and the slope itself is an upper bound (§0 items 1 and 3).*
 
 **The mechanism, on the same rows.** After TP1 is touched, `trail_tp1` sets
 the runner's effective stop to the TP1 price itself (`replay.ts`: "trail_tp1
@@ -128,6 +253,11 @@ not neutral, and the digest says so before a refuter has to.
   at the class grain, holdout stratified, D4's absolute term, retirement by
   money — then the ONE ledgered confirm read of this program. Confirmed only
   if the confirm CI excludes zero. Declined otherwise, and recorded.
+  *Round 1: that read is a second burn of act 3's calendar, refused without
+  acknowledgement, and ~60 % of the fold's forex rows are escaping years
+  where the slope is +0.002 R per fill (§0 item 2). The interval named here
+  is `rDeltaInterval95`'s unpaired one, ~8× too wide for a per-row
+  deterministic delta (follow-up 3). The arm is not run.*
 - Expected by the arithmetic: forex confirms at share 0 or ¼ unless the
   confirm fold's take_profit share is far below the tuning folds' 3.4%; crypto
   does not confirm any cell (its folds disagree); metals is thin.
@@ -194,14 +324,16 @@ persisting legs with a zero-size TP1; §19 sizing unchanged.
 
 ## 7. Owner items
 
-None. The decision is the program's, by the pre-registered rule in §4; the
-questions in §6 are the round's. If the round finds an owner decision that
-data cannot settle, it will be recorded with a vetted recommendation.
+One, recorded in §0: the desk's protection copy (an amendment-34 breach
+independent of the share), with the recommendation the refuters converged
+on. The share decision itself needed no owner: the data settled it (§0).
 
 ## 8. Delivery, in order
 
-1. Refuter round on this document (limit reset 2026-09-06 07:00 ET).
-2. §3 as one behaviour-neutral PR (TDD, mutation-tested), byte-neutral proof.
-3. The arm (§4), zero bytes, ~2 h; readers; the one read; the record.
-4. Whatever confirms ships per class through the register machinery, with
-   the desk copy, and the post-mortem note's §8b is closed with the result.
+1. Refuter round on this document — RAN 2026-09-06; verdict in §0.
+2. ~~§3 as one behaviour-neutral PR~~ — not built: nothing can confirm on
+   this corpus (§0 items 1–2).
+3. ~~The arm (§4)~~ — not run, for the same reason.
+4. The follow-ups in §0, then a new calendar when FMP's intraday plan is
+   restored; the share is re-read there per market × protection mode × feed
+   character, with the slippage-priced reader.

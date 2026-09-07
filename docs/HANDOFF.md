@@ -2028,12 +2028,30 @@ pooled contained −6,254.8 R against escaping +574.7 R
 round (`feed-window-round-2026-09-06.js`) follows the banked-share round; no
 forex verdict moves until it lands.
 
-**Work still due, in order:** (1) the successor lands → record rows, bytes,
-manifest, sha256 in the post-mortem note; re-run the act-3 readers on it and
-price the drift; (2) refuter round on the four design questions and on the
-payoff-gap finding; (3) whatever survives ships with mutation-tested guards;
-(4) the FMP plan is the owner's, and until it is restored nothing that
-fetches intraday bars or the calendar can run.
+**ROUND 1 VERDICT (2026-09-06, evening): the banked share does not ship;
+½ stays.** Seven dimensions, 283 raw refuter findings, budget-bound verify;
+every deciding claim reproduced by hand against a tracked artifact. Forex's
+share-0 lever is a clean-years property (select contained: −1,321.1 →
+−274.3 R over 55,419 fills; escaping: +2,925.0 → +2,978.3 R over 23,513) and
+the clean-years cell is still a loss, so no share cell passes D4's absolute
+term; the pre-registered confirm read is a second burn of act 3's calendar
+and ~60 % of that fold is escaping years; the slope is an upper bound (stop
+prints carry no slippage: +1,100.2 → +785.2 R on forex select, three
+verifiers); 60 % of forex lock exits resolve on the touch bar (FR-3), which
+the corpus cannot price. Record: `banked-share-design-2026-09-05.md` §0
+(verdict, corrections, one owner item — the desk's protection copy, an
+amendment-34 breach independent of the share — and five mechanised
+follow-ups), post-mortem note §3d/§8b corrected, tracked
+`banked-fraction-capture-all-classfolds-{contained,escaping}.txt`.
+
+**Work still due, in order:** (1) the round-1 follow-ups (§0 of the design:
+slippage-priced and same-bar-aware `banked-fraction`, wins by money in
+`payoff-decomposition`, a paired share interval, the emit digest in the
+manifest, a per-market share reader); (2) round 2's remedy question — what a
+witness-refused symbol-year means for a sweep: refuse, stratify, or a fold
+calendar that avoids it; (3) the owner item above; (4) the FMP plan is the
+owner's, and until it is restored nothing that fetches intraday bars or the
+calendar can run, and no new calendar exists to re-read the share on.
 
 ### ▶ RESUME HERE — 2026-09-04 05:00 UTC (the register moved twice; act 4 is refuted; a corpus was destroyed and is regenerating)
 
