@@ -2091,7 +2091,10 @@ witness-refused symbol-year means for a sweep: refuse, stratify, or a fold
 calendar that avoids it — DECIDED 2026-09-07 by round 2: per-market span
 exclusion for the next read, stratification for existing verdicts; building
 the exclusion is its own change set, because `sweepFolds.ts` cuts one
-continuous span per class and forex's escaping years sit in the middle of it;
+continuous span per class and forex's escaping years sit in the middle of it —
+and it must read MONTHS, not years: the witness now states them (change set
+after #597) and 651 months escape inside contained years over 305 store-years,
+every one of the 62 forex hidden-2024 months falling January to July;
 (3) the owner item above — DONE, amendment 42 in the
 change set after #595; (4) the FMP plan is the
 owner's, and until it is restored nothing that fetches intraday bars or the

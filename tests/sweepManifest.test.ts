@@ -240,8 +240,15 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
       feedCharacter: {
         "5min": {
           baseline: { barRangeRatio: 0.054, rangeRatio: 1 },
+          escapeMonths: [202101, 202102],
           escapeYears: [2021],
           judgedDays: 4426,
+          judgedMonths: 213,
+          months: {
+            "202012": { days: 22, escapeShare: 0.1, escapedBy: [], medianBarRangeRatio: 0.053, medianRangeRatio: 1, underShare: 0.12 },
+            "202101": { days: 21, escapeShare: 0.3, escapedBy: ["bar-range-drift"], medianBarRangeRatio: 0.082, medianRangeRatio: 1.02, underShare: 0.1 },
+            "202102": { days: 20, escapeShare: 0.31, escapedBy: ["bar-range-drift"], medianBarRangeRatio: 0.083, medianRangeRatio: 1.02, underShare: 0.1 },
+          },
           verdict: "escapes",
           years: {
             "2020": { days: 258, escapeShare: 0.11, escapedBy: [], medianBarRangeRatio: 0.0534, medianRangeRatio: 1, underShare: 0.12 },

@@ -72,6 +72,23 @@ export const MIN_BARS_PER_DAY = 20;
 /** Years with fewer judged days than this do not enter the store's baseline (they are still judged against it). */
 export const MIN_DAYS_FOR_BASELINE = 30;
 
+/**
+ * Days a MONTH must carry before it may name itself an escape. The artifact
+ * this witness names does not begin or end on a January — round 2 (2026-09-07)
+ * found stores running heavy through 2024-07 and clean from 2024-08, which a
+ * year bin calls contained — so the witness states months as well as years.
+ * Fifteen is half a trading month: enough that a median means something,
+ * loose enough that a holiday month still speaks. A month below it is
+ * measured and reported, never named.
+ */
+export const MIN_MONTHS_FOR_YEAR_SPLIT = 15;
+
+/** The UTC month a day belongs to, as YYYYMM — sortable, printable, JSON-safe. */
+export function monthKey(dayKey: number): number {
+  const date = new Date(dayKey * 86_400_000);
+  return date.getUTCFullYear() * 100 + date.getUTCMonth() + 1;
+}
+
 export type YearFacts = {
   /** Days judged: a daily bar with a positive range and at least MIN_BARS_PER_DAY intraday bars. */
   days: number;
@@ -91,10 +108,21 @@ export type DailyContainment = {
   verdict: "contained" | "escapes" | "unjudgeable";
   /** Years that escaped, ascending. */
   escapeYears: number[];
+  /**
+   * Months that escaped, ascending, as YYYYMM — measured against the SAME
+   * store baseline and the same three clauses as the years. A month may be
+   * named inside a year the year grain calls contained: that is the point of
+   * it (the reversion edge runs mid-year). The year verdict is unaffected.
+   */
+  escapeMonths: number[];
   judgedDays: number;
+  /** Months carrying at least one judged day. */
+  judgedMonths: number;
   /** The store's own baseline: the median across qualifying years of each per-year median. */
   baseline: { rangeRatio: number; barRangeRatio: number } | null;
   years: Map<number, YearFacts>;
+  /** Per month, the same facts, keyed YYYYMM. */
+  months: Map<number, YearFacts>;
 };
 
 function utcDayKey(timeMs: number): number {
@@ -111,7 +139,7 @@ export function dailyContainment(intraday: OhlcBar[], daily: OhlcBar[]): DailyCo
   // One refusal, after the count: an empty series, a series the daily store
   // never overlaps, and a store of thin days all end at zero judged days,
   // and a second guard ahead of that one would be a mutant nothing can kill.
-  const empty: DailyContainment = { baseline: null, escapeYears: [], judgedDays: 0, verdict: "unjudgeable", years: new Map() };
+  const empty: DailyContainment = { baseline: null, escapeMonths: [], escapeYears: [], judgedDays: 0, judgedMonths: 0, months: new Map(), verdict: "unjudgeable", years: new Map() };
   const dailyByDay = new Map<number, OhlcBar>();
   for (const bar of daily) {
     dailyByDay.set(utcDayKey(bar.time), bar);
@@ -129,7 +157,9 @@ export function dailyContainment(intraday: OhlcBar[], daily: OhlcBar[]): DailyCo
       days.set(key, { count: 1, high: bar.high, low: bar.low, rangeSum: bar.high - bar.low });
     }
   }
-  const perYear = new Map<number, { escapes: number; judged: number; ratios: number[]; barRatios: number[]; unders: number }>();
+  type Accumulator = { escapes: number; judged: number; ratios: number[]; barRatios: number[]; unders: number };
+  const perYear = new Map<number, Accumulator>();
+  const perMonth = new Map<number, Accumulator>();
   let judgedDays = 0;
   for (const [key, day] of days) {
     const parent = dailyByDay.get(key);
@@ -139,33 +169,40 @@ export function dailyContainment(intraday: OhlcBar[], daily: OhlcBar[]): DailyCo
     const ratio = (day.high - day.low) / dailyRange;
     const barRatio = day.rangeSum / day.count / dailyRange;
     const year = new Date(key * 86_400_000).getUTCFullYear();
-    let acc = perYear.get(year);
-    if (!acc) {
-      acc = { escapes: 0, judged: 0, ratios: [], barRatios: [], unders: 0 };
-      perYear.set(year, acc);
+    for (const [bucket, bucketKey] of [[perYear, year], [perMonth, monthKey(key)]] as Array<[Map<number, Accumulator>, number]>) {
+      let acc = bucket.get(bucketKey);
+      if (!acc) {
+        acc = { escapes: 0, judged: 0, ratios: [], barRatios: [], unders: 0 };
+        bucket.set(bucketKey, acc);
+      }
+      acc.judged += 1;
+      acc.ratios.push(ratio);
+      acc.barRatios.push(barRatio);
+      if (ratio > 1 + DAILY_CONTAINMENT_TOLERANCE) acc.escapes += 1;
+      if (ratio < 1 - DAILY_CONTAINMENT_TOLERANCE) acc.unders += 1;
     }
-    acc.judged += 1;
-    acc.ratios.push(ratio);
-    acc.barRatios.push(barRatio);
-    if (ratio > 1 + DAILY_CONTAINMENT_TOLERANCE) acc.escapes += 1;
-    if (ratio < 1 - DAILY_CONTAINMENT_TOLERANCE) acc.unders += 1;
     judgedDays += 1;
   }
   if (judgedDays === 0) {
     return empty;
   }
-  const facts = new Map<number, YearFacts>();
-  for (const year of [...perYear.keys()].sort((a, b) => a - b)) {
-    const acc = perYear.get(year)!;
-    facts.set(year, {
-      days: acc.judged,
-      escapeShare: acc.escapes / acc.judged,
-      escapedBy: [],
-      medianBarRangeRatio: median(acc.barRatios),
-      medianRangeRatio: median(acc.ratios),
-      underShare: acc.unders / acc.judged,
-    });
-  }
+  const factsOf = (source: Map<number, { escapes: number; judged: number; ratios: number[]; barRatios: number[]; unders: number }>) => {
+    const out = new Map<number, YearFacts>();
+    for (const bucketKey of [...source.keys()].sort((a, b) => a - b)) {
+      const acc = source.get(bucketKey)!;
+      out.set(bucketKey, {
+        days: acc.judged,
+        escapeShare: acc.escapes / acc.judged,
+        escapedBy: [],
+        medianBarRangeRatio: median(acc.barRatios),
+        medianRangeRatio: median(acc.ratios),
+        underShare: acc.unders / acc.judged,
+      });
+    }
+    return out;
+  };
+  const facts = factsOf(perYear);
+  const monthFacts = factsOf(perMonth);
   // The store's own baseline: the median of the per-year medians over the
   // years that carry enough days to speak — a three-year window inside a
   // seventeen-year store cannot move it, which is the point.
@@ -175,17 +212,30 @@ export function dailyContainment(intraday: OhlcBar[], daily: OhlcBar[]): DailyCo
     barRangeRatio: median(pool.map((f) => f.medianBarRangeRatio)),
     rangeRatio: median(pool.map((f) => f.medianRangeRatio)),
   };
-  const escapeYears: number[] = [];
-  for (const [year, f] of facts) {
-    if (f.medianRangeRatio >= baseline.rangeRatio + RANGE_DRIFT_LIMIT) f.escapedBy.push("range-drift");
-    if (f.medianBarRangeRatio >= baseline.barRangeRatio * (1 + BAR_RANGE_DRIFT_LIMIT)) f.escapedBy.push("bar-range-drift");
-    if (f.medianRangeRatio >= ABSOLUTE_RANGE_RATIO_LIMIT) f.escapedBy.push("absolute-range");
-    if (f.escapedBy.length > 0) escapeYears.push(year);
-  }
+  // The same three clauses against the same store baseline, at both grains.
+  // A month must also carry enough days to speak: a three-day holiday month
+  // has a median, and it is not a fact about the feed.
+  const judge = (source: Map<number, YearFacts>, minDays: number) => {
+    const escaped: number[] = [];
+    for (const [bucketKey, f] of source) {
+      if (f.medianRangeRatio >= baseline.rangeRatio + RANGE_DRIFT_LIMIT) f.escapedBy.push("range-drift");
+      if (f.medianBarRangeRatio >= baseline.barRangeRatio * (1 + BAR_RANGE_DRIFT_LIMIT)) f.escapedBy.push("bar-range-drift");
+      if (f.medianRangeRatio >= ABSOLUTE_RANGE_RATIO_LIMIT) f.escapedBy.push("absolute-range");
+      if (f.escapedBy.length > 0 && f.days >= minDays) escaped.push(bucketKey);
+    }
+    return escaped;
+  };
+  const escapeYears = judge(facts, 1);
+  const escapeMonths = judge(monthFacts, MIN_MONTHS_FOR_YEAR_SPLIT);
   return {
     baseline,
+    escapeMonths,
     escapeYears,
     judgedDays,
+    judgedMonths: monthFacts.size,
+    months: monthFacts,
+    // The year grain alone decides the store's verdict: the months state where
+    // inside a year the character sits, they do not re-judge the store.
     verdict: escapeYears.length > 0 ? "escapes" : "contained",
     years: facts,
   };
@@ -194,8 +244,11 @@ export function dailyContainment(intraday: OhlcBar[], daily: OhlcBar[]): DailyCo
 /** The witness in the manifest's shape: plain JSON, years as string keys in ascending order. */
 export type FeedCharacterRecord = {
   baseline: { barRangeRatio: number; rangeRatio: number } | null;
+  escapeMonths: number[];
   escapeYears: number[];
   judgedDays: number;
+  judgedMonths: number;
+  months: Record<string, YearFacts>;
   verdict: DailyContainment["verdict"];
   years: Record<string, YearFacts>;
 };
@@ -205,15 +258,25 @@ export type FeedCharacterRecord = {
  * hashes is exactly what a reader parses back, and a Map would hash to `{}`.
  */
 export function serializeContainment(witness: DailyContainment): FeedCharacterRecord {
-  const years: Record<string, YearFacts> = {};
-  for (const year of [...witness.years.keys()].sort((a, b) => a - b)) {
-    const facts = witness.years.get(year)!;
-    years[String(year)] = { ...facts, escapedBy: [...facts.escapedBy] };
-  }
+  // No sort here, deliberately: every key is an integer-like string, and a
+  // JavaScript object always enumerates those in ascending numeric order
+  // whatever the insertion order. A sort would be a guard that cannot fire —
+  // a mutation reversing it changed nothing, which is how it was found.
+  const plain = (source: Map<number, YearFacts>) => {
+    const out: Record<string, YearFacts> = {};
+    for (const [bucketKey, facts] of source) {
+      out[String(bucketKey)] = { ...facts, escapedBy: [...facts.escapedBy] };
+    }
+    return out;
+  };
+  const years = plain(witness.years);
   return {
     baseline: witness.baseline ? { ...witness.baseline } : null,
+    escapeMonths: [...witness.escapeMonths].sort((a, b) => a - b),
     escapeYears: [...witness.escapeYears],
     judgedDays: witness.judgedDays,
+    judgedMonths: witness.judgedMonths,
+    months: plain(witness.months),
     verdict: witness.verdict,
     years,
   };
@@ -234,6 +297,20 @@ export function formatFeedCharacter(symbol: string, timeframe: string, witness: 
         `escape ${(facts.escapeShare * 100).toFixed(1)}% under ${(facts.underShare * 100).toFixed(1)}%` +
         (facts.escapedBy.length > 0 ? ` ESCAPES (${facts.escapedBy.join(", ")})` : ""),
     );
+    // The months this year hides: named months inside a year the year grain
+    // calls contained is the reversion edge, and the whole reason the month
+    // grain exists. Indented, so the table's parser (feedYears.ts) reads only
+    // the verdict lines and nothing here can change a year map.
+    const hidden = witness.escapeMonths.filter((key) => Math.floor(key / 100) === year);
+    if (hidden.length > 0 && facts.escapedBy.length === 0) {
+      lines.push(
+        `    HIDDEN INSIDE A CONTAINED YEAR — months ${hidden.join(", ")}: ` +
+          hidden.map((key) => {
+            const m = witness.months.get(key)!;
+            return `${key} range ${m.medianRangeRatio.toFixed(3)} bar ${m.medianBarRangeRatio.toFixed(4)} (${m.escapedBy.join(", ")})`;
+          }).join("; "),
+      );
+    }
   }
   return lines.join("\n");
 }

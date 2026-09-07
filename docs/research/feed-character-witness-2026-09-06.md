@@ -148,7 +148,16 @@ with the rest.
   script's regex took the first `"time"` key on the line, which on a row
   whose `legs` precede `time` is a leg's fill time — 25 New-Year crypto rows
   (12 fit, 13 select) landed in the wrong year. The reader reads the row's
-  own `time`; its table is the figure of record. The attribution rule, stated
+  own `time`; its table is the figure of record. **Since the change set after
+  #597 the witness also states MONTHS** (`escapeMonths`, `months`,
+  `judgedMonths`, keyed YYYYMM, judged against the same store baseline and the
+  same three clauses, with a 15-day floor before a month may name itself): the
+  artifact does not begin or end on a January, and 651 months escape inside
+  years the year grain calls contained, over 305 store-years — every one of
+  the 62 forex hidden-2024 months falls January to July. The year verdicts
+  are unchanged, byte for byte, and
+  the table's parser reads only the un-indented verdict lines, so no year map
+  moved. The attribution rule, stated
   once: a row is placed by the UTC year of its decision time (`time`), not by
   the bars its review window resolved on — a setup decided on 2020-12-30
   whose window ran into 2021 counts as contained, and the reader's header
