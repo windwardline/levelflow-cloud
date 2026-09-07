@@ -29,7 +29,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
-  isBandwidthRefusal,
+  isCircuitRefusal,
   mayCall,
   openCircuit,
 } from "./fmpCircuit.ts";
@@ -203,8 +203,16 @@ export function governedBudget(
  * consumer's discovery into every consumer's knowledge, and #493 built it for
  * exactly that — but it reached one of four spenders until this module existed.
  */
-export function noteRefusal(detail: string, atMs: number): boolean {
-  if (!isBandwidthRefusal(detail)) return false;
-  openCircuit(detail, atMs);
+export function noteRefusal(
+  detail: string,
+  atMs: number,
+  path?: string,
+): boolean {
+  // Either wall, not just bandwidth. Both are final for this run, and the
+  // breaker's whole value is turning one consumer's discovery into every
+  // consumer's knowledge — that was never specific to which wall it was.
+  if (!isCircuitRefusal(detail)) return false;
+  if (path === undefined) openCircuit(detail, atMs);
+  else openCircuit(detail, atMs, path);
   return true;
 }

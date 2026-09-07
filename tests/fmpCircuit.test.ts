@@ -4,10 +4,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
+import { noteRefusal } from "../scripts/fmpGovernor.ts";
 import {
+  classifyRefusal,
   closeCircuit,
   COOL_OFF_MS,
   isBandwidthRefusal,
+  isCircuitRefusal,
   mayCall,
   openCircuit,
   readCircuit,
@@ -163,8 +166,8 @@ describe("the bank consults it, records to it, and clears it", () => {
     // consumer's knowledge rather than this one's private discovery.
     assert.match(
       SOURCE,
-      /if \(isBandwidthRefusal\(result\.note\)\) \{\s*\n\s*noteRefusal\(/,
-      "a bandwidth refusal is not recorded, so the cache top-up and the " +
+      /if \(isCircuitRefusal\(result\.note\)\) \{\s*\n\s*noteRefusal\(/,
+      "a refusal is not recorded, so the cache top-up and the " +
         "sweeps each spend a roster rediscovering it",
     );
   });
@@ -182,10 +185,12 @@ describe("the bank consults it, records to it, and clears it", () => {
     assert.match(SOURCE, /throw new Error\(`HTTP \$\{res\.status\}\$\{detail/);
   });
 
-  it("stops its OWN ladder on a bandwidth refusal", () => {
+  it("stops its OWN ladder on a wall no retry clears", () => {
+    // Widened from isBandwidthRefusal on 2026-09-07: the ladder must stop for
+    // the entitlement gap too, which no number of attempts clears either.
     assert.match(
       SOURCE,
-      /isBandwidthRefusal\(error instanceof Error \? error\.message : ""\)/,
+      /isCircuitRefusal\(error instanceof Error \? error\.message : ""\)/,
       "the bank still climbs five attempts against a wall that clears in days",
     );
   });
@@ -196,6 +201,164 @@ describe("the bank consults it, records to it, and clears it", () => {
       /closeCircuit\(\);/,
       "a recovered provider leaves the breaker open, so every consumer waits " +
         "out a cool-off that no longer applies",
+    );
+  });
+});
+
+
+/**
+ * The 402 is a THIRD condition, and it was wearing the second one's clothes.
+ *
+ * `isBandwidthRefusal` matched `/upgrade your plan/i` because FMP's bandwidth
+ * body ends with it. So does FMP's 402 Restricted Endpoint body — a plan that
+ * does not cover an endpoint at all. On 2026-09-04 that collision opened the
+ * BANDWIDTH breaker on an entitlement gap, and the minute bank spent four days
+ * printing "the trailing-30-day window drains by time only" about a wall that
+ * drains by nothing. The distinction the original docstring drew (words over
+ * status code, because 429 covered two conditions) threw away the status
+ * code's ability to separate a third.
+ */
+describe("an entitlement gap is not a bandwidth wall", () => {
+  // The real body, copied from ~/Library/Logs/levelflow-minute-bank.log on
+  // 2026-09-07, after four days of it.
+  const RESTRICTED =
+    "HTTP 402 Restricted Endpoint: This endpoint is not available under " +
+    "your current subscription please visit our subscription page to " +
+    "upgrade your plan at https://financialmodelingprep.com/";
+
+  const BANDWIDTH =
+    '{\n  "Error Message": "Bandwidth Limit Reach . Please upgrade your ' +
+    "plan or visit our documentation for more details at " +
+    'https://site.financialmodelingprep.com/"\n}';
+
+  it("does NOT call a 402 restricted endpoint the bandwidth wall", () => {
+    assert.equal(isBandwidthRefusal(RESTRICTED), false);
+  });
+
+  it("classifies each refusal by its own condition", () => {
+    assert.equal(classifyRefusal(BANDWIDTH), "bandwidth");
+    assert.equal(classifyRefusal(RESTRICTED), "entitlement");
+    assert.equal(classifyRefusal("HTTP 429"), null);
+    assert.equal(classifyRefusal("Too Many Requests"), null);
+    assert.equal(classifyRefusal(""), null);
+  });
+
+  it("still stops the roster for BOTH, because neither clears by retrying", () => {
+    // The breaker's value is unchanged: one probe per cool-off instead of 97
+    // symbols x 5 retries. Only the diagnosis was wrong.
+    assert.equal(isCircuitRefusal(BANDWIDTH), true);
+    assert.equal(isCircuitRefusal(RESTRICTED), true);
+    assert.equal(isCircuitRefusal("HTTP 429"), false);
+  });
+
+  it("does not tell a reader an entitlement gap drains by time", () => {
+    const path = scratch();
+    const opened = Date.parse("2026-09-04T20:38:00Z");
+    openCircuit(RESTRICTED, opened, path);
+    const decision = mayCall(opened + 60_000, path);
+    assert.equal(decision.allowed, false);
+    if (decision.allowed) return;
+    assert.doesNotMatch(
+      decision.reason,
+      /drains by time/,
+      "the entitlement message still claims the wall drains by time, which " +
+        "is what made four days of failure read as normal waiting",
+    );
+    assert.match(
+      decision.reason,
+      /subscription/i,
+      "the message must name the account as the lever, or nobody acts",
+    );
+    // The stable grep token shell consumers classify on must survive.
+    assert.match(decision.reason, /^fmpCircuitOpen: /);
+  });
+
+  it("keeps the time-drains wording for an actual bandwidth wall", () => {
+    const path = scratch();
+    const opened = Date.parse("2026-08-31T13:00:00Z");
+    openCircuit(BANDWIDTH, opened, path);
+    const decision = mayCall(opened + 60_000, path);
+    assert.equal(decision.allowed, false);
+    if (decision.allowed) return;
+    assert.match(decision.reason, /drains by time/);
+  });
+
+  it("probes an entitlement gap on the same cool-off, so payment self-heals", () => {
+    // A plan change needs a human, but noticing it must not. One probe per
+    // cool-off closes the breaker the first run after the fee is paid.
+    const path = scratch();
+    const opened = Date.parse("2026-09-04T20:38:00Z");
+    openCircuit(RESTRICTED, opened, path);
+    const decision = mayCall(opened + COOL_OFF_MS, path);
+    assert.equal(decision.allowed, true);
+    if (!decision.allowed) return;
+    assert.equal(decision.probe, true);
+  });
+});
+
+/**
+ * The narrowing has a sharp edge: every call site that asked
+ * "isBandwidthRefusal?" to decide whether to STOP must now ask
+ * "isCircuitRefusal?", or the 402 stops tripping the breaker altogether and
+ * the fix trades a false message for a silent 485-request roster run.
+ */
+describe("both walls still reach the shared breaker", () => {
+  const BANK_SOURCE = readFileSync("scripts/bank-minute-bars.ts", "utf8");
+  const RESTRICTED =
+    "HTTP 402 Restricted Endpoint: This endpoint is not available under " +
+    "your current subscription please visit our subscription page to " +
+    "upgrade your plan at https://financialmodelingprep.com/";
+
+  it("opens the breaker through the governor on an entitlement refusal", () => {
+    const path = scratch();
+    const at = Date.parse("2026-09-04T20:38:00Z");
+    assert.equal(
+      noteRefusal(RESTRICTED, at, path),
+      true,
+      "the governor ignored a 402, so every consumer will rediscover it",
+    );
+    assert.equal(readCircuit(path).openedAt, at);
+  });
+
+  it("still ignores a bare rate limit, whose ladder works", () => {
+    const path = scratch();
+    assert.equal(noteRefusal("HTTP 429", Date.now(), path), false);
+    assert.equal(readCircuit(path).openedAt, null);
+  });
+
+  it("stops the bank's own ladder on EITHER wall", () => {
+    // Source-level, because the ladder is inside a private retry helper. The
+    // claim: the guard names the breaker's predicate, not the narrow one.
+    assert.match(
+      BANK_SOURCE,
+      /isCircuitRefusal\(error instanceof Error \? error\.message : ""\)/,
+      "the bank climbs five attempts against a wall that no retry clears",
+    );
+  });
+
+  it("records EITHER wall for the other consumers", () => {
+    assert.match(
+      BANK_SOURCE,
+      /if \(isCircuitRefusal\(result\.note\)\) \{\s*\n\s*noteRefusal\(/,
+      "a 402 is not recorded, so the top-up and the sweeps each spend a " +
+        "roster rediscovering it",
+    );
+  });
+
+  it("derives the stand-down remedy from the refusal, not from a constant", () => {
+    // The bandwidth sentence itself is still correct FOR BANDWIDTH, so its
+    // presence in the source proves nothing. What matters is that the message
+    // interpolates a decision instead of asserting one remedy for every wall.
+    assert.match(
+      BANK_SOURCE,
+      /requests learning it again\. \$\{standDownRemedy\(result\.note\)\}/,
+      "the stand-down still asserts one remedy for whatever it just hit, " +
+        "which is the same false sentence one layer up",
+    );
+    assert.match(
+      BANK_SOURCE,
+      /case "entitlement":/,
+      "standDownRemedy does not distinguish the entitlement gap",
     );
   });
 });
