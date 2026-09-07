@@ -75,13 +75,18 @@ gating on precisely the fold where that cost is best measured.
 **It is not concentrated — measured in-pool.** In-span is positive in 9 of 10
 fit years and 4 of 4 select years; in-span net R is positive on 20 of 22
 markets, and in-span expectancy beats out-of-span on **22 of 22**. Every one of
-those counts is computed on the in-pool populations
-(`hour-mechanism-2026-09-07.txt:13,17`). Out-of-sample concentration was not
-measured, and nothing here should be read as if it were.
+those counts is computed in-pool, and the per-market pair is narrower still —
+`hour-mechanism-2026-09-07.txt:17` is headed **PER MARKET, select in-pool**, so
+the 20 of 22 and 22 of 22 are one fold, not both. The year counts span the two
+folds (`:13`). Out-of-sample concentration was not measured, and nothing here
+should be read as if it were. This matters two paragraphs into section 3,
+where the gating candidate is said to fail the market grain amendment 33
+requires: that argument rests on the narrower of these counts.
 
 **And the mechanism is visible in the outcome mix.** The Target 1 rate barely
-moves (fit in-pool 0.630 in span against 0.652 out; select in-pool 0.627
-against 0.637) and the Target 2 rate is actually *higher* out of span. What changes is the stop rate, on every fold:
+moves on any fold — 0.630/0.652 fit in-pool, 0.628/0.661 fit held-out,
+0.627/0.637 select in-pool, 0.618/0.643 select held-out, the widest being 3.3
+points — and the Target 2 rate is actually *higher* out of span. What changes is the stop rate, on every fold:
 
 | fold | pool | stop rate in span | out of span | gap |
 |---|---|---:|---:|---:|
@@ -100,9 +105,12 @@ read the ten-point figure as the effect's size; read the 6.5-to-10-point range.
 stop gives ~0.10 R per fill, and an earlier version of this note printed that
 as the prize. It is a mediator's gross arithmetic, not a measured delta. The
 measured in-minus-out expectancy differences are +0.0472, +0.0291, +0.0726 and
-+0.0391 R per fill on the four folds above — every one of them well under half
-the 0.10 figure. Amendment 39 puts realized R in charge wherever it exists, and
-here it exists on all four folds, so those four numbers are the effect.
++0.0391 R per fill on the four folds above, so the 0.10 figure is between
+**1.4× and 3.4×** the money it stood for. (An earlier version of this sentence
+said "well under half", which is false for two of the four it lists: half of
+0.10 is 0.05, and +0.0726 exceeds it.) Amendment 39 puts realized R in charge
+wherever it exists, and here it exists on all four folds, so those four
+numbers are the effect.
 
 **A tempting explanation, and why this note rejects it.** The obvious reading
 of a ten-point stop-rate gap is that the stop is built with no hour-of-day
@@ -124,8 +132,11 @@ an *input* to `buildLadderTargets` (`:396`), fixed at `:319`, before
 `maxStopAtrMultiplier: 1.0` (`calibration.ts:442`) while `structuralStop` is
 never nearer than `atr × 1.25` (`:296-304`), so the cap binds on every forex
 row and `riskDistance = atr × 1.0` exactly, with provenance `cap`. The repo
-already records this independently: `docs/trade-model.md:1641` measures forex
-at **100 % cap, 0 % pivot, 0 % volatility floor**. So `stopBuffer`
+already records the same thing at `docs/trade-model.md:1641` (forex 100 % cap,
+0 % pivot, 0 % volatility floor) — cited as agreement only, since that file's
+own banner declares its corpus invalid and AGENTS.md forbids trusting a derived
+cell from it. Nothing here rests on that citation: the two multipliers settle
+it deterministically from code. So `stopBuffer`
 (`:256-259`) is computed and discarded here, and describing the stop by it —
 as an earlier version of this passage did, calling both legs intraday when
 `dailyAtr` is a fourteen-**day** ATR — repeats the very error being corrected.

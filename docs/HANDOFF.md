@@ -2135,22 +2135,32 @@ uncensored random-entry null agrees at t = −0.01.) No exit geometry can
 rescue an engine whose entries carry no direction.
 
 2. **The hour of decision separates money, by +0.029 to +0.073 R/fill.**
-By UTC hour, in 16:00–21:59 vs outside. IN-SPAN E: +0.0361 [lo95 +0.0304] fit
-in-pool, +0.0324 [+0.0222] select in-pool, +0.0321 [+0.0208] fit held-out,
-+0.0137 [−0.0056] select held-out — three of four clear. OUT-OF-SPAN E:
-−0.0111, −0.0402, **+0.0030** (fit held-out, net **+107.1 R** over 35,713
-fills, lo95 −0.0037), −0.0254. Read that third one: on the fit fold's only
-out-of-sample evidence, the population a gate DISCARDS is net profitable.
-The four in-minus-out deltas are +0.0472, +0.0291, +0.0726, +0.0391 R/fill —
-that range is the effect. Concentration is IN-POOL only (9 of 10 fit years,
-4 of 4 select years, 20 of 22 markets, 22 of 22 on expectancy); out-of-sample
-concentration was never measured. THE MECHANISM: Target 1 rate is flat
-(0.63 vs 0.65) and Target 2 is HIGHER out of span; what changes is the STOP
-RATE, on all four folds — 0.177/0.266, 0.190/0.255, 0.178/0.278, 0.197/0.271,
-a gap of 6.5 to 10.0 points. Out of span the trade travels further relative to
-its stop in both directions. A ~0.10 R/fill figure was carried here earlier;
-it was the widest gap times a one-unit stop, gross mediator arithmetic, and
-roughly double every measured delta. Amendment 39: the four deltas govern.
+By UTC hour, in 16:00–21:59 vs outside. ONE ORDER THROUGHOUT — fit in-pool,
+fit held-out, select in-pool, select held-out — because no single fold may
+stand for four:
+
+| fold | in-span E [lo95] | out-of-span E | delta | stop rate in/out |
+|---|---|---|---|---|
+| fit in-pool | +0.0361 [+0.0304] | −0.0111 | +0.0472 | 0.177/0.266 |
+| fit held-out | +0.0321 [+0.0208] | **+0.0030** | +0.0291 | 0.190/0.255 |
+| select in-pool | +0.0324 [+0.0222] | −0.0402 | **+0.0726** | 0.178/0.278 |
+| select held-out | +0.0137 [−0.0056] | −0.0254 | +0.0391 | 0.197/0.271 |
+
+Three of four in-span cells clear zero. **The fit held-out out-of-span cell is
+net +107.1 R over 35,713 fills** (lo95 −0.0037): on the fit fold's only
+out-of-sample evidence, the population a gate DISCARDS is profitable. The four
+deltas ARE the effect. Concentration is IN-POOL, and the per-market pair is
+**select in-pool only** (`hour-mechanism-2026-09-07.txt:17`): 9 of 10 fit
+years, 4 of 4 select years, and on select in-pool alone 20 of 22 markets and
+22 of 22 on expectancy. Out-of-sample concentration was never measured — which
+bears directly on the amendment-33 market grain below. THE MECHANISM: the
+Target 1 rate barely moves on any fold (0.630/0.652, 0.628/0.661, 0.627/0.637,
+0.618/0.643) and Target 2 is HIGHER out of span; what moves is the STOP RATE,
+by 6.5 to 10.0 points, on all four. Out of span the trade travels further
+relative to its stop in both directions. A ~0.10 R/fill figure was carried
+here earlier; it was the widest gap times a one-unit stop, gross mediator
+arithmetic, and **1.4× to 3.4×** the measured deltas (not "double" — 0.10 is
+1.4× the +0.0726 and 3.4× the +0.0291). Amendment 39: the four deltas govern.
 
 **THE RECOMMENDATION: gate the hours. A STOP-CLOCK FIX WAS RECOMMENDED IN THE
 NOTE'S FIRST DRAFT AND IS WITHDRAWN — do not rebuild it.** That draft was never
@@ -2190,11 +2200,16 @@ at all (next paragraph) — and on the fit held-out fold the volume it discards
 is net positive. It is a pre-registration for the next calendar, NOT a ship.
 
 **A structural finding about the gate.** `grid-totalr.ts` makes `thin` the
-first conjunct of `beatsBaseline`, and `thin` fires when a variant keeps under
-half the select fold. Every selective admission rule is refused before its
-money is read. The gate cannot express a verdict on the class of rule most
+first conjunct of `beatsBaseline` (`:973`), and `earnsMoney` (`:918-919`) is
+never consulted once it fires. Every selective admission rule is refused before
+its money is read. The gate cannot express a verdict on the class of rule most
 likely to help; selective rules need their own verdict path, on per-fill
-expectancy with bounds.
+expectancy with bounds. **Two details a partial repair would trip on:**
+`thin` is a DISJUNCTION (`:920-922`) — under half the select fold **or** under
+`minFilled` — so fixing the half-fold leg leaves the second gate standing in
+front of the same rules; and `noVerdict` is itself `!thin && (…)` (`:999-1001`)
+with `reason: THIN`, so a selective rule is filed as a MEASURED FAILURE, the
+disposition round 39's own rule reserves for losses.
 
 **Work still due, in order:** (1) the round-1 follow-ups (§0 of the design;
 the slippage-priced and same-bar-aware `banked-fraction` and the by-money
