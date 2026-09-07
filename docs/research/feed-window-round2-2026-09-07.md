@@ -136,16 +136,26 @@ its own change set, and the note that claims the map "is exactly that span
 record" means the map is the input such a build would read, not that the
 build is done.
 
-**One caveat holds the map back from gating anything today.** The witness's
-per-UTC-year binary map is ragged at the reversion edge: the refuters measured
-2024-01..07 running at 1.27–1.80× the baseline bar-range ratio on nine of the
-twelve stores whose 2024 the witness leaves contained, with 2024-08..12 back
-at 0.80–0.92×. The onset is one month and the reversion is not year-aligned.
+**One caveat held the map back from gating anything. It is now measured and
+closed.** The witness's per-UTC-year map is ragged at the reversion edge: the
+refuters reported 2024-01..07 running heavy on stores whose 2024 the year
+grain calls contained. Re-measured here (change set after #597): the witness
+now states months as well as years, and across the roster **651 months escape
+inside years the year grain calls contained** (305 store-years carry at least
+one). On the 5-minute tier, 39 stores carry hidden 2024 months — 12 forex,
+11 crypto, 6 futures, 6 agriculture, 3 livestock, 1 index — and for forex the
+finding is entirely first-half: **all 62 forex hidden-2024 months fall in
+January through July, none in August or after** (12 stores in each of
+January to March, 11 in April, 6 in May, 8 in June, 1 in July). USDCAD runs
+2024-01 through 2024-07; EURUSD, GBPUSD, GBPCHF, EURNZD and GBPNZD run
+January to May or June. Every one of the 194 verdict lines is byte-identical to the
+table before the change, so the year map — and every reader that consumes it
+— is untouched. The months are a fact the witness now states; a per-market
+span exclusion must read them rather than the years, or it will call
+contaminated months clean on 12 forex markets and 27 others.
 The month-grain confirm share the refuters report (51 % against the year
-grain's 45.2 %) is the same measurement and is likewise theirs, not
+grain's 45.2 %) is a different measurement and is still theirs, not
 re-measured here.
-Before the map gates a read it needs a finer grain than the year. The driver
-has not re-measured this; it is the refuters'.
 
 ## 4. On amendment 36 — a correction to the driver's own writing
 

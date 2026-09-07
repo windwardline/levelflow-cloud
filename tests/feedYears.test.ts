@@ -44,8 +44,8 @@ function manifestWith(symbols: Array<{ symbol: string; escapeYears?: number[] }>
       symbol: entry.symbol,
       ...(entry.escapeYears && {
         feedCharacter: {
-          "5min": { baseline: { barRangeRatio: 0.05, rangeRatio: 1 }, escapeYears: entry.escapeYears, judgedDays: 100, verdict: entry.escapeYears.length ? "escapes" : "contained", years: {} },
-          "15min": { baseline: { barRangeRatio: 0.09, rangeRatio: 1 }, escapeYears: [], judgedDays: 100, verdict: "contained", years: {} },
+          "5min": { baseline: { barRangeRatio: 0.05, rangeRatio: 1 }, escapeYears: entry.escapeYears, escapeMonths: [], judgedDays: 100, judgedMonths: 12, months: {}, verdict: entry.escapeYears.length ? "escapes" : "contained", years: {} },
+          "15min": { baseline: { barRangeRatio: 0.09, rangeRatio: 1 }, escapeYears: [], escapeMonths: [], judgedDays: 100, judgedMonths: 12, months: {}, verdict: "contained", years: {} },
         },
       }),
     })),
@@ -84,8 +84,11 @@ describe("the year map", () => {
   it("reads back exactly what the witness writes — the writer and the parser are one format", () => {
     const witness = (verdict: DailyContainment["verdict"], escapeYears: number[]): DailyContainment => ({
       baseline: verdict === "unjudgeable" ? null : { barRangeRatio: 0.05, rangeRatio: 1 },
+      escapeMonths: [],
       escapeYears,
       judgedDays: verdict === "unjudgeable" ? 0 : 100,
+      judgedMonths: verdict === "unjudgeable" ? 0 : 12,
+      months: new Map(),
       verdict,
       years: new Map(),
     });

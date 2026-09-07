@@ -11,6 +11,9 @@ import {
   dailyContainment,
   formatFeedCharacter,
   MIN_BARS_PER_DAY,
+  MIN_MONTHS_FOR_YEAR_SPLIT,
+  monthKey,
+  type OhlcBar,
   RANGE_DRIFT_LIMIT,
   serializeContainment,
 } from "../scripts/feedCharacter.ts";
@@ -244,3 +247,147 @@ describe("the reader over a cache", () => {
     );
   });
 });
+
+/**
+ * The reversion edge (round 2, 2026-09-07). The witness bins by UTC year, and
+ * the artifact it names does not begin or end on a January: the refuters
+ * measured stores whose 2024 runs heavy through July and clean from August,
+ * which a year bin calls contained. A year that is contained AS A YEAR while
+ * some of its months are not is the case the map has to be able to state, or
+ * a per-market span exclusion built on it excludes the wrong rows.
+ */
+describe("the month grain — a year is not the smallest thing that can escape", () => {
+  const DAY = 86_400_000;
+
+  /** One day of intraday bars whose derived range is `ratio` x the daily bar's, in `bars` equal steps. */
+  function day(dayIndex: number, ratio: number, bars = 24): { daily: OhlcBar; intraday: OhlcBar[] } {
+    const time = dayIndex * DAY;
+    const intraday: OhlcBar[] = [];
+    for (let i = 0; i < bars; i += 1) {
+      const low = 100 + (i * ratio) / bars;
+      intraday.push({ high: low + ratio / bars, low, time: time + i * 3_600_000 });
+    }
+    return { daily: { high: 101, low: 100, time }, intraday };
+  }
+
+  function store(spec: Array<{ days: number; from: number; ratio: number }>) {
+    const daily: OhlcBar[] = [];
+    const intraday: OhlcBar[] = [];
+    for (const part of spec) {
+      for (let i = 0; i < part.days; i += 1) {
+        const built = day(part.from + i, part.ratio);
+        daily.push(built.daily);
+        intraday.push(...built.intraday);
+      }
+    }
+    return { daily, intraday };
+  }
+
+  it("keys a month as YYYYMM from the UTC day", () => {
+    assert.equal(monthKey(Date.UTC(2024, 0, 1) / DAY), 202401);
+    assert.equal(monthKey(Date.UTC(2024, 11, 31) / DAY), 202412);
+    assert.equal(monthKey(Date.UTC(2009, 8, 25) / DAY), 200909);
+  });
+
+  it("names the months that escape inside a year the year verdict calls contained", () => {
+    // 2009-2010 clean at 1.00 (the baseline), then a 2011 whose first half runs
+    // at 1.20 and whose second half is clean — heavy enough to be named by the
+    // month, diluted enough that the year's own median stays at the baseline.
+    const start = Math.floor(Date.UTC(2009, 0, 1) / DAY);
+    const y2011 = Math.floor(Date.UTC(2011, 0, 1) / DAY);
+    const witness = dailyContainment(
+      store([
+        { days: 720, from: start, ratio: 1.0 },
+        { days: 150, from: y2011, ratio: 1.2 },
+        { days: 200, from: y2011 + 160, ratio: 1.0 },
+      ]).intraday,
+      store([
+        { days: 720, from: start, ratio: 1.0 },
+        { days: 150, from: y2011, ratio: 1.2 },
+        { days: 200, from: y2011 + 160, ratio: 1.0 },
+      ]).daily,
+    );
+    assert.equal(witness.escapeYears.includes(2011), false, "the year's own median is diluted to the baseline");
+    const named = witness.escapeMonths.filter((key) => key >= 201101 && key <= 201112);
+    assert.ok(named.length >= 4, `the heavy months are named: ${JSON.stringify(witness.escapeMonths)}`);
+    assert.ok(named.every((key) => key <= 201106), `only the heavy half is named: ${JSON.stringify(named)}`);
+    for (const key of named) {
+      assert.ok(witness.months.get(key)!.escapedBy.length > 0);
+      assert.ok(witness.months.get(key)!.days > 0);
+    }
+    // The year verdict is untouched by the month grain: nothing downstream moves.
+    assert.equal(witness.verdict, witness.escapeYears.length > 0 ? "escapes" : "contained");
+  });
+
+  it("judges a month only when it carries enough days: a thin month is measured, never named", () => {
+    const start = Math.floor(Date.UTC(2015, 0, 1) / DAY);
+    // Three wild days in their own month, against 400 clean ones. The month's
+    // median is off the scale; it still may not name itself, because three days
+    // is not a fact about the feed.
+    const built = store([{ days: 400, from: start, ratio: 1.0 }, { days: 3, from: start + 500, ratio: 3.0 }]);
+    const witness = dailyContainment(built.intraday, built.daily);
+    const thin = monthKey(start + 500);
+    const facts = witness.months.get(thin);
+    assert.ok(facts, "the thin month is measured");
+    assert.equal(facts.days, 3);
+    assert.ok(facts.days < MIN_MONTHS_FOR_YEAR_SPLIT);
+    assert.ok(facts.escapedBy.length > 0, "and it does breach the clauses — that is why the day floor is the only thing holding it back");
+    assert.equal(witness.escapeMonths.includes(thin), false, "a month of three days does not get to name itself an escape");
+    assert.ok(witness.judgedMonths >= 12);
+  });
+
+  it("the day floor is exactly MIN_MONTHS_FOR_YEAR_SPLIT: a month one day short is measured and not named", () => {
+    const start = Math.floor(Date.UTC(2016, 0, 1) / DAY);
+    // 400 clean days set the baseline; then two heavy runs in months of their own,
+    // one of MIN_MONTHS_FOR_YEAR_SPLIT days and one of that minus one.
+    const atFloor = Math.floor(Date.UTC(2018, 0, 1) / DAY);
+    const belowFloor = Math.floor(Date.UTC(2018, 5, 1) / DAY);
+    const spec = [
+      { days: 400, from: start, ratio: 1.0 },
+      { days: MIN_MONTHS_FOR_YEAR_SPLIT, from: atFloor, ratio: 2.0 },
+      { days: MIN_MONTHS_FOR_YEAR_SPLIT - 1, from: belowFloor, ratio: 2.0 },
+    ];
+    const built = store(spec);
+    const witness = dailyContainment(built.intraday, built.daily);
+    assert.equal(witness.months.get(monthKey(atFloor))!.days, MIN_MONTHS_FOR_YEAR_SPLIT);
+    assert.equal(witness.months.get(monthKey(belowFloor))!.days, MIN_MONTHS_FOR_YEAR_SPLIT - 1);
+    assert.equal(witness.escapeMonths.includes(monthKey(atFloor)), true, "exactly the floor is enough");
+    assert.equal(witness.escapeMonths.includes(monthKey(belowFloor)), false, "one day short is not");
+  });
+
+  it("prints the hidden months only where the year grain hides them — never under a year that already escapes", () => {
+    const start = Math.floor(Date.UTC(2009, 0, 1) / DAY);
+    const y2011 = Math.floor(Date.UTC(2011, 0, 1) / DAY);
+    // 2011: heavy first half, clean second — the year's median stays at the baseline.
+    // 2013: heavy throughout — the year itself escapes, so its months say nothing new.
+    const y2013 = Math.floor(Date.UTC(2013, 0, 1) / DAY);
+    const spec = [
+      { days: 720, from: start, ratio: 1.0 },
+      { days: 150, from: y2011, ratio: 1.2 },
+      { days: 200, from: y2011 + 160, ratio: 1.0 },
+      { days: 330, from: y2013, ratio: 1.4 },
+    ]
+    const built = store(spec)
+    const witness = dailyContainment(built.intraday, built.daily);
+    assert.equal(witness.escapeYears.includes(2011), false);
+    assert.equal(witness.escapeYears.includes(2013), true);
+    const text = formatFeedCharacter("EURUSD", "5min", witness);
+    const hidden = text.split("\n").filter((line) => line.includes("HIDDEN INSIDE A CONTAINED YEAR"));
+    assert.equal(hidden.length, 1, `exactly the contained year says it: ${JSON.stringify(hidden)}`);
+    assert.match(hidden[0], /months 2011/);
+    assert.doesNotMatch(hidden[0], /2013/);
+  });
+
+  it("carries the months into the manifest record and back, ascending", () => {
+    const start = Math.floor(Date.UTC(2020, 0, 1) / DAY);
+    const witness = dailyContainment(
+      store([{ days: 400, from: start, ratio: 1.0 }, { days: 60, from: start + 420, ratio: 1.6 }]).intraday,
+      store([{ days: 400, from: start, ratio: 1.0 }, { days: 60, from: start + 420, ratio: 1.6 }]).daily,
+    );
+    const record = serializeContainment(witness);
+    assert.deepEqual(record.escapeMonths, [...witness.escapeMonths].sort((a, b) => a - b));
+    assert.deepEqual(Object.keys(record.months).map(Number), [...witness.months.keys()].sort((a, b) => a - b));
+    assert.equal(record.judgedMonths, witness.judgedMonths);
+  });
+});
+
