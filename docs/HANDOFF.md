@@ -2149,10 +2149,10 @@ stand for four:
 Three of four in-span cells clear zero. **The fit held-out out-of-span cell is
 net +107.1 R over 35,713 fills** (lo95 −0.0037): on the fit fold's only
 out-of-sample evidence, the population a gate DISCARDS is profitable. The four
-deltas ARE the effect. Concentration is IN-POOL, and the per-market pair is
-**select in-pool only** (`hour-mechanism-2026-09-07.txt:17`): 9 of 10 fit
-years, 4 of 4 select years, and on select in-pool alone 20 of 22 markets and
-22 of 22 on expectancy. Out-of-sample concentration was never measured — which
+deltas ARE the effect. Concentration is IN-POOL: 9 of 10 fit years and 4 of 4
+select years (`hour-mechanism-2026-09-07.txt:13`), and the per-market pair is
+narrower still — **select in-pool only** (`:17`) — 20 of 22 markets and 22 of
+22 on expectancy. Out-of-sample concentration was never measured — which
 bears directly on the amendment-33 market grain below. THE MECHANISM: the
 Target 1 rate barely moves on any fold (0.630/0.652, 0.628/0.661, 0.627/0.637,
 0.618/0.643) and Target 2 is HIGHER out of span; what moves is the STOP RATE,
