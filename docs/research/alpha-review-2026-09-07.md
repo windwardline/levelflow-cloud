@@ -80,8 +80,8 @@ those counts is computed on the in-pool populations
 measured, and nothing here should be read as if it were.
 
 **And the mechanism is visible in the outcome mix.** The Target 1 rate barely
-moves (0.63 in span, 0.65 out) and the Target 2 rate is actually *higher* out
-of span. What changes is the stop rate, on every fold:
+moves (fit in-pool 0.630 in span against 0.652 out; select in-pool 0.627
+against 0.637) and the Target 2 rate is actually *higher* out of span. What changes is the stop rate, on every fold:
 
 | fold | pool | stop rate in span | out of span | gap |
 |---|---|---:|---:|---:|
@@ -116,13 +116,27 @@ the Target 1 cap (`:660`), the runner ceiling (`:675`) and the
 `window_cannot_carry_payoff` refusal it gates (`:683-686`) — the same three the
 r2b geometry review isolated in section 2 of
 `r2b-geometry-fresh-eyes-2026-08-31.md`, under that file's older line
-numbering. The stop is a separate construction:
-`stopBuffer = max(atr × stopAtrMultiplier, dailyAtr × dailyStopAtrMultiplier)`
-(`:256-259`), capped at `atr × maxStopAtrMultiplier` (`:287`), where `atr` is a
-fourteen-bar *intraday* ATR (`:230`). That intraday leg already moves with the
-hours immediately preceding the decision, so the stop is not blind to the
-clock. It is backward-looking about it, which is a far weaker complaint than
-the one this note previously printed as fact.
+numbering. Causality also runs the wrong way for the claim: `riskDistance` is
+an *input* to `buildLadderTargets` (`:396`), fixed at `:319`, before
+`expectedWindowMove` exists.
+
+**On the population this note measures, the stop is one number.** Forex sets
+`maxStopAtrMultiplier: 1.0` (`calibration.ts:442`) while `structuralStop` is
+never nearer than `atr × 1.25` (`:296-304`), so the cap binds on every forex
+row and `riskDistance = atr × 1.0` exactly, with provenance `cap`. The repo
+already records this independently: `docs/trade-model.md:1641` measures forex
+at **100 % cap, 0 % pivot, 0 % volatility floor**. So `stopBuffer`
+(`:256-259`) is computed and discarded here, and describing the stop by it —
+as an earlier version of this passage did, calling both legs intraday when
+`dailyAtr` is a fourteen-**day** ATR — repeats the very error being corrected.
+The forex stop is a single fourteen-bar intraday ATR (`:230`, `bars` being the
+15-minute series, so a trailing ~3.5 hours).
+
+That makes the honest complaint *weaker*, not stronger: the stop already moves
+with the hours immediately before the decision. It is backward-looking about
+them. A decision at 21:45 UTC prices its stop off the liquid overlap and then
+lives into the illiquid window, which is a real defect and a much smaller one
+than "sized for an average day".
 
 **And the driver's own headroom test refutes the reading anyway**
 (`clock-fix-headroom-2026-09-07.txt`).
@@ -157,7 +171,7 @@ optimum is a property of the span, not of the width axis everywhere.
 
 **The round's candidate is the better-founded one, and this note now says so.**
 Gating the hours — a per-market forex `lowEdge` window, using the machinery
-`sessions.ts` already carries for three other classes — addresses an effect
+`sessions.ts` already carries for four other asset types across three code sites (crypto, energies, and futures with indices sharing a block) — addresses an effect
 that survives conditioning on the geometry, in the strongest available form:
 out of span is worse at every stop width. An earlier draft of this note
 recommended fixing the stop clock instead; the driver's own headroom test
@@ -165,8 +179,8 @@ refuted that, and the recommendation is withdrawn.
 
 **What gating still has to answer**, and it is not small: it discards roughly
 77.5 % of forex volume (135,438 of 174,503 fit rows and 42,948 of 55,419
-select rows fall outside a 16:00–21:59 UTC span, counted from the quintile
-tables above; the round reported 81 % for its narrower 16:00–21:00 window);
+select rows fall outside a 16:00–21:59 UTC span, counted from the span table in
+section 2 and the full quintile table in `clock-fix-headroom-2026-09-07.txt`; the round reported 81 % for its narrower 16:00–21:00 window);
 its held-out select bound does not clear zero (+0.0137, lower bound −0.0056);
 it fails the market grain amendment 33 requires on a power argument rather
 than an absence; and the gate cannot presently return a verdict on it at all

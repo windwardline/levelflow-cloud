@@ -2162,9 +2162,17 @@ that `expectedWindowMove = dailyAtr × sqrt(reviewHours × sizingHoursFactor /
 24)` sizes the stop without an hour term, so the fix was to make that clock
 hour-aware. Both halves failed. The formula (`pricePlan.ts:651-654`) caps
 Target 1, ceilings the runner and gates the feasibility refusal; it never
-touches the stop, which is `stopBuffer` (`:256-259`) capped by
-`maxStopDistance` (`:287`), both built on a fourteen-bar INTRADAY ATR that
-already moves with the hours before the decision. And the headroom test
+touches the stop. ON FOREX THE STOP IS ONE NUMBER: `maxStopAtrMultiplier` is
+1.0 (`calibration.ts:442`) against a structural floor never nearer than
+1.25 ATR (`pricePlan.ts:296-304`), so the cap binds on every row and
+`riskDistance = atr × 1.0` exactly — `docs/trade-model.md:1641` independently
+measures forex at 100 % cap, 0 % pivot, 0 % volatility floor. `stopBuffer`
+(`:256-259`) is computed and discarded. That single `atr` is a fourteen-bar
+INTRADAY ATR (`:230`) on the 15-minute series, so the stop already moves with
+the ~3.5 hours before the decision — backward-looking about the clock, not
+blind to it. (An earlier version of this block called both `stopBuffer` legs
+intraday; `dailyAtr` is a fourteen-DAY ATR. Correcting it makes the complaint
+smaller, which is the point.) And the headroom test
 (`docs/research/r3/clock-fix-headroom-2026-09-07.txt`) killed the reading on
 its own terms: within quintiles of relative stop width, out-of-span expectancy
 is worse at EVERY width, the widest out-of-span quintile still trails what the
