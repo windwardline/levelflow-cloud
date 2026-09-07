@@ -25,7 +25,7 @@
  * done with a figure here: nothing that manufactures a ratio.
  *
  *   tsx scripts/banked-fraction.ts <emit.jsonl> [more shards...]
- *     [--folds fit,select] [--variant baseline] [--include-holdout]
+ *     [--folds fit,select] [--variant baseline] [--include-holdout] [--grain class|market]
  *     [--years all|contained|escaping [--witness docs/research/r3/feed-character.txt]]
  *
  * `--years` stratifies by feed character (scripts/feedYears.ts): the year map
@@ -61,7 +61,21 @@ const CONTROL_TOLERANCE = 0.00011;
 /** The outcomes a resolution can carry; anything else never filled and prices nothing. */
 const FILLED_OUTCOMES = new Set(["take_profit", "tp1_partial", "stop_loss", "expired_at_loss", "expired_in_profit", "ambiguous"]);
 
-const VALUE_FLAGS = new Set(["--folds", "--variant", "--years", "--witness"]);
+const VALUE_FLAGS = new Set(["--folds", "--grain", "--variant", "--years", "--witness"]);
+/**
+ * The grain a read is printed at. Amendment 33 is "per market, never per
+ * class": a class value survives only where that market's own data supports
+ * it. The market grain prints every market's own slope and, per class and
+ * fold, how many markets' own data supports the class direction; the
+ * "admissible" verdict is THIS READER's stricter summary of that rule —
+ * every market with an informative slope reads the same sign of Δ_adj — not
+ * the amendment's text. A market whose rows are all without a tp1 leg has
+ * no slope at all (it prices the same at every fraction) and is counted as
+ * flat: it neither supports nor contradicts, and it does not veto. The
+ * class grain is the summary the round read.
+ */
+export const GRAINS = ["class", "market"] as const;
+export type Grain = (typeof GRAINS)[number];
 const BOOLEAN_FLAGS = new Set(["--include-holdout"]);
 
 const IDENTITY_TERMS = [
@@ -159,6 +173,9 @@ export function rFromLegs(input: {
 
 export type FractionCell = {
   assetType: string;
+  /** Set on market-grain cells: the market's own symbol; `heldOut` marks one the verdict pool excludes. */
+  symbol?: string;
+  heldOut?: boolean;
   /** The shipped ladder's TP1 half: ½ × tp1R summed over rows with a tp1 leg. */
   bankedHalf: number;
   bestFraction: number;
@@ -187,6 +204,8 @@ export type FractionCell = {
 
 type RawCell = {
   assetType: string;
+  symbol?: string;
+  heldOut?: boolean;
   bankedHalf: number;
   byFraction: number[];
   byFractionAdjusted: number[];
@@ -203,10 +222,30 @@ type RawCell = {
   tp1Rows: number;
 };
 
+/** Per class and fold at the market grain: how the class's markets read, and whether a class value is admissible (this reader's summary of amendment 33's per-market rule). */
+export type ClassAgreement = {
+  assetType: string;
+  fold: string;
+  markets: number;
+  /** Markets with no slope at all — every row without a tp1 leg — counted, never a vote. */
+  flat: number;
+  /** Markets whose Δ_adj (best f vs ½, slippage-priced) is positive, i.e. read best f ≠ ½. */
+  bestNotHalf: number;
+  bestZero: number;
+  bestOne: number;
+  /** Markets whose R_adj(0) − R_adj(½) is positive / negative. */
+  zeroBeatsHalf: number;
+  halfBeatsZero: number;
+  /** True only when every market with a slope reads the same sign of R_adj(0) − R_adj(½); flat markets do not vote and do not veto. */
+  classValueAdmissible: boolean;
+};
+
 export type FractionSummary = {
+  agreement: Map<string, ClassAgreement>;
   analyzerVersion: string;
   anchor: string;
   cells: Map<string, FractionCell>;
+  grain: Grain;
   corpora: Array<{ manifestHash: string; path: string }>;
   folds: string[];
   holdout: ResolvedHeldOut;
@@ -270,8 +309,10 @@ function declaredFoldNames(manifest: SweepManifest): Set<string> | null {
 
 function derive(raw: RawCell): FractionCell {
   const byFraction = new Map<number, { deltaVsShipped: number; expectancy: number | null; total: number }>();
+  // Ties resolve to the shipped fraction: a cell that prices the same at every
+  // fraction has no preference, and the first candidate must not inherit one.
   let best = SHIPPED_FRACTION;
-  let bestTotal = Number.NEGATIVE_INFINITY;
+  let bestTotal = raw.byFraction[FRACTIONS.indexOf(SHIPPED_FRACTION)];
   FRACTIONS.forEach((fraction, index) => {
     const total = raw.byFraction[index];
     byFraction.set(fraction, {
@@ -287,7 +328,7 @@ function derive(raw: RawCell): FractionCell {
   const byFractionAdjusted = new Map<number, { deltaVsShipped: number; total: number }>();
   const shippedAdjusted = raw.byFractionAdjusted[FRACTIONS.indexOf(SHIPPED_FRACTION)];
   let bestAdjusted = SHIPPED_FRACTION;
-  let bestAdjustedTotal = Number.NEGATIVE_INFINITY;
+  let bestAdjustedTotal = shippedAdjusted;
   FRACTIONS.forEach((fraction, index) => {
     const total = raw.byFractionAdjusted[index];
     byFractionAdjusted.set(fraction, { deltaVsShipped: total - shippedAdjusted, total });
@@ -298,6 +339,7 @@ function derive(raw: RawCell): FractionCell {
   });
   return {
     assetType: raw.assetType,
+    ...(raw.symbol !== undefined && { symbol: raw.symbol, heldOut: Boolean(raw.heldOut) }),
     bankedHalf: raw.bankedHalf,
     bestFraction: best,
     bestFractionAdjusted: bestAdjusted,
@@ -319,6 +361,7 @@ function derive(raw: RawCell): FractionCell {
 
 export async function bankedFraction(input: {
   folds: string[];
+  grain?: Grain;
   holdoutPinDir?: string;
   includeHoldout?: boolean;
   paths: string[];
@@ -378,7 +421,10 @@ export async function bankedFraction(input: {
     }
   }
   const raw = new Map<string, RawCell>();
+  const grain: Grain = input.grain ?? "class";
   const summary: FractionSummary = {
+    agreement: new Map(),
+    grain,
     analyzerVersion: manifests[0].analyzerVersion,
     anchor: manifests[0].anchor,
     cells: new Map(),
@@ -495,10 +541,16 @@ export async function bankedFraction(input: {
         }
         sameBar = exitTime === tp1Time;
       }
-      for (const key of [`${assetType}|${split}`, `pooled|${split}`]) {
+      const keys = [`${assetType}|${split}`, `pooled|${split}`];
+      if (grain === "market") keys.push(`${symbol}|${split}`);
+      for (const key of keys) {
         let cell = raw.get(key);
         if (!cell) {
           cell = rawCell(key.startsWith("pooled|") ? "pooled" : assetType, split);
+          if (key === `${symbol}|${split}`) {
+            cell.symbol = symbol;
+            cell.heldOut = holdout.markets.includes(symbol);
+          }
           raw.set(key, cell);
         }
         cell.filled += 1;
@@ -535,6 +587,36 @@ export async function bankedFraction(input: {
   }
   for (const [key, cell] of [...raw.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     summary.cells.set(key, derive(cell));
+  }
+  if (grain === "market") {
+    for (const cell of summary.cells.values()) {
+      if (cell.symbol === undefined || cell.heldOut) continue;
+      const key = `${cell.assetType}|${cell.fold}`;
+      let agreement = summary.agreement.get(key);
+      if (!agreement) {
+        agreement = { assetType: cell.assetType, bestNotHalf: 0, bestOne: 0, bestZero: 0, classValueAdmissible: false, flat: 0, fold: cell.fold, halfBeatsZero: 0, markets: 0, zeroBeatsHalf: 0 };
+        summary.agreement.set(key, agreement);
+      }
+      agreement.markets += 1;
+      const zeroVsHalf = cell.byFractionAdjusted.get(0)!.deltaVsShipped;
+      if (zeroVsHalf > 0) agreement.zeroBeatsHalf += 1;
+      else if (zeroVsHalf < 0) agreement.halfBeatsZero += 1;
+      else {
+        // No slope: every row without a tp1 leg. Not a vote either way.
+        agreement.flat += 1;
+        continue;
+      }
+      if (cell.bestFractionAdjusted !== SHIPPED_FRACTION) agreement.bestNotHalf += 1;
+      if (cell.bestFractionAdjusted === 0) agreement.bestZero += 1;
+      if (cell.bestFractionAdjusted === 1) agreement.bestOne += 1;
+    }
+    for (const agreement of summary.agreement.values()) {
+      // This reader's summary of amendment 33's per-market rule: every market WITH a slope reads the same
+      // sign, slippage-priced; a flat market neither supports nor contradicts, so it does not veto.
+      const voting = agreement.markets - agreement.flat;
+      agreement.classValueAdmissible = voting > 0 &&
+        (agreement.zeroBeatsHalf === voting || agreement.halfBeatsZero === voting);
+    }
   }
   return summary;
 }
@@ -585,7 +667,8 @@ export function formatBankedFraction(summary: FractionSummary): string {
     );
     lines.push(`| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ${FRACTIONS.map(() => "---:").join(" | ")} | ---: | ---: |`);
     for (const [key, cell] of summary.cells) {
-      if (cell.fold !== fold) continue;
+      // The class tables print class and pooled cells only; a market cell has its own table below.
+      if (cell.fold !== fold || cell.symbol !== undefined) continue;
       const best = cell.byFraction.get(cell.bestFraction)!;
       lines.push(
         `| ${key.startsWith("pooled|") ? "**pooled**" : cell.assetType} | ${cell.filled} | ${cell.tp1Rows} | ${cell.noTp1Rows} | ${fmt(cell.shippedTotal)} | ${fmt(cell.bankedHalf)} | ${fmt(cell.runnerHalf)} | ${fmt(-cell.costTotal)} | ${fmt(cell.noTp1Total)} | ${FRACTIONS.map((fraction) => fmt(cell.byFraction.get(fraction)!.total)).join(" | ")} | ${cell.bestFraction} | ${fmt(best.deltaVsShipped)} |`,
@@ -598,11 +681,38 @@ export function formatBankedFraction(summary: FractionSummary): string {
     );
     lines.push(`| --- | ---: | ---: | ---: | ${FRACTIONS.map(() => "---:").join(" | ")} | ---: | ---: | ---: | ---: |`);
     for (const [key, cell] of summary.cells) {
-      if (cell.fold !== fold) continue;
+      if (cell.fold !== fold || cell.symbol !== undefined) continue;
       const bestAdjusted = cell.byFractionAdjusted.get(cell.bestFractionAdjusted)!;
       lines.push(
         `| ${key.startsWith("pooled|") ? "**pooled**" : cell.assetType} | ${cell.tp1Rows} | ${cell.stopPrintRows} | ${fmt(cell.slippageTotal)} | ${FRACTIONS.map((fraction) => fmt(cell.byFractionAdjusted.get(fraction)!.total)).join(" | ")} | ${cell.bestFractionAdjusted} | ${fmt(bestAdjusted.deltaVsShipped)} | ${share(cell.sameBar.lockSameBar, cell.sameBar.lockRows)} | ${share(cell.sameBar.takeProfitSameBar, cell.sameBar.takeProfitRows)} |`,
       );
+    }
+    if (summary.grain === "market") {
+      lines.push("");
+      lines.push(`--- ${fold} · per market (amendment 33: per market, never per class) ---`);
+      lines.push(
+        `| class | market | held out | filled | tp1 rows | R(½) | R(0) | R(1) | best f | Δ best vs ½ | stop prints | S | ${FRACTIONS.map((fraction) => `R_adj(${fraction})`).join(" | ")} | best f (adj) | Δ_adj best vs ½ | lock exits same-bar |`,
+      );
+      lines.push(`| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ${FRACTIONS.map(() => "---:").join(" | ")} | ---: | ---: | ---: |`);
+      const markets = [...summary.cells.values()]
+        .filter((cell) => cell.fold === fold && cell.symbol !== undefined)
+        .sort((a, b) => a.assetType.localeCompare(b.assetType) || a.symbol!.localeCompare(b.symbol!));
+      for (const cell of markets) {
+        const best = cell.byFraction.get(cell.bestFraction)!;
+        const bestAdjusted = cell.byFractionAdjusted.get(cell.bestFractionAdjusted)!;
+        lines.push(
+          `| ${cell.assetType} | ${cell.symbol} | ${cell.heldOut ? "yes" : "no"} | ${cell.filled} | ${cell.tp1Rows} | ${fmt(cell.shippedTotal)} | ${fmt(cell.byFraction.get(0)!.total)} | ${fmt(cell.byFraction.get(1)!.total)} | ${cell.bestFraction} | ${fmt(best.deltaVsShipped)} | ${cell.stopPrintRows} | ${fmt(cell.slippageTotal)} | ${FRACTIONS.map((fraction) => fmt(cell.byFractionAdjusted.get(fraction)!.total)).join(" | ")} | ${cell.bestFractionAdjusted} | ${fmt(bestAdjusted.deltaVsShipped)} | ${share(cell.sameBar.lockSameBar, cell.sameBar.lockRows)} |`,
+        );
+      }
+      lines.push("");
+      lines.push(`--- ${fold} · class value admissible? (this reader's summary of amendment 33's per-market rule: every market with a slope reads the same sign of R_adj(0) − R_adj(½); a flat market has no tp1 rows and does not vote) ---`);
+      lines.push("| class | markets | flat | R_adj(0) > R_adj(½) | R_adj(½) > R_adj(0) | best f (adj) = 0 | = 1 | ≠ ½ | class value admissible |");
+      lines.push("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |");
+      for (const agreement of [...summary.agreement.values()].filter((entry) => entry.fold === fold).sort((a, b) => a.assetType.localeCompare(b.assetType))) {
+        lines.push(
+          `| ${agreement.assetType} | ${agreement.markets} | ${agreement.flat} | ${agreement.zeroBeatsHalf} | ${agreement.halfBeatsZero} | ${agreement.bestZero} | ${agreement.bestOne} | ${agreement.bestNotHalf} | ${agreement.classValueAdmissible ? "yes" : "NO"} |`,
+        );
+      }
     }
   }
   return lines.join("\n");
@@ -639,7 +749,11 @@ async function main(): Promise<void> {
   if (yearsArg !== "all" && yearsArg !== "contained" && yearsArg !== "escaping") {
     throw new OperatorInputError(`--years must be all, contained or escaping — got "${yearsArg}"`);
   }
-  const summary = await bankedFraction({ folds, includeHoldout, paths, variant, witnessTablePath: str("--witness") ?? undefined, years: yearsArg });
+  const grainArg = str("--grain") ?? "class";
+  if (!(GRAINS as readonly string[]).includes(grainArg)) {
+    throw new OperatorInputError(`--grain must be one of ${GRAINS.join(", ")} — got "${grainArg}"`);
+  }
+  const summary = await bankedFraction({ folds, grain: grainArg as Grain, includeHoldout, paths, variant, witnessTablePath: str("--witness") ?? undefined, years: yearsArg });
   console.log(formatBankedFraction(summary));
 }
 

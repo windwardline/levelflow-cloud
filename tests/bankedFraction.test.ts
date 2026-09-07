@@ -12,7 +12,7 @@ import {
 } from "../scripts/sweepManifest.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
-import { bankedFraction, formatBankedFraction, FRACTIONS, parseFolds, rFromLegs, SEALED_FOLD, stopPrintSlippage } from "../scripts/banked-fraction.ts";
+import { bankedFraction, formatBankedFraction, FRACTIONS, GRAINS, parseFolds, rFromLegs, SEALED_FOLD, stopPrintSlippage } from "../scripts/banked-fraction.ts";
 
 /**
  * The banked fraction is the literal 0.5 in `realizedRFromLegs` — the R2b
@@ -459,6 +459,125 @@ describe("slippage-priced and same-bar", () => {
     // The helper's own refusal surfaces through the reader with the corpus path and the row named.
     const noKind = slipRows().slice(0, 1).map((entry) => ({ ...entry, legs: (entry.legs as Row[]).map((leg) => (leg.leg === "exit" ? { ...leg, kind: undefined } : leg)) }));
     await assert.rejects(read([writeCorpus(noKind)], { folds: ["fit"] }), /shard\.jsonl: EURUSD tp1_partial row — a tp1 row's exit leg names no kind/);
+  });
+});
+
+/**
+ * The market grain (amendment 33). From the fixture, per fold and market:
+ *
+ *   EURUSD  A + B + C + D + H = 0.4f + (1.6 − 1.2f) − 1 + (0.1 + 0.4f) + 0.5f = 0.7 + 0.1f  -> best f 1
+ *   GBPUSD  G = 2 − 1.5f                                                                     -> best f 0
+ *   XAUUSD  −1 + (0.4 + 0.4f) = −0.6 + 0.4f                                                  -> best f 1
+ *
+ * The forex CLASS reads 2.7 − 1.4f, best f 0 — a class value one of its two
+ * markets contradicts: inadmissible. Metals is one market: admissible.
+ * NZDCHF is held out: it gets a market cell only under --include-holdout,
+ * flagged, and never enters the agreement count.
+ */
+describe("the market grain — per market, never per class (amendment 33)", () => {
+  it("names the grains", () => {
+    assert.deepEqual([...GRAINS], ["class", "market"]);
+  });
+
+  it("prints every market's own slope and refuses a class value its markets contradict, hand-computed", async () => {
+    const summary = await read([writeCorpus(fixtureRows())], { grain: "market" });
+    assert.equal(summary.grain, "market");
+    const eur = summary.cells.get("EURUSD|fit")!;
+    assert.equal(eur.symbol, "EURUSD");
+    assert.equal(eur.heldOut, false);
+    near(eur.byFraction.get(0)!.total, 0.7);
+    near(eur.byFraction.get(1)!.total, 0.8);
+    assert.equal(eur.bestFraction, 1);
+    const gbp = summary.cells.get("GBPUSD|fit")!;
+    near(gbp.byFraction.get(0)!.total, 2);
+    assert.equal(gbp.bestFraction, 0);
+    const xau = summary.cells.get("XAUUSD|fit")!;
+    near(xau.byFraction.get(0)!.total, -0.6);
+    assert.equal(xau.bestFraction, 1);
+    assert.equal(summary.cells.has("NZDCHF|fit"), false);
+    // The class cells are still there and still read as before.
+    near(summary.cells.get("forex|fit")!.byFraction.get(0)!.total, 2.7);
+    assert.equal(summary.cells.get("forex|fit")!.symbol, undefined);
+    const forex = summary.agreement.get("forex|fit")!;
+    assert.deepEqual(
+      { admissible: forex.classValueAdmissible, bestOne: forex.bestOne, bestZero: forex.bestZero, half: forex.halfBeatsZero, markets: forex.markets, zero: forex.zeroBeatsHalf },
+      { admissible: false, bestOne: 1, bestZero: 1, half: 1, markets: 2, zero: 1 },
+    );
+    const metals = summary.agreement.get("metals|fit")!;
+    assert.deepEqual([metals.markets, metals.halfBeatsZero, metals.classValueAdmissible], [1, 1, true]);
+    const text = formatBankedFraction(summary);
+    // The class tables carry class and pooled rows only: one forex row per class table, the markets in their own table.
+    const fitMain = text.slice(text.indexOf("=== FIT ==="), text.indexOf("--- fit · slippage-priced"));
+    assert.equal((fitMain.match(/^\| forex \|/gm) ?? []).length, 1);
+    const fitSlip = text.slice(text.indexOf("--- fit · slippage-priced"), text.indexOf("--- fit · per market"));
+    assert.equal((fitSlip.match(/^\| forex \|/gm) ?? []).length, 1);
+    assert.match(text, /--- fit · per market \(amendment 33: per market, never per class\) ---/);
+    assert.match(text, /\| forex \| EURUSD \| no \| 5 \| 4 \| 0\.8 \| 0\.7 \| 0\.8 \| 1 \| 0\.1 \|/);
+    assert.match(text, /\| forex \| 2 \| 0 \| 1 \| 1 \| 1 \| 1 \| 2 \| NO \|/);
+    assert.match(text, /\| metals \| 1 \| 0 \| 0 \| 1 \| 0 \| 1 \| 1 \| yes \|/);
+  });
+
+  it("a market with no tp1 rows has no slope: it prefers the shipped fraction, counts as flat, and neither votes nor vetoes", async () => {
+    // USDJPY: two stops, no tp1 leg — the same price at every fraction. Forex's other two markets disagree, so the
+    // class stays inadmissible; metals gains a flat market and stays admissible on its one voting market.
+    let index = 500;
+    const rows = fixtureRows().concat([
+      row({ exit: 99, index: index++, outcome: "stop_loss", split: "fit", symbol: "USDJPY" }),
+      row({ exit: 99, index: index++, outcome: "stop_loss", split: "fit", symbol: "USDJPY" }),
+      row({ exit: 99, index: index++, outcome: "stop_loss", split: "fit", symbol: "XAGUSD" }),
+    ]);
+    const summary = await read([writeCorpus(rows)], { folds: ["fit"], grain: "market" });
+    const jpy = summary.cells.get("USDJPY|fit")!;
+    assert.equal(jpy.tp1Rows, 0);
+    assert.equal(jpy.bestFraction, 0.5);
+    assert.equal(jpy.bestFractionAdjusted, 0.5);
+    near(jpy.byFractionAdjusted.get(0)!.deltaVsShipped, 0);
+    const forex = summary.agreement.get("forex|fit")!;
+    assert.deepEqual([forex.markets, forex.flat, forex.zeroBeatsHalf, forex.halfBeatsZero, forex.bestZero, forex.bestOne, forex.classValueAdmissible], [3, 1, 1, 1, 1, 1, false]);
+    const metals = summary.agreement.get("metals|fit")!;
+    assert.deepEqual([metals.markets, metals.flat, metals.halfBeatsZero, metals.classValueAdmissible], [2, 1, 1, true]);
+    assert.match(formatBankedFraction(summary), /\| forex \| USDJPY \| no \| 2 \| 0 \| -2\.0 \| -2\.0 \| -2\.0 \| 0\.5 \| 0\.0 \|/);
+  });
+
+  it("counts the sign on the slippage-priced slope, not the raw one — a market the stop's slippage flips reads for ½", async () => {
+    // EURUSD fit: a lock print AT its level with slippage .2 (R(f) = 0.4, raw Δ 0, charged), and a take_profit
+    // exit 100.5 (R(f) = 0.5 − 0.1f, raw Δ(0 vs ½) +0.05). Raw: 0 beats ½ by 0.05. Slippage-priced:
+    // R_adj(0) − R_adj(½) = 0.05 − 0.1 = −0.05, so ½ beats 0 and the class value (one market) is admissible on that sign.
+    let index = 0;
+    const rows = [
+      row({ exit: 100.4, index: index++, outcome: "tp1_partial", sameBar: true, slippage: 0.2, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
+      row({ exit: 100.5, index: index++, outcome: "take_profit", slippage: 0.2, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
+    ];
+    const summary = await read([writeCorpus(rows)], { folds: ["fit"], grain: "market" });
+    const eur = summary.cells.get("EURUSD|fit")!;
+    near(eur.byFraction.get(0)!.deltaVsShipped, 0.05);
+    near(eur.byFractionAdjusted.get(0)!.deltaVsShipped, -0.05);
+    const forex = summary.agreement.get("forex|fit")!;
+    assert.deepEqual([forex.markets, forex.zeroBeatsHalf, forex.halfBeatsZero, forex.classValueAdmissible], [1, 0, 1, true]);
+  });
+
+  it("a held-out market gets a flagged cell under --include-holdout and never enters the agreement", async () => {
+    const summary = await read([writeCorpus(fixtureRows())], { grain: "market", includeHoldout: true });
+    const nzd = summary.cells.get("NZDCHF|fit")!;
+    assert.equal(nzd.heldOut, true);
+    assert.equal(nzd.filled, 1);
+    assert.equal(summary.agreement.get("forex|fit")!.markets, 2);
+    assert.match(formatBankedFraction(summary), /\| forex \| NZDCHF \| yes \| 1 \|/);
+  });
+
+  it("the class grain prints no market cells and no agreement, and the CLI refuses an unknown grain", async () => {
+    const summary = await read([writeCorpus(fixtureRows())]);
+    assert.equal(summary.grain, "class");
+    assert.equal([...summary.cells.values()].some((cell) => cell.symbol !== undefined), false);
+    assert.equal(summary.agreement.size, 0);
+    assert.doesNotMatch(formatBankedFraction(summary), /per market/);
+    const path = writeCorpus(fixtureRows());
+    assert.throws(
+      () => execFileSync(TSX, [READER, path, "--grain", "symbol"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }),
+      /--grain must be one of class, market/,
+    );
+    const out = execFileSync(TSX, [READER, path, "--grain", "market"], { encoding: "utf8" });
+    assert.match(out, /class value admissible/);
   });
 });
 
