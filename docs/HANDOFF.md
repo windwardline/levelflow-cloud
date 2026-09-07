@@ -2079,6 +2079,48 @@ year before it gates anything (the reversion edge runs mid-2024).
 **Correction to the driver's own writing:** amendment 36 governs withdrawal
 only; "it runs both ways" was an extension, not text.
 
+**THE COST AXIS, MEASURED AND RE-FRAMED (2026-09-07) — `cost-axis-2026-09-07.md`.**
+The question the desk's unparking turns on, answered: **on data we trust, no
+configuration of this engine earns money.** Swept over eight classes and nine
+cap values on contained rows, D4 accepts no class cell at any cap; its
+earns-money term is positive in 3 of 72 cells, all thin.
+
+**What the "cost cap" is.** In forex `estimatedRoundTripCost` is 1.17 bps of
+price on 99.624 % of 229,922 contained rows, so `cost/riskDistance ≤ cap` is
+algebraically a MINIMUM RELATIVE STOP WIDTH (7.8 bps of price at the shipped
+0.15, 11.7 at 0.10) and the two rules classify ZERO rows differently at any
+swept cap (`cost-is-constant-2026-09-07.txt`). The lever is stop width, not
+cost — and it agrees with the stop-cap arm, which found tightening
+`maxStopAtrMultiplier` destructive (−3,114.2 R fit, −2,994.5 R select at 1.5).
+Two knobs, one finding: **on clean data forex's stops are too tight.**
+
+**The money, decomposed (measured here).** 0.15 → 0.10 is +651.1 R fit /
++679.4 R select. A same-size null drawn from the stream the shipped cap
+already keeps takes +329.9 R of the select figure as the arithmetic of trading
+34 % less of a losing stream, leaving +349.4 R of genuine discrimination
+(z +5.33); fit's discrimination is +723.1 R (z +7.84)
+(`tighten-decompose-2026-09-07.txt`). On the escaping select rows the same
+tightening COSTS −549.9 R, and the contained fit fold has no escaping rows —
+so the clean evidence is a 2009–2020 statement. From the round, not
+re-measured here: the holdout exclusion is not the driver (+1,571.2 R with 28
+markets), the delta is not noise under any clustering grain, and the month
+grain removes 1.58 % and leaves the deltas.
+
+**Corrections the round forced on the first draft:** the direction is NOT
+monotone on both folds (select is; fit peaks at 0.10, so the evidence names a
+direction and not the value 0.10); D4 has no fit-fold expectancy term
+(`grid-totalr.ts:918` is the select fold alone) and accepts nothing at any
+cap; at 0.05 zero of 74 markets pass the gate's own thin floor; and the stop
+axis is NON-MONOTONIC rather than "wider is better" — tightening
+`maxStopAtrMultiplier` to 1.5 is destructive while round 2 found 8 negative in
+every clean year, with forex shipping 4 between them. A second review caught
+that the first draft carried the round's figures as if they were the driver's;
+provenance is now marked figure by figure.
+
+**Nothing ships**: the evidence names a direction, not a value. The stop-width
+direction goes into the next calendar's pre-registration at the market grain.
+The constraint is gross edge, which no admission rule or stop floor creates.
+
 **Work still due, in order:** (1) the round-1 follow-ups (§0 of the design;
 the slippage-priced and same-bar-aware `banked-fraction` and the by-money
 `payoff-decomposition` landed in the change set after #592, tracked tables
