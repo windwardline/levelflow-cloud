@@ -3,6 +3,7 @@ import { Check, Copy, XCircle } from "lucide-react";
 import { adjustedEntryFor, getBrokerOffset } from "../../lib/broker/offsets";
 import { sizeSetup, sizeUnitFor } from "../../lib/broker/sizing";
 import { activeAccountOf, type UserProfile } from "../../lib/profile";
+import { ladderInstruction } from "../../lib/protectionCopy";
 import { formatSecurityLabel, type SupportedSymbol } from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
 import { HowThisWorksLink } from "./HowThisWorksLink";
@@ -10,11 +11,9 @@ import { SetupQualityReceipt } from "./SetupQualityReceipt";
 import { formatStrategyName, uniqueReviewMessages } from "./reviewCopy";
 import { formatCopyValue, formatNumber } from "./advisorFormat";
 
-// Spec §7, verbatim, load-bearing: the exact wording the design authority
-// signed off on. Render it as-is everywhere the ladder values appear —
-// never paraphrase it, even to shorten a line.
-const LADDER_TARGET_INSTRUCTION =
-  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — the banked half is yours either way.";
+// Spec §7 (amendment 42), verbatim, load-bearing: the two-target sentence is
+// the stamped protection mode's — src/lib/protectionCopy.ts owns the three
+// and the setup's risk_model says which. Rendered as-is, never paraphrased.
 
 // The basis line (owner ruling, amendment 23's offset extension, 2026-08-05,
 // docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md). XAGUSD and
@@ -275,7 +274,7 @@ export function RecommendationPanel({
           {hasLadder
             ? (
               <p className="mt-3 border-t border-hairline pt-2.5 text-xs leading-5 text-ink-muted lg:mt-2 lg:pt-2">
-                {LADDER_TARGET_INSTRUCTION}{" "}
+                {ladderInstruction(setup.riskModel)}{" "}
                 <HowThisWorksLink anchor="targets-and-stops" />
               </p>
             )

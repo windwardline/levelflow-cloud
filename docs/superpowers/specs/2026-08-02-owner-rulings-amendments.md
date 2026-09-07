@@ -2304,3 +2304,34 @@ tree are sentence fragments, and requiring a complete sentence excludes them
 without naming any. Validated against the case that produced it: with amendment
 41 removed from the corpus, the detector fires on line 34 of the old file and on
 nothing else.
+
+## Amendment 42 — the desk instructs the stop rule the market is graded under (owner ruling, 2026-09-07)
+
+**The copy renders the stamped runner protection, per market.** After
+Target 1 a setup tells the operator one of three things, the one its
+market is graded under (`risk_model.runnerProtection`, E7's decision-time
+stamp): move your stop to your entry (breakeven), move your stop to
+Target 1 (trail_tp1), or leave your stop where it is (hold). The three
+sentences are §7's canonical instruction, one per mode, verbatim and
+load-bearing; the Guide's callout teaches all three and its glossary
+carries a term for each. An unstamped row — one that predates the stamp —
+reads breakeven, because both live writers graded every such row under
+the resolver's breakeven fallback: the physics it was graded under, not a
+guess. A stamped mode the desk has no sentence for is a defect, never a
+fallback.
+
+**Why.** Amendment 34: the Guide tells the measured truth and the copy
+moves with the engine. Until this ruling the desk told every operator to
+move the stop to entry while the calibration grades most markets under
+trail_tp1 — on the corpus of record, forex's select fold, the instructed
+path reads −1,640.8 R against the graded path's +1,603.8 R on the same
+78,932 fills, a 3,244.6 R divergence (`docs/research/r3/protection-gap-2026-09-06.log`;
+round 1 of the banked-share design, seven refuters converging). An
+operator who followed the words lost trades the record calls winners.
+
+**What it does not do.** No engine change, no version bump: the resolver
+and the register are untouched; the words now say what they do. Approved
+under the owner's standing approval of recommendations that survived
+adversarial review (2026-09-07), recorded here as law; §7 and the
+guide-content spec carry the three sentences.
+

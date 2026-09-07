@@ -211,41 +211,44 @@ describe("§17c — the record never frames a result as a claim about the user",
 });
 
 // Spec §7's two-target instruction is verbatim and load-bearing: the exact
-// wording the design authority signed off on, not a paraphrase. Pin it
-// against the rendered source the same way the plain-language scan above
-// pins banned words, so a future copy edit that reworks the sentence (even
-// with equivalent meaning) fails loudly instead of drifting silently.
-const CANONICAL_LADDER_INSTRUCTION =
-  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — the banked half is yours either way.";
+// wording the design authority signed off on, not a paraphrase — and since
+// amendment 42 (2026-09-07) it is three sentences, one per stamped runner
+// protection, because the desk instructs the physics each market is graded
+// under. The sentences live in ONE module; the ladder card, the open trade
+// state and the Guide read them from it rather than carrying a copy that
+// could drift. Pinned against the source the same way the plain-language
+// scan above pins banned words.
+const CANONICAL_LADDER_INSTRUCTIONS = {
+  breakeven:
+    "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — the banked half is yours either way.",
+  hold:
+    "Set your take-profit at Target 2. When price reaches Target 1, close half and leave your stop where it is — the banked half is yours either way.",
+  trail_tp1:
+    "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to Target 1 — the banked half is yours either way.",
+};
 
-describe("canonical ladder instruction (spec §7)", () => {
-  it("renders the exact two-target sentence in AdvisorRecommendationPanel, verbatim", () => {
-    const source = readFileSync(
+describe("canonical ladder instructions (spec §7, amendment 42)", () => {
+  it("carries the three sentences verbatim in src/lib/protectionCopy.ts, and nowhere else as a literal", () => {
+    const source = readFileSync("src/lib/protectionCopy.ts", "utf8");
+    for (const sentence of Object.values(CANONICAL_LADDER_INSTRUCTIONS)) {
+      assert.ok(source.includes(sentence), `protectionCopy.ts must carry: ${sentence}`);
+    }
+    for (const file of [
       "src/components/workspace/AdvisorRecommendationPanel.tsx",
-      "utf8",
-    );
-    assert.ok(
-      source.includes(CANONICAL_LADDER_INSTRUCTION),
-      "AdvisorRecommendationPanel.tsx must render spec §7's canonical " +
-        "take-profit/bank-half instruction verbatim",
-    );
+      "src/components/workspace/GuidePanel.tsx",
+      "src/lib/tradeState.ts",
+    ]) {
+      const site = readFileSync(file, "utf8");
+      for (const sentence of Object.values(CANONICAL_LADDER_INSTRUCTIONS)) {
+        assert.ok(!site.includes(sentence), `${file} must read the sentence from protectionCopy.ts, not carry its own copy`);
+      }
+    }
   });
 
-  // Task 9: the Guide deck (docs/superpowers/specs/
-  // 2026-07-30-levelflow-guide-content.md §3) features this same sentence
-  // as its accent callout — the third of the three places this exact
-  // string is now pinned, alongside tradeState.ts's open-pre-Target-1
-  // state (tests/tradeState.test.ts).
-  it("renders the exact two-target sentence in GuidePanel's §3 callout, verbatim", () => {
-    const source = readFileSync(
-      "src/components/workspace/GuidePanel.tsx",
-      "utf8",
-    );
-    assert.ok(
-      source.includes(CANONICAL_LADDER_INSTRUCTION),
-      "GuidePanel.tsx must render spec §7/§3's canonical take-profit/" +
-        "bank-half instruction verbatim",
-    );
+  it("the ladder card and the open trade state render the stamped mode's sentence, and the Guide teaches all three", () => {
+    assert.match(readFileSync("src/components/workspace/AdvisorRecommendationPanel.tsx", "utf8"), /ladderInstruction\(setup\.riskModel\)/);
+    assert.match(readFileSync("src/lib/tradeState.ts", "utf8"), /ladderInstruction\(setup\.risk_model\)/);
+    assert.match(readFileSync("src/components/workspace/GuidePanel.tsx", "utf8"), /RUNNER_PROTECTIONS\.map\(\(mode\) => \(/);
   });
 });
 

@@ -68,8 +68,9 @@ describe("the basis line (owner ruling, amendment 23's offset extension, 2026-08
     // other precomputed values like `hasLadder`/`rewardRisk`): the JSX
     // block that actually places the line in the ladder's register.
     const renderBlockIndex = source.indexOf("{basisLine\n");
+    // Amendment 42: the card renders the stamped mode's sentence from protectionCopy.
     const ladderInstructionBlockIndex = source.indexOf(
-      "{LADDER_TARGET_INSTRUCTION}",
+      "{ladderInstruction(setup.riskModel)}",
     );
     const correlationBlockIndex = source.indexOf("setup.correlationGroup");
     for (

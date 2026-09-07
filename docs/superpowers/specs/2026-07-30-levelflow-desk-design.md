@@ -112,9 +112,18 @@ hardcode.
   (`AdvisorRecommendationPanel.tsx:153` today).
 - Labels: "Target 1 · bank half", "Target 2 · take-profit".
 - **Canonical instruction, verbatim, everywhere the values appear**
-  (desk ladder, mobile review, guide): "Set your take-profit at Target 2.
-  When price reaches Target 1, close half and move your stop to your
-  entry — the banked half is yours either way."
+  (desk ladder, mobile review, guide) — since amendment 42 (2026-09-07)
+  it is the stamped runner protection's sentence, one of three:
+  breakeven — "Set your take-profit at Target 2. When price reaches
+  Target 1, close half and move your stop to your entry — the banked
+  half is yours either way."; trail_tp1 — "Set your take-profit at
+  Target 2. When price reaches Target 1, close half and move your stop
+  to Target 1 — the banked half is yours either way."; hold — "Set your
+  take-profit at Target 2. When price reaches Target 1, close half and
+  leave your stop where it is — the banked half is yours either way."
+  A setup renders the one its market is graded under
+  (`risk_model.runnerProtection`); an unstamped row reads breakeven,
+  the physics it was graded under.
 
 ## 8. Current trades (right rail / Trades tab)
 
@@ -227,8 +236,10 @@ about showing availability.
 
 - **Guide**: sticky left anchor TOC (existing six-anchor set), editorial
   article column; the canonical instruction (§7) featured as an accent
-  callout; a "what the words mean here" definition list including Bank
-  half / Move your stop to your entry / Pending. Existing GuidePanel
+  callout (all three sentences since amendment 42); a "what the words
+  mean here" definition list including Bank half / Move your stop to
+  your entry / Move your stop to Target 1 / Leave your stop where it is
+  / Pending. Existing GuidePanel
   teaching allowlist carries over.
 - **The About tab is retired.** Its relevant, non-redundant content MUST
   be absorbed into Guide (checklist, from OverviewPanel.tsx): limit

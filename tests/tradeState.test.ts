@@ -11,6 +11,10 @@ import type { TradeSetupRow } from "../src/lib/tradeAnalyzer";
 // reuses this exact wording rather than a paraphrase.
 const CANONICAL_LADDER_INSTRUCTION =
   "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — the banked half is yours either way.";
+const TRAIL_TP1_LADDER_INSTRUCTION =
+  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to Target 1 — the banked half is yours either way.";
+const HOLD_LADDER_INSTRUCTION =
+  "Set your take-profit at Target 2. When price reaches Target 1, close half and leave your stop where it is — the banked half is yours either way.";
 
 const NOW = new Date("2026-07-30T12:00:00.000Z");
 
@@ -186,6 +190,33 @@ describe("deriveTradeState — open, pre-Target-1 (spec §8)", () => {
       status: "open",
       tp1Banked: false,
     });
+  });
+
+  // Amendment 42: the sentence is the stamped mode's. An unstamped row predates E7 and was graded
+  // under the resolver's breakeven fallback, so breakeven is its truthful instruction (the case above).
+  it("renders the stamped runner protection's sentence — trail_tp1 and hold — and refuses a mode it has no words for", () => {
+    const open = (risk_model: Record<string, unknown> | null) =>
+      deriveTradeState(
+        buildSetup({ risk_model, status: "placed", trade_outcomes: [buildOutcome({ feedback: { tp1Hit: false } })] }),
+        NOW,
+      )?.instruction;
+    assert.equal(open({ runnerProtection: "trail_tp1" }), TRAIL_TP1_LADDER_INSTRUCTION);
+    assert.equal(open({ runnerProtection: "hold" }), HOLD_LADDER_INSTRUCTION);
+    assert.equal(open({ runnerProtection: "breakeven" }), CANONICAL_LADDER_INSTRUCTION);
+    assert.equal(open({ reviewWindowHours: 24 }), CANONICAL_LADDER_INSTRUCTION);
+    assert.throws(() => open({ runnerProtection: "trail_target" }), /has no desk instruction/);
+  });
+
+  it("after Target 1 the stop instruction names the level the stamped mode moves it to — entry, Target 1, or leaves it", () => {
+    const after = (risk_model: Record<string, unknown> | null) =>
+      deriveTradeState(
+        buildSetup({ limit_entry: 1.0865, risk_model, status: "placed", stop_loss: 1.08, take_profit_1: 1.0905, trade_outcomes: [buildOutcome({ feedback: { tp1Hit: true } })] }),
+        NOW,
+      )?.instruction;
+    assert.equal(after({ runnerProtection: "breakeven" }), `Target 1 hit — bank half, move stop to ${formattedPrice(1.0865)}`);
+    assert.equal(after({ runnerProtection: "trail_tp1" }), `Target 1 hit — bank half, move stop to ${formattedPrice(1.0905)}`);
+    assert.equal(after({ runnerProtection: "hold" }), `Target 1 hit — bank half, leave stop at ${formattedPrice(1.08)}`);
+    assert.equal(after(null), `Target 1 hit — bank half, move stop to ${formattedPrice(1.0865)}`);
   });
 
   it("carries feedback.realizedR through as progressR when the engine already has one", () => {

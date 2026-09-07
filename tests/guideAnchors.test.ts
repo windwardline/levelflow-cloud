@@ -192,21 +192,17 @@ describe("the Guide renders the deck verbatim (Task 9)", () => {
     assert.match(guideSource, /<dd\b/);
   });
 
-  it("§10's definition list carries all six vocabulary terms spec §11 names", () => {
-    for (
-      const term of [
-        "Bank half",
-        "Move your stop to your entry",
-        "Pending",
-        "Payoff",
-        "Money-positive",
-        "R",
-      ]
-    ) {
+  it("§10's definition list carries all six vocabulary terms spec §11 names — the stop rules through protectionCopy's three terms (amendment 42)", () => {
+    for (const term of ["Bank half", "Pending", "Payoff", "Money-positive", "R"]) {
       assert.ok(
         guideSource.includes(`term: "${term}",`),
         `vocabulary is missing "${term}"`,
       );
+    }
+    assert.match(guideSource, /\.\.\.RUNNER_PROTECTIONS\.map\(\(mode\) => PROTECTION_TERMS\[mode\]\)/);
+    const copySource = readFileSync("src/lib/protectionCopy.ts", "utf8");
+    for (const term of ["Move your stop to your entry", "Move your stop to Target 1", "Leave your stop where it is"]) {
+      assert.ok(copySource.includes(`term: "${term}",`), `protectionCopy is missing "${term}"`);
     }
   });
 
@@ -234,7 +230,7 @@ describe("the Guide renders the deck verbatim (Task 9)", () => {
       ["Unfilled", "Window closed, never triggered."],
       [
         "Banked half",
-        "First target hit and half banked; the rest closed at your moved stop or when the window ended, without reaching Target 2.",
+        "First target hit and half banked; the rest closed at your stop or when the window ended, without reaching Target 2.",
       ],
       ["Banked full", "Target 2 reached."],
       ["Stopped · −R", "Stop hit."],
@@ -312,16 +308,16 @@ describe("the Guide renders the deck verbatim (Task 9)", () => {
     }
   });
 
-  it("renders the canonical two-target instruction as the §3 callout, verbatim", () => {
-    const CANONICAL_LADDER_INSTRUCTION =
-      "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — the banked half is yours either way.";
-    assert.ok(guideSource.includes(CANONICAL_LADDER_INSTRUCTION));
-    // It has to actually be the accent callout, not merely present
-    // somewhere on the page — pin it inside a <blockquote>.
+  it("renders the three two-target instructions as the §3 callout — the stamped mode's sentences, from protectionCopy (amendment 42)", () => {
+    // It has to actually be the accent callout, not merely present somewhere
+    // on the page — pin the map over the modes inside a <blockquote>, each
+    // sentence read from the one module that owns it (languageGuard pins the
+    // sentences there).
     assert.match(
       guideSource,
-      /<blockquote[^>]*>\s*\{CANONICAL_LADDER_INSTRUCTION\}\s*<\/blockquote>/,
+      /<blockquote className="border-l-\[3px\] border-accent[^>]*>[\s\S]*?\{RUNNER_PROTECTIONS\.map\(\(mode\) => \([\s\S]*?\{LADDER_INSTRUCTIONS\[mode\]\}[\s\S]*?<\/blockquote>/,
     );
+    assert.ok(collapsedIncludes(guideSource, `Each setup names its stop rule after Target 1`));
   });
 });
 
@@ -390,8 +386,13 @@ describe("§3 carries the losing path, in both homes (amended 2026-08-09)", () =
     // the whole round trip (spread AND commission), and the breakeven
     // close pays the trip rather than closing "flat" — the measured 44%
     // breakeven tax is why the promise clause is gone.
+    // Amendment 42: the moment is mode-neutral, and the round-trip clause
+    // survives as the breakeven rule's own worst case.
     assert.ok(
-      collapsedIncludes(guideSource, `what remains risks only the round-trip cost`),
+      collapsedIncludes(
+        guideSource,
+        `what remains risks what that rule allows: the round-trip cost at your entry, nothing below Target 1, or the full risk where it is.`,
+      ),
     );
     assert.ok(
       collapsedIncludes(guideSource, `The banked half keeps the trade ahead.`),
@@ -404,8 +405,12 @@ describe("§3 carries the losing path, in both homes (amended 2026-08-09)", () =
   it("the deck says the same four moments — the divergence was the defect", () => {
     assert.ok(collapsedIncludes(deckSource, `In platform terms, that is four moments:`));
     assert.ok(collapsedIncludes(deckSource, `The stop hits first.`));
+    // Amendment 42: the deck and the Guide say the same mode-neutral moment.
     assert.ok(
-      collapsedIncludes(deckSource, `what remains risks only the round-trip cost`),
+      collapsedIncludes(
+        deckSource,
+        `what remains risks what that rule allows: the round-trip cost at your entry, nothing below Target 1, or the full risk where it is.`,
+      ),
     );
     assert.ok(
       collapsedIncludes(deckSource, `The banked half keeps the trade ahead.`),
