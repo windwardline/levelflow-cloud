@@ -67,20 +67,60 @@ export type CircuitState = {
 const CLOSED: CircuitState = { lastProbeAt: null, openedAt: null, reason: null };
 
 /**
- * Is this refusal the BANDWIDTH wall, or an ordinary rate limit?
+ * Which wall is this, if any?
  *
- * The distinction is the whole point. FMP returns 429 for both, and they want
- * opposite responses: a per-minute rate limit is exactly what a backoff ladder
- * is for and clears in seconds, while a bandwidth refusal clears in days and a
- * ladder against it is pure noise. The bank's own retry comment says five
- * attempts "costs a doomed run only time" — true of the first, false of the
- * second, and nothing distinguished them.
+ * THREE conditions arrive as a refusal and they want three different answers:
  *
- * Matched on the provider's own words rather than the status code, because the
- * code cannot carry the difference.
+ *   - a per-minute rate limit (429, bare) clears in seconds and is exactly
+ *     what the backoff ladder was written for;
+ *   - the BANDWIDTH ceiling (429, "Bandwidth Limit Reach") clears in days,
+ *     by time alone, and a ladder against it is pure noise;
+ *   - an ENTITLEMENT gap (402, "Restricted Endpoint") clears when the plan
+ *     changes and never otherwise — not by retrying, not by waiting.
+ *
+ * The original split was drawn on the provider's words rather than the status
+ * code, because 429 covers the first two and the code could not separate them.
+ * That reasoning was right for two conditions and wrong the moment a third
+ * arrived: the match included `/upgrade your plan/i`, and FMP ends BOTH its
+ * bandwidth body and its 402 body with that same courtesy sentence. So from
+ * 2026-09-04 an entitlement gap opened the bandwidth breaker, and the minute
+ * bank spent four days reporting that a wall which drains by nothing would
+ * drain by time.
+ *
+ * The rule that keeps this honest: match the NARROWEST phrase unique to the
+ * condition ("bandwidth limit"), never a sentence the vendor reuses across
+ * every paywall, and let the status code do the separating wherever it can.
  */
+export type RefusalKind = "bandwidth" | "entitlement";
+
+export function classifyRefusal(body: string): RefusalKind | null {
+  // Entitlement first. Its body also says "upgrade your plan", so any future
+  // widening of the bandwidth pattern cannot silently swallow it again.
+  if (
+    /restricted endpoint/i.test(body) ||
+    /not available under your current subscription/i.test(body)
+  ) {
+    return "entitlement";
+  }
+  if (/bandwidth limit/i.test(body)) return "bandwidth";
+  return null;
+}
+
+/**
+ * Should the shared breaker trip for this refusal?
+ *
+ * True for both walls. Neither clears by retrying, so both are worth turning
+ * into every consumer's knowledge rather than each one's private discovery —
+ * that value was never specific to bandwidth. The rate limit stays false: its
+ * ladder works.
+ */
+export function isCircuitRefusal(body: string): boolean {
+  return classifyRefusal(body) !== null;
+}
+
+/** Strictly the bandwidth ceiling. No longer true of a 402. */
 export function isBandwidthRefusal(body: string): boolean {
-  return /bandwidth limit/i.test(body) || /upgrade your plan/i.test(body);
+  return classifyRefusal(body) === "bandwidth";
 }
 
 export function readCircuit(path = FMP_CIRCUIT_PATH): CircuitState {
@@ -131,6 +171,37 @@ export function closeCircuit(path = FMP_CIRCUIT_PATH): CircuitState {
   return { ...CLOSED };
 }
 
+/**
+ * What a reader should DO about the open breaker, per condition.
+ *
+ * The lever differs, so one sentence cannot serve both. Saying "drains by
+ * time" about an entitlement gap is not merely imprecise — it is the sentence
+ * that made four days of a dead job read as ordinary waiting.
+ */
+function recoveryClause(reason: string | null): string {
+  switch (classifyRefusal(reason ?? "")) {
+    case "bandwidth":
+      return (
+        "The trailing-30-day window drains by time only, so re-running " +
+        "cannot shorten it."
+      );
+    case "entitlement":
+      return (
+        "This is a subscription gap, not a bandwidth wall: it does not drain " +
+        "by time and no re-run clears it — the FMP plan is the only lever. " +
+        "The breaker still probes on the cool-off, so the first run after the " +
+        "plan is restored closes it with no further step."
+      );
+    default:
+      // An unclassified reason, or a marker written by an older build. Claim
+      // neither remedy: a wrong instruction is worse than an absent one.
+      return (
+        "The provider's refusal did not match a known condition, so neither " +
+        "waiting nor re-running is known to clear it — read the reason above."
+      );
+  }
+}
+
 export type Decision =
   | { allowed: true; probe: boolean; reason: null }
   | { allowed: false; probe: false; reason: string };
@@ -163,7 +234,6 @@ export function mayCall(now: number, path = FMP_CIRCUIT_PATH): Decision {
     // the nightly top-up read exactly that as "a real failure" (2026-09-02).
     reason:
       `fmpCircuitOpen: FMP circuit open for ${openFor}h — ${state.reason ?? "provider refused"}. ` +
-      `Next probe in ${hours}h. The trailing-30-day window drains by time ` +
-      `only, so re-running cannot shorten it.`,
+      `Next probe in ${hours}h. ${recoveryClause(state.reason)}`,
   };
 }

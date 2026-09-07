@@ -448,11 +448,27 @@ describe("a refusing provider costs one symbol, not the roster", () => {
       /targets\.length - 1/,
       "the message does not name how many symbols went unattempted",
     );
+    // The claim is unchanged — the message must tell the reader the wall
+    // cannot be hurried. Where that sentence LIVES moved on 2026-09-07: it is
+    // now chosen per refusal, because the bandwidth remedy ("drains by time")
+    // is false of the 402 entitlement gap and asserting it there is what made
+    // four days of a dead job read as ordinary waiting.
     assert.match(
-      message,
+      raw,
+      /\$\{standDownRemedy\(result\.note\)\}/,
+      "the message asserts one remedy for every wall again",
+    );
+    const remedy = SOURCE.slice(SOURCE.indexOf("function standDownRemedy"));
+    assert.match(
+      remedy,
       /drains by time only/,
-      "the message does not say the wall cannot be hurried, so the next " +
-        "reader will try to hurry it",
+      "the bandwidth branch no longer says the wall cannot be hurried",
+    );
+    assert.match(
+      remedy,
+      /the FMP plan must change before any run succeeds/,
+      "the entitlement branch does not name the plan as the only lever, so " +
+        "the next reader will wait out a wall that never drains",
     );
     assert.match(
       message,

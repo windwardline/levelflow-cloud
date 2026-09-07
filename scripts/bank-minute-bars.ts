@@ -60,7 +60,8 @@ const KEY = process.env.FMP_API_KEY;
 // makes that assumption checkable rather than assumed.
 import {
   closeCircuit,
-  isBandwidthRefusal,
+  classifyRefusal,
+  isCircuitRefusal,
   mayCall,
 } from "./fmpCircuit.ts";
 
@@ -77,6 +78,31 @@ const RECENT_KEYS_KEPT = 8_000;
 // machine's network does. On 2026-08-08 that cost all 100 symbols in six
 // seconds. Five attempts from a 2s base spans 30 seconds of backoff, longer
 // than a wake takes to bring an interface up, and costs a doomed run only time.
+/**
+ * What actually clears the wall we just hit.
+ *
+ * This sentence used to assert the bandwidth remedy for whatever the provider
+ * refused with. From 2026-09-04 that was a 402 entitlement gap, and "the
+ * window drains by time only" told four days of readers to wait for something
+ * that was never going to happen on its own.
+ */
+function standDownRemedy(note: string): string {
+  switch (classifyRefusal(note)) {
+    case "bandwidth":
+      return "The window drains by time only.";
+    case "entitlement":
+      return (
+        "This is a subscription gap, not an exhausted allowance: it does not " +
+        "drain by time and the FMP plan must change before any run succeeds."
+      );
+    default:
+      return (
+        "The refusal did not match a known wall, so neither waiting nor " +
+        "re-running is known to clear it."
+      );
+  }
+}
+
 const RETRY_ATTEMPTS = 5;
 const RETRY_BASE_DELAY_MS = 2_000;
 
@@ -366,7 +392,7 @@ export async function withRetry<T>(
       if (
         attempt >= options.attempts ||
         !isRetryable(error) ||
-        isBandwidthRefusal(error instanceof Error ? error.message : "")
+        isCircuitRefusal(error instanceof Error ? error.message : "")
       ) {
         throw error;
       }
@@ -545,7 +571,7 @@ async function main() {
       console.log(`  ${scout.fmpSymbol}: ${result.note || "no bars"}`);
       // Tell every other consumer what this one just learned, so the cache
       // top-up and the sweeps do not each spend a roster finding out.
-      if (isBandwidthRefusal(result.note)) {
+      if (isCircuitRefusal(result.note)) {
         noteRefusal(result.note, Date.now());
       }
       console.error(
@@ -555,7 +581,7 @@ async function main() {
           } — HANDOFF's rule is explicit that a re-run cannot succeed against ` +
           `an exhausted allowance, and a whole-roster attempt spends ~${
             targets.length * RETRY_ATTEMPTS
-          } requests learning it again. The window drains by time only. ` +
+          } requests learning it again. ${standDownRemedy(result.note)} ` +
           `Recovery needs no catch-up: one successful run re-pulls each ` +
           `symbol's full window.`,
       );
