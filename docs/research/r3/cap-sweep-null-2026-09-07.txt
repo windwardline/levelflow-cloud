@@ -1,0 +1,22 @@
+REAL sweep: 63 cells clear their own 95% lower bound (>= 200 fills).
+  of which SELECT fold: 13 — ['crypto', 'futures']
+  best select cell: ('futures', 'select', 0.075, None, 1633, 55.6804, 0.034096999387630125, 0.002995110567781921)
+
+NULL seed 11:   0 cells clear,   0 on select, best select net R +0.0, classes []
+NULL seed 22:   0 cells clear,   0 on select, best select net R +0.0, classes []
+NULL seed 33:   0 cells clear,   0 on select, best select net R +0.0, classes []
+NULL seed 44:   0 cells clear,   0 on select, best select net R +0.0, classes []
+NULL seed 55:   0 cells clear,   0 on select, best select net R +0.0, classes []
+
+THE SAME CELLS ON THE 20 HELD-OUT MARKETS (out of sample, never tuned on):
+  futures     select cap 0.075 floor None: in-pool   +55.7 R / 1633 fills -> held-out    -1.5 R / 692 of 1624 fills, E -0.0022
+  futures     select cap 0.075 floor 1.3 : in-pool   +55.7 R / 1633 fills -> held-out    -1.5 R / 692 of 1624 fills, E -0.0022
+  futures     select cap 0.075 floor 1.5 : in-pool   +54.8 R / 1631 fills -> held-out    -1.5 R / 692 of 1624 fills, E -0.0022
+  futures     select cap 0.1   floor 2.0 : in-pool   +50.2 R / 737 fills -> held-out    -6.9 R / 85 of 1624 fills, E -0.0815
+  futures     select cap 0.1   floor 1.8 : in-pool   +44.0 R / 1102 fills -> held-out   -16.6 R / 201 of 1624 fills, E -0.0826
+  crypto      select cap 0.05  floor 1.8 : in-pool   +43.5 R / 1192 fills -> held-out   +17.6 R / 380 of 10308 fills, E +0.0464
+  futures     select cap 0.05  floor None: in-pool   +43.1 R / 691 fills -> held-out   -13.4 R / 212 of 1624 fills, E -0.0632
+  futures     select cap 0.05  floor 1.3 : in-pool   +43.1 R / 691 fills -> held-out   -13.4 R / 212 of 1624 fills, E -0.0632
+  futures     select cap 0.05  floor 1.5 : in-pool   +43.1 R / 691 fills -> held-out   -13.4 R / 212 of 1624 fills, E -0.0632
+  crypto      select cap 0.05  floor 2.0 : in-pool   +42.7 R / 743 fills -> held-out    +0.6 R / 204 of 10308 fills, E +0.0027
+exit=0

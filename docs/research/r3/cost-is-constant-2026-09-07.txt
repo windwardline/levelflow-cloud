@@ -1,0 +1,24 @@
+forex, contained years, verdict form: 229922 rows
+cost/price — median 0.00011700, mean 0.00011703, min 0.00011700, max 0.00024269
+  the value 0.00011700 appears on 229058 rows (99.624%)
+  the value 0.00012131 appears on 2 rows (0.001%)
+  the value 0.00011858 appears on 2 rows (0.001%)
+
+rows the two rules classify DIFFERENTLY, at cost/price = 1.17e-4:
+  cap 0.05: 0 of 229922 (0.0000%)
+  cap 0.075: 0 of 229922 (0.0000%)
+  cap 0.1: 0 of 229922 (0.0000%)
+  cap 0.125: 0 of 229922 (0.0000%)
+  cap 0.15: 0 of 229922 (0.0000%)
+  cap 0.2: 0 of 229922 (0.0000%)
+
+cost/price by class (median, and share on the modal value):
+  agriculture  n    3775  median 0.00106381  modal 0.00141681 on   0.2%
+  crypto       n   64477  median 0.00188000  modal 0.00155000 on  35.7%
+  energies     n     875  median 0.00124400  modal 0.00119229 on   0.5%
+  forex        n  253435  median 0.00011700  modal 0.00011700 on  99.6%
+  futures      n   14257  median 0.00031616  modal 0.00027905 on   0.3%
+  indices      n     893  median 0.00031740  modal 0.00032515 on   0.2%
+  livestock    n     510  median 0.00037403  modal 0.00042982 on   0.6%
+  metals       n    8004  median 0.00045574  modal 0.00045497 on   0.0%
+exit=0

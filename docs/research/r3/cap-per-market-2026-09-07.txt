@@ -1,0 +1,31 @@
+CONTROL — class totals
+  fit    no cap     -94.7 -> cap 0.1   +1120.0
+  select no cap   -1321.1 -> cap 0.1    -288.1
+
+| market | fit dR | select dR | both folds up? | capped select E | lo95 |
+| AUDCAD |     +7.0 |    +56.4 | yes | +0.0071 | -0.0241 |
+| AUDJPY |    -15.4 |    +17.5 | NO | -0.0142 | -0.0407 |
+| AUDUSD |    +64.5 |    +25.7 | yes | -0.0189 | -0.0468 |
+| CADCHF |    +38.9 |    +32.1 | yes | -0.0017 | -0.0327 |
+| CADJPY |    -10.9 |    +40.0 | NO | -0.0448 | -0.0743 |
+| CHFJPY |    -22.9 |    +69.9 | NO | +0.0113 | -0.0231 |
+| EURAUD |    +50.1 |    +40.8 | yes | +0.0055 | -0.0265 |
+| EURCAD |    -13.0 |    +33.4 | NO | +0.0062 | -0.0270 |
+| EURCHF |   +285.6 |   +123.4 | yes | +0.0298 | -0.0200 |
+| EURGBP |   +118.7 |     +6.4 | yes | +0.0102 | -0.0245 |
+| EURJPY |    +51.2 |    +48.4 | yes | -0.0245 | -0.0561 |
+| EURNZD |     -2.8 |    +69.2 | NO | +0.0122 | -0.0190 |
+| GBPAUD |    +31.7 |    +25.5 | yes | -0.0201 | -0.0492 |
+| GBPCHF |    +10.8 |    +24.9 | yes | +0.0007 | -0.0290 |
+| GBPJPY |    +27.3 |     +6.1 | yes | +0.0029 | -0.0245 |
+| GBPNZD |     +2.1 |     -2.0 | NO | -0.0103 | -0.0388 |
+| GBPUSD |   +146.1 |    +21.0 | yes | -0.0275 | -0.0588 |
+| NZDCAD |    +11.4 |    +58.4 | yes | +0.0002 | -0.0293 |
+| NZDUSD |    +24.1 |    +42.3 | yes | -0.0187 | -0.0466 |
+| USDCAD |   +179.8 |    +58.3 | yes | -0.0242 | -0.0635 |
+| USDCHF |    +93.4 |   +116.5 | yes | -0.0076 | -0.0442 |
+| USDJPY |   +137.0 |   +118.9 | yes | -0.0185 | -0.0541 |
+
+markets improved on BOTH clean folds by the cap: 16 of 22
+markets whose capped select stream earns money on its own (lo95 > 0): 0 of 22
+exit=0

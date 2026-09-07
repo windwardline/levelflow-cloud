@@ -1,0 +1,19 @@
+
+=== forex fit, contained years ===
+CONTROL  no cap: 174503 fills, -94.7 R   |   cap 0.1: 141055 fills, +1120.0 R
+a random cull of the SAME size expects -76.6 R, sd 104.8 R
+200 seeded random culls: median -68.6 R, range [-339.5, +208.2]; the cap beats 200 of 200; z = +11.42
+  placebo — keep 141055 by lowest atr                            :    -234.6 R
+  placebo — keep 141055 by lowest confidence                     :    -359.9 R
+  placebo — keep 141055 by lowest riskDistance                   :    -166.2 R
+  placebo — keep 141055 by HIGHEST cost share (the cap reversed) :    -507.5 R
+
+=== forex select, contained years ===
+CONTROL  no cap: 55419 fills, -1321.1 R   |   cap 0.1: 33044 fills, -288.1 R
+a random cull of the SAME size expects -787.7 R, sd 74.0 R
+200 seeded random culls: median -783.9 R, range [-1038.2, -580.7]; the cap beats 200 of 200; z = +6.75
+  placebo — keep 33044 by lowest atr                            :    -885.9 R
+  placebo — keep 33044 by lowest confidence                     :    -807.8 R
+  placebo — keep 33044 by lowest riskDistance                   :    -834.5 R
+  placebo — keep 33044 by HIGHEST cost share (the cap reversed) :   -1115.4 R
+exit=0

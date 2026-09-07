@@ -1,0 +1,13 @@
+
+=== forex, contained years ===
+  fit    cap 0.15: 167037 fills    +468.9 R   ->   cap 0.1: 141055 fills   +1120.0 R   delta   +651.1 R
+         null (same count from the 0.15 stream):    +396.9 R  sd 92.3  => trading-less    -72.0 R, discrimination   +723.1 R, z +7.84
+         and against the shipped cap's own headline vs no cap (+563.7 R): trading-less +7.1 R, discrimination +556.5 R
+  select cap 0.15:  50225 fills    -967.4 R   ->   cap 0.1:  33044 fills    -288.1 R   delta   +679.4 R
+         null (same count from the 0.15 stream):    -637.5 R  sd 65.6  => trading-less   +329.9 R, discrimination   +349.4 R, z +5.33
+         and against the shipped cap's own headline vs no cap (+353.7 R): trading-less +124.3 R, discrimination +229.4 R
+
+=== forex, escaping years ===
+  fit: no rows
+  select cap 0.15:  23045 fills   +2877.4 R   ->   cap 0.1:  19118 fills   +2327.6 R   delta   -549.9 R
+exit=0

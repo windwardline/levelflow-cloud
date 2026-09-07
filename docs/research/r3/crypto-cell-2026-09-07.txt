@@ -1,0 +1,39 @@
+crypto, cost share <= 0.05, reward:risk >= 1.8
+  contained fit    in-pool  :   299 fills     +40.0 R  E +0.1338  lo95 +0.0614  EARNS
+  contained fit    held-out :     2 fills      +0.1 R  E +0.0484  lo95 -2.0299  
+  contained select in-pool  :  1192 fills     +43.5 R  E +0.0365  lo95 +0.0010  EARNS
+  contained select held-out :   380 fills     +17.6 R  E +0.0464  lo95 -0.0240  
+  ESCAPING  fit    in-pool  :  1337 fills    +340.6 R  E +0.2547  lo95 +0.2311  EARNS
+  ESCAPING  select in-pool  :    66 fills      +5.7 R  E +0.0867  lo95 -0.0470  
+
+per market on contained years (amendment 33): 13 of 16 positive
+  DOGEUSD                 187 fills    +32.0 R
+  LINKUSD                 209 fills    +17.7 R
+  ETHUSD                  243 fills    +17.2 R
+  GRTUSD                  286 fills    +11.8 R
+  XLMUSD     (held out)    79 fills     +8.2 R
+  AAVEUSD    (held out)   190 fills     +6.2 R
+  SOLUSD                  149 fills     +4.5 R
+  XMRUSD     (held out)    42 fills     +3.2 R
+  BTCUSD                  110 fills     +2.5 R
+  IMXUSD                   25 fills     +1.8 R
+  HBARUSD                   4 fills     +1.5 R
+  ETCUSD                    3 fills     +1.1 R
+  DASHUSD    (held out)    71 fills     +0.2 R
+  XRPUSD                   86 fills     -0.9 R
+  UNIUSD                  147 fills     -2.4 R
+  ADAUSD                   42 fills     -3.4 R
+
+per year, contained:
+  fit    2013     22 fills     -0.9 R
+  fit    2014     28 fills     -3.0 R
+  fit    2015      1 fills     +0.2 R
+  fit    2016    101 fills    +14.1 R
+  fit    2017    109 fills    +27.2 R
+  fit    2019     32 fills     +0.4 R
+  fit    2020      8 fills     +2.1 R
+  select 2020    109 fills     +3.8 R
+  select 2021    938 fills    +43.8 R
+  select 2022    510 fills    +14.6 R
+  select 2023     15 fills     -1.1 R
+exit=0
