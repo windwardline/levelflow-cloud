@@ -2128,9 +2128,10 @@ findings, both re-measured by the driver.
 
 1. **The entry's direction call is worth nothing.** In risk units, forex
 contained years, mean ADVERSE excursion exceeds mean favourable on every fold
-and both pools — fit in-pool −0.0300 [−0.0332, −0.0269], select in-pool
-−0.0462 [−0.0517, −0.0406], held-out −0.0213 and −0.0405 — every interval
-excluding zero. (Life-of-trade censoring is a real caveat; the round's
+and both pools, in the one order used throughout — fit in-pool −0.0300
+[−0.0332, −0.0269], fit held-out −0.0213 [−0.0273, −0.0153], select in-pool
+−0.0462 [−0.0517, −0.0406], select held-out −0.0405 [−0.0514, −0.0297] — every
+interval excluding zero. (Life-of-trade censoring is a real caveat; the round's
 uncensored random-entry null agrees at t = −0.01.) No exit geometry can
 rescue an engine whose entries carry no direction.
 
