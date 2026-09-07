@@ -1,0 +1,34 @@
+CONTROL forex select contained in-pool: 55419 fills -1321.1 R
+
+Is TP1 at a fixed R, making the ladder invariant to stop width?
+  fit    in : tp1 distance / risk  median 0.4000  mean 0.4000  sd 0.0000  n 39065
+  fit    out: tp1 distance / risk  median 0.4000  mean 0.4000  sd 0.0000  n 135438
+  select in : tp1 distance / risk  median 0.4000  mean 0.4000  sd 0.0000  n 12471
+  select out: tp1 distance / risk  median 0.4000  mean 0.4000  sd 0.0000  n 42948
+
+WITHIN each span, does a wider relative stop do better? (quintiles of riskDistance/price, bps)
+| fold | span | quintile | width bps (median) | n | net R | E | lo95 | stop rate |
+| fit | in | Q1 |   10.06 |   7813 |   +190.9 | +0.0244 | +0.0112 | 0.201 |
+| fit | in | Q2 |   14.17 |   7813 |   +312.2 | +0.0400 | +0.0268 | 0.201 |
+| fit | in | Q3 |   18.06 |   7813 |   +343.9 | +0.0440 | +0.0307 | 0.193 |
+| fit | in | Q4 |   23.57 |   7813 |   +323.0 | +0.0413 | +0.0289 | 0.171 |
+| fit | in | Q5 |   35.98 |   7813 |   +242.1 | +0.0310 | +0.0196 | 0.120 |
+| fit | out | Q1 |    9.66 |  27087 |  -1346.1 | -0.0497 | -0.0578 | 0.292 |
+| fit | out | Q2 |   13.48 |  27087 |   -247.8 | -0.0091 | -0.0171 | 0.279 |
+| fit | out | Q3 |   17.09 |  27087 |    -31.8 | -0.0012 | -0.0090 | 0.272 |
+| fit | out | Q4 |   22.25 |  27087 |    -16.0 | -0.0006 | -0.0083 | 0.264 |
+| fit | out | Q5 |   34.18 |  27090 |   +135.0 | +0.0050 | -0.0023 | 0.221 |
+| select | in | Q1 |    8.09 |   2494 |     -2.1 | -0.0008 | -0.0255 | 0.223 |
+| select | in | Q2 |   10.84 |   2494 |   +106.9 | +0.0428 | +0.0196 | 0.193 |
+| select | in | Q3 |   13.61 |   2494 |   +139.2 | +0.0558 | +0.0332 | 0.181 |
+| select | in | Q4 |   17.67 |   2494 |   +113.9 | +0.0457 | +0.0238 | 0.164 |
+| select | in | Q5 |   27.05 |   2495 |    +45.6 | +0.0183 | -0.0021 | 0.132 |
+| select | out | Q1 |    7.85 |   8589 |   -614.9 | -0.0716 | -0.0861 | 0.304 |
+| select | out | Q2 |   10.32 |   8589 |   -422.1 | -0.0491 | -0.0634 | 0.298 |
+| select | out | Q3 |   12.85 |   8589 |   -305.1 | -0.0355 | -0.0495 | 0.287 |
+| select | out | Q4 |   16.60 |   8589 |   -280.1 | -0.0326 | -0.0464 | 0.279 |
+| select | out | Q5 |   25.69 |   8592 |   -102.5 | -0.0119 | -0.0247 | 0.223 |
+
+The question this answers: if out-of-span Q5 (widest stops) reaches in-span expectancy,
+an hour-aware clock has headroom. If out-of-span is flat or negative across widths, it does not.
+exit=0
