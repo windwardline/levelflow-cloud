@@ -62,6 +62,16 @@ here. The design is judged by net realised R, never by the printed slope.
    33,134); futures' class cell averages opposite-signed protection modes.
    Any future share read is per market × protection mode × feed character.
 
+**The verify phase, final state.** The workflow's verifiers ran budget-bound
+and the session limit ended the phase twice; seven verifier votes landed,
+every one confirming a finding recorded in this section — the stop-leg
+slippage (four votes, reproduced from scratch to the decimal), the live
+path absent from §3, FR-3's same-bar arming (the runner survives the touch
+bar unless the bar closes back through the armed level; the post-touch low
+is never consulted), and the §4 arm being an identity on the tuning folds
+(no admission gate reads the share). The remaining merged findings stand
+on the hand verification above; the phase is not resumed a third time.
+
 **Corrections to the record (verified):**
 
 - §1's "whole-roster select turns from −1,265 R at ½ to +259 R at 0" is the
@@ -91,6 +101,12 @@ here. The design is judged by net realised R, never by the printed slope.
   the news-window rule prohibits SL/TP edits on E8 One Performance, and the
   share-0 lock is an SL edit. §5 is superseded by this verdict: with nothing
   shipping, the cap question is moot until a cell can pass the gate.
+- §3 threads the share through the sweep emit only and never through the
+  live path — no `risk_model` stamp at decision time, no read in
+  `fillOptionsFromRiskModel`, nothing in outcome-sync — so a shipped share
+  would re-grade live rows under a physics the operator never traded, the
+  E7 divergence reopened (verified by the round's verifier). Any build of §3
+  carries the live path or does not ship.
 - §3 item 6 puts the ANALYZER_VERSION bump in the behaviour-neutral PR,
   against the repo's rule; the neutrality oracle as written (reproduce the
   recorded digest) cannot pass at any HEAD after #574, so it proves nothing.
@@ -120,9 +136,23 @@ main tables are byte-unchanged. (2) DONE (same change set) —
 `payoff-decomposition` prints a by-money table per fold: money-positive and
 money-negative rows with their means, flat rows, the two label-vs-money cross
 buckets, payoff and break-even by money. (3) a share read uses a paired
-per-row interval, never `rDeltaInterval95`'s unpaired one; (4) DONE for the digest (change set after #593) — the emit's sha256, byte count and row count are written into every manifest's hashed payload and both doors refuse a corpus whose bytes are not the manifest's; the neutrality oracle as a strip-and-hash against a HEAD rebuild stays with §3, which is not built; (5) a per-market
-share reader (amendment 33). None of these moves money; each sharpens the
-instrument for the next calendar, which needs FMP's intraday plan restored.
+per-row interval, never `rDeltaInterval95`'s unpaired one; (4) DONE for the digest (change set after #593) — the emit's sha256, byte count and row count are written into every manifest's hashed payload and both doors refuse a corpus whose bytes are not the manifest's; the neutrality oracle as a strip-and-hash against a HEAD rebuild stays with §3, which is not built; (5) DONE (change
+set after #594) — `banked-fraction --grain market` prints every market's own
+slope, raw and slippage-priced, and per class and fold whether a class value
+is admissible — this reader's summary of amendment 33's per-market rule
+("a class value survives only where that market's own data supports it"):
+every market with a slope reading the same sign of R_adj(0) − R_adj(½),
+a market with no tp1 rows counted as flat, neither voting nor vetoing. On
+the corpus of record
+(`banked-fraction-capture-all-classfolds-market.txt`): forex is admissible on
+BOTH folds — all 22 in-pool markets read share 0 over ½, slippage-priced —
+so what fails forex is D4's absolute term on clean years (item 1 above), not
+the grain; crypto (fit 5 of 13 for 0, select 15 of 24), futures (8 of 14;
+7 of 14) and agriculture (2 of 5; 3 of 5) are NOT admissible, which is the
+mechanism items 5 named; energies, indices (fit), livestock and metals agree
+on one or two markets. None of these follow-ups moves money; each sharpens
+the instrument for the next calendar, which needs FMP's intraday plan
+restored.
 
 **Cache-design questions (note §6), verdicts:** Q1 "top-ups honour pins" is
 killed as written — every nightly top-up pins its own day, so it forbids the

@@ -2047,9 +2047,11 @@ follow-ups), post-mortem note §3d/§8b corrected, tracked
 **Work still due, in order:** (1) the round-1 follow-ups (§0 of the design;
 the slippage-priced and same-bar-aware `banked-fraction` and the by-money
 `payoff-decomposition` landed in the change set after #592, tracked tables
-regenerated; the emit digest in the manifest landed in the change set after
-#593, both doors refusing on it; still due: a paired share interval, a
-per-market share reader); (2) round 2's remedy question — what a
+regenerated; the emit digest in the manifest landed in #594, both doors
+refusing on it; the per-market reader landed in the change set after #594 —
+forex admissible at the class grain on the reader's per-market test, 22 of 22
+markets, what fails it is D4's absolute term; still due: a paired share
+interval); (2) round 2's remedy question — what a
 witness-refused symbol-year means for a sweep: refuse, stratify, or a fold
 calendar that avoids it; (3) the owner item above; (4) the FMP plan is the
 owner's, and until it is restored nothing that fetches intraday bars or the
