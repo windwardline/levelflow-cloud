@@ -110,10 +110,16 @@ here. The design is judged by net realised R, never by the printed slope.
   copy only, pins updated, ANALYZER_VERSION unchanged. Recommendation:
   approve; the desk is parked, so it lands before unpark.
 
-**Follow-ups, mechanised, in order by money:** (1) `banked-fraction` prints
-R_adj(f) beside R(f) with S per class and fold, and the same-bar exposure
-shares, so the reader states its own caveats; (2) `payoff-decomposition`
-prints wins by money beside wins by label; (3) a share read uses a paired
+**Follow-ups, mechanised, in order by money:** (1) DONE (change set after
+#592) — `banked-fraction` prints a second table per fold: stop prints, S,
+R_adj(f) at every fraction, best f under the hybrid model and Δ_adj, and the
+same-bar shares of lock and take_profit exits; on the corpus of record it
+reproduces the verifiers' figures exactly (forex select S 629.9 R over 51,706
+stop prints, Δ_adj +785.2; fit +2,718.8; 60.0 % / 19.0 % same-bar) and the
+main tables are byte-unchanged. (2) DONE (same change set) —
+`payoff-decomposition` prints a by-money table per fold: money-positive and
+money-negative rows with their means, flat rows, the two label-vs-money cross
+buckets, payoff and break-even by money. (3) a share read uses a paired
 per-row interval, never `rDeltaInterval95`'s unpaired one; (4) the emit's
 sha256 is written into the manifest at build end (cache-design Q2), and the
 neutrality oracle is a strip-and-hash against a HEAD rebuild; (5) a per-market

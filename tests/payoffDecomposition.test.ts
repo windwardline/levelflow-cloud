@@ -412,3 +412,52 @@ describe("what it keeps apart", () => {
     assert.match(text, /break-even/);
   });
 });
+
+/**
+ * By money (amendment 39): forex pool per fold, 12 filled — positive rows
+ * 4 × +0.3, +1.2, +0.1, 3 × +2.0 = 9 for +8.5 (mean 0.944444); negative
+ * 2 × −1.0, −0.4 = 3 for −2.4 (mean −0.8); flat 0. payoff (money) 1.180556;
+ * break-even (money) = 0.8 / (0.944444 + 0.8) = 45.8599 %. No label crosses.
+ */
+describe("by money — amendment 39's own definition beside the label", () => {
+  it("buckets every filled row by the sign of its realised R, hand-computed", async () => {
+    const summary = await decomposePayoff({ folds: ["fit", "select"], holdoutPinDir: NO_PIN_DIR, paths: [writeCorpus(fixtureRows())], variant: "baseline" });
+    const m = summary.cells.get("forex|fit")!.byMoney;
+    assert.equal(m.positive.n, 9);
+    near(m.positive.sum, 8.5);
+    assert.equal(m.negative.n, 3);
+    near(m.negative.sum, -2.4);
+    assert.equal(m.flat, 0);
+    near(m.positiveShare, 0.75);
+    near(m.payoff, 8.5 / 9 / 0.8);
+    near(m.breakEvenShare, 0.8 / (8.5 / 9 + 0.8));
+    assert.deepEqual([m.winLabelNonPositive.n, m.stopLabelPositive.n], [0, 0]);
+    const text = formatDecomposition(summary);
+    assert.match(text, /by money \(amendment 39\): a win is a row whose realised R is positive/);
+    assert.match(text, /--- fit · by money ---/);
+    assert.match(text, /\| forex \| 12 \| 9 \| 75\.0% \| 0\.944 \| 3 \| -0\.800 \| 0 \| 0 \| 0\.0 \| 0 \| 0\.0 \| 1\.181 \| 45\.9% \|/);
+  });
+
+  it("counts where the label and the money disagree: a labelled win paid as a loss, a labelled stop paid as a win, and a flat row held at zero", async () => {
+    let index = 100;
+    const rows = fixtureRows().concat([
+      // A partial whose runner gapped below entry: labelled a win, paid −0.2.
+      row({ index: index++, outcome: "tp1_partial", realizedR: -0.2, split: "fit", symbol: "EURUSD" }),
+      // A stop that closed above entry after a partial: labelled a stop, paid +0.05.
+      row({ index: index++, outcome: "stop_loss", realizedR: 0.05, split: "fit", symbol: "EURUSD" }),
+      // Flat: a partial whose runner came back to entry exactly.
+      row({ index: index++, outcome: "tp1_partial", realizedR: 0, split: "fit", symbol: "EURUSD" }),
+    ]);
+    const m = (await decomposePayoff({ folds: ["fit"], holdoutPinDir: NO_PIN_DIR, paths: [writeCorpus(rows)], variant: "baseline" })).cells.get("forex|fit")!.byMoney;
+    assert.equal(m.winLabelNonPositive.n, 2);
+    near(m.winLabelNonPositive.sum, -0.2);
+    assert.equal(m.stopLabelPositive.n, 1);
+    near(m.stopLabelPositive.sum, 0.05);
+    assert.equal(m.flat, 1);
+    assert.equal(m.positive.n, 10);
+    assert.equal(m.negative.n, 4);
+    // Break-even with a flat share: 1 of 15 rows held at zero.
+    near(m.breakEvenShare, (-(1 - 1 / 15) * m.negative.mean!) / (m.positive.mean! - m.negative.mean!));
+  });
+});
+

@@ -1,10 +1,12 @@
 corpus ce146c6b8b63 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26 · variant baseline
 folds read: fit, select · confirm: SEALED, not read (2769596 rows withheld at the door)
-rows 6660138: 391352 priced · 680939 not accepted · 0 in other folds · 2753607 other variants · 64320 unfilled · 324 data-absent · 0 held out
+rows 6660138: 391352 priced · 680939 not accepted · 0 in other folds · 2753607 other variants · 64320 unfilled · 324 data-absent · 0 held out · 0 in other years
+years: all (no feed-character stratification)
 control: 391352 rows reproduced their emitted realizedR at the shipped fraction 0.5 (tolerance 0.00011)
 held-out markets INCLUDED in every pool (--include-holdout): AAVEUSD, ARWUSD, AUDCHF, AUDNZD, BNBUSD, BZUSD, DASHUSD, EURUSD, GBPCAD, HEUSX, NGUSD, NSDQ, NZDCHF, NZDJPY, RTYUSD, THETAUSD, XLMUSD, XMRUSD, YMUSD, ZMUSD — a whole-roster measurement, not a verdict's
 
-allocation only: the exit path is the emitted one at every fraction (the runner's protection re-arms on the TP1 touch, not on the size banked); costs are the emitted commission — spread and slippage ride in the leg prices. Rows without a tp1 leg price the same at every fraction.
+allocation only: the exit path is the emitted one at every fraction (the runner's protection re-arms on the TP1 touch, not on the size banked); costs are the emitted commission; spread rides in the leg prices; slippage rides only in gapped prints (FR-7). Rows without a tp1 leg price the same at every fraction.
+slippage-priced: R_adj(f) = R(f) − (1−f)·S_row on every tp1 row whose exit is a stop print sitting at its level or an expiry print, S_row = estimatedSlippage/riskDistance — a hybrid model, neither the resolver's gap-only rule nor the gate's every-side rule; the tp1 limit leg stays unslipped. same-bar = exits resolved on the TP1 touch bar itself (FR-3), which the corpus arms with zero latency and cannot price.
 
 === FIT ===
 | class | filled | tp1 rows | no-tp1 rows | shipped R (½) | banked half | runner half | costs | no-tp1 R | R(0) | R(0.25) | R(0.5) | R(0.75) | R(1) | best f | Δ best vs ½ |
@@ -14,6 +16,14 @@ allocation only: the exit path is the emitted one at every fraction (the runner'
 | metals | 3995 | 2344 | 1651 | -342.3 | 475.3 | 560.5 | -47.0 | -1331.1 | -257.1 | -299.7 | -342.3 | -384.9 | -427.5 | 0 | 85.2 |
 | **pooled** | 234317 | 159067 | 75250 | 1161.5 | 32835.5 | 36759.5 | -5117.3 | -63316.1 | 5085.6 | 3123.5 | 1161.5 | -800.5 | -2762.5 | 0 | 3924.0 |
 
+--- fit · slippage-priced and same-bar ---
+| class | tp1 rows | stop prints | S | R_adj(0) | R_adj(0.25) | R_adj(0.5) | R_adj(0.75) | R_adj(1) | best f (adj) | Δ_adj best vs ½ | lock exits same-bar | take_profit exits same-bar |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| crypto | 6471 | 4798 | 56.3 | 612.1 | 783.9 | 955.7 | 1127.6 | 1299.4 | 1 | 343.7 | 3180/5853 (54.3%) | 56/230 (24.3%) |
+| forex | 150252 | 141828 | 1455.4 | 3218.9 | 1505.6 | -207.7 | -1921.0 | -3634.4 | 0 | 3426.6 | 78314/142393 (55.0%) | 860/6170 (13.9%) |
+| metals | 2344 | 2200 | 99.9 | -357.0 | -374.7 | -392.3 | -409.9 | -427.5 | 0 | 35.3 | 1226/2179 (56.3%) | 19/121 (15.7%) |
+| **pooled** | 159067 | 148826 | 1611.6 | 3474.0 | 1914.9 | 355.7 | -1203.4 | -2762.5 | 0 | 3118.2 | 82720/150425 (55.0%) | 935/6521 (14.3%) |
+
 === SELECT ===
 | class | filled | tp1 rows | no-tp1 rows | shipped R (½) | banked half | runner half | costs | no-tp1 R | R(0) | R(0.25) | R(0.5) | R(0.75) | R(1) | best f | Δ best vs ½ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -22,3 +32,12 @@ allocation only: the exit path is the emitted one at every fraction (the runner'
 | indices | 313 | 144 | 169 | -13.4 | 29.1 | 34.2 | -3.6 | -73.1 | -8.2 | -10.8 | -13.4 | -15.9 | -18.5 | 0 | 5.1 |
 | metals | 3227 | 1967 | 1260 | -212.1 | 404.4 | 451.9 | -34.8 | -1033.6 | -164.7 | -188.4 | -212.1 | -235.8 | -259.5 | 0 | 47.4 |
 | **pooled** | 157035 | 107811 | 49224 | -1265.0 | 22539.7 | 24063.7 | -4265.3 | -43603.1 | 259.0 | -503.0 | -1265.0 | -2027.0 | -2789.0 | 0 | 1524.0 |
+
+--- select · slippage-priced and same-bar ---
+| class | tp1 rows | stop prints | S | R_adj(0) | R_adj(0.25) | R_adj(0.5) | R_adj(0.75) | R_adj(1) | best f (adj) | Δ_adj best vs ½ | lock exits same-bar | take_profit exits same-bar |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| crypto | 35036 | 28954 | 465.7 | -3936.3 | -3858.3 | -3780.3 | -3702.2 | -3624.2 | 1 | 156.0 | 15193/26791 (56.7%) | 182/2815 (6.5%) |
+| forex | 70664 | 66240 | 792.6 | 3110.0 | 2610.8 | 2111.6 | 1612.5 | 1113.3 | 0 | 998.3 | 40723/67645 (60.2%) | 473/2503 (18.9%) |
+| indices | 144 | 132 | 2.8 | -11.1 | -12.9 | -14.8 | -16.6 | -18.5 | 0 | 3.7 | 15/46 (32.6%) | 0/10 (0.0%) |
+| metals | 1967 | 1803 | 88.0 | -252.7 | -254.4 | -256.1 | -257.8 | -259.5 | 0 | 3.4 | 999/1860 (53.7%) | 11/79 (13.9%) |
+| **pooled** | 107811 | 97129 | 1349.1 | -1090.1 | -1514.8 | -1939.5 | -2364.3 | -2789.0 | 0 | 849.4 | 56930/96342 (59.1%) | 666/5407 (12.3%) |

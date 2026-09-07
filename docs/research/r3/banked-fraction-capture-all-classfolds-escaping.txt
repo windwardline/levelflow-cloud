@@ -5,7 +5,8 @@ years: escaping · year map: witness table docs/research/r3/feed-character.txt (
 control: 53436 rows reproduced their emitted realizedR at the shipped fraction 0.5 (tolerance 0.00011)
 holdout: stratified-per-class-20pct — 20 markets excluded from every class pool (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only
 
-allocation only: the exit path is the emitted one at every fraction (the runner's protection re-arms on the TP1 touch, not on the size banked); costs are the emitted commission — spread and slippage ride in the leg prices. Rows without a tp1 leg price the same at every fraction.
+allocation only: the exit path is the emitted one at every fraction (the runner's protection re-arms on the TP1 touch, not on the size banked); costs are the emitted commission; spread rides in the leg prices; slippage rides only in gapped prints (FR-7). Rows without a tp1 leg price the same at every fraction.
+slippage-priced: R_adj(f) = R(f) − (1−f)·S_row on every tp1 row whose exit is a stop print sitting at its level or an expiry print, S_row = estimatedSlippage/riskDistance — a hybrid model, neither the resolver's gap-only rule nor the gate's every-side rule; the tp1 limit leg stays unslipped. same-bar = exits resolved on the TP1 touch bar itself (FR-3), which the corpus arms with zero latency and cannot price.
 
 === FIT ===
 | class | filled | tp1 rows | no-tp1 rows | shipped R (½) | banked half | runner half | costs | no-tp1 R | R(0) | R(0.25) | R(0.5) | R(0.75) | R(1) | best f | Δ best vs ½ |
@@ -15,6 +16,14 @@ allocation only: the exit path is the emitted one at every fraction (the runner'
 | livestock | 51 | 28 | 23 | -0.7 | 7.7 | 12.2 | -0.7 | -19.8 | 3.8 | 1.6 | -0.7 | -2.9 | -5.2 | 0 | 4.5 |
 | **pooled** | 19234 | 13899 | 5335 | 514.2 | 3224.6 | 2776.6 | -570.0 | -4917.0 | 66.2 | 290.2 | 514.2 | 738.1 | 962.1 | 1 | 448.0 |
 
+--- fit · slippage-priced and same-bar ---
+| class | tp1 rows | stop prints | S | R_adj(0) | R_adj(0.25) | R_adj(0.5) | R_adj(0.75) | R_adj(1) | best f (adj) | Δ_adj best vs ½ | lock exits same-bar | take_profit exits same-bar |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| crypto | 13853 | 11348 | 165.1 | -50.9 | 214.2 | 479.4 | 744.5 | 1009.6 | 1 | 530.3 | 7655/12357 (61.9%) | 94/427 (22.0%) |
+| futures | 18 | 12 | 0.3 | -52.1 | -49.7 | -47.2 | -44.7 | -42.3 | 1 | 4.9 | — | 1/2 (50.0%) |
+| livestock | 28 | 15 | 0.5 | 3.3 | 1.2 | -1.0 | -3.1 | -5.2 | 0 | 4.2 | — | 2/12 (16.7%) |
+| **pooled** | 13899 | 11375 | 165.9 | -99.7 | 165.7 | 431.2 | 696.7 | 962.1 | 1 | 530.9 | 7655/12357 (61.9%) | 97/441 (22.0%) |
+
 === SELECT ===
 | class | filled | tp1 rows | no-tp1 rows | shipped R (½) | banked half | runner half | costs | no-tp1 R | R(0) | R(0.25) | R(0.5) | R(0.75) | R(1) | best f | Δ best vs ½ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -23,3 +32,12 @@ allocation only: the exit path is the emitted one at every fraction (the runner'
 | futures | 655 | 235 | 420 | -113.3 | 117.1 | 66.4 | -8.4 | -288.4 | -164.0 | -138.7 | -113.3 | -88.0 | -62.6 | 1 | 50.7 |
 | indices | 83 | 38 | 45 | -48.0 | 7.8 | 9.0 | -9.7 | -55.1 | -46.8 | -47.4 | -48.0 | -48.6 | -49.2 | 0 | 1.2 |
 | **pooled** | 34202 | 24225 | 9977 | 574.7 | 5167.1 | 5220.1 | -945.0 | -8867.5 | 627.7 | 601.2 | 574.7 | 548.2 | 521.6 | 0 | 53.0 |
+
+--- select · slippage-priced and same-bar ---
+| class | tp1 rows | stop prints | S | R_adj(0) | R_adj(0.25) | R_adj(0.5) | R_adj(0.75) | R_adj(1) | best f (adj) | Δ_adj best vs ½ | lock exits same-bar | take_profit exits same-bar |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| crypto | 5634 | 4613 | 96.8 | -2236.6 | -2236.9 | -2237.3 | -2237.7 | -2238.1 | 0 | 0.8 | 2576/4562 (56.5%) | 33/348 (9.5%) |
+| forex | 18318 | 17014 | 176.3 | 2802.1 | 2819.4 | 2836.8 | 2854.2 | 2871.6 | 1 | 34.7 | 12855/17916 (71.8%) | 159/342 (46.5%) |
+| futures | 235 | 85 | 2.8 | -166.8 | -140.8 | -114.7 | -88.7 | -62.6 | 1 | 52.1 | — | 13/57 (22.8%) |
+| indices | 38 | 29 | 1.8 | -48.6 | -48.7 | -48.9 | -49.0 | -49.2 | 0 | 0.3 | — | 0/5 (0.0%) |
+| **pooled** | 24225 | 21741 | 277.6 | 350.1 | 393.0 | 435.9 | 478.8 | 521.6 | 1 | 85.8 | 15431/22478 (68.6%) | 205/752 (27.3%) |

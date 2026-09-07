@@ -353,7 +353,8 @@ every fraction, because the runner's protection re-arms on the TP1 touch and
 not on the size banked; spread rides in the leg prices, slippage rides ONLY
 in gapped prints (FR-7 — a non-gapped stop exit prints at its level, so a
 share below ½ moves money onto a leg the resolver never slips; round 1 bounds
-the optimism at S/2, forex select +1,100.2 → +785.2 R), and the commission is
+the optimism at S/2, forex select +1,100.2 → +785.2 R, and the reader now
+prints that bound itself in its slippage-priced table), and the commission is
 charged once per row. A row with no tp1 leg prices the same at every fraction.
 Round 1's verdict on the share is §0 of `banked-share-design-2026-09-05.md`:
 nothing ships.

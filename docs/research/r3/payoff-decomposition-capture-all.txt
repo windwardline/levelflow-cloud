@@ -1,9 +1,11 @@
 corpus ce146c6b8b63 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26 · variant baseline
 folds read: fit, select · confirm: SEALED, not read (2769596 rows withheld at the door)
-rows 6660138: 308111 decomposed · 680939 not accepted · 0 in other folds · 2753607 other variants · 64320 unfilled · 324 data-absent · 83241 held out
+rows 6660138: 308111 decomposed · 680939 not accepted · 0 in other folds · 2753607 other variants · 64320 unfilled · 324 data-absent · 83241 held out · 0 in other years
+years: all (no feed-character stratification)
 holdout: stratified-per-class-20pct — 20 markets excluded from every class pool (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only
 
 wins = take_profit + tp1_partial; stops = stop_loss; rest = expiries and ambiguous, held fixed when the break-even is solved. payoff = mean win / |mean stop|, realised. break-even = the win share at which expectancy is zero at that payoff and that rest.
+by money (amendment 39): a win is a row whose realised R is positive, a loss one whose R is negative; flat rows are held at zero when the break-even is solved. The two cross columns count rows the label and the money disagree on — a labelled win paid as a loss, a labelled stop paid as a win.
 
 === FIT ===
 | class | filled | net R | gross R | E (net) | mean win | mean stop | payoff | win share | break-even | rest share | rest mean | planned RR | ladder RR |
@@ -12,6 +14,14 @@ wins = take_profit + tp1_partial; stops = stop_loss; rest = expiries and ambiguo
 | forex | 174503 | -94.7 | 3356.9 | -0.0005 | 0.404 | -1.033 | 0.391 | 67.5% | 67.5% | 7.9% | -0.242 | 1.86 | 1.09 |
 | metals | 3995 | -342.3 | -58.0 | -0.0857 | 0.422 | -1.017 | 0.415 | 58.6% | 64.5% | 10.9% | -0.208 | 1.63 | 0.92 |
 | **pooled** | 185550 | 240.8 | 4382.6 | 0.0013 | 0.405 | -1.031 | 0.393 | 67.5% | 67.5% | 7.9% | -0.241 | 1.86 | 1.09 |
+
+--- fit · by money ---
+| class | filled | money-positive | share | mean | money-negative | mean | flat | label wins with R ≤ 0 | their R | label stops with R > 0 | their R | payoff (money) | break-even (money) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| crypto | 7052 | 5265 | 74.7% | 0.420 | 1786 | -0.859 | 1 | 57 | -6.9 | 0 | 0.0 | 0.489 | 67.1% |
+| forex | 174503 | 121058 | 69.4% | 0.397 | 53442 | -0.901 | 3 | 12 | -7.6 | 0 | 0.0 | 0.441 | 69.4% |
+| metals | 3995 | 2454 | 61.4% | 0.408 | 1541 | -0.872 | 0 | 1 | -0.6 | 0 | 0.0 | 0.468 | 68.1% |
+| **pooled** | 185550 | 128777 | 69.4% | 0.398 | 56769 | -0.899 | 4 | 70 | -15.1 | 0 | 0.0 | 0.443 | 69.3% |
 
 | class | outcome | n | share | mean net R | mean gross R | mean forgone runner R |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
@@ -48,6 +58,15 @@ wins = take_profit + tp1_partial; stops = stop_loss; rest = expiries and ambiguo
 | indices | 182 | -14.0 | -10.8 | -0.0767 | 0.400 | -1.027 | 0.390 | 44.5% | 49.9% | 41.2% | -0.263 | 2.18 | 1.23 |
 | metals | 3227 | -212.1 | 15.8 | -0.0657 | 0.418 | -1.020 | 0.410 | 60.8% | 65.3% | 10.1% | -0.221 | 1.63 | 0.91 |
 | **pooled** | 122561 | -2321.4 | 4071.1 | -0.0189 | 0.392 | -1.046 | 0.375 | 67.9% | 69.2% | 6.4% | -0.244 | 1.78 | 1.03 |
+
+--- select · by money ---
+| class | filled | money-positive | share | mean | money-negative | mean | flat | label wins with R ≤ 0 | their R | label stops with R > 0 | their R | payoff (money) | break-even (money) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| crypto | 40220 | 25474 | 63.3% | 0.411 | 14744 | -0.961 | 2 | 833 | -258.4 | 0 | 0.0 | 0.428 | 70.0% |
+| forex | 78932 | 56571 | 71.7% | 0.385 | 22360 | -0.903 | 1 | 4 | -1.3 | 0 | 0.0 | 0.427 | 70.1% |
+| indices | 182 | 93 | 51.1% | 0.401 | 89 | -0.576 | 0 | 8 | -2.2 | 0 | 0.0 | 0.696 | 58.9% |
+| metals | 3227 | 2052 | 63.6% | 0.405 | 1175 | -0.888 | 0 | 1 | -0.0 | 0 | 0.0 | 0.456 | 68.7% |
+| **pooled** | 122561 | 84190 | 68.7% | 0.394 | 38368 | -0.924 | 3 | 846 | -261.9 | 0 | 0.0 | 0.426 | 70.1% |
 
 | class | outcome | n | share | mean net R | mean gross R | mean forgone runner R |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |

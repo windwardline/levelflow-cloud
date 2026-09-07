@@ -12,14 +12,7 @@ import {
 } from "../scripts/sweepManifest.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
-import {
-  bankedFraction,
-  formatBankedFraction,
-  FRACTIONS,
-  parseFolds,
-  rFromLegs,
-  SEALED_FOLD,
-} from "../scripts/banked-fraction.ts";
+import { bankedFraction, formatBankedFraction, FRACTIONS, parseFolds, rFromLegs, SEALED_FOLD, stopPrintSlippage } from "../scripts/banked-fraction.ts";
 
 /**
  * The banked fraction is the literal 0.5 in `realizedRFromLegs` — the R2b
@@ -56,6 +49,9 @@ function row(input: {
   symbol: string;
   tp1?: number;
   variant?: string;
+  kind?: string;
+  sameBar?: boolean;
+  slippage?: number;
 }): Row {
   const base = input.split === "fit"
     ? FIT_START
@@ -72,12 +68,18 @@ function row(input: {
   const shipped = input.tp1 === undefined ? exitR - costR : 0.5 * tp1R + 0.5 * exitR - costR;
   const legs: Row[] = [{ leg: "entry", price: entry, time }];
   if (input.tp1 !== undefined) legs.push({ leg: "tp1", price: input.tp1, time: time + 1 });
-  legs.push({ kind: input.outcome, leg: "exit", price: input.exit, time: time + 2 });
+  // The corpus's exit kinds: a partial's runner exits through the TP1 lock unless the fixture says otherwise.
+  const kind = input.kind ?? (input.outcome === "tp1_partial" ? "tp1_lock" : input.outcome);
+  legs.push({ kind, leg: "exit", price: input.exit, time: time + (input.sameBar ? 1 : 2) });
   return {
     accepted: input.accepted ?? true,
+    entryPrice: entry,
     estimatedCommission: costR,
+    estimatedSlippage: input.slippage ?? 0,
     holdout: input.holdout ?? false,
     legs,
+    stopLoss: 99,
+    ...(input.tp1 !== undefined && { takeProfit1: input.tp1 }),
     outcome: input.outcome,
     realizedR: input.realizedR ?? Number(shipped.toFixed(4)),
     riskDistance: 1,
@@ -379,3 +381,84 @@ describe("the control, and what it keeps apart", () => {
     assert.equal((await read([path])).anchor, "2026-08-27");
   });
 });
+
+/**
+ * The slippage-priced table, hand-computed. EURUSD fit, riskDistance 1, six tp1 rows:
+ *
+ *   P  tp1_lock AT the lock (tp1 100.4, exit 100.4), slippage .2, SAME bar -> R(f) = 0.4;        charged .2
+ *   Q  tp1_lock gapped below it (exit 100.3), slippage .2                  -> 0.3 + 0.1f;        not charged
+ *   T  take_profit (exit 101.6), slippage .2                                -> 1.6 - 1.2f;        not charged (limit print)
+ *   E  expiry (expired_in_profit, exit 100.5), slippage .1                  -> 0.5 - 0.1f;        charged .1
+ *   B  breakeven_stop AT entry (exit 100.0), slippage .3                    -> 0.4f;              charged .3
+ *   A  ambiguous AT the stop (exit 99), slippage .1                         -> -1 + 1.4f;         charged .1
+ *
+ *   R(f) = 1.8 + 0.6f: R(0) 1.8, R(½) 2.1, R(1) 2.4.  S = 0.7 over 4 stop prints.
+ *   R_adj(f) = R(f) − (1−f)·0.7: R_adj(0) 1.1, R_adj(½) 1.75, R_adj(1) 2.4; best f (adj) 1, Δ_adj +0.65.
+ *   Same-bar: lock exits 1 of 2 (P), take_profit exits 0 of 1.
+ */
+describe("slippage-priced and same-bar", () => {
+  function slipRows(): Row[] {
+    let index = 0;
+    return [
+      row({ exit: 100.4, index: index++, outcome: "tp1_partial", sameBar: true, slippage: 0.2, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
+      row({ exit: 100.3, index: index++, outcome: "tp1_partial", slippage: 0.2, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
+      row({ exit: 101.6, index: index++, outcome: "take_profit", slippage: 0.2, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
+      row({ exit: 100.5, index: index++, kind: "expiry", outcome: "expired_in_profit", slippage: 0.1, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
+      row({ exit: 100.0, index: index++, kind: "breakeven_stop", outcome: "tp1_partial", slippage: 0.3, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
+      row({ exit: 99, index: index++, kind: "ambiguous", outcome: "ambiguous", slippage: 0.1, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
+    ];
+  }
+
+  it("charges the sweep's own slippage on the runner fraction of every stop print at its level and every expiry, never on a limit print or a gapped stop", async () => {
+    const summary = await read([writeCorpus(slipRows())], { folds: ["fit"] });
+    const cell = summary.cells.get("forex|fit")!;
+    assert.equal(cell.tp1Rows, 6);
+    assert.equal(cell.stopPrintRows, 4);
+    near(cell.slippageTotal, 0.7);
+    near(cell.byFraction.get(0)!.total, 1.8);
+    near(cell.byFraction.get(0.5)!.total, 2.1);
+    near(cell.byFraction.get(1)!.total, 2.4);
+    near(cell.byFractionAdjusted.get(0)!.total, 1.1);
+    near(cell.byFractionAdjusted.get(0.5)!.total, 1.75);
+    near(cell.byFractionAdjusted.get(1)!.total, 2.4);
+    assert.equal(cell.bestFractionAdjusted, 1);
+    near(cell.byFractionAdjusted.get(1)!.deltaVsShipped, 0.65);
+    assert.deepEqual(cell.sameBar, { lockRows: 2, lockSameBar: 1, takeProfitRows: 1, takeProfitSameBar: 0 });
+    const text = formatBankedFraction(summary);
+    assert.match(text, /slippage rides only in gapped prints \(FR-7\)/);
+    assert.match(text, /--- fit · slippage-priced and same-bar ---/);
+    assert.match(text, /\| forex \| 6 \| 4 \| 0\.7 \| 1\.1 \| 1\.4 \| 1\.8 \| 2\.1 \| 2\.4 \| 1 \| 0\.7 \| 1\/2 \(50\.0%\) \| 0\/1 \(0\.0%\) \|/);
+  });
+
+  it("stopPrintSlippage names its population: at-level stop kinds and expiry are charged, limit prints and gapped stops are not, and a missing kind or level refuses", () => {
+    // estimatedSlippage 1 over riskDistance 4: sR = 0.25 exactly in binary, so deepEqual can read it.
+    const levels = { entryPrice: 100, stopLoss: 99, takeProfit1: 100.4 };
+    const legs = (kind: string | undefined, exit: number) => [{ leg: "entry", price: 100 }, { leg: "tp1", price: 100.4 }, { kind, leg: "exit", price: exit }];
+    assert.deepEqual(stopPrintSlippage({ estimatedSlippage: 1, legs: legs("tp1_lock", 100.4), levels, riskDistance: 4 }), { charged: true, kind: "tp1_lock", sR: 0.25 });
+    assert.deepEqual(stopPrintSlippage({ estimatedSlippage: 0.02, legs: legs("tp1_lock", 100.39), levels, riskDistance: 0.1 }), { charged: false, kind: "tp1_lock", sR: 0 });
+    assert.deepEqual(stopPrintSlippage({ estimatedSlippage: 0.02, legs: legs("take_profit", 101.6), levels, riskDistance: 0.1 }), { charged: false, kind: "take_profit", sR: 0 });
+    // A limit print is never charged, even one that happens to sit on a level: the kind decides, not the price.
+    assert.deepEqual(stopPrintSlippage({ estimatedSlippage: 0.02, legs: legs("take_profit", 100.4), levels, riskDistance: 0.1 }), { charged: false, kind: "take_profit", sR: 0 });
+    assert.deepEqual(stopPrintSlippage({ estimatedSlippage: 0.02, legs: legs("trail_stop", 99), levels, riskDistance: 0.1 }), { charged: false, kind: "trail_stop", sR: 0 });
+    assert.deepEqual(stopPrintSlippage({ estimatedSlippage: 1, legs: legs("expiry", 100.7), levels, riskDistance: 4 }), { charged: true, kind: "expiry", sR: 0.25 });
+    assert.deepEqual(stopPrintSlippage({ estimatedSlippage: 1, legs: legs("stop_loss", 99), levels, riskDistance: 4 }), { charged: true, kind: "stop_loss", sR: 0.25 });
+    // A row without a tp1 leg moves nothing between fractions: never charged.
+    assert.deepEqual(stopPrintSlippage({ estimatedSlippage: 0.02, legs: [{ leg: "entry", price: 100 }, { kind: "stop_loss", leg: "exit", price: 99 }], levels, riskDistance: 0.1 }), { charged: false, kind: "stop_loss", sR: 0 });
+    // A gapped stop_loss is already slipped by the resolver (FR-7): not charged, same as a gapped lock.
+    assert.deepEqual(stopPrintSlippage({ estimatedSlippage: 1, legs: legs("stop_loss", 98.9), levels, riskDistance: 4 }), { charged: false, kind: "stop_loss", sR: 0 });
+    assert.throws(() => stopPrintSlippage({ estimatedSlippage: 0.02, legs: legs(undefined, 100.4), levels, riskDistance: 0.1 }), /names no kind/);
+    assert.throws(() => stopPrintSlippage({ estimatedSlippage: 0.02, legs: legs("", 100.4), levels, riskDistance: 0.1 }), /names no kind/);
+    assert.throws(() => stopPrintSlippage({ estimatedSlippage: 0.02, legs: legs("tp1_lock", 100.4), levels: { ...levels, takeProfit1: null }, riskDistance: 0.1 }), /no level on the row/);
+  });
+
+  it("refuses a tp1 row that cannot be placed on the slippage-priced table: no estimatedSlippage, or legs without times", async () => {
+    const noSlip = slipRows().slice(0, 1).map((entry) => ({ ...entry, estimatedSlippage: undefined }));
+    await assert.rejects(read([writeCorpus(noSlip)], { folds: ["fit"] }), /no finite estimatedSlippage/);
+    const noTimes = slipRows().slice(0, 1).map((entry) => ({ ...entry, legs: (entry.legs as Row[]).map((leg) => ({ ...leg, time: undefined })) }));
+    await assert.rejects(read([writeCorpus(noTimes)], { folds: ["fit"] }), /carry no finite times/);
+    // The helper's own refusal surfaces through the reader with the corpus path and the row named.
+    const noKind = slipRows().slice(0, 1).map((entry) => ({ ...entry, legs: (entry.legs as Row[]).map((leg) => (leg.leg === "exit" ? { ...leg, kind: undefined } : leg)) }));
+    await assert.rejects(read([writeCorpus(noKind)], { folds: ["fit"] }), /shard\.jsonl: EURUSD tp1_partial row — a tp1 row's exit leg names no kind/);
+  });
+});
+
