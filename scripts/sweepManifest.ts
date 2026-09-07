@@ -610,6 +610,35 @@ export function treasuryCurveFacts(
   };
 }
 
+export type EmitDigest = { bytes: number; rows: number; sha256: string };
+
+/**
+ * Writes lines and digests exactly what it wrote — one path for the bytes
+ * and the hash, so the two cannot disagree: sha256 over the UTF-8 bytes
+ * handed to the stream, the byte count of those same bytes, one row per
+ * line. `finish()` seals the digest for the manifest; a reader's door
+ * recomputes it over the file (`assertManifestedCorpusStreaming`).
+ */
+export function createEmitDigester(): {
+  write(stream: { write(chunk: string): unknown }, line: string): void;
+  finish(): EmitDigest;
+} {
+  const hash = createHash("sha256");
+  let bytes = 0;
+  let rows = 0;
+  return {
+    write(stream, line) {
+      stream.write(line);
+      hash.update(line);
+      bytes += Buffer.byteLength(line);
+      rows += 1;
+    },
+    finish() {
+      return { bytes, rows, sha256: hash.digest("hex") };
+    },
+  };
+}
+
 export type SweepManifest = {
   analyzerVersion: string;
   anchor: string;
@@ -850,6 +879,18 @@ export type SweepManifest = {
   rejectionLedgerRows?: number;
   emitColumns?: string[];
   /**
+   * The emit's own bytes, bound into the manifest hash (cache-design Q2,
+   * round 1 2026-09-06): sha256 over exactly the bytes the sweep wrote, the
+   * byte count and the row count. A reader's door recomputes the digest as it
+   * streams and refuses a corpus whose bytes are not the ones this manifest
+   * describes — adjacency on disk stopped being proof of identity the day a
+   * `--emit` truncated a 16.7 GB corpus beside its manifest (2026-09-04).
+   * Absent on a manifest that predates the field.
+   */
+  emit?: EmitDigest;
+  /** The rejections sidecar's digest, recorded the same way; no door reads it. */
+  rejections?: EmitDigest;
+  /**
    * The engine revision this corpus was measured under. Optional because
    * every pre-#409 corpus on disk genuinely lacks it — not because a new
    * sweep may omit it.
@@ -975,6 +1016,10 @@ export function buildSweepManifest(input: {
   rejectionLedgerRows?: number;
   /** Sorted keys of the first emitted row. See `SweepManifest.emitColumns`. */
   emitColumns?: string[];
+  /** See `SweepManifest.emit`. */
+  emit?: EmitDigest;
+  /** See `SweepManifest.rejections`. */
+  rejections?: EmitDigest;
   treasuryCurve: TreasuryCurveFacts;
   warmupBars: number;
 }): SweepManifest {
@@ -1058,6 +1103,9 @@ export function buildSweepManifest(input: {
       ),
     }),
     ...(input.emitColumns && { emitColumns: [...input.emitColumns].sort() }),
+    // Conditionally spread, so no manifest that predates the digest re-hashes.
+    ...(input.emit && { emit: input.emit }),
+    ...(input.rejections && { rejections: input.rejections }),
     treasuryCurve: input.treasuryCurve,
     warmupBars: input.warmupBars,
   };

@@ -120,9 +120,7 @@ main tables are byte-unchanged. (2) DONE (same change set) —
 `payoff-decomposition` prints a by-money table per fold: money-positive and
 money-negative rows with their means, flat rows, the two label-vs-money cross
 buckets, payoff and break-even by money. (3) a share read uses a paired
-per-row interval, never `rDeltaInterval95`'s unpaired one; (4) the emit's
-sha256 is written into the manifest at build end (cache-design Q2), and the
-neutrality oracle is a strip-and-hash against a HEAD rebuild; (5) a per-market
+per-row interval, never `rDeltaInterval95`'s unpaired one; (4) DONE for the digest (change set after #593) — the emit's sha256, byte count and row count are written into every manifest's hashed payload and both doors refuse a corpus whose bytes are not the manifest's; the neutrality oracle as a strip-and-hash against a HEAD rebuild stays with §3, which is not built; (5) a per-market
 share reader (amendment 33). None of these moves money; each sharpens the
 instrument for the next calendar, which needs FMP's intraday plan restored.
 

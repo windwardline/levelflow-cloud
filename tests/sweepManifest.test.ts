@@ -2,6 +2,7 @@ import type { FeedCharacterRecord } from "../scripts/feedCharacter.ts";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
+  createWriteStream,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -13,6 +14,7 @@ import { describe, it } from "node:test";
 import {
   buildSweepManifest,
   calendarCensus,
+  createEmitDigester,
   crossSeriesDensityFacts,
   resolveSweepSource,
   seriesFacts,
@@ -185,6 +187,7 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
     source?: SweepSource;
     symbolOverride?: Record<string, unknown>;
     feedCharacter?: Record<string, FeedCharacterRecord>;
+    emit?: { bytes: number; rows: number; sha256: string };
     treasuryCurve?: TreasuryCurveFacts;
   } = {}) =>
     buildSweepManifest({
@@ -192,6 +195,7 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-09",
       barRejections: { spike: 2 },
+      ...(overrides.emit && { emit: overrides.emit }),
       ...(overrides.calibrationByClass &&
         { calibrationByClass: overrides.calibrationByClass }),
       clock: overrides.clock ??
@@ -2724,3 +2728,67 @@ describe("the calendar census — a collapse must be visible from the corpus", (
   });
 
 });
+
+describe("the emit digest (cache-design Q2, round 1 2026-09-06)", () => {
+  const buildWith = (emit?: { bytes: number; rows: number; sha256: string }) =>
+    buildSweepManifest({
+      acceptance: { captureAll: false, ignoreLowEdge: false },
+      analyzerVersion: "2026.08.09.test",
+      anchor: "2026-08-09",
+      barRejections: {},
+      clock: { calendar: "test-calendar-v1", normalizer: "test-clock-v1" },
+      conditions: {
+        availableTimeframeCount: "min-four-by-construction",
+        macroAdjustment: "historical-treasury-curve",
+        providerWarningCount: "zero-by-construction",
+        spreadSource: "modeled-by-construction",
+        weightAdjustment: "raw-engine-zero",
+      },
+      days: 365,
+      ...(emit && { emit }),
+      generatedAt: "2026-08-09T00:00:00.000Z",
+      grid: [{}],
+      stepBars: 16,
+      symbols: [{ calibration: {}, providerSymbol: "EURUSD", series: { "15min": seriesFacts([{ time: 0 }], "intraday") }, symbol: "EURUSD" }],
+      trainShare: 0.6,
+      treasuryCurve: { count: 3_000, firstTime: Date.UTC(2013, 0, 2), largestGapMs: 4 * 86_400_000, lastTime: Date.UTC(2027, 0, 1) },
+      warmupBars: 240,
+    });
+
+  it("binds the emit's bytes into the manifest hash, and a manifest without the field hashes as before", () => {
+    const without = buildWith();
+    const digest = { bytes: 1234, rows: 7, sha256: "a".repeat(64) };
+    const withDigest = buildWith(digest);
+    assert.deepEqual(withDigest.emit, digest);
+    assert.equal(without.emit, undefined);
+    assert.notEqual(withDigest.manifestHash, without.manifestHash, "the emit's bytes are part of what the manifest hashes");
+    assert.notEqual(withDigest.manifestHash, buildWith({ ...digest, sha256: "b".repeat(64) }).manifestHash);
+    assert.notEqual(withDigest.manifestHash, buildWith({ ...digest, rows: 8 }).manifestHash);
+    assert.equal(buildWith().manifestHash, without.manifestHash);
+  });
+
+  it("the digester's digest is the file's — sha256, bytes and rows over exactly what it wrote, multi-byte characters included", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "emit-digester-"));
+    const path = join(dir, "run.jsonl");
+    const stream = createWriteStream(path);
+    const digester = createEmitDigester();
+    const lines = [JSON.stringify({ symbol: "EURUSD", time: 1 }) + "\n", JSON.stringify({ note: "½ — non-ASCII bytes count as bytes, not characters" }) + "\n"];
+    for (const line of lines) digester.write(stream, line);
+    await new Promise<void>((resolve, reject) => stream.end((error: unknown) => (error ? reject(error) : resolve())));
+    const written = readFileSync(path);
+    const digest = digester.finish();
+    assert.equal(digest.sha256, sha256Hex(written.toString("utf8")));
+    assert.equal(digest.bytes, written.length);
+    assert.notEqual(digest.bytes, lines.join("").length, "the fixture's second line has multi-byte characters");
+    assert.equal(digest.rows, 2);
+  });
+
+  it("the sweep writes both streams through the digester and seals them into the manifest", () => {
+    const source = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.match(source, /emitDigester\.write\(emitStream, JSON\.stringify\(row\) \+ "\\n"\)/);
+    assert.match(source, /rejectionDigester\.write\(rejectionStream, rejectionLine\)/);
+    assert.match(source, /emit: emitDigester\.finish\(\)/);
+    assert.match(source, /rejections: rejectionDigester\.finish\(\)/);
+  });
+});
+
