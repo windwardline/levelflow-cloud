@@ -107,9 +107,10 @@ as the prize. It is a mediator's gross arithmetic, not a measured delta. The
 measured in-minus-out expectancy differences are +0.0472, +0.0291, +0.0726 and
 +0.0391 R per fill on the four folds above, so the 0.10 figure is between
 **1.4× and 3.4×** the money it stood for. (An earlier version of this sentence
-said "well under half". Half of 0.10 is 0.05: +0.0726 exceeds it outright, and
-+0.0472 is 94.4 % of it, so two of the four defeat the claim — one strictly,
-one by being nowhere near "well under".) Amendment 39 puts realized R in charge
+said "well under half", and a later one said two of the four defeated that on a
+criterion it did not apply evenly. No count is needed. As fractions of half —
+0.05 — the four deltas are 145.2 %, 94.4 %, 78.2 % and 58.2 %. Only +0.0291 is
+comfortably well under half.) Amendment 39 puts realized R in charge
 wherever it exists, and here it exists on all four folds, so those four
 numbers are the effect.
 
