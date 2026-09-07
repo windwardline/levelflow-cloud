@@ -2121,6 +2121,60 @@ provenance is now marked figure by figure.
 direction goes into the next calendar's pre-registration at the market grain.
 The constraint is gross edge, which no admission rule or stop floor creates.
 
+**THE ALPHA REVIEW (2026-09-07, owner-commissioned) — `alpha-review-2026-09-07.md`.**
+Eight lenses proposed, one agent measured each shortlisted candidate against a
+control, two refuters attacked each positive; 26 agents, none failed. Two
+findings, both re-measured by the driver.
+
+1. **The entry's direction call is worth nothing.** In risk units, forex
+contained years, mean ADVERSE excursion exceeds mean favourable on every fold
+and both pools — fit in-pool −0.0300 [−0.0332, −0.0269], select in-pool
+−0.0462 [−0.0517, −0.0406], held-out −0.0213 and −0.0405 — every interval
+excluding zero. (Life-of-trade censoring is a real caveat; the round's
+uncensored random-entry null agrees at t = −0.01.) No exit geometry can
+rescue an engine whose entries carry no direction.
+
+2. **The geometry is wrong in a measurable, fixable way, worth ~0.10 R/fill.**
+By UTC hour of decision, in 16:00–21:59 vs outside: E +0.0361 [lo95 +0.0304]
+fit and +0.0324 [+0.0222] select in-pool, +0.0321 [+0.0208] fit held-out,
++0.0137 [−0.0056] select held-out — three of four clear. Positive in 9 of 10
+fit years, 4 of 4 select years, 20 of 22 markets, and in-span expectancy beats
+out-of-span on 22 of 22. THE MECHANISM: Target 1 rate is flat (0.63 vs 0.65)
+and Target 2 is HIGHER out of span; what changes is the STOP RATE, 17.8 % in
+span against 27.8 % out. Out of span the trade travels further relative to its
+stop in both directions.
+
+**THE RECOMMENDATION: gate the hours. A STOP-CLOCK FIX WAS RECOMMENDED HERE
+AND IS WITHDRAWN — do not rebuild it.** An earlier draft of the note argued
+that `expectedWindowMove = dailyAtr × sqrt(reviewHours × sizingHoursFactor /
+24)` sizes the stop without an hour term, so the fix was to make that clock
+hour-aware. Both halves failed. The formula (`pricePlan.ts:651-654`) caps
+Target 1, ceilings the runner and gates the feasibility refusal; it never
+touches the stop, which is `stopBuffer` (`:256-259`) capped by
+`maxStopDistance` (`:287`), both built on a fourteen-bar INTRADAY ATR that
+already moves with the hours before the decision. And the headroom test
+(`docs/research/r3/clock-fix-headroom-2026-09-07.txt`) killed the reading on
+its own terms: within quintiles of relative stop width, out-of-span expectancy
+is worse at EVERY width, the widest out-of-span quintile still trails what the
+span earns at half the width, Target 1 is exactly 0.4000 R with standard
+deviation zero (so widening a stop re-denominates rather than pays), and each
+span has an interior width optimum at Q3. Re-sizing the stop cannot recover
+what gating separates.
+
+Gating stands as the candidate, with its costs stated: it discards ~77.5 % of
+forex volume, its held-out select bound does not clear zero (+0.0137, lower
+−0.0056), it fails the market grain amendment 33 requires on a power argument
+rather than an absence, and the gate cannot presently return a verdict on it
+at all (next paragraph). It is a pre-registration for the next calendar, NOT a
+ship.
+
+**A structural finding about the gate.** `grid-totalr.ts` makes `thin` the
+first conjunct of `beatsBaseline`, and `thin` fires when a variant keeps under
+half the select fold. Every selective admission rule is refused before its
+money is read. The gate cannot express a verdict on the class of rule most
+likely to help; selective rules need their own verdict path, on per-fill
+expectancy with bounds.
+
 **Work still due, in order:** (1) the round-1 follow-ups (§0 of the design;
 the slippage-priced and same-bar-aware `banked-fraction` and the by-money
 `payoff-decomposition` landed in the change set after #592, tracked tables
