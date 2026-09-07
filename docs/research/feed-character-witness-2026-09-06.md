@@ -153,7 +153,13 @@ with the rest.
   the bars its review window resolved on — a setup decided on 2020-12-30
   whose window ran into 2021 counts as contained, and the reader's header
   says so.
-- **No verdict on any forex figure.** Amendment 36's standard runs both ways:
-  a market may not be withdrawn on a flawed input of our own making, and a
-  market may not be confirmed on one either. Which forex verdicts stand is
-  decided by the round, with the witness as its instrument.
+- **No verdict on any forex figure.** ~~Amendment 36's standard runs both
+  ways: a market may not be withdrawn on a flawed input of our own making,
+  and a market may not be confirmed on one either.~~ **Corrected 2026-09-07
+  (round 2):** the second half was this note's own extension, not the
+  amendment's text — amendment 36 names "a flawed parameter of our own
+  making" and governs withdrawal only, and a provider's feed is not a
+  parameter we chose. Confirmations answer to amendment 33 (per market, to
+  each market's true data limit) with amendment 39. Which forex verdicts
+  stand was decided by round 2:
+  `docs/research/feed-window-round2-2026-09-07.md`.

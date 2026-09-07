@@ -651,7 +651,10 @@ eight classes.**
 
 **What this changes.** The class-grain reading now exists for all eight
 classes and it is uniform: at rest, only forex is net-positive on the
-tuning folds; the runner axis prefers `trail_tp1` wherever the resting mode
+tuning folds — **superseded 2026-09-07 (round 2): that is a window-years
+statement. On the witness's contained years forex reads −1,415.8 R over
+fit+select (−0.0062 R/fill) and no class is net-positive on clean select
+rows; `docs/research/feed-window-round2-2026-09-07.md`** — the runner axis prefers `trail_tp1` wherever the resting mode
 is `hold` or a mix (crypto, futures, indices) but not on livestock, which
 rests on `breakeven` and reads −0.206 against −0.205 (p 0.911), and never
 enough to earn money on select; the daily stop source never earns

@@ -1,0 +1,16 @@
+CONTROL — the all-years deltas must equal frozen-candidates classes.forex.costShare (563.6595 / 306.1525)
+  fit    dR  +563.6595  (dropped 7466 of 174503)
+  select dR  +306.1525  (dropped 5662 of 78932)
+
+| fold | bucket | base n | base R | dropped n | dR | kept n | kept E | kept lo95 |
+| fit | all | 174503 | -94.7 | 7466 | +563.7 | 167037 | +0.0028 | -0.0002 |
+| fit | contained | 174503 | -94.7 | 7466 | +563.7 | 167037 | +0.0028 | -0.0002 |
+| select | all | 78932 | +1603.8 | 5662 | +306.2 | 73270 | +0.0261 | +0.0216 |
+| select | contained | 55419 | -1321.1 | 5194 | +353.7 | 50225 | -0.0193 | -0.0248 |
+| select | escaping | 23513 | +2925.0 | 468 | -47.5 | 23045 | +0.1249 | +0.1179 |
+
+CONFIRM FOLD — DATE COUNT ONLY (accepted baseline forex rows, verdict pool; no outcome or R field read):
+  contained 53478 · escaping 44044 · escaping share 45.2% of 97522
+
+per market, select contained dR: 17 of 22 positive; escaping dR <= 0 on 20 of 22
+exit=0
