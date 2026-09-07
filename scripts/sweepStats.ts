@@ -25,6 +25,7 @@ import {
   readFileSync,
   readSync,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { createInterface } from "node:readline";
 import { StringDecoder } from "node:string_decoder";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
@@ -36,13 +37,14 @@ import {
 import { ECON_CALENDAR_CLOCK } from "./clockWitness.ts";
 import {
   type CrossSeriesDensity,
-  type TreasuryCurveFacts,
+  type EmitDigest,
   type SeriesFacts,
   sha256Hex,
   stableStringify,
   type SweepConditions,
   type SweepManifest,
   TREASURY_FETCH_START_MS,
+  type TreasuryCurveFacts,
   treasuryGapTouching,
 } from "./sweepManifest.ts";
 
@@ -371,9 +373,22 @@ export async function assertManifestedCorpusStreaming(
   const manifest = verifyManifest(emitPath);
   const sealed = sealsConfirm(emitPath, options);
   let sealedRows = 0;
+  const input = createReadStream(emitPath);
+  // The emit's digest, recomputed over the bytes as they stream (cache-design
+  // Q2): a mismatch throws before this function returns, so no reader that
+  // reached its summary did so over bytes the manifest does not describe.
+  const digest = manifest.emit ? createHash("sha256") : null;
+  let bytesSeen = 0;
+  let rowsSeen = 0;
+  if (digest) {
+    input.on("data", (chunk: Buffer | string) => {
+      digest.update(chunk);
+      bytesSeen += typeof chunk === "string" ? Buffer.byteLength(chunk) : chunk.length;
+    });
+  }
   const reader = createInterface({
     crlfDelay: Number.POSITIVE_INFINITY,
-    input: createReadStream(emitPath),
+    input,
   });
   let lineNumber = 0;
   for await (const line of reader) {
@@ -382,6 +397,7 @@ export async function assertManifestedCorpusStreaming(
     if (!trimmed) {
       continue;
     }
+    rowsSeen += 1;
     // The try wraps ONLY the parse (#364 round 28, finding 2): every
     // reader's per-row logic runs in this callback, and a bare catch
     // around it reported any reader defect as corpus corruption — a
@@ -402,7 +418,26 @@ export async function assertManifestedCorpusStreaming(
     }
     onRow(row);
   }
+  if (digest && manifest.emit) {
+    assertEmitDigest(emitPath, manifest.emit, { bytes: bytesSeen, rows: rowsSeen, sha256: digest.digest("hex") });
+  }
   return { ...manifest, sealedRows };
+}
+
+/**
+ * The corpus beside the manifest must be the corpus the manifest describes:
+ * same sha256 over the bytes, same byte count, same row count. Adjacency on
+ * disk is not identity — a `--emit` truncated a 16.7 GB corpus beside its
+ * manifest on 2026-09-04 and nothing at the door could tell (cache-design Q2,
+ * round 1 2026-09-06). A manifest that predates the field is read as before.
+ */
+function assertEmitDigest(emitPath: string, recorded: EmitDigest, read: EmitDigest): void {
+  if (recorded.sha256 !== read.sha256 || recorded.bytes !== read.bytes || recorded.rows !== read.rows) {
+    throw new Error(
+      `${emitPath}: the emit's bytes are not the manifest's — recorded sha256 ${recorded.sha256.slice(0, 12)} over ${recorded.bytes} bytes / ${recorded.rows} rows, ` +
+        `read ${read.sha256.slice(0, 12)} over ${read.bytes} bytes / ${read.rows} rows; the corpus beside this manifest is not the corpus it describes`,
+    );
+  }
 }
 
 /**
@@ -418,11 +453,15 @@ export function assertManifestedCorpusSync(
   const manifest = verifyManifest(emitPath);
   const sealed = sealsConfirm(emitPath, options);
   let sealedRows = 0;
+  const digest = manifest.emit ? createHash("sha256") : null;
+  let bytesSeen = 0;
+  let rowsSeen = 0;
   readLinesSync(emitPath, (line, lineNumber) => {
     const trimmed = line.trim();
     if (!trimmed) {
       return;
     }
+    rowsSeen += 1;
     let row: SweepEmitRow;
     try {
       row = JSON.parse(trimmed) as SweepEmitRow;
@@ -436,7 +475,13 @@ export function assertManifestedCorpusSync(
       return;
     }
     onRow(row);
-  });
+  }, digest ? (bytes) => {
+    digest.update(bytes);
+    bytesSeen += bytes.length;
+  } : undefined);
+  if (digest && manifest.emit) {
+    assertEmitDigest(emitPath, manifest.emit, { bytes: bytesSeen, rows: rowsSeen, sha256: digest.digest("hex") });
+  }
   return { ...manifest, sealedRows };
 }
 
@@ -456,6 +501,8 @@ export function assertManifest(emitPath: string): SweepManifest {
 export function readLinesSync(
   path: string,
   onLine: (line: string, lineNumber: number) => void,
+  /** Every chunk of raw bytes as read, before decoding — for a door that digests the file it reads. */
+  onChunk?: (bytes: Buffer) => void,
 ): void {
   const fd = openSync(path, "r");
   try {
@@ -472,6 +519,7 @@ export function readLinesSync(
         carry += decoder.end();
         break;
       }
+      if (onChunk) onChunk(chunk.subarray(0, bytes));
       carry += decoder.write(chunk.subarray(0, bytes));
       let newlineIndex = carry.indexOf("\n");
       while (newlineIndex !== -1) {

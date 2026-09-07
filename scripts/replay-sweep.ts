@@ -50,15 +50,16 @@ import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import {
   buildSweepManifest,
-  resolveSweepSource,
+  calendarCensus,
+  createEmitDigester,
   type CrossSeriesDensity,
   crossSeriesDensityFacts,
+  resolveSweepSource,
   seriesFacts,
   type SeriesFacts,
   type SweepConditions,
   TREASURY_FETCH_START_MS,
   treasuryChunkRefusal,
-  calendarCensus,
   treasuryCurveFacts,
   treasuryGapTouching,
 } from "./sweepManifest.ts";
@@ -533,6 +534,10 @@ async function main() {
   // and died at the 4GB default heap ~48 minutes in.
   const { createWriteStream } = await import("node:fs");
   const emitStream = args.emit ? createWriteStream(args.emit) : null;
+  // The emit's digest, over exactly the bytes written (cache-design Q2): the
+  // manifest binds the corpus's bytes, not its neighbour on disk.
+  const emitDigester = createEmitDigester();
+  const rejectionDigester = createEmitDigester();
   // THE REJECTION LEDGER, in a file of its own beside the emit.
   //
   // `simulateSymbol` has built this since 2026-08-24 and the driver never read
@@ -1330,22 +1335,21 @@ async function main() {
             // correct and is exactly why the version cannot answer "does this
             // corpus have that column".
             emitColumns ??= Object.keys(row).sort();
-            emitStream.write(JSON.stringify(row) + "\n");
+            emitDigester.write(emitStream, JSON.stringify(row) + "\n");
             emittedRecords += 1;
           }
         }
         if (rejectionStream) {
           for (const entry of result.rejectionLedger) {
-            rejectionStream.write(
-              JSON.stringify({
-                holdout,
-                reason: entry.reason,
-                split: split.name,
-                symbol,
-                time: entry.time,
-                variant,
-              }) + "\n",
-            );
+            const rejectionLine = JSON.stringify({
+              holdout,
+              reason: entry.reason,
+              split: split.name,
+              symbol,
+              time: entry.time,
+              variant,
+            }) + "\n";
+            rejectionDigester.write(rejectionStream, rejectionLine);
             rejectionRows += 1;
           }
         }
@@ -1464,6 +1468,10 @@ async function main() {
       rejectionLedgerRows: rejectionRows,
       analyzerVersion: ANALYZER_VERSION,
       ...(emitColumns && { emitColumns }),
+      // The bytes this run wrote, bound into the hash: a reader's door
+      // recomputes them and refuses a corpus that is not this one.
+      emit: emitDigester.finish(),
+      ...(rejectionStream && { rejections: rejectionDigester.finish() }),
       anchor: args.anchor,
       barRejections: barRejectionTally,
       // Derived from the classes this run actually loaded — never a hand-kept

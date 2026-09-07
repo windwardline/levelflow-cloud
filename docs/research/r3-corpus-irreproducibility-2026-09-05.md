@@ -239,7 +239,14 @@ Weighed again after the digest matched (§3d): question 2's content hashes
 would have differed too — the sliced series did change — and would have
 invited the same wrong inference; the emit digest is the oracle, and the
 manifest should carry it (it does, on the read artifact; it should also sit
-in the manifest itself). Question 3 keeps its force: an archived cache makes
+in the manifest itself). **Adopted (change set after #593):** every sweep
+manifest now carries `emit` — sha256 over exactly the bytes the sweep wrote,
+the byte count and the row count, inside the hashed payload — and
+`rejections` for the sidecar; both doors (`assertManifestedCorpusStreaming`,
+`assertManifestedCorpusSync`) recompute the digest as they stream and refuse
+a corpus whose bytes, byte count or row count are not the manifest's, before
+any reader returns a summary. A manifest that predates the field is read as
+before. Question 3 keeps its force: an archived cache makes
 a rebuild possible when the drift does reach a row. Question 1 reduces how
 often that happens.
 

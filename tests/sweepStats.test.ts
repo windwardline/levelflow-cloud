@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -19,18 +25,19 @@ import {
   addOutcome,
   assertManifestedCorpus,
   assertManifestedCorpusStreaming,
+  assertManifestedCorpusSync,
   clusteredStandardError,
   emptyStats,
   expectancy,
   fiveMinuteFloorFor,
+  grossExpectancy,
+  grossView,
+  rExpectancyInterval95,
   rStandardError,
   rStdDev,
   type SweepEmitRow,
   VOCABULARY_ROW_KEYS,
   vocabularyRow,
-  grossExpectancy,
-  grossView,
-  rExpectancyInterval95,
 } from "../scripts/sweepStats.ts";
 
 // Item 3, first commit (the map's govern-all finding): seven emit-readers
@@ -2064,3 +2071,94 @@ describe("the gross column travels with every cell (R4 act 2)", () => {
     assert.equal(grossView(stats).filled, 40);
   });
 });
+
+// Cache-design Q2 (round 1, 2026-09-06): the manifest binds the emit's bytes.
+// A `--emit` truncated a 16.7 GB corpus beside its manifest on 2026-09-04 and
+// nothing at the door could tell; now the door recomputes the digest as it
+// streams and refuses a corpus that is not the one the manifest describes.
+describe("assertManifestedCorpus — the emit digest", () => {
+  const rows = [
+    { estimatedRoundTripCost: 0.0001, outcome: "take_profit", realizedR: 1.5, riskDistance: 0.01, symbol: "EURUSD" },
+    { estimatedRoundTripCost: 0.0001, outcome: "stop_loss", realizedR: -1, riskDistance: 0.01, symbol: "EURUSD" },
+  ];
+  const write = (withDigest: boolean, recorded?: Partial<{ bytes: number; rows: number }>) => {
+    const dir = mkdtempSync(join(tmpdir(), "sweepstats-digest-"));
+    const emitPath = join(dir, "run.jsonl");
+    const text = rows.map((entry) => JSON.stringify(entry)).join("\n") + "\n";
+    writeFileSync(emitPath, text);
+    const bytes = Buffer.from(text);
+    const emit = { bytes: bytes.length, rows: rows.length, sha256: sha256Hex(text), ...recorded };
+    const manifest = buildSweepManifest({
+      acceptance: { captureAll: false, ignoreLowEdge: false },
+      analyzerVersion: "2026.08.09.test",
+      anchor: "2026-08-10",
+      barRejections: {},
+      clock: { calendar: ECON_CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+      conditions: {
+        availableTimeframeCount: "min-four-by-construction",
+        macroAdjustment: "historical-treasury-curve",
+        providerWarningCount: "zero-by-construction",
+        spreadSource: "modeled-by-construction",
+        weightAdjustment: "raw-engine-zero",
+      },
+      days: 365,
+      ...(withDigest && { emit }),
+      generatedAt: "2026-08-10T04:00:00.000Z",
+      grid: [{}],
+      stepBars: 16,
+      symbols: [{
+        calibration: { tp1RiskShare: 0.8 },
+        providerSymbol: "EURUSD",
+        series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
+        symbol: "EURUSD",
+      }],
+      trainShare: 0.6,
+      treasuryCurve: { count: 3_000, firstTime: Date.UTC(2013, 0, 2), largestGapMs: 4 * 86_400_000, lastTime: Date.UTC(2027, 0, 1) },
+      warmupBars: 240,
+    });
+    writeFileSync(`${emitPath}.manifest.json`, JSON.stringify(manifest, null, 2) + "\n");
+    return { emit, emitPath };
+  };
+
+  it("reads a corpus whose bytes are the manifest's, on both doors, and hands the digest back", async () => {
+    const { emit, emitPath } = write(true);
+    let seen = 0;
+    const streamed = await assertManifestedCorpusStreaming(emitPath, () => { seen += 1; });
+    assert.deepEqual(streamed.emit, emit);
+    assert.equal(seen, 2);
+    const sync = assertManifestedCorpusSync(emitPath, () => {});
+    assert.deepEqual(sync.emit, emit);
+  });
+
+  it("refuses a corpus whose bytes are not the manifest's — one appended byte — on both doors, naming both digests", async () => {
+    const { emitPath } = write(true);
+    appendFileSync(emitPath, " ");
+    await assert.rejects(
+      assertManifestedCorpusStreaming(emitPath, () => {}),
+      /the emit's bytes are not the manifest's — recorded sha256 [0-9a-f]{12} over \d+ bytes \/ 2 rows, read [0-9a-f]{12} over \d+ bytes \/ 2 rows/,
+    );
+    assert.throws(() => assertManifestedCorpusSync(emitPath, () => {}), /the emit's bytes are not the manifest's/);
+  });
+
+  it("refuses a corpus with a row appended after the manifest was written", async () => {
+    const { emitPath } = write(true);
+    appendFileSync(emitPath, JSON.stringify(rows[0]) + "\n");
+    await assert.rejects(assertManifestedCorpusStreaming(emitPath, () => {}), /3 rows; the corpus beside this manifest is not the corpus it describes/);
+  });
+
+  it("refuses when the digest matches but the manifest's own row or byte count does not — every figure must agree", async () => {
+    const rowsWrong = write(true, { rows: 5 });
+    await assert.rejects(assertManifestedCorpusStreaming(rowsWrong.emitPath, () => {}), /bytes \/ 5 rows, read [0-9a-f]{12} over \d+ bytes \/ 2 rows/);
+    const bytesWrong = write(true, { bytes: 1 });
+    assert.throws(() => assertManifestedCorpusSync(bytesWrong.emitPath, () => {}), /over 1 bytes \/ 2 rows, read/);
+  });
+
+  it("reads a manifest that predates the field as before — the bytes are unbound and the door says nothing", async () => {
+    const { emitPath } = write(false);
+    appendFileSync(emitPath, " ");
+    const read = await assertManifestedCorpusStreaming(emitPath, () => {});
+    assert.equal(read.emit, undefined);
+    assert.equal(assertManifestedCorpusSync(emitPath, () => {}).emit, undefined);
+  });
+});
+
