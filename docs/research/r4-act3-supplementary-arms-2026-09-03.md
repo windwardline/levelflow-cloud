@@ -341,7 +341,12 @@ cells), HOUSD (three), NGUSD (four), ZSUSX (three), on the gross clause.
 `docs/research/r4/stop-cap-8-grading.json` and `-class.json`). Cap 8 with
 the daily source is the cell that crosses the class gate cap 4 missed: forex
 accepts it — fit +2.2R, select +248R, p 0.009, own expectancy +0.023R — the
-only swept stop cell accepted anywhere, and at the class grain only; no
+only swept stop cell accepted anywhere **[SUPERSEDED 2026-09-07, round 2:
+window money. On contained years the same cell reads −196.4R on 2018–2020
+select, negative in every clean year, against +444.2R on 2021–2022H1 — 179 %
+of the accepted delta. Nothing shipped from it (forex maxStopAtrMultiplier
+stays 1.0), so what falls is this verdict:
+`docs/research/feed-window-round2-2026-09-07.md`]**, and at the class grain only; no
 market accepts either cell. For the eight derived candidates shipping at cap
 4 the removal of the cap moves their select net upper bounds by hundredths
 (HBARUSD −0.050 → −0.028, EGLDUSD −0.268 → −0.237, WTI −0.105 → −0.086)
@@ -451,6 +456,20 @@ members point-positive (+92R) but INDISTINGUISHABLE under the same rule —
 the held-out pool corroborates the sign, it does not add a verdict. Confirmed
 by the pre-registered rule with a lower bound of +0.0001 — by a hair, and
 stated as such.
+
+**Round 2's split (2026-09-07), measured against these frozen figures as its
+control.** The cap's delta is a clean-years property the feed window diluted:
+fit +563.7R (that fold is entirely contained), select **contained +353.7R**
+against the +306.2R recorded here, escaping **−47.5R**, positive on 17 of 22
+pool markets on contained select and ≤ 0 on 20 of 22 escaping. The cap keeps
+trading. What does not survive is the accept's earns-money leg: the capped
+stream's own select expectancy is **−0.0193 R/fill [−0.0248, −0.0138]** on
+50,225 contained fills against the +0.026 (+0.022) this section records — on
+clean rows, the gate's own "LOSES MONEY" clause, the one crypto and futures
+were refused under. And the confirm fold this read opened is 45.2 % escaping
+by date count, where the cap's tuning-fold delta is negative: the mix made
+the read harder, not easier. `docs/research/feed-window-round2-2026-09-07.md`,
+`docs/research/r3/cap-era-split-2026-09-07.txt`.
 
 **And it is one crossing among thirteen.** The read judged 13 frozen
 candidates: nine market cells and four forex class cells. Exactly one

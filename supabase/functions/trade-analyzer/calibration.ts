@@ -674,6 +674,15 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     // the mechanism is a bill the venue actually charges — not because that
     // one interval cleared zero.
     //
+    // ROUND 2 (2026-09-07): the earns-money clause is true of the fold it was
+    // read on and false of clean years. The cap's DELTA is a clean-years
+    // property the feed window diluted (fit +563.7R, select contained
+    // +353.7R against +306.2R all-years, escaping -47.5R, 17 of 22 pool
+    // markets positive on contained select), so the cap keeps trading and
+    // nothing is withdrawn. Its own contained-select expectancy is
+    // -0.0193 R/fill [-0.0248, -0.0138] over 50,225 fills — the gate's own
+    // "LOSES MONEY" clause. docs/research/feed-window-round2-2026-09-07.md.
+    //
     // Every other class moved R but failed D4 — the losses shrink, the sign
     // does not change — so no other row carries the cap. It declines trades;
     // it moves no stop and no target, so nothing about a surviving trade's

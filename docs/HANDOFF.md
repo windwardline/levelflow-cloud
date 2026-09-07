@@ -2054,6 +2054,31 @@ refuter-surviving recommendations; recorded as amendment 42 in the rulings
 file, §7 and the guide-content spec carry the three sentences. Copy only:
 no engine change, no version bump.
 
+**ROUND 2 VERDICT (2026-09-07) — `feed-window-round2-2026-09-07.md`.** Three
+dimensions, two refuters each; the verify phase died on the account limit, so
+the driver reproduced every deciding figure itself with the frozen candidate
+figures as the control (`docs/research/r3/cap-era-split-2026-09-07.txt`).
+**Falls:** "forex the only net-positive class" (contained fit+select
+−1,415.8R), and S8's "the only swept stop cell accepted anywhere" (179 % of
+its delta is window money; nothing shipped from it). **Stands:** the cost cap
+keeps trading — its delta is a clean-years property the window DILUTED (select
+contained +353.7R against +306.2R all-years, 17 of 22 markets) and unsetting
+it would cost 353.7R on exactly the clean rows the desk trades live. Its
+accept's earns-money leg reads −0.0193R/fill [−0.0248] on contained rows, but
+the UNCAPPED stream reads −0.0238 there: the term fails either way, so it is
+a verdict on forex's calibration, not on this filter. On clean years forex
+loses money capped or uncapped, and nothing forex ships today would pass D4
+if proposed now. **The corpus, the act-3 artifact and the register are
+untouched**: the bytes are what the provider served and the readers stratify.
+**Remedy adopted:** per-market span exclusion for the NEXT read (amendment 33
+already asks for it; the year map is the span record), stratification for
+existing verdicts — R1/R2/R3 all die at the class grain, R2's trigger flips
+with its own denominator (45.2 % by year, 51 % by month), R3 is unreachable at
+402 and would return the same bytes. The map needs a finer grain than the
+year before it gates anything (the reversion edge runs mid-2024).
+**Correction to the driver's own writing:** amendment 36 governs withdrawal
+only; "it runs both ways" was an extension, not text.
+
 **Work still due, in order:** (1) the round-1 follow-ups (§0 of the design;
 the slippage-priced and same-bar-aware `banked-fraction` and the by-money
 `payoff-decomposition` landed in the change set after #592, tracked tables
@@ -2063,7 +2088,11 @@ forex admissible at the class grain on the reader's per-market test, 22 of 22
 markets, what fails it is D4's absolute term; still due: a paired share
 interval); (2) round 2's remedy question — what a
 witness-refused symbol-year means for a sweep: refuse, stratify, or a fold
-calendar that avoids it; (3) the owner item above — DONE, amendment 42 in the
+calendar that avoids it — DECIDED 2026-09-07 by round 2: per-market span
+exclusion for the next read, stratification for existing verdicts; building
+the exclusion is its own change set, because `sweepFolds.ts` cuts one
+continuous span per class and forex's escaping years sit in the middle of it;
+(3) the owner item above — DONE, amendment 42 in the
 change set after #595; (4) the FMP plan is the
 owner's, and until it is restored nothing that fetches intraday bars or the
 calendar can run, and no new calendar exists to re-read the share on.
@@ -2356,7 +2385,11 @@ reading are tracked beside them. Full record:
   after R4 act 2's refuter found the day's figures pooled under the driver's
   stamped 19; the money did not move, the pool did): forex +0.006R ±0.005
   per filled trade (+1,509.1R over 22 clusters; select +0.020), as first
-  printed +0.013R ±0.006 (+2,896.9R); crypto −0.064 (fit +0.096, select
+  printed +0.013R ±0.006 (+2,896.9R) — **SUPERSEDED 2026-09-07 (round 2): a
+  window-years figure. On the witness's contained years forex reads −1,415.8R
+  over fit+select (−0.0062R/fill; fit −94.7R, select −1,321.1R) and no class
+  is net-positive on clean select rows; the desk may not be told forex is
+  net-positive at any grain (`feed-window-round2-2026-09-07.md`)**; crypto −0.064 (fit +0.096, select
   −0.092), as first printed −0.036 (+0.123 / −0.065); metals −0.077 (XAUUSD
   alone); indices 202 decisions, −0.077. Against baseline, `breakeven` and `hold` fail the paired test at
   p = 1.000 in forex, crypto and metals; `trail_tp1` is the best pooled net

@@ -1770,7 +1770,32 @@ share rows, so the true figure is lower, but it is not small. The cap ships
 because the sign agrees on every fold, because the class-grain grading passed
 the gate's own earns-money term before the fold was opened, and because the
 mechanism is a bill the venue charges — not because this interval cleared
-zero by 0.0001. Crypto's and futures' caps moved thousands
+zero by 0.0001.
+
+**Round 2's correction (2026-09-07).** The earns-money clause above is true
+of the fold it was read on and false of clean years. Split by the
+feed-character witness, the cap's DELTA is a clean-years property the window
+diluted — fit +563.7 R (the fit fold is entirely contained), select contained
++353.7 R against +306.2 all-years, escaping −47.5 R, positive on 17 of 22
+pool markets on contained select — and unsetting it would return the fold
+from −967.4 R to −1,321.1 R, costing 353.7 R on exactly the clean rows the
+desk trades live (forex's escaping years end in 2023–2024). It keeps trading
+because removing it loses money.
+
+But the capped stream's OWN select expectancy, the gate's earns-money term,
+reads **−0.0193 R/fill [−0.0248, −0.0138]** on 50,225 contained fills against
+the +0.026 (+0.022) recorded here: on clean rows it is the gate's own "LOSES
+MONEY" clause. The term does not discriminate, though — the UNCAPPED stream
+reads −0.0238 on the same rows, worse. So it is a verdict on forex's
+calibration rather than on this filter: on clean years the class loses money
+capped or uncapped, the cap is the smaller loss, and nothing forex ships
+today would pass D4 if it were proposed now. The confirm read was made harder by
+the mix, not easier — its fold is 45.2 % escaping by date count and the cap's
+delta is negative on escaping rows. Measured with the frozen figures as its
+control: `docs/research/r3/cap-era-split-2026-09-07.txt`,
+`docs/research/feed-window-round2-2026-09-07.md`.
+
+Crypto's and futures' caps moved thousands
 of R on the tuning folds and failed the gate's own earns-money term — the
 losses shrink, the sign does not change — so those rows stay unset
 (`docs/research/r4-act3-supplementary-arms-2026-09-03.md` §6a, §6d).
