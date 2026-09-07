@@ -1,0 +1,25 @@
+corpus 021821537f28 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26 · variant baseline
+folds read: fit, select · confirm: SEALED, not read (2141527 rows withheld at the door)
+rows 6634732: 53436 priced · 857954 not accepted · 0 in other folds · 3118950 other variants · 75920 unfilled · 442 data-absent · 93713 held out · 292790 in other years
+years: escaping · year map: witness table docs/research/r3/feed-character.txt (5min tier)
+control: 53436 rows reproduced their emitted realizedR at the shipped fraction 0.5 (tolerance 0.00011)
+holdout: stratified-per-class-20pct — 20 markets excluded from every class pool (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only
+
+allocation only: the exit path is the emitted one at every fraction (the runner's protection re-arms on the TP1 touch, not on the size banked); costs are the emitted commission — spread and slippage ride in the leg prices. Rows without a tp1 leg price the same at every fraction.
+
+=== FIT ===
+| class | filled | tp1 rows | no-tp1 rows | shipped R (½) | banked half | runner half | costs | no-tp1 R | R(0) | R(0.25) | R(0.5) | R(0.75) | R(1) | best f | Δ best vs ½ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| crypto | 19084 | 13853 | 5231 | 561.9 | 3210.3 | 2762.7 | -568.9 | -4842.2 | 114.2 | 338.1 | 561.9 | 785.8 | 1009.6 | 1 | 447.7 |
+| futures | 99 | 18 | 81 | -47.1 | 6.6 | 1.8 | -0.4 | -55.0 | -51.8 | -49.4 | -47.1 | -44.7 | -42.3 | 1 | 4.8 |
+| livestock | 51 | 28 | 23 | -0.7 | 7.7 | 12.2 | -0.7 | -19.8 | 3.8 | 1.6 | -0.7 | -2.9 | -5.2 | 0 | 4.5 |
+| **pooled** | 19234 | 13899 | 5335 | 514.2 | 3224.6 | 2776.6 | -570.0 | -4917.0 | 66.2 | 290.2 | 514.2 | 738.1 | 962.1 | 1 | 448.0 |
+
+=== SELECT ===
+| class | filled | tp1 rows | no-tp1 rows | shipped R (½) | banked half | runner half | costs | no-tp1 R | R(0) | R(0.25) | R(0.5) | R(0.75) | R(1) | best f | Δ best vs ½ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| crypto | 9951 | 5634 | 4317 | -2189.0 | 1231.5 | 1280.6 | -331.6 | -4369.4 | -2139.8 | -2164.4 | -2189.0 | -2213.5 | -2238.1 | 0 | 49.2 |
+| forex | 23513 | 18318 | 5195 | 2925.0 | 3810.7 | 3864.0 | -595.2 | -4154.5 | 2978.3 | 2951.6 | 2925.0 | 2898.3 | 2871.6 | 0 | 53.4 |
+| futures | 655 | 235 | 420 | -113.3 | 117.1 | 66.4 | -8.4 | -288.4 | -164.0 | -138.7 | -113.3 | -88.0 | -62.6 | 1 | 50.7 |
+| indices | 83 | 38 | 45 | -48.0 | 7.8 | 9.0 | -9.7 | -55.1 | -46.8 | -47.4 | -48.0 | -48.6 | -49.2 | 0 | 1.2 |
+| **pooled** | 34202 | 24225 | 9977 | 574.7 | 5167.1 | 5220.1 | -945.0 | -8867.5 | 627.7 | 601.2 | 574.7 | 548.2 | 521.6 | 0 | 53.0 |

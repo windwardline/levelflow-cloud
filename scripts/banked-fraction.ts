@@ -11,7 +11,10 @@
  * What it is: the ALLOCATION question alone. The exit path is the emitted
  * one at every fraction — the runner's protection re-arms on the TP1 touch,
  * not on the size banked — and costs are the emitted commission (spread and
- * slippage ride in the leg prices). A row without a tp1 leg ran full size to
+ * slippage ride in the leg prices — spread does; slippage only in gapped
+ * prints, FR-7, so a fraction below ½ moves money onto a stop print the
+ * resolver never slips and the slope is an upper bound by up to S/2 — round
+ * 1, 2026-09-06). A row without a tp1 leg ran full size to
  * one exit and prices the same at every fraction.
  *
  * Its control runs on every row it prices: at ½ the arithmetic must reproduce
