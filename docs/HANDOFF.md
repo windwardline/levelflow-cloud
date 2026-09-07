@@ -2044,9 +2044,10 @@ amendment-34 breach independent of the share — and five mechanised
 follow-ups), post-mortem note §3d/§8b corrected, tracked
 `banked-fraction-capture-all-classfolds-{contained,escaping}.txt`.
 
-**Work still due, in order:** (1) the round-1 follow-ups (§0 of the design:
-slippage-priced and same-bar-aware `banked-fraction`, wins by money in
-`payoff-decomposition`, a paired share interval, the emit digest in the
+**Work still due, in order:** (1) the round-1 follow-ups (§0 of the design;
+the slippage-priced and same-bar-aware `banked-fraction` and the by-money
+`payoff-decomposition` landed in the change set after #592, tracked tables
+regenerated; still due: a paired share interval, the emit digest in the
 manifest, a per-market share reader); (2) round 2's remedy question — what a
 witness-refused symbol-year means for a sweep: refuse, stratify, or a fold
 calendar that avoids it; (3) the owner item above; (4) the FMP plan is the

@@ -83,9 +83,32 @@ export type OutcomeTally = {
 
 export type Moments = { mean: number | null; n: number; sum: number };
 
+/**
+ * Amendment 39's own definition beside the sweep's vocabulary: a win is a row
+ * whose realised R is positive, a loss one whose R is negative, and the two
+ * cross-buckets count where the label and the money disagree — a
+ * `tp1_partial` whose runner gapped below entry is labelled a win and paid
+ * as a loss. Round 1 (2026-09-06) counted 1,327 such select rows (−416.4 R).
+ */
+export type ByMoney = {
+  /** Break-even positive share at this money payoff, flat rows held fixed at zero. */
+  breakEvenShare: number | null;
+  flat: number;
+  negative: Moments;
+  /** mean positive / |mean negative|. */
+  payoff: number | null;
+  positive: Moments;
+  positiveShare: number | null;
+  /** Rows labelled stop_loss whose realised R is positive. */
+  stopLabelPositive: Moments;
+  /** Rows labelled a win (take_profit, tp1_partial) whose realised R is zero or negative. */
+  winLabelNonPositive: Moments;
+};
+
 export type PayoffCell = {
   assetType: string;
   breakEvenWinShare: number | null;
+  byMoney: ByMoney;
   byOutcome: Map<string, OutcomeTally & { forgoneRunnerMean: number | null; grossMean: number | null; mean: number | null; share: number }>;
   expectancy: number | null;
   filled: number;
@@ -107,6 +130,11 @@ export type PayoffCell = {
 type RawCell = {
   assetType: string;
   byOutcome: Map<string, OutcomeTally>;
+  moneyFlat: number;
+  moneyNegative: { n: number; sum: number };
+  moneyPositive: { n: number; sum: number };
+  stopLabelPositive: { n: number; sum: number };
+  winLabelNonPositive: { n: number; sum: number };
   filled: number;
   fold: string;
   grossFilled: number;
@@ -157,6 +185,11 @@ function rawCell(assetType: string, fold: string): RawCell {
     grossFilled: 0,
     grossSum: 0,
     ladderN: 0,
+    moneyFlat: 0,
+    moneyNegative: { n: 0, sum: 0 },
+    moneyPositive: { n: 0, sum: 0 },
+    stopLabelPositive: { n: 0, sum: 0 },
+    winLabelNonPositive: { n: 0, sum: 0 },
     ladderSum: 0,
     rSum: 0,
     rrN: 0,
@@ -195,6 +228,23 @@ function addRow(cell: RawCell, row: SweepEmitRow, realized: number): void {
   }
   tally.n += 1;
   tally.rSum += realized;
+  if (realized > 0) {
+    cell.moneyPositive.n += 1;
+    cell.moneyPositive.sum += realized;
+  } else if (realized < 0) {
+    cell.moneyNegative.n += 1;
+    cell.moneyNegative.sum += realized;
+  } else {
+    cell.moneyFlat += 1;
+  }
+  if (WIN_OUTCOMES.has(outcome) && realized <= 0) {
+    cell.winLabelNonPositive.n += 1;
+    cell.winLabelNonPositive.sum += realized;
+  }
+  if (STOP_OUTCOMES.has(outcome) && realized > 0) {
+    cell.stopLabelPositive.n += 1;
+    cell.stopLabelPositive.sum += realized;
+  }
   if (gross !== null) {
     tally.grossN += 1;
     tally.grossSum += gross;
@@ -265,6 +315,23 @@ function derive(raw: RawCell): PayoffCell {
   const payoff = wins.mean !== null && stops.mean !== null && stops.mean < 0
     ? wins.mean / Math.abs(stops.mean)
     : null;
+  const positive = moments(raw.moneyPositive.n, raw.moneyPositive.sum);
+  const negative = moments(raw.moneyNegative.n, raw.moneyNegative.sum);
+  const byMoney: ByMoney = {
+    breakEvenShare: breakEvenWinShare({
+      meanStop: negative.mean,
+      meanWin: positive.mean,
+      restMean: 0,
+      restShare: raw.filled > 0 ? raw.moneyFlat / raw.filled : 0,
+    }),
+    flat: raw.moneyFlat,
+    negative,
+    payoff: positive.mean !== null && negative.mean !== null && negative.mean < 0 ? positive.mean / Math.abs(negative.mean) : null,
+    positive,
+    positiveShare: raw.filled > 0 ? raw.moneyPositive.n / raw.filled : null,
+    stopLabelPositive: moments(raw.stopLabelPositive.n, raw.stopLabelPositive.sum),
+    winLabelNonPositive: moments(raw.winLabelNonPositive.n, raw.winLabelNonPositive.sum),
+  };
   return {
     assetType: raw.assetType,
     breakEvenWinShare: breakEvenWinShare({
@@ -273,6 +340,7 @@ function derive(raw: RawCell): PayoffCell {
       restMean: rest.mean,
       restShare: raw.filled > 0 ? restN / raw.filled : 0,
     }),
+    byMoney,
     byOutcome,
     expectancy: raw.filled > 0 ? raw.rSum / raw.filled : null,
     filled: raw.filled,
@@ -500,6 +568,10 @@ export function formatDecomposition(summary: PayoffSummary): string {
     "wins = take_profit + tp1_partial; stops = stop_loss; rest = expiries and ambiguous, held fixed when the break-even is solved. " +
       "payoff = mean win / |mean stop|, realised. break-even = the win share at which expectancy is zero at that payoff and that rest.",
   );
+  lines.push(
+    "by money (amendment 39): a win is a row whose realised R is positive, a loss one whose R is negative; flat rows are held at zero when the break-even is solved. " +
+      "The two cross columns count rows the label and the money disagree on — a labelled win paid as a loss, a labelled stop paid as a win.",
+  );
   for (const fold of summary.folds) {
     lines.push("");
     lines.push(`=== ${fold.toUpperCase()} ===`);
@@ -512,6 +584,19 @@ export function formatDecomposition(summary: PayoffSummary): string {
       const restShare = cell.filled > 0 ? cell.rest.n / cell.filled : null;
       lines.push(
         `| ${key.startsWith("pooled|") ? "**pooled**" : cell.assetType} | ${cell.filled} | ${fmt(cell.rSum, 1)} | ${fmt(cell.grossFilled > 0 ? cell.grossSum : null, 1)} | ${fmt(cell.expectancy, 4)} | ${fmt(cell.wins.mean)} | ${fmt(cell.stops.mean)} | ${fmt(cell.payoff)} | ${pct(cell.winShare)} | ${pct(cell.breakEvenWinShare)} | ${pct(restShare)} | ${fmt(cell.rest.mean)} | ${fmt(cell.plannedRewardRisk, 2)} | ${fmt(cell.plannedLadderRewardRisk, 2)} |`,
+      );
+    }
+    lines.push("");
+    lines.push(`--- ${fold} · by money ---`);
+    lines.push(
+      "| class | filled | money-positive | share | mean | money-negative | mean | flat | label wins with R ≤ 0 | their R | label stops with R > 0 | their R | payoff (money) | break-even (money) |",
+    );
+    lines.push("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+    for (const [key, cell] of summary.cells) {
+      if (cell.fold !== fold) continue;
+      const m = cell.byMoney;
+      lines.push(
+        `| ${key.startsWith("pooled|") ? "**pooled**" : cell.assetType} | ${cell.filled} | ${m.positive.n} | ${pct(m.positiveShare)} | ${fmt(m.positive.mean)} | ${m.negative.n} | ${fmt(m.negative.mean)} | ${m.flat} | ${m.winLabelNonPositive.n} | ${fmt(m.winLabelNonPositive.sum, 1)} | ${m.stopLabelPositive.n} | ${fmt(m.stopLabelPositive.sum, 1)} | ${fmt(m.payoff)} | ${pct(m.breakEvenShare)} |`,
       );
     }
     lines.push("");

@@ -78,7 +78,57 @@ const IDENTITY_TERMS = [
   "modeledCostScale",
 ] as const;
 
-type Leg = { leg: string; price: number };
+type Leg = { kind?: string; leg: string; price: number; time?: number };
+
+/** Exit kinds the resolver prints AT their level when the bar did not gap through (replay.ts adverseExitPrice). */
+export const STOP_PRINT_KINDS = new Set(["tp1_lock", "breakeven_stop", "stop_loss", "ambiguous"]);
+/** replay.ts roundPrice is toFixed(8); a print at its level matches to that. */
+export const LEVEL_TOLERANCE = 1.5e-8;
+
+/**
+ * The slippage a stop print carries in the resolver: none. A non-gapped stop
+ * exit is printed exactly at its level (FR-7 charges gapExitSlippage only on
+ * a gapped open), and an expiry is a market print at the bar's close. A
+ * fraction below ½ moves money from the tp1 limit print onto that leg, so the
+ * slippage-priced table charges the sweep's own estimatedSlippage, in R, on
+ * the runner fraction of every such row — a hybrid model, named as such:
+ * neither the resolver's gap-only rule nor the gate's every-side rule, and
+ * the tp1 limit leg stays unslipped (FR-4's haircut is defaulted off).
+ * Round 1, 2026-09-06: forex select's slope +1,100.2 → +785.2 R under it.
+ *
+ * Rows without a tp1 leg move nothing between fractions and are never
+ * charged. A tp1 row whose exit leg names no kind, or a stop print whose
+ * level the row does not carry, is a hole: refused, never priced as a limit.
+ */
+export function stopPrintSlippage(input: {
+  estimatedSlippage: number;
+  legs: Leg[];
+  levels: { entryPrice: number | null; stopLoss: number | null; takeProfit1: number | null };
+  riskDistance: number;
+}): { charged: boolean; kind: string | null; sR: number } {
+  const exit = input.legs.find((leg) => leg.leg === "exit");
+  const tp1 = input.legs.find((leg) => leg.leg === "tp1");
+  if (!exit || !tp1) return { charged: false, kind: exit?.kind ?? null, sR: 0 };
+  if (typeof exit.kind !== "string" || exit.kind.length === 0) {
+    throw new Error("a tp1 row's exit leg names no kind — the reader cannot tell a limit print from a stop print");
+  }
+  const sR = input.estimatedSlippage / input.riskDistance;
+  if (exit.kind === "expiry") return { charged: true, kind: exit.kind, sR };
+  if (!STOP_PRINT_KINDS.has(exit.kind)) return { charged: false, kind: exit.kind, sR: 0 };
+  const candidates = exit.kind === "tp1_lock"
+    ? [input.levels.takeProfit1]
+    : exit.kind === "breakeven_stop"
+    ? [input.levels.entryPrice]
+    : exit.kind === "stop_loss"
+    ? [input.levels.stopLoss]
+    : [input.levels.takeProfit1, input.levels.entryPrice, input.levels.stopLoss];
+  const levels = candidates.filter((level): level is number => level !== null && Number.isFinite(level));
+  if (levels.length === 0) {
+    throw new Error(`a ${exit.kind} print with no level on the row — the reader cannot tell a print at its level from a gapped one`);
+  }
+  const atLevel = levels.some((level) => Math.abs(exit.price - Number(level.toFixed(8))) <= LEVEL_TOLERANCE);
+  return { charged: atLevel, kind: exit.kind, sR: atLevel ? sR : 0 };
+}
 
 /**
  * Realised R at a banked fraction, from the legs — `realizedRFromLegs` with
@@ -112,7 +162,11 @@ export type FractionCell = {
   /** The shipped ladder's TP1 half: ½ × tp1R summed over rows with a tp1 leg. */
   bankedHalf: number;
   bestFraction: number;
+  /** Best fraction under the slippage-priced model. */
+  bestFractionAdjusted: number;
   byFraction: Map<number, { deltaVsShipped: number; expectancy: number | null; total: number }>;
+  /** R_adj(f) = R(f) − (1−f)·sR on charged rows; deltaVsShipped is against R_adj(½). */
+  byFractionAdjusted: Map<number, { deltaVsShipped: number; total: number }>;
   costTotal: number;
   filled: number;
   fold: string;
@@ -121,7 +175,13 @@ export type FractionCell = {
   noTp1Total: number;
   /** The shipped ladder's runner half: ½ × exitR summed over rows with a tp1 leg. */
   runnerHalf: number;
+  /** Exits resolved on the TP1 touch bar itself (FR-3's same-bar arming), by exit kind. */
+  sameBar: { lockRows: number; lockSameBar: number; takeProfitRows: number; takeProfitSameBar: number };
   shippedTotal: number;
+  /** Σ estimatedSlippage/riskDistance over charged rows — the S of the round-1 finding. */
+  slippageTotal: number;
+  /** tp1 rows whose exit is a stop print at its level or an expiry print. */
+  stopPrintRows: number;
   tp1Rows: number;
 };
 
@@ -129,13 +189,17 @@ type RawCell = {
   assetType: string;
   bankedHalf: number;
   byFraction: number[];
+  byFractionAdjusted: number[];
   costTotal: number;
   filled: number;
   fold: string;
   noTp1Rows: number;
   noTp1Total: number;
   runnerHalf: number;
+  sameBar: { lockRows: number; lockSameBar: number; takeProfitRows: number; takeProfitSameBar: number };
   shippedTotal: number;
+  slippageTotal: number;
+  stopPrintRows: number;
   tp1Rows: number;
 };
 
@@ -170,13 +234,17 @@ function rawCell(assetType: string, fold: string): RawCell {
     assetType,
     bankedHalf: 0,
     byFraction: FRACTIONS.map(() => 0),
+    byFractionAdjusted: FRACTIONS.map(() => 0),
     costTotal: 0,
     filled: 0,
     fold,
     noTp1Rows: 0,
     noTp1Total: 0,
     runnerHalf: 0,
+    sameBar: { lockRows: 0, lockSameBar: 0, takeProfitRows: 0, takeProfitSameBar: 0 },
     shippedTotal: 0,
+    slippageTotal: 0,
+    stopPrintRows: 0,
     tp1Rows: 0,
   };
 }
@@ -216,18 +284,35 @@ function derive(raw: RawCell): FractionCell {
       best = fraction;
     }
   });
+  const byFractionAdjusted = new Map<number, { deltaVsShipped: number; total: number }>();
+  const shippedAdjusted = raw.byFractionAdjusted[FRACTIONS.indexOf(SHIPPED_FRACTION)];
+  let bestAdjusted = SHIPPED_FRACTION;
+  let bestAdjustedTotal = Number.NEGATIVE_INFINITY;
+  FRACTIONS.forEach((fraction, index) => {
+    const total = raw.byFractionAdjusted[index];
+    byFractionAdjusted.set(fraction, { deltaVsShipped: total - shippedAdjusted, total });
+    if (total > bestAdjustedTotal + 1e-9) {
+      bestAdjustedTotal = total;
+      bestAdjusted = fraction;
+    }
+  });
   return {
     assetType: raw.assetType,
     bankedHalf: raw.bankedHalf,
     bestFraction: best,
+    bestFractionAdjusted: bestAdjusted,
     byFraction,
+    byFractionAdjusted,
     costTotal: raw.costTotal,
     filled: raw.filled,
     fold: raw.fold,
     noTp1Rows: raw.noTp1Rows,
     noTp1Total: raw.noTp1Total,
     runnerHalf: raw.runnerHalf,
+    sameBar: { ...raw.sameBar },
     shippedTotal: raw.shippedTotal,
+    slippageTotal: raw.slippageTotal,
+    stopPrintRows: raw.stopPrintRows,
     tp1Rows: raw.tp1Rows,
   };
 }
@@ -386,6 +471,30 @@ export async function bankedFraction(input: {
       const tp1 = legs.find((leg) => leg.leg === "tp1");
       const sign = side === "buy" ? 1 : -1;
       const assetType = getAssetType(symbol);
+      let slip = { charged: false, kind: null as string | null, sR: 0 };
+      let sameBar = false;
+      if (tp1) {
+        const estimatedSlippage = finite(row.estimatedSlippage);
+        if (estimatedSlippage === null) {
+          throw new Error(`${path}: a ${symbol} tp1 row carries no finite estimatedSlippage — the slippage-priced table cannot charge what the row does not state`);
+        }
+        try {
+          slip = stopPrintSlippage({
+            estimatedSlippage,
+            legs,
+            levels: { entryPrice: finite(row.entryPrice), stopLoss: finite(row.stopLoss), takeProfit1: finite(row.takeProfit1) },
+            riskDistance,
+          });
+        } catch (error) {
+          throw new Error(`${path}: ${symbol} ${String(row.outcome)} row — ${error instanceof Error ? error.message : String(error)}`);
+        }
+        const tp1Time = finite(tp1.time);
+        const exitTime = finite(exit.time);
+        if (tp1Time === null || exitTime === null) {
+          throw new Error(`${path}: a ${symbol} tp1 row's legs carry no finite times — the same-bar share cannot be read`);
+        }
+        sameBar = exitTime === tp1Time;
+      }
       for (const key of [`${assetType}|${split}`, `pooled|${split}`]) {
         let cell = raw.get(key);
         if (!cell) {
@@ -396,9 +505,21 @@ export async function bankedFraction(input: {
         cell.shippedTotal += realized;
         priced.forEach((value, index) => {
           cell.byFraction[index] += value as number;
+          cell.byFractionAdjusted[index] += (value as number) - (slip.charged ? (1 - FRACTIONS[index]) * slip.sR : 0);
         });
         if (tp1) {
           cell.tp1Rows += 1;
+          if (slip.charged) {
+            cell.stopPrintRows += 1;
+            cell.slippageTotal += slip.sR;
+          }
+          if (slip.kind === "tp1_lock") {
+            cell.sameBar.lockRows += 1;
+            if (sameBar) cell.sameBar.lockSameBar += 1;
+          } else if (slip.kind === "take_profit") {
+            cell.sameBar.takeProfitRows += 1;
+            if (sameBar) cell.sameBar.takeProfitSameBar += 1;
+          }
           cell.bankedHalf += (SHIPPED_FRACTION * sign * (tp1.price - entry.price)) / riskDistance;
           cell.runnerHalf += ((1 - SHIPPED_FRACTION) * sign * (exit.price - entry.price)) / riskDistance;
           cell.costTotal += commission / riskDistance;
@@ -449,7 +570,12 @@ export function formatBankedFraction(summary: FractionSummary): string {
   lines.push("");
   lines.push(
     "allocation only: the exit path is the emitted one at every fraction (the runner's protection re-arms on the TP1 touch, not on the size banked); " +
-      "costs are the emitted commission — spread and slippage ride in the leg prices. Rows without a tp1 leg price the same at every fraction.",
+      "costs are the emitted commission; spread rides in the leg prices; slippage rides only in gapped prints (FR-7). Rows without a tp1 leg price the same at every fraction.",
+  );
+  lines.push(
+    "slippage-priced: R_adj(f) = R(f) − (1−f)·S_row on every tp1 row whose exit is a stop print sitting at its level or an expiry print, S_row = estimatedSlippage/riskDistance — " +
+      "a hybrid model, neither the resolver's gap-only rule nor the gate's every-side rule; the tp1 limit leg stays unslipped. " +
+      "same-bar = exits resolved on the TP1 touch bar itself (FR-3), which the corpus arms with zero latency and cannot price.",
   );
   for (const fold of summary.folds) {
     lines.push("");
@@ -465,8 +591,25 @@ export function formatBankedFraction(summary: FractionSummary): string {
         `| ${key.startsWith("pooled|") ? "**pooled**" : cell.assetType} | ${cell.filled} | ${cell.tp1Rows} | ${cell.noTp1Rows} | ${fmt(cell.shippedTotal)} | ${fmt(cell.bankedHalf)} | ${fmt(cell.runnerHalf)} | ${fmt(-cell.costTotal)} | ${fmt(cell.noTp1Total)} | ${FRACTIONS.map((fraction) => fmt(cell.byFraction.get(fraction)!.total)).join(" | ")} | ${cell.bestFraction} | ${fmt(best.deltaVsShipped)} |`,
       );
     }
+    lines.push("");
+    lines.push(`--- ${fold} · slippage-priced and same-bar ---`);
+    lines.push(
+      `| class | tp1 rows | stop prints | S | ${FRACTIONS.map((fraction) => `R_adj(${fraction})`).join(" | ")} | best f (adj) | Δ_adj best vs ½ | lock exits same-bar | take_profit exits same-bar |`,
+    );
+    lines.push(`| --- | ---: | ---: | ---: | ${FRACTIONS.map(() => "---:").join(" | ")} | ---: | ---: | ---: | ---: |`);
+    for (const [key, cell] of summary.cells) {
+      if (cell.fold !== fold) continue;
+      const bestAdjusted = cell.byFractionAdjusted.get(cell.bestFractionAdjusted)!;
+      lines.push(
+        `| ${key.startsWith("pooled|") ? "**pooled**" : cell.assetType} | ${cell.tp1Rows} | ${cell.stopPrintRows} | ${fmt(cell.slippageTotal)} | ${FRACTIONS.map((fraction) => fmt(cell.byFractionAdjusted.get(fraction)!.total)).join(" | ")} | ${cell.bestFractionAdjusted} | ${fmt(bestAdjusted.deltaVsShipped)} | ${share(cell.sameBar.lockSameBar, cell.sameBar.lockRows)} | ${share(cell.sameBar.takeProfitSameBar, cell.sameBar.takeProfitRows)} |`,
+      );
+    }
   }
   return lines.join("\n");
+}
+
+function share(part: number, whole: number): string {
+  return whole === 0 ? "—" : `${part}/${whole} (${((100 * part) / whole).toFixed(1)}%)`;
 }
 
 async function main(): Promise<void> {

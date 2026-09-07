@@ -1,9 +1,11 @@
 corpus 021821537f28 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26 · variant baseline
 folds read: fit, select · confirm: SEALED, not read (2141527 rows withheld at the door)
-rows 6634732: 346226 decomposed · 857954 not accepted · 0 in other folds · 3118950 other variants · 75920 unfilled · 442 data-absent · 93713 held out
+rows 6634732: 346226 decomposed · 857954 not accepted · 0 in other folds · 3118950 other variants · 75920 unfilled · 442 data-absent · 93713 held out · 0 in other years
+years: all (no feed-character stratification)
 holdout: stratified-per-class-20pct — 20 markets excluded from every class pool (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only
 
 wins = take_profit + tp1_partial; stops = stop_loss; rest = expiries and ambiguous, held fixed when the break-even is solved. payoff = mean win / |mean stop|, realised. break-even = the win share at which expectancy is zero at that payoff and that rest.
+by money (amendment 39): a win is a row whose realised R is positive, a loss one whose R is negative; flat rows are held at zero when the break-even is solved. The two cross columns count rows the label and the money disagree on — a labelled win paid as a loss, a labelled stop paid as a win.
 
 === FIT ===
 | class | filled | net R | gross R | E (net) | mean win | mean stop | payoff | win share | break-even | rest share | rest mean | planned RR | ladder RR |
@@ -17,6 +19,19 @@ wins = take_profit + tp1_partial; stops = stop_loss; rest = expiries and ambiguo
 | livestock | 340 | -11.6 | -5.6 | -0.0341 | 0.570 | -0.996 | 0.572 | 60.0% | 62.2% | 4.7% | -0.516 | 1.83 | 1.08 |
 | metals | 5497 | -502.8 | -108.0 | -0.0915 | 0.422 | -1.019 | 0.414 | 58.3% | 64.6% | 10.9% | -0.212 | 1.61 | 0.90 |
 | **pooled** | 214338 | -1845.4 | 4714.2 | -0.0086 | 0.408 | -1.028 | 0.397 | 66.6% | 67.2% | 8.0% | -0.240 | 1.86 | 1.09 |
+
+--- fit · by money ---
+| class | filled | money-positive | share | mean | money-negative | mean | flat | label wins with R ≤ 0 | their R | label stops with R > 0 | their R | payoff (money) | break-even (money) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| agriculture | 2512 | 1335 | 53.1% | 0.479 | 1177 | -0.844 | 0 | 70 | -18.3 | 0 | 0.0 | 0.568 | 63.8% |
+| crypto | 21392 | 15174 | 70.9% | 0.409 | 6217 | -0.926 | 1 | 242 | -59.6 | 0 | 0.0 | 0.441 | 69.4% |
+| energies | 577 | 274 | 47.5% | 0.610 | 303 | -0.934 | 0 | 0 | 0.0 | 0 | 0.0 | 0.653 | 60.5% |
+| forex | 174503 | 121058 | 69.4% | 0.397 | 53442 | -0.901 | 3 | 12 | -7.6 | 0 | 0.0 | 0.441 | 69.4% |
+| futures | 9237 | 4974 | 53.8% | 0.457 | 4263 | -0.814 | 0 | 47 | -6.9 | 0 | 0.0 | 0.562 | 64.0% |
+| indices | 280 | 146 | 52.1% | 0.411 | 134 | -0.559 | 0 | 15 | -3.7 | 0 | 0.0 | 0.735 | 57.6% |
+| livestock | 340 | 204 | 60.0% | 0.572 | 136 | -0.943 | 0 | 2 | -0.2 | 0 | 0.0 | 0.606 | 62.2% |
+| metals | 5497 | 3357 | 61.1% | 0.409 | 2140 | -0.876 | 0 | 1 | -0.6 | 0 | 0.0 | 0.466 | 68.2% |
+| **pooled** | 214338 | 146522 | 68.4% | 0.402 | 67812 | -0.895 | 4 | 389 | -96.9 | 0 | 0.0 | 0.449 | 69.0% |
 
 | class | outcome | n | share | mean net R | mean gross R | mean forgone runner R |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
@@ -85,6 +100,19 @@ wins = take_profit + tp1_partial; stops = stop_loss; rest = expiries and ambiguo
 | livestock | 170 | -0.5 | 10.2 | -0.0028 | 0.712 | -0.873 | 0.815 | 54.7% | 54.9% | 1.2% | -0.580 | 2.05 | 1.21 |
 | metals | 2507 | -118.4 | 49.7 | -0.0472 | 0.423 | -1.002 | 0.422 | 61.3% | 64.7% | 10.7% | -0.244 | 1.68 | 0.95 |
 | **pooled** | 131888 | -5680.1 | 1697.1 | -0.0431 | 0.395 | -1.047 | 0.377 | 65.9% | 68.9% | 6.7% | -0.246 | 1.79 | 1.03 |
+
+--- select · by money ---
+| class | filled | money-positive | share | mean | money-negative | mean | flat | label wins with R ≤ 0 | their R | label stops with R > 0 | their R | payoff (money) | break-even (money) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| agriculture | 1263 | 660 | 52.3% | 0.506 | 603 | -0.802 | 0 | 29 | -9.0 | 0 | 0.0 | 0.631 | 61.3% |
+| crypto | 43085 | 25409 | 59.0% | 0.414 | 17676 | -0.966 | 0 | 1231 | -389.7 | 0 | 0.0 | 0.429 | 70.0% |
+| energies | 298 | 146 | 49.0% | 0.597 | 152 | -0.969 | 0 | 0 | 0.0 | 0 | 0.0 | 0.616 | 61.9% |
+| forex | 78932 | 56571 | 71.7% | 0.385 | 22360 | -0.903 | 1 | 4 | -1.3 | 0 | 0.0 | 0.427 | 70.1% |
+| futures | 5020 | 2897 | 57.7% | 0.486 | 2123 | -0.810 | 0 | 28 | -12.5 | 0 | 0.0 | 0.600 | 62.5% |
+| indices | 613 | 334 | 54.5% | 0.406 | 279 | -0.826 | 0 | 32 | -3.8 | 0 | 0.0 | 0.492 | 67.0% |
+| livestock | 170 | 91 | 53.5% | 0.728 | 79 | -0.845 | 0 | 2 | -0.1 | 0 | 0.0 | 0.862 | 53.7% |
+| metals | 2507 | 1594 | 63.6% | 0.413 | 913 | -0.851 | 0 | 1 | -0.0 | 0 | 0.0 | 0.485 | 67.3% |
+| **pooled** | 131888 | 87702 | 66.5% | 0.399 | 44185 | -0.921 | 1 | 1327 | -416.4 | 0 | 0.0 | 0.433 | 69.8% |
 
 | class | outcome | n | share | mean net R | mean gross R | mean forgone runner R |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
