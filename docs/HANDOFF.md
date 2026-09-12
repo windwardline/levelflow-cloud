@@ -2247,6 +2247,23 @@ change set after #595; (4) the FMP plan is the
 owner's, and until it is restored nothing that fetches intraday bars or the
 calendar can run, and no new calendar exists to re-read the share on.
 
+**FMP, 2026-09-12.** The balance is paid and the dashboard shows **Ultimate**;
+the key still reads SUSPENDED and the owner is escalating. What the subscription
+includes, what Levelflow actually calls (seven endpoints plus COT), and what is
+entitled and unused now lives in
+[`docs/fmp-entitlements.md`](/docs/fmp-entitlements.md) rather than in a
+screenshot. Two unused entitlements bear: **bulk and batch delivery** — deferred
+on 2026-07-02 because the symbol list was "small enough for controlled
+per-symbol requests", a premise the 2026-08-13 and 2026-08-27 allowance
+exhaustions have since falsified — and **market hours and holidays by exchange**,
+which could sharpen the 16:00–21:59 UTC span (a FIXED UTC window drifts against
+the real London–NY overlap twice a year on DST) or refute it, if holidays sit
+unevenly across it. **The TipRanks add-on was reviewed and DECLINED by the owner
+2026-09-12**: no single equity on the roster to act on, roughly 3 years of
+ratings history against clean folds ending 2018 and 2022 so it cannot be
+validated at all, and Ultimate already carries the analyst suite. It reopens only
+if Levelflow admits single-equity or equity-CFD markets.
+
 ### ▶ RESUME HERE — 2026-09-04 05:00 UTC (the register moved twice; act 4 is refuted; a corpus was destroyed and is regenerating)
 
 **Four PRs landed and deployed** — #574 (forex `maxCostShare: 0.15`, the read's
