@@ -2245,6 +2245,21 @@ now reconciled**: 5min is 360 months over 172 store-years, 15min is 291 over
 Three mutations proven: wall-clock boundaries, an unjudged market reading clean,
 and another tier's hidden months landing on this map.
 
+**Two review rounds hardened it.** An explicitly `unjudgeable` verdict read as
+fully CLEAN — the loudest statement of doubt producing the most permissive
+answer — and now refuses like absence does. The embargo was still subtracted in
+WALL CLOCK inside the one function whose thesis is that wall clock overstates
+depth, so a hole against a boundary absorbed the whole window; it is measured
+backwards through usable time, and the first guard written for it survived its
+own mutation because the fixture placed holes nowhere near a boundary. The
+no-hole case DELEGATES to `calendarFolds` rather than reimplementing its
+rounding — the two schemes genuinely differ, `calendarFolds` accumulating from
+each rounded cursor while this rounds the cumulative — and a near-limit test
+with a one-millisecond hole pins the bound the delegation no longer touches.
+The HIDDEN-line refusals are scoped to the tier this map serves, so a bad
+regeneration of the 15min tier cannot block the 5min one, and an unindented
+HIDDEN line refuses instead of vanishing.
+
 **Still unbuilt:** nothing consumes the map yet. Wiring it into a sweep is the
 next calendar's work and needs the key; the machinery it needs exists now.
 
