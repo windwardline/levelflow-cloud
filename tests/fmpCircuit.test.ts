@@ -362,3 +362,41 @@ describe("both walls still reach the shared breaker", () => {
     );
   });
 });
+
+// 2026-09-12: the account moved from an entitlement gap to a SUSPENSION (the
+// balance was paid, the dashboard shows Ultimate, the key still refuses). The
+// round that found this proposed adding /account suspended/i to
+// classifyRefusal. That pattern is NOT added here, deliberately: no suspended
+// -account body has ever been captured in this repository, and this module's
+// own rule is to "match the NARROWEST phrase unique to the condition, never a
+// sentence the vendor reuses across every paywall" (fmpCircuit.ts:90-92).
+// Guessing the vendor's wording would ship a guard that looks present and may
+// never fire — worse than the absent one, because it stops anyone looking.
+//
+// What IS pinned is the honest default: an unrecognised refusal must classify
+// as null and claim NEITHER remedy. When a suspension body is finally captured,
+// add its narrowest phrase and a case here, and delete this comment.
+describe("an unrecognised refusal claims no remedy it has not earned", () => {
+  it("classifies an uncaptured suspension as null rather than guessing", () => {
+    // Plausible shapes for a suspension body. None of these has been observed
+    // from FMP; they exist to prove the classifier does not pretend to know.
+    for (
+      const body of [
+        "Your account has been suspended",
+        "Account suspended. Please contact support.",
+        "403 Forbidden",
+        "Invalid API key",
+      ]
+    ) {
+      assert.equal(
+        classifyRefusal(body),
+        null,
+        `${JSON.stringify(body)} classified as a known wall. If a real ` +
+          `suspension body was captured, add its narrowest phrase AND its own ` +
+          `recoveryClause — do not let it be swallowed by the entitlement or ` +
+          `bandwidth pattern, whose remedies are both wrong for a suspension.`,
+      );
+    }
+  });
+
+});

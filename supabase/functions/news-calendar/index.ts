@@ -352,6 +352,14 @@ async function fetchFmpEarningsEvents(
 
   const response = await fetchWithTimeout(url, {}, PROVIDER_FETCH_TIMEOUT_MS);
   const responseText = await response.text();
+  // Same ledger, same class, same reason as the economic calendar above: this
+  // is background work, so it yields first when the day is contested. Recorded
+  // BEFORE the ok check, because a refused response still spent the bytes.
+  void recordFetch(
+    fmpBudgetDeps(),
+    "background",
+    new TextEncoder().encode(responseText).length,
+  );
   if (!response.ok) {
     throw new Error(
       `FMP earnings calendar request failed (${response.status}): ${
@@ -439,6 +447,14 @@ async function fetchFmpNewsBatch(
 
   const response = await fetchWithTimeout(url, {}, PROVIDER_FETCH_TIMEOUT_MS);
   const responseText = await response.text();
+  // Same ledger, same class, same reason as the economic calendar above: this
+  // is background work, so it yields first when the day is contested. Recorded
+  // BEFORE the ok check, because a refused response still spent the bytes.
+  void recordFetch(
+    fmpBudgetDeps(),
+    "background",
+    new TextEncoder().encode(responseText).length,
+  );
   if (!response.ok) {
     throw new Error(
       `FMP ${category} news request failed (${response.status}): ${
