@@ -2210,9 +2210,9 @@ separates.
 Gating stands as the candidate, with its costs stated: it discards ~77.5 % of
 forex volume, its held-out select bound does not clear zero (+0.0137, lower
 −0.0056), it fails the market grain amendment 33 requires on a power argument
-rather than an absence, and the gate cannot presently return a verdict on it
-at all (next paragraph) — and on the fit held-out fold the volume it discards
-is net positive. It is a pre-registration for the next calendar, NOT a ship.
+rather than an absence — and on the fit held-out fold the volume it discards
+is net positive. **The gate could not return a verdict on it at the time this
+was written; it can now, and it did: see the graded refusal below.** It is a pre-registration for the next calendar, NOT a ship.
 
 **THE HOUR GATE IS GRADED AND REFUSED — 2026-09-12.**
 [`hour-gate-verdict-2026-09-12.md`](/docs/research/hour-gate-verdict-2026-09-12.md),
@@ -2224,13 +2224,16 @@ the corpus of record; fit and select only, confirm never read.
 the baseline on both folds at paired p ≤ 0.05 with a non-negative expectancy
 delta — every comparison the gate makes — and NONE demonstrates a profit.
 Nearest misses USDJPY (E lo95 **−0.002**) and XAUUSD (**−0.010**), then PLUSD
-−0.017 and EURUSD −0.032. Twenty-three markets do carry a positive lower bound
+−0.017 and EURUSD −0.032 (EURUSD is HELD OUT — not in-pool evidence). Twenty-three markets do carry a positive lower bound
 and not one of them is in the thirteen, so no market both beats the baseline and
 earns money.
 
-**This is the first thing the gate repair made sayable.** Every one of those 91
-rows would previously have read `THIN (n filled) — refuse` with no money read at
-all; the stdout now reads `fails [selective — 866 filled]`.
+**This is the first thing the gate repair made sayable — for 85 of the 91.**
+Those would have read `THIN (n filled) — refuse` with no money read at all (78
+selective, 7 under the 30-fill floor); the stdout now reads
+`fails [selective — 866 filled]`. Six were already judgeable: DOW, NSDQ, SP,
+LEUSX, HEUSX, ZRUSD. And on DOW, NSDQ and SP the predicate is a NO-OP — 100 % of
+fills already sit in span — so 88 markets were actually tested, not 91.
 
 **The alpha review's figure was CLASS grain** (forex in-span select +0.0324,
 lo95 +0.0222) and is not contradicted — it is not reproduced per market either.

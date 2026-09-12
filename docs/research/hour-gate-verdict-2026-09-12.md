@@ -30,6 +30,13 @@ that could read it was passed. Outputs are tracked beside this note as
 
 Of 91 markets: **80 judged and failed, 11 no verdict, 0 accepted.**
 
+**88 were actually tested.** On DOW, NSDQ and SP every decision already falls
+inside 16:00–21:59 UTC, so the predicate retains 100 % of their fills and cannot
+differ from the baseline at all: `ΔR fit 0.0`, `ΔR select 0.0`, and 0 of 43, 0
+of 148 and 0 of 146 nonzero pairs. The gate disposes of them correctly — they
+land in the no-verdict bucket, not among the 80 — but "0 of 91" should not be
+read as 91 rules tested.
+
 Thirteen markets beat the baseline on *both* folds, at paired p ≤ 0.05, with a
 non-negative expectancy delta — every comparison the gate makes. **None of the
 thirteen demonstrates a profit.**
@@ -39,7 +46,7 @@ thirteen demonstrates a profit.**
 | USDJPY | +257.2 | +129.5 | 0.003 | +0.066 | +0.038 | **−0.002** |
 | XAUUSD | +475.1 | +137.0 | 0.003 | +0.087 | +0.040 | **−0.010** |
 | PLUSD | +106.7 | +47.1 | 0.001 | +0.290 | +0.227 | −0.017 |
-| EURUSD | +236.1 | +130.9 | 0.012 | +0.037 | +0.003 | −0.032 |
+| EURUSD *(held out)* | +236.1 | +130.9 | 0.012 | +0.037 | +0.003 | −0.032 |
 | ADAUSD | +71.8 | +291.0 | 0.001 | +0.044 | −0.053 | −0.101 |
 | HOUSD | +279.0 | +75.3 | 0.007 | +0.224 | −0.003 | −0.227 |
 | ZSUSX | +109.5 | +51.6 | 0.004 | +0.281 | +0.003 | −0.237 |
@@ -60,10 +67,16 @@ small, not because a near miss is a pass.
 
 ## Why this is a real verdict and not the old refusal
 
-Every one of these 91 rows would previously have read `THIN (n filled) — refuse`
-and no money would have been read at all. The variant declines roughly
-three-quarters of each market's fills, so it tripped a selectivity guard that
-sat first in the acceptance conjunction.
+**Eighty-five of these 91 rows** would previously have read
+`THIN (n filled) — refuse`, with no money read at all. Seventy-eight carry the
+`[selective]` note — the variant declines roughly three-quarters of their fills,
+tripping a guard that sat first in the acceptance conjunction — and seven more
+fall under the market grain's 30-fill floor.
+
+Six clear **both** legs and would have been judged even before the repair: DOW,
+NSDQ and SP (100 % retained), LEUSX (52.1 %), HEUSX (50.6 %) and ZRUSD (50.0 %).
+Naming them matters because the repair's value is measured by what it newly
+made sayable, and six of these rows were already sayable.
 
 The stdout now reads `fails [selective — 866 filled]`: selectivity is recorded
 as a description and the verdict is decided on money. That is the whole point of
