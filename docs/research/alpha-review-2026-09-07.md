@@ -158,16 +158,29 @@ This agrees with a roster-level count the record already carried:
 `docs/HANDOFF.md:873` and `:1253` measure the live calibration at 26 markets ×
 1.0, 6 × 2.5 and 65 × 4, with the cap binding by arithmetic only on the 26
 below the floor. Forex sits in the 65. `docs/trade-model.md:1641` reads forex
-at 100 % cap and is **not** cited here as agreement: it disagrees with the
-corpus, and its own banner declares its corpus invalid.
+at 100 % cap, and it is **not** cited here as agreement — but not because it is
+wrong. It measured a **superseded calibration era**: that table annotates its own
+rows `metals (1.6 cap)` and `indices (3.0 cap)`, and nothing in `calibration.ts`
+carries 3.0 today (the indices class row is 1.0 at `:820`; SP, NSDQ and DAX all
+resolve 4). It predates the per-symbol layer, when forex's effective cap really
+was the class row's 1.0 and 100 % cap was the correct reading. That is the
+sharper warning, and the reason the invalidity banner alone stopped nobody: the
+cell was not false, it was **stale**, so it read as corroboration.
 
 None of this rescues the stop-clock fix — the headroom test refutes that
 independently, and a stop anchored to market structure is even further from
 something an hour-aware *window* clock would reach.
 
-That makes the honest complaint *weaker*, not stronger: the stop already moves
-with the hours immediately before the decision. It is backward-looking about
-them. A decision at 21:45 UTC prices its stop off the liquid overlap and then
+That makes the honest complaint *weaker*, not stronger — but only partly, and
+the part is now measured rather than asserted. `stopBuffer` is a `max`, so its
+daily leg binds whenever `dailyAtr > 10 × atr`; over the same 373,510 rows that
+is **53.15 %** of them, against 46.85 % on the intraday leg, with the
+`dailyAtr / atr` median at 10.31 — almost exactly the threshold. So the cushion
+is a fourteen-day quantity on a slim majority of rows and the stop is only
+partly a function of the hours before the decision. What is always intraday is
+the pivot's *location* (`pricePlan.ts:236`, `:272-278`) and the floor and cap,
+which both scale on `atr`. It is backward-looking about the clock at that
+resolution, not as a whole. A decision at 21:45 UTC prices its stop off the liquid overlap and then
 lives into the illiquid window, which is a real defect and a much smaller one
 than "sized for an average day".
 
