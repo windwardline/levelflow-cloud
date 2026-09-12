@@ -122,8 +122,19 @@ export function parseWitnessMonths(text: string): Map<string, WitnessMonths> {
       continue;
     }
 
+    // A line that ANNOUNCES hidden months and then does not parse is a
+    // malformed table, not an unrelated line. Skipping it silently would drop
+    // months and read them as clean — the exact failure the token checks below
+    // exist to prevent, arriving one level up.
     const hidden = /HIDDEN INSIDE A CONTAINED YEAR — months ([^:]+):/.exec(line);
-    if (!hidden) continue;
+    if (!hidden) {
+      if (/HIDDEN INSIDE A CONTAINED YEAR/.test(line)) {
+        refuse(
+          `witness table: a HIDDEN months line does not carry a parseable month list — ${JSON.stringify(line.trim().slice(0, 120))}`,
+        );
+      }
+      continue;
+    }
     if (current === null) {
       if (sawBlock) continue; // another tier's months; not this map's business
       refuse(
@@ -190,6 +201,10 @@ export function monthMapOf(
   source: string,
 ): MonthMap {
   const cache = new Map<string, MonthKey[]>();
+  // `excludedAt` is called once per corpus ROW. A linear scan of up to ~40
+  // months per call is the difference between a pass and a long one, so the
+  // membership test gets its own set beside the ordered list.
+  const setCache = new Map<string, Set<MonthKey>>();
 
   const monthsFor = (symbol: string): MonthKey[] => {
     const cached = cache.get(symbol);
@@ -198,6 +213,16 @@ export function monthMapOf(
     if (!entry) {
       refuse(
         `feedMonths: ${symbol} has no ${MAP_TIER} verdict in ${source} — an absent verdict is not a contained one`,
+      );
+    }
+    // AND NEITHER IS AN UNJUDGEABLE ONE. The witness saying "I could not judge
+    // this market" carries no escaping years and no hidden months, so it would
+    // otherwise read as fully clean — the loudest possible statement of doubt
+    // producing the most permissive possible answer. It refuses for the same
+    // reason absence does.
+    if (entry.verdict === "unjudgeable") {
+      refuse(
+        `feedMonths: ${symbol} is ${MAP_TIER} UNJUDGEABLE in ${source} — the witness could not judge it, which is not a finding that its months are clean`,
       );
     }
     const months = new Set<MonthKey>(entry.hiddenMonths);
@@ -213,7 +238,12 @@ export function monthMapOf(
 
   return {
     excludedAt(symbol, timeMs) {
-      return monthsFor(symbol).includes(monthOf(timeMs));
+      let set = setCache.get(symbol);
+      if (!set) {
+        set = new Set(monthsFor(symbol));
+        setCache.set(symbol, set);
+      }
+      return set.has(monthOf(timeMs));
     },
     excludedMonths: monthsFor,
     excludedIntervals(symbol, spanStartMs, spanEndMs) {

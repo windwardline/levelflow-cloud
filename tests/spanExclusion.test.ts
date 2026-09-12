@@ -82,6 +82,26 @@ describe("feedMonths — the witness at the grain the decision needs", () => {
     );
   });
 
+  it("refuses an UNJUDGEABLE market rather than reading it clean", () => {
+    const map = monthMapOf(parseWitnessMonths("ZZZUSD 5min unjudgeable"), "fixture");
+    assert.throws(
+      () => map.excludedMonths("ZZZUSD"),
+      /UNJUDGEABLE/,
+      "the loudest statement of doubt must not produce the most permissive answer",
+    );
+  });
+
+  it("refuses a HIDDEN line it cannot parse rather than skipping it", () => {
+    assert.throws(
+      () =>
+        parseWitnessMonths(
+          "EURUSD 5min contained\n    HIDDEN INSIDE A CONTAINED YEAR (no month list)",
+        ),
+      /does not carry a parseable month list/,
+      "a silently skipped hidden line drops months and reads them as clean",
+    );
+  });
+
   it("refuses a malformed month token rather than dropping it", () => {
     assert.throws(
       () =>
@@ -170,6 +190,71 @@ describe("calendarFoldsExcluding — shares measured on the months that survive"
       excluded: [],
     });
     assert.deepEqual(holed, plain);
+  });
+
+  // The review of #618 found the equality held only for spans divisible by 4,
+  // because calendarFolds rounds each boundary and this did not. A span chosen
+  // to divide evenly proved nothing.
+  it("reduces to calendarFolds on a span that does NOT divide evenly", () => {
+    const oddEnd = END + 7; // seven milliseconds past a clean boundary
+    assert.notEqual((oddEnd - START) % 4, 0, "the fixture must be awkward");
+    assert.deepEqual(
+      calendarFoldsExcluding({
+        corpusEndMs: oddEnd,
+        corpusStartMs: START,
+        embargoMs: DAY,
+        excluded: [],
+      }),
+      calendarFolds({ corpusEndMs: oddEnd, corpusStartMs: START, embargoMs: DAY }),
+    );
+  });
+
+  it("measures the embargo in usable time, not wall clock", () => {
+    // THE INVARIANT, stated directly: whatever the holes, the usable time
+    // between a fold's decision close and its end must BE the embargo. In wall
+    // clock a hole sitting against a boundary absorbs the window and holds
+    // back nothing.
+    const embargoMs = 45 * DAY;
+    // The last hole ends exactly at the span end, which is ALWAYS confirm's
+    // boundary. A wall-clock subtraction lands inside it and holds back no
+    // usable time at all; that is the case a hole elsewhere cannot expose,
+    // and an earlier draft of this test used holes that sat nowhere near a
+    // boundary, so the wall-clock mutation survived it.
+    const excluded = [
+      { endMs: Date.UTC(2014, 6, 1), startMs: Date.UTC(2013, 0, 1) },
+      { endMs: END, startMs: END - 300 * DAY },
+    ];
+    const folds = calendarFoldsExcluding({
+      corpusEndMs: END,
+      corpusStartMs: START,
+      embargoMs,
+      excluded,
+    });
+    for (const fold of folds) {
+      const window = {
+        decisionEndMs: fold.decisionEndMs,
+        endMs: fold.endMs,
+        name: fold.name,
+        startMs: fold.decisionEndMs,
+      };
+      assert.ok(
+        Math.abs(usableMsInFold(window, excluded) - embargoMs) < 1000,
+        `${fold.name}: the usable gap between decision close and fold end is ` +
+          `${usableMsInFold(window, excluded)}ms, not the ${embargoMs}ms embargo`,
+      );
+    }
+  });
+
+  it("counts a fold's usable time the way the allocator does, overlaps merged", () => {
+    const fold = { decisionEndMs: END, endMs: END, name: "fit" as const, startMs: START };
+    const a = { endMs: Date.UTC(2015, 0, 1), startMs: Date.UTC(2013, 0, 1) };
+    const b = { endMs: Date.UTC(2016, 0, 1), startMs: Date.UTC(2014, 0, 1) };
+    const merged = { endMs: b.endMs, startMs: a.startMs };
+    assert.equal(
+      usableMsInFold(fold, [a, b]),
+      usableMsInFold(fold, [merged]),
+      "raw overlaps double-counted would report the fold shallower than it is",
+    );
   });
 
   it("places boundaries by usable time, not by wall clock", () => {
