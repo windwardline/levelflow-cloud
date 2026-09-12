@@ -183,10 +183,13 @@ export function calendarFoldsExcluding(input: {
   let consumed = 0;
   for (const { name, share } of FOLD_SHARES) {
     consumed += usableTotal * share;
-    // Math.round matches `calendarFolds`, which rounds each boundary. Without
-    // it the two disagree by a millisecond on any span not divisible by four,
-    // and "reduces exactly to calendarFolds" would be true only of the spans a
-    // test happened to pick.
+    // Rounds the cumulative usable instant. This is NOT what `calendarFolds`
+    // does — it accumulates from each previously ROUNDED cursor — so the two
+    // schemes differ by up to a millisecond per boundary on a span that does
+    // not divide evenly. That is why the undisturbed case delegates rather
+    // than reimplementing it. The divergence is bounded, not absent, and a
+    // near-limit test pins the bound: see spanExclusion.test.ts, "stays within
+    // a millisecond of calendarFolds when a hole is one millisecond wide".
     const endMs = name === "confirm"
       ? spanEnd
       : Math.round(instantAtUsable(consumed));

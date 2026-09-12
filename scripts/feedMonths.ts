@@ -85,7 +85,18 @@ export function parseWitnessMonths(text: string): Map<string, WitnessMonths> {
     if (!line.startsWith(" ")) {
       const match =
         /^([A-Z0-9^]+) (\S+) (ESCAPES: (.*)|contained|unjudgeable)$/.exec(line);
-      if (!match) continue;
+      if (!match) {
+        // An UNINDENTED hidden line would otherwise fall through here and be
+        // dropped in silence — months read as clean, which is the whole
+        // failure this parser refuses elsewhere. Indentation is a formatting
+        // detail; the announcement is not.
+        if (/HIDDEN INSIDE A CONTAINED YEAR/.test(line)) {
+          refuse(
+            `witness table: a HIDDEN months line is not indented under a verdict block — ${JSON.stringify(line.trim().slice(0, 120))}`,
+          );
+        }
+        continue;
+      }
       sawBlock = true;
       if (match[2] !== MAP_TIER) {
         // A block for another tier. Stop attributing hidden lines to the last
@@ -122,24 +133,28 @@ export function parseWitnessMonths(text: string): Map<string, WitnessMonths> {
       continue;
     }
 
-    // A line that ANNOUNCES hidden months and then does not parse is a
-    // malformed table, not an unrelated line. Skipping it silently would drop
-    // months and read them as clean — the exact failure the token checks below
-    // exist to prevent, arriving one level up.
-    const hidden = /HIDDEN INSIDE A CONTAINED YEAR — months ([^:]+):/.exec(line);
-    if (!hidden) {
-      if (/HIDDEN INSIDE A CONTAINED YEAR/.test(line)) {
-        refuse(
-          `witness table: a HIDDEN months line does not carry a parseable month list — ${JSON.stringify(line.trim().slice(0, 120))}`,
-        );
-      }
-      continue;
-    }
+    // TIER FIRST, then form. A well-formed 15min hidden line is skipped, so a
+    // MALFORMED one must be skipped too — refusing on it would let a bad
+    // regeneration of the tier this reader ignores block the tier it serves.
+    // The table carries 133 hidden lines under 15min blocks.
     if (current === null) {
       if (sawBlock) continue; // another tier's months; not this map's business
       refuse(
         `witness table: a HIDDEN months line appears before any verdict line — it cannot be attributed to a market`,
       );
+    }
+    // Within THIS tier, a line that announces hidden months and then does not
+    // parse is a malformed table, not an unrelated line. Skipping it silently
+    // would drop months and read them as clean — the failure the token checks
+    // below exist to prevent, arriving one level up.
+    const hidden = /HIDDEN INSIDE A CONTAINED YEAR — months ([^:]+):/.exec(line);
+    if (!hidden) {
+      if (/HIDDEN INSIDE A CONTAINED YEAR/.test(line)) {
+        refuse(
+          `witness table: ${current} carries a HIDDEN months line with no parseable month list — ${JSON.stringify(line.trim().slice(0, 120))}`,
+        );
+      }
+      continue;
     }
     const entry = out.get(current)!;
     for (const value of hidden[1].split(",")) {

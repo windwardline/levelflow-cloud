@@ -91,14 +91,40 @@ describe("feedMonths — the witness at the grain the decision needs", () => {
     );
   });
 
-  it("refuses a HIDDEN line it cannot parse rather than skipping it", () => {
+  it("refuses a HIDDEN line it cannot parse, on the tier it serves", () => {
     assert.throws(
       () =>
         parseWitnessMonths(
           "EURUSD 5min contained\n    HIDDEN INSIDE A CONTAINED YEAR (no month list)",
         ),
-      /does not carry a parseable month list/,
+      /no parseable month list/,
       "a silently skipped hidden line drops months and reads them as clean",
+    );
+  });
+
+  it("does NOT let another tier's malformed line block the tier it serves", () => {
+    // A well-formed 15min hidden line is skipped, so a malformed one must be
+    // too — otherwise one bad regeneration of a tier this reader ignores
+    // blocks the tier it reads.
+    const parsed = parseWitnessMonths(
+      [
+        "EURUSD 5min contained",
+        "    HIDDEN INSIDE A CONTAINED YEAR — months 202401: x",
+        "EURUSD 15min contained",
+        "    HIDDEN INSIDE A CONTAINED YEAR (mangled, no month list)",
+      ].join("\n"),
+    );
+    assert.deepEqual([...parsed.get("EURUSD")!.hiddenMonths], [202401]);
+  });
+
+  it("refuses an unindented HIDDEN line rather than dropping it silently", () => {
+    assert.throws(
+      () =>
+        parseWitnessMonths(
+          "EURUSD 5min contained\nHIDDEN INSIDE A CONTAINED YEAR — months 202401: x",
+        ),
+      /is not indented under a verdict block/,
+      "indentation is formatting; the announcement is not",
     );
   });
 
@@ -207,6 +233,42 @@ describe("calendarFoldsExcluding — shares measured on the months that survive"
       }),
       calendarFolds({ corpusEndMs: oddEnd, corpusStartMs: START, embargoMs: DAY }),
     );
+  });
+
+  // THE NEAR-LIMIT GUARD. Both no-hole tests exercise a one-line delegation, so
+  // after #619 neither could catch a regression in the accumulate-and-round
+  // path that the #618 review actually found — the guard was routed around
+  // rather than repaired. One millisecond of hole is enough to force the real
+  // arithmetic to run while the answer stays comparable to the function it
+  // replaces. The bound is a few milliseconds, not zero: the two round
+  // differently by design, and this pins HOW differently.
+  it("stays within a millisecond of calendarFolds when a hole is one millisecond wide", () => {
+    const oddEnd = END + 7;
+    const plain = calendarFolds({ corpusEndMs: oddEnd, corpusStartMs: START, embargoMs: DAY });
+    const pinhole = START + 1_000 * DAY;
+    const holed = calendarFoldsExcluding({
+      corpusEndMs: oddEnd,
+      corpusStartMs: START,
+      embargoMs: DAY,
+      excluded: [{ endMs: pinhole + 1, startMs: pinhole }],
+    });
+    // The hole guarantees the exclusion arithmetic ran — delegation happens
+    // only when there are no holes at all. Whether the two schemes then AGREE
+    // is incidental and must not be asserted either way: on this fixture they
+    // land on the same millisecond, and a future span may split them. The
+    // bound is the claim.
+    for (const [index, fold] of holed.entries()) {
+      assert.equal(fold.name, plain[index].name);
+      assert.ok(
+        Math.abs(fold.endMs - plain[index].endMs) <= 2,
+        `${fold.name} boundary drifted ${fold.endMs - plain[index].endMs}ms from calendarFolds; ` +
+          `the two rounding schemes may differ by a millisecond per boundary, not more`,
+      );
+      assert.ok(
+        Math.abs(fold.decisionEndMs - plain[index].decisionEndMs) <= 2,
+        `${fold.name} decision close drifted ${fold.decisionEndMs - plain[index].decisionEndMs}ms`,
+      );
+    }
   });
 
   it("measures the embargo in usable time, not wall clock", () => {
