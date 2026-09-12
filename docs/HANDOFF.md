@@ -2214,6 +2214,38 @@ rather than an absence, and the gate cannot presently return a verdict on it
 at all (next paragraph) — and on the fit held-out fold the volume it discards
 is net positive. It is a pre-registration for the next calendar, NOT a ship.
 
+**THE GATE CAN NOW JUDGE A SELECTIVE RULE — fixed 2026-09-12.** `thin`
+conflated two unlike things behind one refusal: a variant too small to judge,
+and a variant that DELIBERATELY trades a subset. It is split. `underpowered`
+gates the comparison and is a NO VERDICT; `selective` is descriptive and decides
+nothing. A selective rule is no longer filed as a measured failure, which is the
+disposition round 39's own rule reserves for losses.
+
+**The round's safety claim was wrong and the correct one is stronger.** It said
+0 of 181 THIN records in the 5,001-record r3/r4 registers would pass the
+remaining conjuncts. Measured: **24 pass** all four comparison terms and 6 carry
+a positive select expectancy. None is accepted, and the term that stops them is
+`earnsMoney` — the two distinct candidates hold 95% lower bounds of −0.0708 and
+−0.2623. D4's money term is doing the work the selectivity guard was doing
+wrongly, which is exactly what D4 was added for.
+
+**A hole the round did not see.** `minFilled` defaults to **0**, so lifting
+selectivity out of the comparison would have left the default path with no
+sample bound at all. Measured on the acceptanceGate fixture: an 8-fill variant
+paying a flat +0.9R was ACCEPTED, because zero dispersion makes
+`rExpectancyLower95` equal the mean and the money term stops guarding. The floor
+therefore binds on the SELECTIVE path only — `SELECTIVE_POWER_FLOOR = 30`,
+matching the 30 `groupSingletons` already passed — so a full-volume variant is
+judged exactly as before and no existing verdict moves. Both halves
+mutation-proven.
+
+**The hour candidate is now expressible.** `time` stays inadmissible — a raw
+epoch would let a predicate carve an arbitrary calendar. `decisionHourDistance`
+is the circular distance in hours from 18.5 UTC, so the one-sided grammar can
+express a two-sided window: **`decisionHourDistance<=2.5` is exactly 16:00–21:59
+UTC**, because hours 16 and 21 both sit 2.5 from the midpoint while 15 and 22
+sit 3.5. (The round proposed `<=3`, which is wrong by its own arithmetic.)
+
 **A structural finding about the gate.** `grid-totalr.ts` makes `thin` the
 first conjunct of `beatsBaseline` (`:973`), and `earnsMoney` (`:918-919`) is
 never consulted once it fires. Every selective admission rule is refused before

@@ -39,6 +39,8 @@ import {
   gradeCorpus,
   readGridCube,
   parseDerivedFilters,
+  decisionHourDistance,
+  DERIVED_FIELDS,
 } from "../scripts/grid-totalr.ts";
 import type { SweepEmitRow } from "../scripts/sweepStats.ts";
 
@@ -226,7 +228,7 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     assert.ok(verdict.permutationP > 0.2, `p ${verdict.permutationP}`);
   });
 
-  it("refuses a thin variant outright — a win on a third of the volume is an artifact of tightness", () => {
+  it("files an underpowered variant as NO VERDICT, not as a measured loss", () => {
     const rows: SweepEmitRow[] = [];
     for (let day = 0; day < 24; day += 1) {
       rows.push(trainRow("baseline", day, 0.2));
@@ -241,8 +243,23 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
       permutations: 100,
       seed: 5,
     }).get("forex")!.get("tight")!;
+    // SPLIT 2026-09-12. Eight fills against the baseline's 24 is BOTH
+    // selective (under half) and underpowered (under the 30 floor). Only the
+    // second may refuse: selectivity is the nature of every admission rule and
+    // deciding on it is why no such rule ever earned a verdict here.
+    //
+    // The disposition is what changed. This used to read `thin` and file a
+    // measured failure; round 39's own rule says an unjudgeable pairing is NO
+    // VERDICT and never the same "fails" as a loss.
+    assert.equal(verdict.selective, true);
+    assert.equal(verdict.underpowered, true);
+    assert.equal(verdict.noVerdict, true);
     assert.equal(verdict.accepted, false);
-    assert.equal(verdict.thin, true);
+    assert.match(verdict.reason, /NO VERDICT — UNDERPOWERED \(8 filled/);
+    // And the money it would have claimed is real but unearned: a flat +0.9R
+    // over 8 rows has zero dispersion, so rExpectancyLower95 equals the mean
+    // and the money term cannot guard. The sample floor is what guards here.
+    assert.equal(verdict.selectExpectancyLower, verdict.selectExpectancy);
   });
 
   // #364 round 37, finding 1: a variant sharing NO select day with the
@@ -513,7 +530,7 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     const alone = classVerdicts(readGridCube(disjointFamily(["A"])), options)
       .get("forex")!.get("A")!;
     assert.equal(alone.effectivePairs, 5);
-    assert.equal(alone.thin, false);
+    assert.equal(alone.underpowered, false);
     assert.ok(
       alone.pairedP > 0.02 && alone.pairedP < 0.05,
       `A's own null is 1/32 ≈ 0.031, got ${alone.pairedP}`,
@@ -529,7 +546,7 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     // equal-magnitude deltas, same observed statistic. Only the family
     // it is tested within did.
     assert.equal(a.effectivePairs, 5);
-    assert.equal(a.thin, false);
+    assert.equal(a.underpowered, false);
     assert.equal(a.noVerdict, false);
     assert.ok(
       a.pairedP > alone.pairedP,
@@ -664,7 +681,12 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     );
     assert.match(
       source,
-      /: verdict\.noVerdict\s*\n\s*\? verdict\.reason/,
+      // Either shape satisfies the rule. Until 2026-09-12 the chain opened on
+      // `verdict.thin`, so noVerdict arrived after a colon; the thin split
+      // removed that branch and the disposition now leads, after `=`. What is
+      // pinned is unchanged and is the whole point: the label keys on the
+      // FIELD and reuses the reason verbatim, never a prefix match on wording.
+      /[:=]\s*verdict\.noVerdict\s*\n\s*\?\s*verdict\.reason/,
       "the printed label keys on the noVerdict field and reuses the reason",
     );
   });
@@ -3662,7 +3684,13 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
       string,
       { gateReason: string | null }
     >;
-    assert.match(reasons.AUDUSD.gateReason!, /^THIN \(10 filled\)/);
+    assert.match(
+      reasons.AUDUSD.gateReason!,
+      /^NO VERDICT — UNDERPOWERED \(10 filled/,
+      "the gate now names the CONDITION (too few fills) rather than the shape " +
+        "(thin); the report keeps its `thin` bucket so operator vocabulary is " +
+        "stable, but the gate's own reason states a no-verdict, not a loss",
+    );
     assert.match(reasons.USDJPY.gateReason!, /NO VERDICT — pairing 3 nonzero/);
     assert.equal(reasons.NZDUSD.gateReason, null);
 
@@ -3775,7 +3803,7 @@ describe("marketVerdicts — the 4d unit is one market, same statistics (amendme
     assert.equal(jpy?.accepted, false, "USDJPY's steady loss must refuse");
   });
 
-  it("refuses a market whose sample is thin, by name", () => {
+  it("gives a market whose sample is too small NO VERDICT, by name", () => {
     const rows: SweepEmitRow[] = [];
     for (let day = 0; day < 3; day += 1) {
       rows.push({ ...trainRow("baseline", day, 0.1), symbol: "EURUSD" });
@@ -3790,7 +3818,10 @@ describe("marketVerdicts — the 4d unit is one market, same statistics (amendme
     });
     const eur = verdicts.get("EURUSD")?.get("wide");
     assert.equal(eur?.accepted, false);
-    assert.match(eur?.reason ?? "", /THIN/i);
+    // Renamed with the split: 3 fills against marketVerdicts' 30 floor is
+    // UNDERPOWERED, and the disposition is NO VERDICT rather than a refusal.
+    assert.equal(eur?.noVerdict, true);
+    assert.match(eur?.reason ?? "", /NO VERDICT — UNDERPOWERED \(3 filled/);
   });
 
   it("agrees with classVerdicts when the class IS one market (above the floor)", () => {
@@ -3936,5 +3967,51 @@ describe("gradeCorpus — the per-market time re-cut is retired (R4 act 2)", () 
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /verdict unit: market — every market on its own rows/);
     assert.match(result.stdout, /fold source: emitted labels \(no time re-cut\)/);
+  });
+});
+
+// The alpha review's hour candidate was inexpressible: `time` is not a derived
+// field (a raw epoch would let a predicate fit an arbitrary date range) and the
+// grammar takes one `field OP value` with no conjunction, so a two-sided
+// session window could not be written at all. Measuring from the window's
+// midpoint makes it one-sided.
+describe("decisionHourDistance — a two-sided window in a one-sided grammar", () => {
+  it("puts exactly 16:00-21:59 UTC within 2.5 of the midpoint", () => {
+    const at = (hour: number) => Date.UTC(2026, 0, 5, hour, 30, 0);
+    for (const hour of [16, 17, 18, 19, 20, 21]) {
+      assert.ok(
+        decisionHourDistance(at(hour)) <= 2.5,
+        `${hour}:00 UTC should be inside the span, got ${decisionHourDistance(at(hour))}`,
+      );
+    }
+    for (const hour of [15, 22, 0, 8, 23]) {
+      assert.ok(
+        decisionHourDistance(at(hour)) > 2.5,
+        `${hour}:00 UTC should be outside the span, got ${decisionHourDistance(at(hour))}`,
+      );
+    }
+  });
+
+  it("wraps at midnight rather than measuring the long way round", () => {
+    const at = (hour: number) => Date.UTC(2026, 0, 5, hour, 0, 0);
+    // 02:00 is 7.5 hours from 18.5 going backwards through midnight, not 16.5.
+    assert.equal(decisionHourDistance(at(2)), 7.5);
+    assert.equal(decisionHourDistance(at(18)), 0.5);
+    assert.ok(decisionHourDistance(at(6)) <= 12);
+  });
+
+  it("is admissible as a derived field, and raw time is not", () => {
+    assert.ok(DERIVED_FIELDS.has("decisionHourDistance"));
+    assert.ok(
+      !DERIVED_FIELDS.has("time"),
+      "a raw epoch would let a predicate carve an arbitrary calendar",
+    );
+    const filters = parseDerivedFilters("inSpan:decisionHourDistance<=2.5");
+    assert.equal(filters[0].field, "decisionHourDistance");
+    assert.equal(filters[0].value, 2.5);
+    assert.throws(
+      () => parseDerivedFilters("byClock:time>=1600"),
+      /not a decision-time field/,
+    );
   });
 });

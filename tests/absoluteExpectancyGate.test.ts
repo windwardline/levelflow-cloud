@@ -92,7 +92,7 @@ describe("the best of a losing set is not a pick", () => {
       v.selectExpectancyDelta >= 0,
       `expectancy delta ${v.selectExpectancyDelta}`,
     );
-    assert.equal(v.thin, false);
+    assert.equal(v.underpowered, false);
     assert.equal(v.noVerdict, false);
   });
 
