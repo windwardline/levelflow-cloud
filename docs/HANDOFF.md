@@ -2264,6 +2264,33 @@ ratings history against clean folds ending 2018 and 2022 so it cannot be
 validated at all, and Ultimate already carries the analyst suite. It reopens only
 if Levelflow admits single-equity or equity-CFD markets.
 
+**GOVERNOR INTEGRITY, fixed 2026-09-12.** `news-calendar` made three FMP fetches
+and recorded ONE. The economic calendar recorded; the earnings calendar and the
+per-category news batch spent outside the ledger entirely — bytes the governor
+could not refuse, which is how an allowance gets exhausted without anyone seeing
+it coming. Both now record, before their `!response.ok` check, because a refused
+response spends the bytes too. Guarded by a DERIVED test
+(`tests/fmpBudgetByClass.test.ts`) that reads the source and requires one
+`recordFetch` per FMP fetch site, scoped to FMP so the file's Finnhub and
+Supabase calls are not asked to record FMP bytes — a fourth endpoint added there
+fails the guard instead of quietly spending. Mutation-proven both ways.
+
+**The suspension has no classifier, and that is deliberate.** `classifyRefusal`
+(`scripts/fmpCircuit.ts:96`) knows two walls: entitlement and bandwidth. An
+account SUSPENSION is a third and it classifies as null, so `isCircuitRefusal`
+returns false and the shared breaker never opens for it. A pattern was NOT
+guessed: no suspended-account body has ever been captured here, and this
+module's own rule is to match the narrowest phrase unique to the condition. A
+guessed pattern would look present and might never fire. `tests/fmpCircuit.test.ts`
+now pins the honest default instead. **OWNER/NEXT-AGENT ITEM: when the key
+refuses again, capture the response body verbatim** — that one string is all
+that is needed to write the third pattern and its own recovery clause, and the
+remedies for the other two walls are both wrong for a suspension.
+
+**Note:** `.fmp-circuit.json` is gitignored local state. The stale
+"Restricted Endpoint" it holds from 2026-09-04 is a machine condition, not a
+repo defect.
+
 ### ▶ RESUME HERE — 2026-09-04 05:00 UTC (the register moved twice; act 4 is refuted; a corpus was destroyed and is regenerating)
 
 **Four PRs landed and deployed** — #574 (forex `maxCostShare: 0.15`, the read's

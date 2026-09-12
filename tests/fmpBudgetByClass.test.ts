@@ -252,3 +252,64 @@ describe("the Edge graph type-checks against its REAL runtime", () => {
     });
   }
 });
+
+// §21d, the durable answer: bytes nobody budgeted are the ones that exhausted
+// the allowance on 2026-08-13 and again on 2026-08-27. The ledger only works if
+// every FMP fetch reaches it, and news-calendar recorded exactly one of its
+// three — the economic calendar recorded, while the earnings calendar and the
+// per-category news batch spent outside the ledger entirely (found 2026-09-12).
+//
+// Derived, never a literal count: this reads the source and requires one
+// recordFetch for every FMP fetch site, so a FOURTH endpoint added to this file
+// fails here instead of quietly spending. A count would have to be edited by
+// the same change that introduced the hole.
+describe("news-calendar — every FMP fetch reaches the ledger", () => {
+  const SOURCE = "supabase/functions/news-calendar/index.ts";
+
+  // Each async function that BUILDS an FMP url and then fetches must record.
+  // Scoped to FMP deliberately: this file also calls Finnhub (the §21 calendar
+  // alternate) and Supabase, and neither spends the FMP allowance. A guard that
+  // counted every fetch would demand the Finnhub call record FMP bytes.
+  function fmpFetchBlocks(src: string): string[] {
+    return src
+      .split(/\nasync function /)
+      .slice(1)
+      .filter((body) =>
+        body.includes("FMP_API_BASE_URL") &&
+        body.includes("await fetchWithTimeout(url,")
+      );
+  }
+
+  it("records one fetch per FMP request site, and none for the others", () => {
+    const src = readFileSync(SOURCE, "utf8");
+    const blocks = fmpFetchBlocks(src);
+    assert.ok(
+      blocks.length >= 3,
+      `expected at least three FMP fetch sites in ${SOURCE}; found ${blocks.length}`,
+    );
+    for (const body of blocks) {
+      const name = body.slice(0, body.indexOf("(")).trim();
+      assert.ok(
+        /void recordFetch\(/.test(body),
+        `${name} builds an FMP url and fetches it without calling ` +
+          `recordFetch. A byte spent outside the ledger is a byte the ` +
+          `governor cannot refuse — that is how the allowance was exhausted ` +
+          `on 2026-08-13 and 2026-08-27.`,
+      );
+    }
+  });
+
+  it("records before the ok check, so a refused response still counts", () => {
+    const src = readFileSync(SOURCE, "utf8");
+    for (const body of fmpFetchBlocks(src)) {
+      const name = body.slice(0, body.indexOf("(")).trim();
+      const record = body.indexOf("void recordFetch(");
+      const okCheck = body.indexOf("if (!response.ok)");
+      assert.ok(
+        okCheck < 0 || (record >= 0 && record < okCheck),
+        `${name} records its bytes AFTER the !response.ok throw, so a refused ` +
+          `response spends bytes the ledger never sees`,
+      );
+    }
+  });
+});
