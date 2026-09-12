@@ -1881,8 +1881,16 @@ that fixed it.
   **Three clauses, and only the first is mechanizable today.** (a) **BUILT
   2026-09-12** — `tests/parkingGate.test.ts` now asserts the CONDITIONAL: if
   `PARKING_GATE` is false, the mechanisms withholding every condemned claim
-  must still be standing (`record.superseded` consulted, the guide still
-  withholding). While parked the assertions are inert BY CONSTRUCTION and a
+  must still be standing. **Honest scope:** the superseded half is a SENTINEL,
+  not new coverage — `tests/replayReliability.test.ts:27-47` already enforces
+  `describeReplayRecord(...) === null` for all six on every run, parked or not,
+  and that is what actually protects the record row today. The GuidePanel half
+  IS new (nothing else pins that sentence) but is inert until the flip, so the
+  enforced coverage this added today is zero. It earns its place by sitting
+  where an unparker will read it. It tests BEHAVIOUR, not source strings: a
+  first draft matched `/record\.superseded/`, which occurs twice — once as a
+  caveat suffix, once as the refusal — so deleting only the refusal left the
+  guard green while the condemned figure reached a screen. While parked the assertions are inert BY CONSTRUCTION and a
   third case declares that regime, so an inert pass is never read as a live
   one. Mutation-proven in all three regimes: gate open with the claims closed
   PASSES (it does not block a legitimate unpark), and gate open with either

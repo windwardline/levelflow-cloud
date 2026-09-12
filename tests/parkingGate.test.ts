@@ -198,29 +198,69 @@ describe("an unpark may not carry a condemned claim back onto a screen", () => {
   const gateSource = () => readFileSync("src/lib/parkingGate.ts", "utf8");
   const gateIsOpen = () => /export const PARKING_GATE = false;/.test(gateSource());
 
-  it("states which regime it is asserting in, so an inert pass is never read as a live one", () => {
+  it("reads a parseable flag and EMITS which regime the cases below ran in", (t) => {
     // A conditional guard that silently no-ops is indistinguishable from one
-    // that passed. This is the declaration: while parked the two assertions
-    // below are inert, and that is a fact about the gate, not about the claims.
+    // that passed — three greens look identical whether they asserted or
+    // returned early. So this does two things: it closes the
+    // silently-unparseable path, and it PRINTS the regime, because a
+    // declaration nobody can read is not a declaration.
     assert.ok(
       /export const PARKING_GATE = (true|false);/.test(gateSource()),
       "the gate flag is no longer a plain boolean literal — the conditional " +
         "guards below cannot read it, so they are silently inert. Restore a " +
         "literal or rewrite them.",
     );
+    t.diagnostic(
+      gateIsOpen()
+        ? "PARKING_GATE is FALSE — the two guards below are LIVE and asserted"
+        : "PARKING_GATE is TRUE — the two guards below are INERT by design " +
+          "and asserted nothing; they arm on the flip",
+    );
   });
 
-  it("keeps the superseded-record refusal standing when the gate opens", () => {
+  // A SENTINEL, NOT NEW COVERAGE, and the record should not read otherwise.
+  // `tests/replayReliability.test.ts:27-47` already asserts this for all six
+  // asset types on EVERY run, parked or not, with its own non-vacuity count —
+  // that test is what actually enforces the refusal and what would have caught
+  // the mutation below. This case adds zero enforced coverage today. It earns
+  // its place only by being sited where someone flipping the gate will read
+  // it, with a message written for that moment.
+  //
+  // BEHAVIOUR, NOT A STRING. The first version of this asserted
+  // /record\.superseded/ against the whole file — and that string occurs
+  // TWICE: once as the caveat suffix in formatReplayRecord, once as the
+  // refusal in describeReplayRecord. Deleting only the refusal leaves the
+  // caveat, and the regex stayed green while the condemned figure reached a
+  // screen. My own mutation removed BOTH sites at once, so it proved the
+  // regex matched something rather than the load-bearing thing — a guard that
+  // passes through the exact mutation it exists to catch.
+  //
+  // This calls the function. A residue cannot satisfy it.
+  it("keeps the superseded-record refusal standing when the gate opens", async () => {
     if (!gateIsOpen()) return; // parked: the surface renders to nobody
-    const source = readFileSync("src/lib/replayReliability.ts", "utf8");
-    assert.match(
-      source,
-      /record\.superseded/,
-      "PARKING_GATE is FALSE and describeReplayRecord no longer consults " +
-        "`superseded`. Every stored row was measured by the retired " +
-        "pre-repair evaluator and the first repaired baseline measured the " +
-        "accepted stream NEGATIVE in every class. Opening the desk with this " +
-        "refusal removed publishes condemned figures as a measured record.",
+    const { describeReplayRecord, REPLAY_RECORD_BY_ASSET_TYPE, MEASURED_POPULATION_BY_ASSET_TYPE } =
+      await import("../src/lib/replayReliability.ts");
+    let checked = 0;
+    for (const assetType of Object.keys(REPLAY_RECORD_BY_ASSET_TYPE) as Array<keyof typeof REPLAY_RECORD_BY_ASSET_TYPE>) {
+      const population = MEASURED_POPULATION_BY_ASSET_TYPE[assetType];
+      const symbol = population ? [...population][0] : undefined;
+      if (!symbol) continue;
+      checked += 1;
+      assert.equal(
+        describeReplayRecord(symbol, assetType),
+        null,
+        `PARKING_GATE is FALSE and ${assetType} renders a measured record ` +
+          `through ${symbol}. Every stored row was measured by the retired ` +
+          `pre-repair evaluator and the first repaired baseline measured the ` +
+          `accepted stream NEGATIVE in every class. Opening the desk with ` +
+          `this refusal removed publishes condemned figures as measured fact.`,
+      );
+    }
+    assert.ok(
+      checked >= 6,
+      `the guard examined ${checked} asset types; all six carry superseded ` +
+        `rows, so examining fewer means the population moved and this guard ` +
+        `is reporting on less than it claims`,
     );
   });
 
