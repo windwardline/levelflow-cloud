@@ -2214,6 +2214,32 @@ rather than an absence, and the gate cannot presently return a verdict on it
 at all (next paragraph) — and on the fit held-out fold the volume it discards
 is net positive. It is a pre-registration for the next calendar, NOT a ship.
 
+**THE HOUR GATE IS GRADED AND REFUSED — 2026-09-12.**
+[`hour-gate-verdict-2026-09-12.md`](/docs/research/hour-gate-verdict-2026-09-12.md),
+outputs tracked at `r4/hour-gate-market-2026-09-12.{stdout.txt,json}`. Ran
+`--derive-filters "inSpan:decisionHourDistance<=2.5" --verdict-unit market` on
+the corpus of record; fit and select only, confirm never read.
+
+**0 of 91 markets accept.** 80 judged and failed, 11 no verdict. THIRTEEN beat
+the baseline on both folds at paired p ≤ 0.05 with a non-negative expectancy
+delta — every comparison the gate makes — and NONE demonstrates a profit.
+Nearest misses USDJPY (E lo95 **−0.002**) and XAUUSD (**−0.010**), then PLUSD
+−0.017 and EURUSD −0.032. Twenty-three markets do carry a positive lower bound
+and not one of them is in the thirteen, so no market both beats the baseline and
+earns money.
+
+**This is the first thing the gate repair made sayable.** Every one of those 91
+rows would previously have read `THIN (n filled) — refuse` with no money read at
+all; the stdout now reads `fails [selective — 866 filled]`.
+
+**The alpha review's figure was CLASS grain** (forex in-span select +0.0324,
+lo95 +0.0222) and is not contradicted — it is not reproduced per market either.
+This is what amendment 33 biting looks like. **The hour gate does not ship**, and
+the note freezes its pre-registration: the predicate is fixed at `<=2.5` and may
+not be re-searched, the grain is the market, D4 is unchanged, span exclusion
+applies, the costs are stated in advance, and the confirm fold is NOT the next
+step because every roster symbol is burned.
+
 **PER-MARKET SPAN EXCLUSION IS BUILT — 2026-09-12.** Round 2 decided it on
 2026-09-07 and it stayed unbuilt because `calendarFolds` cuts ONE continuous
 span into proportional shares, and forex's escaping years sit in the MIDDLE of
