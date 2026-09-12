@@ -371,7 +371,7 @@ async function main() {
       ? "indistinguishable"
       : verdict.accepted && rawUpper !== null && !absoluteAdmissible
       ? "not-held-back"
-      : verdict.thin
+      : verdict.underpowered
       ? "thin"
       : verdict.noVerdict
       ? "gate-could-not-judge"
@@ -402,7 +402,7 @@ async function main() {
     else if (disposition === "indistinguishable") indistinguishable += 1;
     else if (disposition === "not-held-back") notHeldBack += 1;
     else if (!verdict) missingVerdict += 1;
-    else if (verdict.thin) thin += 1;
+    else if (verdict.underpowered) thin += 1;
     else if (verdict.noVerdict) gateCouldNotJudge += 1;
     else if (!verdict.accepted) refusedByGate += 1;
     else unevidenced += 1;

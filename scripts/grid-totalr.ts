@@ -322,7 +322,12 @@ export type VariantVerdict = {
   // minimum attainable pairedP (~2^-effectivePairs) and is the
   // quantity the acceptance floor gates.
   effectivePairs: number;
-  thin: boolean;
+  // Split 2026-09-12. `underpowered` is a no-verdict: too few fills to judge.
+  // `selective` is DESCRIPTIVE ONLY — it says the variant deliberately trades
+  // a subset, and it must never gate a verdict. A printer that refuses on it
+  // restores the defect the split removed.
+  underpowered: boolean;
+  selective: boolean;
   // Survival readout (RM-3/8): the variant's own worst select-fold day in
   // R, and the share of its days at or beyond -4R.
   worstDayR: number | null;
@@ -359,10 +364,27 @@ const DERIVED_OPS = new Set([">=", ">", "<=", "<"]);
  * would let a predicate look ahead and manufacture any verdict, so anything
  * off this list is refused by name.
  */
+/**
+ * The fills a SELECTIVE variant needs before its money may be read.
+ *
+ * Selectivity used to refuse outright, which is why no admission rule ever
+ * earned a verdict here. It no longer refuses — but a rule trading a subset is
+ * exactly where a small sample and a flattering 95% bound meet, so the sample
+ * floor moved here when the refusal left. Matches the 30 `groupSingletons`
+ * already passes.
+ */
+export const SELECTIVE_POWER_FLOOR = 30;
+
 export const DERIVED_FIELDS = new Set([
   "atr", "confidenceScore", "costShare", "cotPercentile", "dailyAtr", "estimatedCommission", "estimatedRoundTripCost",
   "estimatedSlippage", "estimatedSpread", "executionScore", "grossRewardRisk", "ladderRewardRisk", "nearestStructureDistance",
   "newsPenalty", "rewardRisk", "riskDistance", "sessionPenalty", "stopPivotDistance", "trendStrength", "volatilityPercentile",
+  // DERIVED, added 2026-09-12. `time` itself is deliberately NOT admissible —
+  // a raw epoch would let a predicate carve an arbitrary calendar and fit a
+  // date range. This is the circular distance in hours from 18.5 UTC, so a
+  // predicate can express a two-sided session window with the ONE-sided
+  // grammar the parser has, and nothing else.
+  "decisionHourDistance",
 ]);
 
 /** `name:field>=value;name:field<=value` — one entry per derived variant. */
@@ -399,7 +421,33 @@ export function parseDerivedFilters(spec: string): DerivedFilter[] {
   return filters;
 }
 
+/**
+ * Circular distance, in hours, from 18.5 UTC — the midpoint of 16:00-21:59.
+ *
+ * The predicate grammar takes one `field OP value` and no conjunction, so a
+ * two-sided window like "16:00 through 21:59 UTC" cannot be written directly.
+ * Measured from the midpoint it becomes one-sided: `decisionHourDistance<=2.5`
+ * is exactly the hours 16 through 21, because 16 and 21 both sit 2.5 from 18.5
+ * while 15 and 22 sit 3.5. Wrapped at 12 so a decision at 02:00 is 7.5 hours
+ * from the window rather than 16.5.
+ *
+ * The UTC hour is taken as an INTEGER, matching how the span was measured in
+ * `hour-mechanism-2026-09-07.txt`. A continuous hour would move the boundary.
+ */
+export function decisionHourDistance(timeMs: number): number {
+  const hour = new Date(timeMs).getUTCHours();
+  const raw = Math.abs(hour - 18.5);
+  return raw > 12 ? 24 - raw : raw;
+}
+
 function derivedFieldOf(row: SweepEmitRow, field: string): number {
+  if (field === "decisionHourDistance") {
+    const time = row.time;
+    if (typeof time !== "number" || !Number.isFinite(time)) {
+      throw new Error(`--derive-filters: ${row.symbol}'s baseline row carries no finite time, so decisionHourDistance cannot be derived from this corpus`);
+    }
+    return decisionHourDistance(time);
+  }
   if (field === "costShare") {
     const cost = row.estimatedRoundTripCost;
     const risk = row.riskDistance;
@@ -917,9 +965,43 @@ function groupVerdicts(
       );
       const earnsMoney = selectExpectancyLower !== null &&
         selectExpectancyLower > 0;
-      const thin = aggregate.variant.select.filled <
-          aggregate.base.select.filled * 0.5 ||
-        aggregate.variant.select.filled < minFilled;
+      // SPLIT 2026-09-12. `thin` conflated two unlike things behind one
+      // refusal: a variant too small to judge, and a variant that DELIBERATELY
+      // trades a subset. The first is a genuine no-verdict. The second is the
+      // nature of every selective admission rule — the class most likely to
+      // help — and refusing it before its money was read is why no such rule
+      // has ever earned a verdict here.
+      //
+      // Only `underpowered` gates the comparison now. `selective` is carried
+      // for the printers and the disposition, and decides nothing.
+      //
+      // Measured before the split, over the 181 THIN records in the 5,001-record
+      // r3/r4 grading registers: 24 pass the four comparison conjuncts, 6 of
+      // those carry a positive select expectancy, and NONE clears `earnsMoney`
+      // — the two distinct candidates hold 95% lower bounds of -0.0708 and
+      // -0.2623. So this admits nothing that was refused, and the term doing
+      // that work is D4's money term, not the selectivity guard.
+      const selective = aggregate.variant.select.filled <
+        aggregate.base.select.filled * 0.5;
+      // The floor binds on the SELECTIVE path only, and that scope is the
+      // whole safety argument. A variant trading the baseline's full volume is
+      // judged exactly as it was before this split — `minFilled` still governs
+      // it and still defaults to 0, so no existing verdict moves. A variant
+      // that deliberately trades a subset may now earn a verdict, but only
+      // with the sample to support one.
+      //
+      // Measured on the acceptanceGate fixture before this scope existed: an
+      // 8-fill variant paying a flat +0.9R was ACCEPTED, because zero
+      // dispersion makes rExpectancyLower95 equal the mean and D4's money term
+      // stops guarding. A selective rule is exactly where small n and a
+      // flattering interval meet, so that is where the floor belongs.
+      //
+      // 30 is not arbitrary: `groupSingletons` (:769) already passes exactly
+      // 30, so this agrees with the one caller that had thought about it.
+      const underpowered = aggregate.variant.select.filled < minFilled ||
+        (selective &&
+          aggregate.variant.select.filled < SELECTIVE_POWER_FLOOR);
+
 
       const baselineBlocks: number[] = [];
       const variantBlocks: number[] = [];
@@ -970,7 +1052,7 @@ function groupVerdicts(
       // used to be, and every term in it is a comparison against the baseline
       // — which is the defect, stated as code: a variant can satisfy all five
       // while losing money, and the gate called that an accept.
-      const beatsBaseline = !thin && fitTotalDelta > 0 &&
+      const beatsBaseline = !underpowered && fitTotalDelta > 0 &&
         selectTotalDelta > 0 &&
         effectivePairs >= MIN_EFFECTIVE_PAIRS && pairedP <= 0.05 &&
         selectExpectancyDelta >= 0;
@@ -996,10 +1078,13 @@ function groupVerdicts(
         // is named before the pairing it empties (#364 round 41,
         // smaller), and the noVerdict FIELD carries the disposition
         // so no printer parses the message (#364 round 42, finding 2).
-        noVerdict: !thin &&
-          (baselineAbsentInGroup || effectivePairs < MIN_EFFECTIVE_PAIRS),
-        reason: thin
-          ? `THIN (${selectStats.filled} filled)`
+        noVerdict: underpowered ||
+          (!underpowered &&
+            (baselineAbsentInGroup || effectivePairs < MIN_EFFECTIVE_PAIRS)),
+        reason: underpowered
+          ? `NO VERDICT — UNDERPOWERED (${selectStats.filled} filled, ` +
+            `below the ${minFilled} floor); too few fills to judge, which is ` +
+            `not the same as a measured loss`
           : baselineAbsentInGroup
           ? `NO VERDICT — baseline "${baselineVariant}" has no ` +
             `${foldNames.select}-fold days in this group; no ` +
@@ -1104,7 +1189,8 @@ function groupVerdicts(
         selectTotalDelta,
         sharedDays,
         effectivePairs,
-        thin,
+        underpowered,
+        selective,
         worstDayR,
       });
     }
@@ -2827,15 +2913,24 @@ async function main(): Promise<void> {
       // the DISPOSITION is the noVerdict field, never a prefix match
       // on the message (#364 round 42, finding 2 — a reworded reason
       // had silently restored the bare-"fails" defect).
-      const label = verdict.thin
-        ? `THIN (${verdict.selectFilled} filled) — refuse`
-        : verdict.noVerdict
+      // DISPOSITION FIRST. Until 2026-09-12 this branched on `thin` and
+      // printed "refuse" for any variant trading under half the baseline's
+      // fills — so a selective rule read as refused even once the gate could
+      // judge it. Selectivity is now a descriptive suffix and decides nothing.
+      const selectiveNote = verdict.selective
+        ? ` [selective — ${verdict.selectFilled} filled]`
+        : "";
+      // The note rides only a JUDGED outcome. A no-verdict label must remain
+      // byte-identical to its reason — the printer reuses the reason verbatim
+      // and a test pins that, because a reworded reason once silently restored
+      // the bare-"fails" defect (#364 round 42, finding 2).
+      const label = verdict.noVerdict
         ? verdict.reason
-        : verdict.accepted
+        : (verdict.accepted
         ? `ACCEPT — fit+select, paired p, and its OWN expectancy ` +
           `${verdict.selectExpectancy?.toFixed(3)}R positive beyond error ` +
           `(95% lower ${verdict.selectExpectancyLower?.toFixed(3)}R)`
-        : "fails";
+        : "fails") + selectiveNote;
       // The confirm figure states its own two denominators, and an
       // accepted variant whose confirm read found no evidence says so
       // rather than printing nothing (#364 round 43, finding 1) — the
