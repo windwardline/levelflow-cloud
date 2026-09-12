@@ -2214,6 +2214,40 @@ rather than an absence, and the gate cannot presently return a verdict on it
 at all (next paragraph) — and on the fit held-out fold the volume it discards
 is net positive. It is a pre-registration for the next calendar, NOT a ship.
 
+**PER-MARKET SPAN EXCLUSION IS BUILT — 2026-09-12.** Round 2 decided it on
+2026-09-07 and it stayed unbuilt because `calendarFolds` cuts ONE continuous
+span into proportional shares, and forex's escaping years sit in the MIDDLE of
+that span — no shortening of either end reaches them.
+
+`scripts/feedMonths.ts` reads the witness at month grain, unioning the escaping
+YEARS on a verdict line with the months HIDDEN inside contained years, and
+refuses a market it never judged rather than calling it clean. Both statements
+matter: a year bucket either throws away five clean months to drop two dirty
+ones or keeps the dirty ones.
+
+`calendarFoldsExcluding` (`sweepFolds.ts`) places fold boundaries by **USABLE**
+time. Each fold still reports a contiguous span — the holes inside it are the
+caller's to drop, by the same map — but its SHARE is measured on the months that
+survive, so fit's nominal 50 % cannot be 50 % of a calendar that is two-thirds
+refused. `usableMsInFold` is the depth a power argument must use, since a fold's
+width overstates it. It reduces EXACTLY to `calendarFolds` when nothing is
+excluded, and that is pinned.
+
+**Controls reproduced before it spoke.** The record's 62 forex hidden-2024
+months, all falling January to July: reproduced exactly, with the class taken
+from `getAssetType` and never from the ticker's shape (a first draft used a
+six-letter regex and swept in agriculture, livestock, futures and crypto — the
+same mistake that mis-stated this witness on 2026-09-07).
+
+**The record's "651 months over 305 store-years" is a BOTH-TIERS figure and is
+now reconciled**: 5min is 360 months over 172 store-years, 15min is 291 over
+133. Exclusion runs on the 5min map, so 360/172 is the number that governs it.
+Three mutations proven: wall-clock boundaries, an unjudged market reading clean,
+and another tier's hidden months landing on this map.
+
+**Still unbuilt:** nothing consumes the map yet. Wiring it into a sweep is the
+next calendar's work and needs the key; the machinery it needs exists now.
+
 **THE GATE CAN NOW JUDGE A SELECTIVE RULE — fixed 2026-09-12.** `thin`
 conflated two unlike things behind one refusal: a variant too small to judge,
 and a variant that DELIBERATELY trades a subset. It is split. `underpowered`

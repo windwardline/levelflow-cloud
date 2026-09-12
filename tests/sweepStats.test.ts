@@ -1934,6 +1934,12 @@ describe("every emit reader passes the one-clock door (R0) — the population, n
       "judge; the readers that consult the map (contained-years, " +
       "banked-fraction, payoff-decomposition) each pass the door before a " +
       "corpus row is read",
+    "feedMonths.ts":
+      "its only line split is parseWitnessMonths reading the same tracked " +
+      "witness TABLE feedYears.ts is exempted for, one grain finer — a " +
+      "reader's printed verdict and HIDDEN-months lines, never a corpus " +
+      "emit, with no manifest for the door to judge. It states which months " +
+      "are refused; it reads no row and reaches no outcome column",
     "symbolCensus.ts":
       "reads TYPESCRIPT SOURCE, not a corpus emit — it walks src/, scripts/ " +
       "and supabase/functions/ with the TypeScript AST to find declarations " +

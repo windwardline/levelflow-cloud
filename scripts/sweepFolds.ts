@@ -68,6 +68,127 @@ export function calendarFolds(input: {
   return folds;
 }
 
+export type ExcludedInterval = { endMs: number; startMs: number };
+
+/**
+ * Fold a span that has HOLES in it.
+ *
+ * `calendarFolds` cuts one continuous span into proportional shares. That is
+ * correct until the feed witness refuses part of the middle — forex's escaping
+ * years sit between 2021 and 2024, with hidden months either side, so shortening
+ * the span cannot reach them and a proportional cut hands one fold a calendar
+ * that is mostly unusable. Round 2 decided per-market span exclusion on
+ * 2026-09-07; this is the allocator it needs.
+ *
+ * The rule: boundaries are placed by USABLE time, not by wall-clock time. Each
+ * fold still reports a contiguous [startMs, endMs) — the holes inside it are the
+ * caller's to drop, by the same month map that produced them — but a fold's
+ * SHARE is measured on the months that survive. Otherwise fit's nominal 50%
+ * could be 50% of a calendar that is two-thirds refused.
+ *
+ * Reduces exactly to `calendarFolds` when nothing is excluded, which is the
+ * property its test pins: an instrument that cannot reproduce the undisturbed
+ * case has not earned the disturbed one.
+ */
+export function calendarFoldsExcluding(input: {
+  corpusEndMs: number;
+  corpusStartMs: number;
+  embargoMs: number;
+  excluded: readonly ExcludedInterval[];
+}): CalendarFold[] {
+  const spanStart = input.corpusStartMs;
+  const spanEnd = input.corpusEndMs;
+  if (!(spanEnd > spanStart)) {
+    throw new Error(
+      `calendarFoldsExcluding: the span ends at or before it starts (${spanStart} -> ${spanEnd})`,
+    );
+  }
+  // Clip, sort and merge. An unmerged overlap would double-count excluded time
+  // and shrink the usable total, moving every boundary.
+  const holes: ExcludedInterval[] = [];
+  for (const raw of [...input.excluded].sort((a, b) => a.startMs - b.startMs)) {
+    const startMs = Math.max(raw.startMs, spanStart);
+    const endMs = Math.min(raw.endMs, spanEnd);
+    if (endMs <= startMs) continue;
+    const last = holes.at(-1);
+    if (last && startMs <= last.endMs) last.endMs = Math.max(last.endMs, endMs);
+    else holes.push({ endMs, startMs });
+  }
+
+  // The usable runs, in order.
+  const usable: ExcludedInterval[] = [];
+  let cursor = spanStart;
+  for (const hole of holes) {
+    if (hole.startMs > cursor) usable.push({ endMs: hole.startMs, startMs: cursor });
+    cursor = Math.max(cursor, hole.endMs);
+  }
+  if (cursor < spanEnd) usable.push({ endMs: spanEnd, startMs: cursor });
+
+  const usableTotal = usable.reduce((sum, run) => sum + (run.endMs - run.startMs), 0);
+  if (usableTotal <= 0) {
+    throw new Error(
+      `calendarFoldsExcluding: every month in ${new Date(spanStart).toISOString().slice(0, 7)}..${new Date(spanEnd).toISOString().slice(0, 7)} is excluded — there is no calendar left to fold`,
+    );
+  }
+  const smallestShare = Math.min(...FOLD_SHARES.map((fold) => fold.share));
+  if (input.embargoMs >= usableTotal * smallestShare) {
+    throw new Error(
+      `calendarFoldsExcluding: the ${input.embargoMs}ms embargo consumes the smallest ${
+        Math.round(usableTotal * smallestShare)
+      }ms USABLE fold — ${
+        Math.round((1 - usableTotal / (spanEnd - spanStart)) * 100)
+      }% of this span is excluded, so the partition it could support is smaller than the span suggests`,
+    );
+  }
+
+  /** The instant at which `want` milliseconds of usable time have elapsed. */
+  const instantAtUsable = (want: number): number => {
+    let seen = 0;
+    for (const run of usable) {
+      const length = run.endMs - run.startMs;
+      if (seen + length >= want) return run.startMs + (want - seen);
+      seen += length;
+    }
+    return spanEnd;
+  };
+
+  const folds: CalendarFold[] = [];
+  let startMs = spanStart;
+  let consumed = 0;
+  for (const { name, share } of FOLD_SHARES) {
+    consumed += usableTotal * share;
+    const endMs = name === "confirm" ? spanEnd : instantAtUsable(consumed);
+    folds.push({
+      decisionEndMs: endMs - input.embargoMs,
+      endMs,
+      name,
+      startMs,
+    });
+    startMs = endMs;
+  }
+  return folds;
+}
+
+/**
+ * The usable milliseconds a fold actually holds, once its holes are removed.
+ *
+ * A fold's [startMs, endMs) is contiguous even when its interior is refused, so
+ * a reader that measures depth from the boundaries alone will overstate it.
+ * This is the number a power argument must use.
+ */
+export function usableMsInFold(
+  fold: CalendarFold,
+  excluded: readonly ExcludedInterval[],
+): number {
+  let excludedInside = 0;
+  for (const hole of excluded) {
+    const startMs = Math.max(hole.startMs, fold.startMs);
+    const endMs = Math.min(hole.endMs, fold.endMs);
+    if (endMs > startMs) excludedInside += endMs - startMs;
+  }
+  return Math.max(0, fold.endMs - fold.startMs - excludedInside);
+}
+
 /**
  * Deterministic ~20% market holdout: the first byte of the symbol's
  * SHA-256 modulo five. No seed, no flag, no drift — the same symbol is
