@@ -440,7 +440,9 @@ export function decisionHourDistance(timeMs: number): number {
   return raw > 12 ? 24 - raw : raw;
 }
 
-function derivedFieldOf(row: SweepEmitRow, field: string): number {
+/** Exported for test: the refusal path is only reachable through the corpus
+ * door otherwise, and a field that throws on bad input is worth pinning. */
+export function derivedFieldOf(row: SweepEmitRow, field: string): number {
   if (field === "decisionHourDistance") {
     const time = row.time;
     if (typeof time !== "number" || !Number.isFinite(time)) {
@@ -1082,9 +1084,22 @@ function groupVerdicts(
           (!underpowered &&
             (baselineAbsentInGroup || effectivePairs < MIN_EFFECTIVE_PAIRS)),
         reason: underpowered
-          ? `NO VERDICT — UNDERPOWERED (${selectStats.filled} filled, ` +
-            `below the ${minFilled} floor); too few fills to judge, which is ` +
-            `not the same as a measured loss`
+          // NAME THE FLOOR THAT ACTUALLY BOUND. `underpowered` is a
+          // disjunction and the two legs carry different floors; printing
+          // `minFilled` made every class-grain verdict read "below the 0
+          // floor", since classVerdicts never passes one. A reason that names
+          // a floor the sample cleared is unactionable, and printers reuse
+          // this string verbatim.
+          ? (selective &&
+              selectStats.filled < SELECTIVE_POWER_FLOOR &&
+              selectStats.filled >= minFilled
+            ? `NO VERDICT — UNDERPOWERED (${selectStats.filled} filled, ` +
+              `below the ${SELECTIVE_POWER_FLOOR} floor a SELECTIVE rule ` +
+              `needs); it trades under half the baseline's fills, so too few ` +
+              `to judge — which is not the same as a measured loss`
+            : `NO VERDICT — UNDERPOWERED (${selectStats.filled} filled, ` +
+              `below the ${minFilled} floor); too few fills to judge, which ` +
+              `is not the same as a measured loss`)
           : baselineAbsentInGroup
           ? `NO VERDICT — baseline "${baselineVariant}" has no ` +
             `${foldNames.select}-fold days in this group; no ` +

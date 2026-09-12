@@ -41,6 +41,8 @@ import {
   parseDerivedFilters,
   decisionHourDistance,
   DERIVED_FIELDS,
+  SELECTIVE_POWER_FLOOR,
+  derivedFieldOf,
 } from "../scripts/grid-totalr.ts";
 import type { SweepEmitRow } from "../scripts/sweepStats.ts";
 
@@ -228,6 +230,61 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     assert.ok(verdict.permutationP > 0.2, `p ${verdict.permutationP}`);
   });
 
+  // THE POINT OF THE SPLIT, and the case nothing else in this file builds.
+  // A variant trading well under half the baseline's fills, but at or above
+  // the selective floor, must receive a REAL verdict — accepted or refused on
+  // its money — rather than being declined for its shape. Restoring
+  // `!selective` to beatsBaseline re-creates the defect and fails here.
+  it("gives a selective variant with the sample a real verdict, not a refusal", () => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 100; day += 1) {
+      rows.push(trainRow("baseline", day, 0.05));
+      rows.push(outcomeRow("baseline", day, 0.05));
+      // 40 of the baseline's 100 days — selective (< 50%) and above the 30
+      // floor. Varied so the sample carries real dispersion and the 95% bound
+      // is earned rather than degenerate.
+      if (day < 40) {
+        const r = 0.30 + (day % 5) * 0.08;
+        rows.push(trainRow("selectiveRule", day, r));
+        rows.push(outcomeRow("selectiveRule", day, r));
+      }
+    }
+    const verdict = classVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 11,
+    }).get("forex")!.get("selectiveRule")!;
+
+    assert.equal(verdict.selective, true, "40 of 100 is under half");
+    assert.equal(
+      verdict.underpowered,
+      false,
+      `40 fills clears the ${SELECTIVE_POWER_FLOOR} selective floor`,
+    );
+    assert.equal(
+      verdict.noVerdict,
+      false,
+      "a selective rule with the sample is JUDGED, not declined for its shape",
+    );
+    assert.doesNotMatch(verdict.reason, /UNDERPOWERED/);
+    // THE PIN. This variant EARNS acceptance on its money: +13.4R on both
+    // folds, paired p 0.005, and a 95% lower bound of +0.423R over 40 fills.
+    // Asserting the VALUE is the whole point — an earlier draft asserted
+    // `typeof accepted === "boolean"`, which is true whether the gate judges
+    // the rule or refuses it for its shape, so it caught nothing.
+    assert.equal(
+      verdict.accepted,
+      true,
+      "a selective rule that beats the baseline on both folds AND clears its " +
+        "own 95% lower bound must be ACCEPTED; refusing it for trading a " +
+        "subset is the defect this split removed",
+    );
+    assert.ok(
+      (verdict.selectExpectancyLower ?? 0) > 0,
+      "acceptance turns on the bound, so the bound must be positive here",
+    );
+  });
+
   it("files an underpowered variant as NO VERDICT, not as a measured loss", () => {
     const rows: SweepEmitRow[] = [];
     for (let day = 0; day < 24; day += 1) {
@@ -255,7 +312,15 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     assert.equal(verdict.underpowered, true);
     assert.equal(verdict.noVerdict, true);
     assert.equal(verdict.accepted, false);
-    assert.match(verdict.reason, /NO VERDICT — UNDERPOWERED \(8 filled/);
+    // Pinned WHOLE, including the floor. The prefix-only form let a reason
+    // ship that read "below the 0 floor" — self-contradictory, and naming a
+    // floor the sample had cleared.
+    assert.equal(
+      verdict.reason,
+      "NO VERDICT — UNDERPOWERED (8 filled, below the 30 floor a SELECTIVE " +
+        "rule needs); it trades under half the baseline's fills, so too few " +
+        "to judge — which is not the same as a measured loss",
+    );
     // And the money it would have claimed is real but unearned: a flat +0.9R
     // over 8 rows has zero dispersion, so rExpectancyLower95 equals the mean
     // and the money term cannot guard. The sample floor is what guards here.
@@ -4013,5 +4078,22 @@ describe("decisionHourDistance — a two-sided window in a one-sided grammar", (
       () => parseDerivedFilters("byClock:time>=1600"),
       /not a decision-time field/,
     );
+  });
+});
+
+describe("the selective floor and the hour field refuse rather than guess", () => {
+  it("pins SELECTIVE_POWER_FLOOR at the value groupSingletons already used", () => {
+    assert.equal(SELECTIVE_POWER_FLOOR, 30);
+  });
+
+  it("refuses a row whose time is not finite rather than deriving an hour", () => {
+    const row = { ...trainRow("baseline", 0, 0.1), time: Number.NaN };
+    assert.throws(
+      () => derivedFieldOf(row as SweepEmitRow, "decisionHourDistance"),
+      /carries no finite time/,
+      "a row with no usable clock must refuse, not derive an hour from NaN",
+    );
+    const good = { ...trainRow("baseline", 0, 0.1), time: Date.UTC(2026, 0, 5, 18, 0) };
+    assert.equal(derivedFieldOf(good as SweepEmitRow, "decisionHourDistance"), 0.5);
   });
 });
