@@ -2182,7 +2182,9 @@ accepted rows (confirm byte-skipped) the stop is set by **pivot 82.64 %**, cap
 forex markets ON THE ROSTER resolve `maxStopAtrMultiplier` **4** via a per-symbol
 override — the class row's 1.0 (`calibration.ts:704`) does not resolve for them,
 though it still does for any OFF-roster symbol, since forex is the fallthrough
-class (`:1874`, docblock `:1839-1845`). `:442` is the LIVESTOCK block. This
+class (`:1874`, docblock `:1839-1845`). That is a property of the resolver, NOT
+a live exposure: both live paths filter on `isKnownSymbol` first
+(`trade-analyzer/index.ts:549`, `market-data/index.ts:234`). `:442` is the LIVESTOCK block. This
 agrees with :873 and :1253 above (26 × 1.0, 6 × 2.5, 65 × 4; forex is in the 65).
 `docs/trade-model.md:1641` reads 100 % cap and is no longer cited as agreement —
 not because it is false but because it is STALE: it measured a superseded

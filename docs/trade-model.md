@@ -1634,6 +1634,28 @@ the honest limit on what a confidence number can be presented as meaning.
 
 ### The stop is a volatility stop now, except in indices
 
+> **STALE, NOT FALSE — annotated 2026-09-12. Do not read the table below as
+> current.** It measured a **superseded class-row calibration era**, before the
+> per-symbol override layer. Its own row annotations date it: it reports
+> `indices (3.0 cap)`, and no `maxStopAtrMultiplier` of 3.0 exists anywhere in
+> `supabase/functions/trade-analyzer/calibration.ts` today (the indices class row
+> is 1.0 at `:820`; SP `:1413`, NSDQ `:1195` and DAX `:1025` all resolve 4).
+> Under class-row-only calibration forex's effective cap really was 1.0, so
+> "100 % cap" was the correct reading **then**.
+>
+> It is not the correct reading now. All 28 roster forex markets override the
+> class row to 4, and measured over 373,510 forex rows the stop is set by
+> **pivot 82.64 %**, cap 9.77 %, volatility floor 7.59 % —
+> `docs/research/r3/forex-stop-provenance-2026-09-12.txt`, with the account at
+> `docs/HANDOFF.md:2179`.
+>
+> The table stays because it is a true record of what was measured then. It is
+> annotated because it is not false, merely out of date, so the invalidity
+> banner at the head of this file did not stop it being cited as corroboration
+> across four pull requests and two reviews. A guard now pins the live state:
+> `tests/calibrationState.test.ts`, "refuses to let a forex roster market
+> resolve the class row's stop cap".
+
 `stopProvenance` across the final corpus, by class:
 
 | class | cap | pivot | volatility floor |
