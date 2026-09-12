@@ -124,6 +124,18 @@ export function calendarFoldsExcluding(input: {
   }
   if (cursor < spanEnd) usable.push({ endMs: spanEnd, startMs: cursor });
 
+  // NO HOLES, NO NEW ARITHMETIC. `calendarFolds` accumulates each boundary from
+  // the previous ROUNDED one; rounding a cumulative instead diverges by a
+  // millisecond on spans that do not divide evenly. Rather than reimplement its
+  // rounding and hope, the undisturbed case IS the function it extends.
+  if (holes.length === 0) {
+    return calendarFolds({
+      corpusEndMs: spanEnd,
+      corpusStartMs: spanStart,
+      embargoMs: input.embargoMs,
+    });
+  }
+
   const usableTotal = usable.reduce((sum, run) => sum + (run.endMs - run.startMs), 0);
   if (usableTotal <= 0) {
     throw new Error(
@@ -141,6 +153,20 @@ export function calendarFoldsExcluding(input: {
     );
   }
 
+  /** The instant `want` milliseconds of usable time BEFORE `from`. */
+  const usableBefore = (from: number, want: number): number => {
+    let owed = want;
+    for (let index = usable.length - 1; index >= 0; index -= 1) {
+      const run = usable[index];
+      const end = Math.min(run.endMs, from);
+      if (end <= run.startMs) continue;
+      const length = end - run.startMs;
+      if (length >= owed) return end - owed;
+      owed -= length;
+    }
+    return spanStart;
+  };
+
   /** The instant at which `want` milliseconds of usable time have elapsed. */
   const instantAtUsable = (want: number): number => {
     let seen = 0;
@@ -157,9 +183,20 @@ export function calendarFoldsExcluding(input: {
   let consumed = 0;
   for (const { name, share } of FOLD_SHARES) {
     consumed += usableTotal * share;
-    const endMs = name === "confirm" ? spanEnd : instantAtUsable(consumed);
+    // Math.round matches `calendarFolds`, which rounds each boundary. Without
+    // it the two disagree by a millisecond on any span not divisible by four,
+    // and "reduces exactly to calendarFolds" would be true only of the spans a
+    // test happened to pick.
+    const endMs = name === "confirm"
+      ? spanEnd
+      : Math.round(instantAtUsable(consumed));
     folds.push({
-      decisionEndMs: endMs - input.embargoMs,
+      // THE EMBARGO IS USABLE TIME TOO. Subtracting it in wall clock, inside a
+      // function whose whole thesis is that wall clock overstates depth, would
+      // embargo nothing at all when the last stretch before a boundary is a
+      // hole — the excluded months would absorb the whole window and every
+      // decision right up to the boundary would still be admitted.
+      decisionEndMs: usableBefore(endMs, input.embargoMs),
       endMs,
       name,
       startMs,
@@ -180,11 +217,18 @@ export function usableMsInFold(
   fold: CalendarFold,
   excluded: readonly ExcludedInterval[],
 ): number {
+  // MERGED FIRST, as the allocator merges. Summing raw overlaps double-counts
+  // any pair that overlaps and reports a fold shallower than it is — and the
+  // allocator and this function disagreeing about the same holes is worse than
+  // either being wrong alone.
   let excludedInside = 0;
-  for (const hole of excluded) {
-    const startMs = Math.max(hole.startMs, fold.startMs);
+  let cursor = fold.startMs;
+  for (const hole of [...excluded].sort((a, b) => a.startMs - b.startMs)) {
+    const startMs = Math.max(hole.startMs, cursor, fold.startMs);
     const endMs = Math.min(hole.endMs, fold.endMs);
-    if (endMs > startMs) excludedInside += endMs - startMs;
+    if (endMs <= startMs) continue;
+    excludedInside += endMs - startMs;
+    cursor = endMs;
   }
   return Math.max(0, fold.endMs - fold.startMs - excludedInside);
 }
