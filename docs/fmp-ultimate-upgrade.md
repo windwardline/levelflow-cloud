@@ -4,6 +4,13 @@
 > was made and shipped; depth realities are recorded in
 > [trade-model.md](/docs/trade-model.md) ("Confirmed provider history
 > depth"). Kept for provenance.
+>
+> **For what the subscription includes today, and what Levelflow actually uses,
+> read [fmp-entitlements.md](/docs/fmp-entitlements.md)** — the standing
+> register. Note in particular that this file's "Intentionally Deferred"
+> reasoning for bulk and batch endpoints ("Levelflow's verified symbol list is
+> small enough for controlled per-symbol requests") was written before the byte
+> allowance was exhausted on 2026-08-13 and again 2026-08-27.
 
 Last reviewed: 2026-07-02
 
