@@ -2179,14 +2179,22 @@ Measured, `forex-stop-provenance-2026-09-12.txt`: over 373,510 forex baseline
 accepted rows (confirm byte-skipped) the stop is set by **pivot 82.64 %**, cap
 9.77 %, volatility floor 7.59 %; `riskDistance / atr` runs median 2.054 from a
 1.250 floor to a 4.000 cap and is exactly 1.000 on 0.000 % of rows. All 28
-forex markets resolve `maxStopAtrMultiplier` **4** via a per-symbol override —
-the class row's 1.0 (`calibration.ts:704`) does not resolve, and `:442` is the
-LIVESTOCK block. This agrees with :873 and :1253 above (26 × 1.0, 6 × 2.5,
-65 × 4; forex is in the 65). `docs/trade-model.md:1641` reads 100 % cap,
-disagrees with the corpus, and is no longer cited as agreement. `stopBuffer`
-(`pricePlan.ts:256-259`) is NOT discarded: it is the cushion below the pivot
-(`:293-295`), so it sets the distance on five rows in six, resolving to
-`max(atr × 1.2, dailyAtr × 0.12)` — one intraday leg, one fourteen-DAY leg.
+forex markets ON THE ROSTER resolve `maxStopAtrMultiplier` **4** via a per-symbol
+override — the class row's 1.0 (`calibration.ts:704`) does not resolve for them,
+though it still does for any OFF-roster symbol, since forex is the fallthrough
+class (`:1874`, docblock `:1839-1845`). `:442` is the LIVESTOCK block. This
+agrees with :873 and :1253 above (26 × 1.0, 6 × 2.5, 65 × 4; forex is in the 65).
+`docs/trade-model.md:1641` reads 100 % cap and is no longer cited as agreement —
+not because it is false but because it is STALE: it measured a superseded
+class-row era (its own rows are annotated `indices (3.0 cap)`, and nothing carries
+3.0 today), when forex's effective cap really was 1.0. It read as corroboration
+because it was once true. `stopBuffer` (`pricePlan.ts:256-259`) is NOT discarded:
+it is the cushion subtracted from the pivot (`:293-295`), so on five rows in six
+it sets the stop's distance **from a real level**. It resolves to
+`max(atr × 1.2, dailyAtr × 0.12)`, and the DAILY leg binds on **53.15 %** of rows
+(`dailyAtr / atr` median 10.31 against a threshold of 10) — so the cushion is a
+fourteen-DAY quantity more often than not, and only the pivot's location, the
+floor and the cap are intraday.
 The withdrawal stands regardless: the headroom test
 (`docs/research/r3/clock-fix-headroom-2026-09-07.txt`) killed the reading on
 its own terms: within quintiles of relative stop width, out-of-span expectancy

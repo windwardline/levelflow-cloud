@@ -119,6 +119,39 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     });
   }
 
+  // The trap that produced three wrong readings of the forex stop, across
+  // #604-#607 and again in #610's own first draft: the forex CLASS row reads
+  // maxStopAtrMultiplier 1.0, every roster forex market overrides it to 4, and
+  // 1.0 sits BELOW pricePlan's 1.25-ATR structural floor while 4 sits well
+  // above it. So reading the class row concludes "the cap binds on every row"
+  // when it binds on 9.77 % of them
+  // (docs/research/r3/forex-stop-provenance-2026-09-12.txt). Two independent
+  // reviews confirmed the wrong reading because prose cannot stop it; this can.
+  // Derived from the roster rather than a literal list, so a new forex market
+  // joins the assertion instead of slipping past it.
+  it("refuses to let a forex roster market resolve the class row's stop cap", () => {
+    const STRUCTURAL_FLOOR_ATR = 1.25; // pricePlan.ts:299 and :303
+    const classCap = getClassCalibration("forex").maxStopAtrMultiplier;
+    assert.ok(
+      classCap < STRUCTURAL_FLOOR_ATR,
+      `the forex class row is only a trap while it sits below the ${STRUCTURAL_FLOOR_ATR} ATR floor; it now reads ${classCap}, so rewrite this assertion rather than deleting it`,
+    );
+    const forex = defaultScanSymbols.filter((symbol) => getAssetType(symbol) === "forex");
+    assert.equal(forex.length, 28, "the forex roster changed — re-derive, do not edit the count blind");
+    for (const symbol of forex) {
+      const effective = getCategoryCalibration(symbol).maxStopAtrMultiplier;
+      assert.notEqual(
+        effective,
+        classCap,
+        `${symbol} resolves the forex CLASS cap ${classCap}; the per-symbol override is what decides geometry`,
+      );
+      assert.ok(
+        effective > STRUCTURAL_FLOOR_ATR,
+        `${symbol} resolves a cap of ${effective}, at or below the ${STRUCTURAL_FLOOR_ATR} ATR floor — the cap would bind unconditionally and stopProvenance would be constant`,
+      );
+    }
+  });
+
   it("pins the r5 buy-side tilt where it was measured, nowhere else", () => {
     assert.equal(getCategoryCalibration("EURUSD").sideScoreAdjustments?.buy, -6);
     assert.equal(getCategoryCalibration("ESUSD").sideScoreAdjustments?.buy, -6);
