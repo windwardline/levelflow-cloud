@@ -18,9 +18,18 @@ break windows transcribed for this pass are right, **zero** accepted decisions
 may fall inside one. Any class showing otherwise means the transcription is
 wrong and no crossing number is earned.
 
-Across **417,854** accepted baseline rows in seven classes, confirm byte-skipped
-before parse: **zero decisions inside a break**, every class. The transcription
-holds.
+**The population**, stated once: accepted rows of the `baseline` variant, all
+graded folds, holdout markets included, on the corpus of record
+(`capture-all-classfolds.jsonl`), with confirm byte-skipped before any parse.
+That is **417,854** rows across the seven classes that HAVE a break — crypto
+trades continuously, carries none, and is excluded from every figure here, so
+"32.6 %" is a share of break-carrying classes and not of the whole corpus. The
+count differs from the alpha review's forex cells because that work excluded
+held-out markets and restricted to contained years; this does neither, because
+it measures a clock property rather than money earned.
+
+Across those 417,854 rows: **zero decisions inside a break**, every class. The
+transcription holds.
 
 ## The exposure is larger than reported, because forex has a break too
 
@@ -39,13 +48,22 @@ nightly 16:59–17:05 ET rollover pause of its own
 | energies | 1,048 | 154 | 14.7 % |
 | **total** | **417,854** | **136,197** | **32.6 %** |
 
-**A third of every decision this engine has ever made holds a review window
+**A third of every decision in a break-carrying class holds a review window
 running through hours the market is shut.** `defaultReviewHours` is specified in
 wall-clock hours, so the same "8 hours" buys different amounts of live market
-time depending on when the decision lands. On livestock — a 24-hour window
-against a 5h40m break — every single window crosses.
+time depending on when the decision lands. Livestock is 100 % for a structural
+reason: its window is 24 hours and any daily break falls inside one.
 
-That is a real specification defect and it is free to fix.
+Break lengths differ by calendar and the difference matters. Livestock runs on
+the **CME complex calendar — a one-hour break, 17:00–18:00 ET** (`calendarFor`,
+`marketHours.ts:109-118`, routes `LIVESTOCK_SYMBOLS` there, and `sessions.ts:82-89`
+puts them on the same branch). The 5h40m grains break, 14:20–20:00 ET, belongs
+to **agriculture**. An earlier draft of this note put livestock on the grains
+calendar; the crossing share is unchanged, because a 24-hour window crosses any
+daily break, but the magnitude is not — livestock loses about **4.2 %** of a
+24-hour window, not 24 %.
+
+That is a real specification defect.
 
 ## The money looked like a lever, in every class
 
@@ -82,12 +100,14 @@ Conditioning on the span collapses it:
 | | **delta** | | **+0.0083** | **[+0.0012, +0.0154]** |
 
 The unconditional delta is **+0.0340**. Within span it is **+0.0086** with an
-interval spanning zero; out of span **+0.0083**, barely clearing. Four fifths of
-the apparent effect is the hour of decision.
+interval spanning zero; out of span **+0.0083**, barely clearing. Roughly
+**three quarters** of the apparent effect is the hour of decision — 0.0086 of
+0.0340 survives, which is 25 % remaining, not 20 %.
 
 **Do not build a break-aware admission rule.** It would be the hour gate under
 another name, and the hour gate was graded at the market grain on 2026-09-12 and
-refused on all 91 markets.
+accepted nothing — 80 judged and failed, 11 no verdict, and 88 markets actually
+tested, since on DOW, NSDQ and SP the predicate is a no-op.
 
 ## What the test gives back
 
@@ -107,7 +127,17 @@ edge: `getSetupExpiryTime` consults `getUpcomingWeeklyCloseTime` and never the
 daily break, so a review window's live market time varies with the clock while
 its calibration assumes it does not. Livestock loses 24 % of every window.
 
-Fixing it means deciding what `defaultReviewHours` *means* — wall-clock hours or
-open-market hours — and re-deriving every class's value under the answer. That
-is a calibration change, it moves every cell, and it cannot be confirmed while
-the provider key is suspended. It is recorded here, not built.
+**It is not free to fix**, and an earlier draft of this note said it was.
+Measuring the exposure is free; repairing it means deciding what
+`defaultReviewHours` *means* — wall-clock hours or open-market hours — and
+re-deriving every class's value under the answer. That is a calibration change,
+it moves every cell, and it cannot be confirmed while the provider key is
+suspended. Recorded here, not built.
+
+**Two caveats this note carries itself.** The crossing test steps the window in
+fifteen-minute increments, so a break shorter than that interval could in
+principle be stepped over; forex's is six minutes, which means its 33.0 % is a
+lower bound rather than an exact count. And the money split is unpaired and
+unstratified — it compares two populations of decisions, not the same decisions
+under two rules, so it carries none of the acceptance gate's discipline and is
+not a verdict about anything.
