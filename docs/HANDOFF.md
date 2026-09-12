@@ -1805,9 +1805,15 @@ that fixed it.
     tells the reader "each market type must clear its own qualifying bar before
     a setup is shown at all". Those zeros were derived from the corpus the
     2026-08-11 programme condemned.
-  - **The Desk's Record row publishes the condemned money-positive rates** as
-    measured fact, behind a caveat that reads as an improvement notice rather
-    than an invalidation.
+  - **The Desk's Record row — CLOSED, verified 2026-09-12.** It no longer
+    publishes anything. `describeReplayRecord` (`src/lib/replayReliability.ts`)
+    returns null for every superseded row, and all six asset types carry
+    `superseded`, so no rate reaches a screen at all. GuidePanel's
+    replay-record section now says "Levelflow is not showing a measured record
+    right now" rather than restating one behind a caveat — "publishing them
+    with a caveat would still be publishing them". This item was stale in the
+    same way the decline sentence was, and the list said so about that one and
+    not this one.
   - **The decline sentence — CLOSED 2026-08-30 (#471), record corrected
     (#476).** `analysisDiagnostics` reaches NO CLIENT: the scan payload is
     `{blocked, opportunities, persistence, qualified, scanned}`, and none of
@@ -1872,10 +1878,18 @@ that fixed it.
     programme invalidated. The fix deleted an unearned claim and replaced it
     with another measured one.
 
-  **Three clauses, and only the first is mechanizable today.** (a) Invert the
-  guard's shape: instead of pinning `true`, assert that IF `PARKING_GATE` is
-  false THEN no condemned figure and no measured-record sentence remains — the
-  test already reads source as strings, so this needs no new machinery. (b)
+  **Three clauses, and only the first is mechanizable today.** (a) **BUILT
+  2026-09-12** — `tests/parkingGate.test.ts` now asserts the CONDITIONAL: if
+  `PARKING_GATE` is false, the mechanisms withholding every condemned claim
+  must still be standing (`record.superseded` consulted, the guide still
+  withholding). While parked the assertions are inert BY CONSTRUCTION and a
+  third case declares that regime, so an inert pass is never read as a live
+  one. Mutation-proven in all three regimes: gate open with the claims closed
+  PASSES (it does not block a legitimate unpark), and gate open with either
+  mechanism removed FIRES. The original clause, for provenance: "instead of
+  pinning `true`, assert that IF `PARKING_GATE` is false THEN no condemned
+  figure and no measured-record sentence remains — the test already reads
+  source as strings, so this needs no new machinery." (b)
   Give every derived calibration constant a provenance stamp naming the corpus
   it came from, so "is this figure from the condemned corpus?" becomes
   answerable by code; that is **pre-R3-register class — cheap now, impossible

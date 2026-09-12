@@ -174,3 +174,66 @@ describe("§17j — the parking page's canonical line", () => {
     }
   });
 });
+
+// THE GUARD INVERTED — built 2026-09-12, asked for at docs/HANDOFF.md:1875-1878.
+//
+// Pinning `PARKING_GATE = true` documents the two-step park. It does nothing
+// about the thing that actually makes an unpark dangerous: the record kept a
+// list of claims that "ship the moment it moves", and a flag flip is one
+// character. The list cannot be enforced by a pin on the flag, because the pin
+// only fires when the flag CHANGES and says nothing about what changes with it.
+//
+// So this asserts the CONDITIONAL: if the gate is open, the mechanisms that
+// withhold every condemned claim must still be standing. While the desk is
+// parked these assertions are inert by construction and say so. The moment
+// someone flips the flag they become live, in the same test run, at the one
+// moment a person is definitely looking.
+//
+// Verified 2026-09-12 before writing this: both claims the record listed are
+// already closed. `describeReplayRecord` refuses all six asset types because
+// every row carries `superseded` (replayReliability.ts), and GuidePanel's
+// replay-record section says Levelflow is not showing a measured record rather
+// than restating one. This guard keeps them closed through an unpark.
+describe("an unpark may not carry a condemned claim back onto a screen", () => {
+  const gateSource = () => readFileSync("src/lib/parkingGate.ts", "utf8");
+  const gateIsOpen = () => /export const PARKING_GATE = false;/.test(gateSource());
+
+  it("states which regime it is asserting in, so an inert pass is never read as a live one", () => {
+    // A conditional guard that silently no-ops is indistinguishable from one
+    // that passed. This is the declaration: while parked the two assertions
+    // below are inert, and that is a fact about the gate, not about the claims.
+    assert.ok(
+      /export const PARKING_GATE = (true|false);/.test(gateSource()),
+      "the gate flag is no longer a plain boolean literal — the conditional " +
+        "guards below cannot read it, so they are silently inert. Restore a " +
+        "literal or rewrite them.",
+    );
+  });
+
+  it("keeps the superseded-record refusal standing when the gate opens", () => {
+    if (!gateIsOpen()) return; // parked: the surface renders to nobody
+    const source = readFileSync("src/lib/replayReliability.ts", "utf8");
+    assert.match(
+      source,
+      /record\.superseded/,
+      "PARKING_GATE is FALSE and describeReplayRecord no longer consults " +
+        "`superseded`. Every stored row was measured by the retired " +
+        "pre-repair evaluator and the first repaired baseline measured the " +
+        "accepted stream NEGATIVE in every class. Opening the desk with this " +
+        "refusal removed publishes condemned figures as a measured record.",
+    );
+  });
+
+  it("keeps the guide withholding the record rather than restating it when the gate opens", () => {
+    if (!gateIsOpen()) return; // parked: the surface renders to nobody
+    const guide = readFileSync("src/components/workspace/GuidePanel.tsx", "utf8");
+    assert.match(
+      guide,
+      /not showing a measured record right now/,
+      "PARKING_GATE is FALSE and the guide's replay-record section no longer " +
+        "withholds. Publishing the pre-repair figures with a caveat would " +
+        "still be publishing them (copy law: text must not say what is not " +
+        "true).",
+    );
+  });
+});
