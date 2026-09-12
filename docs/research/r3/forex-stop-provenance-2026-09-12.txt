@@ -1,0 +1,30 @@
+forex stop provenance — what actually sets the stop, measured on the corpus of record
+generated 2026-09-12 · corpus capture-all-classfolds.jsonl
+
+Population: the 28 forex markets named in the corpus manifest, variant baseline, accepted,
+stopProvenance present. The confirm fold is sealed at the door by a BYTE TEST before any
+json parse, so no confirm row was read. Held-out markets are NOT excluded here — this
+measures the engine's geometry, not a money verdict, so the whole forex population applies.
+
+lines seen 6,634,732 · confirm rows skipped unparsed 2,141,527 · rows counted 373,510
+folds counted: fit 256,268, select 117,242
+
+| stop set by | rows | share |
+| --- | ---: | ---: |
+| pivot | 308,657 | 82.64 % |
+| cap | 36,507 | 9.77 % |
+| volatility_floor | 28,346 | 7.59 % |
+
+riskDistance / atr
+| n | min | p25 | median | p75 | max |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 373,510 | 1.250 | 1.538 | 2.054 | 2.887 | 4.000 |
+
+share exactly 1.000 (+/-1e-6): 0.000 %
+share at the 4.0 cap (>= 3.999): 9.78 %
+
+Reading: 1.25 ATR is the structural FLOOR (pricePlan.ts:296-304) and 4.0 ATR is the CAP
+(the effective forex maxStopAtrMultiplier, a per-symbol override — the class row's 1.0 at
+calibration.ts:704 is not what resolves). Market structure sets the stop on five rows in six.
+This agrees with the roster-level count already recorded at docs/HANDOFF.md:873 and :1253 —
+26 markets at 1.0, 6 at 2.5, 65 at 4.0 — under which forex sits in the 65, never the 26.

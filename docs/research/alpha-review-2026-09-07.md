@@ -131,20 +131,39 @@ numbering. Causality also runs the wrong way for the claim: `riskDistance` is
 an *input* to `buildLadderTargets` (`:396`), fixed at `:319`, before
 `expectedWindowMove` exists.
 
-**On the population this note measures, the stop is one number.** Forex sets
-`maxStopAtrMultiplier: 1.0` (`calibration.ts:442`) while `structuralStop` is
-never nearer than `atr × 1.25` (`:296-304`), so the cap binds on every forex
-row and `riskDistance = atr × 1.0` exactly, with provenance `cap`. The repo
-already records the same thing at `docs/trade-model.md:1641` (forex 100 % cap,
-0 % pivot, 0 % volatility floor) — cited as agreement only, since that file's
-own banner declares its corpus invalid and AGENTS.md forbids trusting a derived
-cell from it. Nothing here rests on that citation: the two multipliers settle
-it deterministically from code. So `stopBuffer`
-(`:256-259`) is computed and discarded here, and describing the stop by it —
-as an earlier version of this passage did, calling both legs intraday when
-`dailyAtr` is a fourteen-**day** ATR — repeats the very error being corrected.
-The forex stop is a single fourteen-bar intraday ATR (`:230`, `bars` being the
-15-minute series, so a trailing ~3.5 hours).
+**On the population this note measures, the stop is mostly structural.** Two
+earlier versions of this passage got this wrong and both are withdrawn; the
+measured account is `forex-stop-provenance-2026-09-12.txt`, beside this note.
+
+The stop is the *farther* of a pivot cushioned by `stopBuffer` and a 1.25 ATR
+minimum, then clipped by a cap (`pricePlan.ts:288-309`). Executing
+`getCategoryCalibration` over the 28 forex markets in the corpus manifest, all
+28 resolve `maxStopAtrMultiplier` **4**, not the 1.0 the forex class row shows
+at `calibration.ts:704` — a per-symbol override decides it. (`calibration.ts:442`,
+cited by an earlier draft as forex, is inside the **livestock** block.) A cap of
+4 ATR against a 1.25 ATR floor cannot bind unconditionally, and it does not:
+measured over **373,510** forex baseline accepted rows with the confirm fold
+byte-skipped, the stop is set by **pivot on 82.64 %**, cap on 9.77 % and the
+volatility floor on 7.59 %, with `riskDistance / atr` running median 2.054
+between a floor of 1.250 and a cap of 4.000 — and sitting at exactly 1.000 on
+**0.000 %** of rows.
+
+`stopBuffer` (`:256-259`) is therefore not discarded either: it is the cushion
+subtracted from the pivot (`:293-295`), so on five rows in six it sets the
+stop's distance from a real level. For forex it resolves to
+`max(atr × 1.2, dailyAtr × 0.12)` — a fourteen-bar intraday ATR against a
+fourteen-**day** one.
+
+This agrees with a roster-level count the record already carried:
+`docs/HANDOFF.md:873` and `:1253` measure the live calibration at 26 markets ×
+1.0, 6 × 2.5 and 65 × 4, with the cap binding by arithmetic only on the 26
+below the floor. Forex sits in the 65. `docs/trade-model.md:1641` reads forex
+at 100 % cap and is **not** cited here as agreement: it disagrees with the
+corpus, and its own banner declares its corpus invalid.
+
+None of this rescues the stop-clock fix — the headroom test refutes that
+independently, and a stop anchored to market structure is even further from
+something an hour-aware *window* clock would reach.
 
 That makes the honest complaint *weaker*, not stronger: the stop already moves
 with the hours immediately before the decision. It is backward-looking about
