@@ -18,14 +18,15 @@ things are blocked and one is not:
 
 | | blocked |
 |---|---|
-| the live analyzer | **yes** — no key, no bars: `trade-analyzer/index.ts:372` returns 500 outright |
+| the live analyzer | **yes** — a *suspended* key is present, so the absent-key guard at `trade-analyzer/index.ts:372` passes and the failure lands downstream as per-request 402s (`marketLoader.ts:280`, `:395`) |
 | extending the corpus | **yes** |
 | a confirm read on fresh dates | **yes** |
 | research on the corpus already on disk | **no** — the pinned cache fetches nothing |
 
 ## What Levelflow calls today
 
-Seven endpoints, plus COT in the sweep. This is the whole of it.
+Nine endpoints, across the Edge functions and the research scripts. This is
+the whole of it.
 
 | endpoint | where | what for |
 |---|---|---|
@@ -36,7 +37,8 @@ Seven endpoints, plus COT in the sweep. This is the whole of it.
 | `/economic-calendar` | `news-calendar/index.ts:285` | timing risk |
 | `/earnings-calendar` | `news-calendar/index.ts:347` | timing risk |
 | `/news/{category}` | `news-calendar/index.ts:433` | timing risk, never direction |
-| Commitment of Traders | `trade-analyzer/sweep.ts`, `scripts/replay-sweep.ts` | `cotPercentile`, `cotStance`, `cotSampleSize` on every corpus row |
+| `/commitment-of-traders-report` | `scripts/replay-sweep.ts:1835` | `cotPercentile`, `cotStance`, `cotSampleSize` on every corpus row; `trade-analyzer/sweep.ts` only consumes it, via `cotContext.ts` |
+| `/commodities-list`, `/index-list` | `scripts/verify-fmp-matches.ts:173` | the two authoritative enumerations, for re-probing the unmatched register |
 
 Spend is governed, not merely rate-limited: `trade-analyzer/fmpBudget.ts` and
 `scripts/fmpGovernor.ts` hold a byte ledger in two classes, background yielding
@@ -56,30 +58,50 @@ transcripts · Form 13F and institutional ownership · Senate and House trading
 disclosures · insider trades · ETF and mutual-fund holdings and disclosures ·
 ESG ratings and benchmarks · the equity analyst suite (price target summary and
 consensus, ratings snapshot, historical ratings, stock grades and their history)
-· IPO calendars and prospectuses · dividends and splits · stock screener and
-directory.
+· IPO calendars and prospectuses · dividends and splits · the stock screener
+and the equity directory. (The commodity and index directories ARE used — see
+the table above.)
 
 They are not defects. They are the rest of a general-purpose financial API.
 
-### Entitled, unused, and it bears
+### Entitled, unused, and REFUTED as levers
 
-Listed in the order the evidence supports, not by appetite.
+Both entitlements this register first named as bearing were measured and neither
+survives. They are kept here, refuted, so the case is not rebuilt from the
+dashboard.
 
-**Bulk and batch delivery** — EOD Bulk, exchange batch quotes, batch aftermarket
-quote, batch forex quotes, and the statement bulk family. Unused anywhere in the
-repository. The 2026-07-02 deferral reasoned that "Levelflow's verified symbol
-list is small enough for controlled per-symbol requests"; the allowance was then
-exhausted on **2026-08-13** and again **2026-08-27**, so that premise no longer
-holds and the deferral should be reconsidered on its own terms.
+**Bulk and batch delivery — not a lever against the allowance.** MEASURED on
+`.calibration-cache`, 96 symbols per timeframe: **5-minute 5.70 GB, 15-minute
+1.93 GB, daily 0.04 GB.** Daily bars are **0.48 %** of the cached bar volume. The
+2026-08-13 and 2026-08-27 exhaustions were bought by intraday history, and the
+bulk family is EOD and statements — the entitlement list carries no bulk or batch
+form of intraday charts. So the 2026-07-02 deferral's premise is indeed falsified
+and the conclusion is unchanged for a better reason. Batch quotes and batch forex
+quotes are real and cheap, but `/quote` is one small response per symbol per
+scan; adopt them opportunistically when the live path is next touched, and stop
+citing bulk delivery as an answer to the allowance.
 
-**Market hours and holidays** — Global Exchange Market Hours, Holidays By
-Exchange, All Exchange Market Hours. Session knowledge today is carried in
-`src/lib/marketHours.ts`, `trade-analyzer/venues.ts` and `sessions.ts` rather
-than fetched. This bears directly on the open hour-of-day finding: the
-16:00–21:59 UTC span is the London–New York overlap, and a *fixed UTC* window
-drifts against the real overlap twice a year on daylight saving. Exchange-sourced
-hours could sharpen the span — or refute it, if holidays and half-days sit
-unevenly across it.
+**Exchange hours and holidays — the defect it would fix does not exist.** The
+endpoint is keyed by exchange, and **61 of 97 markets have no exchange at all**:
+all 28 forex and all 33 crypto. The hour-of-day finding is *entirely* forex, so
+exchange-sourced hours cannot reach it. Worse, on dates a venue is actually shut
+the corpus already carries zero decisions — the provider prints no bars and
+`replay.ts:375-377` resolves bar by bar rather than by clock, so absence of data
+is already the closure model and it already works. Holiday-decided rows are 796
+of 44,344 exchange-traded fills, a difference from other days of −0.0317 R/fill
+with a 95 % interval spanning zero *(round)*.
+
+**What the refuters found instead, and it is free.** 20.3 % of exchange-traded
+decisions carry review windows crossing their own class's nightly maintenance
+break *(round — not re-measured by the driver)*. The mechanism IS verified:
+`src/lib/marketHours.ts:51-55` defines `CME_COMPLEX_CALENDAR` with a
+`dailyBreak` of 17:00–18:00 ET, and `getSetupExpiryTime`
+(`replay.ts:827-844`) consults only `getUpcomingWeeklyCloseTime` — the nightly
+break is modelled and never applied to an expiry. No calendar, no provider and
+no new data are needed to fix it, which is why it outranks the entitlement it
+replaces.
+
+### Entitled, unused, and still open
 
 **Full quote endpoints per class** — Full Forex Quote, Full Commodities Quotes,
 Full Index Quotes. Richer than the generic `/quote` the loader uses.
@@ -90,8 +112,9 @@ unbuilt. Note the look-ahead trap before anyone starts: a revised macro series i
 not what was knowable at the decision bar.
 
 **Index constituents** — S&P 500, Nasdaq and Dow membership, current and
-historical. Breadth is the only plausible route from equity data to the eight
-US-equity-index instruments (SP, NSDQ, DOW, ESUSD, NQUSD, RTYUSD, YMUSD).
+historical. Breadth is the only plausible route from equity data to the seven
+US-equity-index instruments (SP, NSDQ, DOW, ESUSD, NQUSD, RTYUSD, YMUSD —
+`symbols.ts:310`).
 
 **COT, deeper** — the sweep consumes COT already. COT Analysis By Dates and the
 report list are entitled and unused. COT is weekly and published Friday for
@@ -115,7 +138,7 @@ the decision does not need re-litigating unless one of them changes:
 1. **No instrument.** Every TipRanks endpoint is US-equity analyst sentiment —
    per-analyst ratings, price targets, firm and analyst rollups, an analyst
    directory. The roster holds no single equities. The only conceivable path is
-   aggregating single-stock sentiment for the eight US-equity-index instruments,
+   aggregating single-stock sentiment for the seven US-equity-index instruments,
    and that is a daily-to-weekly signal clustered on earnings being fed to an
    engine that decides intraday.
 2. **It could not be validated.** The add-on's own documentation caps ratings
