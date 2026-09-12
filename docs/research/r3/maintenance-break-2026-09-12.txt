@@ -1,0 +1,47 @@
+lines 6,634,732 · confirm skipped unparsed 2,141,527
+
+CONTROL — the analyzer refuses decisions inside its own maintenance break.
+Any class with DECIDED inside > 0 means this transcription is wrong and no crossing number is earned.
+
+class              rows  DECIDED inside  window CROSSES    share
+agriculture       6,840               0           2,952    43.2%
+energies          1,048               0             154    14.7%
+forex           373,510               0         123,321    33.0%
+futures          23,819               0           4,371    18.4%
+indices           1,450               0             982    67.7%
+livestock         1,056               0           1,056   100.0%
+metals           10,131               0           3,361    33.2%
+TOTAL           417,854                         136,197    32.6%
+
+DOES IT MOVE MONEY? realized R per fill, by whether the review window crosses a break
+
+class            window     fills       net R         E    95% lo    95% hi
+agriculture       clear     2,982      -460.3   -0.1543   -0.1896   -0.1190
+agriculture     crosses     1,899      -156.6   -0.0825   -0.1181   -0.0468
+                  DELTA                         -0.0719   -0.1220   -0.0217   (clear minus crosses)
+energies          clear       781      -160.2   -0.2052   -0.2649   -0.1454
+energies        crosses        94       -15.8   -0.1682   -0.3177   -0.0187
+                  DELTA                         -0.0369   -0.1979    0.1241   (clear minus crosses)
+forex             clear   222,033      -268.9   -0.0012   -0.0039    0.0015
+forex           crosses   100,422      3296.8    0.0328    0.0292    0.0365
+                  DELTA                         -0.0340   -0.0386   -0.0295   (clear minus crosses)
+futures           clear    16,079     -1681.0   -0.1045   -0.1159   -0.0932
+futures         crosses     2,691       -81.6   -0.0303   -0.0560   -0.0046
+                  DELTA                         -0.0742   -0.1023   -0.0461   (clear minus crosses)
+indices           clear       424       -80.3   -0.1894   -0.2602   -0.1187
+indices         crosses       812       -49.3   -0.0607   -0.1008   -0.0206
+                  DELTA                         -0.1287   -0.2101   -0.0474   (clear minus crosses)
+livestock       crosses       772      -158.1   -0.2047   -0.4625    0.0530
+metals            clear     5,719      -541.8   -0.0947   -0.1127   -0.0768
+metals          crosses     2,285       -79.4   -0.0347   -0.0590   -0.0105
+                  DELTA                         -0.0600   -0.0901   -0.0299   (clear minus crosses)
+
+IS THE BREAK-CROSSING EFFECT JUST THE HOUR SPAN? forex, realized R per fill
+
+  span    window     fills       net R         E    95% lo    95% hi
+    in     clear     6,620       251.6    0.0380    0.0237    0.0523
+    in   crosses    66,447      3097.4    0.0466    0.0423    0.0510
+           DELTA                          0.0086   -0.0064    0.0236   (crosses minus clear, WITHIN this span)
+   out     clear   215,413      -520.6   -0.0024   -0.0052    0.0003
+   out   crosses    33,975       199.4    0.0059   -0.0007    0.0125
+           DELTA                          0.0083    0.0012    0.0154   (crosses minus clear, WITHIN this span)

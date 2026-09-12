@@ -2214,6 +2214,42 @@ rather than an absence — and on the fit held-out fold the volume it discards
 is net positive. **The gate could not return a verdict on it at the time this
 was written; it can now, and it did: see the graded refusal below.** It is a pre-registration for the next calendar, NOT a ship.
 
+**THE MAINTENANCE BREAK: exposure real, lever refused — 2026-09-12.**
+[`maintenance-break-2026-09-12.md`](/docs/research/maintenance-break-2026-09-12.md),
+output `r3/maintenance-break-2026-09-12.txt`.
+
+CONTROL FIRST: the analyzer refuses decisions inside its own break, so a correct
+transcription must show ZERO decided inside. Across 417,854 accepted baseline
+rows in seven classes: zero, every class.
+
+**32.6 % of all decisions hold a review window running through hours the market
+is shut** — forex 33.0 % (123,321 of 373,510), livestock 100 %, indices 67.7 %,
+agriculture 43.2 %, metals 33.2 %, futures 18.4 %, energies 14.7 %. The round's
+"20.3 % of exchange-traded" scoped out forex, which carries its own 16:59–17:05
+ET rollover pause and is 89 % of the corpus.
+
+**The money looked like a lever in all six classes** (crossing beats clear
+everywhere, five significantly; forex +0.0328 vs −0.0012, delta −0.0340).
+**It is the hour finding restated.** Forex's break sits at 21:59–22:05 UTC, so
+with an 8h window "crosses" selects roughly 14:00–22:00 UTC — substantially the
+16:00–21:59 span. Conditioned on span the delta collapses to **+0.0086
+[−0.0064, +0.0236]** in-span and +0.0083 [+0.0012, +0.0154] out. DO NOT build a
+break-aware admission rule; it is the hour gate under another name, and that was
+refused on all 91 markets the same day.
+
+**What the test gives back is a control the alpha review lacked**: the span
+effect survives conditioning on break-crossing at +0.041 within crossing windows
+and +0.040 within clear ones. "The hours are an artifact of windows running into
+closed hours" was a live alternative explanation and is now closed.
+
+**Still owed, as a SPECIFICATION defect and not a money claim:**
+`getSetupExpiryTime` consults `getUpcomingWeeklyCloseTime` and never the daily
+break, so `defaultReviewHours` buys different live market time depending on the
+clock. Livestock loses 24 % of every window. Fixing it means deciding what
+`defaultReviewHours` MEANS — wall-clock or open-market hours — and re-deriving
+every class under the answer. That moves every cell and cannot be confirmed
+while the key is suspended.
+
 **THE HOUR GATE IS GRADED AND REFUSED — 2026-09-12.**
 [`hour-gate-verdict-2026-09-12.md`](/docs/research/hour-gate-verdict-2026-09-12.md),
 outputs tracked at `r4/hour-gate-market-2026-09-12.{stdout.txt,json}`. Ran
