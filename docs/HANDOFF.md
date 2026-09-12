@@ -2249,16 +2249,21 @@ calendar can run, and no new calendar exists to re-read the share on.
 
 **FMP, 2026-09-12.** The balance is paid and the dashboard shows **Ultimate**;
 the key still reads SUSPENDED and the owner is escalating. What the subscription
-includes, what Levelflow actually calls (seven endpoints plus COT), and what is
+includes, what Levelflow actually calls (nine endpoints), and what is
 entitled and unused now lives in
 [`docs/fmp-entitlements.md`](/docs/fmp-entitlements.md) rather than in a
-screenshot. Two unused entitlements bear: **bulk and batch delivery** — deferred
-on 2026-07-02 because the symbol list was "small enough for controlled
-per-symbol requests", a premise the 2026-08-13 and 2026-08-27 allowance
-exhaustions have since falsified — and **market hours and holidays by exchange**,
-which could sharpen the 16:00–21:59 UTC span (a FIXED UTC window drifts against
-the real London–NY overlap twice a year on DST) or refute it, if holidays sit
-unevenly across it. **The TipRanks add-on was reviewed and DECLINED by the owner
+screenshot. **Both entitlements first named as bearing were
+measured and REFUTED.** Bulk delivery is not a lever against the allowance:
+daily bars are 0.48 % of the cached bar volume (5-min 5.70 GB, 15-min 1.93 GB,
+daily 0.04 GB) and the bulk family is EOD and statements, with no intraday form —
+the exhaustions were bought by intraday history. Exchange hours and holidays
+cannot reach the hour finding: the endpoint is exchange-keyed and 61 of 97
+markets have no exchange (all 28 forex, all 33 crypto), and on real closure dates
+the corpus already carries zero decisions because the provider prints no bars.
+**What the refuters found instead is free**: 20.3 % of exchange-traded decisions
+have review windows crossing their class's own nightly maintenance break, which
+`src/lib/marketHours.ts:51-55` models and `replay.ts:827-844` ignores — 203× the
+holiday exposure, no provider needed. **The TipRanks add-on was reviewed and DECLINED by the owner
 2026-09-12**: no single equity on the roster to act on, roughly 3 years of
 ratings history against clean folds ending 2018 and 2022 so it cannot be
 validated at all, and Ultimate already carries the analyst suite. It reopens only
