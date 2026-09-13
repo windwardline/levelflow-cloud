@@ -13,10 +13,19 @@
 //   [PRIMARY]. Price distance = fees ÷ tickValue x tickSize. Symbols E8
 //   publishes no row for carry a NAMED sibling proxy on the conservative
 //   side, never silence.
-// - Forex CFDs: $5/lot RT on a 100,000-unit contract [PRIMARY] — 0.5bp of
-//   price. Exact for USD-base pairs; mildly conservative for USD-quote
-//   and crosses (the true figure is 0.4-0.5bp depending on the quote
-//   currency's dollar rate; rounding up is deliberate).
+// - Forex CFDs: $5/lot RT on a 100,000-unit contract [PRIMARY]. Applied
+//   below as referencePrice × 5e-5, which is EXACT only where USD is the
+//   BASE (USDJPY, USDCAD, USDCHF). Everywhere else it is the true distance
+//   multiplied by USD-per-BASE — not the quote currency's rate, and not
+//   one-sided. Measured 2026-09-13 over 291,377 forex fills: it charges
+//   1.45× on GBP-base and 1.22× on EUR-base, and only 0.73× on NZD-base,
+//   0.82× on AUD-base, 0.84× on CAD-base. An earlier version of this
+//   comment called the error "mildly conservative" with "rounding up
+//   deliberate"; it is two-sided and up to ±45%. Record:
+//   docs/research/forex-commission-conversion-2026-09-13.md. The exact
+//   figure needs the QUOTE currency's USD rate at cost time, which neither
+//   the sweep nor the live loader currently supplies — the fix is designed
+//   there, not by editing this constant.
 // - Index CFDs: $6/lot (SP, NSDQ, DAX, NIKKEI) vs $12/lot (DOW, ASX)
 //   [SECONDARY commission split] over the published $/point multipliers
 //   (SP $20, NSDQ/DOW $5 [PRIMARY]); unpublished multipliers assume the
