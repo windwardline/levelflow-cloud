@@ -6,6 +6,11 @@
 // and the crypto account's sampled book (e8-crypto-account-2026-08-03.md)
 // as per-symbol spread FLOORS. Where E8 publishes nothing, the module
 // carries a named conservative proxy — never silence, never zero.
+//
+// EXCEPT the two forex pins (2026-09-13): they assert the CODE's arithmetic
+// and label it an approximation — see their own comment. The dossier figure
+// is $5/lot on 100k BASE units; the code applies it as a price fraction, which
+// is exact only where USD is the base.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
