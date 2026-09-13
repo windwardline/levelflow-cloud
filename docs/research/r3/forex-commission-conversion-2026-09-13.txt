@@ -1,9 +1,5 @@
-forex commission conversion — what the code charged against what E8's published term implies
-generated 2026-09-13 · corpus capture-all-classfolds.jsonl (021821537f28) · doors: assertManifestedCorpusStreaming (confirm sealed at the door), feedYears witness (contained years only), stratified holdout pin
-population: forex, variant baseline, accepted, filled, contained years, both pools, folds fit+select
-method: model = emitted estimatedCommission; true RT = 5e-5 / (USD per QUOTE); USD-per-quote from the corpus's own per-year mean latestClose of EURUSD/GBPUSD/AUDUSD/NZDUSD and 1/USDCAD, 1/USDCHF, 1/USDJPY (the USD-quote subset needs no rate and is exact)
-ΔR per fill = (model − true) / riskDistance; corrected R = realizedR + ΔR
-
+npm notice run levelflow-cloud@0.1.0 npx
+npm notice run 'tsx' /private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/0c18d218-bdd9-4bd7-abea-1276172cad40/scratchpad/commission-fix.mts
 forex contained filled rows buffered: 291,377 · emitted commission == latestClose×5e-5 on 291377/291377 (0 off)
 rows with no USD rate for their quote: 0
 
@@ -35,3 +31,35 @@ EXACT SUBSET — USD-quote pairs, where the correct commission is 5e-5 per base 
   EURUSD: 10,840 fills, ΔR +74.3 R (mean 0.00685 R/fill)
   GBPUSD: 10,336 fills, ΔR +122.7 R (mean 0.01187 R/fill)
   NZDUSD: 10,646 fills, ΔR -107.8 R (mean -0.01013 R/fill)
+
+PER PAIR (all 28), ranked by |ΔR per fill| — ratio is charged/true
+| pair | quote | fills | charged/true | ΔR total | ΔR/fill |
+|---|---|---:|---:|---:|---:|
+| EURCHF | CHF | 9,983 | 1.227 | +122.1 | +0.01224 |
+| GBPUSD | USD | 10,336 | 1.466 | +122.7 | +0.01187 |
+| NZDCAD | CAD | 10,286 | 0.727 | -118.1 | -0.01148 |
+| GBPCHF | CHF | 10,211 | 1.448 | +107.6 | +0.01054 |
+| GBPCAD | CAD | 10,106 | 1.454 | +106.5 | +0.01053 |
+| NZDCHF | CHF | 10,141 | 0.727 | -103.5 | -0.01021 |
+| NZDUSD | USD | 10,646 | 0.729 | -107.8 | -0.01013 |
+| AUDNZD | NZD | 9,344 | 0.809 | -91.5 | -0.00979 |
+| NZDJPY | JPY | 10,453 | 0.728 | -97.1 | -0.00929 |
+| GBPAUD | AUD | 10,544 | 1.445 | +96.9 | +0.00919 |
+| GBPJPY | JPY | 10,461 | 1.447 | +92.3 | +0.00883 |
+| GBPNZD | NZD | 10,557 | 1.440 | +89.0 | +0.00843 |
+| AUDCAD | CAD | 10,424 | 0.819 | -81.5 | -0.00782 |
+| EURGBP | GBP | 10,114 | 1.223 | +71.8 | +0.00710 |
+| EURUSD | USD | 10,840 | 1.214 | +74.3 | +0.00685 |
+| AUDUSD | USD | 11,137 | 0.819 | -71.9 | -0.00645 |
+| AUDCHF | CHF | 10,571 | 0.818 | -68.0 | -0.00644 |
+| EURCAD | CAD | 10,479 | 1.215 | +66.9 | +0.00638 |
+| CADCHF | CHF | 10,444 | 0.841 | -63.2 | -0.00605 |
+| AUDJPY | JPY | 10,586 | 0.818 | -61.3 | -0.00579 |
+| EURAUD | AUD | 10,506 | 1.212 | +60.5 | +0.00575 |
+| CADJPY | JPY | 10,585 | 0.838 | -57.9 | -0.00547 |
+| EURJPY | JPY | 10,639 | 1.201 | +56.1 | +0.00528 |
+| EURNZD | NZD | 10,497 | 1.205 | +53.5 | +0.00509 |
+| CHFJPY | JPY | 10,697 | 1.039 | +13.2 | +0.00123 |
+| USDJPY | JPY | 10,694 | 0.997 | -1.2 | -0.00011 |
+| USDCAD | CAD | 9,701 | 0.998 | -0.7 | -0.00008 |
+| USDCHF | CHF | 10,395 | 0.999 | -0.3 | -0.00003 |

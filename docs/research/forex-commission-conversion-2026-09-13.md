@@ -12,9 +12,13 @@ independently and its figures agree to within 2 R.
 
 ## The defect, by units
 
-E8 charges **$5 round-turn per lot of 100,000 base units**, identical on all 28
-pairs (PRIMARY, `e8-markets-dossier.md:358`). That is a fixed dollar amount:
-`5e-5` USD per unit of the **base** currency.
+E8 charges **$5 round-turn per lot of 100,000 units**, identical on all 28
+pairs (PRIMARY, `e8-markets-dossier.md:358`). That the units are **base**
+currency is an inference from FX convention — marked as one, because the whole
+derivation turns on it — and it is confirmed by E8's own sizing arithmetic: its
+worked example values a GBP/NZD lot as `30 × 100,000 / (1.351 × 100,000)` using
+the **GBP/USD** price, i.e. the 100,000 is in GBP (help article 9453396, via the
+dossier). So: a fixed `5e-5` USD per unit of the base currency.
 
 The R accountant needs the commission as a price distance in the **quote**
 currency, because it subtracts it from a price difference
@@ -121,13 +125,27 @@ test that pinned "0.5bp of price" as a correct figure so it now documents a
 known approximation and fails the moment the formula changes, forcing the
 record to move with it.
 
-**Does not:** change the formula. The exact figure needs the **quote
-currency's USD rate at cost-estimation time**, and neither path has it — the
-sweep processes one symbol at a time from cache and the live loader fetches one
-symbol's quote. R1's one-physics law forbids fixing one path and not the other,
-and a refusal beats a wrong number (§19e), so the honest live behaviour without
-a rate would be to decline every cross. That is a design with FMP-byte
-consequences, not a constant edit, and it goes through refuters first. What
-this note settles is that it must happen: every forex artifact in the record is
-mis-charged two-sidedly, and the correction is computable from emitted fields
-without a re-sweep.
+**Does not:** change the formula — and the reason is narrower than this note
+first said. For the four **USD-quote** pairs the true figure is the constant
+`5e-5`: no rate is needed, both paths compute the same constant, one physics is
+satisfied trivially. Ranked by total mis-charge across all 28 pairs (the table
+in the reproduction output): GBPUSD 1st (+122.7 R over 10,336 fills), NZDUSD
+4th (−107.8 R), EURUSD 14th (+74.3 R), AUDUSD 15th (−71.9 R). EURCHF is 2nd
+(+122.1 R) and NZDCAD 3rd (−118.1 R) — the crosses are not the small half of
+the defect. That fix is buildable today and is the next engine change set, with an
+`ANALYZER_VERSION` bump because it moves `costShare` and therefore admission on
+those four. What needs a design is the **21 crosses**: their exact figure needs
+the quote currency's USD rate at cost time, and neither path has it — the sweep
+processes one symbol at a time from cache and the live loader fetches one
+symbol's quote. A refusal beats a wrong number (§19e), so the honest live
+behaviour without a rate would be to decline every cross; that has FMP-byte
+consequences and goes through refuters first. What this note settles is that it
+must happen: every forex artifact in the record is mis-charged two-sidedly, and
+the correction is computable from emitted fields without a re-sweep.
+
+**The suite was green throughout the quote-bank failure.** The only pin on that
+path (`tests/executionQuality.test.ts:183`) regex-matches the source text of the
+banking call — it asserts the code is written, not that it ever ran. Thirty-
+seven thousand consecutive failures passed every test. The honest guard is an
+operational one — a cadence check on `analyzer_events` quote_fetch success —
+and it is recorded as owed, not built here.
