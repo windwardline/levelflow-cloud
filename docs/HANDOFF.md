@@ -2259,6 +2259,49 @@ rather than an absence — and on the fit held-out fold the volume it discards
 is net positive. **The gate could not return a verdict on it at the time this
 was written; it can now, and it did: see the graded refusal below.** It is a pre-registration for the next calendar, NOT a ship.
 
+**THE FOREX COMMISSION IS CONVERTED IN THE WRONG CURRENCY — found 2026-09-13.**
+[`forex-commission-conversion-2026-09-13.md`](/docs/research/forex-commission-conversion-2026-09-13.md),
+output `r3/forex-commission-conversion-2026-09-13.txt`. E8 charges $5 RT per
+100,000 BASE units (PRIMARY) — a fixed 5e-5 USD per base unit. The accountant
+needs it in QUOTE units: 5e-5 / (USD per quote). `venueCommissionRoundTripPrice`
+returns `referencePrice × 5e-5` (`venueCosts.ts:251`, referencePrice =
+`latestClose`), so **model / true = USD per BASE**: exact on USDJPY/USDCAD/
+USDCHF, wrong on 25 of 28, and TWO-SIDED. Verified: emitted
+`estimatedCommission` equals `latestClose × 5e-5` on 291,377 of 291,377 forex
+contained fills. Per base, charged/true: GBP **1.451** (+615.0 R owed back), EUR
+1.216 (+505.2), CHF 1.039, USD 0.998 (the control), CAD 0.840 (−121.0), AUD
+0.816 (−374.2), NZD **0.728** (−426.6). On the assumption-free USD-quote subset:
+GBPUSD +0.0119 R/fill overcharged, NZDUSD −0.0101 undercharged. Corpus-wide it
+nearly nets (+209.4 R); per market it does not, and per market is the grain.
+
+**It weakens the in-span finding's strongest out-of-sample cell.** Select
+held-out in-span (3,624 fills, four of six markets AUD/NZD-base): E +0.0137 →
+**+0.0036**, lo95 −0.0056 → **−0.0157**, ΔE −0.0101. Fit in-pool in-span
+strengthens (+0.0026); the other two in-span cells move under 0.002. Three of
+four still clear; the fourth was resting partly on a commission the engine did
+not charge.
+
+**The docblock said the opposite** (`venueCosts.ts:16-19`, written in #310,
+2026-08-11): "depends on the quote currency's dollar rate; rounding up is
+deliberate". Wrong currency, and false for every base under a dollar. Corrected
+in place; the test that pinned "0.5bp of price" as correct now pins the current
+behaviour AS an approximation and fails the moment the formula changes.
+
+**NOT FIXED IN CODE, deliberately.** The exact figure needs the QUOTE currency's
+USD rate at cost time and neither path has it — the sweep runs one symbol at a
+time from cache, the live loader fetches one symbol's quote. One physics (R1)
+forbids fixing one path only; §19e says refuse rather than print a wrong
+number, which on the live path means declining every cross until a rate source
+exists. That is a design with FMP-byte consequences — it goes through the
+open-scope round's refuters (it is candidate 1 there), not through a constant
+edit. The correction is computable from emitted fields without a re-sweep.
+
+**And the quote bank has never worked.** `analyzer_events` action=quote_fetch:
+**37,790 rows, all status=error, zero with a bid**, 2026-08-03 → 2026-09-01 —
+queried live 2026-09-13. Not "nothing since the park": nothing while the desk
+was open either. "The spread bank accrues the day the desk unparks" was wrong
+on its premise.
+
 **THE MAINTENANCE BREAK: exposure real, lever refused — 2026-09-12.**
 [`maintenance-break-2026-09-12.md`](/docs/research/maintenance-break-2026-09-12.md),
 output `r3/maintenance-break-2026-09-12.txt`.

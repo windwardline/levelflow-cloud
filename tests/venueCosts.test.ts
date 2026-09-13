@@ -49,9 +49,31 @@ describe("venueCommissionRoundTripPrice — futures program (three fees, primary
 });
 
 describe("venueCommissionRoundTripPrice — CFD lines", () => {
-  it("forex: $5/lot RT on 100k is 0.5bp of price", () => {
-    close(venueCommissionRoundTripPrice("EURUSD", 1.1), 0.000055);
-    close(venueCommissionRoundTripPrice("USDJPY", 150), 0.0075);
+  // RELABELLED 2026-09-13. This test used to be titled "$5/lot RT on 100k is
+  // 0.5bp of price", and pinned EURUSD at 1.1 -> 0.000055 as if that were the
+  // right number. It is the number the code produces; it is not the right
+  // number. $5 per 100,000 BASE units is a fixed 5e-5 USD per base unit, and
+  // the accountant needs it in QUOTE units: 5e-5 / (USD per quote). The code
+  // returns referencePrice × 5e-5, which equals that only when USD is the
+  // base. See docs/research/forex-commission-conversion-2026-09-13.md.
+  //
+  // The values below are pinned AS THE CURRENT BEHAVIOUR so that a fix to the
+  // formula fails here and moves the record deliberately. They are not an
+  // endorsement.
+  it("forex: the constant is $5/lot on 100k base units, applied as a price fraction", () => {
+    close(venueCommissionRoundTripPrice("EURUSD", 1.1), 0.000055); // 1.1 × 5e-5; true is 5e-5
+    close(venueCommissionRoundTripPrice("USDJPY", 150), 0.0075); // exact: USD is the base
+  });
+  it("forex: the conversion error is two-sided on the USD-quote pairs, and documented", () => {
+    // USD-quote: the true round trip is a constant 5e-5 per base unit, no
+    // cross rate needed. The code scales it by the price instead.
+    const gbp = venueCommissionRoundTripPrice("GBPUSD", 1.27)!;
+    const nzd = venueCommissionRoundTripPrice("NZDUSD", 0.61)!;
+    close(gbp / 0.00005, 1.27); // overcharged 27 %
+    close(nzd / 0.00005, 0.61); // undercharged 39 %
+    // Measured on the corpus: GBPUSD +122.7 R given back, NZDUSD -107.8 R
+    // owed, over ~10,500 fills each. An earlier docblock called this "mildly
+    // conservative" with "rounding up deliberate". Two-sided is not one-sided.
   });
   it("SP pays $6 against its published $20/point", () => {
     close(venueCommissionRoundTripPrice("SP", 5500), 0.3);
