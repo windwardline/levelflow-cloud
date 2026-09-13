@@ -24,7 +24,26 @@
  */
 import type { CategoryCalibration } from "./calibration.ts";
 
-export type DerivationId = "4d-2026-08-11";
+/**
+ * The three tranches of 2026-08-11, not one.
+ *
+ * `docs/trade-model.md:345` states the arithmetic: **39 + 11 + 22 = 72**.
+ * `:322` says "Thirty-nine markets carry a derived cell" — that is the
+ * derived-4d tranche ALONE, and a reader who stops there concludes this module
+ * over-stamps by 33. All three ran on the same 4c/4d corpus and share its
+ * defect; they are kept apart because they were selected differently
+ * (`scripts/shipped-cell-provenance.ts:101-125`: class-folds for the first two,
+ * a per-market recut for totality).
+ */
+export type DerivationId = "derived-4d" | "holdout-cycle" | "totality";
+
+const CLOCK_DEFECT_NOTE =
+  "The 4c/4d corpus resolved every setup 4-5 hours out of register with its " +
+  "own decision bar (the clock defect, 2026-08-11), so its expectancies, fill " +
+  "rates and verdicts are artifacts. The derivation record carries that " +
+  "banner itself, and docs/HANDOFF.md:249 states the 72 derived per-market " +
+  "cells rest on it. Read docs/research/remediation-program-2026-08-11.md " +
+  "before citing any of them.";
 
 export type Derivation = {
   /** The record that documents the derivation. */
@@ -40,22 +59,125 @@ export type Derivation = {
   readonly corpusValid: boolean;
   /** Why, in one sentence a reader can act on. */
   readonly note: string;
+  /** How this tranche's markets were selected. */
+  readonly selection: "class-folds" | "per-market-recut";
 };
 
 export const DERIVATIONS: Record<DerivationId, Derivation> = {
-  "4d-2026-08-11": {
+  "derived-4d": {
     record: "docs/research/baseline-2026-08-10/4d-derivation-2026-08-11.md",
     corpus: "4c/4d",
     corpusValid: false,
-    note:
-      "The 4c/4d corpus resolved every setup 4-5 hours out of register with " +
-      "its own decision bar (the clock defect, 2026-08-11), so its " +
-      "expectancies, fill rates and verdicts are artifacts. The derivation " +
-      "record carries that banner itself, and docs/HANDOFF.md:249 states the " +
-      "72 derived per-market cells rest on it. Read " +
-      "docs/research/remediation-program-2026-08-11.md before citing any of " +
-      "them.",
+    note: CLOCK_DEFECT_NOTE,
+    selection: "class-folds",
   },
+  "holdout-cycle": {
+    record: "docs/research/baseline-2026-08-10/4d-derivation-2026-08-11.md",
+    corpus: "4c/4d",
+    corpusValid: false,
+    note: CLOCK_DEFECT_NOTE,
+    selection: "class-folds",
+  },
+  totality: {
+    record: "docs/research/baseline-2026-08-10/4d-derivation-2026-08-11.md",
+    corpus: "4c/4d",
+    corpusValid: false,
+    note: CLOCK_DEFECT_NOTE,
+    selection: "per-market-recut",
+  },
+};
+
+/**
+ * WHICH MARKET CAME FROM WHICH TRANCHE — a snapshot of the tracked artifact
+ * `docs/research/r4/shipped-cell-provenance.json`, which is the source of
+ * truth and derives tranche membership from the 4d confirm-read artifacts
+ * themselves (`scripts/shipped-cell-provenance.ts`).
+ *
+ * This is data, not a second derivation. The first version of this module
+ * inferred the stamp from the SHAPE of an override — whether four keys were
+ * present — which made it a second, independent mechanism that agreed with the
+ * artifact only by coincidence, and which could not notice a one-for-one
+ * substitution: when R3 replaces some cells and leaves others the count stays
+ * 72, and every replaced market would still have been stamped condemned.
+ *
+ * `tests/calibrationProvenance.test.ts` asserts this map equals the artifact
+ * exactly, so a market that moves tranche, joins or leaves fails there rather
+ * than drifting.
+ */
+// SYMBOLS: record the 2026-08-11 4d derivation, three tranches | 72
+export const TRANCHE_BY_SYMBOL: Readonly<Record<string, DerivationId>> = {
+  AAVEUSD: "totality",
+  ADAUSD: "derived-4d",
+  AUDCAD: "derived-4d",
+  AUDCHF: "holdout-cycle",
+  AUDJPY: "derived-4d",
+  AUDNZD: "holdout-cycle",
+  AUDUSD: "derived-4d",
+  BCHUSD: "derived-4d",
+  BNBUSD: "totality",
+  BTCUSD: "derived-4d",
+  BZUSD: "totality",
+  CADCHF: "derived-4d",
+  CADJPY: "derived-4d",
+  CAKEUSD: "totality",
+  CHFJPY: "derived-4d",
+  CLUSD: "derived-4d",
+  DASHUSD: "totality",
+  DAX: "totality",
+  DOGEUSD: "totality",
+  EGLDUSD: "totality",
+  ESUSD: "derived-4d",
+  ETCUSD: "totality",
+  ETHUSD: "derived-4d",
+  EURAUD: "derived-4d",
+  EURCAD: "derived-4d",
+  EURCHF: "derived-4d",
+  EURGBP: "derived-4d",
+  EURJPY: "derived-4d",
+  EURNZD: "derived-4d",
+  EURUSD: "holdout-cycle",
+  GBPAUD: "derived-4d",
+  GBPCAD: "holdout-cycle",
+  GBPCHF: "derived-4d",
+  GBPJPY: "derived-4d",
+  GBPNZD: "derived-4d",
+  GBPUSD: "derived-4d",
+  GCUSD: "derived-4d",
+  GRTUSD: "totality",
+  HBARUSD: "totality",
+  HGUSD: "derived-4d",
+  IMXUSD: "totality",
+  LINKUSD: "totality",
+  LTCUSD: "derived-4d",
+  NGUSD: "holdout-cycle",
+  NQUSD: "derived-4d",
+  NSDQ: "holdout-cycle",
+  NZDCAD: "derived-4d",
+  NZDCHF: "holdout-cycle",
+  NZDJPY: "holdout-cycle",
+  NZDUSD: "derived-4d",
+  PAUSD: "totality",
+  RTYUSD: "holdout-cycle",
+  SIUSD: "derived-4d",
+  SOLUSD: "totality",
+  SP: "derived-4d",
+  UNIUSD: "totality",
+  USDCAD: "derived-4d",
+  USDCHF: "derived-4d",
+  USDJPY: "derived-4d",
+  WTI: "derived-4d",
+  XAGUSD: "totality",
+  XAUUSD: "derived-4d",
+  XLMUSD: "totality",
+  XMRUSD: "totality",
+  XRPUSD: "derived-4d",
+  YMUSD: "holdout-cycle",
+  ZBUSD: "totality",
+  ZCUSX: "derived-4d",
+  ZLUSX: "derived-4d",
+  ZMUSD: "holdout-cycle",
+  ZNUSD: "totality",
+  ZOUSX: "totality",
 };
 
 /**
@@ -89,17 +211,17 @@ function isDerivedCellField(field: string): field is DerivedCellField {
  * to end, not one to add.
  */
 export function provenanceOf(
-  override: Partial<CategoryCalibration>,
+  symbol: string,
   field: string,
 ): Derivation | null {
   if (!isDerivedCellField(field)) return null;
-  // The cell is all four or it is not the cell. A market carrying three of
-  // them was not produced by this derivation and must not borrow its stamp.
-  const carriesWholeCell = DERIVED_CELL_FIELDS.every(
-    (name) => override[name] !== undefined,
-  );
-  if (!carriesWholeCell) return null;
-  return DERIVATIONS["4d-2026-08-11"];
+  const tranche = TRANCHE_BY_SYMBOL[symbol.toUpperCase().replace(/[^A-Z0-9]/g, "")];
+  return tranche ? DERIVATIONS[tranche] : null;
+}
+
+/** The tranche a market's cell came from, or null where the record cannot say. */
+export function trancheOf(symbol: string): DerivationId | null {
+  return TRANCHE_BY_SYMBOL[symbol.toUpperCase().replace(/[^A-Z0-9]/g, "")] ?? null;
 }
 
 /**
@@ -108,9 +230,6 @@ export function provenanceOf(
  * False means "not established", not "cleared". A caller that needs to
  * distinguish the two must read `provenanceOf` and handle null itself.
  */
-export function restsOnInvalidCorpus(
-  override: Partial<CategoryCalibration>,
-  field: string,
-): boolean {
-  return provenanceOf(override, field)?.corpusValid === false;
+export function restsOnInvalidCorpus(symbol: string, field: string): boolean {
+  return provenanceOf(symbol, field)?.corpusValid === false;
 }

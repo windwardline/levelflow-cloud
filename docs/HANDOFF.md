@@ -1899,15 +1899,25 @@ that fixed it.
   figure and no measured-record sentence remains — the test already reads
   source as strings, so this needs no new machinery." (b) **BUILT 2026-09-12** —
   `supabase/functions/trade-analyzer/calibrationProvenance.ts`. "Is this figure
-  from the condemned corpus?" is now a function call. It stamps the ONE
-  derivation it can evidence: the four-field cell (`confidenceThreshold`,
-  `maxStopAtrMultiplier`, `runnerProtection`, `sizingHoursFactor`) that
-  `trade-model.md:325-327` names and that **72 markets carry**, re-derived from
-  the calibration rather than listed, matching :249's own count. Everything
-  else returns `null`, and an unstamped constant is an UNKNOWN one, never a
-  cleared one — `restsOnInvalidCorpus` answers false for it because the honest
-  answer is "not established". A PARTIAL cell does not borrow the stamp; the
-  cell is all four or it is not the cell. Mutation-proven both ways.
+  from the condemned corpus?" is now a function call. **It is a SNAPSHOT of the tracked
+  artifact `docs/research/r4/shipped-cell-provenance.json`, not a second
+  derivation.** That artifact — built by `scripts/shipped-cell-provenance.ts`
+  from the 4d confirm-read records — is the source of truth, and a test asserts
+  the map equals it market for market and tranche for tranche. The first
+  version inferred the stamp from the SHAPE of an override (four keys present),
+  which was an independent mechanism agreeing with the artifact only by
+  coincidence and blind to a ONE-FOR-ONE SUBSTITUTION: when R3 replaces some
+  cells and leaves others the count stays 72 and every replaced market would
+  still have been stamped condemned. Mutation-proven on exactly that case now.
+
+  **Three tranches, not one, and the arithmetic is stated**: derived-4d 39 +
+  holdout-cycle 11 + totality 22 = **72** (`trade-model.md:345`). The "Thirty-
+  nine markets carry a derived cell" at `:322` is the derived-4d tranche ALONE
+  — a reader who stops there concludes the module over-stamps by 33. All three
+  ran on the same 4c/4d corpus; they are kept apart because the first two were
+  selected on class folds and totality on a per-market recut. An unstamped
+  market returns `null`, and `restsOnInvalidCorpus` answering false means NOT
+  ESTABLISHED, never cleared.
 
   **It also settles a disagreement between three documents.** :249 says the 72
   cells rest on the invalidated corpus; the 4d derivation record carries its

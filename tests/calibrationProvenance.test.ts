@@ -1,101 +1,107 @@
-// Clause (b) of the reopen gate (docs/HANDOFF.md), marked there as "cheap now,
-// impossible after the one re-sweep": make "is this figure from the condemned
-// corpus?" answerable by code rather than by reconciling three documents that
-// disagree.
+// Clause (b) of the reopen gate: make "is this figure from the condemned
+// corpus?" answerable by code.
 //
-// The population is DERIVED from the calibration itself, never listed. A market
-// that gains or loses the derived cell moves this count, and that is the point:
-// the stamp must track the code, not a literal someone forgot to edit.
+// THE SOURCE OF TRUTH IS THE TRACKED ARTIFACT, not this module. The first
+// version inferred the stamp from the SHAPE of an override — whether four keys
+// were present — which made it a second, independent derivation of something
+// `scripts/shipped-cell-provenance.ts` already derives from the 4d confirm-read
+// records. Two mechanisms that agree by coincidence are the failure the module
+// exists to end, not one to add. So the map is a snapshot and this asserts it
+// equals the artifact exactly.
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import {
-  getSymbolCalibrationOverride,
-} from "../supabase/functions/trade-analyzer/calibration.ts";
+import { getSymbolCalibrationOverride } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
   DERIVATIONS,
   DERIVED_CELL_FIELDS,
   provenanceOf,
   restsOnInvalidCorpus,
+  trancheOf,
+  TRANCHE_BY_SYMBOL,
 } from "../supabase/functions/trade-analyzer/calibrationProvenance.ts";
 
-const roster = defaultScanSymbols as unknown as string[];
-const carriesWholeCell = (symbol: string) => {
-  const override = getSymbolCalibrationOverride(symbol);
-  return DERIVED_CELL_FIELDS.every((f) => override[f] !== undefined);
-};
+const ARTIFACT = "docs/research/r4/shipped-cell-provenance.json";
+type Row = { symbol: string; tranche: string | null };
+const artifact = () =>
+  (JSON.parse(readFileSync(ARTIFACT, "utf8")) as { markets: Row[] }).markets;
 
-describe("calibration provenance — the condemned corpus is answerable by code", () => {
-  it("stamps exactly the markets carrying the whole derived cell, and counts 72", () => {
-    const stamped = roster.filter(carriesWholeCell);
-    // 72 is the count docs/HANDOFF.md:249 states for the derived per-market
-    // cells, and it is re-derived here rather than trusted. If this moves, the
-    // handoff's sentence moved with it and one of the two is now wrong.
-    assert.equal(
-      stamped.length,
-      72,
-      `the derived-cell population is ${stamped.length}, not the 72 the record ` +
-        `states. Re-derive docs/HANDOFF.md:249 before editing this number.`,
+describe("calibration provenance agrees with the record it snapshots", () => {
+  it("matches the tracked artifact market for market, tranche for tranche", () => {
+    const fromRecord = new Map(
+      artifact().filter((r) => r.tranche).map((r) => [r.symbol, r.tranche]),
     );
-    for (const symbol of stamped) {
-      const override = getSymbolCalibrationOverride(symbol);
+    assert.deepEqual(
+      Object.fromEntries([...fromRecord].sort()),
+      Object.fromEntries(Object.entries(TRANCHE_BY_SYMBOL).sort()),
+      `${ARTIFACT} and TRANCHE_BY_SYMBOL disagree. The artifact derives ` +
+        `tranche membership from the 4d confirm-read records and is the ` +
+        `source of truth; regenerate the map from it rather than editing it ` +
+        `by hand. A market that moved tranche, joined or left must fail HERE ` +
+        `— a count alone would not notice a one-for-one substitution.`,
+    );
+  });
+
+  it("states the three tranches and the 39 + 11 + 22 = 72 arithmetic", () => {
+    // docs/trade-model.md:345. Its :322 says "Thirty-nine markets carry a
+    // derived cell", which is the derived-4d tranche ALONE — a reader who
+    // stops there concludes this module over-stamps by 33.
+    const counts = { "derived-4d": 0, "holdout-cycle": 0, totality: 0 } as Record<string, number>;
+    for (const tranche of Object.values(TRANCHE_BY_SYMBOL)) counts[tranche] += 1;
+    assert.equal(counts["derived-4d"], 39);
+    assert.equal(counts["holdout-cycle"], 11);
+    assert.equal(counts.totality, 22);
+    assert.equal(Object.keys(TRANCHE_BY_SYMBOL).length, 72);
+  });
+
+  it("declares all three tranches condemned, each naming its selection", () => {
+    for (const id of ["derived-4d", "holdout-cycle", "totality"] as const) {
+      const d = DERIVATIONS[id];
+      assert.equal(d.corpusValid, false, `${id} must be condemned`);
+      assert.match(d.note, /clock defect/);
+      assert.match(d.note, /remediation-program-2026-08-11\.md/);
+    }
+    // The selections differ and that is why the tranches are kept apart.
+    assert.equal(DERIVATIONS["derived-4d"].selection, "class-folds");
+    assert.equal(DERIVATIONS["holdout-cycle"].selection, "class-folds");
+    assert.equal(DERIVATIONS.totality.selection, "per-market-recut");
+  });
+
+  it("stamps every stamped market's cell fields, and nothing else", () => {
+    for (const symbol of Object.keys(TRANCHE_BY_SYMBOL)) {
       for (const field of DERIVED_CELL_FIELDS) {
-        assert.equal(
-          provenanceOf(override, field)?.corpus,
-          "4c/4d",
-          `${symbol}.${field} carries the derived cell and must stamp to 4c/4d`,
-        );
-        assert.equal(restsOnInvalidCorpus(override, field), true);
+        assert.equal(provenanceOf(symbol, field)?.corpus, "4c/4d");
+        assert.equal(restsOnInvalidCorpus(symbol, field), true);
       }
+      // A field the derivation never set must not borrow the stamp.
+      assert.equal(provenanceOf(symbol, "minRewardRisk"), null);
     }
   });
 
-  it("refuses to stamp a field the derivation did not set", () => {
-    // Three markets override runnerWindowShare, two tp1RiskShare, one
-    // defaultReviewHours. None of those is in the 4d cell, so none may borrow
-    // its stamp — an over-broad stamp would condemn figures the derivation
-    // never touched, which is the mirror of the defect this closes.
-    const other = roster.find((s) => {
-      const o = getSymbolCalibrationOverride(s) as Record<string, unknown>;
-      return o.runnerWindowShare !== undefined || o.tp1RiskShare !== undefined;
-    });
-    assert.ok(other, "no market overrides a non-cell field — the fixture is stale");
-    const override = getSymbolCalibrationOverride(other!);
-    assert.equal(provenanceOf(override, "runnerWindowShare"), null);
-    assert.equal(provenanceOf(override, "minRewardRisk"), null);
+  it("refuses an unstamped market, and false means NOT ESTABLISHED", () => {
+    const unstamped = (defaultScanSymbols as unknown as string[]).find(
+      (s) => !TRANCHE_BY_SYMBOL[s],
+    );
+    assert.ok(unstamped, "every roster market is stamped — the fixture is stale");
+    assert.equal(trancheOf(unstamped!), null);
+    assert.equal(provenanceOf(unstamped!, "confidenceThreshold"), null);
     assert.equal(
-      restsOnInvalidCorpus(override, "runnerWindowShare"),
+      restsOnInvalidCorpus(unstamped!, "confidenceThreshold"),
       false,
-      "false here means NOT ESTABLISHED, never cleared",
+      "false here means the record cannot speak, never that the figure is cleared",
     );
   });
 
-  it("refuses a partial cell rather than borrowing the stamp", () => {
-    // The cell is all four or it is not the cell. A market carrying three was
-    // not produced by this derivation.
-    const partial = { confidenceThreshold: 0, maxStopAtrMultiplier: 4, runnerProtection: "hold" as const };
-    assert.equal(
-      provenanceOf(partial, "confidenceThreshold"),
-      null,
-      "three of four fields is not the 4d cell and must not stamp to it",
-    );
-  });
-
-  it("declares the 4c/4d corpus condemned, with the record that says so", () => {
-    const d = DERIVATIONS["4d-2026-08-11"];
-    assert.equal(d.corpusValid, false);
-    assert.match(d.record, /4d-derivation-2026-08-11\.md$/);
-    assert.match(d.note, /clock defect/);
-    // The note must route a reader to the remediation programme, because
-    // AGENTS.md requires reading it before trusting any derived cell.
-    assert.match(d.note, /remediation-program-2026-08-11\.md/);
-  });
-
-  it("keeps the cell definition matching the record that names it", () => {
-    // docs/trade-model.md:325-327 names the cell as exactly these four.
-    assert.deepEqual(
-      [...DERIVED_CELL_FIELDS].sort(),
-      ["confidenceThreshold", "maxStopAtrMultiplier", "runnerProtection", "sizingHoursFactor"],
-    );
+  it("stamps only markets that actually carry a per-symbol layer", () => {
+    // The artifact's 25 nulls all read "no per-symbol layer: the shipped cell
+    // is the class row". So every stamped market must in fact carry one.
+    for (const symbol of Object.keys(TRANCHE_BY_SYMBOL)) {
+      const override = getSymbolCalibrationOverride(symbol);
+      assert.ok(
+        Object.keys(override).length > 0,
+        `${symbol} is stamped but carries no per-symbol override at all`,
+      );
+    }
   });
 });
