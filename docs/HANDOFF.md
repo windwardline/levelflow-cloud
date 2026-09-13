@@ -1897,11 +1897,24 @@ that fixed it.
   mechanism removed FIRES. The original clause, for provenance: "instead of
   pinning `true`, assert that IF `PARKING_GATE` is false THEN no condemned
   figure and no measured-record sentence remains — the test already reads
-  source as strings, so this needs no new machinery." (b)
-  Give every derived calibration constant a provenance stamp naming the corpus
-  it came from, so "is this figure from the condemned corpus?" becomes
-  answerable by code; that is **pre-R3-register class — cheap now, impossible
-  after the one re-sweep**. (c) The rest is an owner ruling recorded as a dated
+  source as strings, so this needs no new machinery." (b) **BUILT 2026-09-12** —
+  `supabase/functions/trade-analyzer/calibrationProvenance.ts`. "Is this figure
+  from the condemned corpus?" is now a function call. It stamps the ONE
+  derivation it can evidence: the four-field cell (`confidenceThreshold`,
+  `maxStopAtrMultiplier`, `runnerProtection`, `sizingHoursFactor`) that
+  `trade-model.md:325-327` names and that **72 markets carry**, re-derived from
+  the calibration rather than listed, matching :249's own count. Everything
+  else returns `null`, and an unstamped constant is an UNKNOWN one, never a
+  cleared one — `restsOnInvalidCorpus` answers false for it because the honest
+  answer is "not established". A PARTIAL cell does not borrow the stamp; the
+  cell is all four or it is not the cell. Mutation-proven both ways.
+
+  **It also settles a disagreement between three documents.** :249 says the 72
+  cells rest on the invalidated corpus; the 4d derivation record carries its
+  own INVALID banner; and `docs/trade-model.md:318` calls the same layer "the
+  first per-market calibration derived entirely behind the repaired
+  instrument". A reader landing on the third gets the opposite answer. The code
+  now states it once. (c) The rest is an owner ruling recorded as a dated
   literal beside the flag, the way §17p records the park. Anyone claiming the
   gate can be fully mechanized is claiming (c) away.
 
