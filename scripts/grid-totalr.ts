@@ -39,6 +39,10 @@ import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import {
   addOutcome,
+  ARM_COLUMNS,
+  ARM_NAMES,
+  type ArmName,
+  assertEmitColumns,
   assertManifest,
   assertManifestedCorpusStreaming,
   emptyStats,
@@ -438,6 +442,29 @@ export function decisionHourDistance(timeMs: number): number {
   const hour = new Date(timeMs).getUTCHours();
   const raw = Math.abs(hour - 18.5);
   return raw > 12 ? 24 - raw : raw;
+}
+
+/**
+ * The row as the named arm reads it: `realizedR` and `outcome` replaced by
+ * that arm's columns, every other field untouched. The net arm is the row
+ * itself. A filled row without the arm's finite R is refused, never graded
+ * as zero.
+ */
+export function projectArm(row: SweepEmitRow, arm: ArmName, emitPath: string): SweepEmitRow {
+  if (arm === "net") return row;
+  const columns = ARM_COLUMNS[arm];
+  const record = row as unknown as Record<string, unknown>;
+  const r = record[columns.r];
+  const outcome = record[columns.outcome];
+  if (row.outcome !== "unfilled" && row.noBarsInReviewWindow !== true && (typeof r !== "number" || !Number.isFinite(r))) {
+    throw new Error(
+      `${emitPath}: ${row.symbol}'s row at ${String(row.time)} carries no finite ${columns.r} — the ${arm} arm cannot grade a corpus that did not emit it`,
+    );
+  }
+  if (typeof outcome !== "string") {
+    throw new Error(`${emitPath}: ${row.symbol}'s row at ${String(row.time)} carries no ${columns.outcome} — the ${arm} arm cannot grade it`);
+  }
+  return { ...row, outcome, realizedR: typeof r === "number" ? r : row.realizedR } as SweepEmitRow;
 }
 
 /** Exported for test: the refusal path is only reachable through the corpus
@@ -1253,6 +1280,11 @@ export async function gradeCorpus(
     // cube at all, so a confirm-final run consults exactly the named
     // markets' held-back rows and nothing else's.
     symbolFilter?: Set<string>;
+    // Which convention of the row's money the gate reads (2026-09-14): net
+    // as emitted, gross, or the arming-bound arm. Projected at the one read
+    // below, so every term of the gate — the cube, the day-R pairing, the
+    // baseline digest — grades the named arm and nothing reads two.
+    rArm?: ArmName;
     // The shipped-cell provenance artifact (scripts/shipped-cell-provenance.ts):
     // whether each market's shipped cell was selected on rows inside this
     // corpus's confirm window. Absent, every shipped-cell confirm figure is
@@ -1407,6 +1439,14 @@ export async function gradeCorpus(
   const shardManifests: SweepManifest[] = [];
   for (const path of paths) {
     const shardManifest = assertManifest(path);
+    if ((options.rArm ?? "net") !== "net") {
+      const arm = ARM_COLUMNS[options.rArm ?? "net"];
+      // A corpus emitted before the arm carries neither column; grading it
+      // on the net figure in their place would print a verdict the corpus
+      // cannot support. Refused here when the manifest names its columns,
+      // and row by row below when it does not.
+      assertEmitColumns(path, shardManifest, [arm.r, arm.outcome]);
+    }
     shardManifests.push(shardManifest);
     for (const entry of shardManifest.symbols) unionSymbols.add(entry.symbol);
   }
@@ -1427,6 +1467,11 @@ export async function gradeCorpus(
   }
   if (frozen && (options.deriveFilters ?? []).length > 0) {
     throw new Error("--frozen rebuilds every derived variant from the frozen file; --derive-filters may not be passed beside it");
+  }
+  if (options.confirmFinal && (options.rArm ?? "net") !== "net") {
+    // The ledgered read's artifact records no arm; a confirm-final read
+    // under another convention would be filed as if it were the emitted one.
+    throw new Error(`--r-arm ${options.rArm} with --confirm-final: the ledger records no arm, so a recorded read grades the emitted column only`);
   }
   if (!frozen && options.confirmFinal && (options.deriveFilters ?? []).length > 0) {
     throw new Error(
@@ -1669,7 +1714,8 @@ export async function gradeCorpus(
     // THE ONE READ. The door seals the confirm fold by default (R4 act 1);
     // this is the only call in the repository allowed to open it, and only
     // when the read will be recorded in the LA-6 ledger below.
-    const read = await assertManifestedCorpusStreaming(path, (row) => {
+    const read = await assertManifestedCorpusStreaming(path, (raw) => {
+      const row = projectArm(raw, options.rArm ?? "net", path);
       if (held.has(row.symbol)) return;
       if (options.symbolFilter && !options.symbolFilter.has(row.symbol)) {
         return;
@@ -2551,6 +2597,7 @@ async function main(): Promise<void> {
     "--baseline",
   "--derive-filters",
   "--frozen",
+  "--r-arm",
     "--confirm-log-dir",
     "--permutations",
     "--out",
@@ -2655,6 +2702,11 @@ async function main(): Promise<void> {
   const confirmLogDir = str("--confirm-log-dir");
   // The verdict unit: "class" pools a class's markets (the 4c gate);
   // "market" grades every market on its own rows (R4's per-market program).
+  const rArmToken = str("--r-arm") ?? "net";
+  if (!(ARM_NAMES as string[]).includes(rArmToken)) {
+    throw new Error(`--r-arm must be one of ${ARM_NAMES.join(", ")}, not ${JSON.stringify(rArmToken)}`);
+  }
+  const rArm = rArmToken as ArmName;
   const verdictUnitToken = str("--verdict-unit") ?? "class";
   if (verdictUnitToken !== "class" && verdictUnitToken !== "market") {
     throw new Error(
@@ -2709,10 +2761,12 @@ async function main(): Promise<void> {
     includeHoldout: args.includes("--include-holdout"),
     permutations,
     provenancePath,
+    rArm,
     readArtifactPath,
     seed,
     verdictUnit,
   });
+  console.log(`R column: ${rArm} arm (${ARM_COLUMNS[rArm].r} / ${ARM_COLUMNS[rArm].outcome})${rArm === "net" ? "" : " — the gate reads a convention other than the emitted one; the gross figures beside it are the row's grossRealizedR, unprojected"}`);
   console.log(
     `verdict unit: ${verdictUnit} — ${
       verdictUnit === "market"

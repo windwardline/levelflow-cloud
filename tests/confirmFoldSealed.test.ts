@@ -254,6 +254,14 @@ function withOutcome(
     grossExitPrice: exitLeg ? (exitLeg.price as number) : null,
     grossOutcome: outcome,
     grossRealizedR: filled ? Number((realizedR + 0.02).toFixed(4)) : realizedR,
+    // The arming-bound arm (2026-09-14), equal to the net arm here: a fixture
+    // bar never closes back through the armed level, so the third resolution
+    // prints the same money. Present so every column a real emit carries is
+    // on the fixture, and the readers that grade under it run on it.
+    armingBoundExitAtMs: exitLeg ? (exitLeg.time as number) : null,
+    armingBoundExitPrice: exitLeg ? (exitLeg.price as number) : null,
+    armingBoundOutcome: outcome,
+    armingBoundRealizedR: realizedR,
     legs,
     maxAdverseMove: filled ? risk * (outcome === "stop_loss" ? 1 : 0.3) : 0,
     maxFavorableMove: filled ? risk * (outcome === "take_profit" ? 1.5 : outcome === "tp1_partial" ? 0.5 : 0.2) : 0,
@@ -546,6 +554,7 @@ function fixture(shape: Shape, label: string): Fixture {
 const READERS: Record<string, { args: string[]; cwd?: "fixture"; note?: string }> = {
   "account-type-report": { args: ["F", "--min-filled", "1"] },
   "ag-class-derivation": { args: ["F"] },
+  "arming-bound-cells": { args: ["F"] },
   "banked-fraction": { args: ["F"] },
   "confidence-bands": { args: ["F"] },
   "contained-years": { args: ["F", "--witness", "W"], note: "the year map from a witness table the fixture writes; the manifest predates the field" },
@@ -588,6 +597,8 @@ const EXTRA_RUNS: Array<{ args: string[]; cwd?: "fixture"; label: string; reader
   { args: ["F", "--years", "contained", "--witness", "W"], label: "banked-fraction --years contained", reader: "banked-fraction" },
   { args: ["F", "--years", "escaping", "--witness", "W"], label: "payoff-decomposition --years escaping", reader: "payoff-decomposition" },
   { args: ["F", "--years", "contained", "--witness", "W"], label: "forex-commission-conversion --years contained", reader: "forex-commission-conversion" },
+  { args: ["F", "--years", "contained", "--witness", "W"], label: "arming-bound-cells --years contained", reader: "arming-bound-cells" },
+  { args: ["F", "--permutations", "20", "--r-arm", "bound"], label: "grid-totalr --r-arm bound", reader: "grid-totalr" },
   { args: ["F", "--witness", "W"], label: "forex-commission-admission --witness", reader: "forex-commission-admission" },
   {
     args: ["F", "--include-holdout"],
