@@ -103,6 +103,19 @@ describe("postgres off-box backup", () => {
     assert.ok(!/PGPASSWORD|R2_TOKEN|password/i.test(PLIST));
     assert.match(PLIST, /backup-postgres-offbox\.sh/);
   });
+
+  it("runs through wl-repo-script, not a working-tree path", () => {
+    // ~/Projects checkouts are SHARED and concurrent agents move them onto
+    // feature branches. A plist naming a working-tree path runs whatever branch
+    // is out at 06:40. The dangerous shape is not the missing script (exit 127,
+    // loud) but the STALE one: present on an old branch, superseded, exit 0.
+    // This job hit exit 127 on first load for exactly that reason.
+    assert.match(PLIST, /wl-repo-script/);
+    assert.ok(
+      !/<string>\/Users\/peacock\/Projects\/levelflow-cloud\/scripts\/ops\/backup-postgres-offbox\.sh<\/string>/.test(PLIST),
+      "the plist must not invoke the working-tree path directly",
+    );
+  });
 });
 
 describe("postgres restore proof", () => {

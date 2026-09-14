@@ -4,15 +4,23 @@
 <dict>
   <key>Label</key>
   <string>com.windwardline.levelflow-postgres-backup</string>
-  <!-- The script self-delivers its two credentials through wl-secret by
-       absolute path. The plist holds no secret and names none: wl-secret is not
-       on PATH on the schedule, which is why the lookup lives in the script
-       rather than here. -->
+  <!-- Invoked through wl-repo-script, which resolves the script from
+       origin/main rather than the working tree. ~/Projects checkouts are SHARED
+       and concurrent agents move them onto feature branches routinely, so a
+       plist naming a working-tree path runs whatever branch happens to be out
+       at 06:40. Two shapes, and the second is the dangerous one: a NEW script
+       is absent on an older branch and the job exits 127, which is loud; an OLD
+       script is present but stale, runs a superseded version, and exits 0.
+       Demonstrated 2026-09-14 — this job hit exit 127 on first load because
+       another session had the checkout on research/arming-bound-2026-09-14.
+
+       The script self-delivers its two credentials through wl-secret by
+       absolute path. The plist holds no secret and names none. -->
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
     <string>-lc</string>
-    <string>/Users/peacock/Projects/levelflow-cloud/scripts/ops/backup-postgres-offbox.sh</string>
+    <string>/Users/peacock/.local/bin/wl-repo-script /Users/peacock/Projects/levelflow-cloud scripts/ops/backup-postgres-offbox.sh</string>
   </array>
   <!-- 06:40 local, ten minutes after Supabase's own daily physical backup lands
        at ~06:30Z, so the off-box copy is taken from a database the provider has
