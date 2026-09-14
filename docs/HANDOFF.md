@@ -2269,6 +2269,55 @@ rather than an absence — and on the fit held-out fold the volume it discards
 is net positive. **The gate could not return a verdict on it at the time this
 was written; it can now, and it did: see the graded refusal below.** It is a pre-registration for the next calendar, NOT a ship.
 
+**FMP ACCESS REINSTATED — 2026-09-14 (owner report), verified 18:52Z by one
+`/stable/quote` request: HTTP 200, a EURUSD quote, 440 bytes.** Three facts
+measured the same hour, and what was done about each:
+
+1. **The quote bank's 37,790 errors were the allowance, then the key.**
+   Exhaustively: 36,973 × `429` from 2026-08-16 to 2026-09-01 07:09Z (the
+   rolling bandwidth allowance, memory `fmp-bandwidth-allowance`), 792 × `401`
+   on 2026-08-18, 21 timeouts, 4 transport errors = 37,790. No `quote_fetch`
+   row exists after 2026-09-01: nothing has scanned since, so nothing has
+   banked yet.
+2. **FMP's `/stable/quote` carries no bid/ask for EURUSD** — the one symbol
+   probed; the payload holds price, day range and averages, no `bid`, no
+   `ask` — so the loader's parser
+   returns null and, until this change set, the branch recorded NOTHING — a 200
+   without a bid was silence. The branch now files an error naming the cause
+   (`tests/telemetryRedaction.test.ts`). The in-span spread table the round's
+   memo routed through "the quote bank when the key returns" cannot come from
+   `/quote`: the entitlements record names **Full Forex Quote** endpoints,
+   unused (`docs/fmp-entitlements.md:106`). Probe their fields once before
+   pointing the bank at them; the E8 TradeLocker capture is the fallback.
+3. **Nine rows from 2026-08-07 carried the request URL with the API key** in
+   `analyzer_events.message` (4 `quote_fetch`, 5 `market_data_fetch`) and
+   four more in `analyzer_events.metadata` (providerFailures) — Deno's
+   transport-error text includes the query string, and the loader recorded
+   `error.message` verbatim at four birth sites. That text also reaches
+   `market_data_health.provider_warnings` (readable by `authenticated`, on the
+   realtime publication), the HTTP response the panel renders, and
+   `trade_setups.confluence`; a census of all three (`ilike '%apikey=%'`)
+   found nothing there. `analyzer_events` itself is readable only by
+   `postgres` and `service_role` (`anon` and `authenticated` revoked,
+   migration 20260624052212). All thirteen rows redacted in place 2026-09-14
+   (`apikey=REDACTED`, counts proven by `returning`). The fix scrubs at every
+   birth site — providerFailures, providerWarnings, both recorded messages,
+   and the rethrow, in place so the error keeps its type — and again at the
+   telemetry choke point (`telemetry.ts` → `redact.ts`; news-calendar's local
+   twin replaced by the same helper); pinned by test and mutation. The pg_cron
+   watchdog also inserts into the table (a constant message; no exposure).
+   Function console logs still receive raw error objects at several sites;
+   past log lines age out by retention — which is one more reason the answer
+   is rotation. **Owner item: rotate the FMP key** — the dashboard step is
+   yours; Keychain `fmp-api-key`, the Supabase function secret and the MCP
+   connector are the driver's, in the policy's order (the new value in the
+   Keychain before the provider invalidates the old). A credential in a table
+   is a credential in every backup of it.
+
+Program adjustments: the cross-commission fix's live half (one rate fetch per
+cross, a refusal when absent) is buildable and verifiable now; the deploy
+E2E's stand-downs end; the re-simulate is unaffected (zero provider bytes).
+
 **THE OPEN-SCOPE ROUND: NOTHING ON DISK ADDS REALIZED R, AND THE IN-SPAN
 FINDING RESTS ON A CONVENTION — 2026-09-13/14.**
 [`open-scope-round-2026-09-13.md`](/docs/research/open-scope-round-2026-09-13.md).
@@ -2308,9 +2357,10 @@ record on contained years, it refuses to speak unless its net column
 reproduces every cell) and `grid-totalr --r-arm bound` (the market-grain
 gate on the bound column; a recorded read refuses a non-net arm). The one
 re-simulate — the 2026-09-05 rebuild's exact recipe at `410e9ec`, pinned
-cache, zero provider bytes — is running as `capture-all-classfolds-2026-09-14`;
-promotion waits on every pre-existing column reproducing the record row for
-row. #634's squash had dropped this block from HANDOFF — an engine branch
+cache, zero provider bytes — ran 15 minutes as `capture-all-classfolds-2026-09-14`
+and was stopped at the owner's close-of-night (partial removed,
+`r3/classfolds.status.log`); it relaunches first, and promotion waits on every
+pre-existing column reproducing the record row for row. #634's squash had dropped this block from HANDOFF — an engine branch
 reset onto a moved main without a rebase; restored here.** Then: the cost table (E8 bid/ask by hour, 28
 pairs — the quote bank when the key returns, or an owner-run capture now);
 the 21-cross commission fix in the readers from the daily cache; a
@@ -2325,8 +2375,8 @@ refuted: the E8 bid/ask capture (its priority set by item 1's outcome); what
 a review hour means (wall-clock or open-market; owed since 2026-09-12); the
 market grain against the seven-year arithmetic; whether a genuinely new entry
 family is a new program under the one-burn-per-program rule (fold reuse
-itself is already ruled). Unconditionally the owner's: the FMP escalation and
-the two E8 tab captures.
+itself is already ruled). Unconditionally the owner's: the FMP key rotation
+(above; the escalation itself closed 2026-09-14) and the two E8 tab captures.
 
 **THE FOREX COMMISSION IS CONVERTED IN THE WRONG CURRENCY — found 2026-09-13.**
 [`forex-commission-conversion-2026-09-13.md`](/docs/research/forex-commission-conversion-2026-09-13.md),

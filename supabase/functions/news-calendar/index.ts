@@ -1,4 +1,5 @@
 import { recordAnalyzerEvent } from "../trade-analyzer/telemetry.ts";
+import { redactProviderSecrets } from "../trade-analyzer/redact.ts";
 import { recordFetch } from "../trade-analyzer/fmpBudget.ts";
 import { fmpBudgetDeps } from "../trade-analyzer/fmpBudgetDb.ts";
 import { getAssetType } from "../trade-analyzer/calibration.ts";
@@ -222,8 +223,8 @@ function describeError(error: unknown) {
   const message = error instanceof Error
     ? `${error.name}: ${error.message}`
     : String(error);
-  return message.replace(/(apikey|token)=[^&\s")]+/gi, "$1=REDACTED")
-    .slice(0, 400);
+  // One scrub for every function (trade-analyzer/redact.ts), not a local twin.
+  return redactProviderSecrets(message).slice(0, 400);
 }
 
 function isAuthorized(req: Request) {

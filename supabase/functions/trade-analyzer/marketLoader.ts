@@ -4,6 +4,7 @@ import {
   normalizeFmpBars,
 } from "./bars.ts";
 import { asStoredBar, readThrough, type StoredBar } from "./barStore.ts";
+import { redactProviderSecrets } from "./redact.ts";
 import { parseFmpQuoteSnapshot, type QuoteSnapshot } from "./quotes.ts";
 import { barStoreDeps } from "./barStoreDb.ts";
 import type { AnalyzerEventStatus } from "./telemetry.ts";
@@ -119,9 +120,12 @@ export async function fetchFirstAvailableMarketContext(
       );
     } catch (error) {
       sawFetchFailure = true;
+      // Scrubbed at birth: this text reaches analyzer_events.metadata, the
+      // HTTP response and trade_setups.confluence, none of which pass the
+      // telemetry choke point (2026-09-14).
       providerFailures.push(
         `${providerSymbol}: ${
-          error instanceof Error ? error.message : "FMP request failed"
+          error instanceof Error ? redactProviderSecrets(error.message) : "FMP request failed"
         }`,
       );
     }
@@ -194,10 +198,13 @@ async function fetchMarketContext(
           timeframes[timeframe] = bars;
         }
       } catch (error) {
+        // Scrubbed at birth: providerWarnings reach market_data_health
+        // (authenticated-readable, on the realtime publication), the HTTP
+        // response and trade_setups.confluence (2026-09-14).
         providerWarnings.push(
           `${timeframe}: ${
             error instanceof Error
-              ? error.message
+              ? redactProviderSecrets(error.message)
               : "FMP intraday request failed"
           }`,
         );
@@ -287,6 +294,24 @@ async function fetchFmpQuoteSnapshot(
     const payload = JSON.parse(responseText) as unknown;
     const quote = parseFmpQuoteSnapshot(payload);
     if (!quote) {
+      // A 200 whose payload carries no usable bid/ask used to return here
+      // in silence, so a quote bank that never banked looked like one that
+      // was never asked. FMP's `/quote` carries no bid/ask for forex
+      // (probed 2026-09-14): this is the row that says so.
+      const first = Array.isArray(payload) ? payload[0] : payload;
+      const fields = typeof first === "object" && first !== null ? Object.keys(first as Record<string, unknown>) : [];
+      await recordEvent({
+        action: "quote_fetch",
+        durationMs,
+        message: "FMP quote payload carries no usable bid/ask",
+        metadata: {
+          hasAsk: fields.some((field) => /^ask/i.test(field)),
+          hasBid: fields.some((field) => /^bid/i.test(field)),
+          records: Array.isArray(payload) ? payload.length : 1,
+        },
+        providerSymbol: fmpSymbol,
+        status: "error",
+      });
       return null;
     }
 
@@ -321,7 +346,7 @@ async function fetchFmpQuoteSnapshot(
     await recordEvent({
       action: "quote_fetch",
       durationMs: Math.round(performance.now() - startedAt),
-      message: error instanceof Error ? error.message : "FMP quote failed",
+      message: error instanceof Error ? redactProviderSecrets(error.message) : "FMP quote failed",
       providerSymbol: fmpSymbol,
       status: "error",
     });
@@ -380,13 +405,19 @@ async function fetchRawWindow(
     await recordEvent({
       action: "market_data_fetch",
       durationMs,
-      message: error instanceof Error ? error.message : "FMP request failed",
+      message: error instanceof Error ? redactProviderSecrets(error.message) : "FMP request failed",
       providerSymbol: fmpSymbol,
       status: durationMs >= SLOW_PROVIDER_CALL_MS ? "slow_provider" : "error",
       metadata: {
         timeframe,
       },
     });
+    // The rethrow carries the same text into providerFailures, the console
+    // and every caller's log: scrub it in place, keeping the error's type and
+    // stack (no caller inspects the message).
+    if (error instanceof Error) {
+      error.message = redactProviderSecrets(error.message);
+    }
     throw error;
   }
 
