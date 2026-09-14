@@ -2318,6 +2318,36 @@ Program adjustments: the cross-commission fix's live half (one rate fetch per
 cross, a refusal when absent) is buildable and verifiable now; the deploy
 E2E's stand-downs end; the re-simulate is unaffected (zero provider bytes).
 
+**THE 21-CROSS COMMISSION, PRICED IN THE RIGHT CURRENCY ON ONE PHYSICS —
+2026-09-14.** [`forex-commission-cross-rate-2026-09-14.md`](/docs/research/forex-commission-cross-rate-2026-09-14.md),
+engine `2026.09.14.forex-commission-cross-rate`. The round's memo scoped a
+live half (one rate fetch per cross); three refuters on that design returned
+before code and the law refuter overturned the split — one physics (Phase 1,
+closed as `2026.08.18.one-physics`) forbids a live-only exact charge with an
+approximation written into the sweep, the four-pair precedent kept ONE shared
+implementation, and readers cannot re-derive a corpus's admission offline. So
+both paths price the crosses from the USD leg's previous completed daily
+close: live through the bar store beside the market's own load
+(`quoteCurrencyRate.ts`, memoised by leg per scan request; the client's 11
+requests per scan are deduped by the store itself), the sweep from the pinned
+cache through the same completion gate. `symbols.ts` names the leg from the
+currency table; `venueCosts.ts` has no price-scaled branch left; a cross
+without a rate is refused by name (`commission_rate_unavailable`, ledgered)
+and live blocks the market with the fact only when the leg's bars fail to
+load; the corpus emits `usdPerQuote`. **Measured first on the record
+(`r3/forex-commission-admission-crosses-2026-09-14.txt`, contained years, cap
+0.15, per-decision leg rates, unrated 0)**: the exact figure newly declines
+2,785 cross rows (2,431 filled, −100.6 R emitted → −155.5 corrected) and
+newly admits 2,401 (2,139 filled, −82.4 → −46.1) — about +109 R corrected on
+the swap; the eleven EUR/GBP-base crosses only admit, AUDJPY/CADJPY/NZDCAD/
+NZDCHF/NZDJPY only decline, CHFJPY barely moves; the kept rows' money moves
++158.4 R two-sided. The corpus of record and the 2026-09-14 re-simulate carry
+the approximation on the 21 (readers re-price per row); the ledgered confirm
+read's cross money is frozen under it and can be neither re-priced nor
+re-read. The basis ($5 per lot of BASE units) stays an inference from E8's
+symbols table — **owner item: one E8 fill statement on any cross settles it.**
+Six mutations caught; `deno check` green on the Edge modules.
+
 **THE OPEN-SCOPE ROUND: NOTHING ON DISK ADDS REALIZED R, AND THE IN-SPAN
 FINDING RESTS ON A CONVENTION — 2026-09-13/14.**
 [`open-scope-round-2026-09-13.md`](/docs/research/open-scope-round-2026-09-13.md).

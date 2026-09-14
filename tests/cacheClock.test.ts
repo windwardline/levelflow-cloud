@@ -49,7 +49,11 @@ describe("the sweep driver feeds every store its clock (read as text — main() 
   const sweep = readFileSync("scripts/replay-sweep.ts", "utf8");
 
   it("passes BAR_CLOCK to every bar store and CALENDAR_CLOCK to the calendar store", () => {
-    assert.equal((sweep.match(/clock: BAR_CLOCK/g) ?? []).length, 4);
+    // Five bar stores: a symbol's 15-minute, daily and 5-minute series, the
+    // COT store, and — since 2026-09-14 — a forex cross's USD leg daily series
+    // (the commission's rate), read from the leg's own store under the same
+    // key and clock so a pinned anchor costs nothing.
+    assert.equal((sweep.match(/clock: BAR_CLOCK/g) ?? []).length, 5);
     assert.match(sweep, /clock: CALENDAR_CLOCK/);
     // The legacy date-keyed migration imported pre-clock-stamp data and is
     // gone; nothing may reintroduce it.
