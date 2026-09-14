@@ -419,6 +419,22 @@ export function isCurrencyRelevantForSymbol(
   return symbolCurrencies[symbol]?.includes(currency) ?? currency === "USD";
 }
 
+/**
+ * The [base, quote] currencies of a symbol whose table entry names two, or
+ * null: single-currency entries (XAUUSD, ESUSD, BTCUSD are ["USD"]) and
+ * unknown symbols both answer null. The table is the authority; the caller
+ * decides the asset class from the roster, never from the ticker's shape.
+ */
+export function symbolCurrencyPair(
+  symbol: string,
+): readonly [string, string] | null {
+  const currencies = symbolCurrencies[symbol as SupportedSymbol];
+  if (!currencies || currencies.length !== 2) {
+    return null;
+  }
+  return [currencies[0], currencies[1]];
+}
+
 export function isHeadlineNewsRelevantForSymbol(
   symbol: SupportedSymbol,
   newsSymbol: string | null | undefined,

@@ -19,7 +19,7 @@
 > the defect and must be rebuilt (Phase 0) before anything is re-measured.
 
 
-Model version: `2026.09.04.removal-test-uniform` (**not yet deployed**
+Model version: `2026.09.13.forex-commission-usd-quote` (**not yet deployed**
 — the desk is parked, so this version has never served a request. R2's D1:
 global learning derived `confidence_adjustment` from a WIN RATE against a
 neutral point of 0.5, which is break-even only when a win and a loss are the
@@ -272,7 +272,11 @@ fills, in one version:
 - **The commission exists** (`venueCosts.ts`, CO-1/3/4). E8's published
   bill per line, converted to price distance: the futures program's three
   itemized per-contract fees over tick value (primary), forex's $5/lot RT
-  as 0.5bp of price (primary), the index $6/$12 split over published
+  per 100,000 base units (primary) — the constant 5e-5 in quote units where
+  USD is the quote, price × 5e-5 elsewhere, which is exact where USD is the
+  base and off by USD-per-BASE on the 21 crosses
+  (`docs/research/forex-commission-conversion-2026-09-13.md`), the index
+  $6/$12 split over published
   $/point multipliers, metals/energies per lot, crypto's conflicted
   published units resolved conservatively at 0.035% per side. Symbols E8
   publishes no row for carry a NAMED conservative sibling proxy. The
@@ -377,7 +381,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.09.04.removal-test-uniform'
+   where o.analyzer_version = '2026.09.13.forex-commission-usd-quote'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;

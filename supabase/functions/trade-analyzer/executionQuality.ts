@@ -510,8 +510,9 @@ function clampInteger(value: number, min: number, max: number) {
  * Both statements cannot be true, and the test's is the one that is right.
  *
  * The sharpest case is commission, because it is a PUBLISHED figure rather
- * than a model: `venueCommissionRoundTripPrice` returns price × 5e-5, which is
- * E8's $5/lot. Quantizing it to 1e-5 restates that published number by
+ * than a model: `venueCommissionRoundTripPrice` returns E8's $5/lot as a
+ * price distance (the constant 5e-5 where USD is the quote, price × 5e-5
+ * elsewhere). Quantizing it to 1e-5 restates that published number by
  * 0.1/price — measured, +66.7% at price 0.12, +13.2% at 0.53, and zero at
  * price >= 1, so the error is invisible on every instrument anyone happened to
  * probe and material on the sub-dollar ones.

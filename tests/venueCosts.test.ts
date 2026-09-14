@@ -7,12 +7,18 @@
 // as per-symbol spread FLOORS. Where E8 publishes nothing, the module
 // carries a named conservative proxy — never silence, never zero.
 //
-// EXCEPT the two forex pins (2026-09-13): they assert the CODE's arithmetic
-// and label it an approximation — see their own comment. The dossier figure
-// is $5/lot on 100k BASE units; the code applies it as a price fraction, which
-// is exact only where USD is the base.
+// EXCEPT the forex cross pin (2026-09-13): it asserts the CODE's arithmetic
+// and labels it an approximation — see its own comment. The dossier figure
+// is $5/lot on 100k BASE units, i.e. 5e-5 USD per base unit; in quote units
+// that is exact where USD is the quote (the constant) or the base (price ×
+// 5e-5), and off by USD-per-BASE on the 21 crosses.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
+import {
+  knownSymbols,
+  symbolCurrencyPair,
+} from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
   cryptoSpreadFloorPrice,
   venueCommissionRoundTripPrice,
@@ -59,26 +65,71 @@ describe("venueCommissionRoundTripPrice — CFD lines", () => {
   // right number. It is the number the code produces; it is not the right
   // number. $5 per 100,000 BASE units is a fixed 5e-5 USD per base unit, and
   // the accountant needs it in QUOTE units: 5e-5 / (USD per quote). The code
-  // returns referencePrice × 5e-5, which equals that only when USD is the
-  // base. See docs/research/forex-commission-conversion-2026-09-13.md.
+  // returned referencePrice × 5e-5 for every pair, which equals that only
+  // when USD is the base; since the 2026-09-13 USD-quote version the four
+  // USD-quote pairs pay the constant. See
+  // docs/research/forex-commission-conversion-2026-09-13.md.
   //
-  // The values below are pinned AS THE CURRENT BEHAVIOUR so that a fix to the
-  // formula fails here and moves the record deliberately. They are not an
-  // endorsement.
-  it("forex: the constant is $5/lot on 100k base units, applied as a price fraction", () => {
-    close(venueCommissionRoundTripPrice("EURUSD", 1.1), 0.000055); // 1.1 × 5e-5; true is 5e-5
-    close(venueCommissionRoundTripPrice("USDJPY", 150), 0.0075); // exact: USD is the base
+  // E8's forex commission is $5 round-turn per 100,000 BASE units — 5e-5 USD
+  // per base unit. The accountant needs it as a distance in QUOTE units, so
+  // the exact figure is 5e-5 × (quote per USD). Record and measurements:
+  // docs/research/forex-commission-conversion-2026-09-13.md.
+  it("forex, USD quote: the round trip is the constant 5e-5 at any price", () => {
+    close(venueCommissionRoundTripPrice("EURUSD", 1.1), 0.00005);
+    close(venueCommissionRoundTripPrice("GBPUSD", 1.27), 0.00005);
+    close(venueCommissionRoundTripPrice("GBPUSD", 1.6), 0.00005);
+    close(venueCommissionRoundTripPrice("AUDUSD", 0.66), 0.00005);
+    close(venueCommissionRoundTripPrice("NZDUSD", 0.61), 0.00005);
   });
-  it("forex: the conversion error is two-sided on the USD-quote pairs, and documented", () => {
-    // USD-quote: the true round trip is a constant 5e-5 per base unit, no
-    // cross rate needed. The code scales it by the price instead.
-    const gbp = venueCommissionRoundTripPrice("GBPUSD", 1.27)!;
-    const nzd = venueCommissionRoundTripPrice("NZDUSD", 0.61)!;
-    close(gbp / 0.00005, 1.27); // overcharged 27 %
-    close(nzd / 0.00005, 0.61); // undercharged 39 %
-    // Measured on the corpus: GBPUSD +122.7 R given back, NZDUSD -107.8 R
-    // owed, over ~10,500 fills each. An earlier docblock called this "mildly
-    // conservative" with "rounding up deliberate". Two-sided is not one-sided.
+  it("forex, USD quote: exactly four roster symbols, derived from the currency table", () => {
+    const forex = knownSymbols.filter(
+      (symbol) => getAssetType(symbol) === "forex",
+    );
+    assert.equal(forex.length, 28);
+    for (const symbol of forex) {
+      // A forex symbol without a table entry would fall to the cross formula
+      // silently — the review's one seam (2026-09-13). Every pair is named.
+      assert.notEqual(symbolCurrencyPair(symbol), null, `${symbol} has no currency pair`);
+    }
+    const usdQuote = forex.filter(
+      (symbol) => symbolCurrencyPair(symbol)?.[1] === "USD",
+    );
+    assert.deepEqual([...usdQuote].sort(), [
+      "AUDUSD",
+      "EURUSD",
+      "GBPUSD",
+      "NZDUSD",
+    ]);
+    for (const symbol of usdQuote) {
+      assert.equal(
+        venueCommissionRoundTripPrice(symbol, 0.5),
+        venueCommissionRoundTripPrice(symbol, 2),
+        `${symbol} must not scale with price`,
+      );
+    }
+  });
+  it("symbolCurrencyPair answers a pair or null — never a half-filled pair", () => {
+    // M5 (2026-09-13) survived without this: dropping the length guard leaks
+    // ["USD", undefined] for single-currency entries. Not a forex symbol, so
+    // no commission moved — but the helper's contract is what the branch
+    // above relies on, and a contract nobody pins is not one.
+    assert.deepEqual(symbolCurrencyPair("EURUSD"), ["EUR", "USD"]);
+    assert.deepEqual(symbolCurrencyPair("USDJPY"), ["USD", "JPY"]);
+    assert.equal(symbolCurrencyPair("XAUUSD"), null);
+    assert.equal(symbolCurrencyPair("ESUSD"), null);
+    assert.equal(symbolCurrencyPair("NOPE"), null);
+  });
+  it("forex, USD base: price × 5e-5 is exact (the price IS quote per USD)", () => {
+    close(venueCommissionRoundTripPrice("USDJPY", 150), 0.0075);
+    close(venueCommissionRoundTripPrice("USDCAD", 1.36), 0.000068);
+  });
+  it("forex crosses: price × 5e-5 stays, pinned AS AN APPROXIMATION", () => {
+    // GBPJPY at 190 charges 0.0095 JPY per unit; the true figure is
+    // 5e-5 × USDJPY (0.0075 at 150) and the code has no USDJPY here — off
+    // by USD-per-GBP, +27% at these prices. Pinned so a change to the cross
+    // formula fails here and moves the record deliberately, never silently.
+    close(venueCommissionRoundTripPrice("GBPJPY", 190), 0.0095);
+    close(venueCommissionRoundTripPrice("EURGBP", 0.85), 0.0000425);
   });
   it("SP pays $6 against its published $20/point", () => {
     close(venueCommissionRoundTripPrice("SP", 5500), 0.3);

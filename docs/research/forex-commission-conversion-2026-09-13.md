@@ -125,14 +125,17 @@ test that pinned "0.5bp of price" as a correct figure so it now documents a
 known approximation and fails the moment the formula changes, forcing the
 record to move with it.
 
-**Does not:** change the formula — and the reason is narrower than this note
+**Does not (as of #629/#630; superseded for four pairs the same day — see the
+last section):** change the formula — and the reason is narrower than this note
 first said. For the four **USD-quote** pairs the true figure is the constant
 `5e-5`: no rate is needed, both paths compute the same constant, one physics is
-satisfied trivially. Ranked by total mis-charge across all 28 pairs (the table
-in the reproduction output): GBPUSD 1st (+122.7 R over 10,336 fills), NZDUSD
+satisfied trivially. Ranked by total mis-charge across all 28 pairs (the
+reproduction output's per-pair table, re-sorted by |ΔR total| — it prints by
+|ΔR per fill|): GBPUSD 1st (+122.7 R over 10,336 fills), NZDUSD
 4th (−107.8 R), EURUSD 14th (+74.3 R), AUDUSD 15th (−71.9 R). EURCHF is 2nd
 (+122.1 R) and NZDCAD 3rd (−118.1 R) — the crosses are not the small half of
-the defect. That fix is buildable today and is the next engine change set, with an
+the defect. That fix shipped later the same day as
+`2026.09.13.forex-commission-usd-quote` (last section), with an
 `ANALYZER_VERSION` bump because it moves `costShare` and therefore admission on
 those four. What needs a design is the **21 crosses**: their exact figure needs
 the quote currency's USD rate at cost time, and neither path has it — the sweep
@@ -144,8 +147,77 @@ must happen: every forex artifact in the record is mis-charged two-sidedly, and
 the correction is computable from emitted fields without a re-sweep.
 
 **The suite was green throughout the quote-bank failure.** The only pin on that
-path (`tests/executionQuality.test.ts:183`) regex-matches the source text of the
-banking call — it asserts the code is written, not that it ever ran. Thirty-
+path (the `assert.match(loader, /action: "quote_fetch"…/)` pin in
+`tests/executionQuality.test.ts`) regex-matches the source text of the banking call — it asserts the code is written, not that it ever ran. Thirty-
 seven thousand consecutive failures passed every test. The honest guard is an
 operational one — a cadence check on `analyzer_events` quote_fetch success —
 and it is recorded as owed, not built here.
+
+## The four USD-quote pairs, fixed the same day
+
+Engine `2026.09.13.forex-commission-usd-quote`. Where the currency table says the quote is USD
+(`symbolCurrencyPair` in `symbols.ts`; the table is the authority, the ticker's
+shape is never consulted), `venueCommissionRoundTripPrice` returns the constant
+`5e-5`. USD-base pairs were already exact and are unchanged; the 21 crosses keep
+the price-scaled approximation, pinned as one.
+
+Three independent refuters (the open-scope round, 2026-09-13) reproduced the
+defect before this shipped — net corrections of +221.6 R, +223.7 R and +226.8 R
+across all 28 pairs, a 5 R spread among them, against this note's +209.4 R on
+contained fills; the 12–17 R between them and this note is population (all
+years vs contained) and rate method (per-fill previous-day legs vs per-year
+means). Each said the same thing: real, verified, changes no cell's
+zero-clearing status, ship it as a correctness change with a version bump.
+Their verdicts are in the round's journal; the round's memo will carry them
+into the record.
+
+Tests moved with the physics: `tests/venueCosts.test.ts` (the three cases, a
+`symbolCurrencyPair` contract pin, a roster census requiring every forex
+symbol a pair and exactly four USD-quote) and `tests/executionQuality.test.ts`
+(the CO-3 fixture is USDCHF now, a USD-quote sibling pins the constant, and
+the roster-wide scale test splits on the currency table). Mutation-tested at
+six sites; the one first-pass survivor — nothing pinned the helper's
+"pair or null" contract — was pinned and killed.
+
+**Admission moves, and was measured first.** The cost share on the four pairs
+changes, so their admission under the forex class row's `maxCostShare: 0.15`
+changes. On R3's 55,554 accepted four-pair baseline rows (fit + select;
+`r3/forex-commission-admission-2026-09-13.txt`):
+
+| | rows | over cap, emitted | over cap, corrected | newly declined | newly admitted |
+|---|---:|---:|---:|---|---|
+| EURUSD | 14,077 | 1,394 | 1,013 | 0 | 381 (339 filled, −33.3 R as emitted) |
+| GBPUSD | 13,588 | 784 | 369 | 0 | 415 (373 filled, −26.3 R) |
+| AUDUSD | 14,171 | 212 | 492 | 286 (238 filled, −7.8 R) | 6 (5 filled, −1.1 R) |
+| NZDUSD | 13,718 | 52 | 267 | 215 (186 filled, −8.0 R) | 0 |
+| four, all years | 55,554 | 2,442 | 2,141 | 501 (424, −15.8 R) | 802 (717, −60.7 R) |
+| four, contained years | 49,908 | 2,171 | 1,971 | 501 (424, −15.8 R) | 701 (627, −64.6 R) |
+
+The per-pair rows are all years. The over-charged pairs (EURUSD, GBPUSD)
+admit more, the under-charged pairs (AUDUSD, NZDUSD) admit less, and the mean
+cost share on the four is unchanged to the third decimal (0.0769 → 0.0766).
+On contained years, at the emitted accounting, the swap costs about 49 R
+(admits −64.6, declines −15.8); the repricing of the four pairs' 42,959
+contained fills gives back +17.3 R net — the same population, not the same
+rows. Under amendment 39 that is a wash — which is the point: this is a
+published figure charged wrongly, corrected, and the correction was priced
+before it shipped rather than after.
+
+**The producers.** Both measurement outputs in `r3/` were produced by session
+instruments (`commission-fix.mts`, `fx4-admission.mts`, scratchpad, untracked)
+that open the corpus only through the tracked sealed door
+`assertManifestedCorpusStreaming` (`scripts/sweepStats.ts`), which withholds
+every confirm row from the reader before any reader logic runs; the
+instruments carry no byte test of their own. Their eight-cell control
+reproduces the record byte for byte and three refuters reproduced the
+figures independently, but the instruments themselves are not in the census
+of readers. Promoting them to census-registered readers under `scripts/` is
+named work, not done here.
+
+**Not fixed here: the 21 crosses.** Their exact figure needs the quote
+currency's USD rate at cost time, which neither path supplies today. The
+refuters added a fact this note lacked:
+the daily cache holds every USD leg, so the sweep half is buildable from disk
+using the previous trading day's close (knowable at decision time); only the
+live half waits on a rate fetch, i.e. on the key. One physics forbids shipping
+the sweep half alone.

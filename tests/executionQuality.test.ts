@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { estimateExecutionQuality } from "../supabase/functions/trade-analyzer/executionQuality.ts";
-import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
+import {
+  defaultScanSymbols,
+  symbolCurrencyPair,
+} from "../supabase/functions/trade-analyzer/symbols.ts";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { calculateLearningWeight } from "../supabase/functions/trade-analyzer/learning.ts";
 import { parseFmpQuoteSnapshot } from "../supabase/functions/trade-analyzer/quotes.ts";
@@ -13,6 +16,12 @@ describe("execution quality model", () => {
     // (RT 0.00008). The venue's published $5/lot RT adds 0.00006 — 75% of
     // the modeled figure, the exact understatement round-8 CO-3 measured
     // — and an honest 4.7% cost-to-risk reads "Thin", not "Clean".
+    //
+    // The pair is USD-BASE (USDCHF) since 2026-09-13: there the $5 per
+    // 100,000 USD is price × 5e-5 in quote units, price-proportional, which
+    // is what the grid assertion below needs. A USD-QUOTE pair pays the
+    // constant 5e-5 — the sibling test — and sits on the 1e-5 grid by the
+    // accident of the constant, so it cannot carry that assertion.
     const quality = estimateExecutionQuality({
       assetType: "forex",
       atr: 0.0012,
@@ -23,11 +32,11 @@ describe("execution quality model", () => {
       providerWarnings: [],
       side: "buy",
       stopLoss: 1.153,
-      symbol: "EURUSD",
+      symbol: "USDCHF",
       takeProfit: 1.164,
     });
 
-    // 1.1579 * 5e-5 = 0.0000579 EXACTLY. It read 0.00006 until 2026-08-24,
+    // 1.158 * 5e-5 = 0.0000579 EXACTLY. It read 0.00006 until 2026-08-24,
     // which is the quantized value, not the venue's: roundPrice governed the
     // cost legs at an absolute 1e-5 and restated E8's published $5/lot by
     // 0.1/price — +3.6% here, +13.2% at price 0.53, +66.7% at 0.12.
@@ -47,6 +56,34 @@ describe("execution quality model", () => {
     assert.equal(quality.confidencePenalty, 4);
     assert.equal(quality.effectiveRewardRisk < quality.grossRewardRisk, true);
     assert.equal(quality.effectiveRewardRisk > 2.2, true);
+  });
+
+  it("charges a USD-quote pair the constant 5e-5 — $5 per 100,000 base units needs no rate (2026-09-13)", () => {
+    // E8's fee is a fixed dollar amount per unit of the BASE currency. On
+    // EURUSD the quote IS the dollar, so the round trip is exactly 5e-5 at
+    // any price — it was 1.158 × 5e-5 until the 2026-09-13 USD-quote
+    // version (record: forex-commission-conversion-2026-09-13.md).
+    const quality = estimateExecutionQuality({
+      assetType: "forex",
+      atr: 0.0012,
+      availableTimeframes: ["1day", "4hour", "1hour", "15min"],
+      dailyAtr: 0.006,
+      entryPrice: 1.156,
+      latestClose: 1.158,
+      providerWarnings: [],
+      side: "buy",
+      stopLoss: 1.153,
+      symbol: "EURUSD",
+      takeProfit: 1.164,
+    });
+    assert.equal(quality.estimatedCommission, 0.00005);
+    assert.ok(
+      Math.abs(
+        quality.estimatedRoundTripCost -
+          (quality.estimatedSpread + quality.estimatedSlippage * 2 + 0.00005),
+      ) < 1e-12,
+      "the constant joins the round trip like any other commission",
+    );
   });
 
   it("charges execution cost once — against the payoff, never also into the risk (2d)", () => {
@@ -692,14 +729,24 @@ describe("cost is scale-free, over the ROSTER (2026-08-24)", () => {
   // probe set is what let an absolute quantum sit under a scale-free claim.
   it("charges the venue's published commission at every price scale", () => {
     // Every forex pair on the roster, priced across four decades. The
-    // commission is price * 5e-5 by definition (E8's $5/lot), so the RATIO to
-    // price must be constant — that is what scale-free means here.
+    // invariant is that the ENGINE adds no absolute quantum of its own. The
+    // venue's fee is a fixed dollar amount per unit of the BASE currency, so
+    // what "no quantum" looks like depends on which side the dollar is on:
+    // · USD quote (4 pairs): the round trip is the constant 5e-5 in quote
+    //   units at every price — its share of a percentage move legitimately
+    //   grows as the base currency cheapens, because $5 per 100,000 EUR is
+    //   $5 whether EURUSD prints 1.16 or 0.12 (2026-09-13).
+    // · Everywhere else: price × 5e-5, so the RATIO to price is constant.
     const forex = defaultScanSymbols.filter((symbol) =>
       getAssetType(symbol) === "forex" && /^[A-Z]{6}$/.test(symbol)
     );
     assert.ok(forex.length >= 20, `expected the FX roster, got ${forex.length}`);
+    const usdQuote = forex.filter(
+      (symbol) => symbolCurrencyPair(symbol)?.[1] === "USD",
+    );
+    assert.equal(usdQuote.length, 4, `expected four USD-quote pairs, got ${usdQuote}`);
     for (const symbol of forex) {
-      const ratios = [0.12, 0.53, 1.16, 12.5, 155].map((price) => {
+      const commissions = [0.12, 0.53, 1.16, 12.5, 155].map((price) => {
         const quality = estimateExecutionQuality({
           assetType: "forex",
           atr: price * 0.001,
@@ -713,8 +760,19 @@ describe("cost is scale-free, over the ROSTER (2026-08-24)", () => {
           symbol,
           takeProfit: price * 1.006,
         });
-        return quality.estimatedCommission / price;
+        return { price, commission: quality.estimatedCommission };
       });
+      if (usdQuote.includes(symbol)) {
+        for (const { price, commission } of commissions) {
+          assert.equal(
+            commission,
+            0.00005,
+            `${symbol} at ${price}: a USD-quote pair pays the constant 5e-5`,
+          );
+        }
+        continue;
+      }
+      const ratios = commissions.map(({ price, commission }) => commission / price);
       const spread = Math.max(...ratios) - Math.min(...ratios);
       assert.ok(
         spread < 1e-12,
