@@ -12,9 +12,12 @@ deferral's premise changes, edit this file in the same change set.
 
 ## Account status, 2026-09-12
 
-The balance is paid and the dashboard shows Ultimate. **The API key still reads
-suspended**, and the owner is escalating with FMP. Until that clears, three
-things are blocked and one is not:
+The balance is paid and the dashboard shows Ultimate. ~~**The API key still reads
+suspended**, and the owner is escalating with FMP.~~ **Reinstated 2026-09-14**
+(verified with one `/stable/quote` request; the minute bank's 11:20Z run banked
+205,647 bars on its own). The table below is the record of the suspension
+(2026-09-04 → 2026-09-14); none of it blocks now, and the key is owed a
+rotation because thirteen `analyzer_events` rows carried it until 2026-09-14:
 
 | | blocked |
 |---|---|
@@ -104,7 +107,25 @@ replaces.
 ### Entitled, unused, and still open
 
 **Full quote endpoints per class** — Full Forex Quote, Full Commodities Quotes,
-Full Index Quotes. Richer than the generic `/quote` the loader uses.
+Full Index Quotes. ~~Richer than the generic `/quote` the loader uses.~~
+**Probed 2026-09-14 (four requests, one each): not richer where it matters.**
+Full Forex Quote (`/stable/batch-forex-quotes?short=false`, 1,550 pairs,
+677 KB) carries the same seventeen fields as `/quote` — price, day range,
+averages, volume — and no bid or ask on any record, so the quote bank cannot
+be re-pointed to it. The legacy `/api/v3/fx` is refused (403, legacy
+endpoints closed to this account). The only endpoint family carrying
+`bidPrice`/`askPrice` is `/stable/aftermarket-quote` (and its batch form),
+and it is not a spread source: `bidSize`/`askSize` are always 0, and the
+quotes flip between sane and garbage within minutes — EURUSD 43.8 pips at one
+probe and 1.4 bps three minutes later; at one instant across the 28 roster
+pairs, USDJPY 50.7 bps, EURJPY 56.3, NZDCHF 55.4, GBPNZD 51.4, NZDCAD 44.7
+beside USDCAD 0.1, USDCHF 0.2, GBPUSD 0.5. A banked quote replaces the
+modelled spread in the live cost (`executionQuality.ts`, `quotedSpread`), so
+pointing the bank at it would put a 78-pip USDJPY spread into live admission.
+The bank stays on `/quote`, where it records "no usable bid/ask"; E8's
+in-span spread can come only from the owner-run TradeLocker capture, which is
+therefore the sole source and not a fallback. No scheduled scan banks
+anything while the desk is parked, because there is nothing to bank.
 
 **Economic indicators and market risk premium** — deferred on 2026-07-02 pending
 "backtesting release-surprise behavior against Levelflow's traded markets". Still

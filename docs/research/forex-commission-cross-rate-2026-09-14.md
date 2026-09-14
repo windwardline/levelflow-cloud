@@ -134,7 +134,7 @@ zero differences.
   as at every bump; the desk is parked and the prior version never served a
   request.
 - The quote bank is untouched (FMP carries no usable forex bid/ask —
-  `fmp-entitlements.md`).
+  `docs/fmp-entitlements.md`).
 
 ## 5. Provenance
 

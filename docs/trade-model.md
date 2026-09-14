@@ -330,6 +330,13 @@ fills, in one version:
   leg's time). A corpus emitted before this column carries none of these
   fields — the corpus of record needs the one re-simulate to carry it — and
   a reader of them must refuse such a corpus, never assume the net figure.
+  **Read 2026-09-14** (`docs/research/arming-bound-2026-09-14.md`): under the
+  one-bar bound the in-span cells clear zero on 2 of 4, both in-pool (fit
+  +0.0135 [+0.0078], select +0.0121 [+0.0019]); neither held-out cell clears at
+  its lower bound (fit +0.0074 [−0.0038], select −0.0071 [−0.0265]);
+  the latency costs 0.023–0.026 R per fill in every cell; the market-grain
+  hour gate accepts 0 of 91 at either convention. The out-of-sample in-span money
+  existed only under FR-3's zero latency.
 - **Named boundary — CLOSED 2026-08-11 (#314):** live outcome-sync now
   replays each row's own stored decision-time costs (risk_model carries
   the full executionQuality, so no migration was ever needed): bid/ask
