@@ -341,7 +341,12 @@ swept. It ranked six items. Recorded here with the one change §3 forces.
    per-year means today — **verified**). Flips no
    cell; corrects every per-market figure the re-grade will read. The live
    path waits on one rate fetch per cross; a missing rate must decline the
-   setup (§19e) — the caller's `?? 0` would charge zero.
+   setup (§19e) — the caller's `?? 0` would charge zero. **Closed
+   2026-09-14 on one physics, not the split this item described**: both
+   paths price the crosses from the USD leg's previous completed daily close
+   (`2026.09.14.forex-commission-cross-rate`, record
+   `forex-commission-cross-rate-2026-09-14.md`); a cross without a rate is
+   refused by name.
 4. **A signal screen that spends no fold**: any new entry family is tested on
    the fit fold against the random-entry excursion null the alpha review used
    (the shipped entry: t = −0.01) before it earns a sweep. The memo is right

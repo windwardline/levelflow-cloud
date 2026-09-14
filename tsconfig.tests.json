@@ -65,6 +65,7 @@
     "supabase/functions/trade-analyzer/newsContext.ts",
     "supabase/functions/trade-analyzer/newsRules.ts",
     "supabase/functions/trade-analyzer/pricePlan.ts",
+    "supabase/functions/trade-analyzer/quoteCurrencyRate.ts",
     "supabase/functions/trade-analyzer/quotes.ts",
     "supabase/functions/trade-analyzer/redact.ts",
     "supabase/functions/trade-analyzer/replay.ts",

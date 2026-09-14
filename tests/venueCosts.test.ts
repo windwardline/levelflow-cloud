@@ -17,6 +17,7 @@ import { describe, it } from "node:test";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import {
   knownSymbols,
+  quoteCurrencyUsdLeg,
   symbolCurrencyPair,
 } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
@@ -34,28 +35,28 @@ const close = (actual: number | null, expected: number, tolerance = 1e-9) => {
 
 describe("venueCommissionRoundTripPrice — futures program (three fees, primary)", () => {
   it("ES: (2.58+2.80+0.38)/12.50 ticks x 0.25", () => {
-    close(venueCommissionRoundTripPrice("ESUSD", 5500), 0.1152);
+    close(venueCommissionRoundTripPrice("ESUSD", 5500, null), 0.1152);
   });
   it("CL: 6.00/10.00 x 0.01", () => {
-    close(venueCommissionRoundTripPrice("CLUSD", 79), 0.006);
+    close(venueCommissionRoundTripPrice("CLUSD", 79, null), 0.006);
   });
   it("corn pays the CBOT commodity rate: 7.20/12.50 x 0.25", () => {
-    close(venueCommissionRoundTripPrice("ZCUSX", 449.75), 0.144);
+    close(venueCommissionRoundTripPrice("ZCUSX", 449.75, null), 0.144);
   });
   it("is price-independent for contract-based classes", () => {
     assert.equal(
-      venueCommissionRoundTripPrice("ESUSD", 1000),
-      venueCommissionRoundTripPrice("ESUSD", 9000),
+      venueCommissionRoundTripPrice("ESUSD", 1000, null),
+      venueCommissionRoundTripPrice("ESUSD", 9000, null),
     );
   });
   it("Brent carries the crude sibling proxy (no published row)", () => {
-    close(venueCommissionRoundTripPrice("BZUSD", 85), 0.006);
+    close(venueCommissionRoundTripPrice("BZUSD", 85, null), 0.006);
   });
   it("30-year bond carries the conservative family proxy: 7.20/31.25 x 0.03125", () => {
-    close(venueCommissionRoundTripPrice("ZBUSD", 118), 0.0072);
+    close(venueCommissionRoundTripPrice("ZBUSD", 118, null), 0.0072);
   });
   it("feeder cattle proxies its CME Agro siblings: 7.20/12.50 x 0.025", () => {
-    close(venueCommissionRoundTripPrice("GFUSX", 348.3), 0.0144);
+    close(venueCommissionRoundTripPrice("GFUSX", 348.3, null), 0.0144);
   });
 });
 
@@ -75,11 +76,11 @@ describe("venueCommissionRoundTripPrice — CFD lines", () => {
   // the exact figure is 5e-5 × (quote per USD). Record and measurements:
   // docs/research/forex-commission-conversion-2026-09-13.md.
   it("forex, USD quote: the round trip is the constant 5e-5 at any price", () => {
-    close(venueCommissionRoundTripPrice("EURUSD", 1.1), 0.00005);
-    close(venueCommissionRoundTripPrice("GBPUSD", 1.27), 0.00005);
-    close(venueCommissionRoundTripPrice("GBPUSD", 1.6), 0.00005);
-    close(venueCommissionRoundTripPrice("AUDUSD", 0.66), 0.00005);
-    close(venueCommissionRoundTripPrice("NZDUSD", 0.61), 0.00005);
+    close(venueCommissionRoundTripPrice("EURUSD", 1.1, null), 0.00005);
+    close(venueCommissionRoundTripPrice("GBPUSD", 1.27, null), 0.00005);
+    close(venueCommissionRoundTripPrice("GBPUSD", 1.6, null), 0.00005);
+    close(venueCommissionRoundTripPrice("AUDUSD", 0.66, null), 0.00005);
+    close(venueCommissionRoundTripPrice("NZDUSD", 0.61, null), 0.00005);
   });
   it("forex, USD quote: exactly four roster symbols, derived from the currency table", () => {
     const forex = knownSymbols.filter(
@@ -102,11 +103,39 @@ describe("venueCommissionRoundTripPrice — CFD lines", () => {
     ]);
     for (const symbol of usdQuote) {
       assert.equal(
-        venueCommissionRoundTripPrice(symbol, 0.5),
-        venueCommissionRoundTripPrice(symbol, 2),
+        venueCommissionRoundTripPrice(symbol, 0.5, null),
+        venueCommissionRoundTripPrice(symbol, 2, null),
         `${symbol} must not scale with price`,
       );
     }
+  });
+  it("quoteCurrencyUsdLeg: the 21 crosses name their USD leg from the table; the seven USD pairs need none", () => {
+    // Derived from the currency table, never from a ticker's shape: the leg
+    // is the roster pair that quotes the cross's quote currency in USD
+    // (direct) or is based in USD (inverted — the price is units per USD).
+    assert.deepEqual(quoteCurrencyUsdLeg("EURJPY"), { currency: "JPY", kind: "leg", leg: "USDJPY", usdIsBase: true });
+    assert.deepEqual(quoteCurrencyUsdLeg("EURGBP"), { currency: "GBP", kind: "leg", leg: "GBPUSD", usdIsBase: false });
+    assert.deepEqual(quoteCurrencyUsdLeg("AUDNZD"), { currency: "NZD", kind: "leg", leg: "NZDUSD", usdIsBase: false });
+    assert.deepEqual(quoteCurrencyUsdLeg("CADCHF"), { currency: "CHF", kind: "leg", leg: "USDCHF", usdIsBase: true });
+    for (const symbol of ["EURUSD", "GBPUSD", "AUDUSD", "NZDUSD", "USDJPY", "USDCAD", "USDCHF"]) {
+      assert.deepEqual(quoteCurrencyUsdLeg(symbol), { kind: "none" }, `${symbol} needs no rate`);
+    }
+    assert.deepEqual(quoteCurrencyUsdLeg("XAUUSD"), { kind: "none" });
+    assert.deepEqual(quoteCurrencyUsdLeg("ESUSD"), { kind: "none" });
+    assert.deepEqual(quoteCurrencyUsdLeg("NOPE"), { kind: "none" });
+    const crosses = knownSymbols.filter((symbol) => quoteCurrencyUsdLeg(symbol).kind === "leg");
+    assert.equal(crosses.length, 21, "exactly the 21 crosses carry a leg");
+    const legs = new Map<string, string[]>();
+    for (const symbol of crosses) {
+      const rate = quoteCurrencyUsdLeg(symbol);
+      if (rate.kind !== "leg") continue;
+      assert.ok(knownSymbols.includes(rate.leg), `${symbol}'s leg ${rate.leg} must be on the roster`);
+      legs.set(rate.leg, [...(legs.get(rate.leg) ?? []), symbol].sort());
+    }
+    assert.deepEqual(
+      [...legs].sort().map(([leg, symbols]) => `${leg}:${symbols.length}`),
+      ["AUDUSD:2", "GBPUSD:1", "NZDUSD:3", "USDCAD:4", "USDCHF:5", "USDJPY:6"],
+    );
   });
   it("symbolCurrencyPair answers a pair or null — never a half-filled pair", () => {
     // M5 (2026-09-13) survived without this: dropping the length guard leaks
@@ -120,41 +149,65 @@ describe("venueCommissionRoundTripPrice — CFD lines", () => {
     assert.equal(symbolCurrencyPair("NOPE"), null);
   });
   it("forex, USD base: price × 5e-5 is exact (the price IS quote per USD)", () => {
-    close(venueCommissionRoundTripPrice("USDJPY", 150), 0.0075);
-    close(venueCommissionRoundTripPrice("USDCAD", 1.36), 0.000068);
+    close(venueCommissionRoundTripPrice("USDJPY", 150, null), 0.0075);
+    close(venueCommissionRoundTripPrice("USDCAD", 1.36, null), 0.000068);
   });
-  it("forex crosses: price × 5e-5 stays, pinned AS AN APPROXIMATION", () => {
-    // GBPJPY at 190 charges 0.0095 JPY per unit; the true figure is
-    // 5e-5 × USDJPY (0.0075 at 150) and the code has no USDJPY here — off
-    // by USD-per-GBP, +27% at these prices. Pinned so a change to the cross
-    // formula fails here and moves the record deliberately, never silently.
-    close(venueCommissionRoundTripPrice("GBPJPY", 190), 0.0095);
-    close(venueCommissionRoundTripPrice("EURGBP", 0.85), 0.0000425);
+  it("forex crosses: 5e-5 over USD-per-quote, exact, and NEVER the price-scaled figure (2026-09-14)", () => {
+    // Until the 2026-09-14 cross-rate version the code returned
+    // referencePrice × 5e-5 here — the true distance multiplied by
+    // USD-per-BASE, two-sided (record: forex-commission-conversion-2026-09-13.md).
+    // GBPJPY at 190 charged 0.0095 JPY per unit; the true figure is $5 per
+    // 100,000 GBP expressed in JPY: 5e-5 × USDJPY = 0.0075 at USDJPY 150,
+    // i.e. 5e-5 / (1/150). EURGBP: $5 per 100,000 EUR in GBP = 5e-5 / GBPUSD
+    // = 3.7037e-5 at GBPUSD 1.35 — the code used to say 4.25e-5 at 0.85.
+    close(venueCommissionRoundTripPrice("GBPJPY", 190, 1 / 150), 0.0075);
+    close(venueCommissionRoundTripPrice("EURGBP", 0.85, 1.35), 0.00005 / 1.35);
+    close(venueCommissionRoundTripPrice("EURJPY", 165, 1 / 153.5), 0.007675);
+    // The price of the cross itself never enters the figure.
+    assert.equal(
+      venueCommissionRoundTripPrice("GBPJPY", 190, 1 / 150),
+      venueCommissionRoundTripPrice("GBPJPY", 210, 1 / 150),
+    );
+  });
+  it("forex crosses: without a rate the answer is null, never a guess and never zero", () => {
+    // A cross priced without its quote currency's USD rate has no honest
+    // figure: the caller refuses the setup (§19e). The price-scaled
+    // approximation is gone from this module entirely.
+    assert.equal(venueCommissionRoundTripPrice("GBPJPY", 190, null), null);
+    assert.equal(venueCommissionRoundTripPrice("EURGBP", 0.85, 0), null);
+    assert.equal(venueCommissionRoundTripPrice("EURGBP", 0.85, Number.NaN), null);
+    assert.equal(venueCommissionRoundTripPrice("EURGBP", 0.85, -1.3), null);
+  });
+  it("USD-quote and USD-base pairs ignore the rate: their figure needs none", () => {
+    close(venueCommissionRoundTripPrice("EURUSD", 1.1, null), 0.00005);
+    close(venueCommissionRoundTripPrice("EURUSD", 1.1, 7), 0.00005);
+    close(venueCommissionRoundTripPrice("USDJPY", 150, null), 0.0075);
+    close(venueCommissionRoundTripPrice("USDJPY", 150, 0.42), 0.0075);
   });
   it("SP pays $6 against its published $20/point", () => {
-    close(venueCommissionRoundTripPrice("SP", 5500), 0.3);
+    close(venueCommissionRoundTripPrice("SP", 5500, null), 0.3);
   });
   it("DOW pays the $12 split against $5/point", () => {
-    close(venueCommissionRoundTripPrice("DOW", 40000), 2.4);
+    close(venueCommissionRoundTripPrice("DOW", 40000, null), 2.4);
   });
   it("DAX pays $6 against the conservative $5/point assumption", () => {
-    close(venueCommissionRoundTripPrice("DAX", 18000), 1.2);
+    close(venueCommissionRoundTripPrice("DAX", 18000, null), 1.2);
   });
   it("gold: $6 over the published 100oz lot", () => {
-    close(venueCommissionRoundTripPrice("XAUUSD", 2400), 0.06);
+    close(venueCommissionRoundTripPrice("XAUUSD", 2400, null), 0.06);
   });
   it("silver: $6 over the standard 5000oz lot", () => {
-    close(venueCommissionRoundTripPrice("XAGUSD", 28), 0.0012);
+    close(venueCommissionRoundTripPrice("XAGUSD", 28, null), 0.0012);
   });
   it("WTI: $6 over the conservative 100bbl assumption", () => {
-    close(venueCommissionRoundTripPrice("WTI", 79), 0.06);
+    close(venueCommissionRoundTripPrice("WTI", 79, null), 0.06);
   });
   it("crypto: the dossier's conflicted units resolve to 0.035% per side", () => {
-    close(venueCommissionRoundTripPrice("BTCUSD", 63840), 44.688, 1e-6);
+    close(venueCommissionRoundTripPrice("BTCUSD", 63840, null), 44.688, 1e-6);
   });
   it("refuses unknown symbols with null, never a guess", () => {
-    assert.equal(venueCommissionRoundTripPrice("^GSPC", 5500), null);
-    assert.equal(venueCommissionRoundTripPrice("NOPE", 1), null);
+    assert.equal(venueCommissionRoundTripPrice("^GSPC", 5500, null), null);
+    assert.equal(venueCommissionRoundTripPrice("NOPE", 1, null), null);
   });
 });
 

@@ -112,7 +112,7 @@ import {
 } from "../supabase/functions/trade-analyzer/cotContext.ts";
 import type { SweepNewsEvent } from "../supabase/functions/trade-analyzer/sweep.ts";
 import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
-import { resolveProviderSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
+import { quoteCurrencyUsdLeg, resolveProviderSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import { labelZoneFor } from "../supabase/functions/trade-analyzer/venues.ts";
 import {
   BAR_CLOCK,
@@ -942,6 +942,39 @@ async function main() {
     );
   }
 
+  const legDailyBars = new Map<string, Promise<Bar[]>>();
+  const loadQuoteCurrencyLeg = async (
+    symbol: string,
+  ): Promise<{ dailyBars: Bar[]; symbol: string; usdIsBase: boolean } | null> => {
+    const leg = quoteCurrencyUsdLeg(symbol);
+    if (leg.kind === "none") return null;
+    if (leg.kind === "missing") {
+      throw new Error(
+        `${symbol}: its quote currency ${leg.currency} has no USD leg on the roster — the commission cannot be priced; fix the roster before sweeping`,
+      );
+    }
+    const legProviderSymbol = resolveProviderSymbols(leg.leg)[0];
+    if (!legProviderSymbol) {
+      throw new Error(`${symbol}: USD leg ${leg.leg} has no provider symbol`);
+    }
+    let pending = legDailyBars.get(leg.leg);
+    if (!pending) {
+      pending = loadRollingSeries<Bar>({
+        anchor: args.anchor,
+        cacheDir: args.cacheDir!,
+        clock: BAR_CLOCK,
+        repin: args.repin,
+        fetchFull: () => fetchDailyBars(legProviderSymbol, args.days + 240),
+        fetchSince: (sinceMs) =>
+          fetchDailyBars(legProviderSymbol, args.days + 240, sinceMs),
+        key: `${legProviderSymbol}-daily-${args.days}`,
+        timeOf: (bar) => bar.time,
+      });
+      legDailyBars.set(leg.leg, pending);
+    }
+    return { dailyBars: await pending, symbol: leg.leg, usdIsBase: leg.usdIsBase };
+  };
+
   for (const symbol of args.symbols) {
     // The roster refusal (round-8 CV-1/CV-10) now runs above, before the
     // embargo check; every symbol here has a known asset type.
@@ -1297,6 +1330,13 @@ async function main() {
       ? classFolds[getAssetType(symbol)] ?? []
       : folds;
     const splits = foldSplits(primaryBars, symbolFolds, WARMUP_BARS);
+    // The USD leg of a forex cross's quote currency (2026-09-14): its daily
+    // series from the same rolling store the leg's own run reads — the same
+    // key, so a pinned anchor costs nothing and an unpinned one tops up once
+    // per leg, memoised across the crosses that share it. The engine prices
+    // the commission from the leg's previous completed daily close, the bar
+    // the live loader reads from the bar store: one physics.
+    const quoteCurrencyLeg = await loadQuoteCurrencyLeg(symbol);
 
     for (const override of args.grid) {
       const variant = describeOverride(override);
@@ -1313,6 +1353,7 @@ async function main() {
           fiveMinuteBars,
           newsEvents,
           primaryBars: split.bars,
+          ...(quoteCurrencyLeg && { quoteCurrencyLeg }),
           stepBars: args.step,
           symbol,
           treasuryRates,

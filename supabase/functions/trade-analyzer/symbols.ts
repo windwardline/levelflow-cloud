@@ -435,6 +435,46 @@ export function symbolCurrencyPair(
   return [currencies[0], currencies[1]];
 }
 
+/**
+ * The roster's USD leg for a forex cross's quote currency, from the currency
+ * table — never from a ticker's shape (a six-letter regex once called
+ * agriculture "forex"). E8 bills $5 per 100,000 BASE units, so a cross's
+ * commission needs USD-per-quote at cost time: the roster pair that quotes
+ * the currency in USD (direct: USD per unit) or is based in USD (inverted:
+ * the price is units per USD). `none` says the figure needs no rate — the
+ * seven USD pairs, every non-forex symbol, and anything not on the roster,
+ * which `venueCommissionRoundTripPrice` already refuses on its own. A cross
+ * whose quote currency has no USD leg on the roster is `missing`, so a
+ * roster change can never read as "no rate needed". Derived on every call
+ * from the table, so a roster edit moves it with no second list to remember.
+ */
+export type QuoteCurrencyUsdLeg =
+  | { kind: "none" }
+  | { currency: string; kind: "missing" }
+  | { currency: string; kind: "leg"; leg: string; usdIsBase: boolean };
+
+export function usdLegsByCurrency(): Map<string, { symbol: string; usdIsBase: boolean }> {
+  const legs = new Map<string, { symbol: string; usdIsBase: boolean }>();
+  for (const [symbol, currencies] of Object.entries(symbolCurrencies)) {
+    if (currencies.length !== 2) continue;
+    if (currencies[1] === "USD") legs.set(currencies[0], { symbol, usdIsBase: false });
+    else if (currencies[0] === "USD") legs.set(currencies[1], { symbol, usdIsBase: true });
+  }
+  return legs;
+}
+
+export function quoteCurrencyUsdLeg(symbol: string): QuoteCurrencyUsdLeg {
+  const pair = symbolCurrencyPair(symbol);
+  if (pair === null || pair[0] === "USD" || pair[1] === "USD") {
+    return { kind: "none" };
+  }
+  const leg = usdLegsByCurrency().get(pair[1]);
+  if (leg === undefined) {
+    return { currency: pair[1], kind: "missing" };
+  }
+  return { currency: pair[1], kind: "leg", leg: leg.symbol, usdIsBase: leg.usdIsBase };
+}
+
 export function isHeadlineNewsRelevantForSymbol(
   symbol: SupportedSymbol,
   newsSymbol: string | null | undefined,

@@ -19,7 +19,7 @@
 > the defect and must be rebuilt (Phase 0) before anything is re-measured.
 
 
-Model version: `2026.09.13.forex-commission-usd-quote` (**not yet deployed**
+Model version: `2026.09.14.forex-commission-cross-rate` (**not yet deployed**
 — the desk is parked, so this version has never served a request. R2's D1:
 global learning derived `confidence_adjustment` from a WIN RATE against a
 neutral point of 0.5, which is break-even only when a win and a loss are the
@@ -273,9 +273,11 @@ fills, in one version:
   bill per line, converted to price distance: the futures program's three
   itemized per-contract fees over tick value (primary), forex's $5/lot RT
   per 100,000 base units (primary) — the constant 5e-5 in quote units where
-  USD is the quote, price × 5e-5 elsewhere, which is exact where USD is the
-  base and off by USD-per-BASE on the 21 crosses
-  (`docs/research/forex-commission-conversion-2026-09-13.md`), the index
+  USD is the quote, price × 5e-5 where USD is the base, and on the 21 crosses
+  5e-5 / USD-per-quote from the USD leg's previous completed daily close on
+  both paths (`2026.09.14.forex-commission-cross-rate`; until it the crosses
+  paid price × 5e-5, off by USD-per-BASE —
+  `docs/research/forex-commission-conversion-2026-09-13.md`), the index
   $6/$12 split over published
   $/point multipliers, metals/energies per lot, crypto's conflicted
   published units resolved conservatively at 0.035% per side. Symbols E8
@@ -403,7 +405,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.09.13.forex-commission-usd-quote'
+   where o.analyzer_version = '2026.09.14.forex-commission-cross-rate'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;
@@ -1870,6 +1872,20 @@ rule is unchanged and better informed: the cap asks what share of the risk
 unit the round trip really takes, and a quote is the truer answer. The
 exposure it adds is a transiently wide quote declining a setup the modelled
 basis would have admitted, which the cost PENALTY already carried.
+
+**The cross commission is one physics on both paths, and the record predates
+it (2026-09-14).** Live and the sweep price the 21 crosses' commission from the
+same bar — the USD leg's previous completed daily close, behind the same
+daily-completion gate — so no second measured-vs-live difference joins the
+quoted-spread one above. What differs is the CORPUS OF RECORD: measured
+before `2026.09.14.forex-commission-cross-rate`, it carries price × 5e-5 on
+those 21 markets, the readers re-price it per row, and the admission the cap
+gated there was gated on the approximated share.
+`docs/research/r3/forex-commission-admission-crosses-2026-09-14.txt` says what
+the exact figure moves at the cap, per cross, before this version shipped; the
+ledgered confirm read's money on the crosses is frozen under the approximation
+and can be neither re-priced (the fold is sealed) nor re-read (one burn per
+program).
 
 The cap declines trades. It moves no stop and no target, so no surviving
 trade's payoff is manufactured (amendment 39).

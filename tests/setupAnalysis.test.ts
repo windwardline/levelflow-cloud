@@ -69,6 +69,7 @@ function marketFixture(seed: number): MarketContext {
     primaryTimeframe: "15min",
     providerWarnings: [],
     quote: null,
+    quoteCurrencyUsd: null,
     timeframes,
   };
 }

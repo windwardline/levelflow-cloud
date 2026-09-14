@@ -197,6 +197,7 @@ function contextFor(daily: Bar[], primary: Bar[]): MarketContext {
     primaryTimeframe: "15min",
     providerWarnings: [],
     quote: null,
+    quoteCurrencyUsd: null,
     timeframes,
   };
 }

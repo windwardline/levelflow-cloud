@@ -22,6 +22,20 @@ export type Bar = {
   volume: number;
 };
 
+/**
+ * USD per one unit of a forex cross's QUOTE currency, at decision time — the
+ * rate E8's $5 per 100,000 base units needs to become a distance in quote
+ * units (venueCosts.ts). ONE source on both paths (2026-09-14): the USD leg's
+ * previous COMPLETED daily close — live through the bar store, the sweep from
+ * the pinned cache, both behind the same daily-completion gate — so what is
+ * measured is what trades. `leg` and `legCloseAtMs` say which bar priced it.
+ */
+export type QuoteCurrencyUsd = {
+  leg: string;
+  legCloseAtMs: number;
+  usdPerQuote: number;
+};
+
 export type MarketContext = {
   availableTimeframes: Timeframe[];
   daily: Bar[];
@@ -31,6 +45,13 @@ export type MarketContext = {
   primaryTimeframe: Timeframe;
   providerWarnings: string[];
   quote: QuoteSnapshot | null;
+  /**
+   * Null where the commission needs no rate (every symbol but the 21 forex
+   * crosses) — and, on a cross, null means the rate could not be had, which
+   * `buildPricePlan` refuses as `commission_rate_unavailable`. Required, so
+   * every constructor states which.
+   */
+  quoteCurrencyUsd: QuoteCurrencyUsd | null;
   timeframes: Partial<Record<Timeframe, Bar[]>>;
 };
 

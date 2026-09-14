@@ -30,7 +30,7 @@
  */
 import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
-import { knownSymbols, symbolCurrencyPair } from "../supabase/functions/trade-analyzer/symbols.ts";
+import { symbolCurrencyPair, usdLegsByCurrency } from "../supabase/functions/trade-analyzer/symbols.ts";
 import { describeYearMap, resolveYearMap, type YearMap, yearOf, type YearsFilter } from "./feedYears.ts";
 import { flagReader, OperatorInputError } from "./flagReader.ts";
 import { describeHeldOut, resolveHeldOut } from "./sweepFolds.ts";
@@ -130,15 +130,9 @@ const SPAN_HOURS = { first: 16, last: 21 };
  * change moves it without anyone remembering this list.
  */
 export function usdLegsFromTable(): Map<string, { symbol: string; usdIsBase: boolean }> {
-  const legs = new Map<string, { symbol: string; usdIsBase: boolean }>();
-  for (const symbol of knownSymbols) {
-    if (getAssetType(symbol) !== "forex") continue;
-    const pair = symbolCurrencyPair(symbol);
-    if (pair === null) continue;
-    if (pair[1] === "USD") legs.set(pair[0], { symbol, usdIsBase: false });
-    else if (pair[0] === "USD") legs.set(pair[1], { symbol, usdIsBase: true });
-  }
-  return legs;
+  // The engine's own derivation (symbols.ts, 2026-09-14): one table, one
+  // reading of it, so the reader prices the legs the engine charges.
+  return usdLegsByCurrency();
 }
 
 type Fill = {

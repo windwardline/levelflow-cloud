@@ -14,6 +14,7 @@ import {
   findSwingPivots,
   nearestLevelBeyond,
 } from "./indicators.ts";
+import { quoteCurrencyUsdLeg } from "./symbols.ts";
 import type { MarketContext, Regime, Side, SupportedSymbol } from "./types.ts";
 
 // Which anchor set the stop: the pivot-buffered structural level, the
@@ -60,7 +61,14 @@ export type PlanRefusalReason =
   /** After alignment, TP1 crossed the entry. */
   | "tp1_crossed_entry"
   /** Non-finite reward:risk, or a risk distance of zero. */
-  | "non_finite_geometry";
+  | "non_finite_geometry"
+  /**
+   * A forex cross whose quote currency's USD rate is not in the context —
+   * E8's $5 per 100,000 base units cannot be priced in quote units without
+   * it, and a setup is never charged zero (§19e). Both paths supply the rate
+   * from the USD leg's previous completed daily close (2026-09-14).
+   */
+  | "commission_rate_unavailable";
 
 export type PlanRefusal = { reason?: PlanRefusalReason };
 
@@ -472,6 +480,14 @@ export function buildPricePlan(
     if (refusal) refusal.reason = "non_finite_geometry";
     return null;
   }
+  // The commission's rate, before pricing: a forex cross needs USD per unit
+  // of its quote currency and the context either carries it or the plan is
+  // refused here with its own name — never priced at zero, never at the
+  // price-scaled figure the engine charged until 2026-09-14.
+  if (quoteCurrencyUsdLeg(symbol).kind !== "none" && market.quoteCurrencyUsd === null) {
+    if (refusal) refusal.reason = "commission_rate_unavailable";
+    return null;
+  }
   const executionQuality = estimateExecutionQuality({
     assetType,
     atr,
@@ -486,6 +502,7 @@ export function buildPricePlan(
     symbol,
     takeProfit,
     tickSize: futuresTickPlan?.contractSpec.tickSize ?? null,
+    usdPerQuote: market.quoteCurrencyUsd?.usdPerQuote ?? null,
   });
 
   return {

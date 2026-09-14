@@ -245,6 +245,74 @@ describe("forex-commission-conversion — the mis-charge, hand-computed", () => 
   });
 });
 
+describe("forex-commission-admission — the 21 crosses at the leg's previous completed close (2026-09-14)", () => {
+  // EURJPY rows priced legacy (close × 5e-5) with riskDistance 0.2 JPY.
+  // The leg is USDJPY; the stub answers a completed close per decision.
+  //   row 1 @165, roundTrip 0.0300 → share 0.150 (at the cap, admitted);
+  //     truth at USDJPY 150 = 5e-5 × 150 = 0.0075 vs charged 0.00825 →
+  //     corrected roundTrip 0.02925 → share 0.14625: KEPT.
+  //   row 2 @165, roundTrip 0.0290 → share 0.145, admitted; USDJPY 200 →
+  //     truth 0.01 vs 0.00825 → corrected 0.03075 → 0.15375: newly DECLINED.
+  //   row 3 @165, roundTrip 0.0310 → share 0.155, declined; USDJPY 120 →
+  //     truth 0.006 vs 0.00825 → corrected 0.02875 → 0.14375: newly ADMITTED.
+  //   row 4 @165: no leg close at its time → unrated, counted out.
+  //   EURUSD row: not a cross → other pair.
+  // Money: dR = (charged − truth) / risk; row 2: (0.00825 − 0.01)/0.2 = −0.00875;
+  // row 3: (0.00825 − 0.006)/0.2 = +0.01125; row 1: +0.00375.
+  const legRates = (leg: string, atMs: number) => {
+    assert.equal(leg, "USDJPY");
+    if (atMs === at(2017, 2, 18, 0)) return { close: 150, completeAtMs: atMs - MINUTE };
+    if (atMs === at(2017, 3, 18, 1)) return { close: 200, completeAtMs: atMs - MINUTE };
+    if (atMs === at(2017, 4, 18, 2)) return { close: 120, completeAtMs: atMs - MINUTE };
+    return null;
+  };
+  const rows: Row[] = [
+    row({ close: 165, realizedR: 0.7, risk: 0.2, roundTrip: 0.03, split: "fit", symbol: "EURJPY", time: at(2017, 2, 18, 0) }),
+    row({ close: 165, realizedR: -1, risk: 0.2, roundTrip: 0.029, split: "fit", symbol: "EURJPY", time: at(2017, 3, 18, 1) }),
+    row({ close: 165, realizedR: 2, risk: 0.2, roundTrip: 0.031, split: "fit", symbol: "EURJPY", time: at(2017, 4, 18, 2) }),
+    row({ close: 165, realizedR: 1, risk: 0.2, roundTrip: 0.03, split: "fit", symbol: "EURJPY", time: at(2017, 5, 18, 3) }),
+    row({ close: 1.2, realizedR: 1, split: "fit", symbol: "EURUSD", time: at(2017, 6, 18, 4) }),
+  ];
+
+  it("gates each cross row at the exact figure from the leg's close at its own decision time, and prices the moved money corrected", async () => {
+    const summary = await admission({
+      cap: 0.15,
+      folds: ["fit"],
+      legRates,
+      pairs: "crosses",
+      paths: [writeCorpus(rows, { EURJPY: [], EURUSD: [] })],
+      variant: "baseline",
+    });
+    assert.deepEqual(summary.pairs.length, 21);
+    assert.equal(summary.rows.otherPair, 1);
+    assert.equal(summary.rows.unrated, 1);
+    assert.equal(summary.rows.chargedLegacy, 3);
+    const all = summary.buckets.get("all pairs|all")!;
+    assert.equal(all.rows, 3);
+    assert.equal(all.newlyDeclined, 1);
+    assert.equal(all.newlyAdmitted, 1);
+    assert.equal(all.keptFilled, 1);
+    assert.ok(Math.abs(all.declinedR - -1) < 1e-12);
+    assert.ok(Math.abs(all.declinedRCorrected - (-1 - 0.00875)) < 1e-12, `${all.declinedRCorrected}`);
+    assert.ok(Math.abs(all.admittedR - 2) < 1e-12);
+    assert.ok(Math.abs(all.admittedRCorrected - (2 + 0.01125)) < 1e-12, `${all.admittedRCorrected}`);
+    assert.ok(Math.abs(all.keptR - 0.7) < 1e-12);
+    assert.ok(Math.abs(all.keptRCorrected - (0.7 + 0.00375)) < 1e-12, `${all.keptRCorrected}`);
+    const text = formatAdmission(summary);
+    assert.match(text, /cross commission = 5e-5 \/ USD-per-quote at the leg's previous completed daily close/);
+    assert.match(text, /\| EURJPY\|all \| 3 \|/);
+  });
+
+  it("refuses the cross mode without a rate source, and the USD-quote mode is unchanged", async () => {
+    await assert.rejects(
+      admission({ cap: 0.15, folds: ["fit"], pairs: "crosses", paths: [writeCorpus(rows, { EURJPY: [], EURUSD: [] })], variant: "baseline" }),
+      /crosses need a rate source/,
+    );
+    const usdQuote = await admission({ cap: 0.15, folds: ["fit"], pairs: "usd-quote", paths: [writeCorpus(rows, { EURJPY: [], EURUSD: [] })], variant: "baseline" });
+    assert.equal(usdQuote.rows.otherPair, 4, "the four EURJPY rows are out of the USD-quote scope");
+  });
+});
+
 describe("forex-commission-admission — what the constant does at the cap", () => {
   it("names exactly the four USD-quote pairs from the currency table", () => {
     assert.deepEqual(usdQuoteForexSymbols(), ["AUDUSD", "EURUSD", "GBPUSD", "NZDUSD"]);
@@ -296,7 +364,7 @@ describe("forex-commission-admission — what the constant does at the cap", () 
     const text = formatAdmission(summary);
     assert.match(text, /ADMISSION AT maxCostShare 0\.1 /);
     assert.match(text, /pairs from the currency table \(forex, USD quote\): AUDUSD, EURUSD, GBPUSD, NZDUSD/);
-    assert.match(text, /\| all pairs\|all \| 4 \| 3 \| 1 \| 1 \| 1 \(1, -1\.0\) \| 1 \(1, \+0\.7\) \| \(1, \+2\.0\) \|/);
+    assert.match(text, /\| all pairs\|all \| 4 \| 3 \| 1 \| 1 \| 1 \(1, -1\.0 → -1\.0\) \| 1 \(1, \+0\.7 → \+0\.7\) \| \(1, \+2\.0 → \+2\.0\) \|/);
     assert.match(text, /confirm: SEALED, not read \(4 rows withheld at the door\)/);
     assert.equal(summary.rows.sealed, 4);
     assert.equal(summary.rows.total, 10);
@@ -324,6 +392,6 @@ describe("forex-commission-admission — what the constant does at the cap", () 
     const all = summary.buckets.get("all pairs|all")!;
     near(all.shareSum, all.shareCorrectedSum);
     assert.equal(all.newlyAdmitted + all.newlyDeclined, 0);
-    assert.match(formatAdmission(summary), /the constant on 1, neither on 0/);
+    assert.match(formatAdmission(summary), /the exact figure on 1, neither on 0/);
   });
 });

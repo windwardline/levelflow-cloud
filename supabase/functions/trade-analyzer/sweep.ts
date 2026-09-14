@@ -39,7 +39,7 @@ import {
 } from "./newsRules.ts";
 import { scoreSetupConfidence } from "./scoring.ts";
 import { getSessionContext } from "./sessions.ts";
-import { isCurrencyRelevantForSymbol } from "./symbols.ts";
+import { isCurrencyRelevantForSymbol, quoteCurrencyUsdLeg } from "./symbols.ts";
 import {
   classifyRegime,
   runStrategyCommittee,
@@ -50,6 +50,7 @@ import {
   intradayTimeframes,
   type MarketContext,
   type Timeframe,
+  type QuoteCurrencyUsd,
 } from "./types.ts";
 
 // Scheduled macro event for the replay news join (medium/high impact only,
@@ -419,6 +420,13 @@ export type SweepOutcomeRecord = {
   frameTailMs: Record<string, number>;
   availableTimeframeCount: number;
   dailyVisibleCount: number;
+  /**
+   * USD per unit of the quote currency the commission was priced at — the
+   * USD leg's previous completed daily close (2026-09-14); null off the 21
+   * forex crosses. With `estimatedCommission` and the currency table a reader
+   * can re-derive E8's $5 per 100,000 base units in quote units exactly.
+   */
+  usdPerQuote: number | null;
   dailyTailCompleteAtMs: number;
   newsActiveCount: number;
   newsUpcomingCount: number;
@@ -646,6 +654,10 @@ export function buildDecisionMarketContext(input: {
   daily: Bar[];
   fiveMin?: Bar[];
   history: Bar[];
+  // The USD leg's previous completed daily close for a forex cross (types.ts
+  // `QuoteCurrencyUsd`); null everywhere the commission needs no rate. The
+  // sweep loop supplies it from the leg's own completed-daily pointer.
+  quoteCurrencyUsd?: QuoteCurrencyUsd | null;
 }): MarketContext {
   const primary = input.history.slice(-240);
   const hourly = resampleBars(input.history.slice(-960), 60).slice(-240);
@@ -671,6 +683,7 @@ export function buildDecisionMarketContext(input: {
     primaryTimeframe: "15min",
     providerWarnings: [],
     quote: null,
+    quoteCurrencyUsd: input.quoteCurrencyUsd ?? null,
     timeframes,
   };
 }
@@ -704,6 +717,18 @@ export function simulateSymbol(input: {
   // join is honest at decision time.
   newsEvents?: SweepNewsEvent[];
   primaryBars: Bar[];
+  /**
+   * The USD leg of a forex cross's quote currency, with the leg's daily bars
+   * (2026-09-14). The commission needs USD per quote unit at cost time, and
+   * the sweep takes it from the leg's previous COMPLETED daily close through
+   * the same completion gate as the symbol's own daily series — the live
+   * loader reads the same bar from the bar store, so both paths charge one
+   * physics. Required for a cross (the driver resolves the leg from the
+   * currency table — `quoteCurrencyUsdLeg`); a cross simulated without it
+   * throws at entry, because a driver defect must not read as a market
+   * refusing every decision.
+   */
+  quoteCurrencyLeg?: { dailyBars: Bar[]; symbol: string; usdIsBase: boolean };
   stepBars: number;
   symbol: string;
   // E6 (R1b): daily 2Y/10Y Treasury rows, sorted ascending by dateMs. Each
@@ -722,6 +747,29 @@ export function simulateSymbol(input: {
     ...getCategoryCalibration(input.symbol),
     ...input.calibrationOverride,
   };
+  const legNeeded = quoteCurrencyUsdLeg(input.symbol);
+  if (legNeeded.kind === "missing") {
+    throw new Error(
+      `${input.symbol}: its quote currency ${legNeeded.currency} has no USD leg on the roster, so its commission cannot be priced — a cross without a leg is a roster defect, not a decision`,
+    );
+  }
+  if (legNeeded.kind === "leg" && input.quoteCurrencyLeg === undefined) {
+    throw new Error(
+      `${input.symbol}: a forex cross needs its USD leg ${legNeeded.leg}'s daily bars (quoteCurrencyLeg) — the driver did not pass them`,
+    );
+  }
+  if (legNeeded.kind === "leg" && input.quoteCurrencyLeg !== undefined && input.quoteCurrencyLeg.symbol !== legNeeded.leg) {
+    throw new Error(
+      `${input.symbol}: the currency table names ${legNeeded.leg} as its USD leg, not ${input.quoteCurrencyLeg.symbol}`,
+    );
+  }
+  // The leg's completed daily series and its moving pointer, walked exactly
+  // like the symbol's own daily series below: a bar is readable from its
+  // COMPLETION instant, never its stamp.
+  const legSeries = legNeeded.kind === "leg" && input.quoteCurrencyLeg !== undefined
+    ? completedDailySeries(input.quoteCurrencyLeg.symbol, input.quoteCurrencyLeg.dailyBars)
+    : [];
+  let legVisible = 0;
   // Read ONCE per symbol, not per decision: the resolve call below runs on
   // every decision point and this is a measurement term that cannot change
   // mid-run. The sweep is the instrument, so it passes the declared scale;
@@ -854,6 +902,25 @@ export function simulateSymbol(input: {
     ) {
       treasuryVisible += 1;
     }
+    while (
+      legVisible < legSeries.length &&
+      legSeries[legVisible].completeAtMs <= latest.time
+    ) {
+      legVisible += 1;
+    }
+    // Null on a cross whose leg has no completed bar yet: `buildPricePlan`
+    // then refuses the decision as `commission_rate_unavailable` and the
+    // ledger names it, the same shape as live.
+    const quoteCurrencyUsd: QuoteCurrencyUsd | null =
+      input.quoteCurrencyLeg !== undefined && legVisible > 0
+        ? {
+          leg: input.quoteCurrencyLeg.symbol,
+          legCloseAtMs: legSeries[legVisible - 1].completeAtMs,
+          usdPerQuote: input.quoteCurrencyLeg.usdIsBase
+            ? 1 / legSeries[legVisible - 1].bar.close
+            : legSeries[legVisible - 1].bar.close,
+        }
+        : null;
     const market = buildDecisionMarketContext({
       daily,
       // The builder only reads the tail; slicing here keeps the per-point
@@ -863,6 +930,7 @@ export function simulateSymbol(input: {
         fiveMinVisible,
       ),
       history,
+      quoteCurrencyUsd,
     });
     // Session context is evaluated at the bar's own time, mirroring the
     // live analyzer. Session blocks (weekends, rollover, maintenance) are
@@ -1280,6 +1348,10 @@ export function simulateSymbol(input: {
         : null,
       estimatedRoundTripCost: plan.executionQuality.estimatedRoundTripCost,
       estimatedCommission: plan.executionQuality.estimatedCommission,
+      // USD per quote unit the commission was priced at (the USD leg's
+      // previous completed daily close); null off the 21 forex crosses. A
+      // reader can re-derive the charge from this and the currency table.
+      usdPerQuote: market.quoteCurrencyUsd?.usdPerQuote ?? null,
       estimatedSlippage: plan.executionQuality.estimatedSlippage,
       estimatedSpread: plan.executionQuality.estimatedSpread,
       latestClose: plan.latestClose,

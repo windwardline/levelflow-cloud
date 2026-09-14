@@ -125,7 +125,20 @@ import { isKnownSymbol } from "./symbols.ts";
 // 28 pairs, against the record's +209.4 R — a 5 R spread among them, the
 // rest population (all years vs contained) and rate method.
 // (Prior: 2026.09.04.removal-test-uniform.)
-export const ANALYZER_VERSION = "2026.09.13.forex-commission-usd-quote";
+//
+// 2026.09.14.forex-commission-cross-rate: the 21 forex crosses charge E8's $5
+// per 100,000 base units exactly — 5e-5 / (USD per quote unit), the rate
+// being the USD leg's previous completed daily close on BOTH paths
+// (symbols.ts names the leg from the currency table; the live loader reads
+// the bar from the bar store, the sweep from the pinned cache through the
+// same daily-completion gate). The price-scaled approximation is gone from
+// venueCosts.ts: a cross without a rate is refused by name
+// (`commission_rate_unavailable`), never charged zero. The cost share moves on
+// the 21, so admission under the forex class row's `maxCostShare: 0.15`
+// moves with it (measured before shipping, in the record); every corpus
+// emitted before this version carries the approximation on those markets and
+// the readers re-price them per row. (Prior: 2026.09.13.forex-commission-usd-quote.)
+export const ANALYZER_VERSION = "2026.09.14.forex-commission-cross-rate";
 
 export type AssetType =
   | "agriculture"
