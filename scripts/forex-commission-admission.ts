@@ -4,18 +4,27 @@
  * The forex class row declines a setup whose modelled round trip exceeds
  * `maxCostShare` of its risk unit (2026.09.03.forex-cost-share-cap). The
  * commission is part of that round trip, so charging it in the right currency
- * moves the share — and therefore which setups the cap admits. On the four
- * USD-quote pairs the true commission is the constant 5e-5 per base unit
- * (2026.09.13.forex-commission-usd-quote); this reader re-derives every one
- * of their rows' cost share with that constant in place of whatever the
- * corpus charged, and counts what crosses the cap in each direction, with
- * the R those rows carry as emitted.
+ * moves the share — and therefore which setups the cap admits. Two
+ * populations, one at a time (`--pairs`):
+ *   · `usd-quote` (default, the record's): the four pairs whose true
+ *     commission is the constant 5e-5 (2026.09.13.forex-commission-usd-quote).
+ *   · `crosses`: the 21 pairs whose true commission is 5e-5 / USD-per-quote,
+ *     the rate being the USD leg's previous completed daily close AT EACH
+ *     DECISION (2026.09.14.forex-commission-cross-rate) — read from the pinned
+ *     cache at the corpus's own anchor and depth behind fetchers that throw
+ *     (`--cache-dir`, zero provider bytes), through the engine's own
+ *     completion gate; a decision with no completed leg close is counted
+ *     `unrated`, never priced.
+ * The reader re-derives every row's cost share with the exact figure in place
+ * of whatever the corpus charged and counts what crosses the cap in each
+ * direction, with the R those rows carry as emitted AND corrected (the
+ * conversion reader's per-fill dR).
  *
- * The pairs come from the currency table (every forex symbol whose quote is
- * USD), the cap from the forex class row unless `--cap` overrides it, and
- * the per-year buckets from the feed-character witness when `--witness`
- * names one. A corpus emitted after the fix already charges the constant,
- * so its shares do not move and the tables say so.
+ * The pairs come from the currency table, the cap from the forex class row
+ * unless `--cap` overrides it, and the per-year buckets from the
+ * feed-character witness when `--witness` names one. A corpus emitted after
+ * the fix already charges the exact figure, so its shares do not move and the
+ * tables say so.
  *
  * Record: forex-commission-conversion-2026-09-13.md under the research
  * tree, whose admission table this reader reproduces from the R3
@@ -29,7 +38,7 @@ import { fileURLToPath } from "node:url";
 import { getAssetType, getClassCalibration } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { completedDailySeries } from "../supabase/functions/trade-analyzer/dailyCompletion.ts";
-import { knownSymbols, quoteCurrencyUsdLeg, resolveProviderSymbols, symbolCurrencyPair, usdLegsByCurrency } from "../supabase/functions/trade-analyzer/symbols.ts";
+import { knownSymbols, quoteCurrencyUsdLeg, resolveProviderSymbols, symbolCurrencyPair } from "../supabase/functions/trade-analyzer/symbols.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 import { DEFAULT_CACHE_DIR, loadRollingSeries } from "./calibrationCache.ts";
 import { describeYearMap, resolveYearMap, type YearMap, yearOf } from "./feedYears.ts";
@@ -103,6 +112,7 @@ export type AdmissionSummary = {
   buckets: Map<string, Bucket>;
   cap: number;
   pairs: string[];
+  population: "usd-quote" | "crosses";
   provenance: string[];
   rows: {
     chargedConstant: number;
@@ -262,17 +272,17 @@ export async function admission(input: AdmissionInput): Promise<AdmissionSummary
     `folds read: ${input.folds.join(", ")} · ${SEALED_FOLD}: SEALED, not read (${rows.sealed.toLocaleString()} rows withheld at the door) · variant ${input.variant} · cap ${input.cap} (the forex class row unless --cap)` +
       (yearMap ? ` · years by ${describeYearMap(yearMap.source, input.witnessTablePath)}` : " · years pooled (no --witness)"),
     population === "crosses"
-      ? `pairs from the currency table (forex crosses, ${pairs.size}): ${[...pairs].join(", ")} · cross commission = 5e-5 / USD-per-quote at the leg's previous completed daily close, per decision (legs: ${[...usdLegsByCurrency().values()].map((leg) => leg.symbol).sort().join(", ")}) · unrated (no completed leg close at the decision) ${rows.unrated.toLocaleString()}`
+      ? `pairs from the currency table (forex crosses, ${pairs.size}): ${[...pairs].join(", ")} · cross commission = 5e-5 / USD-per-quote at the leg's previous completed daily close, per decision (legs: ${[...new Set([...pairs].flatMap((cross) => { const leg = quoteCurrencyUsdLeg(cross); return leg.kind === "leg" ? [leg.leg] : []; }))].sort().join(", ")}) · unrated (no completed leg close at the decision) ${rows.unrated.toLocaleString()}`
       : `pairs from the currency table (forex, USD quote): ${[...pairs].join(", ")}`,
   ];
-  return { buckets, cap: input.cap, pairs: [...pairs], provenance, rows };
+  return { buckets, cap: input.cap, pairs: [...pairs], population, provenance, rows };
 }
 
 export function formatAdmission(summary: AdmissionSummary): string {
   const { rows } = summary;
   const lines: string[] = [];
   lines.push(
-    summary.pairs.length === 4
+    summary.population === "usd-quote"
       ? `ADMISSION AT maxCostShare ${summary.cap} — emitted vs corrected (USD-quote commission = the constant 5e-5)`
       : `ADMISSION AT maxCostShare ${summary.cap} — emitted vs corrected (the crosses' exact commission, per decision)`,
   );
@@ -375,7 +385,14 @@ export async function legRatesFromPinnedCache(paths: string[], cacheDir: string)
     throw new OperatorInputError(`${paths[0]}: the manifest names no anchor/days, so the legs' stores cannot be addressed`);
   }
   const series = new Map<string, Array<{ close: number; completeAtMs: number }>>();
-  for (const leg of usdLegsByCurrency().values()) {
+  // Only the legs a cross quotes in — six today; EURUSD is a leg of nothing
+  // — so an unpinned store that no read needs cannot refuse the read.
+  const legs = new Map<string, { symbol: string; usdIsBase: boolean }>();
+  for (const cross of crossForexSymbols()) {
+    const leg = quoteCurrencyUsdLeg(cross);
+    if (leg.kind === "leg") legs.set(leg.leg, { symbol: leg.leg, usdIsBase: leg.usdIsBase });
+  }
+  for (const leg of legs.values()) {
     const provider = resolveProviderSymbols(leg.symbol)[0];
     if (!provider) throw new OperatorInputError(`${leg.symbol}: no provider symbol`);
     const key = `${provider}-daily-${days}`;

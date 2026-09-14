@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { completedDailyBars } from "../supabase/functions/trade-analyzer/dailyCompletion.ts";
+import { completedDailyBars, completedDailySeries } from "../supabase/functions/trade-analyzer/dailyCompletion.ts";
 import { type QuoteCurrencyRateMemo, resolveQuoteCurrencyUsd } from "../supabase/functions/trade-analyzer/quoteCurrencyRate.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 
@@ -47,11 +47,16 @@ describe("resolveQuoteCurrencyUsd", () => {
     assert.equal(eurjpy.kind, "rate");
     assert.equal(eurgbp.kind, "rate");
     if (eurjpy.kind !== "rate" || eurgbp.kind !== "rate") return;
-    const lastJpy = completedDailyBars("USDJPY", usdjpy, NOW).at(-1)!;
-    const lastGbp = completedDailyBars("GBPUSD", gbpusd, NOW).at(-1)!;
-    assert.ok(lastJpy.time < usdjpy.at(-1)!.time, "the gate must withhold the forming and weekend bars for this to bite");
-    assert.deepEqual(eurjpy.rate, { leg: "USDJPY", legCloseAtMs: lastJpy.time, usdPerQuote: 1 / lastJpy.close });
-    assert.deepEqual(eurgbp.rate, { leg: "GBPUSD", legCloseAtMs: lastGbp.time, usdPerQuote: lastGbp.close });
+    // The same bar the sweep reads: the last entry of the completed series
+    // whose completion instant is at or before now — and `legCloseAtMs` is
+    // that completion instant on both paths, not the bar's stamp.
+    const lastJpy = completedDailySeries("USDJPY", usdjpy).filter((entry) => entry.completeAtMs <= NOW).at(-1)!;
+    const lastGbp = completedDailySeries("GBPUSD", gbpusd).filter((entry) => entry.completeAtMs <= NOW).at(-1)!;
+    assert.ok(lastJpy.bar.time < usdjpy.at(-1)!.time, "the gate must withhold the forming and weekend bars for this to bite");
+    assert.equal(lastJpy.bar.close, completedDailyBars("USDJPY", usdjpy, NOW).at(-1)!.close, "the two gates agree on the bar");
+    assert.deepEqual(eurjpy.rate, { leg: "USDJPY", legCloseAtMs: lastJpy.completeAtMs, usdPerQuote: 1 / lastJpy.bar.close });
+    assert.deepEqual(eurgbp.rate, { leg: "GBPUSD", legCloseAtMs: lastGbp.completeAtMs, usdPerQuote: lastGbp.bar.close });
+    assert.notEqual(lastJpy.completeAtMs, lastJpy.bar.time, "the completion instant is not the stamp");
   });
 
   it("memoises the leg's load by PROMISE: concurrent first callers share one load", async () => {

@@ -48,8 +48,8 @@ Phase 1 of the remediation program, closed as `2026.08.18.one-physics`; the
 four-pair fix kept ONE implementation shared by both paths, so its precedent
 covered stale corpora, not a code-level divergence; and readers can re-price R
 offline but cannot re-derive a corpus's ADMISSION. The operations refuter
-showed the client splits a scan into 11 requests, so a per-request memo alone
-dedupes nothing across them — the bar store does — and that a failed quote
+showed the client splits a scan into ten-symbol requests, so a per-request memo
+alone dedupes nothing across them — the bar store does — and that a failed quote
 fetch would block six markets per leg, the outage class the calendar block's
 own comment refuses. The physics refuter confirmed the derivation on both leg
 orientations against E8's own ticket arithmetic and measured a stale rate
@@ -81,8 +81,8 @@ The direction is the physics, pair by pair (contained years): the eleven
 EUR- and GBP-base crosses were over-charged and only ADMIT (EURCHF 536,
 EURGBP 405, GBPCHF 313 the largest); AUDJPY, CADJPY, NZDCAD, NZDCHF and NZDJPY
 were under-charged and only DECLINE; AUDCAD, AUDCHF, AUDNZD and CADCHF decline
-with a handful of admits (517/19, 188/2, 704/16, 314/1); CHFJPY, whose quote
-leg sits near parity, barely moves (3 declined, 35 admitted).
+with a handful of admits (517/19, 188/2, 704/16, 314/1); CHFJPY, whose base
+currency sits near parity with the dollar, barely moves (3 declined, 35 admitted).
 
 Read on contained years under amendment 39: the rows the exact figure
 declines carried −155.5 R corrected and the rows it admits carry −46.1 R, so

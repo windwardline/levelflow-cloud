@@ -1,5 +1,6 @@
-import { completedDailyBars } from "./dailyCompletion.ts";
+import { completedDailySeries } from "./dailyCompletion.ts";
 import { redactProviderSecrets } from "./redact.ts";
+import { visibleQuoteCurrencyUsd } from "./sweep.ts";
 import { quoteCurrencyUsdLeg } from "./symbols.ts";
 import type { Bar, QuoteCurrencyUsd } from "./types.ts";
 
@@ -44,20 +45,14 @@ export async function resolveQuoteCurrencyUsd(input: {
     };
   }
   let pending = input.memo.get(leg.leg);
-  const failures = new Map<string, string>();
   if (!pending) {
     pending = (async () => {
       const bars = await input.loadDaily(leg.leg);
-      const completed = completedDailyBars(leg.leg, bars, input.nowMs);
-      const last = completed.at(-1);
-      if (!last || !Number.isFinite(last.close) || last.close <= 0) {
-        return null;
-      }
-      return {
-        leg: leg.leg,
-        legCloseAtMs: last.time,
-        usdPerQuote: leg.usdIsBase ? 1 / last.close : last.close,
-      };
+      // The sweep's own walk: the completed series, the last entry whose
+      // completion instant is at or before now. `legCloseAtMs` is that
+      // completion instant on both paths.
+      const completed = completedDailySeries(leg.leg, bars).filter((entry) => entry.completeAtMs <= input.nowMs);
+      return visibleQuoteCurrencyUsd(leg.leg, leg.usdIsBase, completed, completed.length);
     })();
     input.memo.set(leg.leg, pending);
   }
@@ -68,8 +63,10 @@ export async function resolveQuoteCurrencyUsd(input: {
     }
     return { kind: "rate", rate };
   } catch (error) {
-    const detail = redactProviderSecrets(error instanceof Error ? error.message : String(error));
-    failures.set(leg.leg, detail);
-    return { detail, kind: "unavailable", leg: leg.leg };
+    return {
+      detail: redactProviderSecrets(error instanceof Error ? error.message : String(error)),
+      kind: "unavailable",
+      leg: leg.leg,
+    };
   }
 }

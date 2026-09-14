@@ -823,9 +823,9 @@ async function reviewCurrentMarket(
   );
 
   if (!fmpSymbol || !loadedContext) {
-    // The leg's load is not left dangling: a rejection nobody awaits is an
-    // unhandled rejection in the isolate.
-    await quoteRatePending;
+    // The leg's resolution never rejects (quoteCurrencyRate.ts catches its
+    // own load), so a market that failed its own load returns without
+    // waiting on it.
     if (action === "scan_opportunities" && providerFailures.length > 0) {
       console.warn(
         "scan market data unavailable",
@@ -857,7 +857,6 @@ async function reviewCurrentMarket(
   }
 
   if (loadedContext.daily.length < 80) {
-    await quoteRatePending;
     await recordAnalyzerEvent({
       action,
       message: "Insufficient daily history",

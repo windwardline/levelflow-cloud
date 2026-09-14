@@ -2315,7 +2315,8 @@ measured the same hour, and what was done about each:
    is a credential in every backup of it.
 
 Program adjustments: the cross-commission fix's live half (one rate fetch per
-cross, a refusal when absent) is buildable and verifiable now; the deploy
+cross, a refusal when absent) is buildable and verifiable now (superseded the
+same day — it shipped on ONE physics, both paths, the block below); the deploy
 E2E's stand-downs end; the re-simulate is unaffected (zero provider bytes).
 
 **THE 21-CROSS COMMISSION, PRICED IN THE RIGHT CURRENCY ON ONE PHYSICS —
@@ -2328,8 +2329,8 @@ approximation written into the sweep, the four-pair precedent kept ONE shared
 implementation, and readers cannot re-derive a corpus's admission offline. So
 both paths price the crosses from the USD leg's previous completed daily
 close: live through the bar store beside the market's own load
-(`quoteCurrencyRate.ts`, memoised by leg per scan request; the client's 11
-requests per scan are deduped by the store itself), the sweep from the pinned
+(`quoteCurrencyRate.ts`, memoised by leg per scan request; the client's
+ten-symbol requests per scan are deduped by the store itself), the sweep from the pinned
 cache through the same completion gate. `symbols.ts` names the leg from the
 currency table; `venueCosts.ts` has no price-scaled branch left; a cross
 without a rate is refused by name (`commission_rate_unavailable`, ledgered)

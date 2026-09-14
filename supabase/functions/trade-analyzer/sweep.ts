@@ -3,7 +3,7 @@ import {
   type CategoryCalibration,
   getCategoryCalibration,
 } from "./calibration.ts";
-import { completedDailySeries } from "./dailyCompletion.ts";
+import { type CompletedDailyBar, completedDailySeries } from "./dailyCompletion.ts";
 import { buildPricePlan, type PlanRefusal } from "./pricePlan.ts";
 import {
   GROSS_COST_SCALE,
@@ -650,6 +650,29 @@ export function resampleBars(bars: Bar[], minutesPerBucket: number): Bar[] {
 // marketLoader.ts applies live, absent below it, exactly like a thin live
 // fetch. `latest` stays the 15min decision bar — the loop's clock — whose
 // close a coherent feed shares with the 5min bar ending the same instant.
+/**
+ * The rate a decision may read from its USD leg: the last COMPLETED leg bar
+ * among the first `visible` entries of the leg's completed series — the
+ * pointer the sweep loop and the Q4 reader both walk — inverted where the
+ * leg is based in USD. Null while nothing has completed. One function so the
+ * two readers cannot drift from the engine on which bar prices a cross.
+ */
+export function visibleQuoteCurrencyUsd(
+  leg: string,
+  usdIsBase: boolean,
+  legSeries: CompletedDailyBar[],
+  visible: number,
+): QuoteCurrencyUsd | null {
+  if (visible <= 0 || visible > legSeries.length) return null;
+  const entry = legSeries[visible - 1];
+  if (!Number.isFinite(entry.bar.close) || entry.bar.close <= 0) return null;
+  return {
+    leg,
+    legCloseAtMs: entry.completeAtMs,
+    usdPerQuote: usdIsBase ? 1 / entry.bar.close : entry.bar.close,
+  };
+}
+
 export function buildDecisionMarketContext(input: {
   daily: Bar[];
   fiveMin?: Bar[];
@@ -761,6 +784,14 @@ export function simulateSymbol(input: {
   if (legNeeded.kind === "leg" && input.quoteCurrencyLeg !== undefined && input.quoteCurrencyLeg.symbol !== legNeeded.leg) {
     throw new Error(
       `${input.symbol}: the currency table names ${legNeeded.leg} as its USD leg, not ${input.quoteCurrencyLeg.symbol}`,
+    );
+  }
+  // The orientation is the TABLE's, never the driver's: a leg passed with the
+  // wrong `usdIsBase` would price a JPY cross 23,000× off and record the rate
+  // as if correct, so a disagreement is refused here rather than trusted.
+  if (legNeeded.kind === "leg" && input.quoteCurrencyLeg !== undefined && input.quoteCurrencyLeg.usdIsBase !== legNeeded.usdIsBase) {
+    throw new Error(
+      `${input.symbol}: the currency table says ${legNeeded.leg} is ${legNeeded.usdIsBase ? "based in" : "quoted in"} USD, but the driver passed usdIsBase=${String(input.quoteCurrencyLeg.usdIsBase)}`,
     );
   }
   // The leg's completed daily series and its moving pointer, walked exactly
@@ -911,16 +942,9 @@ export function simulateSymbol(input: {
     // Null on a cross whose leg has no completed bar yet: `buildPricePlan`
     // then refuses the decision as `commission_rate_unavailable` and the
     // ledger names it, the same shape as live.
-    const quoteCurrencyUsd: QuoteCurrencyUsd | null =
-      input.quoteCurrencyLeg !== undefined && legVisible > 0
-        ? {
-          leg: input.quoteCurrencyLeg.symbol,
-          legCloseAtMs: legSeries[legVisible - 1].completeAtMs,
-          usdPerQuote: input.quoteCurrencyLeg.usdIsBase
-            ? 1 / legSeries[legVisible - 1].bar.close
-            : legSeries[legVisible - 1].bar.close,
-        }
-        : null;
+    const quoteCurrencyUsd = legNeeded.kind === "leg"
+      ? visibleQuoteCurrencyUsd(legNeeded.leg, legNeeded.usdIsBase, legSeries, legVisible)
+      : null;
     const market = buildDecisionMarketContext({
       daily,
       // The builder only reads the tail; slicing here keeps the per-point

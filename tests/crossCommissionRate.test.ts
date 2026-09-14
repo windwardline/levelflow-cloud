@@ -130,7 +130,7 @@ describe("buildPricePlan on a forex cross", () => {
 // The sweep: the leg's previous completed daily close prices every decision.
 
 import { completedDailySeries } from "../supabase/functions/trade-analyzer/dailyCompletion.ts";
-import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
+import { simulateSymbol, visibleQuoteCurrencyUsd } from "../supabase/functions/trade-analyzer/sweep.ts";
 
 const startTime = Date.parse("2026-06-15T00:00:00.000Z");
 
@@ -171,6 +171,24 @@ function dailyBars(count: number, close = 100, startMs = startTime - count * 86_
 const primary = toBars([...sawtooth(450, 12, 4), ...sawtooth(450, 24, 8)]);
 const calibrationOverride = { blockedRegimes: [], runnerWindowShare: 1, tp1RiskShare: 0.8 };
 
+describe("visibleQuoteCurrencyUsd — the one pointer both readers walk", () => {
+  const series = completedDailySeries("USDJPY", dailyBars(6, 150));
+  it("answers null while nothing has completed, and past the series", () => {
+    assert.equal(visibleQuoteCurrencyUsd("USDJPY", true, series, 0), null);
+    assert.equal(visibleQuoteCurrencyUsd("USDJPY", true, series, series.length + 1), null);
+  });
+  it("prices the LAST visible entry, inverted for a USD-based leg, direct otherwise, with its completion instant", () => {
+    const two = visibleQuoteCurrencyUsd("USDJPY", true, series, 2)!;
+    assert.deepEqual(two, { leg: "USDJPY", legCloseAtMs: series[1].completeAtMs, usdPerQuote: 1 / series[1].bar.close });
+    const direct = visibleQuoteCurrencyUsd("GBPUSD", false, series, 2)!;
+    assert.equal(direct.usdPerQuote, series[1].bar.close);
+  });
+  it("refuses a non-positive close", () => {
+    const broken = [{ ...series[0], bar: { ...series[0].bar, close: 0 } }];
+    assert.equal(visibleQuoteCurrencyUsd("USDJPY", true, broken, 1), null);
+  });
+});
+
 describe("simulateSymbol on a forex cross", () => {
   it("throws at entry for a cross simulated without its USD leg — a driver defect is not a market refusing", () => {
     assert.throws(
@@ -190,13 +208,29 @@ describe("simulateSymbol on a forex cross", () => {
         }),
       /names USDJPY as its USD leg, not GBPUSD/,
     );
+    // The right leg with the wrong orientation would price the cross 23,000×
+    // off and record the rate as if correct: refused, never trusted.
+    assert.throws(
+      () =>
+        simulateSymbol({
+          calibrationOverride,
+          dailyBars: dailyBars(80),
+          primaryBars: primary,
+          quoteCurrencyLeg: { dailyBars: dailyBars(80, 153.5), symbol: "USDJPY", usdIsBase: false },
+          stepBars: 8,
+          symbol: "EURJPY",
+          warmupBars: 120,
+        }),
+      /USDJPY is based in USD, but the driver passed usdIsBase=false/,
+    );
   });
 
-  it("prices every decision at 5e-5 over the leg's previous completed close, inverted for a USD-based leg", () => {
-    // USDJPY daily closes alternate 153.5 ± 0.7675 (the fixture's ±0.5 %),
-    // and every one completes before the first decision, so the visible
-    // close at any decision is the last of the series.
-    const leg = dailyBars(80, 153.5);
+  it("prices every decision at 5e-5 over the leg's previous completed close, inverted for a USD-based leg — and the pointer MOVES", () => {
+    // USDJPY daily bars stamped ACROSS the decision range (the decisions run
+    // ~9.4 days from startTime): the visible close changes as bars complete,
+    // so a pointer that advances once and freezes, or one bar late, is caught
+    // here — not only the pointer that never advances.
+    const leg = dailyBars(14, 153.5, startTime - 2 * 86_400_000);
     const result = simulateSymbol({
       calibrationOverride,
       captureAll: true,
@@ -214,7 +248,7 @@ describe("simulateSymbol on a forex cross", () => {
     // or before the decision bar — a weekend-stamped bar the gate drops is
     // never it, and a bar completing after the decision is not yet readable.
     const completed = completedDailySeries("USDJPY", leg);
-    assert.ok(completed.length >= 40 && completed.length < leg.length, "the gate must drop some weekend bars for this test to bite");
+    assert.ok(completed.length >= 5 && completed.length < leg.length, "the gate must drop some weekend bars for this test to bite");
     const seen = new Set<number>();
     for (const row of rows) {
       const visible = completed.filter((entry) => entry.completeAtMs <= row.time).at(-1)!;
@@ -226,7 +260,14 @@ describe("simulateSymbol on a forex cross", () => {
         `commission ${row.estimatedCommission} is not 5e-5 / ${expectedRate}`,
       );
     }
-    assert.ok(seen.size >= 1);
+    assert.ok(seen.size > 1, `the visible leg close never changed across the decisions (${seen.size} distinct) — the pointer was not exercised`);
+    // A decision that sits between two completions prices the EARLIER close.
+    const between = rows.find((row) => completed.some((entry, index) =>
+      index + 1 < completed.length && entry.completeAtMs <= row.time && row.time < completed[index + 1].completeAtMs
+    ));
+    assert.ok(between, "no decision fell between two leg completions");
+    const earlier = completed.filter((entry) => entry.completeAtMs <= between!.time).at(-1)!;
+    assert.equal(between!.usdPerQuote, 1 / earlier.bar.close);
     assert.equal(result.rejectionLedger.filter((row) => row.reason.includes("commission_rate_unavailable")).length, 0);
   });
 

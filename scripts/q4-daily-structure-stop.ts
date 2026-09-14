@@ -57,7 +57,7 @@ import {
   runStrategyCommittee,
   scoreConsensus,
 } from "../supabase/functions/trade-analyzer/strategies.ts";
-import { buildDecisionMarketContext } from "../supabase/functions/trade-analyzer/sweep.ts";
+import { buildDecisionMarketContext, visibleQuoteCurrencyUsd } from "../supabase/functions/trade-analyzer/sweep.ts";
 import {
   defaultScanSymbols,
   quoteCurrencyUsdLeg,
@@ -407,7 +407,6 @@ export async function runQ4(argv: string[]): Promise<number> {
     // market refusal — so the pin miss stops this market like its own would.
     const legNeeded = quoteCurrencyUsdLeg(symbol);
     let legSeries: ReturnType<typeof completedDailySeries> = [];
-    let legUsdIsBase = false;
     if (legNeeded.kind === "leg") {
       const legProvider = resolveProviderSymbols(legNeeded.leg)[0];
       if (!legProvider) throw new Error(`${symbol}: USD leg ${legNeeded.leg} has no provider symbol`);
@@ -424,7 +423,6 @@ export async function runQ4(argv: string[]): Promise<number> {
         unpinned.push({ symbol, why: `USD leg ${legNeeded.leg}: ${message.split(". ")[0]}` });
         continue;
       }
-      legUsdIsBase = legNeeded.usdIsBase;
     } else if (legNeeded.kind === "missing") {
       throw new Error(`${symbol}: quote currency ${legNeeded.currency} has no USD leg on the roster`);
     }
@@ -467,14 +465,8 @@ export async function runQ4(argv: string[]): Promise<number> {
           fiveMinVisible,
         ),
         history,
-        quoteCurrencyUsd: legNeeded.kind === "leg" && legVisible > 0
-          ? {
-            leg: legNeeded.leg,
-            legCloseAtMs: legSeries[legVisible - 1].completeAtMs,
-            usdPerQuote: legUsdIsBase
-              ? 1 / legSeries[legVisible - 1].bar.close
-              : legSeries[legVisible - 1].bar.close,
-          }
+        quoteCurrencyUsd: legNeeded.kind === "leg"
+          ? visibleQuoteCurrencyUsd(legNeeded.leg, legNeeded.usdIsBase, legSeries, legVisible)
           : null,
       });
       if (getSessionContext(symbol, new Date(latest.time)).block) continue;
