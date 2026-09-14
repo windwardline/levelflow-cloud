@@ -7,10 +7,26 @@
 #
 # Exit 0 means SKIP the build, exit 1 means BUILD it.
 #
-# Three cases exist specifically to pin this repo's path set against a careless
-# widening: tests/, supabase/ and scripts/ must BUILD. They are the paths a
-# reader is most likely to assume are non-deployable — `tsc -b` may reach test
-# sources, and a migration can accompany a shipped change.
+# tests/, scripts/ and supabase/ were pinned as BUILD until 2026-09-14, on two
+# stated worries. Both were checked and neither survives:
+#
+#   "`tsc -b` may reach test sources" — it does. tsconfig.tests.json includes
+#   tests/, scripts/**/*.ts and 40 supabase/functions sources. But EVERY
+#   tsconfig in this repo sets noEmit, so `tsc -b` is a typecheck that emits
+#   nothing. `dist` comes only from `vite build`, which resolves from index.html
+#   through src/. No file under those three paths can change a deployed byte,
+#   and nothing in src/ imports from them.
+#
+#   "a migration can accompany a shipped change" — it can, and that commit
+#   still BUILDS. The predicate is all-or-nothing: it skips only when EVERY
+#   changed file is non-deployable. A migration beside a src/ change is a
+#   mixed commit, which is the invariant the mixed-* cases below now pin.
+#
+# What is genuinely given up is a third copy of the typecheck. CI runs
+# `npm run check` on every pull request and deploy.yml runs it again on push to
+# main; the Vercel build was the third. The cases below pin the new boundary in
+# both directions, because a widening asserted only by the paths it adds is a
+# widening nobody can see the edge of.
 #
 # The suite ends with a mutation: the catch-all that classifies unknown paths as
 # deployable is deleted, the deletion is confirmed to have landed at the intended
@@ -79,17 +95,57 @@ run "source change builds"                    "$r" 1
 r=$(newrepo mixed);       commit_in "$r" sh -c 'echo m >> docs/readme.md; echo m >> src/app.ts'
 run "docs plus source builds"                 "$r" 1
 
-r=$(newrepo tests_build); commit_in "$r" sh -c 'echo t > tests/a.test.ts'
-run "tests change BUILDS (tsc -b may reach)"  "$r" 1
+# --- the widened set: non-deployable because noEmit means they cannot reach dist
+r=$(newrepo tests_skip);  commit_in "$r" sh -c 'echo t > tests/a.test.ts'
+run "tests-only change skips"                 "$r" 0
 
-r=$(newrepo supa_build);  commit_in "$r" sh -c 'echo s > supabase/migration.sql'
-run "supabase change BUILDS"                  "$r" 1
+r=$(newrepo supa_skip);   commit_in "$r" sh -c 'mkdir -p supabase/migrations; echo s > supabase/migrations/001.sql'
+run "supabase migration-only change skips"    "$r" 0
 
-r=$(newrepo scripts_build); commit_in "$r" sh -c 'echo s > scripts/tool.ts'
-run "scripts change BUILDS"                   "$r" 1
+r=$(newrepo supafn_skip); commit_in "$r" sh -c 'mkdir -p supabase/functions/x; echo s > supabase/functions/x/index.ts'
+run "supabase function-only change skips"     "$r" 0
 
+r=$(newrepo scripts_skip); commit_in "$r" sh -c 'echo s > scripts/tool.ts'
+run "scripts-only change skips"               "$r" 0
+
+# --- all-or-nothing: one deployable file in the commit builds the whole commit.
+# These are the cases that make the widening safe, so they are pinned explicitly.
+r=$(newrepo mixed_tests); commit_in "$r" sh -c 'echo t > tests/a.test.ts; echo m >> src/app.ts'
+run "tests plus source builds"                "$r" 1
+
+r=$(newrepo mixed_supa);  commit_in "$r" sh -c 'mkdir -p supabase/migrations; echo s > supabase/migrations/002.sql; echo m >> src/app.ts'
+run "migration plus source builds"            "$r" 1
+
+r=$(newrepo mixed_scripts); commit_in "$r" sh -c 'echo s > scripts/tool.ts; echo m >> src/app.ts'
+run "scripts plus source builds"              "$r" 1
+
+# --- the deployable root files. vercel.json matters most: deploy.yml polls
+# production for the CSP and security headers it declares, so a header change
+# that never deployed would be checked against the previous deployment and pass.
+r=$(newrepo vercel_json); commit_in "$r" sh -c 'echo "{}" > vercel.json'
+run "vercel.json builds (headers gate reads prod)" "$r" 1
+
+r=$(newrepo pkg_json);    commit_in "$r" sh -c 'echo "{}" > package.json'
+run "package.json builds"                     "$r" 1
+
+r=$(newrepo vite_cfg);    commit_in "$r" sh -c 'echo x > vite.config.ts'
+run "vite.config.ts builds"                   "$r" 1
+
+r=$(newrepo html);        commit_in "$r" sh -c 'echo x > index.html'
+run "index.html builds"                       "$r" 1
+
+# --- prefix traps: a path that merely STARTS with a skipped name is not in it
 r=$(newrepo prefix_trap); commit_in "$r" sh -c 'echo p > docsomething.ts'
 run "docs-prefixed source file builds"        "$r" 1
+
+r=$(newrepo prefix_tests); commit_in "$r" sh -c 'echo p > testsomething.ts'
+run "tests-prefixed source file builds"       "$r" 1
+
+r=$(newrepo prefix_scripts); commit_in "$r" sh -c 'echo p > scriptsy.ts'
+run "scripts-prefixed source file builds"     "$r" 1
+
+r=$(newrepo prefix_supa); commit_in "$r" sh -c 'echo p > supabaseClient.ts'
+run "supabase-prefixed source file builds"    "$r" 1
 
 d="$TMP/first"; mkdir -p "$d"
 ( cd "$d" || exit 1
