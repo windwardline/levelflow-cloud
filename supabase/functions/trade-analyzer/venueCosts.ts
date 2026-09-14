@@ -22,15 +22,23 @@
 //     (since 2026.09.13.forex-commission-usd-quote; before it these four
 //     were scaled by price — +47% on GBPUSD, −27% on NZDUSD).
 //   · USD base (USDJPY, USDCAD, USDCHF): referencePrice × 5e-5, exact.
-//   · The 21 crosses: referencePrice × 5e-5, which is the true distance
-//     multiplied by USD-per-BASE — the wrong rate, two-sided. Measured
-//     2026-09-13 over 291,377 forex fills: +45% on GBP-base, +22% on EUR,
-//     against −27% on NZD-base, −18% on AUD, −16% on CAD. The exact figure
-//     needs the quote currency's USD rate at cost time, which neither the
-//     sweep nor the live loader supplies; that design goes through refuters.
-//     An earlier version of this comment called the error "mildly
-//     conservative" with "rounding up deliberate". Record:
-//     docs/research/forex-commission-conversion-2026-09-13.md.
+//   · The 21 crosses: 5e-5 / usdPerQuote, exact, where usdPerQuote is the
+//     quote currency's USD rate at cost time — the USD leg's previous
+//     completed daily close on BOTH paths (the live loader through the bar
+//     store, the sweep from the pinned cache; symbols.ts names the leg from
+//     the currency table). Without a rate the answer is null and the caller
+//     refuses the setup (§19e): there is no price-scaled fallback left in
+//     this module. Until 2026.09.14.forex-commission-cross-rate the code
+//     returned referencePrice × 5e-5 here — the true distance multiplied by
+//     USD-per-BASE, two-sided; measured 2026-09-13 over 291,377 forex fills:
+//     +45% on GBP-base, +22% on EUR, against −27% on NZD-base, −18% on AUD,
+//     −16% on CAD. An earlier version of this comment called the error
+//     "mildly conservative" with "rounding up deliberate". Record:
+//     docs/research/forex-commission-conversion-2026-09-13.md. The basis
+//     itself — $5 per lot of BASE units rather than per $100,000 of
+//     notional — is inferred from the E8X symbols table beside its 100,000
+//     contract size; no observed ticket shows a commission line, and one E8
+//     fill statement on any cross would settle it (owner item, 2026-09-14).
 // - Index CFDs: $6/lot (SP, NSDQ, DAX, NIKKEI) vs $12/lot (DOW, ASX)
 //   [SECONDARY commission split] over the published $/point multipliers
 //   (SP $20, NSDQ/DOW $5 [PRIMARY]); unpublished multipliers assume the
@@ -235,6 +243,13 @@ const CRYPTO_SPREAD_FLOOR_BPS: Record<string, number> = {
 export function venueCommissionRoundTripPrice(
   symbol: string,
   referencePrice: number,
+  /**
+   * USD per one unit of the symbol's QUOTE currency, at cost time. Read only
+   * on the 21 forex crosses; the seven USD pairs and every other class price
+   * without it. A cross given null (or a non-positive, non-finite value)
+   * answers null — the caller's refusal, never zero and never a guess.
+   */
+  usdPerQuote: number | null,
 ): number | null {
   const futuresRow = FUTURES_VENUE_FEES[symbol];
   if (futuresRow) {
@@ -265,15 +280,21 @@ export function venueCommissionRoundTripPrice(
     // $5 RT per 100,000 BASE units is 5e-5 USD per base unit; the accountant
     // needs it in QUOTE units, i.e. 5e-5 × (quote per USD). Where USD is the
     // quote that factor is 1 and the figure is the constant itself. Where USD
-    // is the base, the pair's own price IS quote-per-USD, so the fallthrough
-    // below is exact. On the 21 crosses the fallthrough multiplies by the
-    // wrong rate (off by USD-per-BASE, two-sided) and stays as a documented
-    // approximation until a quote-currency rate reaches both paths — see the
-    // header.
-    if (symbolCurrencyPair(symbol)?.[1] === "USD") {
+    // is the base, the pair's own price IS quote-per-USD, exact. On the 21
+    // crosses the factor is 1 / usdPerQuote, supplied by the caller from the
+    // USD leg's last completed daily close; without it there is no honest
+    // figure and the answer is null — see the header.
+    const pair = symbolCurrencyPair(symbol);
+    if (pair?.[1] === "USD") {
       return FOREX_COMMISSION_PRICE_FRACTION;
     }
-    return referencePrice * FOREX_COMMISSION_PRICE_FRACTION;
+    if (pair?.[0] === "USD") {
+      return referencePrice * FOREX_COMMISSION_PRICE_FRACTION;
+    }
+    if (typeof usdPerQuote !== "number" || !Number.isFinite(usdPerQuote) || usdPerQuote <= 0) {
+      return null;
+    }
+    return FOREX_COMMISSION_PRICE_FRACTION / usdPerQuote;
   }
   if (assetType === "crypto") {
     return referencePrice * CRYPTO_COMMISSION_PRICE_FRACTION;

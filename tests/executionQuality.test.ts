@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import { estimateExecutionQuality } from "../supabase/functions/trade-analyzer/executionQuality.ts";
 import {
   defaultScanSymbols,
+  quoteCurrencyUsdLeg,
   symbolCurrencyPair,
 } from "../supabase/functions/trade-analyzer/symbols.ts";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
@@ -736,7 +737,10 @@ describe("cost is scale-free, over the ROSTER (2026-08-24)", () => {
     //   units at every price — its share of a percentage move legitimately
     //   grows as the base currency cheapens, because $5 per 100,000 EUR is
     //   $5 whether EURUSD prints 1.16 or 0.12 (2026-09-13).
-    // · Everywhere else: price × 5e-5, so the RATIO to price is constant.
+    // · The 21 crosses (2026-09-14): 5e-5 / usdPerQuote — a constant in quote
+    //   units at every price of the CROSS, set only by the quote currency's
+    //   USD rate. The cross's own decimal point never enters it.
+    // · USD base (3 pairs): price × 5e-5, so the RATIO to price is constant.
     const forex = defaultScanSymbols.filter((symbol) =>
       getAssetType(symbol) === "forex" && /^[A-Z]{6}$/.test(symbol)
     );
@@ -745,6 +749,9 @@ describe("cost is scale-free, over the ROSTER (2026-08-24)", () => {
       (symbol) => symbolCurrencyPair(symbol)?.[1] === "USD",
     );
     assert.equal(usdQuote.length, 4, `expected four USD-quote pairs, got ${usdQuote}`);
+    const crosses = forex.filter((symbol) => quoteCurrencyUsdLeg(symbol).kind === "leg");
+    assert.equal(crosses.length, 21, `expected the 21 crosses, got ${crosses.length}`);
+    const USD_PER_QUOTE = 1 / 153.5;
     for (const symbol of forex) {
       const commissions = [0.12, 0.53, 1.16, 12.5, 155].map((price) => {
         const quality = estimateExecutionQuality({
@@ -759,6 +766,7 @@ describe("cost is scale-free, over the ROSTER (2026-08-24)", () => {
           stopLoss: price * 0.997,
           symbol,
           takeProfit: price * 1.006,
+          usdPerQuote: crosses.includes(symbol) ? USD_PER_QUOTE : null,
         });
         return { price, commission: quality.estimatedCommission };
       });
@@ -768,6 +776,15 @@ describe("cost is scale-free, over the ROSTER (2026-08-24)", () => {
             commission,
             0.00005,
             `${symbol} at ${price}: a USD-quote pair pays the constant 5e-5`,
+          );
+        }
+        continue;
+      }
+      if (crosses.includes(symbol)) {
+        for (const { price, commission } of commissions) {
+          assert.ok(
+            Math.abs(commission - 0.00005 / USD_PER_QUOTE) < 1e-12,
+            `${symbol} at ${price}: a cross pays 5e-5 over USD-per-quote, whatever its own price`,
           );
         }
         continue;

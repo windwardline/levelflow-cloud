@@ -256,6 +256,7 @@ function syntheticMarket(): MarketContext {
     primaryTimeframe: "15min",
     providerWarnings: [],
     quote: null,
+    quoteCurrencyUsd: null,
     timeframes: { "15min": primary, "1day": daily },
   };
 }

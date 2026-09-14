@@ -22,6 +22,13 @@ export type ExecutionQualityInput = {
   // floor — E8 publishes no futures spread; cost is exchange-native tick
   // pricing (e8-futures-dossier §5.4, finding 9).
   tickSize?: number | null;
+  /**
+   * USD per unit of the quote currency (types.ts `QuoteCurrencyUsd`), read
+   * only on the 21 forex crosses. `buildPricePlan` refuses a cross without
+   * one before this runs; a cross reaching here without a rate is an
+   * invariant failure and throws — it is never charged zero.
+   */
+  usdPerQuote?: number | null;
 };
 
 export type ExecutionQuality = {
@@ -257,9 +264,24 @@ export function estimateExecutionQuality(
       COST_EPSILON,
     ),
   );
-  const estimatedCommission = costLeg(
-    venueCommissionRoundTripPrice(input.symbol, latestClose) ?? 0,
+  const venueCommission = venueCommissionRoundTripPrice(
+    input.symbol,
+    latestClose,
+    input.usdPerQuote ?? null,
   );
+  if (venueCommission === null && input.assetType === "forex") {
+    // The only forex symbol the venue module answers null for is a cross
+    // without its quote currency's USD rate — and `buildPricePlan` refuses
+    // that case (`commission_rate_unavailable`) before pricing anything.
+    // Reaching here is a caller defect, and a caller defect must not become
+    // a zero commission on the money path (§19e).
+    throw new Error(
+      `${input.symbol}: no commission figure — a forex cross needs usdPerQuote at cost time; the plan should have been refused`,
+    );
+  }
+  // Symbols the venue tables cannot bill (unknown to the roster) carry zero
+  // commission, stated: pinned in tests/executionQuality.test.ts.
+  const estimatedCommission = costLeg(venueCommission ?? 0);
   // MEASUREMENT-ONLY sensitivity (owner standard, 2026-08-11: a market
   // may not be withdrawn on a flawed parameter of our own making). The
   // round trip has two kinds of cost: E8's PUBLISHED commission, which

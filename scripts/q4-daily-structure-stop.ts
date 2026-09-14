@@ -57,9 +57,10 @@ import {
   runStrategyCommittee,
   scoreConsensus,
 } from "../supabase/functions/trade-analyzer/strategies.ts";
-import { buildDecisionMarketContext } from "../supabase/functions/trade-analyzer/sweep.ts";
+import { buildDecisionMarketContext, visibleQuoteCurrencyUsd } from "../supabase/functions/trade-analyzer/sweep.ts";
 import {
   defaultScanSymbols,
+  quoteCurrencyUsdLeg,
   resolveProviderSymbols,
 } from "../supabase/functions/trade-analyzer/symbols.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
@@ -320,6 +321,7 @@ export async function runQ4(argv: string[]): Promise<number> {
   const skipped: Array<{ symbol: string; why: string }> = [];
   const unpinned: Array<{ symbol: string; why: string }> = [];
 
+  const legDaily = new Map<string, Promise<Bar[]>>();
   for (const symbol of args.symbols) {
     const providerSymbol = resolveProviderSymbols(symbol)[0];
     if (!providerSymbol) {
@@ -397,6 +399,34 @@ export async function runQ4(argv: string[]): Promise<number> {
 
     const calibration = getCategoryCalibration(symbol);
     const dailySeries = completedDailySeries(symbol, dailyBars);
+    // A forex cross prices its commission from its USD leg's previous
+    // completed daily close (2026-09-14); the leg's series comes from the
+    // same pinned store, read the same zero-byte way, memoised across the
+    // crosses that share it. Without it `buildPricePlan` would refuse every
+    // decision as `commission_rate_unavailable` — a reader defect wearing a
+    // market refusal — so the pin miss stops this market like its own would.
+    const legNeeded = quoteCurrencyUsdLeg(symbol);
+    let legSeries: ReturnType<typeof completedDailySeries> = [];
+    if (legNeeded.kind === "leg") {
+      const legProvider = resolveProviderSymbols(legNeeded.leg)[0];
+      if (!legProvider) throw new Error(`${symbol}: USD leg ${legNeeded.leg} has no provider symbol`);
+      let pending = legDaily.get(legNeeded.leg);
+      if (!pending) {
+        pending = pinnedSeries({ anchor: args.anchor, cacheDir: args.cacheDir, key: `${legProvider}-daily-${days}` });
+        legDaily.set(legNeeded.leg, pending);
+      }
+      try {
+        legSeries = completedDailySeries(legNeeded.leg, await pending);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!message.startsWith("q4PinMissing:")) throw error;
+        unpinned.push({ symbol, why: `USD leg ${legNeeded.leg}: ${message.split(". ")[0]}` });
+        continue;
+      }
+    } else if (legNeeded.kind === "missing") {
+      throw new Error(`${symbol}: quote currency ${legNeeded.currency} has no USD leg on the roster`);
+    }
+    let legVisible = 0;
     const row = emptyRow();
     let dailyVisible = 0;
     let fiveMinVisible = 0;
@@ -422,6 +452,12 @@ export async function runQ4(argv: string[]): Promise<number> {
       ) {
         fiveMinVisible += 1;
       }
+      while (
+        legVisible < legSeries.length &&
+        legSeries[legVisible].completeAtMs <= latest.time
+      ) {
+        legVisible += 1;
+      }
       const market = buildDecisionMarketContext({
         daily,
         fiveMin: fiveMinuteBars.slice(
@@ -429,6 +465,9 @@ export async function runQ4(argv: string[]): Promise<number> {
           fiveMinVisible,
         ),
         history,
+        quoteCurrencyUsd: legNeeded.kind === "leg"
+          ? visibleQuoteCurrencyUsd(legNeeded.leg, legNeeded.usdIsBase, legSeries, legVisible)
+          : null,
       });
       if (getSessionContext(symbol, new Date(latest.time)).block) continue;
       const regime = classifyRegime(market);

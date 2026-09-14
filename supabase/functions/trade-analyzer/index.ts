@@ -52,6 +52,7 @@ import {
   resolveProviderSymbols,
 } from "./symbols.ts";
 import { buildPricePlan } from "./pricePlan.ts";
+import { type QuoteCurrencyRateMemo, resolveQuoteCurrencyUsd } from "./quoteCurrencyRate.ts";
 import { mapWithConcurrency } from "./concurrency.ts";
 import { rankOpportunities } from "./scanRanking.ts";
 import {
@@ -553,10 +554,13 @@ async function scanOpportunities(
     ),
   );
 
+  // One rate memo per scan request (quoteCurrencyRate.ts): the crosses that
+  // share a USD leg share one load of its daily bars.
+  const quoteRates: QuoteCurrencyRateMemo = new Map();
   const results = await mapWithConcurrency(
     normalizedSymbols,
     4,
-    (symbol) => scanOpportunity(token, userId, symbol),
+    (symbol) => scanOpportunity(token, userId, symbol, quoteRates),
   );
   const opportunities: MarketScanCandidate[] = [];
   const blocked: MarketScanCandidate[] = [];
@@ -633,6 +637,7 @@ async function reviewCurrentMarket(
   token: string,
   userId: string,
   symbol: SupportedSymbol,
+  quoteRates: QuoteCurrencyRateMemo,
 ): Promise<CurrentMarketReview> {
   // §17m.1: every review that runs is part of a scan, so the telemetry action
   // and the status a refusal records are fixed rather than chosen by a caller.
@@ -783,7 +788,24 @@ async function reviewCurrentMarket(
     };
   }
 
-  const { fetchFailed, fmpSymbol, marketContext, providerFailures } =
+  // The cross commission's rate (2026-09-14), resolved BESIDE the market
+  // load rather than after it: a forex cross needs USD per unit of its quote
+  // currency, read from its USD leg's last completed daily close through
+  // the bar store — the bar the sweep reads from the pinned cache. Every
+  // other symbol answers `none` without loading anything.
+  const quoteRatePending = resolveQuoteCurrencyUsd({
+    loadDaily: (legSymbol) => {
+      const legProviderSymbol = resolveProviderSymbols(legSymbol)[0];
+      if (!legProviderSymbol) {
+        return Promise.reject(new Error(`${legSymbol}: no provider symbol`));
+      }
+      return fetchFmpBars(legProviderSymbol, "1day", recordAnalyzerEvent, fetchWithTimeout);
+    },
+    memo: quoteRates,
+    nowMs: Date.now(),
+    symbol: normalizedSymbol,
+  });
+  const { fetchFailed, fmpSymbol, marketContext: loadedContext, providerFailures } =
     await fetchFirstAvailableMarketContext(
       providerSymbols,
       recordAnalyzerEvent,
@@ -796,11 +818,14 @@ async function reviewCurrentMarket(
   await recordMarketDataHealth(
     normalizedSymbol,
     fmpSymbol,
-    marketContext,
+    loadedContext,
     providerFailures,
   );
 
-  if (!fmpSymbol || !marketContext) {
+  if (!fmpSymbol || !loadedContext) {
+    // The leg's resolution never rejects (quoteCurrencyRate.ts catches its
+    // own load), so a market that failed its own load returns without
+    // waiting on it.
     if (action === "scan_opportunities" && providerFailures.length > 0) {
       console.warn(
         "scan market data unavailable",
@@ -831,14 +856,14 @@ async function reviewCurrentMarket(
     };
   }
 
-  if (marketContext.daily.length < 80) {
+  if (loadedContext.daily.length < 80) {
     await recordAnalyzerEvent({
       action,
       message: "Insufficient daily history",
       metadata: {
-        dailyBars: marketContext.daily.length,
+        dailyBars: loadedContext.daily.length,
         providerFailures,
-        providerWarnings: marketContext.providerWarnings,
+        providerWarnings: loadedContext.providerWarnings,
       },
       providerSymbol: fmpSymbol,
       status: eventStatus,
@@ -849,12 +874,40 @@ async function reviewCurrentMarket(
       blocked: true,
       providerWarnings: [
         ...providerFailures,
-        ...marketContext.providerWarnings,
+        ...loadedContext.providerWarnings,
       ],
       reason: "Not enough FMP daily bars returned for analyzer confidence.",
       symbol: normalizedSymbol,
     };
   }
+
+  // A cross whose leg did not load is refused HERE, with its own ground and
+  // before any scoring — the same failure class as the market's own bars
+  // not loading, never priced at zero and never at the price-scaled figure
+  // (§19e; the plan's `commission_rate_unavailable` refusal stands behind
+  // this as the second door).
+  const quoteRate = await quoteRatePending;
+  if (quoteRate.kind === "unavailable") {
+    await recordAnalyzerEvent({
+      action,
+      message: "Commission rate unavailable",
+      metadata: { detail: quoteRate.detail, leg: quoteRate.leg },
+      providerSymbol: fmpSymbol,
+      status: eventStatus,
+      symbol: normalizedSymbol,
+      userId,
+    });
+    return {
+      blocked: true,
+      providerWarnings: [...providerFailures, ...loadedContext.providerWarnings],
+      reason: "The commission for this cross could not be priced because its USD leg's daily bars did not load.",
+      symbol: normalizedSymbol,
+    };
+  }
+  const marketContext: MarketContext = {
+    ...loadedContext,
+    quoteCurrencyUsd: quoteRate.kind === "rate" ? quoteRate.rate : null,
+  };
 
   const macroRateContext = await fetchMacroRateContext(
     fetchWithTimeout,
@@ -975,13 +1028,14 @@ async function scanOpportunity(
   token: string,
   userId: string,
   symbol: SupportedSymbol,
+  quoteRates: QuoteCurrencyRateMemo,
 ): Promise<{
   blocked?: MarketScanCandidate;
   opportunity?: MarketScanCandidate;
   persistence?: ScanPersistenceContext;
 }> {
   try {
-    const review = await reviewCurrentMarket(token, userId, symbol);
+    const review = await reviewCurrentMarket(token, userId, symbol, quoteRates);
     if (review.blocked) {
       return {
         blocked: {

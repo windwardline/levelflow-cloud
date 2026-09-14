@@ -73,6 +73,7 @@ function outcomeRecord(
     runnerProtection: "breakeven",
     estimatedRoundTripCost: 0,
     estimatedCommission: 0,
+    usdPerQuote: null,
     estimatedSlippage: 0,
     estimatedSpread: 0,
     latestClose: 0,

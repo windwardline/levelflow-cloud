@@ -224,3 +224,22 @@ the daily cache holds every USD leg, so the sweep half is buildable from disk
 using the previous trading day's close (knowable at decision time); only the
 live half waits on a rate fetch, i.e. on the key. One physics forbids shipping
 the sweep half alone.
+
+**Fixed 2026-09-14, both halves at once — `2026.09.14.forex-commission-cross-rate`.**
+The rate on both paths is the USD leg's last completed daily close: the
+live loader reads it from the bar store beside the market's own load, the
+sweep from the pinned cache through the same completion gate, and
+`symbols.ts` names the leg from the currency table. `venueCosts.ts` prices a
+cross at 5e-5 / USD-per-quote and answers null without a rate — the plan is
+refused by name (`commission_rate_unavailable`), and live blocks the market
+with the fact when the leg's bars do not load; nothing charges zero or the
+price-scaled figure any more. The corpus emits `usdPerQuote` so a reader can
+re-derive the charge. Measured first, as the four pairs were:
+`r3/forex-commission-admission-crosses-2026-09-14.txt` (this reader's
+`--pairs crosses`, the leg's completed close at each decision from the pinned
+cache, contained years by the feed witness). Record of the change:
+`forex-commission-cross-rate-2026-09-14.md`. The basis itself — $5 per lot
+of BASE units rather than per $100,000 of notional — remains an inference
+from E8's symbols table beside its 100,000 contract size; no observed ticket
+shows a commission line, and one E8 fill statement on any cross would settle
+it (owner item).

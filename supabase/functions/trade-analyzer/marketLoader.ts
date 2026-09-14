@@ -244,6 +244,10 @@ async function fetchMarketContext(
     primaryTimeframe,
     providerWarnings,
     quote,
+    // The loader knows the provider symbol, not the roster symbol, so it
+    // cannot name a cross's USD leg; index.ts resolves the rate beside this
+    // load (quoteCurrencyRate.ts) and spreads it in before any pricing.
+    quoteCurrencyUsd: null,
     timeframes,
   };
 }
