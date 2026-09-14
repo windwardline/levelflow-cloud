@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.windwardline.levelflow-postgres-backup</string>
+  <!-- The script self-delivers its two credentials through wl-secret by
+       absolute path. The plist holds no secret and names none: wl-secret is not
+       on PATH on the schedule, which is why the lookup lives in the script
+       rather than here. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-lc</string>
+    <string>/Users/peacock/Projects/levelflow-cloud/scripts/ops/backup-postgres-offbox.sh</string>
+  </array>
+  <!-- 06:40 local, ten minutes after Supabase's own daily physical backup lands
+       at ~06:30Z, so the off-box copy is taken from a database the provider has
+       just quiesced for its own snapshot rather than mid-write. It is also well
+       clear of the 07:00 cache top-up and the 07:20 minute-bank run, so three
+       jobs are not competing for the same uplink. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>6</integer>
+    <key>Minute</key>
+    <integer>40</integer>
+  </dict>
+  <!-- RunAtLoad, for the same reason as the minute bank: a machine asleep at
+       06:40 has missed the window. The dump is 37 seconds and 13 MB, so an
+       extra one costs nothing worth protecting. -->
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/Users/peacock/Library/Logs/levelflow-postgres-backup.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/peacock/Library/Logs/levelflow-postgres-backup.log</string>
+</dict>
+</plist>
