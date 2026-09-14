@@ -556,6 +556,8 @@ const READERS: Record<string, { args: string[]; cwd?: "fixture"; note?: string }
   "derive-4d": { args: ["F", "--baseline", BASELINE, "--out", "O/candidates.json", "--permutations", "20"] },
   "e4-collapse": { args: ["F", "--bucket-minutes", "60", "--variant", BASELINE, "--min-groups", "1"] },
   "exclusion-suspects": { args: ["F"] },
+  "forex-commission-admission": { args: ["F"] },
+  "forex-commission-conversion": { args: ["F"] },
   "feasibility-4d": {
     args: ["F", "--candidates", "C", "--out", "O/feasibility.json"],
     note: "reads confirm rows' PRICES by stated premise; no outcome field — this run proves it",
@@ -585,6 +587,8 @@ const READERS: Record<string, { args: string[]; cwd?: "fixture"; note?: string }
 const EXTRA_RUNS: Array<{ args: string[]; cwd?: "fixture"; label: string; reader: string }> = [
   { args: ["F", "--years", "contained", "--witness", "W"], label: "banked-fraction --years contained", reader: "banked-fraction" },
   { args: ["F", "--years", "escaping", "--witness", "W"], label: "payoff-decomposition --years escaping", reader: "payoff-decomposition" },
+  { args: ["F", "--years", "contained", "--witness", "W"], label: "forex-commission-conversion --years contained", reader: "forex-commission-conversion" },
+  { args: ["F", "--witness", "W"], label: "forex-commission-admission --witness", reader: "forex-commission-admission" },
   {
     args: ["F", "--include-holdout"],
     label: "banked-fraction --include-holdout",
