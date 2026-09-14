@@ -1,0 +1,22 @@
+npm notice run levelflow-cloud@0.1.0 npx
+npm notice run 'tsx' /private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/0c18d218-bdd9-4bd7-abea-1276172cad40/scratchpad/fx4-admission.mts
+forex baseline accepted fit+select rows: 373,510 · four-pair rows with usable cost fields: 55,554 · emitted commission == latestClose×5e-5 on 55554/55554
+
+ADMISSION AT maxCostShare 0.15 — emitted vs corrected (USD-quote commission = constant 5e-5)
+| key | rows | filled | over cap now | over cap corrected | newly DECLINED (filled: n, R) | newly ADMITTED (filled: n, R) | kept (n, R) | mean share now → corrected |
+|---|---:|---:|---:|---:|---|---|---|---|
+| AUDUSD|all | 14,171 | 12,200 | 212 | 492 | 286 (238, -7.8) | 6 (5, -1.1) | (11,779, -104.0) | 0.0675 → 0.0741 |
+| AUDUSD|contained | 12,897 | 11,137 | 212 | 492 | 286 (238, -7.8) | 6 (5, -1.1) | (10,716, -226.8) | 0.0685 → 0.0749 |
+| AUDUSD|escaping | 1,274 | 1,063 | 0 | 0 | 0 (0, +0.0) | 0 (0, +0.0) | (1,063, +122.8) | 0.0573 → 0.0655 |
+| EURUSD|all | 14,077 | 12,055 | 1,394 | 1,013 | 0 (0, +0.0) | 381 (339, -33.3) | (10,804, -276.3) | 0.0913 → 0.0846 |
+| EURUSD|contained | 12,644 | 10,840 | 1,173 | 853 | 0 (0, +0.0) | 320 (282, -36.4) | (9,791, -290.1) | 0.0900 → 0.0832 |
+| EURUSD|escaping | 1,433 | 1,215 | 221 | 160 | 0 (0, +0.0) | 61 (57, +3.1) | (1,013, +13.8) | 0.1030 → 0.0967 |
+| FOUR|all | 55,554 | 47,740 | 2,442 | 2,141 | 501 (424, -15.8) | 802 (717, -60.7) | (45,133, -597.3) | 0.0769 → 0.0766 |
+| FOUR|contained | 49,908 | 42,959 | 2,171 | 1,971 | 501 (424, -15.8) | 701 (627, -64.6) | (40,595, -942.4) | 0.0771 → 0.0767 |
+| FOUR|escaping | 5,646 | 4,781 | 271 | 170 | 0 (0, +0.0) | 101 (90, +3.9) | (4,538, +345.0) | 0.0750 → 0.0751 |
+| GBPUSD|all | 13,588 | 11,626 | 784 | 369 | 0 (0, +0.0) | 415 (373, -26.3) | (10,924, -182.8) | 0.0864 → 0.0749 |
+| GBPUSD|contained | 12,079 | 10,336 | 734 | 359 | 0 (0, +0.0) | 375 (340, -27.1) | (9,675, -256.1) | 0.0865 → 0.0748 |
+| GBPUSD|escaping | 1,509 | 1,290 | 50 | 10 | 0 (0, +0.0) | 40 (33, +0.8) | (1,249, +73.3) | 0.0855 → 0.0758 |
+| NZDUSD|all | 13,718 | 11,859 | 52 | 267 | 215 (186, -8.0) | 0 (0, +0.0) | (11,626, -34.2) | 0.0625 → 0.0725 |
+| NZDUSD|contained | 12,288 | 10,646 | 52 | 267 | 215 (186, -8.0) | 0 (0, +0.0) | (10,413, -169.4) | 0.0637 → 0.0739 |
+| NZDUSD|escaping | 1,430 | 1,213 | 0 | 0 | 0 (0, +0.0) | 0 (0, +0.0) | (1,213, +135.1) | 0.0515 → 0.0611 |

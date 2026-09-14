@@ -107,7 +107,25 @@ import { isKnownSymbol } from "./symbols.ts";
 // declined because the bound-crossing rule had been serving them while the
 // read condemns them on both columns. The accepted population changes, so the
 // cohort scopes again. (Prior: 2026.09.03.register-redecision.)
-export const ANALYZER_VERSION = "2026.09.04.removal-test-uniform";
+//
+// 2026.09.13.forex-commission-usd-quote: the forex commission was converted
+// in the wrong currency on 25 of 28 pairs (venueCosts.ts, record
+// docs/research/forex-commission-conversion-2026-09-13.md). On the four
+// USD-quote pairs — EURUSD, GBPUSD, AUDUSD, NZDUSD — E8's $5 per 100,000 base
+// units is the constant 5e-5 in quote units and needs no rate, so those four
+// now charge it exactly; the 21 crosses keep the documented price-scaled
+// approximation until a quote-currency rate reaches both paths. The cost
+// share moves on the four, so their admission under the forex class row's
+// `maxCostShare: 0.15` moves with it (measured before shipping, in the
+// record). The R accountant charges the commission linearly, so every
+// realized R on those four is re-priced: +122.7 R GBPUSD, +74.3 R EURUSD,
+// −71.9 R AUDUSD, −107.8 R NZDUSD over their 42,959 contained fills (of
+// 291,377 forex). Three independent refuters reproduced the defect on
+// 2026-09-13 before this shipped: +221.6, +223.7 and +226.8 R net across all
+// 28 pairs, against the record's +209.4 R — a 5 R spread among them, the
+// rest population (all years vs contained) and rate method.
+// (Prior: 2026.09.04.removal-test-uniform.)
+export const ANALYZER_VERSION = "2026.09.13.forex-commission-usd-quote";
 
 export type AssetType =
   | "agriculture"

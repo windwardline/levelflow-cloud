@@ -246,7 +246,7 @@ rather than into that table.
 | | |
 | --- | --- |
 | Markets | **97 distinct** — the offering is 97 markets, presented per account type as forex 45 · crypto 33 · futures 27. Those three sum to 105 because the eight crypto CFDs (`FOREX_ACCOUNT_CRYPTO_CFDS`) are visible on BOTH the forex and crypto accounts and are counted twice; 105 is the sum of account-scoped VIEWS, never the roster. (A stale 106 stood here until round 8's CV-9; the 105 that replaced it was this same double-count, caught by the 2026-08-11 audit.) `defaultScanSymbols` is the roster and has always been 97 (amendment 32 executed 2026-08-09 in two acts: thirteen derivative rows dormant, then BRENT on the owner's F13 frame — its "stable" basis measured +1.10 against the recorded +1.67, a contract-month spread no line can honestly state) |
-| Engine | `2026.09.04.removal-test-uniform` — amendment 36's removal test (its window and cap legs) now binds a STANDING decline exactly as it binds a new one, and retirement is decided on money rather than on a bound crossing. The register holds **21**: AAVEUSD, DOGEUSD, ETCUSD and IMXUSD were restored because a review WINDOW retires their withdrawal, and ADAUSD and XTZUSD are declined because the freeze's gross-bound rule had been serving them while the read condemns them on both columns (−655R over 3,042 filled setups). CAKEUSD stays and is recorded as never removal-tested. Before it, `2026.09.03.register-redecision` — the register re-derived from the one ledgered confirm read (23 markets: ten enter, thirteen stay, ZCUSX and PAUSD restored). Before that, `2026.09.03.forex-cost-share-cap` — the first calibration change any ledgered confirm read had earned: forex's class row caps the cost weight per trade at `maxCostShare: 0.15` (read `f3b72ce8261a…`, pooled confirm ΔR +283.0, ΔE +0.0064 [+0.0001, +0.0127] over 77,537 fills). Admission compares the UNROUNDED share (`executionQuality.costShare`), not the 4-dp display field the knob shipped with in #572 — 105 of R3's 941,947 baseline rows fall in the band where the two disagree at 0.15. Every other class row leaves the cap unset. Before it: `2026.09.01.platinum-group-rate-inverse` — the version both R3 manifests record (`docs/research/r3/*.manifest.json`); that cell still read `2026.08.18.one-physics` on 2026-09-02, stale across D1 and the §6b-1 item-A bump. Earlier: `2026.08.18.one-physics` (R1a complete: D2's one R accountant on every filled resolution; live grading on the sweep's resolution tiering with the row's stored runner-protection mode and review window; the decision anchor on the last completed primary bar; no-bars expiries marked; calibration cells unchanged from `2026.08.11.declines`) — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Deployed and verified in production 2026-08-18: deploy run 380 (#362's merge) green end-to-end including the E2E chart gate, run 381 (#363's ops/docs merge) green after it |
+| Engine | `2026.09.13.forex-commission-usd-quote` — the forex commission on the four USD-quote pairs (EURUSD, GBPUSD, AUDUSD, NZDUSD) is E8's constant 5e-5 in quote units, not price × 5e-5 (+47% on GBPUSD and −27% on NZDUSD before it). Admission under the forex class row's `maxCostShare: 0.15` moves on those four, measured on R3's 55,554 accepted four-pair rows before shipping: 501 newly declined (AUDUSD 286, NZDUSD 215; 424 filled carrying −15.8 R as emitted) and 802 newly admitted (EURUSD 381, GBPUSD 415, AUDUSD 6; 717 filled carrying −60.7 R as emitted) — all-years figures, `docs/research/r3/forex-commission-admission-2026-09-13.txt`; on contained years 501 out / 701 in (627 filled, −64.6 R). The R accountant re-prices every fill on the four: +17.3 R net over their 42,959 contained fills. A correctness change that decides nothing — three independent refuters said so before it shipped (their verdicts sit in the open-scope round's journal until that round's memo is recorded). The 21 crosses keep the documented approximation. Before it, `2026.09.04.removal-test-uniform` — amendment 36's removal test (its window and cap legs) now binds a STANDING decline exactly as it binds a new one, and retirement is decided on money rather than on a bound crossing. The register holds **21**: AAVEUSD, DOGEUSD, ETCUSD and IMXUSD were restored because a review WINDOW retires their withdrawal, and ADAUSD and XTZUSD are declined because the freeze's gross-bound rule had been serving them while the read condemns them on both columns (−655R over 3,042 filled setups). CAKEUSD stays and is recorded as never removal-tested. Before it, `2026.09.03.register-redecision` — the register re-derived from the one ledgered confirm read (23 markets: ten enter, thirteen stay, ZCUSX and PAUSD restored). Before that, `2026.09.03.forex-cost-share-cap` — the first calibration change any ledgered confirm read had earned: forex's class row caps the cost weight per trade at `maxCostShare: 0.15` (read `f3b72ce8261a…`, pooled confirm ΔR +283.0, ΔE +0.0064 [+0.0001, +0.0127] over 77,537 fills). Admission compares the UNROUNDED share (`executionQuality.costShare`), not the 4-dp display field the knob shipped with in #572 — 105 of R3's 941,947 baseline rows fall in the band where the two disagree at 0.15. Every other class row leaves the cap unset. Before it: `2026.09.01.platinum-group-rate-inverse` — the version both R3 manifests record (`docs/research/r3/*.manifest.json`); that cell still read `2026.08.18.one-physics` on 2026-09-02, stale across D1 and the §6b-1 item-A bump. Earlier: `2026.08.18.one-physics` (R1a complete: D2's one R accountant on every filled resolution; live grading on the sweep's resolution tiering with the row's stored runner-protection mode and review window; the decision anchor on the last completed primary bar; no-bars expiries marked; calibration cells unchanged from `2026.08.11.declines`) — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Deployed and verified in production 2026-08-18: deploy run 380 (#362's merge) green end-to-end including the E2E chart gate, run 381 (#363's ops/docs merge) green after it |
 | Public face | The parking page |
 | Gates | The seven `ci.yml` runs, named rather than counted: `check` · `lint` · `check:migrations` · `npm audit --audit-level=high` · `test` · `build` · `check:bundle`. This cell listed SIX and omitted `npm audit` — the same undercount the resume block was written to correct, reproduced in the cell a cold reader reaches first. No test count is given here: `npm test` is the authority, and two cells of this file disagreed by ~300 for days while both carried a disclaimer saying so |
 | Repo | `main` is the trunk; the 2026-08-10/11 programme landed as #307-#322. Check `gh pr list` before trusting any count here |
@@ -2264,7 +2264,7 @@ was written; it can now, and it did: see the graded refusal below.** It is a pre
 output `r3/forex-commission-conversion-2026-09-13.txt`. E8 charges $5 RT per
 100,000 BASE units (PRIMARY) — a fixed 5e-5 USD per base unit. The accountant
 needs it in QUOTE units: 5e-5 / (USD per quote). `venueCommissionRoundTripPrice`
-returns `referencePrice × 5e-5` (`venueCosts.ts:260`, referencePrice =
+returned `referencePrice × 5e-5` for every pair (the forex branch of `venueCommissionRoundTripPrice`, `venueCosts.ts`; referencePrice =
 `latestClose`), so **model / true = USD per BASE**: exact on USDJPY/USDCAD/
 USDCHF, wrong on 25 of 28, and TWO-SIDED. Verified: emitted
 `estimatedCommission` equals `latestClose × 5e-5` on 291,377 of 291,377 forex
@@ -2281,36 +2281,44 @@ strengthens (+0.0026); the other two in-span cells move under 0.002. Three of
 four still clear; the fourth was resting partly on a commission the engine did
 not charge.
 
-**The docblock said the opposite** (`venueCosts.ts:16-28` at HEAD; the bullet was written in #310,
+**The docblock said the opposite** (the forex bullet of `venueCosts.ts`'s header, written in #310,
 2026-08-11): "depends on the quote currency's dollar rate; rounding up is
 deliberate". Wrong currency, and false for every base under a dollar. Corrected
 in place; the test that pinned "0.5bp of price" as correct now pins the current
 behaviour AS an approximation and fails the moment the formula changes.
 
-**NOT FIXED IN CODE YET — and the reason is narrower than first recorded.**
-For the four USD-QUOTE pairs (EURUSD, GBPUSD, AUDUSD, NZDUSD) the true figure is
-the constant 5e-5: no rate, both paths, one physics satisfied trivially. By
-total mis-charge GBPUSD ranks 1st of 28 pairs (+122.7 R) and NZDUSD 4th
-(−107.8 R); EURUSD and AUDUSD rank 14th and 15th — measured per pair, because
-the first draft of this entry said "the two largest" and was wrong. **That fix
-is buildable today and is the next engine change set** (ANALYZER_VERSION bump: it moves
-`costShare` and therefore admission on those four). What needs a design is the
-**21 crosses**: their exact figure needs the quote currency's USD rate at cost
-time, which neither path supplies — the sweep runs one symbol at a time from
-cache, the live loader fetches one symbol's quote. §19e says refuse rather than
+**FIXED FOR THE FOUR USD-QUOTE PAIRS — `2026.09.13.forex-commission-usd-quote`, 2026-09-13.**
+For EURUSD, GBPUSD, AUDUSD and NZDUSD the true figure is the constant 5e-5: no
+rate, both paths, one physics satisfied trivially. `venueCosts.ts` now returns
+it where the currency table says the quote is USD (`symbolCurrencyPair`, the
+table is the authority, never the ticker's shape). By total mis-charge GBPUSD
+ranked 1st of 28 pairs (+122.7 R) and NZDUSD 4th (−107.8 R); EURUSD and AUDUSD
+14th and 15th — measured per pair, because the first draft of this entry said
+"the two largest" and was wrong. Admission moved with the cost share and was
+measured before shipping (engine row above; 501 out, 802 in, at the 0.15 cap).
+Three independent refuters reproduced the defect before it shipped — +221.6,
++223.7 and +226.8 R net across all 28 pairs against this record's +209.4 R (a
+5 R spread among them; the rest is population, all years vs contained, and rate
+method) — and each said the same thing: real, verified, decides nothing.
+What still needs a design is the **21 crosses**: their exact figure needs the quote currency's USD rate at cost
+time, which neither path supplies today — the sweep runs one symbol at a time
+from cache, the live loader fetches one symbol's quote. §19e says refuse rather than
 print a wrong number, which on the live path would mean declining every cross
 until a rate source exists; that has FMP-byte consequences and goes through the
 open-scope round's refuters (candidate 1). An earlier version of this entry
-gave the rate requirement as the reason for not fixing ANY pair. The correction
-is computable from emitted fields without a re-sweep.
+gave the rate requirement as the reason for not fixing ANY pair. The refuters
+added a fact the record lacked: the daily cache holds every USD leg, so the
+SWEEP half of the cross fix is buildable from disk (previous-trading-day close,
+knowable at decision time) — only the LIVE half waits on a rate fetch, i.e. on
+the key. The correction is computable from emitted fields without a re-sweep.
 
 **And the quote bank has never worked.** `analyzer_events` action=quote_fetch:
 **37,790 rows, all status=error, zero with a bid**, 2026-08-03 → 2026-09-01 —
 queried live 2026-09-13. Not "nothing since the park": nothing while the desk
 was open either. "The spread bank accrues the day the desk unparks" was wrong
 on its premise. **And the suite was green throughout**: the only pin on this
-path (`tests/executionQuality.test.ts:183`) regex-matches the SOURCE of the
-banking call — it asserts the code is written, not that it ever ran — so
+path (the `assert.match(loader, /action: "quote_fetch"…/)` pin in
+`tests/executionQuality.test.ts`) regex-matches the SOURCE of the banking call — it asserts the code is written, not that it ever ran — so
 37,790 consecutive failures across a month passed every test. A green suite is
 not a working path here. The honest guard is a `cadence:` check on
 `analyzer_events` quote_fetch success rate, once the key is back; recorded as

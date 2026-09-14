@@ -16,22 +16,21 @@
 // - Forex CFDs: $5/lot RT on a 100,000-unit contract [PRIMARY]. Those are
 //   BASE units [inferred from FX convention; confirmed by E8's own sizing
 //   example, which values a GBP/NZD lot through GBP/USD —
-//   e8-markets-dossier.md, help article 9453396]. Applied below as
-//   referencePrice × 5e-5, which is EXACT only where USD is the BASE
-//   (USDJPY, USDCAD, USDCHF). Everywhere else it is the true distance
-//   multiplied by USD-per-BASE — not the quote currency's rate, and not
-//   one-sided. Measured 2026-09-13 over 291,377 forex fills: +45% on
-//   GBP-base (1.451×) and +22% on EUR, against −27% on NZD-base (0.728×),
-//   −18% on AUD, −16% on CAD. An earlier version of this comment called
-//   the error "mildly conservative" with "rounding up deliberate". Record:
-//   docs/research/forex-commission-conversion-2026-09-13.md.
-//   Where USD is the QUOTE (EURUSD, GBPUSD, AUDUSD, NZDUSD) the true figure
-//   is the constant 5e-5 and needs no rate at all — fixable on both paths
-//   today. By total mis-charge GBPUSD ranks 1st of 28 (+122.7 R over
-//   10,336 fills) and NZDUSD 4th (−107.8 R); EURUSD and AUDUSD rank 14th
-//   and 15th. The 21 crosses need the quote currency's USD rate at cost
-//   time, which neither path supplies; that design goes through refuters,
-//   not this constant.
+//   e8-markets-dossier.md, help article 9453396]: 5e-5 USD per base unit,
+//   needed in QUOTE units. Three cases, all applied below:
+//   · USD quote (EURUSD, GBPUSD, AUDUSD, NZDUSD): the constant 5e-5, exact
+//     (since 2026.09.13.forex-commission-usd-quote; before it these four
+//     were scaled by price — +47% on GBPUSD, −27% on NZDUSD).
+//   · USD base (USDJPY, USDCAD, USDCHF): referencePrice × 5e-5, exact.
+//   · The 21 crosses: referencePrice × 5e-5, which is the true distance
+//     multiplied by USD-per-BASE — the wrong rate, two-sided. Measured
+//     2026-09-13 over 291,377 forex fills: +45% on GBP-base, +22% on EUR,
+//     against −27% on NZD-base, −18% on AUD, −16% on CAD. The exact figure
+//     needs the quote currency's USD rate at cost time, which neither the
+//     sweep nor the live loader supplies; that design goes through refuters.
+//     An earlier version of this comment called the error "mildly
+//     conservative" with "rounding up deliberate". Record:
+//     docs/research/forex-commission-conversion-2026-09-13.md.
 // - Index CFDs: $6/lot (SP, NSDQ, DAX, NIKKEI) vs $12/lot (DOW, ASX)
 //   [SECONDARY commission split] over the published $/point multipliers
 //   (SP $20, NSDQ/DOW $5 [PRIMARY]); unpublished multipliers assume the
@@ -48,7 +47,7 @@
 //   round-trip of price.
 import { getAssetType } from "./calibration.ts";
 import { getFuturesContractSpec } from "./futures.ts";
-import { isKnownSymbol } from "./symbols.ts";
+import { isKnownSymbol, symbolCurrencyPair } from "./symbols.ts";
 
 type FuturesFeeRow = {
   // "published" cites the §5.2 row; "proxy" names the sibling whose rate
@@ -263,6 +262,17 @@ export function venueCommissionRoundTripPrice(
   }
   const assetType = getAssetType(symbol);
   if (assetType === "forex") {
+    // $5 RT per 100,000 BASE units is 5e-5 USD per base unit; the accountant
+    // needs it in QUOTE units, i.e. 5e-5 × (quote per USD). Where USD is the
+    // quote that factor is 1 and the figure is the constant itself. Where USD
+    // is the base, the pair's own price IS quote-per-USD, so the fallthrough
+    // below is exact. On the 21 crosses the fallthrough multiplies by the
+    // wrong rate (off by USD-per-BASE, two-sided) and stays as a documented
+    // approximation until a quote-currency rate reaches both paths — see the
+    // header.
+    if (symbolCurrencyPair(symbol)?.[1] === "USD") {
+      return FOREX_COMMISSION_PRICE_FRACTION;
+    }
     return referencePrice * FOREX_COMMISSION_PRICE_FRACTION;
   }
   if (assetType === "crypto") {
