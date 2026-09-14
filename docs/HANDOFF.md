@@ -2289,6 +2289,15 @@ measured the same hour, and what was done about each:
    `/quote`: the entitlements record names **Full Forex Quote** endpoints,
    unused (`docs/fmp-entitlements.md:106`). Probe their fields once before
    pointing the bank at them; the E8 TradeLocker capture is the fallback.
+   **PROBED 2026-09-14 — the capture is the ONLY source.** Full Forex Quote
+   (1,550 pairs, 677 KB) carries the same fields as `/quote` and no bid/ask;
+   the legacy `/api/v3/fx` is closed (403); `/stable/aftermarket-quote` carries
+   `bidPrice`/`askPrice` with zero sizes and spreads that flip between sane
+   and garbage within minutes (EURUSD 43.8 pips then 1.4 bps; USDJPY 50.7 bps,
+   EURJPY 56.3, NZDCHF 55.4 at one instant beside USDCAD 0.1). A banked quote
+   replaces the modelled spread in live admission, so the bank is NOT
+   re-pointed and no scheduled scan runs while parked (`docs/fmp-entitlements.md`
+   records the four probes).
 3. **Nine rows from 2026-08-07 carried the request URL with the API key** in
    `analyzer_events.message` (4 `quote_fetch`, 5 `market_data_fetch`) and
    four more in `analyzer_events.metadata` (providerFailures) — Deno's
