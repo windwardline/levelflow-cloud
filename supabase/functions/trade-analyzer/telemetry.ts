@@ -1,3 +1,4 @@
+import { redactProviderSecrets } from "./redact.ts";
 import { getAssetType } from "./calibration.ts";
 import type { MarketContext, SupportedSymbol } from "./types.ts";
 import {
@@ -112,7 +113,9 @@ export async function recordAnalyzerEvent(event: AnalyzerEventPayload) {
         (event.symbol ? getAssetType(event.symbol) : null),
       cache_hit: event.cacheHit ?? false,
       duration_ms: event.durationMs ?? null,
-      message: event.message ?? null,
+      message: event.message === undefined || event.message === null
+        ? null
+        : redactProviderSecrets(event.message),
       metadata: event.metadata ?? {},
       provider_symbol: event.providerSymbol ?? null,
       status: event.status,
