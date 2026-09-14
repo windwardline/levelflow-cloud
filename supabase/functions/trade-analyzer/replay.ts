@@ -174,7 +174,9 @@ export function fillOptionsFromRiskModel(
     options.reviewHours = reviewWindowHours;
   }
   // Same-bar protection arming is resolver PHYSICS the corpus applies
-  // unconditionally (the sweep sets it on every evaluation), not a cost
+  // unconditionally (the sweep sets it on its net and gross arms; its
+  // arming-bound arm is the one deliberate exception, emitted beside them
+  // since 2026-09-14 as the one-bar-latency bound), not a cost
   // (#362 round 5, smaller item): a stamped row keeps corpus arming even
   // when its cost triple is corrupt, exactly as the mode above keeps its
   // stamp. Unstamped rows still resolve entirely v1-style.

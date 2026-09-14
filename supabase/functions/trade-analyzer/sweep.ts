@@ -234,6 +234,17 @@ export type SweepOutcomeRecord = {
   grossEntryPrice: number | null;
   grossExitPrice: number | null;
   grossTp1Price: number | null;
+  /**
+   * The arming-bound arm (2026-09-14): the net arm's decision and cost with
+   * FR-3's same-bar arming off, so the runner's protection exists from the
+   * bar after the partial banks — the one-bar-latency bound. Identical to
+   * the net arm except on rows whose TP1 bar closed back through the armed
+   * level.
+   */
+  armingBoundRealizedR: number;
+  armingBoundOutcome: Exclude<ResolvedOutcome, "pending">;
+  armingBoundExitPrice: number | null;
+  armingBoundExitAtMs: number;
   regime: string;
   // E1's tier, per row (emit symmetry with the live writers'
   // feedback.resolutionIntervalMs): 300000 when the 5-minute series
@@ -1103,7 +1114,7 @@ export function simulateSymbol(input: {
     // The side is captured OUTSIDE the closure: `consensus.side` is narrowed
     // by a guard above, and a closure re-widens it to `Side | null`.
     const resolvedSide = consensus.side;
-    const resolveAtScale = (scale: number) =>
+    const resolveAtScale = (scale: number, sameBarProtectionArming = true) =>
       evaluateSetupOutcome(
         {
           created_at: new Date(latest.time).toISOString(),
@@ -1131,7 +1142,7 @@ export function simulateSymbol(input: {
           barIntervalMs: resolutionIntervalMs,
           reviewHours: calibration.defaultReviewHours,
           runnerProtection: calibration.runnerProtection,
-          sameBarProtectionArming: true,
+          sameBarProtectionArming,
           // FR-5's stream begins one decision bar after creation on BOTH
           // tiers, and the no-bars marker's could-a-completed-bar-exist
           // question must ask about this stream, not the decision bar's
@@ -1147,6 +1158,21 @@ export function simulateSymbol(input: {
     // than behind a flag, because R3 is ONE re-sweep against an exhausted
     // allowance and a flag nobody set is exactly how a second one gets needed.
     const grossEvaluation = resolveAtScale(GROSS_COST_SCALE);
+    // The arming-bound arm (2026-09-14): the same decision at the same cost,
+    // with FR-3's same-bar arming OFF — the runner's protection exists from
+    // the bar AFTER the partial banks, never inside the bar that banked it.
+    // The open-scope round measured 89–97% of the lock's value over hold
+    // sitting on runners that exited at exactly the lock level inside the
+    // TP1 touch bar, and only one of the four forex in-span cells clearing
+    // zero once those rows were priced at the hold arm
+    // (docs/research/open-scope-round-2026-09-13.md §3). This column is the
+    // ONE-BAR-LATENCY bound — the refuters' counterfactual, which removed
+    // +4,342 of the lock's +4,689 R on fit in-pool — not the hold-priced
+    // bound §3 tabulates: where the next bar opens through the lock the
+    // runner prints the gap-open bid with slippage, and elsewhere it keeps
+    // running. On identical fills, so a reader grades any cell under both
+    // conventions from one sweep.
+    const armingBoundEvaluation = resolveAtScale(modeledCostScale, false);
 
     // BOTH ARMS OR NEITHER. The cost options are finite on both, so a plan the
     // net arm can grade the gross arm can too — but asserting that by emitting
@@ -1162,6 +1188,11 @@ export function simulateSymbol(input: {
       // reaches this branch is a constructed plan the resolver still could
       // not grade (non-finite plan numbers) — its own bucket, so
       // planRejected keeps one meaning and decision arithmetic stays exact.
+      reject("unresolvable", latest.time);
+      continue;
+    }
+    // The third arm under the same rule: all arms or none.
+    if (armingBoundEvaluation.state !== "resolved") {
       reject("unresolvable", latest.time);
       continue;
     }
@@ -1300,6 +1331,21 @@ export function simulateSymbol(input: {
         grossEvaluation.legs.find((leg) => leg.leg === "tp1")?.price ?? null,
       grossExitPrice:
         grossEvaluation.legs.find((leg) => leg.leg === "exit")?.price ?? null,
+      // THE ARMING-BOUND ARM, on the same decision at the net arm's cost: the
+      // runner's protection arms one bar late. Equal to the net arm on every
+      // row whose TP1 bar did not close back through the armed level; on the
+      // rows it did, the resolution continues into the next bars instead of
+      // printing the lock inside the touch bar.
+      armingBoundRealizedR: realizedRFromLegs({
+        legs: armingBoundEvaluation.legs,
+        perLegCost: plan.executionQuality.estimatedCommission / 2,
+        riskDistance: Math.abs(plan.entryPrice - plan.stopLoss),
+        side: resolvedSide,
+      }),
+      armingBoundOutcome: armingBoundEvaluation.outcome,
+      armingBoundExitPrice:
+        armingBoundEvaluation.legs.find((leg) => leg.leg === "exit")?.price ?? null,
+      armingBoundExitAtMs: Date.parse(armingBoundEvaluation.exitAt),
       realizedR: realizedRFromLegs({
         legs: evaluation.legs,
         // v2: spread and slippage are IN the leg prints (bid/ask triggers,
