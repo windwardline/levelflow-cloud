@@ -2269,6 +2269,65 @@ rather than an absence — and on the fit held-out fold the volume it discards
 is net positive. **The gate could not return a verdict on it at the time this
 was written; it can now, and it did: see the graded refusal below.** It is a pre-registration for the next calendar, NOT a ship.
 
+**THE OPEN-SCOPE ROUND: NOTHING ON DISK ADDS REALIZED R, AND THE IN-SPAN
+FINDING RESTS ON A CONVENTION — 2026-09-13/14.**
+[`open-scope-round-2026-09-13.md`](/docs/research/open-scope-round-2026-09-13.md).
+Ten lenses, eight candidates, three refuters each, 36 agents; 24 of 24
+verdicts returned, **0 survivors as a program**, 18 dead ends measured. Every
+candidate fell on money: the repricing's kill was an accounting-method swap;
+the span re-grade re-decides nothing under D4; the gate repair's one accept is
+a post-search p; the cost-share sort is relative stop width (Spearman
+−1.0000); the eleven withdrawals used a rule that is not the pre-registered
+one; the daily-frame arm's family earns ≈0 gross on the E8-holdable universe
+(0 of 28 forex pairs clear a positive bound at any hold); the risk governor's
+pass-rate gain does not exist on its stated population and a server-day loss
+cap removes the 16:00–21:59 span preferentially (forex contained in-pool
+−79.5 R at 10 R, −376.5 R at 5 R). What shipped from the round: #629–#632.
+
+**The instrument finding, verified by the driver on the corpus of record
+(`r3/lock-same-bar-2026-09-14.txt`).** FR-3 arms the protective stop with
+zero latency; when the runner exits at the lock inside the TP1 touch bar the
+resolver prints the exit at exactly the lock level. That is 54–55 % of lock
+exits and **89.3 % / 97.2 % / 94.0 % / 90.4 %** of the lock's value over hold
+on the four fit/select × pool cells (fit in-pool +4,688.9 R, of which
++4,187.8 R on 61,238 same-bar rows). Pricing those rows at the hold arm — the
+infinite-latency bound — takes the four forex in-span cells from three
+clearing zero to **one**: fit in-pool +0.0361 → +0.0102 [+0.0040]; fit
+held-out +0.0321 → +0.0003 [−0.0121]; select in-pool +0.0324 → +0.0079
+[−0.0031]; select held-out +0.0137 → −0.0120 [−0.0331]. The same-bar share is
+~35 % of fills in every cell, in and out of span. The truth lies between the
+columns; the record carried only the first. **Item 1 of the program is the
+arming latency as a stated resolver parameter, re-resolved from the pinned
+cache as a paired third R column on identical fills, and the eight cells and
+the hour gate re-graded under both — before the hour-shaped cost table the
+memo ranked first** (the memo's own caveat: "print-charged is not
+conservative on every axis"). **STATUS 2026-09-14: the column shipped (#634) and its two graders are
+census-registered — `scripts/arming-bound-cells.ts` (the eight cells under
+net, gross and bound; run with `--control` against the tracked eight-cell
+record on contained years, it refuses to speak unless its net column
+reproduces every cell) and `grid-totalr --r-arm bound` (the market-grain
+gate on the bound column; a recorded read refuses a non-net arm). The one
+re-simulate — the 2026-09-05 rebuild's exact recipe at `410e9ec`, pinned
+cache, zero provider bytes — is running as `capture-all-classfolds-2026-09-14`;
+promotion waits on every pre-existing column reproducing the record row for
+row. #634's squash had dropped this block from HANDOFF — an engine branch
+reset onto a moved main without a rebase; restored here.** Then: the cost table (E8 bid/ask by hour, 28
+pairs — the quote bank when the key returns, or an owner-run capture now);
+the 21-cross commission fix in the readers from the daily cache; a
+random-entry excursion screen on fit before any new family earns a sweep; the
+break-expiry specification; the daily arm parked as a pre-registered null;
+amendment 33's grain against the effect size (~1,440 in-span fills per market
+needed at +0.03 R/fill against ~200 per market-year — seven clean years per
+market; ninefold worse at +0.01).
+
+**Owner items from the round** — recorded as OWED RECOMMENDATIONS, none yet
+refuted: the E8 bid/ask capture (its priority set by item 1's outcome); what
+a review hour means (wall-clock or open-market; owed since 2026-09-12); the
+market grain against the seven-year arithmetic; whether a genuinely new entry
+family is a new program under the one-burn-per-program rule (fold reuse
+itself is already ruled). Unconditionally the owner's: the FMP escalation and
+the two E8 tab captures.
+
 **THE FOREX COMMISSION IS CONVERTED IN THE WRONG CURRENCY — found 2026-09-13.**
 [`forex-commission-conversion-2026-09-13.md`](/docs/research/forex-commission-conversion-2026-09-13.md),
 output `r3/forex-commission-conversion-2026-09-13.txt`. E8 charges $5 RT per

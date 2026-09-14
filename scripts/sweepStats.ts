@@ -114,6 +114,21 @@ export function grossExpectancy(stats: SweepStats): number | null {
 }
 
 /**
+ * The three conventions a row's money can be read under, each an (R,
+ * outcome) column pair on the same decision: net as emitted (FR-3's
+ * zero-latency arming), gross (E8's published commission, none of the
+ * modelled spread or slippage), and the arming-bound arm (2026-09-14: the
+ * protection arms one bar late). A reader that grades under one names it.
+ */
+export const ARM_COLUMNS = {
+  bound: { outcome: "armingBoundOutcome", r: "armingBoundRealizedR" },
+  gross: { outcome: "grossOutcome", r: "grossRealizedR" },
+  net: { outcome: "outcome", r: "realizedR" },
+} as const;
+export type ArmName = keyof typeof ARM_COLUMNS;
+export const ARM_NAMES = Object.keys(ARM_COLUMNS).sort() as ArmName[];
+
+/**
  * Every raw-row key this vocabulary's partition and accounting read
  * (#364 round 7, finding 2): vocabularyRow projects exactly this list,
  * and the input-side pin in tests/sweepStats.test.ts scans addOutcome's
