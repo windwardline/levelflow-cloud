@@ -1,0 +1,83 @@
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { describe, it } from "node:test";
+
+/**
+ * Every research file the records cite must be tracked.
+ *
+ * On 2026-09-14 the squash of #634 — an engine branch reset onto a main that
+ * had moved — deleted `docs/research/open-scope-round-2026-09-13.md` (403
+ * lines, the open-scope round's record) and
+ * `docs/research/r3/lock-same-bar-2026-09-14.txt` (the instrument finding it
+ * rests on). CI was green: nothing pinned prose, and HANDOFF, trade-model, a
+ * reader's docblock and a test all kept citing files that no longer existed.
+ * #635 restored HANDOFF's block and not the two files. A citation to a file
+ * that is gone is a claim nobody can check, so this test refuses the tree.
+ *
+ * Scope: every tracked markdown file under docs/, and two spellings of a
+ * citation — a repository path (`docs/research/…`) and the research tree's
+ * short form (`r3/…`, `r4/…` in backticks). Only .md and .txt targets: the
+ * corpora beside them are gitignored by design and cited freely.
+ */
+
+const RESEARCH_PATH = /docs\/research\/[A-Za-z0-9_./-]+?\.(?:md|txt)/g;
+const SHORT_FORM = /`(r[34]\/[A-Za-z0-9_./-]+?\.(?:md|txt))`/g;
+
+let trackedCache: Set<string> | undefined;
+
+/** Asked of git inside each test, not at registration: without `.git` this is a counted, named failure. */
+function trackedFiles(): Set<string> {
+  trackedCache ??= new Set(
+    execFileSync("git", ["ls-files", "-z"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 })
+      .split("\0")
+      .filter((path) => path.length > 0),
+  );
+  return trackedCache;
+}
+
+function trackedDocs(): string[] {
+  return [...trackedFiles()].filter((path) => path.startsWith("docs/") && path.endsWith(".md")).sort();
+}
+
+export function citedResearchFiles(text: string): Set<string> {
+  const cited = new Set<string>();
+  for (const match of text.matchAll(RESEARCH_PATH)) cited.add(match[0]);
+  for (const match of text.matchAll(SHORT_FORM)) cited.add(`docs/research/${match[1]}`);
+  return cited;
+}
+
+describe("research citations resolve to tracked files", () => {
+  it("scans the records of state and every research note", () => {
+    const docs = trackedDocs();
+    assert.ok(docs.includes("docs/HANDOFF.md"), "HANDOFF.md is tracked and scanned");
+    assert.ok(docs.includes("docs/trade-model.md"), "trade-model.md is tracked and scanned");
+    assert.ok(docs.length >= 3, `expected the docs tree, found ${docs.length} markdown files`);
+  });
+
+  it("reads both spellings of a citation", () => {
+    const cited = citedResearchFiles(
+      "see [x](/docs/research/alpha-review-2026-09-07.md), output `r3/entry-edge-2026-09-07.txt`, corpus `r3/capture-all.jsonl`",
+    );
+    assert.deepEqual(
+      [...cited].sort(),
+      ["docs/research/alpha-review-2026-09-07.md", "docs/research/r3/entry-edge-2026-09-07.txt"],
+    );
+  });
+
+  it("finds no citation of a file that is not in the tree", () => {
+    const tracked = trackedFiles();
+    const docs = trackedDocs();
+    const dangling: string[] = [];
+    let citations = 0;
+    for (const doc of docs) {
+      const cited = citedResearchFiles(readFileSync(doc, "utf8"));
+      citations += cited.size;
+      for (const path of cited) {
+        if (!tracked.has(path)) dangling.push(`${doc} cites ${path}`);
+      }
+    }
+    assert.ok(citations > 0, "the docs cite research files; a scan that found none examined nothing");
+    assert.deepEqual(dangling, [], `every cited research file must be tracked:\n  ${dangling.join("\n  ")}`);
+  });
+});

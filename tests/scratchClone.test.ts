@@ -51,6 +51,9 @@ const REPO = new URL("..", import.meta.url).pathname;
 const GIT_DEPENDENT_TESTS = [
   "emptyCorpusRefusals.test.ts",
   "feedSource.test.ts",
+  // The citation guard asks git which files are tracked: a research file that
+  // exists on disk but not in the repository is exactly the case it refuses.
+  "researchLinks.test.ts",
   // This file. It asks git what is ignored and what is tracked, so it is itself
   // git-dependent — which the derivation below caught on its first run, against
   // a list its own author had just written from an empirical failure set of

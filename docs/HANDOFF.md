@@ -2361,7 +2361,12 @@ cache, zero provider bytes — ran 15 minutes as `capture-all-classfolds-2026-09
 and was stopped at the owner's close-of-night (partial removed,
 `r3/classfolds.status.log`); it relaunches first, and promotion waits on every
 pre-existing column reproducing the record row for row. #634's squash had dropped this block from HANDOFF — an engine branch
-reset onto a moved main without a rebase; restored here.** Then: the cost table (E8 bid/ask by hour, 28
+reset onto a moved main without a rebase; restored here. The same squash also
+deleted the round's record and the lock-same-bar output named above; both were
+restored byte-identical from `ebc0293` on 2026-09-14, and `tests/researchLinks.test.ts`
+now refuses a tree in which any tracked doc cites a research file that is not
+tracked (mutation-proven: with the two files removed it fails naming all three
+citations).** Then: the cost table (E8 bid/ask by hour, 28
 pairs — the quote bank when the key returns, or an owner-run capture now);
 the 21-cross commission fix in the readers from the daily cache; a
 random-entry excursion screen on fit before any new family earns a sweep; the
