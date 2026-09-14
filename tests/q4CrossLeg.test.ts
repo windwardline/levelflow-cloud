@@ -10,7 +10,7 @@ import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 
 /**
  * The Q4 reader on a forex cross (2026-09-14): its commission needs the USD
- * leg's previous completed daily close, read from the leg's own pinned store
+ * leg's last completed daily close, read from the leg's own pinned store
  * the same zero-byte way as the cross's series. Executed end to end over a
  * hand-built cache, because a key that misses the leg's store or a pointer
  * that never advances would otherwise read as every decision refusing —

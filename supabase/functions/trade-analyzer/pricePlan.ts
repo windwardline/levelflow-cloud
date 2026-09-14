@@ -66,7 +66,7 @@ export type PlanRefusalReason =
    * A forex cross whose quote currency's USD rate is not in the context —
    * E8's $5 per 100,000 base units cannot be priced in quote units without
    * it, and a setup is never charged zero (§19e). Both paths supply the rate
-   * from the USD leg's previous completed daily close (2026-09-14).
+   * from the USD leg's last completed daily close (2026-09-14).
    */
   | "commission_rate_unavailable";
 

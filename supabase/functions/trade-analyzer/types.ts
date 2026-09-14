@@ -26,7 +26,7 @@ export type Bar = {
  * USD per one unit of a forex cross's QUOTE currency, at decision time — the
  * rate E8's $5 per 100,000 base units needs to become a distance in quote
  * units (venueCosts.ts). ONE source on both paths (2026-09-14): the USD leg's
- * previous COMPLETED daily close — live through the bar store, the sweep from
+ * last COMPLETED daily close — live through the bar store, the sweep from
  * the pinned cache, both behind the same daily-completion gate — so what is
  * measured is what trades. `leg` and `legCloseAtMs` say which bar priced it.
  */

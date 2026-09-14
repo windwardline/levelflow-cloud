@@ -274,7 +274,7 @@ fills, in one version:
   itemized per-contract fees over tick value (primary), forex's $5/lot RT
   per 100,000 base units (primary) — the constant 5e-5 in quote units where
   USD is the quote, price × 5e-5 where USD is the base, and on the 21 crosses
-  5e-5 / USD-per-quote from the USD leg's previous completed daily close on
+  5e-5 / USD-per-quote from the USD leg's last completed daily close on
   both paths (`2026.09.14.forex-commission-cross-rate`; until it the crosses
   paid price × 5e-5, off by USD-per-BASE —
   `docs/research/forex-commission-conversion-2026-09-13.md`), the index
@@ -1875,7 +1875,7 @@ basis would have admitted, which the cost PENALTY already carried.
 
 **The cross commission is one physics on both paths, and the record predates
 it (2026-09-14).** Live and the sweep price the 21 crosses' commission from the
-same bar — the USD leg's previous completed daily close, behind the same
+same bar — the USD leg's last completed daily close, behind the same
 daily-completion gate — so no second measured-vs-live difference joins the
 quoted-spread one above. What differs is the CORPUS OF RECORD: measured
 before `2026.09.14.forex-commission-cross-rate`, it carries price × 5e-5 on

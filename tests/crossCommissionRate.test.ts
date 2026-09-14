@@ -14,7 +14,7 @@ import type { Bar, MarketContext, Regime } from "../supabase/functions/trade-ana
  * referencePrice × 5e-5 on the crosses, the true figure multiplied by
  * USD-per-BASE (two-sided; record: forex-commission-conversion-2026-09-13.md).
  *
- * The rate on both paths is the USD leg's previous COMPLETED daily close: live
+ * The rate on both paths is the USD leg's last COMPLETED daily close: live
  * through the bar store, the sweep from the pinned cache. Without it a cross
  * is refused by name — never charged zero, never the old figure.
  */
@@ -127,7 +127,7 @@ describe("buildPricePlan on a forex cross", () => {
 });
 
 // ---------------------------------------------------------------------------
-// The sweep: the leg's previous completed daily close prices every decision.
+// The sweep: the leg's last completed daily close prices every decision.
 
 import { completedDailySeries } from "../supabase/functions/trade-analyzer/dailyCompletion.ts";
 import { simulateSymbol, visibleQuoteCurrencyUsd } from "../supabase/functions/trade-analyzer/sweep.ts";

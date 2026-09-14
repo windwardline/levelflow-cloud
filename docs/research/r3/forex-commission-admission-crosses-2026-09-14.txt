@@ -1,6 +1,6 @@
 ADMISSION AT maxCostShare 0.15 — emitted vs corrected (the crosses' exact commission, per decision)
   folds read: fit, select · confirm: SEALED, not read (2,141,527 rows withheld at the door) · variant baseline · cap 0.15 (the forex class row unless --cap) · years by year map: witness table docs/research/r3/feed-character.txt (5min tier)
-  pairs from the currency table (forex crosses, 21): AUDCAD, AUDCHF, AUDJPY, AUDNZD, CADCHF, CADJPY, CHFJPY, EURAUD, EURCAD, EURCHF, EURGBP, EURJPY, EURNZD, GBPAUD, GBPCAD, GBPCHF, GBPJPY, GBPNZD, NZDCAD, NZDCHF, NZDJPY · cross commission = 5e-5 / USD-per-quote at the leg's previous completed daily close, per decision (legs: AUDUSD, EURUSD, GBPUSD, NZDUSD, USDCAD, USDCHF, USDJPY) · unrated (no completed leg close at the decision) 0
+  pairs from the currency table (forex crosses, 21): AUDCAD, AUDCHF, AUDJPY, AUDNZD, CADCHF, CADJPY, CHFJPY, EURAUD, EURCAD, EURCHF, EURGBP, EURJPY, EURNZD, GBPAUD, GBPCAD, GBPCHF, GBPJPY, GBPNZD, NZDCAD, NZDCHF, NZDJPY · cross commission = 5e-5 / USD-per-quote at the leg's last completed daily close, per decision (legs: AUDUSD, GBPUSD, NZDUSD, USDCAD, USDCHF, USDJPY) · unrated (no completed leg close at the decision) 0
 rows 6,634,732 (2,141,527 sealed) · not accepted 857,954 · other fold 0 · other variant 3,118,950 · not forex 142,791 · other pair 94,330 · missing fields 0
 rows in scope 279,180: charged price × 5e-5 on 279,180, the exact figure on 0, neither on 0
 

@@ -1334,7 +1334,7 @@ async function main() {
     // series from the same rolling store the leg's own run reads — the same
     // key, so a pinned anchor costs nothing and an unpinned one tops up once
     // per leg, memoised across the crosses that share it. The engine prices
-    // the commission from the leg's previous completed daily close, the bar
+    // the commission from the leg's last completed daily close, the bar
     // the live loader reads from the bar store: one physics.
     const quoteCurrencyLeg = await loadQuoteCurrencyLeg(symbol);
 

@@ -282,7 +282,7 @@ export function venueCommissionRoundTripPrice(
     // quote that factor is 1 and the figure is the constant itself. Where USD
     // is the base, the pair's own price IS quote-per-USD, exact. On the 21
     // crosses the factor is 1 / usdPerQuote, supplied by the caller from the
-    // USD leg's previous completed daily close; without it there is no honest
+    // USD leg's last completed daily close; without it there is no honest
     // figure and the answer is null — see the header.
     const pair = symbolCurrencyPair(symbol);
     if (pair?.[1] === "USD") {

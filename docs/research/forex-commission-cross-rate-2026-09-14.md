@@ -15,7 +15,7 @@ This is the fix, on both paths at once.
 - **One rate, one source.** `symbols.ts` names each cross's USD leg from the
   currency table (`quoteCurrencyUsdLeg`: the roster pair quoting the quote
   currency in USD, or based in USD and inverted — six legs, all on the
-  roster). The rate is the leg's **previous completed daily close**: the live
+  roster). The rate is the leg's **last completed daily close**: the live
   loader reads it from the bar store beside the market's own load
   (`quoteCurrencyRate.ts`, memoised by leg per scan request), the sweep from
   the pinned cache through the same daily-completion gate with a moving
@@ -86,12 +86,39 @@ currency sits near parity with the dollar, barely moves (3 declined, 35 admitted
 
 Read on contained years under amendment 39: the rows the exact figure
 declines carried −155.5 R corrected and the rows it admits carry −46.1 R, so
-the swap at the cap is worth about +109 R on 4,570 filled rows over the
-tuning folds — a correction of a cost we were charging wrongly, not a
-tuning. The repricing itself moves the kept rows' money by +158.4 R
-(+1,772.6 → +1,931.0), two-sided across the pairs (GBPNZD +226.2 → +314.8,
-NZDCAD +192.5 → +87.2). No calibration cell was tuned and no target or stop
-moved (amendment 39).
+the swap at the cap is worth about +109 R corrected on 4,570 filled rows over
+the tuning folds — and **+54.5 R against the money the record booked**
+(+100.6 − 46.1; the −155.5 holds −54.9 R of commission those rows never
+paid). Two pairs carry three quarters of it, AUDCAD +43.8 and AUDNZD +38.0,
+on 454 and 619 declined fills at −0.099 and −0.065 R/fill; EURCHF −14.8,
+GBPCHF −14.3 and EURGBP −9.6 pull the other way. It is in-sample on the folds
+that set the cap and decides nothing: the fix ships on physics at either
+sign, no cell is tuned on it. The repricing itself moves the kept rows' money
+by +158.4 R (+1,772.6 → +1,931.0), two-sided across the pairs (+800 on the
+EUR/GBP-base crosses, −642 on AUD/NZD/CAD-base; GBPNZD +226.2 → +314.8,
+NZDCAD +192.5 → +87.2). Rows over the cap both before and after the
+correction (9,161 contained) sit in none of the three money columns. No
+calibration cell was tuned and no target or stop moved (amendment 39).
+
+**What the reader does not measure, and why it is inert.** The commission
+also enters `plan.rewardRisk`, the cost-net payoff the `belowPayoff` gate
+reads — a second admission channel. It cannot fire here by a calibration
+inequality: the runner is floored at 1.6 × risk or refused (`pricePlan.ts`),
+so the effective reward:risk is at least 1.6 minus the cost share, and
+falling under the 1.2 floor needs a share above 0.4 — already declined by the
+0.15 cap on both sides of the correction. The confidence channel is inert too
+(threshold 0 on all 28 forex markets at capture). And "last completed daily
+close" means the most recent completed session, not yesterday's date: 22.7 %
+of cross rows price at the leg bar stamped the decision's own New York date,
+because the decision fell after that session's 17:00 close — the same bar the
+sweep's own daily pointer reads. The leg stores' depth margin is thin on the
+CAD crosses: USDCAD's first completed bar sits nineteen days before the first
+CAD-cross decision, so a corpus starting a month earlier would have unrated
+every one of them.
+
+An independent refuter reproduced all 66 cells of the tracked table from a
+one-pass re-implementation (its own completion rule, its own leg lookup):
+zero differences.
 
 ## 4. What it does not do
 

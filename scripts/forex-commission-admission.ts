@@ -9,7 +9,7 @@
  *   · `usd-quote` (default, the record's): the four pairs whose true
  *     commission is the constant 5e-5 (2026.09.13.forex-commission-usd-quote).
  *   · `crosses`: the 21 pairs whose true commission is 5e-5 / USD-per-quote,
- *     the rate being the USD leg's previous completed daily close AT EACH
+ *     the rate being the USD leg's last completed daily close AT EACH
  *     DECISION (2026.09.14.forex-commission-cross-rate) — read from the pinned
  *     cache at the corpus's own anchor and depth behind fetchers that throw
  *     (`--cache-dir`, zero provider bytes), through the engine's own
@@ -272,7 +272,7 @@ export async function admission(input: AdmissionInput): Promise<AdmissionSummary
     `folds read: ${input.folds.join(", ")} · ${SEALED_FOLD}: SEALED, not read (${rows.sealed.toLocaleString()} rows withheld at the door) · variant ${input.variant} · cap ${input.cap} (the forex class row unless --cap)` +
       (yearMap ? ` · years by ${describeYearMap(yearMap.source, input.witnessTablePath)}` : " · years pooled (no --witness)"),
     population === "crosses"
-      ? `pairs from the currency table (forex crosses, ${pairs.size}): ${[...pairs].join(", ")} · cross commission = 5e-5 / USD-per-quote at the leg's previous completed daily close, per decision (legs: ${[...new Set([...pairs].flatMap((cross) => { const leg = quoteCurrencyUsdLeg(cross); return leg.kind === "leg" ? [leg.leg] : []; }))].sort().join(", ")}) · unrated (no completed leg close at the decision) ${rows.unrated.toLocaleString()}`
+      ? `pairs from the currency table (forex crosses, ${pairs.size}): ${[...pairs].join(", ")} · cross commission = 5e-5 / USD-per-quote at the leg's last completed daily close, per decision (legs: ${[...new Set([...pairs].flatMap((cross) => { const leg = quoteCurrencyUsdLeg(cross); return leg.kind === "leg" ? [leg.leg] : []; }))].sort().join(", ")}) · unrated (no completed leg close at the decision) ${rows.unrated.toLocaleString()}`
       : `pairs from the currency table (forex, USD quote): ${[...pairs].join(", ")}`,
   ];
   return { buckets, cap: input.cap, pairs: [...pairs], population, provenance, rows };

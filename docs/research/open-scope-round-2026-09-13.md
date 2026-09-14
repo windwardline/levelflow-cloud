@@ -343,7 +343,7 @@ swept. It ranked six items. Recorded here with the one change §3 forces.
    path waits on one rate fetch per cross; a missing rate must decline the
    setup (§19e) — the caller's `?? 0` would charge zero. **Closed
    2026-09-14 on one physics, not the split this item described**: both
-   paths price the crosses from the USD leg's previous completed daily close
+   paths price the crosses from the USD leg's last completed daily close
    (`2026.09.14.forex-commission-cross-rate`, record
    `forex-commission-cross-rate-2026-09-14.md`); a cross without a rate is
    refused by name.

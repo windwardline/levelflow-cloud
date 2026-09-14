@@ -226,7 +226,7 @@ live half waits on a rate fetch, i.e. on the key. One physics forbids shipping
 the sweep half alone.
 
 **Fixed 2026-09-14, both halves at once — `2026.09.14.forex-commission-cross-rate`.**
-The rate on both paths is the USD leg's previous completed daily close: the
+The rate on both paths is the USD leg's last completed daily close: the
 live loader reads it from the bar store beside the market's own load, the
 sweep from the pinned cache through the same completion gate, and
 `symbols.ts` names the leg from the currency table. `venueCosts.ts` prices a

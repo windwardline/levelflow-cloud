@@ -299,7 +299,7 @@ describe("forex-commission-admission — the 21 crosses at the leg's previous co
     assert.ok(Math.abs(all.keptR - 0.7) < 1e-12);
     assert.ok(Math.abs(all.keptRCorrected - (0.7 + 0.00375)) < 1e-12, `${all.keptRCorrected}`);
     const text = formatAdmission(summary);
-    assert.match(text, /cross commission = 5e-5 \/ USD-per-quote at the leg's previous completed daily close/);
+    assert.match(text, /cross commission = 5e-5 \/ USD-per-quote at the leg's last completed daily close/);
     assert.match(text, /\| EURJPY\|all \| 3 \|/);
   });
 

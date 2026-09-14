@@ -128,7 +128,7 @@ import { isKnownSymbol } from "./symbols.ts";
 //
 // 2026.09.14.forex-commission-cross-rate: the 21 forex crosses charge E8's $5
 // per 100,000 base units exactly — 5e-5 / (USD per quote unit), the rate
-// being the USD leg's previous completed daily close on BOTH paths
+// being the USD leg's last completed daily close on BOTH paths
 // (symbols.ts names the leg from the currency table; the live loader reads
 // the bar from the bar store, the sweep from the pinned cache through the
 // same daily-completion gate). The price-scaled approximation is gone from

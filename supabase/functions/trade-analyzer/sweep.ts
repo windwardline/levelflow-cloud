@@ -422,7 +422,7 @@ export type SweepOutcomeRecord = {
   dailyVisibleCount: number;
   /**
    * USD per unit of the quote currency the commission was priced at — the
-   * USD leg's previous completed daily close (2026-09-14); null off the 21
+   * USD leg's last completed daily close (2026-09-14); null off the 21
    * forex crosses. With `estimatedCommission` and the currency table a reader
    * can re-derive E8's $5 per 100,000 base units in quote units exactly.
    */
@@ -677,7 +677,7 @@ export function buildDecisionMarketContext(input: {
   daily: Bar[];
   fiveMin?: Bar[];
   history: Bar[];
-  // The USD leg's previous completed daily close for a forex cross (types.ts
+  // The USD leg's last completed daily close for a forex cross (types.ts
   // `QuoteCurrencyUsd`); null everywhere the commission needs no rate. The
   // sweep loop supplies it from the leg's own completed-daily pointer.
   quoteCurrencyUsd?: QuoteCurrencyUsd | null;
@@ -743,7 +743,7 @@ export function simulateSymbol(input: {
   /**
    * The USD leg of a forex cross's quote currency, with the leg's daily bars
    * (2026-09-14). The commission needs USD per quote unit at cost time, and
-   * the sweep takes it from the leg's previous COMPLETED daily close through
+   * the sweep takes it from the leg's last COMPLETED daily close through
    * the same completion gate as the symbol's own daily series — the live
    * loader reads the same bar from the bar store, so both paths charge one
    * physics. Required for a cross (the driver resolves the leg from the
@@ -1373,7 +1373,7 @@ export function simulateSymbol(input: {
       estimatedRoundTripCost: plan.executionQuality.estimatedRoundTripCost,
       estimatedCommission: plan.executionQuality.estimatedCommission,
       // USD per quote unit the commission was priced at (the USD leg's
-      // previous completed daily close); null off the 21 forex crosses. A
+      // last completed daily close); null off the 21 forex crosses. A
       // reader can re-derive the charge from this and the currency table.
       usdPerQuote: market.quoteCurrencyUsd?.usdPerQuote ?? null,
       estimatedSlippage: plan.executionQuality.estimatedSlippage,

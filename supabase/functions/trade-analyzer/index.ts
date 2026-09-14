@@ -790,7 +790,7 @@ async function reviewCurrentMarket(
 
   // The cross commission's rate (2026-09-14), resolved BESIDE the market
   // load rather than after it: a forex cross needs USD per unit of its quote
-  // currency, read from its USD leg's previous completed daily close through
+  // currency, read from its USD leg's last completed daily close through
   // the bar store — the bar the sweep reads from the pinned cache. Every
   // other symbol answers `none` without loading anything.
   const quoteRatePending = resolveQuoteCurrencyUsd({
