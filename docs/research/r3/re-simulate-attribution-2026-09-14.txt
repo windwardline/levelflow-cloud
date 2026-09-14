@@ -1,0 +1,19 @@
+# Produced 2026-09-14 by the session instrument attribute-v2.py (scratchpad): every row of docs/research/r3/capture-all-classfolds-2026-09-14.jsonl against the record docs/research/r3/capture-all-classfolds.jsonl, in lockstep, the four armingBound* fields stripped from each new line by regex before comparison. A difference is attributed to one of the two engine changes between the record's revision (886fdf1, engine 2026.09.01) and main 5228332, or counted as a violation: the forex class row's maxCostShare 0.15 (2026.09.03: accepted true→false where the new share exceeds the cap) and the four USD-quote pairs' commission (2026.09.13: the eight cost-downstream fields, plus outcome/grossOutcome where the expiry label follows the sign of the row's own R). Cells are the eight forex cells (fold × pool × decision hour 16–21 UTC) on contained years, the record's own population.
+rows 6,634,732 · identical after stripping the arming columns 5,852,777 · differing 781,955
+accepted flips by direction: {'True->False': 207272} · explained by the cap (forex, true->false, new share > 0.15): 207272
+first unexplained flips: []
+flips by symbol (top 12): [('EURCHF', 42539), ('USDCAD', 18559), ('EURGBP', 18493), ('AUDNZD', 16148), ('USDJPY', 13055), ('EURUSD', 11291), ('EURCAD', 11007), ('USDCHF', 7706), ('GBPCAD', 7115), ('GBPCHF', 6186), ('CHFJPY', 6176), ('EURJPY', 5671)] · symbols with flips: 28
+non-four-pair rows: fields differing beyond accepted: none
+four-pair rows: fields differing: {'estimatedCommission': 597633, 'rewardRisk': 597553, 'estimatedRoundTripCost': 597633, 'realizedR': 512619, 'executionScore': 246328, 'confidenceScore': 246317, 'grossRealizedR': 515852, 'ladderRewardRisk': 597633, 'outcome': 330, 'grossOutcome': 206}
+VIOLATIONS: none 
+
+Per eight-cell key — what the new table must equal: record cell − cap-removed rows (record R) + repricing on rows accepted in both
+| fold | pool | span | cap-removed rows | their record net R | four-pair rows repriced | Δ net R (repricing) | rows newly accepted |
+| fit | held-out | in | 227 | +2.9 | 1,665 | +10.5 | 0 |
+| fit | held-out | out | 808 | -36.2 | 6,242 | +41.4 | 0 |
+| fit | in-pool | in | 1,477 | -7.7 | 5,367 | -3.4 | 0 |
+| fit | in-pool | out | 5,782 | -529.1 | 18,592 | +1.4 | 0 |
+| select | held-out | in | 227 | -11.7 | 520 | +2.6 | 0 |
+| select | held-out | out | 924 | -86.5 | 1,646 | +8.9 | 0 |
+| select | in-pool | in | 1,097 | -24.3 | 1,580 | -12.4 | 0 |
+| select | in-pool | out | 4,383 | -343.9 | 5,610 | -39.4 | 0 |

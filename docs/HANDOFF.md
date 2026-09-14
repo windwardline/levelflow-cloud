@@ -2328,6 +2328,77 @@ cross, a refusal when absent) is buildable and verifiable now (superseded the
 same day — it shipped on ONE physics, both paths, the block below); the deploy
 E2E's stand-downs end; the re-simulate is unaffected (zero provider bytes).
 
+**THE FOUR OWED RULINGS NOW CARRY RECOMMENDATIONS — 2026-09-14.**
+[`owner-rulings-2026-09-14.md`](/docs/research/owner-rulings-2026-09-14.md).
+Each went proposal → refuter → an independent check of the refuter. **All four
+of the driver's originals were overturned and all four refuters were then
+corrected**; the record carries the third version and marks every figure
+[verified] or *(round)*. In brief: **(1) the E8 capture** stays low priority and
+a majors-only version is refused (five of the six held-out forex markets are
+crosses), but NOT on the "cannot matter" argument the driver first gave, which
+was false — a quoted spread replaces the modelled one; what is owed instead
+needs no owner, because forex's `spreadBps 0.35` / `slippageBps 0.16` are the
+one cost input with no derivation at their definition. **(2) A review hour is
+wall-clock**, which records the engine rather than changing it; the break
+exposure is filed per class by magnitude, never as uniform; the "key is down"
+blocker is stale and the real one is the burned fold. **(3) The market grain
+stays the shipping bar** and the class-grain sign-concordance path is refused
+under 39 as well as 33 — with a provenance defect recorded and driver-confirmed:
+`grid-totalr.ts` applies no per-market span exclusion though its own
+pre-registration requires it, so both 2026-09-14 gate reads and the 2026-09-12
+verdict grade a calendar the pre-registration excludes. **(4) A new entry
+family is NOT a new program** — the ledger burns calendars, not hypotheses — so
+a family buys a confirm read only with unseen dates, under one capped alpha
+shared across families. Rulings 3 and 4 interact and must be decided together.
+Owed repair work named and not started: the forex cost constants, the gate's
+span exclusion, and two stale figures in the maintenance-break records.
+
+**THE ARMING-BOUND READ: TWO IN-POOL CELLS SURVIVE A ONE-BAR LATENCY, THE
+HELD-OUT CELLS DO NOT, AND THE HOUR GATE IS STILL 0 OF 91 — 2026-09-14.**
+[`arming-bound-2026-09-14.md`](/docs/research/arming-bound-2026-09-14.md).
+The re-simulate (`r3/capture-all-classfolds-2026-09-14.jsonl`, 6,634,732
+rows, the record's count; manifest `2bd117256d48`; zero provider bytes; main
+`5228332`, clean) is the record under the SHIPPED engine, not a copy of it:
+two engine changes shipped after the record's revision — the forex cost-share
+cap (207,272 `accepted` flips, all forex rows whose share exceeds 0.15, nothing
+else — and on 24 of the 28 pairs the commission is unchanged, so the CAP is the
+cause) and the four USD-quote pairs' commission (597,633 rows differing beyond
+`accepted`, in the commission and the seven fields downstream of it — three of
+those move on every one of the rows and the rest on fewer — plus 536 expiry
+labels following the sign of their own repriced R). Two further version bumps
+shipped in the same window and move no row: the sweep does not consult the
+decline register. 5,852,777 rows are byte-identical after the four arming columns are
+stripped; every other difference is one of those two, none unexplained
+(`r3/re-simulate-attribution-2026-09-14.txt`). The eight-cell control was
+re-derived on the new corpus by the record's own producer
+(`r3/hour-mechanism-2026-09-14.txt`); the grader reproduces all eight cells,
+and every cell equals the 2026-09-07 cell minus the cap's removals plus the
+repricing, to the row. **The answer to item 1**: under the one-bar arming
+bound the in-span cells clear zero on **2 of 4** — fit in-pool +0.0135
+[+0.0078], select in-pool +0.0121 [+0.0019] — and the two held-out cells do
+not (fit +0.0074 [−0.0038], select −0.0071 [−0.0265]); the latency costs
+0.023–0.026 R per fill in every cell (net 3 of 4, gross 4 of 4; the
+hold-priced bound had 1 of 4). The market-grain hour gate on the bound column
+accepts **0 of 91** (net on this corpus 0 of 91; the 2026-09-12 record 0 of
+91); one emitted pair accepts under the bound — AUDCHF, held out, the
+hold/intraday_and_daily arm — below the gate's expected false-family count and
+on a pricing bound, not a candidate. So the in-span finding is not filed as
+purely convention-dependent, but nothing that could ship changed: both
+survivors are in-pool, neither held-out in-span cell clears zero at its lower
+bound (fit +0.0074 [−0.0038], select −0.0071 [−0.0265]), and the grain accepts
+nothing at either convention. **The cost table is NOT structurally moot** — a
+quoted spread REPLACES the modelled one, so a tighter measured spread raises
+cells, and an earlier draft of the record claimed otherwise. What the read
+settles is the size of the prize: the whole modelled spread-and-slippage charge
+is worth +0.0157 to +0.0215 R per fill across the four in-span cells, so select
+held-out (short 0.0265) cannot be lifted at any non-negative spread, while fit
+held-out (short 0.0038) could be — except that a cheaper round trip re-admits
+rows the 0.15 cap declines, so the cell measured would not be the cell lifted.
+20 of 91 markets under the bound fail only on their own absolute expectancy,
+which moves with cost. **The recommendation is in the rulings record of
+2026-09-14.** The corpus of record is not
+promoted over; the re-simulate sits beside it.
+
 **THE 21-CROSS COMMISSION, PRICED IN THE RIGHT CURRENCY ON ONE PHYSICS —
 2026-09-14.** [`forex-commission-cross-rate-2026-09-14.md`](/docs/research/forex-commission-cross-rate-2026-09-14.md),
 engine `2026.09.14.forex-commission-cross-rate`. The round's memo scoped a
@@ -2403,23 +2474,28 @@ re-simulate — the 2026-09-05 rebuild's exact recipe at `410e9ec`, pinned
 cache, zero provider bytes — ran 15 minutes as `capture-all-classfolds-2026-09-14`
 and was stopped at the owner's close-of-night (partial removed,
 `r3/classfolds.status.log`); it relaunches first, and promotion waits on every
-pre-existing column reproducing the record row for row. #634's squash had dropped this block from HANDOFF — an engine branch
+pre-existing column reproducing the record row for row. **RAN 2026-09-14
+19:39–22:00Z at main `5228332` and READ — see the arming-bound block above; the
+row-for-row premise was stale and is attributed exactly.** #634's squash had dropped this block from HANDOFF — an engine branch
 reset onto a moved main without a rebase; restored here. The same squash also
 deleted the round's record and the lock-same-bar output named above; both were
 restored byte-identical from `ebc0293` on 2026-09-14, and `tests/researchLinks.test.ts`
 now refuses a tree in which any tracked doc cites a research file that is not
 tracked (mutation-proven: with the two files removed it fails naming all three
 citations).** Then: the cost table (E8 bid/ask by hour, 28
-pairs — the quote bank when the key returns, or an owner-run capture now);
+pairs — an owner-run capture is the ONLY source; FMP carries no usable forex
+bid/ask on any endpoint, probed 2026-09-14);
 the 21-cross commission fix in the readers from the daily cache; a
 random-entry excursion screen on fit before any new family earns a sweep; the
 break-expiry specification; the daily arm parked as a pre-registered null;
 amendment 33's grain against the effect size (~1,440 in-span fills per market
 needed at +0.03 R/fill against ~200 per market-year — seven clean years per
-market; ninefold worse at +0.01).
+market; the read measured +0.0121–0.0135, which worsens the requirement about
+five- to sevenfold, not the ninefold projected from +0.01).
 
 **Owner items from the round** — recorded as OWED RECOMMENDATIONS, none yet
-refuted: the E8 bid/ask capture (its priority set by item 1's outcome); what
+refuted: the E8 bid/ask capture (**item 1 closed 2026-09-14; the recommendation
+is in the rulings record of that date, and it is narrower than a deferral**); what
 a review hour means (wall-clock or open-market; owed since 2026-09-12); the
 market grain against the seven-year arithmetic; whether a genuinely new entry
 family is a new program under the one-burn-per-program rule (fold reuse

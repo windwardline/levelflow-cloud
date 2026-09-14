@@ -1,0 +1,123 @@
+# The re-simulate, verified against the corpus of record — 2026-09-14
+#
+# Produced by the session instruments post-run.sh, attribute-v2.py and a masked
+# byte comparison (scratchpad). Record of the read:
+# docs/research/arming-bound-2026-09-14.md. Every figure below is a measurement,
+# not a claim: the digests are the files', the counts are one lockstep pass over
+# both corpora, and the comparison is `cmp` over a regex-masked stream — no line
+# of either corpus is parsed by the comparison itself.
+
+THE TWO CORPORA
+                                 re-simulate (2026-09-14)                        record (of 2026-09-02, rebuilt 2026-09-05)
+  path                           docs/research/r3/capture-all-classfolds-2026-09-14.jsonl   docs/research/r3/capture-all-classfolds.jsonl
+  rows                           6,634,732                                       6,634,732
+  bytes                          17,584,744,472                                  16,709,806,104
+  sha256                         80ed741c0759cc436f2aa19b5e8d57975f65eb19a2ed04c489fbebb836670fbd  23ee6b98504c3a9c1428aea5434a431fe15ef3e368dbed37fcdaf09c52c3712f
+  manifestHash                   2bd117256d48ab5522d4a2f2c2d37bb547f8bee7e39f1a7d56d1a18789aaf55c  021821537f28e5d2777543989baa0631a38840d592fad74c4bdb2429fb627c59
+  source.revision                5228332074 (clean, 0 untracked)                 886fdf132a (clean, 0 untracked)
+  analyzerVersion                2026.09.13.forex-commission-usd-quote           2026.09.01.platinum-group-rate-inverse
+  emit columns                   75                                              71
+  anchor / days / step / warmup  2026-08-26 / 7000 / 16 / 240                    identical
+  acceptance / cost scales       captureAll, ignoreLowEdge false / 1, gross 0    identical
+  conditions / clock             identical to the record's five terms and both clock stamps
+  ran                            2026-09-14 19:39:30Z → 22:00:03Z, exit 0
+
+  The status log is untracked (.gitignore excludes *.log), so its two lines for
+  this run are quoted here, which is the tracked record of them:
+    2026-09-14T19:39:30Z capture-all-classfolds-2026-09-14: start (armed-corpus build at 5228332, cache-dir main checkout)
+    2026-09-14T22:00:03Z capture-all-classfolds-2026-09-14: exit=0
+  provider bytes                 zero — "313 cache artifacts all carry the pin, so this run cannot reach the provider"
+
+  The four new columns are the arming-bound arm (#634): armingBoundRealizedR,
+  armingBoundOutcome, armingBoundExitPrice, armingBoundExitAtMs.
+
+  The manifest is tracked beside the emit, as the record's two are, because an
+  undescribed corpus is refused at the door. It is 7,971,805 bytes against the
+  record's 1,319,080, and the growth sits in `symbols`: 4,184,764 bytes against
+  232,440. MEASURED, not inferred: 3,949,866 of those bytes are a per-symbol key
+  the record's manifest does not carry at all, `feedCharacter`, present on all 97
+  entries here and on none there. The per-symbol calibration snapshot grew by
+  616 bytes (59,566 → 60,182), which is 0.02 % of the growth — so the manifest
+  is larger because it now records the feed-character witness per symbol, NOT
+  because the calibration table grew. `decisions` is 1,841 entries in both.
+  (An earlier version of this file asserted the calibration cause without
+  measuring it.)
+
+THE REJECTION LEDGER SIDECAR — identical, byte for byte
+  re-simulate  414,103,070 bytes, 2,523,837 rows, sha256 5c4270e78e0c36f1a9a562a1ad3295379b2b8afa44c941026e6f84053c353a3f
+  record       414,103,070 bytes, 2,523,837 rows, `cmp` exit 0 against the above
+  (The arming arm adds no column there, so identity is the expected result and it holds.)
+
+EVERY DIFFERENCE, ATTRIBUTED (attribute-v2.py; full output in
+r3/re-simulate-attribution-2026-09-14.txt)
+  rows compared                                     6,634,732   (trailing rows: none on either side)
+  byte-identical after stripping the four arming columns  5,852,777
+  differing                                             781,955
+
+  1. THE COST-SHARE CAP — 2026.09.03.forex-cost-share-cap, the forex class row's
+     maxCostShare 0.15, which post-dates the record.
+       rows whose `accepted` flips                     207,272, every one true → false
+       explained (forex row, new cost share > 0.15)    207,272 of 207,272
+       flips in the other direction                    0
+       flips off forex                                 0
+       other fields differing on those rows            none
+       symbols carrying flips                          28 of 28 forex pairs
+         EURCHF 42,539 · USDCAD 18,559 · EURGBP 18,493 · AUDNZD 16,148 · USDJPY 13,055
+         EURUSD 11,291 · EURCAD 11,007 · USDCHF 7,706 · GBPCAD 7,115 · GBPCHF 6,186
+         CHFJPY 6,176 · EURJPY 5,671 · (16 more)
+
+  2. THE FOUR USD-QUOTE PAIRS' COMMISSION — 2026.09.13.forex-commission-usd-quote,
+     which post-dates the record. EURUSD, GBPUSD, AUDUSD, NZDUSD only.
+       rows differing beyond `accepted`                597,633
+       fields, and the rows each appears on:
+         estimatedCommission      597,633   (every new value exactly 5e-5)
+         estimatedRoundTripCost   597,633
+         ladderRewardRisk         597,633
+         rewardRisk               597,553
+         grossRealizedR           515,852
+         realizedR                512,619
+         executionScore           246,328
+         confidenceScore          246,317
+         outcome                     330   expiry label, following the sign of the row's own repriced R
+         grossOutcome                206   the same, on the gross arm
+       violations (a field outside that set, or a label flip that is not an
+       expiry sign change, or a new commission other than 5e-5)   none
+
+  3. ANYTHING ELSE                                     none
+       Non-four-pair rows differ in `accepted` and in nothing else: 0 rows carry
+       any other field difference.
+
+THE BYTE COMPARISON, UNDER EXACTLY THAT MASK
+  Stream 1 (re-simulate): the four armingBound* fields stripped by regex.
+  Both streams: on rows of EURUSD/GBPUSD/AUDUSD/NZDUSD only, the ten fields named
+  in (2) masked by regex; on every row, `"accepted":true|false` masked.
+  Nothing is parsed; the comparison is `cmp` over the two masked streams.
+
+    sed -E -e 's/,"armingBound(RealizedR|Outcome|ExitPrice|ExitAtMs)":("[^"]*"|[^,}]*)//g' \
+           -e '/"symbol":"(EURUSD|GBPUSD|AUDUSD|NZDUSD)"/ s/,"(confidenceScore|estimatedCommission|estimatedRoundTripCost|executionScore|grossRealizedR|ladderRewardRisk|realizedR|rewardRisk|outcome|grossOutcome)":("[^"]*"|[^,}]*)//g' \
+           -e 's/"accepted":(true|false)/"accepted":MASKED/' <new> \
+      | cmp - <(sed -E -e '<the same two masks>' <record>)
+
+  RESULT: exit 0. Every one of the 6,634,732 rows is byte-identical under the
+  mask. So the two corpora differ in the arming columns, in the cap's admission
+  flag, and in the four pairs' commission arithmetic — and in nothing else.
+
+WHAT THAT MEANS FOR THE READ
+  The re-simulate is the corpus of record measured under the SHIPPED engine's
+  admission, not a copy of the record. Its `accepted` carries the cost-share cap
+  that the record's readers apply post hoc, and its four USD-quote pairs carry the
+  commission the engine charges today. The eight-cell control was therefore
+  re-derived on it (r3/hour-mechanism-2026-09-14.txt) rather than taken from
+  2026-09-07, and every cell of the new table reconciles to the old one, to the
+  row and to the printed tenth of an R:
+
+    new n     = record n     − rows the cap removed              (exact, all eight cells)
+    new net R = record net R − the R those rows carried + the four pairs' repricing
+                                                                  (to within 0.1 R)
+
+  Six of the eight close on the printed tenth; two are 0.1 R off because the
+  three summands are themselves printed to a tenth. The identity closes at full
+  precision.
+
+  The eight-cell reconciliation is printed in full in
+  r3/re-simulate-attribution-2026-09-14.txt and in §2 of the record of the read.

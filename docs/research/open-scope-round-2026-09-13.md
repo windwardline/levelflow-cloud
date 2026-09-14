@@ -326,8 +326,16 @@ swept. It ranked six items. Recorded here with the one change §3 forces.
    in-span cell clears zero under the one-bar column, the hour finding is
    filed as convention-dependent and the cost table is moot. Zero provider
    bytes; the 2026-09-05 rebuild proved a full sweep runs from the cache.
+   **Read 2026-09-14** (`arming-bound-2026-09-14.md`): 2 of 4 in-span cells
+   clear under the one-bar bound, both IN-POOL; neither held-out cell clears at
+   its lower bound; the hour gate accepts 0 of 91 at either convention. The
+   rule's trigger did not fire, so the finding is not filed as convention-
+   dependent — but its out-of-sample support does not survive the bound. The
+   cost table is not structurally moot (a quoted spread replaces the modelled
+   one); the recommendation is in the rulings record of 2026-09-14.
 2. **The hour-shaped cost table, then the frozen re-grade.** E8 bid/ask by
-   hour for 28 pairs (the quote bank when the key returns, or an owner-run
+   hour for 28 pairs (an owner-run capture is the ONLY source — FMP carries no
+   usable forex bid/ask on any endpoint, probed 2026-09-14; the owner-run
    TradeLocker capture now — four weeks at scan cadence fills a 24 × 28 hourly
    table); re-resolve with an hour-shaped `halfSpread` and gap slippage;
    re-run the pre-registered market-grain gate untouched. Falsifier: in-span
@@ -367,7 +375,9 @@ swept. It ranked six items. Recorded here with the one change §3 forces.
    decade — the memo's arithmetic; it also offers a class-grain path with
    per-market sign concordance (22 of 22 markets on select in-pool). Under
    item 1's bound the effect is +0.01 and the same arithmetic worsens
-   ninefold — mine, not the memo's.
+   ninefold — mine, not the memo's. **Measured 2026-09-14: the effect is
+   +0.0121 to +0.0135, so the requirement worsens about five- to sevenfold, not
+   ninefold.**
 
 A sizing line for §20 — per-fill risk against a daily budget, with the
 server-day finding written in — is the one product change the round
@@ -383,7 +393,9 @@ not as questions put to the owner:
 
 - **E8 bid/ask by hour** — a TradeLocker capture on the Pro Forex account,
   28 pairs, four weeks, at scan cadence. Running it is the owner's; building
-  the capture tool is the driver's. Its priority is set by item 1's outcome.
+  the capture tool is the driver's. ~~Its priority is set by item 1's outcome.~~
+  **Item 1 closed 2026-09-14; the recommendation is in the rulings record of
+  that date, and it is narrower than a deferral.**
 - **What a review hour means** — wall-clock or open-market (HANDOFF already
   carries this as owed since 2026-09-12). Recommendation owed.
 - **The market grain against the seven-year arithmetic** (item 7).
