@@ -12,9 +12,12 @@ deferral's premise changes, edit this file in the same change set.
 
 ## Account status, 2026-09-12
 
-The balance is paid and the dashboard shows Ultimate. **The API key still reads
-suspended**, and the owner is escalating with FMP. Until that clears, three
-things are blocked and one is not:
+The balance is paid and the dashboard shows Ultimate. ~~**The API key still reads
+suspended**, and the owner is escalating with FMP.~~ **Reinstated 2026-09-14**
+(verified with one `/stable/quote` request; the minute bank's 11:20Z run banked
+205,647 bars on its own). The table below is the record of the suspension
+(2026-09-04 → 2026-09-14); none of it blocks now, and the key is owed a
+rotation because thirteen `analyzer_events` rows carried it until 2026-09-14:
 
 | | blocked |
 |---|---|
