@@ -1,7 +1,9 @@
-npm notice run levelflow-cloud@0.1.0 npx
-npm notice run 'tsx' /private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/0c18d218-bdd9-4bd7-abea-1276172cad40/scratchpad/commission-fix.mts
-forex contained filled rows buffered: 291,377 · emitted commission == latestClose×5e-5 on 291377/291377 (0 off)
-rows with no USD rate for their quote: 0
+THE FOREX COMMISSION, RE-PRICED IN THE RIGHT CURRENCY
+  folds read: fit, select · confirm: SEALED, not read (2,141,527 rows withheld at the door) · variant baseline · years contained (year map: witness table docs/research/r3/feed-character.txt (5min tier))
+  holdout: stratified-per-class-20pct — 20 markets labelled HELD OUT per market (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only — held-out fills are labelled in the eight cells and POOLED with in-pool fills in the per-base, per-pair and USD-quote tables; nothing is excluded
+  span = decision hour 16–21 UTC · rate = per-year mean close of the quote currency's USD leg over the priced rows (legs from the currency table: AUDUSD, EURUSD, GBPUSD, NZDUSD, USDCAD, USDCHF, USDJPY)
+rows 6,634,732 (2,141,527 sealed) · not accepted 857,954 · other fold 0 · other variant 3,118,950 · not forex 142,791 · unfilled 51,055 · missing fields 0 · other years 31,078
+forex fills in scope 291,377: charged price × 5e-5 on 291,377, the constant 5e-5 on 0, neither on 0 · unrated (no USD leg for the quote) 0 · priced 291,377
 
 THE EIGHT CELLS — net as emitted, then with the commission conversion corrected
 | fold | pool | span | fills | E net | lo95 net | E corrected | lo95 corrected | ΔE |
@@ -26,40 +28,40 @@ PER BASE CURRENCY (charged/true > 1 means the model OVERcharged; ΔR > 0 is R gi
 | AUD | 52,062 | 1664.0 | 2038.2 | 0.816 | -374.2 |
 | NZD | 41,526 | 1140.2 | 1566.8 | 0.728 | -426.6 |
 
-EXACT SUBSET — USD-quote pairs, where the correct commission is 5e-5 per base unit with NO cross rate
-  AUDUSD: 11,137 fills, ΔR -71.9 R (mean -0.00645 R/fill)
-  EURUSD: 10,840 fills, ΔR +74.3 R (mean 0.00685 R/fill)
-  GBPUSD: 10,336 fills, ΔR +122.7 R (mean 0.01187 R/fill)
-  NZDUSD: 10,646 fills, ΔR -107.8 R (mean -0.01013 R/fill)
+PER PAIR, ranked by |ΔR total| — the mis-charge each pair carries in the corpus's own R
+| rank | pair | quote | fills | charged/true | ΔR total | ΔR/fill |
+|---:|---|---|---:|---:|---:|---:|
+| 1 | GBPUSD | USD | 10,336 | 1.466 | +122.7 | +0.01187 |
+| 2 | EURCHF | CHF | 9,983 | 1.227 | +122.1 | +0.01224 |
+| 3 | NZDCAD | CAD | 10,286 | 0.727 | -118.1 | -0.01148 |
+| 4 | NZDUSD | USD | 10,646 | 0.729 | -107.8 | -0.01013 |
+| 5 | GBPCHF | CHF | 10,211 | 1.448 | +107.6 | +0.01054 |
+| 6 | GBPCAD | CAD | 10,106 | 1.454 | +106.5 | +0.01053 |
+| 7 | NZDCHF | CHF | 10,141 | 0.727 | -103.5 | -0.01021 |
+| 8 | NZDJPY | JPY | 10,453 | 0.728 | -97.1 | -0.00929 |
+| 9 | GBPAUD | AUD | 10,544 | 1.445 | +96.9 | +0.00919 |
+| 10 | GBPJPY | JPY | 10,461 | 1.447 | +92.3 | +0.00883 |
+| 11 | AUDNZD | NZD | 9,344 | 0.809 | -91.5 | -0.00979 |
+| 12 | GBPNZD | NZD | 10,557 | 1.440 | +89.0 | +0.00843 |
+| 13 | AUDCAD | CAD | 10,424 | 0.819 | -81.5 | -0.00782 |
+| 14 | EURUSD | USD | 10,840 | 1.214 | +74.3 | +0.00685 |
+| 15 | AUDUSD | USD | 11,137 | 0.819 | -71.9 | -0.00645 |
+| 16 | EURGBP | GBP | 10,114 | 1.223 | +71.8 | +0.00710 |
+| 17 | AUDCHF | CHF | 10,571 | 0.818 | -68.0 | -0.00644 |
+| 18 | EURCAD | CAD | 10,479 | 1.215 | +66.9 | +0.00638 |
+| 19 | CADCHF | CHF | 10,444 | 0.841 | -63.2 | -0.00605 |
+| 20 | AUDJPY | JPY | 10,586 | 0.818 | -61.3 | -0.00579 |
+| 21 | EURAUD | AUD | 10,506 | 1.212 | +60.5 | +0.00575 |
+| 22 | CADJPY | JPY | 10,585 | 0.838 | -57.9 | -0.00547 |
+| 23 | EURJPY | JPY | 10,639 | 1.201 | +56.1 | +0.00528 |
+| 24 | EURNZD | NZD | 10,497 | 1.205 | +53.5 | +0.00509 |
+| 25 | CHFJPY | JPY | 10,697 | 1.039 | +13.2 | +0.00123 |
+| 26 | USDJPY | JPY | 10,694 | 0.997 | -1.2 | -0.00011 |
+| 27 | USDCAD | CAD | 9,701 | 0.998 | -0.7 | -0.00008 |
+| 28 | USDCHF | CHF | 10,395 | 0.999 | -0.3 | -0.00003 |
 
-PER PAIR (all 28), ranked by |ΔR per fill| — ratio is charged/true
-| pair | quote | fills | charged/true | ΔR total | ΔR/fill |
-|---|---|---:|---:|---:|---:|
-| EURCHF | CHF | 9,983 | 1.227 | +122.1 | +0.01224 |
-| GBPUSD | USD | 10,336 | 1.466 | +122.7 | +0.01187 |
-| NZDCAD | CAD | 10,286 | 0.727 | -118.1 | -0.01148 |
-| GBPCHF | CHF | 10,211 | 1.448 | +107.6 | +0.01054 |
-| GBPCAD | CAD | 10,106 | 1.454 | +106.5 | +0.01053 |
-| NZDCHF | CHF | 10,141 | 0.727 | -103.5 | -0.01021 |
-| NZDUSD | USD | 10,646 | 0.729 | -107.8 | -0.01013 |
-| AUDNZD | NZD | 9,344 | 0.809 | -91.5 | -0.00979 |
-| NZDJPY | JPY | 10,453 | 0.728 | -97.1 | -0.00929 |
-| GBPAUD | AUD | 10,544 | 1.445 | +96.9 | +0.00919 |
-| GBPJPY | JPY | 10,461 | 1.447 | +92.3 | +0.00883 |
-| GBPNZD | NZD | 10,557 | 1.440 | +89.0 | +0.00843 |
-| AUDCAD | CAD | 10,424 | 0.819 | -81.5 | -0.00782 |
-| EURGBP | GBP | 10,114 | 1.223 | +71.8 | +0.00710 |
-| EURUSD | USD | 10,840 | 1.214 | +74.3 | +0.00685 |
-| AUDUSD | USD | 11,137 | 0.819 | -71.9 | -0.00645 |
-| AUDCHF | CHF | 10,571 | 0.818 | -68.0 | -0.00644 |
-| EURCAD | CAD | 10,479 | 1.215 | +66.9 | +0.00638 |
-| CADCHF | CHF | 10,444 | 0.841 | -63.2 | -0.00605 |
-| AUDJPY | JPY | 10,586 | 0.818 | -61.3 | -0.00579 |
-| EURAUD | AUD | 10,506 | 1.212 | +60.5 | +0.00575 |
-| CADJPY | JPY | 10,585 | 0.838 | -57.9 | -0.00547 |
-| EURJPY | JPY | 10,639 | 1.201 | +56.1 | +0.00528 |
-| EURNZD | NZD | 10,497 | 1.205 | +53.5 | +0.00509 |
-| CHFJPY | JPY | 10,697 | 1.039 | +13.2 | +0.00123 |
-| USDJPY | JPY | 10,694 | 0.997 | -1.2 | -0.00011 |
-| USDCAD | CAD | 9,701 | 0.998 | -0.7 | -0.00008 |
-| USDCHF | CHF | 10,395 | 0.999 | -0.3 | -0.00003 |
+USD-QUOTE SUBSET — where the true figure is the constant 5e-5 per base unit and needs no rate
+  AUDUSD: 11,137 fills, ΔR -71.9 R (mean -0.00645 R/fill)
+  EURUSD: 10,840 fills, ΔR +74.3 R (mean +0.00685 R/fill)
+  GBPUSD: 10,336 fills, ΔR +122.7 R (mean +0.01187 R/fill)
+  NZDUSD: 10,646 fills, ΔR -107.8 R (mean -0.01013 R/fill)

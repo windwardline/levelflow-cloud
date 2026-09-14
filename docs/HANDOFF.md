@@ -2296,6 +2296,10 @@ ranked 1st of 28 pairs (+122.7 R) and NZDUSD 4th (−107.8 R); EURUSD and AUDUSD
 14th and 15th — measured per pair, because the first draft of this entry said
 "the two largest" and was wrong. Admission moved with the cost share and was
 measured before shipping (engine row above; 501 out, 802 in, at the 0.15 cap).
+The two measurements are produced by census-registered readers since
+2026-09-14 (`scripts/forex-commission-conversion.ts`,
+`scripts/forex-commission-admission.ts`; each reproduced its untracked
+predecessor to the digit on the corpus of record first).
 Three independent refuters reproduced the defect before it shipped — +221.6,
 +223.7 and +226.8 R net across all 28 pairs against this record's +209.4 R (a
 5 R spread among them; the rest is population, all years vs contained, and rate

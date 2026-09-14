@@ -130,8 +130,7 @@ last section):** change the formula — and the reason is narrower than this not
 first said. For the four **USD-quote** pairs the true figure is the constant
 `5e-5`: no rate is needed, both paths compute the same constant, one physics is
 satisfied trivially. Ranked by total mis-charge across all 28 pairs (the
-reproduction output's per-pair table, re-sorted by |ΔR total| — it prints by
-|ΔR per fill|): GBPUSD 1st (+122.7 R over 10,336 fills), NZDUSD
+reproduction output's per-pair table, ranked by |ΔR total|): GBPUSD 1st (+122.7 R over 10,336 fills), NZDUSD
 4th (−107.8 R), EURUSD 14th (+74.3 R), AUDUSD 15th (−71.9 R). EURCHF is 2nd
 (+122.1 R) and NZDCAD 3rd (−118.1 R) — the crosses are not the small half of
 the defect. That fix shipped later the same day as
@@ -190,8 +189,8 @@ changes. On R3's 55,554 accepted four-pair baseline rows (fit + select;
 | GBPUSD | 13,588 | 784 | 369 | 0 | 415 (373 filled, −26.3 R) |
 | AUDUSD | 14,171 | 212 | 492 | 286 (238 filled, −7.8 R) | 6 (5 filled, −1.1 R) |
 | NZDUSD | 13,718 | 52 | 267 | 215 (186 filled, −8.0 R) | 0 |
-| four, all years | 55,554 | 2,442 | 2,141 | 501 (424, −15.8 R) | 802 (717, −60.7 R) |
-| four, contained years | 49,908 | 2,171 | 1,971 | 501 (424, −15.8 R) | 701 (627, −64.6 R) |
+| all pairs, all years | 55,554 | 2,442 | 2,141 | 501 (424, −15.8 R) | 802 (717, −60.7 R) |
+| all pairs, contained years | 49,908 | 2,171 | 1,971 | 501 (424, −15.8 R) | 701 (627, −64.6 R) |
 
 The per-pair rows are all years. The over-charged pairs (EURUSD, GBPUSD)
 admit more, the under-charged pairs (AUDUSD, NZDUSD) admit less, and the mean
@@ -203,16 +202,20 @@ rows. Under amendment 39 that is a wash — which is the point: this is a
 published figure charged wrongly, corrected, and the correction was priced
 before it shipped rather than after.
 
-**The producers.** Both measurement outputs in `r3/` were produced by session
-instruments (`commission-fix.mts`, `fx4-admission.mts`, scratchpad, untracked)
-that open the corpus only through the tracked sealed door
-`assertManifestedCorpusStreaming` (`scripts/sweepStats.ts`), which withholds
-every confirm row from the reader before any reader logic runs; the
-instruments carry no byte test of their own. Their eight-cell control
-reproduces the record byte for byte and three refuters reproduced the
-figures independently, but the instruments themselves are not in the census
-of readers. Promoting them to census-registered readers under `scripts/` is
-named work, not done here.
+**The producers are tracked readers (2026-09-14).** Both outputs in `r3/`
+are printed by census-registered readers under `scripts/` —
+`forex-commission-conversion.ts` (`--years contained --witness
+docs/research/r3/feed-character.txt`) and `forex-commission-admission.ts`
+(`--witness docs/research/r3/feed-character.txt`) — which open the corpus
+only through the sealed door (`tests/confirmFoldSealed.test.ts` runs both on
+its fixtures and proves no line moves with the confirm fold), refuse a run
+that names no corpus, filter to the shipped population, and derive the four
+pairs and the cap from the currency table and the forex class row. Before
+they were tracked, the same figures came from two session instruments;
+the readers reproduced every cell, base and pair of those outputs to the
+digit on the corpus of record before replacing them, and
+`tests/forexCommissionReaders.test.ts` pins the arithmetic on a hand-computed
+corpus.
 
 **Not fixed here: the 21 crosses.** Their exact figure needs the quote
 currency's USD rate at cost time, which neither path supplies today. The
