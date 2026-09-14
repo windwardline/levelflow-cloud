@@ -306,6 +306,28 @@ fills, in one version:
   2c's own knowability principle applied forward). TP1 manual haircut,
   one-bar entry latency and touch-fill penetration exist as parameters
   for 4d sensitivity work (FR-4/6, LA-13), defaulted off.
+- **FR-3 is a convention the money rests on** (2026-09-14): the open-scope
+  round measured 89–97% of the lock's value over hold sitting on runners
+  that exited at exactly the lock level inside the TP1 touch bar, and only
+  one of the four forex in-span cells clearing zero once those rows were
+  priced at the hold arm — the infinite-latency bound
+  (`docs/research/open-scope-round-2026-09-13.md` §3). The sweep therefore
+  resolves every decision a THIRD time with the same-bar arming off — the
+  protection exists from the bar after the partial banks — and emits
+  `armingBoundRealizedR`, `armingBoundOutcome`, `armingBoundExitPrice` and
+  `armingBoundExitAtMs` beside the net and gross arms on identical fills.
+  This is the **one-bar-latency bound**, the refuters' own counterfactual
+  (the stop arms one 5-minute bar later; it removed +4,342 of the lock's
+  +4,689 R on fit in-pool), not the hold-priced bound §3 tabulates: on the
+  ~98% of same-bar rows where the next bar opens through the lock it
+  prints the gap-open bid with slippage, and on the rest the runner keeps
+  running. The bound arm is identical to the net arm on every row whose
+  TP1 bar did not close back through the armed level, so a reader
+  identifies the re-priced rows by `armingBoundExitAtMs !== exitAtMs` (or
+  by the legs: an exit of kind `tp1_lock`/`breakeven_stop` at the TP1
+  leg's time). A corpus emitted before this column carries none of these
+  fields — the corpus of record needs the one re-simulate to carry it — and
+  a reader of them must refuse such a corpus, never assume the net figure.
 - **Named boundary — CLOSED 2026-08-11 (#314):** live outcome-sync now
   replays each row's own stored decision-time costs (risk_model carries
   the full executionQuality, so no migration was ever needed): bid/ask
