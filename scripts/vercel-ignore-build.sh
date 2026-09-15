@@ -48,11 +48,13 @@
 # reason given at the top of this file: the whole-graph type-check emits nothing,
 # so a commit confined to them deploys byte-identical output.
 #
-# Until #639 this block said the opposite — that those three were "deliberately
-# ABSENT" and "all three build" — and it went on saying it after #639 moved them,
-# three lines above the case statement that skips them. Whichever of the two
-# comment blocks a reader reached first decided what they believed the script did.
-# If the path set changes again, both blocks change with it.
+# This block was ACCURATE until #639. Those three really were absent from the
+# skip list and really did build, and this text said so correctly. #639 moved
+# them onto the skip side and thereby falsified it, and the falsified text went
+# on standing afterwards — three lines above the case statement that
+# contradicts it. Whichever of the two comment blocks a reader reached first
+# decided what they believed the script did. If the path set changes again,
+# both blocks change with it.
 
 set -uo pipefail
 

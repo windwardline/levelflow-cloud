@@ -28,10 +28,17 @@
 # both directions, because a widening asserted only by the paths it adds is a
 # widening nobody can see the edge of.
 #
-# The suite ends with a mutation: the catch-all that classifies unknown paths as
-# deployable is deleted, the deletion is confirmed to have landed at the intended
-# site, and the mutant is required to misbehave. A guard whose removal changes
-# nothing was never guarding.
+# The suite ends with two mutations. Each deletes one guard, confirms the
+# deletion landed at the intended site, and requires the mutant to misbehave:
+# the catch-all that classifies unknown paths as deployable, and the guard that
+# refuses to read an empty diff as nothing changed. A guard whose removal
+# changes nothing was never guarding.
+#
+# One refusal arm is deliberately NOT mutation-proven and cannot be. If
+# `git diff` fails, `changed` is empty and the empty-diff guard on the next line
+# produces the same refusal with a different message, so deleting the
+# could-not-read-the-diff arm changes only wording. It is shadowed, not
+# untested; the empty-diff guard is what enforces both.
 
 set -uo pipefail
 
