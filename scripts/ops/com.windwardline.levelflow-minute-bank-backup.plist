@@ -4,11 +4,24 @@
 <dict>
   <key>Label</key>
   <string>com.windwardline.levelflow-minute-bank-backup</string>
+  <!-- Pinned through wl-repo-script, which runs the whole origin/main tree from
+       a temp extraction rather than the shared working checkout. ~/Projects
+       checkouts are shared and concurrent agents move them onto feature
+       branches, so a working-tree path runs whatever branch is out at 20:10 —
+       and the dangerous half of that is not the missing script (exit 127, loud)
+       but the stale one, which runs a superseded version and exits 0.
+
+       LEVELFLOW_BANK_DIR is not optional and not decoration. The extracted tree
+       carries CODE, never ignored DATA, so `.minute-bank` is absent from it. A
+       pin that let the bank default to the extracted root would find an empty
+       directory, log "nothing to back up" and exit 0 — a backup that silently
+       stopped while reporting healthy, strictly worse than the staleness it was
+       meant to fix. Code from origin, data named explicitly. -->
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
     <string>-lc</string>
-    <string>/Users/peacock/Projects/levelflow-cloud/scripts/ops/backup-minute-bank.sh</string>
+    <string>LEVELFLOW_BANK_DIR=/Users/peacock/Projects/levelflow-cloud/.minute-bank /Users/peacock/.local/bin/wl-repo-script /Users/peacock/Projects/levelflow-cloud scripts/ops/backup-minute-bank.sh</string>
   </array>
   <!-- 20:10 UTC-local, fifty minutes after the evening bank run at 19:20, so a
        day's fetch is on disk before it is copied. Once daily rather than twice:
