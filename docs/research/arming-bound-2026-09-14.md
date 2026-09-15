@@ -145,11 +145,17 @@ out-of-sample money existed only under FR-3's zero latency.
 `grid-totalr --derive-filters "inSpan:decisionHourDistance<=2.5" --verdict-unit
 market --r-arm bound`, and the same read on the net column of the new corpus
 (`r4/hour-gate-market-net-2026-09-14.*`) for comparison with the 2026-09-12
-verdict. The in-span rule accepts on **0 of 91 markets under the bound** (80
-judged and failed, 11 no verdict — the three whose every decision already
-falls in the span among them), **0 of 91 on the net column of this corpus**,
-and 0 of 91 in the 2026-09-12 record. The market grain refuses at either
-convention.
+verdict. The in-span rule accepts on **0 of 91 markets under the bound** (69 judged and
+failed, 22 no verdict), **0 of 91 on the net column of this corpus**, and 0 of
+91 in the 2026-09-12 record. The market grain refuses at either convention.
+
+The composition here was corrected on 2026-09-14, after this read
+([`empty-fold-verdicts-2026-09-14.md`](/docs/research/empty-fold-verdicts-2026-09-14.md)):
+this section first reported 80 failed and 11 no verdict, because the gate
+counted markets with no fit-fold rows as measured failures — sixteen graded
+markets have none, and eleven of them were in the failed bucket. The accepted
+count and the money-leg count below are unchanged — an empty fold cannot produce
+an acceptance — and the three artifacts were regenerated.
 
 One (market, variant) pair does accept under the bound: AUDCHF, a held-out
 market, on the emitted arm `runnerProtection=hold,stopStructureSource=intraday_and_daily`

@@ -106,8 +106,11 @@ interval spanning zero; out of span **+0.0083**, barely clearing. Roughly
 
 **Do not build a break-aware admission rule.** It would be the hour gate under
 another name, and the hour gate was graded at the market grain on 2026-09-12 and
-accepted nothing — 80 judged and failed, 11 no verdict, and 88 markets actually
-tested, since on DOW, NSDQ and SP the predicate is a no-op.
+accepted nothing — 69 judged and failed, 22 no verdict, and 69 markets actually
+tested (corrected 2026-09-14,
+[`empty-fold-verdicts-2026-09-14.md`](/docs/research/empty-fold-verdicts-2026-09-14.md);
+the accepted count is unchanged at 0). On NSDQ and SP the predicate is a no-op;
+DOW has no fit fold at all, as do fifteen other graded markets.
 
 ## What the test gives back
 

@@ -975,6 +975,29 @@ function groupVerdicts(
         totalOf(aggregate.base.select);
       const fitTotalDelta = totalOf(aggregate.variant.fit) -
         totalOf(aggregate.base.fit);
+      // A DELTA NEEDS EVIDENCE ON BOTH SIDES — the guard `confirmTotalDelta`
+      // has carried since #364 round 43, applied to the fold the gate
+      // actually decides on. `totalOf` returns 0 for an absent cell, so a
+      // market with no fit-fold rows differences to 0 − 0 = 0, fails the
+      // `fitTotalDelta > 0` conjunct, and used to fall through this ladder to
+      // the bare word "fails" — a measured loss on a fold that was never
+      // measured.
+      //
+      // Found 2026-09-14 in three RECORDED verdicts. Eleven crypto markets
+      // listed after their class's fit fold ended (AAVEUSD, AVAXUSD, DOTUSD,
+      // DYDXUSD, EGLDUSD, GRTUSD, HBARUSD, IMXUSD, NEARUSD, SOLUSD, UNIUSD)
+      // carry zero emitted fit rows and were reported as failures by the
+      // hour-gate reads of 2026-09-12 and 2026-09-14. Five more with the same
+      // empty fold reached NO VERDICT by an unrelated leg and were right by
+      // accident.
+      //
+      // Acceptance cannot move: an empty fold fails `fitTotalDelta > 0`
+      // whichever way this reads. What moves is the disposition, from the
+      // failed bucket to the no-verdict bucket, which is the difference
+      // between "we measured this and it lost" and "there was nothing here to
+      // measure".
+      const fitEvidenceAbsent = aggregate.variant.fit.filled === 0 ||
+        aggregate.base.fit.filled === 0;
       const sigma = Math.sqrt(
         totalVarianceOf(aggregate.variant.select) +
           totalVarianceOf(aggregate.base.select),
@@ -1081,7 +1104,17 @@ function groupVerdicts(
       // used to be, and every term in it is a comparison against the baseline
       // — which is the defect, stated as code: a variant can satisfy all five
       // while losing money, and the gate called that an accept.
-      const beatsBaseline = !underpowered && fitTotalDelta > 0 &&
+      // `!fitEvidenceAbsent` is load-bearing, not belt-and-braces. The guard
+      // fires when EITHER side of the fold is empty, and the delta is only
+      // forced to 0 when BOTH are: with the variant's fit fold empty and the
+      // baseline's fit R negative, `0 − (−X)` is positive and this conjunct
+      // would pass on a fold the variant never traded. Every other no-verdict
+      // leg is mutually exclusive with acceptance by construction — this one
+      // is not, so it says so here as well as in the disposition, or the gate
+      // could report `accepted` and `noVerdict` together and burn a confirm
+      // fold on it (review finding, 2026-09-14).
+      const beatsBaseline = !underpowered && !fitEvidenceAbsent &&
+        fitTotalDelta > 0 &&
         selectTotalDelta > 0 &&
         effectivePairs >= MIN_EFFECTIVE_PAIRS && pairedP <= 0.05 &&
         selectExpectancyDelta >= 0;
@@ -1109,7 +1142,8 @@ function groupVerdicts(
         // so no printer parses the message (#364 round 42, finding 2).
         noVerdict: underpowered ||
           (!underpowered &&
-            (baselineAbsentInGroup || effectivePairs < MIN_EFFECTIVE_PAIRS)),
+            (baselineAbsentInGroup ||
+              effectivePairs < MIN_EFFECTIVE_PAIRS || fitEvidenceAbsent)),
         reason: underpowered
           // NAME THE FLOOR THAT ACTUALLY BOUND. `underpowered` is a
           // disjunction and the two legs carry different floors; printing
@@ -1135,6 +1169,20 @@ function groupVerdicts(
           ? `NO VERDICT — pairing ${effectivePairs} nonzero of ` +
             `${sharedDays} shared days is below the statistic's ` +
             `floor (${MIN_EFFECTIVE_PAIRS})`
+          : fitEvidenceAbsent
+          // BELOW the pairing floor deliberately: a pair that would otherwise
+          // reach "fails" has already cleared that floor, so this leg still
+          // catches every mislabelled one, while a pair that fails pairing
+          // keeps the more specific message — that the arm changed nothing on
+          // this market, which is a fact about the rule rather than about the
+          // data (review finding, 2026-09-14).
+          ? `NO VERDICT — the ${foldNames.fit} fold carries no evidence on ` +
+            `${aggregate.variant.fit.filled === 0 &&
+              aggregate.base.fit.filled === 0 ? "either side" : "one side"} ` +
+            `(${aggregate.variant.fit.filled} filled for "${variant}", ` +
+            `${aggregate.base.fit.filled} for "${baselineVariant}"), so the ` +
+            `gate's ${foldNames.fit}-fold delta rests on a fold that was ` +
+            `never traded — which is not a measured loss`
           : beatsBaseline && !earnsMoney
           // THE DEFECT'S OWN CASE, named so it can never again be read as an
           // ordinary failure. This variant cleared every comparison the gate
