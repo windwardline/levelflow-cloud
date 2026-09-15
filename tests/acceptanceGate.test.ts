@@ -2000,7 +2000,19 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       assert.deepEqual(opened.frozen!.arms, [{ arm: "A", shardHashes: [manifestHashOf(corpus)] }]);
       assert.equal(opened.markets.EURUSD.candidate!.arm, "A");
       assert.equal(opened.markets.EURUSD.candidate!.variant, "good");
-      assert.ok(["accepted", "rejected"].includes(opened.markets.EURUSD.candidate!.disposition), "the candidate's own disposition is recorded even when not accepted");
+      // Three values, not two. This assertion pinned the binary that made a
+      // candidate the gate could not judge indistinguishable from one it
+      // judged and refused — in the one artifact that is sealed and cannot be
+      // rewritten.
+      // The VALUE, not membership of the union. `includes` over all three
+      // members is satisfied by anything the ladder can emit, so it pinned
+      // only that the key exists. This fixture is deterministic: EURUSD's 16
+      // select fills sit below the market unit's 30 floor.
+      assert.equal(
+        opened.markets.EURUSD.candidate!.disposition,
+        "no-verdict",
+        "the candidate's own disposition is recorded even when not accepted",
+      );
       assert.equal(opened.rules.delta, DELTA_RULE);
       assert.equal(opened.rules.deltaHash, DELTA_RULE_HASH);
       assert.equal(opened.markets.EURUSD.retirement, null, "not a decline candidate: no retirement verdict to copy");
@@ -2221,10 +2233,15 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       assert.equal(opened.markets.EURUSD.candidate!.frozenPairedP, candidates.markets.EURUSD.candidate!.pairedP);
       const own = opened.markets.EURUSD.candidateRead!;
       // EURUSD's 16 fills sit below the market unit's floor, so the read's own
-      // re-test rejects it (THIN) and the gate's verdict carries no confirm
-      // figure — the candidate's read is carried regardless: 16 confirm days at
-      // +0.4 against 16 at +0.1 is +4.8R, judged unreadable below 30 filled.
-      assert.equal(opened.markets.EURUSD.candidate!.disposition, "rejected");
+      // re-test cannot judge it (UNDERPOWERED) and the gate's verdict carries
+      // no confirm figure — the candidate's read is carried regardless: 16
+      // confirm days at +0.4 against 16 at +0.1 is +4.8R, judged unreadable
+      // below 30 filled.
+      //
+      // This assertion read "rejected" until 2026-09-14, while the comment
+      // above it said the read could not judge. Too few fills to judge is not
+      // a measured rejection, and the sealed artifact now says which it is.
+      assert.equal(opened.markets.EURUSD.candidate!.disposition, "no-verdict");
       assert.equal(plainMarket.verdicts.get("EURUSD")!.get("good")!.confirmTotalDelta, null);
       assert.ok(Math.abs(own.confirmTotalDelta! - 4.8) < 1e-9, "the candidate's confirm read is carried whatever the re-test says");
       assert.equal(own.confirmFilled, 16);
@@ -4508,5 +4525,135 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
       `a populated fit fold must still be judged: ${verdict.reason}`,
     );
     assert.doesNotMatch(verdict.reason, /carries no evidence/);
+  });
+});
+
+// A train-split row for a named symbol; `trainRow` is EURUSD-only by design.
+function trainRow2(variant: string, dayIndex: number, realizedR: number): SweepEmitRow {
+  return {
+    ...outcomeRow(variant, dayIndex, realizedR, undefined, "GBPUSD"),
+    split: "train",
+    time: Date.UTC(2024, 0, 8) + dayIndex * DAY + 12 * 3_600_000,
+  };
+}
+
+type GradingArtifact = {
+  markets: Record<
+    string,
+    { variants: Record<string, { accepted: boolean; noVerdict: boolean; reason: string }> }
+  >;
+};
+
+describe("a disposition the gate drew must survive to the people reading it", () => {
+  // Two leaks found by an adversarial review on 2026-09-14, both in the step
+  // AFTER the ladder: the gate distinguishes "could not judge" from "judged
+  // and refused" correctly, then hands its consumers an artifact with no field
+  // for the distinction and a table that prints the bare word `fails` over a
+  // reason it wrote specifically so that could never happen again.
+  const rows: SweepEmitRow[] = [];
+  for (let day = 0; day < 40; day += 1) {
+    // LOSES MONEY: beats the baseline on every day, and still earns nothing
+    // beyond its own error — mean +0.05R on a spread of ±1.45.
+    rows.push(trainRow("baseline", day, day % 2 === 0 ? -0.8 : -1.2));
+    rows.push(trainRow("volatile", day, day % 2 === 0 ? 1.5 : -1.4));
+    rows.push(outcomeRow("baseline", day, day % 2 === 0 ? -0.8 : -1.2));
+    rows.push(outcomeRow("volatile", day, day % 2 === 0 ? 1.5 : -1.4));
+    // NO VERDICT: no fit-fold rows at all, the #647 case.
+    rows.push(outcomeRow("noFitFold", day, 0.9));
+    // A second market where EVERY variant is no verdict, so `derive-4d` has
+    // both sides to tell apart: GBPUSD is unjudged, EURUSD is not.
+    rows.push(trainRow2("baseline", day, day % 2 === 0 ? 0.4 : -0.2));
+    rows.push(outcomeRow("baseline", day, day % 2 === 0 ? 0.4 : -0.2, undefined, "GBPUSD"));
+    rows.push(outcomeRow("noFitFold", day, 0.9, undefined, "GBPUSD"));
+  }
+
+  // One spawn for the block, not one per assertion: `npm test` is a declared
+  // gate and gates are required to be local and quick.
+  let cached: { artifact: GradingArtifact; stdout: string } | null = null;
+  const graded = () => (cached ??= computeGrading());
+  const computeGrading = (): { artifact: GradingArtifact; stdout: string } => {
+    const emitPath = corpusWith(rows);
+    const outPath = join(dirname(emitPath), "grading.json");
+    const stdout = execFileSync(
+      "npx",
+      ["--no-install", "tsx", "scripts/grid-totalr.ts", emitPath, "--verdict-unit", "market", "--out", outPath],
+      { cwd: process.cwd(), encoding: "utf8", timeout: 120_000 },
+    );
+    return {
+      artifact: JSON.parse(readFileSync(outPath, "utf8")) as GradingArtifact,
+      stdout,
+    };
+  };
+
+  it("builds the two shapes it means to test", () => {
+    const { artifact } = graded();
+    const eurusd = artifact.markets.EURUSD.variants;
+    assert.ok(eurusd, "the fixture must grade EURUSD");
+    assert.match(
+      eurusd.volatile.reason,
+      /^LOSES MONEY/,
+      `the volatile variant must reach the money leg: ${eurusd.volatile.reason}`,
+    );
+    assert.match(
+      eurusd.noFitFold.reason,
+      /fold carries no evidence on/,
+      `the no-fit-fold variant must reach the evidence leg: ${eurusd.noFitFold.reason}`,
+    );
+  });
+
+  it("writes the disposition into the artifact, because consumers may not re-derive it from the reason", () => {
+    const { artifact } = graded();
+    const eurusd = artifact.markets.EURUSD.variants;
+    // Both are `accepted: false`, and until 2026-09-14 that was everything the
+    // artifact said about either. One was measured and lost; the other was
+    // never measured. The gate forbids parsing the reason string to tell them
+    // apart, so without this field no consumer could.
+    assert.equal(eurusd.volatile.accepted, false);
+    assert.equal(eurusd.noFitFold.accepted, false);
+    assert.equal(eurusd.volatile.noVerdict, false, "a measured loss is a verdict");
+    assert.equal(eurusd.noFitFold.noVerdict, true, "an unmeasured fold is not");
+  });
+
+  it("carries the gate's disposition out to derive-4d's own artifact, not a row count", () => {
+    // The fourth consumer, read back out of the file it writes rather than
+    // asserted against the source. `measureOnly` is true for both markets;
+    // only `unjudged` tells them apart, and it must come from the ladder.
+    const emitPath = corpusWith(rows);
+    const outPath = join(dirname(emitPath), "candidates.json");
+    execFileSync(
+      "npx",
+      ["--no-install", "tsx", "scripts/derive-4d.ts", emitPath, "--baseline", "baseline", "--out", outPath, "--permutations", "20"],
+      { cwd: process.cwd(), encoding: "utf8", timeout: 120_000 },
+    );
+    const candidates = JSON.parse(readFileSync(outPath, "utf8")) as {
+      markets: Record<string, { measureOnly: boolean; starved: boolean; unjudged: boolean }>;
+    };
+    const eurusd = candidates.markets.EURUSD;
+    const gbpusd = candidates.markets.GBPUSD;
+    assert.ok(eurusd && gbpusd, "both markets must reach the artifact");
+    assert.equal(eurusd.measureOnly, true, "neither market has an accepted variant");
+    assert.equal(gbpusd.measureOnly, true);
+    assert.equal(
+      gbpusd.unjudged,
+      true,
+      "every GBPUSD variant reached NO VERDICT, so the gate judged nothing there",
+    );
+    assert.equal(
+      eurusd.unjudged,
+      false,
+      "EURUSD's volatile variant WAS judged and refused, which is the opposite next move",
+    );
+  });
+
+  it("prints the reason a judged refusal was given, never the bare word over it", () => {
+    const { stdout } = graded();
+    const line = stdout.split("\n").find((l) => l.includes("volatile"));
+    assert.ok(line, "the volatile variant must appear in the printed table");
+    assert.match(
+      line,
+      /LOSES MONEY/,
+      `the money leg's reason is written so it can never be read as an ordinary ` +
+        `failure, and the printer read it as one: ${line}`,
+    );
   });
 });
