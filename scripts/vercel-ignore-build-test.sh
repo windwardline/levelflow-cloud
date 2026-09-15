@@ -156,6 +156,14 @@ run "no parent commit builds"                 "$d" 1
 d="$TMP/notgit"; mkdir -p "$d"
 run "non-git directory builds"                "$d" 1
 
+# --- an empty diff. The guard for it is the one the header comment calls out
+# by name, and until now it was the only refusal path with no case: a commit
+# that changes nothing is indistinguishable, from inside this script, from a
+# diff it failed to compute, so it must build. An empty commit is the cheapest
+# way to produce the condition for real rather than by stubbing git.
+r=$(newrepo empty_diff); ( cd "$r" || exit 1; git commit -q --allow-empty -m "empty" )
+run "empty diff builds (refuses to infer nothing changed)" "$r" 1
+
 echo "---"
 echo "$pass passed; $fail failed"
 
@@ -177,6 +185,25 @@ if [ "$got" -ne 0 ]; then
   exit 1
 fi
 echo "  mutant SKIPS a source change (rc=0) — the catch-all is load-bearing and its removal is detectable"
+
+echo
+echo "MUTATION: delete the guard that refuses to read an empty diff as nothing changed"
+MUT2="$TMP/mutant-empty.sh"
+sed '/^\[ -n "\$changed" \] || build "diff reported no files/d' "$GUARD" > "$MUT2"
+removed2=$(diff "$GUARD" "$MUT2" | grep -c '^<')
+if [ "$removed2" -ne 1 ]; then
+  echo "FAIL - mutation did not land as intended ($removed2 lines removed, expected 1); the run below would prove nothing"
+  exit 1
+fi
+echo "  mutation landed: 1 line removed at the intended site"
+
+r=$(newrepo mutant_empty); ( cd "$r" || exit 1; git commit -q --allow-empty -m "empty" )
+out=$(cd "$r" && bash "$MUT2" 2>&1); got=$?
+if [ "$got" -ne 0 ]; then
+  echo "FAIL - the mutant still refused to skip an empty diff (rc=$got); that guard is not what enforces this"
+  exit 1
+fi
+echo "  mutant SKIPS an empty diff (rc=0) — the guard is load-bearing and its removal is detectable"
 
 [ "$fail" -eq 0 ] || exit 1
 echo

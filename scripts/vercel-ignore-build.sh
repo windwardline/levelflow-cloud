@@ -44,11 +44,15 @@
 #
 # On the path set: `sweeps/` is research data (jsonl manifests, universe lists)
 # and `src/` imports nothing from it or from `docs/` — verified before this list
-# was written. `tests/`, `supabase/` and `scripts/` are deliberately ABSENT.
-# AGENTS.md states it outright — "Vercel type-checks the whole graph, so a test
-# type error fails production" — so a test change really can decide whether
-# production builds. A migration can also accompany a shipped change. All three
-# build.
+# was written. `tests/`, `supabase/` and `scripts/` are on the list too, for the
+# reason given at the top of this file: the whole-graph type-check emits nothing,
+# so a commit confined to them deploys byte-identical output.
+#
+# Until #639 this block said the opposite — that those three were "deliberately
+# ABSENT" and "all three build" — and it went on saying it after #639 moved them,
+# three lines above the case statement that skips them. Whichever of the two
+# comment blocks a reader reached first decided what they believed the script did.
+# If the path set changes again, both blocks change with it.
 
 set -uo pipefail
 
