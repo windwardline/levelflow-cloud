@@ -2394,7 +2394,55 @@ and could have burned a confirm fold on it; and the leg sat above the pairing
 floor, taking the more specific message from 29 pairs. Five mutations caught.
 **Owed and not done here**: eight other market-grain gradings carry the same
 defect on 416 pairs, and some feed amendment 36's removal test, so a batch
-re-run could move a register decision and needs its own analysis.
+re-run looked capable of moving a register decision. **The blast radius has
+since been analysed, checked by a second agent, and WRITTEN INTO
+[`empty-fold-verdicts-2026-09-14.md`](/docs/research/empty-fold-verdicts-2026-09-14.md)**
+rather than left in a pull request body: regrade the eight, no recorded decision
+moves. The guard is a negated conjunct so it can only remove an accept, and
+`register-verdict` branches on `net` figures rather than on any disposition —
+of 360 retiring cells, the 53 carrying a NO VERDICT reason are all the
+identical-to-baseline pairing case, and zero empty-fit cells reach the removal
+test. The record names all seven corrections to carry; the largest is that under
+#616's underpowered split 71 of the 144 THIN pairs move OUT of no verdict into
+the judged bucket, a disposition move in the opposite direction from #647's.
+
+**Also owed, and found on 2026-09-14 by the review of the disposition
+repairs**: the same absent-reads-as-zero construction publishes
+`selectTotalDelta` and `selectExpectancyDelta` as flattering positives on an
+empty SELECT fold — +20 and +0.50 with zero select fills on a fixture — and both
+are written into every grading artifact. Nothing is accepted on them, because
+`earnsMoney` and the pairing block it, but they are printed and published
+beside a `noVerdict` field that now says the verdict is sound. The fix is to
+make both null when the fold is absent on either side, the way
+`confirmTotalDelta` already does. It is PARKED WITH THE REGRADE deliberately:
+it changes published numbers rather than adding a field, so it belongs where
+the before-and-after comparison can account for it.
+
+**A FIFTH consumer of the same distinction is owed, and it is arithmetic
+rather than a label.** `freeze-candidates` counts `cellsTested` as
+`Object.keys(variants).length` and derives `expectedFalseAccepts` as
+0.05 x that sum — "how many accepts the gate's own p would hand out by chance".
+A cell the gate declined to judge never reached that p, because `noVerdict`
+short-circuits before `pairedP <= 0.05` can admit anything, so it cannot
+contribute a false accept and should not be in the denominator. The tracked
+`frozen-candidates.json` carries `expectedFalseAccepts: 122.85`, implying 2,457
+cells tested. That figure is overstated by however many of those cells were
+never judged. Pre-existing arithmetic, not a regression — the field it needs
+(`noVerdict`) exists only as of this change set, and the fix belongs with the
+regrade, which rewrites both the gradings and the freeze.
+
+**Two more record gaps ride with that regrade.** The printer repair is
+grain-agnostic, so twelve tracked gradings — the eight market-grain and four
+class-grain — carry 419 money-leg reasons their own tables render as the bare
+word. Those are OCCURRENCES, not rows: class-grain rows repeat one class verdict
+per member market, so the printed rows that change are about **132** (105 at the
+market grain, where one verdict is one row, plus 27 distinct class verdicts
+behind 314 occurrences). The research note carries the split. Until they are
+regenerated the command in each of the twelve does not reproduce the file beside
+it. Separately, the three `4d-candidates` artifacts
+under `baseline-2026-08-10/` predate `derive-4d`'s new `unjudged` field and
+publish 48 markets a reader cannot tell apart as measured-and-refused versus
+never judged. Nothing branches on either; both are read by people.
 
 **THE FOUR OWED RULINGS NOW CARRY RECOMMENDATIONS — 2026-09-14.**
 [`owner-rulings-2026-09-14.md`](/docs/research/owner-rulings-2026-09-14.md).

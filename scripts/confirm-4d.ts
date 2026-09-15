@@ -162,7 +162,7 @@ async function main() {
     analyzerVersion: string;
     markets: Record<
       string,
-      { accepted: Candidate[]; measureOnly: boolean; starved: boolean }
+      { accepted: Candidate[]; measureOnly: boolean; starved: boolean; unjudged?: boolean }
     >;
   };
   const feasibility = JSON.parse(

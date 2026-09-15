@@ -2440,7 +2440,25 @@ export async function gradeCorpus(
               ? (() => {
                 const cand = candidateOf(symbol)!;
                 const verdict = verdicts.get(group)?.get(cand.variant);
-                return { arm: cand.arm, disposition: verdict?.accepted ? "accepted" as const : "rejected" as const, frozenPairedP: cand.pairedP, readPairedP: verdict?.pairedP ?? null, reason: verdict?.reason ?? "no verdict", variant: cand.variant };
+                // THE DISPOSITION IS NOT A BOOLEAN, and this artifact is the
+                // one that cannot be rewritten. A candidate the gate could not
+                // judge — an empty fold, a sub-floor pairing, an underpowered
+                // select fold — is not a rejection, and recording it as one
+                // makes the sealed record say a measurement happened that did
+                // not. The reason said "no verdict" while the machine-readable
+                // field said "rejected", so a consumer reading the field alone
+                // saw a judgement (#647's defect, in the one place it could
+                // never be corrected). An ABSENT verdict is the same case: the
+                // gate produced nothing to reject.
+                const disposition = !verdict
+                  ? "no-verdict" as const
+                  : verdict.noVerdict
+                  ? "no-verdict" as const
+                  : verdict.accepted
+                  ? "accepted" as const
+                  : "rejected" as const;
+                return { arm: cand.arm, disposition, frozenPairedP: cand.pairedP, readPairedP: verdict?.pairedP ?? null, reason: verdict?.reason ??
+                  "NO VERDICT — the read produced no verdict for this candidate; it was not graded in this run", variant: cand.variant };
               })()
               : null,
           }
@@ -2874,6 +2892,12 @@ async function main(): Promise<void> {
       for (const [variant, verdict] of verdicts.get(verdictUnit === "market" ? symbol : getAssetType(symbol)) ?? []) {
         byVariant[variant] = {
           accepted: verdict.accepted,
+          // The gate forbids re-deriving a disposition from the reason string,
+          // and then wrote an artifact carrying only `accepted` and `reason` —
+          // so a consumer obeying the ban had no field that answered the
+          // question. `accepted: false` covered both a measured loss and a
+          // refusal to measure, which is the distinction #647 exists to draw.
+          noVerdict: verdict.noVerdict,
           fitTotalDelta: verdict.fitTotalDelta,
           pairedP: verdict.pairedP,
           reason: verdict.reason,
@@ -3041,13 +3065,20 @@ async function main(): Promise<void> {
       // byte-identical to its reason — the printer reuses the reason verbatim
       // and a test pins that, because a reworded reason once silently restored
       // the bare-"fails" defect (#364 round 42, finding 2).
+      // A JUDGED refusal that carries its own reason prints it. The D4 money
+      // leg writes "LOSES MONEY — beat the baseline on every delta, but its
+      // own select-fold expectancy is not positive beyond its error", and the
+      // comment on that branch says it is named so it can never again be read
+      // as an ordinary failure — while this printer rendered it as the bare
+      // word `fails`, which is exactly an ordinary failure. Only a verdict
+      // whose reason IS "fails" prints the bare word now.
       const label = verdict.noVerdict
         ? verdict.reason
         : (verdict.accepted
         ? `ACCEPT — fit+select, paired p, and its OWN expectancy ` +
           `${verdict.selectExpectancy?.toFixed(3)}R positive beyond error ` +
           `(95% lower ${verdict.selectExpectancyLower?.toFixed(3)}R)`
-        : "fails") + selectiveNote;
+        : verdict.reason) + selectiveNote;
       // The confirm figure states its own two denominators, and an
       // accepted variant whose confirm read found no evidence says so
       // rather than printing nothing (#364 round 43, finding 1) — the

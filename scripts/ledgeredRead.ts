@@ -156,7 +156,7 @@ export type LedgeredReadArtifact = {
   markets: Record<string, {
     heldOut: boolean;
     /** The frozen candidate this read opened for the market (frozen reads only); null when the freeze named none. */
-    candidate?: { arm: string; disposition: "accepted" | "rejected"; frozenPairedP: number | null; readPairedP: number | null; reason: string; variant: string } | null;
+    candidate?: { arm: string; disposition: "accepted" | "rejected" | "no-verdict"; frozenPairedP: number | null; readPairedP: number | null; reason: string; variant: string } | null;
     /**
      * The frozen candidate's confirm read, carried UNCONDITIONALLY (R4 act 3):
      * the freeze is the acceptance; the read's own re-test is reported beside

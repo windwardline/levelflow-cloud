@@ -68,6 +68,14 @@ export type Retirement = {
 
 type GradingVariant = {
   accepted: boolean;
+  /**
+   * The gate's own disposition. `accepted: false` covers both a measured loss
+   * and a refusal to measure, and the gate forbids telling those apart by
+   * parsing `reason`, so a consumer that does not read this field cannot tell
+   * them apart at all. Optional because artifacts written before 2026-09-14
+   * carry no such key; absent is not false.
+   */
+  noVerdict?: boolean;
   fitTotalDelta: number | null;
   pairedP: number | null;
   reason: string;

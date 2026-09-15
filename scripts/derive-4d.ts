@@ -51,8 +51,13 @@ type MarketCandidates = {
   // calibration and is measured, not tuned (CV-3 / the livestock rule).
   measureOnly: boolean;
   // Thin in the FIT fold across the board — a late-listed market whose
-  // history cannot carry a derivation at all.
+  // history cannot carry a derivation at all. Derived from row counts, so it
+  // sees only part of the empty-fit leg; `unjudged` is the gate's own word.
   starved: boolean;
+  // EVERY variant reached NO VERDICT — the gate declined to judge rather than
+  // judging and refusing. `measureOnly` covers both, and they have opposite
+  // next moves: a refused market has been measured, an unjudged one has not.
+  unjudged: boolean;
 };
 
 async function main() {
@@ -205,12 +210,21 @@ async function main() {
       .sort((a, b) => b.selectExpectancyDelta - a.selectExpectancyDelta);
     const starved = rows.length > 0 &&
       rows.every(([, verdict]) => (verdict.fitFilled ?? 0) < 30);
+    // THE GATE'S OWN DISPOSITION, not a row count. `starved` is derived from
+    // `fitFilled < 30`, which covers part of the empty-fit leg and none of
+    // underpowered, sub-floor pairing or absent baseline — so a market the gate
+    // could not judge on any variant was published as `measureOnly`, which is
+    // what a market whose variants were MEASURED and refused also reads as.
+    // Those are opposite next moves, and the ladder already knows which is
+    // which (#647, and the three consumer leaks repaired beside this one).
+    const unjudged = rows.length > 0 && rows.every(([, verdict]) => verdict.noVerdict);
     markets[symbol] = {
       // Labelled, never dropped: the market unit grades every market (R4 act 2).
       heldOut: heldOutSet.includes(symbol),
       accepted,
       measureOnly: accepted.length === 0,
       starved,
+      unjudged,
     };
   }
 
@@ -226,13 +240,40 @@ async function main() {
   writeResearchArtifact(outPath, summary);
 
   const tuned = Object.values(markets).filter((m) => !m.measureOnly).length;
+  // The categories OVERLAP and are counted that way. Suppressing `unjudged`
+  // when `starved` is also true would let a row count hide the ladder's own
+  // word — and a thin corpus, where every fit fold is under 30 rows, is exactly
+  // when the gate judges nothing and the distinction is worth having. Printing
+  // `0 unjudged` for a run in which nothing was judged is the failure this
+  // whole change set exists to stop.
+  const unjudged = Object.values(markets).filter((m) => m.unjudged).length;
+  // Same overlap rule for the bucket beside it. `starved` is counted
+  // independently and does not subtract here, because it is
+  // `every(fitFilled < 30)` rather than `=== 0`: a market with thin but
+  // NONEMPTY fit folds clears the evidence guard and is genuinely judged and
+  // refused, so subtracting it would let a row count hide a real measurement.
+  //
+  // The one subtraction that stays is `unjudged`, and it is sound because
+  // `unjudged` IMPLIES `measureOnly`: acceptance requires `beatsBaseline`,
+  // which requires the pairing floor, and every no-verdict leg empties or
+  // fails that floor, so no unjudged market carries an accept. That invariant
+  // lives in `grid-totalr`'s ladder and is named here because this line rests
+  // on it.
+  //
+  // A market with NO graded variants — a group whose only variant is the
+  // baseline, which the verdict loop skips — is `measureOnly` with nothing
+  // measured. `rows.length > 0` guards the two flags above, so it reads
+  // neither starved nor unjudged. Unreachable on a real 4d sweep, where every
+  // market carries the whole grid, and called out because the label now claims
+  // a disposition where it used to name a residual.
   const measureOnly = Object.values(markets).filter((m) =>
-    m.measureOnly && !m.starved
+    m.measureOnly && !m.unjudged
   ).length;
   const starved = Object.values(markets).filter((m) => m.starved).length;
   console.log(
     `4d candidates: ${tuned} markets with accepted variants, ` +
-      `${measureOnly} measure-only, ${starved} starved -> ${outPath}`,
+      `${measureOnly} measured and refused, ${unjudged} unjudged, ` +
+      `${starved} starved -> ${outPath}`,
   );
 }
 
