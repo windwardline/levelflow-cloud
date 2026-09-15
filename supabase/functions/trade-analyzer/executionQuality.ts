@@ -125,7 +125,8 @@ type ExecutionProfile = {
 const COST_EPSILON = 1e-9;
 
 const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
-  // Livestock, 2026-08-06. Same tick-over-price derivation as agriculture, and
+  // Livestock, 2026-08-06. The bps terms are DERIVED, by the same
+  // tick-over-price arithmetic as agriculture, and
   // it lands somewhere different — which is the point of measuring rather than
   // assuming the two "commodity" classes resemble each other:
   //   feeder cattle  0.025 / 348.30 = 0.72 bps
@@ -171,6 +172,13 @@ const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
     slippageBps: 2.5,
     spreadBps: 4.0,
   },
+  // JUDGED, not derived. Like forex's below, these arrived as class, price and
+  // volatility estimates in the first execution-quality commits (2026-06-26 and
+  // 2026-07-01) and no measurement has replaced them since. Agriculture's and
+  // livestock's were later derived from tick over price; these were not, and
+  // saying so is the point — silence reads as a derivation. The crypto book
+  // sampling recorded elsewhere floors `venueCosts`, a different facility, and
+  // does not derive the two terms below.
   crypto: {
     atrSlippageFactor: 0.012,
     atrSpreadFactor: 0.018,
@@ -178,6 +186,7 @@ const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
     slippageBps: 2.5,
     spreadBps: 3.5,
   },
+  // JUDGED, not derived — same provenance as crypto's above.
   energies: {
     atrSlippageFactor: 0.01,
     atrSpreadFactor: 0.014,
@@ -226,6 +235,7 @@ const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
     slippageBps: 0.16,
     spreadBps: 0.35,
   },
+  // JUDGED, not derived — same provenance as crypto's above.
   futures: {
     atrSlippageFactor: 0.008,
     atrSpreadFactor: 0.012,
@@ -233,6 +243,7 @@ const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
     slippageBps: 0.8,
     spreadBps: 1.4,
   },
+  // JUDGED, not derived — same provenance as crypto's above.
   indices: {
     atrSlippageFactor: 0.008,
     atrSpreadFactor: 0.012,
@@ -240,6 +251,7 @@ const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
     slippageBps: 0.7,
     spreadBps: 1.1,
   },
+  // JUDGED, not derived — same provenance as crypto's above.
   metals: {
     atrSlippageFactor: 0.008,
     atrSpreadFactor: 0.014,
