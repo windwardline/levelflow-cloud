@@ -4241,6 +4241,162 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
     );
   });
 
+  it("covers the OTHER fold too: an empty select fold is already no verdict, at both grains", () => {
+    // The defect class, not just its instance. The fit fold had no floor of
+    // its own — the gate's floors are attached to the SELECT fold — which is
+    // why an absent fit fold read as a measured comparison and an absent
+    // select fold never did. This pins that asymmetry so it cannot invert:
+    // at the market grain the 30-fill floor catches it, and at the class
+    // grain, where minFilled defaults to 0, the selective floor does.
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 40; day += 1) {
+      // The baseline trades both folds; the variant trades fit only, so its
+      // select fold is empty while the baseline's select R is NEGATIVE — the
+      // shape that would otherwise flatter a 0 − (−X) delta.
+      rows.push(trainRow("baseline", day, 0.3));
+      rows.push(trainRow("thin", day, 0.9));
+      rows.push(outcomeRow("baseline", day, -0.5));
+    }
+    const cube = readGridCube(rows);
+    const opts = {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 9,
+    };
+    const atClass = classVerdicts(cube, opts).get("forex")!.get("thin")!;
+    // NON-VACUITY: the fixture must carry the dangerous shape, or the
+    // assertions below pass on a variant nothing would have accepted anyway.
+    // An empty select fold against a losing baseline gives 0 − (−20) = +20,
+    // so the select conjunct is satisfied and only the floors and the pairing
+    // stand between this and an acceptance.
+    assert.ok(
+      atClass.selectTotalDelta > 0,
+      `the fixture must flatter the variant: ${atClass.selectTotalDelta}`,
+    );
+    assert.equal(atClass.accepted, false, `class grain: ${atClass.reason}`);
+    assert.equal(atClass.noVerdict, true, `class grain: ${atClass.reason}`);
+    const atMarket = marketVerdicts(cube, opts).get("EURUSD")!.get("thin")!;
+    assert.ok(atMarket.selectTotalDelta > 0);
+    assert.equal(atMarket.accepted, false, `market grain: ${atMarket.reason}`);
+    assert.equal(atMarket.noVerdict, true, `market grain: ${atMarket.reason}`);
+    assert.match(
+      atMarket.reason,
+      /^NO VERDICT — UNDERPOWERED \(0 filled/,
+      `the market grain names its own floor: ${atMarket.reason}`,
+    );
+  });
+
+  it("NEVER reports accepted and noVerdict together, across every shape that reaches the ladder", () => {
+    // THE INVARIANT THE FIT BUG BROKE, stated once so no future leg can break
+    // it again. Every no-verdict leg must be mutually exclusive with
+    // acceptance: `underpowered` and the fit-evidence guard are conjuncts of
+    // `beatsBaseline`; an absent group baseline empties the pairing, which is
+    // also a conjunct. A leg added to the disposition without a matching
+    // conjunct would let the gate report a verdict it also says it cannot
+    // give — and the artifacts carry no noVerdict field, so a consumer
+    // reading `accepted` would never see the contradiction.
+    //
+    // The shapes below are chosen so each one satisfies some part of the
+    // acceptance conjunction while tripping a different no-verdict leg, and
+    // several give the variant a FLATTERING delta against a losing baseline,
+    // which is the shape that made the fit bug reachable.
+    const shapes: Array<{ build: () => SweepEmitRow[]; name: string }> = [
+      {
+        name: "no fit rows for the variant, losing baseline",
+        build: () => {
+          const rows: SweepEmitRow[] = [];
+          for (let day = 0; day < 40; day += 1) {
+            rows.push(outcomeRow("baseline", day, day % 2 === 0 ? 0.1 : -0.4));
+            rows.push(outcomeRow("v", day, 0.9));
+            rows.push(trainRow("baseline", day, -0.5));
+          }
+          return rows;
+        },
+      },
+      {
+        name: "no fit rows on either side",
+        build: () => {
+          const rows: SweepEmitRow[] = [];
+          for (let day = 0; day < 40; day += 1) {
+            rows.push(outcomeRow("baseline", day, day % 2 === 0 ? 0.4 : -0.2));
+            rows.push(outcomeRow("v", day, 0.9));
+          }
+          return rows;
+        },
+      },
+      {
+        name: "no select rows for the variant, losing baseline",
+        build: () => {
+          const rows: SweepEmitRow[] = [];
+          for (let day = 0; day < 40; day += 1) {
+            rows.push(trainRow("baseline", day, 0.3));
+            rows.push(trainRow("v", day, 0.9));
+            rows.push(outcomeRow("baseline", day, -0.5));
+          }
+          return rows;
+        },
+      },
+      {
+        name: "a thin variant that wins on every day it trades",
+        build: () => {
+          const rows: SweepEmitRow[] = [];
+          for (let day = 0; day < 40; day += 1) {
+            rows.push(trainRow("baseline", day, -0.3));
+            rows.push(outcomeRow("baseline", day, -0.3));
+            if (day < 6) {
+              rows.push(trainRow("v", day, 0.9));
+              rows.push(outcomeRow("v", day, 0.9));
+            }
+          }
+          return rows;
+        },
+      },
+      {
+        name: "a variant bit-identical to the baseline",
+        build: () => {
+          const rows: SweepEmitRow[] = [];
+          for (let day = 0; day < 40; day += 1) {
+            const r = day % 2 === 0 ? 0.4 : -0.2;
+            rows.push(trainRow("baseline", day, r));
+            rows.push(trainRow("v", day, r));
+            rows.push(outcomeRow("baseline", day, r));
+            rows.push(outcomeRow("v", day, r));
+          }
+          return rows;
+        },
+      },
+    ];
+    const opts = {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 9,
+    };
+    let sawNoVerdict = 0;
+    for (const shape of shapes) {
+      const cube = readGridCube(shape.build());
+      for (
+        const [grain, verdict] of [
+          ["class", classVerdicts(cube, opts).get("forex")?.get("v")],
+          ["market", marketVerdicts(cube, opts).get("EURUSD")?.get("v")],
+        ] as const
+      ) {
+        if (!verdict) continue;
+        if (verdict.noVerdict) sawNoVerdict += 1;
+        assert.ok(
+          !(verdict.accepted && verdict.noVerdict),
+          `${shape.name} (${grain}): the gate reported accepted AND noVerdict ` +
+            `together — reason ${verdict.reason}`,
+        );
+      }
+    }
+    // NON-VACUITY: if none of these shapes reached a no-verdict leg, the
+    // invariant was never exercised and this test proves nothing.
+    assert.ok(
+      sawNoVerdict >= 6,
+      `only ${sawNoVerdict} of these shapes reached a no-verdict leg`,
+    );
+  });
+
   it("still judges a variant that does have fit-fold rows", () => {
     const verdict = classVerdicts(cube(40), {
       foldNames: { fit: "train", select: "test" },
