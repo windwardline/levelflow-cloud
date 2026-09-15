@@ -379,9 +379,12 @@ swept. It ranked six items. Recorded here with the one change §3 forces.
    decade — the memo's arithmetic; it also offers a class-grain path with
    per-market sign concordance (22 of 22 markets on select in-pool). Under
    item 1's bound the effect is +0.01 and the same arithmetic worsens
-   ninefold — mine, not the memo's. **Measured 2026-09-14: the effect is
-   +0.0121 to +0.0135, so the requirement worsens about five- to sevenfold, not
-   ninefold.**
+   ninefold — mine, not the memo's. **Measured 2026-09-14: the bound figures
+   are +0.0121 to +0.0135, so the requirement worsens about five- to SIXfold
+   (6.15x and 4.94x), not ninefold. CORRECTED — this said "five- to sevenfold"
+   until the arithmetic was recomputed for amendment 45, and the two figures
+   are bound columns of two cells rather than an effect size of the hour
+   rule.**
 
 A sizing line for §20 — per-fill risk against a daily budget, with the
 server-day finding written in — is the one product change the round

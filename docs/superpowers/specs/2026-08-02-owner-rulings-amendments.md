@@ -2340,10 +2340,16 @@ guide-content spec carry the three sentences.
 
 **Every constant in an execution profile carries a derivation where it is
 defined, or it carries the word JUDGED and the reason it could not be
-derived.** `EXECUTION_PROFILES.forex`'s `spreadBps` and `slippageBps` were the
-two that carried neither, where agriculture's and livestock's carry worked
-tick-over-price derivations and crypto's carries a sampled book floor. They are
-marked now, which is the honest state of a number nobody has measured. The
+derived.** Only agriculture's and livestock's carried a worked tick-over-price
+derivation. SIX of the eight profiles carried neither — crypto, energies,
+forex, futures, indices and metals — and all six are marked JUDGED now, with
+the provenance they actually have: class, price and volatility estimates from
+the first execution-quality commits, which no measurement has replaced. Forex
+was not the only one, and the record that said crypto carried a sampled book
+floor was reading a different facility: that sampling floors `venueCosts`, and
+it derives nothing in the execution profile. A rule of this shape is a grep, so
+this amendment ships its guard — a test that fails when a profile's definition
+names neither DERIVED nor JUDGED. The
 four-week TradeLocker bid/ask capture stays LOW priority, and a majors-only
 version of it is refused outright: the held-out forex set is AUDCHF, AUDNZD,
 EURUSD, GBPCAD, NZDCHF and NZDJPY — five crosses and one major — so a majors
@@ -2396,9 +2402,11 @@ That would move every calibration cell, and because R3's ledgered read was taken
 with all derived cells inside the confirm fold, it would ship every re-derived
 cell unconfirmed. It builds nothing in either direction, and it does not license
 a single break-exposure figure: a class's exposure is quoted with its class or
-not at all. Four figures around this question were found stale and corrected in
-the change set that carries this amendment, which is the reason the per-class
-rule is written into the law rather than left as practice.
+not at all. The per-class rule is written into law rather than left as practice
+because four figures around this question were found stale and corrected when
+the rulings record was written (2026-09-14) — a count that had itself already
+survived one correction of the same figure at the top of its own file. This
+change set carries the law, not those corrections.
 
 ## Amendment 45 — the per-market grain is a necessary floor, not a sufficient bar (owner ruling, 2026-09-14)
 

@@ -256,8 +256,11 @@ of, which is deriving the forex spread and slippage constants that carry none.
 The grain arithmetic the round's item 7 raised is worse under the bound, as
 its author expected — though by less than the round's estimate. Required fills
 scale as the inverse square of the effect, so against the class-grain +0.03 the
-measured +0.0121 to +0.0135 worsens the requirement about five- to sevenfold,
-not the ninefold the round projected from +0.01.
+measured +0.0121 to +0.0135 worsens the requirement about **five- to SIXfold**
+— 6.15x and 4.94x — not the ninefold the round projected from +0.01.
+**CORRECTED 2026-09-14: this read "five- to sevenfold" until the arithmetic was
+recomputed for amendment 45.** The two figures are the E bound column of the two
+in-pool in-span cells, not an effect size of the hour rule.
 
 ## 6. Provenance
 

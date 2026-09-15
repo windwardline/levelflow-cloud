@@ -65,7 +65,11 @@ for the Softs and Stocks tabs.
 - The free work the capture is standing in front of: `EXECUTION_PROFILES.forex`
   carries `spreadBps: 0.35` and `slippageBps: 0.16` with no derivation at their
   definition, where agriculture's and livestock's carry worked tick-over-price
-  derivations and crypto carries a sampled book floor **[verified]**. Those two
+  derivations **[verified]**. **CORRECTED 2026-09-14 when amendment 43 was
+  written: this bullet also said crypto carries a sampled book floor, which is
+  a different facility — that sampling floors `venueCosts` and derives nothing
+  in the execution profile. Six of the eight profiles carried no derivation and
+  no marker, not one.** Those two
   constants set a large share of every forex cost share, which gates admission
   at `maxCostShare: 0.15` and is printed to the operator as a cost.
 - The standing caveat on any relaxation: rows the cap declines today were
@@ -146,10 +150,13 @@ hour finding on forex's own history.
   **[verified]** — a leg that moves with per-fill cost, which is why ruling 1
   does not treat the refusal as cost-independent.
 - The calendar arithmetic that produced "seven years" reproduces at the memo's
-  own inputs *(round)*; under the measured bound effect of +0.0121 to +0.0135
-  the requirement worsens about five- to sevenfold rather than the ninefold the
-  round projected from +0.01 **[verified: the requirement scales as the inverse
-  square of the effect]**.
+  own inputs *(round)*; at the bound figures +0.0121 and +0.0135 the requirement
+  worsens about **five- to SIXfold** — 6.15x and 4.94x — rather than the
+  ninefold the round projected from +0.01 **[verified: the requirement scales as
+  the inverse square of the effect]**. **CORRECTED 2026-09-14, before amendment
+  45 was written: this bullet read "five- to sevenfold", and the two figures are
+  bound columns of two in-pool in-span cells rather than an effect size of the
+  hour rule.**
 - **A provenance defect in the gate, found by this round, confirmed by the
   driver, and then found to be deeper than first recorded.** `grid-totalr.ts`
   applies no per-market span exclusion, where six other readers import

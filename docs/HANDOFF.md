@@ -2385,10 +2385,10 @@ a family buys a confirm read only with unseen dates, under one capped alpha
 shared across families. Rulings 3 and 4 interact and were decided together:
 ruling 45 admits no class-grain exception, so a screened family takes its
 verdict at the per-market grain. **All four are now law — amendments 43, 44, 45
-and 46** in the rulings file. Owed repair work named and not started: the forex
-cost constants' DERIVATION (the marking is done, #645), the gate's span
-exclusion, and the maintenance-break figures — four were stale, not two, and all
-four are corrected.
+and 46** in the rulings file. Owed repair work named and not started, now two items: the
+forex cost constants' DERIVATION (the marking itself is done, #645) and the
+gate's span exclusion. The maintenance-break figures have LEFT this list — four
+were stale rather than two, and all four are corrected.
 
 **THE ARMING-BOUND READ: TWO IN-POOL CELLS SURVIVE A ONE-BAR LATENCY, THE
 HELD-OUT CELLS DO NOT, AND THE HOUR GATE IS STILL 0 OF 91 — 2026-09-14.**
@@ -2528,7 +2528,10 @@ break-expiry specification; the daily arm parked as a pre-registered null;
 amendment 33's grain against the effect size (~1,440 in-span fills per market
 needed at +0.03 R/fill against ~200 per market-year — seven clean years per
 market; the read measured +0.0121–0.0135, which worsens the requirement about
-five- to sevenfold, not the ninefold projected from +0.01).
+**five- to SIXfold** (6.15x and 4.94x), not the ninefold projected from +0.01.
+**CORRECTED 2026-09-14: this read "five- to sevenfold" until the arithmetic was
+recomputed for amendment 45.** Note also that the two figures are bound columns
+of two in-pool in-span cells, not an effect size of the hour rule).
 
 **Owner items from the round** — recorded as OWED RECOMMENDATIONS, none yet
 refuted: the E8 bid/ask capture (**item 1 closed 2026-09-14; the recommendation
