@@ -4267,21 +4267,42 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
     // NON-VACUITY: the fixture must carry the dangerous shape, or the
     // assertions below pass on a variant nothing would have accepted anyway.
     // An empty select fold against a losing baseline gives 0 − (−20) = +20,
-    // so the select conjunct is satisfied and only the floors and the pairing
-    // stand between this and an acceptance.
+    // so the one conjunct built from totals is satisfied and still nothing is
+    // accepted.
+    //
+    // Why the fit fold was the outlier, stated exactly: EVERY acceptance term
+    // except `fitTotalDelta` reads the select fold, so an empty select fold
+    // cannot be accepted however the floors read — with no select fills
+    // `rExpectancyLower95` is null and `earnsMoney` is false on its own. The
+    // floors decide only WHICH no-verdict reason it gets. An empty FIT fold
+    // had no such backstop, which is why it needed a guard of its own and the
+    // select fold never did. An earlier version of this comment said the
+    // floors and the pairing were all that stood in the way, which was wrong
+    // and understated the asymmetry it exists to describe.
     assert.ok(
       atClass.selectTotalDelta > 0,
       `the fixture must flatter the variant: ${atClass.selectTotalDelta}`,
     );
     assert.equal(atClass.accepted, false, `class grain: ${atClass.reason}`);
     assert.equal(atClass.noVerdict, true, `class grain: ${atClass.reason}`);
+    // The REASON, not just the disposition: at the class grain `minFilled`
+    // defaults to 0, so without this the case would keep passing through the
+    // pairing floor if the selective floor were ever removed.
+    assert.match(
+      atClass.reason,
+      /below the 30 floor a SELECTIVE rule needs/,
+      `the class grain reaches the SELECTIVE floor: ${atClass.reason}`,
+    );
     const atMarket = marketVerdicts(cube, opts).get("EURUSD")!.get("thin")!;
     assert.ok(atMarket.selectTotalDelta > 0);
     assert.equal(atMarket.accepted, false, `market grain: ${atMarket.reason}`);
     assert.equal(atMarket.noVerdict, true, `market grain: ${atMarket.reason}`);
+    // Both branches of the UNDERPOWERED reason open with "(0 filled", so the
+    // floor has to be in the pattern or this pins nothing the class-grain
+    // assertion above does not already pin.
     assert.match(
       atMarket.reason,
-      /^NO VERDICT — UNDERPOWERED \(0 filled/,
+      /^NO VERDICT — UNDERPOWERED \(0 filled, below the 30 floor\);/,
       `the market grain names its own floor: ${atMarket.reason}`,
     );
   });
@@ -4300,9 +4321,12 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
     // acceptance conjunction while tripping a different no-verdict leg, and
     // several give the variant a FLATTERING delta against a losing baseline,
     // which is the shape that made the fit bug reachable.
-    const shapes: Array<{ build: () => SweepEmitRow[]; name: string }> = [
+    const shapes: Array<
+      { build: () => SweepEmitRow[]; name: string; expect: "accepted" | "noVerdict" }
+    > = [
       {
         name: "no fit rows for the variant, losing baseline",
+        expect: "noVerdict",
         build: () => {
           const rows: SweepEmitRow[] = [];
           for (let day = 0; day < 40; day += 1) {
@@ -4315,6 +4339,7 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
       },
       {
         name: "no fit rows on either side",
+        expect: "noVerdict",
         build: () => {
           const rows: SweepEmitRow[] = [];
           for (let day = 0; day < 40; day += 1) {
@@ -4326,6 +4351,7 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
       },
       {
         name: "no select rows for the variant, losing baseline",
+        expect: "noVerdict",
         build: () => {
           const rows: SweepEmitRow[] = [];
           for (let day = 0; day < 40; day += 1) {
@@ -4338,6 +4364,7 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
       },
       {
         name: "a thin variant that wins on every day it trades",
+        expect: "noVerdict",
         build: () => {
           const rows: SweepEmitRow[] = [];
           for (let day = 0; day < 40; day += 1) {
@@ -4353,6 +4380,7 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
       },
       {
         name: "a variant bit-identical to the baseline",
+        expect: "noVerdict",
         build: () => {
           const rows: SweepEmitRow[] = [];
           for (let day = 0; day < 40; day += 1) {
@@ -4365,6 +4393,27 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
           return rows;
         },
       },
+      {
+        // THE SHAPE THAT MAKES THE INVARIANT FALSIFIABLE. Without a fixture
+        // the gate actually accepts, `accepted && noVerdict` can never be
+        // true and the assertion below is unfalsifiable however the ladder
+        // changes. Forty days so the market grain clears its 30-fill floor,
+        // and every variant day beats every baseline day so the observed
+        // delta is the pool's maximum arrangement under the day-block null.
+        name: "a healthy variant the gate accepts, at both grains",
+        expect: "accepted",
+        build: () => {
+          const rows: SweepEmitRow[] = [];
+          for (let day = 0; day < 40; day += 1) {
+            const swing = day % 2 === 0 ? 0.5 : -0.1;
+            rows.push(trainRow("baseline", day, swing));
+            rows.push(trainRow("v", day, swing + 1));
+            rows.push(outcomeRow("baseline", day, swing));
+            rows.push(outcomeRow("v", day, swing + 1));
+          }
+          return rows;
+        },
+      },
     ];
     const opts = {
       foldNames: { fit: "train", select: "test" },
@@ -4372,6 +4421,7 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
       seed: 9,
     };
     let sawNoVerdict = 0;
+    let sawAccepted = 0;
     for (const shape of shapes) {
       const cube = readGridCube(shape.build());
       for (
@@ -4380,20 +4430,48 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
           ["market", marketVerdicts(cube, opts).get("EURUSD")?.get("v")],
         ] as const
       ) {
-        if (!verdict) continue;
-        if (verdict.noVerdict) sawNoVerdict += 1;
+        // A missing verdict is a BROKEN FIXTURE, never a skip. An earlier
+        // version of this loop skipped one, and renaming the variant in the
+        // two fit-fold shapes — the only two that reach the guard this test
+        // exists for — left the file green.
+        assert.ok(
+          verdict,
+          `${shape.name} (${grain}): no verdict was built, so this shape ` +
+            `exercised nothing`,
+        );
         assert.ok(
           !(verdict.accepted && verdict.noVerdict),
           `${shape.name} (${grain}): the gate reported accepted AND noVerdict ` +
             `together — reason ${verdict.reason}`,
         );
+        // Each shape states which side of the ladder it must land on, so a
+        // shape that quietly stops reaching its leg fails here rather than
+        // thinning the evidence behind the invariant above.
+        if (shape.expect === "accepted") {
+          assert.equal(verdict.accepted, true, `${shape.name} (${grain}): ${verdict.reason}`);
+          assert.equal(verdict.noVerdict, false, `${shape.name} (${grain}): ${verdict.reason}`);
+          sawAccepted += 1;
+        } else {
+          assert.equal(verdict.noVerdict, true, `${shape.name} (${grain}): ${verdict.reason}`);
+          assert.equal(verdict.accepted, false, `${shape.name} (${grain}): ${verdict.reason}`);
+          sawNoVerdict += 1;
+        }
       }
     }
-    // NON-VACUITY: if none of these shapes reached a no-verdict leg, the
-    // invariant was never exercised and this test proves nothing.
-    assert.ok(
-      sawNoVerdict >= 6,
-      `only ${sawNoVerdict} of these shapes reached a no-verdict leg`,
+    // NON-VACUITY, counted rather than floored: every shape must have been
+    // graded at both grains. A floor of "at least six" was satisfied by the
+    // three shapes that do NOT reach the fit-evidence guard, so the two that
+    // do could vanish without failing anything.
+    const expectedAccepted = shapes.filter((s) => s.expect === "accepted").length * 2;
+    assert.equal(
+      sawAccepted,
+      expectedAccepted,
+      `${sawAccepted} accepted verdicts, expected ${expectedAccepted}`,
+    );
+    assert.equal(
+      sawNoVerdict,
+      shapes.length * 2 - expectedAccepted,
+      `${sawNoVerdict} no-verdict verdicts, expected ${shapes.length * 2 - expectedAccepted}`,
     );
   });
 
