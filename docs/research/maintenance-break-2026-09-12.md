@@ -125,7 +125,10 @@ hours. That was a live alternative explanation and it is now closed.
 The exposure stands on its own as a **specification** defect, separate from any
 edge: `getSetupExpiryTime` consults `getUpcomingWeeklyCloseTime` and never the
 daily break, so a review window's live market time varies with the clock while
-its calibration assumes it does not. Livestock loses 24 % of every window.
+its calibration assumes it does not. Livestock loses about 4.2 % of every
+window — a one-hour CME complex break against a 24-hour window. (An earlier
+draft of this note said 24 %; the correction at the top of this file was made
+2026-09-12 and this sentence survived it until 2026-09-14.)
 
 **It is not free to fix**, and an earlier draft of this note said it was.
 Measuring the exposure is free; repairing it means deciding what

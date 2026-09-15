@@ -170,16 +170,35 @@ record). That leg is an absolute expectancy, so it moves one-for-one with
 per-fill cost. The refusal is therefore not cost-independent, and §5 does not
 treat it as such.
 
-**The caveat, which is the gate's and not this read's**: `grid-totalr.ts`
-applies no per-market span exclusion — it imports none of `feedYears`,
-`feedMonths` or `calendarFoldsExcluding`, which nine other readers do — so it
-grades on the full calendar, while the 2026-09-12 verdict's own
+**The caveat, which is the corpus's and not this read's** (widened
+2026-09-14 after an investigation established how deep it goes):
+`grid-totalr.ts` applies no per-market span exclusion — it imports neither
+`feedYears` nor `feedMonths`, where six other readers import `feedYears` — so
+it grades on the full calendar, while the 2026-09-12 verdict's own
 pre-registration (item 4) requires the exclusion and says "a calendar
-pre-registered without it is not pre-registered". Both of today's reads
-inherit that, as the 2026-09-12 verdict did. It is an owed repair to the
-instrument, recorded here rather than worked around: this read does not claim
-to know which way the verdict would move under the excluded calendar, only
-that the calendar it graded is not the one the pre-registration names.
+pre-registered without it is not pre-registered". Both of today's reads inherit
+that, as the 2026-09-12 verdict did.
+
+**And the repair is not a flag.** Item 4 names two facilities, and NEITHER has
+a production caller anywhere in this repository: `feedMonths.ts` — the
+month-grain map — is imported only by `tests/spanExclusion.test.ts`, and
+`calendarFoldsExcluding` — the only allocator that places fold boundaries by
+USABLE rather than wall-clock time — is called only from that same test file.
+The R3 folds were cut by the plain proportional allocator, which is verifiable
+arithmetically: forex's fit fold ends exactly at its span start plus half the
+span. And the fold label is stamped at simulation time, each fold simulated on
+its own bar slice with its own warmup and decision cutoff, so no reader can
+re-cut it. Therefore a `--years contained` flag on the gate — the exclusion the
+six other readers perform — would drop escaping rows from folds whose
+proportions were still measured on wall clock. That is a partial, year-grain
+repair, and it is exactly the failure `calendarFoldsExcluding`'s own docstring
+was written against. The month-grain exclusion item 4 actually names is
+unimplemented in production, and the boundary half of it cannot be done without
+a new sweep.
+
+This read does not claim to know which way the verdict would move under the
+excluded calendar, only that the calendar it graded is not the one the
+pre-registration names.
 
 ## 5. What the program does with the answer
 

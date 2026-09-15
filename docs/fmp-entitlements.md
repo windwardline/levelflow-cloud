@@ -94,9 +94,13 @@ is already the closure model and it already works. Holiday-decided rows are 796
 of 44,344 exchange-traded fills, a difference from other days of −0.0317 R/fill
 with a 95 % interval spanning zero *(round)*.
 
-**What the refuters found instead, and it is free.** 20.3 % of exchange-traded
-decisions carry review windows crossing their own class's nightly maintenance
-break *(round — not re-measured by the driver)*. The mechanism IS verified:
+**What the refuters found instead, and it is free.** ~~20.3 %~~ **29.0 %** of
+exchange-traded decisions carry review windows crossing their own class's
+nightly maintenance break. The round's 20.3 % is superseded: the driver's own
+table measures 12,876 of 44,344 exchange-traded decisions
+(`maintenance-break-2026-09-12.md`), and the round's figure was never
+re-measured. On the whole break-carrying population, forex included, the share
+is 32.6 %. The mechanism IS verified:
 `src/lib/marketHours.ts:51-55` defines `CME_COMPLEX_CALENDAR` with a
 `dailyBreak` of 17:00–18:00 ET, and `getSetupExpiryTime`
 (`replay.ts:827-844`) consults only `getUpcomingWeeklyCloseTime` — the nightly

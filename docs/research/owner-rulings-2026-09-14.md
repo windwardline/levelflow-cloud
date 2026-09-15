@@ -33,9 +33,16 @@ forex cost share that carries no derivation, and either deriving them or
 marking them judged is a repo change available today.
 
 **What the owner decides.** Whether to spend four weeks of an open TradeLocker
-session on a capture whose best case lifts one held-out cell, or to let the
-driver first derive the forex cost constants — which is free, and which the
-capture would only refine.
+session on a capture whose best case lifts one held-out cell — **or to spend
+two minutes instead**, because an investigation on 2026-09-14 found a per-pair
+spread E8 already publishes and this repository has never captured: the live
+trading-symbols tool carries a **Spread** and an **Avg. spread** field for
+forex instruments (`e8-futures-dossier.md:312`, browser-verified; the Futures
+tab carries no such field, which is how it came to be noticed). One screenshot
+of that tool's Forex tab gives 28 per-pair spread levels. It answers the LEVEL
+question, not the HOUR one — an average has no hour dimension — but the level
+is what the judged constants actually lack, and the same visit is already owed
+for the Softs and Stocks tabs.
 
 **Why.**
 
@@ -63,7 +70,17 @@ capture would only refine.
   at `maxCostShare: 0.15` and is printed to the operator as a cost.
 - The standing caveat on any relaxation: rows the cap declines today were
   removed under a ledgered confirm read, on a fold that cannot be read again
-  *(round)*.
+  *(round)*. Measured since: those removals are net-negative, about −0.069 R
+  per row over 14,925 rows, so re-admitting them at the old cost basis is
+  expected to LOSE money even as the cheaper round trip gains it **[verified
+  from the read's own reconciliation]**.
+- Why the constants are worth more than the capture's best case: the modelled
+  spread does not merely gate. It is handed to the resolver as `halfSpread`,
+  which sets the entry fill print, both trigger tests and the gap and expiry
+  prints — so it moves realized R directly, where the commission moves only the
+  accountant **[verified]**. Halving it would re-admit about 55 % of the rows
+  the 0.15 cap declines and move roughly one accepted forex row in five up a
+  cost band *(established by investigation, on a 3,799-row sample)*.
 
 ---
 
@@ -91,11 +108,17 @@ cells inside the confirm fold, would ship every re-derived cell unconfirmed
   break-crossing windows costs R *(round)*. The mirror direction — refusing
   the clear windows instead — is the hour gate wearing the opposite sign, and
   that gate accepts 0 of 91 markets at both arming conventions **[verified]**.
-- The refuter round found two stale figures in the existing records that must
-  be corrected in the same change set as the ruling: a "livestock loses 24 % of
-  every window" line, and an in-span-only citation carried as if it were
-  general *(round, not yet re-measured by the driver — this is the one piece of
-  follow-up work this ruling creates)*.
+- **CORRECTED 2026-09-14, and the count was four, not two.** The "livestock
+  loses 24 % of every window" line survived an earlier correction of the same
+  figure at the top of its own file and now reads ≈4.2 %. The in-span-only
+  citation now carries both conditioned deltas, and the second one matters:
+  out of span the break delta is +0.0083 [+0.0012, +0.0154], which excludes
+  zero, so "dead as a money lever" was a statement about one of two
+  conditions. Two more were found and corrected with them: a superseded
+  "20.3 % of exchange-traded decisions" carried in two documents after the
+  driver's own table put it at 29.0 % (12,876 of 44,344), and a "203× the
+  holiday exposure" ratio no figure supports — holiday-decided rows are 796 of
+  that same 44,344, so the ratio is 16.2 **[all verified]**.
 - The reason previously given for not re-deriving — that the provider key was
   down — is stale: the 2026-09-14 full-corpus re-simulate ran at zero provider
   bytes **[verified]**. The real blocker is the burned fold.
@@ -127,13 +150,19 @@ hour finding on forex's own history.
   the requirement worsens about five- to sevenfold rather than the ninefold the
   round projected from +0.01 **[verified: the requirement scales as the inverse
   square of the effect]**.
-- **A provenance defect in the gate, found by this round and confirmed by the
-  driver.** `grid-totalr.ts` applies no per-market span exclusion — it imports
-  none of `feedYears`, `feedMonths` or `calendarFoldsExcluding`, which nine
-  other readers do — while the 2026-09-12 verdict's own pre-registration
-  requires it and says a calendar pre-registered without it is not
-  pre-registered **[verified]**. Both of the 2026-09-14 reads inherit this, as
-  the 2026-09-12 verdict did. The round offered a figure for which way the
+- **A provenance defect in the gate, found by this round, confirmed by the
+  driver, and then found to be deeper than first recorded.** `grid-totalr.ts`
+  applies no per-market span exclusion, where six other readers import
+  `feedYears` **[verified]**, while the 2026-09-12 verdict's own
+  pre-registration requires it and says a calendar pre-registered without it is
+  not pre-registered **[verified]**. Both of the 2026-09-14 reads inherit this,
+  as the 2026-09-12 verdict did. **Neither facility item 4 names has a
+  production caller at all**: the month-grain map and the usable-time fold
+  allocator are both called only from one test file **[verified]**, the R3
+  folds were cut by the plain proportional allocator **[verified
+  arithmetically]**, and the fold label is stamped at simulation time — so the
+  boundary half of the repair needs a new sweep and a read-time flag would be a
+  partial, year-grain substitute. The round offered a figure for which way the
   verdict would move; the driver could not reproduce it as a like-for-like
   comparison and does not repeat it. **The honest statement is that the gate
   grades a calendar its own pre-registration excludes, and repairing the
@@ -179,6 +208,14 @@ late 2030s *(round)*.
 
 It does not build anything. Rulings 1 and 3 each name owed repair work — the
 forex cost constants, and the gate's missing span exclusion — and neither is
-started here. Ruling 2 names two stale figures in existing records that its own
-change set must correct. The random-entry screen that ruling 4 depends on is
-designed and refuted but not built.
+started here. The random-entry screen that ruling 4 depends on is designed and
+refuted but not built.
+
+**Amended 2026-09-14, after five investigations established the facts behind
+that owed work.** Ruling 2's stale figures are corrected in the same change set
+as this amendment, and there were four of them rather than two. Ruling 1 gains
+a far cheaper path than the capture it was about. Ruling 3's gate defect is
+deeper than first recorded: neither facility its pre-registration names has a
+production caller, and the boundary half of the repair cannot be done without a
+new sweep. The forex constants are now marked JUDGED in the engine, with their
+provenance, which is the one piece of that owed work this change set does.

@@ -2771,10 +2771,14 @@ the exhaustions were bought by intraday history. Exchange hours and holidays
 cannot reach the hour finding: the endpoint is exchange-keyed and 61 of 97
 markets have no exchange (all 28 forex, all 33 crypto), and on real closure dates
 the corpus already carries zero decisions because the provider prints no bars.
-**What the refuters found instead is free**: 20.3 % of exchange-traded decisions
-have review windows crossing their class's own nightly maintenance break, which
-`src/lib/marketHours.ts:51-55` models and `replay.ts:827-844` ignores — 203× the
-holiday exposure, no provider needed. **The TipRanks add-on was reviewed and DECLINED by the owner
+**What the refuters found instead is free**: **29.0 %** of exchange-traded
+decisions have review windows crossing their class's own nightly maintenance
+break, which `src/lib/marketHours.ts:51-55` models and `replay.ts:827-844`
+ignores — about **16×** the holiday exposure, no provider needed. (Both figures
+corrected 2026-09-14. The round's 20.3 % was superseded by the driver's own
+table, 12,876 of 44,344; the ratio was written as 203×, which no figure
+supports — holiday-decided rows are 796 of the same 44,344, so the ratio is
+12,876 / 796 = 16.2.) **The TipRanks add-on was reviewed and DECLINED by the owner
 2026-09-12**: no single equity on the roster to act on, roughly 3 years of
 ratings history against clean folds ending 2018 and 2022 so it cannot be
 validated at all, and Ultimate already carries the analyst suite. It reopens only

@@ -361,9 +361,13 @@ swept. It ranked six items. Recorded here with the one change §3 forces.
    that this is the only place "outperform profitable traders" can come from:
    no exit, size, ranking or admission rule measured here rescues an entry
    with no direction.
-5. **The maintenance-break expiry defect as a specification** — dead as a
-   money lever (+0.0086 [−0.0064, +0.0236] conditioned on span); needs the
-   review-hour ruling below before a line is written.
+5. **The maintenance-break expiry defect as a specification** — needs the
+   review-hour ruling below before a line is written. **Corrected 2026-09-14**:
+   this item cited the in-span delta alone (+0.0086 [−0.0064, +0.0236]) as the
+   whole basis for calling the lever dead. The record carries two conditioned
+   deltas, and the other one clears zero: out of span, +0.0083
+   [+0.0012, +0.0154]. The honest statement is that the effect is small in both
+   conditions and spans zero in one, not that it is dead.
 6. **The daily-frame arm, parked as a pre-registered null** — one frozen cell
    on the CFD-executable universe, a financing term modelled first, expected
    R about zero. Do not build a daily resolution tier for it.
