@@ -181,7 +181,12 @@ describe("execution quality model", () => {
     assert.equal(stressed.modeledSpread, 0.36);
   });
 
-  it("leaves classes without a tick grid on their measured class model (2j)", () => {
+  // "class model", not "measured class model": forex's own spread constant is
+  // JUDGED, not derived (executionQuality.ts states why), and the old title
+  // asserted a provenance the evidence does not support. What 2j actually
+  // claims is narrower and is what this pins — a class without a tick grid
+  // keeps the class bps term rather than gaining a symbol floor.
+  it("leaves classes without a tick grid on their class model (2j)", () => {
     const forex = estimateExecutionQuality({
       assetType: "forex",
       atr: 0.0012,

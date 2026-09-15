@@ -185,6 +185,40 @@ const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
     slippageBps: 1.1,
     spreadBps: 1.8,
   },
+  // Forex, JUDGED — not derived, and said so here since 2026-09-14 because the
+  // silence read as a derivation. `spreadBps` and `slippageBps` arrived in one
+  // commit on 2026-06-26, five weeks before the first E8 platform observation,
+  // as class/price/volatility estimates pending broker-specific spread data;
+  // nothing has changed or sourced them since.
+  //
+  // Why they are still judged, when agriculture's and livestock's are derived:
+  // - E8 publishes no forex spread and no minimum price increment anywhere in
+  //   the dossiers, so there is no published grid to divide by price.
+  // - The tick-over-price derivation those two classes use rests on one tick
+  //   being the tightest quotable spread. That premise is FALSIFIED for forex
+  //   by this repository's own observations: four of the nine recorded E8
+  //   forex books are zero-width. A market-maker book quotes inside a display
+  //   increment; an exchange grid does not.
+  // - The nine raw readings (eight symbols, two nights, all Tokyo-session) are
+  //   too few and too clustered to be a sampled floor the way crypto's 33-row
+  //   per-symbol book was. The five usable ones mean 0.227 bps against this
+  //   0.35, and the one class-wide sighting is a RANGE — 0 to 14 points across
+  //   28 pairs — whose top is several times 0.35.
+  // - The quote bank has never banked a forex spread, and FMP carries no
+  //   usable forex bid/ask on any endpoint (probed 2026-09-14).
+  //
+  // They are load-bearing, which is why the label matters: spread and twice
+  // slippage are about 57 % of the modelled forex round trip, and the modelled
+  // spread does not merely gate — `resolverCostOptions` hands it to the
+  // resolver as `halfSpread`, which sets the entry fill print, both trigger
+  // tests and the gap and expiry prints. So these two numbers move realized R,
+  // not only admission at `maxCostShare`.
+  //
+  // The derivation input that WOULD settle them exists and has never been
+  // captured: E8's live trading-symbols tool publishes a Spread and an
+  // Avg. spread field per forex instrument (e8-futures-dossier.md:312,
+  // browser-verified). Deriving them is an owner capture away; until then,
+  // judged.
   forex: {
     atrSlippageFactor: 0.006,
     atrSpreadFactor: 0.01,

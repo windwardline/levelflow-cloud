@@ -16,6 +16,24 @@ Vite 8 + React 19, Tailwind v4, @supabase/supabase-js, lightweight-charts. TypeS
 
 `npm run dev` · `npm test` (node:test via tsx) · `npm run check` (typecheck — there is no `typecheck` script) · `npm run lint` (zero warnings) · `npm run check:migrations` · `npm run check:bundle` · `npm run build` · `npm run test:e2e`
 
+**Type-checking the Edge Functions needs Deno and one flag.** `tsconfig.tests.json`
+lists those modules as an explicit file list, so `npm run check` covers them only as
+far as that list reaches, and the Deno-global files sit outside it. The invocation
+that works is `deno check --no-config <files>`; the bare `deno check` auto-discovers
+`tsconfig.app.json`, whose `baseUrl` is deprecated under TypeScript 6, and dies on
+TS5101 before it type-checks anything. A reviewer found the bare command failing on
+2026-09-14 and the working form was recorded nowhere, so a green claim could not be
+reproduced:
+
+```bash
+deno check --no-config supabase/functions/trade-analyzer/*.ts supabase/functions/news-calendar/*.ts supabase/functions/_shared/*.ts
+```
+
+It is deliberately NOT a declared gate: CI runs no Deno step, and a `gate:` line
+that shells out to a binary CI does not have would block every session on a
+machine without it rather than failing where the code lands. Run it by hand when
+a change touches an Edge module, and say so when claiming it green.
+
 ## Gates — CI in order
 
 Every workflow this repository runs is named here by filename: `ci.yml`, `deploy.yml`,
