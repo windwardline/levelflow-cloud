@@ -255,9 +255,16 @@ not the ninefold the round projected from +0.01.
 
 ## 6. Provenance
 
-Zero provider bytes for the re-simulate and for every reader below; the day's
-shared usage ledger is not zero, because the FMP bid/ask probes §5 cites were
-run the same morning. The re-simulate: `armed-corpus.sh`
+Zero provider bytes for the re-simulate and for every reader below. The day's
+shared usage ledger is not zero, and an earlier version of this sentence
+attributed that to the FMP bid/ask probes §5 cites — which is wrong by two
+orders of magnitude. Measured: the ledger records 148,318,968 bytes for
+2026-09-14, of which the scheduled cache top-up spent about 75 MB warming
+intraday series through the day and the minute bank the bulk of the rest
+(205,647 bars at 11:20Z and 59,870 at 23:20Z, both scheduled runs that resumed
+when FMP access was reinstated). The probes total about 682 KB — under half a
+percent of the day. The claim that matters is unchanged and is the narrow one:
+this READ spent nothing. The re-simulate: `armed-corpus.sh`
 (`~/Library/Application Support/WindwardLineToolchain/levelflow/`), whose
 status log is untracked by design (`*.log`), so its two lines are quoted in
 the tracked verification file instead. Verification: the session instruments
