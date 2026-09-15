@@ -2382,9 +2382,13 @@ pre-registration requires it, so both 2026-09-14 gate reads and the 2026-09-12
 verdict grade a calendar the pre-registration excludes. **(4) A new entry
 family is NOT a new program** — the ledger burns calendars, not hypotheses — so
 a family buys a confirm read only with unseen dates, under one capped alpha
-shared across families. Rulings 3 and 4 interact and must be decided together.
-Owed repair work named and not started: the forex cost constants, the gate's
-span exclusion, and two stale figures in the maintenance-break records.
+shared across families. Rulings 3 and 4 interact and were decided together:
+ruling 45 admits no class-grain exception, so a screened family takes its
+verdict at the per-market grain. **All four are now law — amendments 43, 44, 45
+and 46** in the rulings file. Owed repair work named and not started: the forex
+cost constants' DERIVATION (the marking is done, #645), the gate's span
+exclusion, and the maintenance-break figures — four were stale, not two, and all
+four are corrected.
 
 **THE ARMING-BOUND READ: TWO IN-POOL CELLS SURVIVE A ONE-BAR LATENCY, THE
 HELD-OUT CELLS DO NOT, AND THE HOUR GATE IS STILL 0 OF 91 — 2026-09-14.**

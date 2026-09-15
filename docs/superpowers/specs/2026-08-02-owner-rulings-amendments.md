@@ -2335,3 +2335,145 @@ under the owner's standing approval of recommendations that survived
 adversarial review (2026-09-07), recorded here as law; §7 and the
 guide-content spec carry the three sentences.
 
+
+## Amendment 43 — a cost constant is derived at its definition or it is marked judged (owner ruling, 2026-09-14)
+
+**Every constant in an execution profile carries a derivation where it is
+defined, or it carries the word JUDGED and the reason it could not be
+derived.** `EXECUTION_PROFILES.forex`'s `spreadBps` and `slippageBps` were the
+two that carried neither, where agriculture's and livestock's carry worked
+tick-over-price derivations and crypto's carries a sampled book floor. They are
+marked now, which is the honest state of a number nobody has measured. The
+four-week TradeLocker bid/ask capture stays LOW priority, and a majors-only
+version of it is refused outright: the held-out forex set is AUDCHF, AUDNZD,
+EURUSD, GBPCAD, NZDCHF and NZDJPY — five crosses and one major — so a majors
+capture measures one of six and says nothing about the other five.
+
+**Why.** These two constants are not an accountant's input. The modelled spread
+is handed to the resolver as `halfSpread`, so it sets the entry fill print, both
+trigger tests, and the gap and expiry prints: it moves realized R directly,
+where a commission moves only the accounting. That is what makes them worth more
+than the capture's best case. The argument this repository first gave for
+parking the capture was structurally wrong and is corrected here — a quoted
+spread REPLACES the modelled one rather than adding to it, so a measured spread
+tighter than the model RAISES cells. The sign is empirical and was assumed.
+What the capture could win is bounded and measured: the whole modelled
+spread-and-slippage charge is +0.0157 to +0.0215 R per fill across the four
+in-span cells, while select held-out in-span is short 0.0265 R at its lower
+bound, so no non-negative spread lifts it.
+
+**What it does not do.** It does not relax `maxCostShare`. The rows the 0.15 cap
+declines today were removed under a ledgered confirm read, on a fold that cannot
+be read again, and those rows are net-negative at about −0.069 R per row over
+14,925 rows — re-admitting them at the old cost basis is expected to LOSE money
+even as a cheaper round trip gains it. It commissions no capture and no
+derivation. It fixes only what an underived constant must say about itself.
+Approved under the owner's standing approval of recommendations that survived
+adversarial review.
+
+## Amendment 44 — a review hour is a wall-clock hour (owner ruling, 2026-09-14)
+
+**`defaultReviewHours` counts wall-clock hours, not open-market hours.** The
+ruling records what the engine already does rather than changing it: the live
+path and the sweep resolve expiry through one function, which clamps only at the
+weekly close. The maintenance-break exposure is filed beside it as a
+specification fact stated PER CLASS BY MAGNITUDE and never as one number — about
+1.25 % of the forex window (a six-minute break against eight hours), a sixth of
+the CME complex's (one hour against six), and about 4.2 % for livestock's worst
+rows.
+
+**Why.** The lever is dead on money in the direction anyone would build:
+refusing break-crossing windows costs R *(round — not re-measured here)*. The
+mirror direction, refusing the clear windows instead, is the hour gate wearing
+the opposite sign, and that gate accepts 0 of 91 markets under both arming
+conventions **[verified]**. The reason previously given for not re-deriving —
+that the provider key was down — is stale: the 2026-09-14 full-corpus
+re-simulate ran at zero provider bytes **[verified]**. The real blocker is the
+burned fold.
+
+**What it does not do.** It does not commission the open-market re-derivation.
+That would move every calibration cell, and because R3's ledgered read was taken
+with all derived cells inside the confirm fold, it would ship every re-derived
+cell unconfirmed. It builds nothing in either direction, and it does not license
+a single break-exposure figure: a class's exposure is quoted with its class or
+not at all. Four figures around this question were found stale and corrected in
+the change set that carries this amendment, which is the reason the per-class
+rule is written into the law rather than left as practice.
+
+## Amendment 45 — the per-market grain is a necessary floor, not a sufficient bar (owner ruling, 2026-09-14)
+
+**From this ruling forward, a calibration change ships on a per-market
+verdict.** Amendment 33's grain takes no exception for the hour finding, and the
+class-grain-plus-sign-concordance path is refused under amendment 39 as well as
+33: twenty-two market signs are a count, on a question where each market's
+realized R is knowable. The grain is a FLOOR and not a BAR — the gate's own note
+expects about 4.5 false families across 91 markets, so clearing it is the
+beginning of an argument, not the end of one. Cells already shipped on a
+class-grain verdict, forex's `maxCostShare: 0.15` among them, are not condemned
+by this ruling and are not reopened by it.
+
+**Why.** The hour finding closes on its measured reason rather than on a
+calendar estimate: 0 of 91 markets accept under either arming convention, and 20
+of the 91 fail on their own absolute expectancy alone **[verified]** — a leg
+that moves with per-fill cost, which is why amendment 43 does not treat that
+refusal as cost-independent. The calendar arithmetic behind the "seven years"
+figure reproduces at its own inputs *(round)*; at the two in-pool in-span E
+bound figures the fill requirement worsens about five- to sixfold rather than
+the ninefold projected from +0.01, the requirement scaling as the inverse square
+of the effect. Those two figures are bound columns of two cells, not an effect
+size of the hour rule, and the measured 0-of-91 refusal needs no arithmetic at
+all.
+
+**What it does not do.** It does not repair the instrument, and the instrument
+needs repair: `grid-totalr.ts` applies no per-market span exclusion where six
+other readers import the year map, while the 2026-09-12 verdict's own
+pre-registration requires it and says a calendar pre-registered without it is
+not pre-registered **[verified]**. Both 2026-09-14 reads inherit this. Neither
+facility that repair names has a production caller — the month-grain map and the
+usable-time fold allocator are imported only by one test file — and the fold
+label is stamped at simulation time, so the boundary half of the repair needs a
+new sweep and a read-time flag would be the year-grain half alone **[verified]**.
+The honest statement is that the gate grades a calendar its own pre-registration
+excludes, and that repairing it is owed work, not that the verdict is wrong.
+
+## Amendment 46 — a new entry family is not a new program (owner ruling, 2026-09-14)
+
+**The ledger burns calendars, not hypotheses.** A new entry family buys a
+confirm read only with dates no recorded read has seen. Until such a calendar
+exists, every family is registered and hashed before any fold is read, screened
+on the fit fold against the random-entry null at a threshold fixed in advance,
+and charged against ONE CAPPED TOTAL ALPHA shared by every family that will ever
+claim the post-2026-08-26 calendar. A screened family takes its verdict at the
+per-market grain, because amendment 45 admits no exception and a class-grain
+exception here would be inconsistent with it.
+
+**Why.** The confirm fold is a fixed last quarter of the sweep's span, so new
+calendar buys confirm fold at a quarter of the rate it accrues **[verified]**.
+That is the fact that makes "wait for new dates" a decade rather than a season,
+and it is the most consequential number in this ruling. The multiplicity leak is
+what the capped shared alpha closes: were each family its own program with its
+own burn, N families would each burn the same new calendar *(round)*. The
+acknowledgement path that would have made a family its own program is a bare
+driver boolean with nowhere to record an owner or a reason **[verified]**, which
+is not a thing law can rest on.
+
+**What it does not do.** It does not say a screened family can be confirmed
+soon, and the honest consequence is the opposite: with the per-market grain held
+and the confirm fold accruing at a quarter rate, forex's own history closes
+confirmation on this calendar for years. The screen still earns its keep by
+refusing families before they spend a sweep. It also does not build the screen —
+that reader is designed and refuted, not written — and it settles none of the
+screen's own parameters beyond the grain: the effect floor, the reference price
+and whether a rising family count raises the bar are open and owed with
+recommendations.
+
+---
+
+*On the numbering, because the gaps mislead. The headings jump from 25 to 29,
+and 26, 27 and 28 are RETIRED rather than free: those rulings existed and their
+text was destroyed with the gitignored worktree handoff, and two test files
+still cite amendments 26 and 28 as operative law. Conversely, amendments 17
+through 20 are live entries carried as bold paragraphs inside the 12-16 block
+rather than as `##` headings — the absence of a heading is not the absence of an
+amendment. Numbering is append-only and resumes after the highest number in
+use.*

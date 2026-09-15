@@ -204,6 +204,29 @@ late 2030s *(round)*.
 
 ---
 
+## Status: all four are law
+
+Recorded 2026-09-14 as **amendments 43, 44, 45 and 46**, under the owner's
+standing approval of recommendations that survived adversarial review. Two
+things changed in the crossing, and the amendments rather than this record are
+the operative text:
+
+- Ruling 4's open question is closed by ruling 3. This record left the grain for
+  a screened family to the owner and named the tension; with amendment 45
+  admitting no exception, amendment 46 takes the per-market grain and states the
+  consequence plainly — forex's own history closes confirmation on this calendar
+  for years.
+- Amendment 45 opens with "from this ruling forward" and carves out the cells
+  already shipped on a class-grain verdict. Read without that clause, the rule
+  sentence alone condemns the live forex `maxCostShare: 0.15`, which no one
+  intended.
+
+One figure in this record was recomputed before it became law. The inverse-square
+scaling of the fill requirement is about five- to SIXfold at the two bound
+figures cited (6.15x and 4.94x), not five- to sevenfold, and those two figures
+are bound columns of two in-pool in-span cells rather than an effect size of the
+hour rule.
+
 ## What this record does not do
 
 It does not build anything. Rulings 1 and 3 each name owed repair work — the
