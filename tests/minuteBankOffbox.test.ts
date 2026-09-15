@@ -142,3 +142,33 @@ describe("the daily job cannot report success on a failed push", () => {
     assert.match(CALLER, /WL_SECRET="\$\{LEVELFLOW_WL_SECRET:-\$HOME\/\.local\/bin\/wl-secret\}"/);
   });
 });
+
+describe("the backup job is pinned to origin/main", () => {
+  const PLIST = readFileSync("scripts/ops/com.windwardline.levelflow-minute-bank-backup.plist", "utf8");
+
+  it("runs through wl-repo-script, not the shared working checkout", () => {
+    // ~/Projects checkouts are shared and concurrent agents move them onto
+    // feature branches. The dangerous half is not the missing script (exit 127,
+    // loud) but the stale one, which runs a superseded version and exits 0.
+    assert.match(PLIST, /wl-repo-script/);
+    assert.doesNotMatch(
+      PLIST,
+      /<string>\/Users\/peacock\/Projects\/levelflow-cloud\/scripts\/ops\/backup-minute-bank\.sh<\/string>/,
+      "the plist must not invoke the working-tree path directly",
+    );
+  });
+
+  it("names the bank explicitly, because the extracted tree cannot supply it", () => {
+    // wl-repo-script extracts CODE from origin/main. `.minute-bank` is ignored
+    // data and is absent from that tree. Letting BANK default to the extracted
+    // root finds an empty directory, logs "nothing to back up" and exits 0 — a
+    // backup that silently stopped while reporting healthy.
+    assert.match(PLIST, /LEVELFLOW_BANK_DIR=\/Users\/peacock\/Projects\/levelflow-cloud\/\.minute-bank/);
+  });
+
+  it("still reads its bank from an override rather than a fixed path", () => {
+    // The pin depends on this override existing; if it were ever inlined the
+    // plist's LEVELFLOW_BANK_DIR would go quietly ignored.
+    assert.match(CALLER, /BANK="\$\{LEVELFLOW_BANK_DIR:-/);
+  });
+});
