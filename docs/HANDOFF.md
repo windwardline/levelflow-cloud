@@ -2328,6 +2328,39 @@ cross, a refusal when absent) is buildable and verifiable now (superseded the
 same day — it shipped on ONE physics, both paths, the block below); the deploy
 E2E's stand-downs end; the re-simulate is unaffected (zero provider bytes).
 
+**THE GATE CALLED AN UNMEASURED FOLD A MEASURED LOSS — 2026-09-14.**
+[`empty-fold-verdicts-2026-09-14.md`](/docs/research/empty-fold-verdicts-2026-09-14.md).
+Found while refuting the year-filter design, and independent of it.
+`grid-totalr`'s acceptance needs `fitTotalDelta > 0`; `totalOf` returns 0 for an
+absent cell, so a market with NO fit-fold rows differences to 0 − 0, fails the
+conjunct, and — with no fold-emptiness leg in the no-verdict ladder — fell
+through to the bare word `fails`. **Eleven crypto markets listed after their
+class's fit fold ended were reported as measured failures in all three recorded
+hour-gate verdicts** (AAVEUSD, AVAXUSD, DOTUSD, DYDXUSD, EGLDUSD, GRTUSD,
+HBARUSD, IMXUSD, NEARUSD, SOLUSD, UNIUSD). Established from the manifest's own
+per-symbol per-fold emitted counts: **22 roster symbols carry no `fit` split, 16
+of them graded** — the eleven above plus ASX, DAX, DOW, FILUSD and NIKKEI — and
+the other six never reach the gate because every row of theirs is in the confirm
+fold.
+The confirm fold has had this guard since #364 round 43 ("a delta needs evidence
+on BOTH sides"); the fit fold never got one, and now has it, in `groupVerdicts`
+so both grains are fixed together. **The verdict does not move**: 0 of 91 accept
+before and after, and the money-leg failures are unchanged at 13, 11 and 20. The
+composition does: 80 failed / 11 no verdict becomes **69 failed / 22 no
+verdict** in all three reads, and "88 actually tested" becomes 69. Across every
+variant the regrade moved **79 (market, variant) pairs on 15 markets** out of
+`fails`, and **no pair moved anywhere else**. The three artifacts were
+regenerated in place by re-running their own recorded commands at zero provider
+bytes. **A fresh-eyes review then found the first draft of the fix wrong in two
+ways and both are fixed**: the guard fires when EITHER side of the fold is
+empty, but the delta is forced to zero only when BOTH are — so a variant with no
+fit rows against a negative baseline could be `accepted` AND `noVerdict` at once,
+and could have burned a confirm fold on it; and the leg sat above the pairing
+floor, taking the more specific message from 29 pairs. Five mutations caught.
+**Owed and not done here**: eight other market-grain gradings carry the same
+defect on 416 pairs, and some feed amendment 36's removal test, so a batch
+re-run could move a register decision and needs its own analysis.
+
 **THE FOUR OWED RULINGS NOW CARRY RECOMMENDATIONS — 2026-09-14.**
 [`owner-rulings-2026-09-14.md`](/docs/research/owner-rulings-2026-09-14.md).
 Each went proposal → refuter → an independent check of the refuter. **All four
@@ -2597,7 +2630,9 @@ with an 8h window "crosses" selects roughly 14:00–22:00 UTC — substantially 
 [−0.0064, +0.0236]** in-span and +0.0083 [+0.0012, +0.0154] out — roughly three
 quarters of the effect is the hour. DO NOT build a break-aware admission rule;
 it is the hour gate under another name, and that gate accepted nothing the same
-day (80 judged and failed, 11 no verdict, 88 actually tested).
+day (69 judged and failed, 22 no verdict, 69 actually tested — corrected
+2026-09-14, `empty-fold-verdicts-2026-09-14.md`; the accepted count is
+unchanged at 0).
 
 **What the test gives back is a control the alpha review lacked**: the span
 effect survives conditioning on break-crossing at +0.041 within crossing windows
@@ -2621,7 +2656,9 @@ outputs tracked at `r4/hour-gate-market-2026-09-12.{stdout.txt,json}`. Ran
 `--derive-filters "inSpan:decisionHourDistance<=2.5" --verdict-unit market` on
 the corpus of record; fit and select only, confirm never read.
 
-**0 of 91 markets accept.** 80 judged and failed, 11 no verdict. THIRTEEN beat
+**0 of 91 markets accept.** 69 judged and failed, 22 no verdict (corrected
+2026-09-14: twelve markets have no fit fold and were counted as measured
+failures; `empty-fold-verdicts-2026-09-14.md`). THIRTEEN beat
 the baseline on both folds at paired p ≤ 0.05 with a non-negative expectancy
 delta — every comparison the gate makes — and NONE demonstrates a profit.
 Nearest misses USDJPY (E lo95 **−0.002**) and XAUUSD (**−0.010**), then PLUSD

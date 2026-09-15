@@ -4097,3 +4097,161 @@ describe("the selective floor and the hour field refuse rather than guess", () =
     assert.equal(derivedFieldOf(good as SweepEmitRow, "decisionHourDistance"), 0.5);
   });
 });
+
+describe("a fold with no evidence is NO VERDICT, never a measured failure", () => {
+  // Found 2026-09-14, in three RECORDED verdicts. `beatsBaseline` requires
+  // `fitTotalDelta > 0`, and `totalOf` returns 0 for an absent cell — so a
+  // market with no fit-fold rows at all differences to 0 − 0 = 0, fails the
+  // conjunct, and falls through the no-verdict ladder to the bare word
+  // "fails". Eleven markets did exactly that in the hour-gate reads of
+  // 2026-09-12 and 2026-09-14: AAVEUSD, AVAXUSD, DOTUSD, DYDXUSD, EGLDUSD,
+  // GRTUSD, HBARUSD, IMXUSD, NEARUSD, SOLUSD and UNIUSD are all crypto
+  // markets listed after their class's fit fold ended, so they have zero
+  // emitted fit rows, and the gate reported them as measured losses.
+  //
+  // `confirmTotalDelta` was given this exact guard for this exact reason
+  // (grid-totalr.ts, "a delta needs evidence on BOTH sides"). The fit fold
+  // never got one. Acceptance cannot change — an empty fold fails
+  // `fitTotalDelta > 0` either way — so this moves a market from the failed
+  // bucket to the no-verdict bucket and nothing else.
+  const cube = (variantFitDays: number) => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 40; day += 1) {
+      rows.push(outcomeRow("baseline", day, day % 2 === 0 ? 0.4 : -0.2));
+      rows.push(outcomeRow("later", day, day % 2 === 0 ? 0.9 : -0.1));
+    }
+    // The fit fold carries the baseline on every day and the variant on as
+    // many as the caller asks for. At zero the variant has no fit cell at all.
+    for (let day = 0; day < 40; day += 1) {
+      rows.push(trainRow("baseline", day, 0.3));
+      if (day < variantFitDays) rows.push(trainRow("later", day, 0.8));
+    }
+    return readGridCube(rows);
+  };
+
+  it("files a variant with no fit-fold rows as NO VERDICT, naming the fold", () => {
+    const verdict = classVerdicts(cube(0), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 9,
+    }).get("forex")!.get("later")!;
+    assert.equal(verdict.accepted, false);
+    assert.equal(verdict.noVerdict, true);
+    assert.match(
+      verdict.reason,
+      /^NO VERDICT — the train fold carries no evidence/,
+      `an empty fold must not read as a measured failure: ${verdict.reason}`,
+    );
+  });
+
+  it("files a BOTH-sides-empty fold as NO VERDICT — the case the real corpora carry", () => {
+    // Every one of the 108 regraded pairs is (0 filled, 0 filled): the market
+    // has no fit fold, so neither the variant nor the baseline has one. The
+    // first test above covers the one-sided case; this covers the real one.
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 40; day += 1) {
+      rows.push(outcomeRow("baseline", day, day % 2 === 0 ? 0.4 : -0.2));
+      rows.push(outcomeRow("later", day, day % 2 === 0 ? 0.9 : -0.1));
+    }
+    const verdict = classVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 9,
+    }).get("forex")!.get("later")!;
+    assert.equal(verdict.accepted, false);
+    assert.equal(verdict.noVerdict, true);
+    assert.match(verdict.reason, /carries no evidence on either side \(0 filled for "later", 0 for "baseline"\)/);
+  });
+
+  it("NEVER accepts on an empty fold, even when the absent side flatters the delta", () => {
+    // THE REVIEW FINDING, 2026-09-14. The guard fires when EITHER side is
+    // empty, but the delta is forced to zero only when BOTH are. With the
+    // variant's fit fold empty and the baseline's fit R NEGATIVE, the fit
+    // delta is 0 − (−X) > 0 and the acceptance conjunct passed — so the gate
+    // returned `accepted` and `noVerdict` together, on a fold the variant
+    // never traded. The artifact carries no noVerdict field, so a consumer
+    // reading `accepted` would have seen an accept and could have burned the
+    // confirm fold on it.
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 40; day += 1) {
+      rows.push(outcomeRow("baseline", day, day % 2 === 0 ? 0.1 : -0.4));
+      rows.push(outcomeRow("later", day, 0.9));
+      rows.push(trainRow("baseline", day, -0.5));
+    }
+    const verdict = classVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 9,
+    }).get("forex")!.get("later")!;
+    assert.ok(
+      verdict.fitTotalDelta > 0,
+      `the fixture must flatter the variant, or this proves nothing: ${verdict.fitTotalDelta}`,
+    );
+    assert.equal(verdict.noVerdict, true);
+    assert.equal(
+      verdict.accepted,
+      false,
+      "an empty fit fold must never satisfy the acceptance conjunction",
+    );
+  });
+
+  it("files an empty fold at the MARKET grain too, where the floor could shadow it", () => {
+    // marketVerdicts passes minFilled 30, which sends a thin market to
+    // underpowered before this leg is reached. A market with enough select
+    // fills and no fit fold must still reach the fold-emptiness leg.
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 60; day += 1) {
+      rows.push(outcomeRow("baseline", day, day % 2 === 0 ? 0.4 : -0.2));
+      rows.push(outcomeRow("later", day, day % 2 === 0 ? 0.9 : -0.1));
+    }
+    const verdict = marketVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 9,
+    }).get("EURUSD")!.get("later")!;
+    assert.equal(verdict.noVerdict, true);
+    assert.equal(verdict.accepted, false);
+    assert.match(verdict.reason, /carries no evidence on either side/);
+  });
+
+  it("leaves the pairing message on a market that fails pairing AND has no fit fold", () => {
+    // WHY THE LEG SITS BELOW THE PAIRING FLOOR. A pair that would otherwise
+    // reach "fails" has already cleared that floor, so putting fold-emptiness
+    // underneath still catches every mislabelled one — while a variant that
+    // changed nothing on this market keeps the message that says so, which is
+    // a fact about the RULE rather than about the data. Twenty-nine of the
+    // regraded pairs are exactly this case, and an earlier draft of the guard
+    // took their specific reason away.
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 40; day += 1) {
+      const r = day % 2 === 0 ? 0.4 : -0.2;
+      rows.push(outcomeRow("baseline", day, r));
+      rows.push(outcomeRow("same", day, r));
+    }
+    const verdict = classVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 9,
+    }).get("forex")!.get("same")!;
+    assert.equal(verdict.noVerdict, true);
+    assert.match(
+      verdict.reason,
+      /^NO VERDICT — pairing 0 nonzero of 40 shared days/,
+      `the pairing message is the more specific one and must survive: ${verdict.reason}`,
+    );
+  });
+
+  it("still judges a variant that does have fit-fold rows", () => {
+    const verdict = classVerdicts(cube(40), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 9,
+    }).get("forex")!.get("later")!;
+    assert.equal(
+      verdict.noVerdict,
+      false,
+      `a populated fit fold must still be judged: ${verdict.reason}`,
+    );
+    assert.doesNotMatch(verdict.reason, /carries no evidence/);
+  });
+});
