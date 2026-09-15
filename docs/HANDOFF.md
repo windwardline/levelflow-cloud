@@ -32,6 +32,41 @@ coverage question closed, and the desk went dark on purpose.
 
 ## 1. Where things actually stand
 
+### The night of 2026-09-14: what a gate defect cost to close properly
+
+Nine pull requests merged on 2026-09-14, six of them after 21:00, and the last
+five exist because of one bug. The chain is worth reading before the next gate
+change, because the same failure recurred at every level of it.
+
+`grid-totalr` reported a market with no fit-fold rows as a measured failure
+rather than NO VERDICT, in three recorded verdicts (#647, record in
+`docs/research/empty-fold-verdicts-2026-09-14.md`). Then:
+
+- **#649** added tests meant to pin the defect CLASS. A fresh-eyes review found
+  them largely vacuous: the non-vacuity floor was satisfied by shapes that never
+  reach the guard, and the invariant contained no accepted case, so it could not
+  fail however the gate changed. #649 merged before that review returned.
+- **#651** landed the corrections. Its own reviews then found the replacement
+  assertions tautological — counts derived from the array under test hold for
+  any array — and the fix for THAT had to count the leg the gate actually
+  reached. One explanatory comment in it was rewritten six times; four versions
+  undercounted which acceptance terms an empty select fold starves, and the
+  fifth overcorrected.
+- **#654** repairs three places downstream that discard the distinction the
+  ladder draws, including the sealed ledgered read, which recorded a refusal to
+  judge as a rejection in an artifact that is burned once.
+- **#650 and #652** are the same shape in a different file: a comment block
+  asserting the opposite of the code eight lines below it, and then a second
+  correction that was applied to the pull request body and not to the file.
+
+**The lesson, under CONVERGE step 7.** Every one of these was found by an
+adversarial pass, and none by the author. A review that returns after the merge
+is not a review. Push a correction the moment it compiles rather than after the
+gates finish, because an open pull request can be merged by anyone at any
+moment — #649 and #650 both were, with the corrections still local. And a claim
+of the form "N of these terms do X" is a census: enumerate the conjunction from
+source before writing the count.
+
 ### The desk is PARKED
 
 `PARKING_GATE` is `true` (owner instruction, 2026-08-07). Signed-out visitors see the
