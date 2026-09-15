@@ -4272,9 +4272,12 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
     //
     // Why the fit fold was the outlier, stated exactly. Two earlier versions
     // of this comment got it wrong in opposite directions, so it is worth
-    // being precise: ONE term blocks an empty select fold, and that term is
-    // `earnsMoney`. With no select fills `rExpectancyLower95` is null, so
-    // `earnsMoney` is false on its own whatever else holds.
+    // being precise: ONE term blocks an empty select fold NO MATTER HOW THE
+    // FLOORS ARE SET, and that term is `earnsMoney`. With no select fills
+    // `rExpectancyLower95` is null, so `earnsMoney` is false whatever else
+    // holds. On this fixture `underpowered` blocks it too — but that one would
+    // go false if the baseline's select fold were empty as well, and
+    // `earnsMoney` would not.
     //
     // It is NOT true that every select-reading term blocks it. On this very
     // fixture `selectTotalDelta` reads +20 and `selectExpectancyDelta` reads
