@@ -28,10 +28,24 @@
 # both directions, because a widening asserted only by the paths it adds is a
 # widening nobody can see the edge of.
 #
-# The suite ends with a mutation: the catch-all that classifies unknown paths as
-# deployable is deleted, the deletion is confirmed to have landed at the intended
-# site, and the mutant is required to misbehave. A guard whose removal changes
-# nothing was never guarding.
+# The suite ends with two mutations. Each deletes one guard, confirms the
+# deletion landed at the intended site, and requires the mutant to misbehave:
+# the catch-all that classifies unknown paths as deployable, and the guard that
+# refuses to read an empty diff as nothing changed. A guard whose removal
+# changes nothing was never guarding.
+#
+# TWO refusal arms have no case of their own, and one case covers both. If
+# `git diff` fails WITHOUT HAVING WRITTEN ANYTHING, `changed` is empty and the
+# empty-diff guard on the next line produces the same refusal with a different
+# message, so the could-not-read-the-diff arm is shadowed there rather than
+# untested. The qualifier is load-bearing: command substitution reads git's
+# stdout through a block-buffered pipe, so a git that dies after flushing part
+# of a large name list leaves `changed` non-empty and TRUNCATED, and without
+# that arm a truncation holding only non-deployable paths would SKIP — the
+# invisible wrong skip the asymmetry paragraph in the guard exists to prevent.
+# It is also not impossible to mutation-prove: a `git` shadowed on PATH exiting
+# non-zero with no output would exercise it distinctly. This suite prefers real
+# git to stubs, which is a choice rather than a limit.
 
 set -uo pipefail
 
@@ -156,11 +170,12 @@ run "no parent commit builds"                 "$d" 1
 d="$TMP/notgit"; mkdir -p "$d"
 run "non-git directory builds"                "$d" 1
 
-# --- an empty diff. The guard for it is the one the header comment calls out
-# by name, and until now it was the only refusal path with no case: a commit
-# that changes nothing is indistinguishable, from inside this script, from a
-# diff it failed to compute, so it must build. An empty commit is the cheapest
-# way to produce the condition for real rather than by stubbing git.
+# --- an empty diff. One of the TWO refusal arms with no case of their own, and
+# this case covers both: a commit that changes nothing is indistinguishable,
+# from inside this script, from a diff it failed to compute without writing, so
+# it must build. An empty commit is the cheapest way to produce the condition
+# for real rather than by stubbing git. See the header for why the shadowing is
+# only as strong as its qualifier.
 r=$(newrepo empty_diff); ( cd "$r" || exit 1; git commit -q --allow-empty -m "empty" )
 run "empty diff builds (refuses to infer nothing changed)" "$r" 1
 
