@@ -4270,15 +4270,19 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
     // so the one conjunct built from totals is satisfied and still nothing is
     // accepted.
     //
-    // Why the fit fold was the outlier, stated exactly: EVERY acceptance term
-    // except `fitTotalDelta` reads the select fold, so an empty select fold
-    // cannot be accepted however the floors read — with no select fills
-    // `rExpectancyLower95` is null and `earnsMoney` is false on its own. The
-    // floors decide only WHICH no-verdict reason it gets. An empty FIT fold
-    // had no such backstop, which is why it needed a guard of its own and the
-    // select fold never did. An earlier version of this comment said the
-    // floors and the pairing were all that stood in the way, which was wrong
-    // and understated the asymmetry it exists to describe.
+    // Why the fit fold was the outlier, stated exactly. Two earlier versions
+    // of this comment got it wrong in opposite directions, so it is worth
+    // being precise: ONE term blocks an empty select fold, and that term is
+    // `earnsMoney`. With no select fills `rExpectancyLower95` is null, so
+    // `earnsMoney` is false on its own whatever else holds.
+    //
+    // It is NOT true that every select-reading term blocks it. On this very
+    // fixture `selectTotalDelta` reads +20 and `selectExpectancyDelta` reads
+    // +0.50 with zero select fills, both through the same absent-reads-as-zero
+    // construction this suite exists to condemn. Nor do the floors merely
+    // choose which reason is printed: `underpowered` is itself a conjunct of
+    // `beatsBaseline`. The fit fold's asymmetry is simply that nothing played
+    // `earnsMoney`'s role for it, which is why it needed a guard of its own.
     assert.ok(
       atClass.selectTotalDelta > 0,
       `the fixture must flatter the variant: ${atClass.selectTotalDelta}`,
@@ -4422,6 +4426,7 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
     };
     let sawNoVerdict = 0;
     let sawAccepted = 0;
+    let sawFitEvidenceLeg = 0;
     for (const shape of shapes) {
       const cube = readGridCube(shape.build());
       for (
@@ -4455,24 +4460,27 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
           assert.equal(verdict.noVerdict, true, `${shape.name} (${grain}): ${verdict.reason}`);
           assert.equal(verdict.accepted, false, `${shape.name} (${grain}): ${verdict.reason}`);
           sawNoVerdict += 1;
+          // Count the LEG, not the label. A shape can satisfy `expect` while
+          // reaching a different leg, and a shape can be DELETED without the
+          // label counts noticing, so the fit-evidence leg — the one #647
+          // shipped the guard for — is counted by the message the gate
+          // actually produced.
+          if (/fold carries no evidence on /.test(verdict.reason)) {
+            sawFitEvidenceLeg += 1;
+          }
         }
       }
     }
-    // NON-VACUITY, counted rather than floored: every shape must have been
-    // graded at both grains. A floor of "at least six" was satisfied by the
-    // three shapes that do NOT reach the fit-evidence guard, so the two that
-    // do could vanish without failing anything.
-    const expectedAccepted = shapes.filter((s) => s.expect === "accepted").length * 2;
-    assert.equal(
-      sawAccepted,
-      expectedAccepted,
-      `${sawAccepted} accepted verdicts, expected ${expectedAccepted}`,
-    );
-    assert.equal(
-      sawNoVerdict,
-      shapes.length * 2 - expectedAccepted,
-      `${sawNoVerdict} no-verdict verdicts, expected ${shapes.length * 2 - expectedAccepted}`,
-    );
+    // NON-VACUITY, in LITERALS. Counts derived from `shapes` cannot fail: both
+    // counters are incremented in branches keyed on `shape.expect`, so any
+    // expectation computed from that same array holds by construction for any
+    // array — including one with the fit-fold shapes deleted, which is the
+    // exact regression the earlier "at least six" floor also missed. These
+    // three numbers are written down instead, so adding, deleting or
+    // re-pointing a shape fails here and has to be looked at.
+    assert.equal(sawFitEvidenceLeg, 4, `${sawFitEvidenceLeg} verdicts reached the fit-evidence leg, expected 4`);
+    assert.equal(sawAccepted, 2, `${sawAccepted} accepted verdicts, expected 2`);
+    assert.equal(sawNoVerdict, 10, `${sawNoVerdict} no-verdict verdicts, expected 10`);
   });
 
   it("still judges a variant that does have fit-fold rows", () => {
