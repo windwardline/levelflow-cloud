@@ -4272,12 +4272,22 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
     //
     // Why the fit fold was the outlier, stated exactly. Two earlier versions
     // of this comment got it wrong in opposite directions, so it is worth
-    // being precise: ONE term blocks an empty select fold NO MATTER HOW THE
-    // FLOORS ARE SET, and that term is `earnsMoney`. With no select fills
-    // `rExpectancyLower95` is null, so `earnsMoney` is false whatever else
-    // holds. On this fixture `underpowered` blocks it too — but that one would
-    // go false if the baseline's select fold were empty as well, and
-    // `earnsMoney` would not.
+    // being precise, because four earlier versions of it were wrong and each
+    // correction undercounted in the same direction.
+    //
+    // An empty select fold starves THREE acceptance terms no matter how the
+    // floors are set. `earnsMoney`, because `rExpectancyLower95` is null below
+    // two fills. And `effectivePairs >= MIN_EFFECTIVE_PAIRS` together with
+    // `pairedP <= 0.05`, because day deltas are built from the select fold
+    // alone: an empty one contributes no deltas, so support is 0 and
+    // `familyPairedP` returns a hard 1 by the sub-floor rule. Neither of those
+    // two reads `minFilled` or `SELECTIVE_POWER_FLOOR`, and `pairedP <= 0.05`
+    // is a literal comparison rather than a floor at all.
+    //
+    // The fit fold had no analogue. The ONLY acceptance term reading it was
+    // `fitTotalDelta > 0`, and that one reads POSITIVE through absent-as-zero
+    // against a losing baseline. That is the asymmetry, and it is why the fit
+    // fold needed a guard of its own while the select fold never did.
     //
     // It is NOT true that every select-reading term blocks it. On this very
     // fixture `selectTotalDelta` reads +20 and `selectExpectancyDelta` reads
