@@ -4270,32 +4270,32 @@ describe("a fold with no evidence is NO VERDICT, never a measured failure", () =
     // so the one conjunct built from totals is satisfied and still nothing is
     // accepted.
     //
-    // Why the fit fold was the outlier, stated exactly. Two earlier versions
-    // of this comment got it wrong in opposite directions, so it is worth
-    // being precise, because four earlier versions of it were wrong and each
-    // correction undercounted in the same direction.
+    // Why the fit fold was the outlier, stated exactly. Five earlier versions
+    // of this paragraph were wrong — four undercounting, then one
+    // overcorrecting — so the claim is now scoped to what was checked.
     //
-    // An empty select fold starves THREE acceptance terms no matter how the
-    // floors are set. `earnsMoney`, because `rExpectancyLower95` is null below
-    // two fills. And `effectivePairs >= MIN_EFFECTIVE_PAIRS` together with
-    // `pairedP <= 0.05`, because day deltas are built from the select fold
-    // alone: an empty one contributes no deltas, so support is 0 and
-    // `familyPairedP` returns a hard 1 by the sub-floor rule. Neither of those
-    // two reads `minFilled` or `SELECTIVE_POWER_FLOOR`, and `pairedP <= 0.05`
-    // is a literal comparison rather than a floor at all.
+    // An empty select fold starves THREE acceptance terms, and none of them
+    // reads `minFilled` or `SELECTIVE_POWER_FLOOR`, so no setting of the two
+    // floors this fixture trips can admit it. `earnsMoney` is stronger still:
+    // `rExpectancyLower95` is null below two fills, so it is false independent
+    // of every floor in the gate. The other two descend from
+    // `MIN_EFFECTIVE_PAIRS` — the pairing conjunct reads it directly, and
+    // `pairedP <= 0.05` fails only because `familyPairedP` returns a hard 1
+    // under that same sub-floor test. Day deltas are built from the select
+    // fold alone, which is why an empty one leaves support at 0.
     //
-    // The fit fold had no analogue. The ONLY acceptance term reading it was
-    // `fitTotalDelta > 0`, and that one reads POSITIVE through absent-as-zero
-    // against a losing baseline. That is the asymmetry, and it is why the fit
-    // fold needed a guard of its own while the select fold never did.
+    // The fit fold had no analogue. Before #647 the only acceptance term
+    // reading it was `fitTotalDelta > 0`, and that one reads POSITIVE through
+    // absent-as-zero against a losing baseline. `!fitEvidenceAbsent` is a
+    // second fit-reading conjunct now, and it exists precisely because the
+    // first one could not do this job.
     //
     // It is NOT true that every select-reading term blocks it. On this very
     // fixture `selectTotalDelta` reads +20 and `selectExpectancyDelta` reads
     // +0.50 with zero select fills, both through the same absent-reads-as-zero
     // construction this suite exists to condemn. Nor do the floors merely
     // choose which reason is printed: `underpowered` is itself a conjunct of
-    // `beatsBaseline`. The fit fold's asymmetry is simply that nothing played
-    // `earnsMoney`'s role for it, which is why it needed a guard of its own.
+    // `beatsBaseline`.
     assert.ok(
       atClass.selectTotalDelta > 0,
       `the fixture must flatter the variant: ${atClass.selectTotalDelta}`,
