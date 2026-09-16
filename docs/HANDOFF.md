@@ -2632,14 +2632,14 @@ market; the read measured +0.0121–0.0135, which worsens the requirement about
 recomputed for amendment 45.** Note also that the two figures are bound columns
 of two in-pool in-span cells, not an effect size of the hour rule).
 
-**Owner items from the round** — recorded as OWED RECOMMENDATIONS, none yet
-refuted: the E8 bid/ask capture (**item 1 closed 2026-09-14; the recommendation
-is in the rulings record of that date, and it is narrower than a deferral**); what
-a review hour means (wall-clock or open-market; owed since 2026-09-12); the
-market grain against the seven-year arithmetic; whether a genuinely new entry
-family is a new program under the one-burn-per-program rule (fold reuse
-itself is already ruled). Unconditionally the owner's: the FMP key rotation
-(above; the escalation itself closed 2026-09-14) and the two E8 tab captures.
+**Owner items from the round — ALL FOUR CLOSED 2026-09-14, now law.** The E8
+bid/ask capture is amendment 43; what a review hour means is amendment 44
+(wall-clock); the market grain against the seven-year arithmetic is amendment 45
+(the per-market grain holds, no exception); whether a new entry family is a new
+program is amendment 46 (it is not). Do not put any of them to the owner again;
+the operative text is in the rulings file. Still unconditionally the owner's: the
+FMP key rotation (the escalation itself closed 2026-09-14) and the two E8 tab
+captures.
 
 **THE FOREX COMMISSION IS CONVERTED IN THE WRONG CURRENCY — found 2026-09-13.**
 [`forex-commission-conversion-2026-09-13.md`](/docs/research/forex-commission-conversion-2026-09-13.md),

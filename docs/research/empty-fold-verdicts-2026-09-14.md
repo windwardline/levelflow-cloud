@@ -163,7 +163,12 @@ matters most:
    `docs/research/confirm-reads/ledgered-read-act3.json` binds that `frozenHash`.
    Re-running the freeze or re-recording a checksum changes it and severs a read
    that can never be repeated; overwriting an arm in place without doing so
-   leaves the freeze naming a file whose hash no longer matches. The premise that
+   leaves the freeze naming a file whose hash no longer matches — and SILENTLY,
+   because nothing re-verifies the arm checksums at run time.
+   `verifyFrozenCandidates` checks the rule hashes and `frozenHash` over the body
+   and never re-hashes an arm file on disk; the only comparison of
+   `artifactSha256` against a real file is `tests/freezeCandidates.test.ts`,
+   against that test's own fixture. The premise that
    drove this correction is right — a regrade in place does falsify the binding —
    and the conclusion was the wrong way round: the arms must stay byte-identical.
    How to regrade without touching them is being designed and refuted before

@@ -14,9 +14,12 @@
 >    The 207,272-flip warning applies only to re-reading the 2026-09-12 verdict on the
 >    newer corpus. Nothing measured changes: the two manifests' 5-minute escape maps are
 >    identical on all 97 symbols and `foldsByClass` is byte-identical.
-> 2. **21 tracked files of 22 carry the header, not 22.**
->    `docs/research/r3/grid-totalr-fit-select-capture-all-classfolds-2026-09-05.rebuild.log`
->    is gitignored.
+> 2. **The header population is 21 tracked grading and record artifacts, plus one
+>    gitignored rebuild log** —
+>    `docs/research/r3/grid-totalr-fit-select-capture-all-classfolds-2026-09-05.rebuild.log`.
+>    Now that THIS design is tracked it joins the `git grep` population too, because it
+>    quotes the header in §5 and §7.2; a re-derivation returns 22 tracked files, of which
+>    21 are artifacts and one is this file.
 > 3. **Rebuild the two sample output blocks.** 2,141,527 is the SEALED confirm count —
 >    rows that never reach the cube — so it cannot be the year-filter denominator. Use
 >    the real total (6,634,732, of which 2,141,527 are sealed) or obvious placeholders.
@@ -32,7 +35,8 @@
 
 # Design: a year filter on the market-grain gate — revision 2 (2026-09-14)
 
-Revision of `design-gate-years.md` after a three-lens refutation. Twenty-six defects
+Revision of `design-gate-years.md` (revision 1, lost with the scratchpad and not
+recovered) after a three-lens refutation. Twenty-six defects
 stood after a second agent checked each one; every one is answered below, and the
 defect map at the end says where. One defect from that round is already shipped and is
 not re-proposed here: an empty fold now reads as NO VERDICT rather than a measured
@@ -313,6 +317,8 @@ baseline — a reason the filter falsifies. Instead:
    — exact, single pass, no second read of the corpus.
 2. The market-grain header states three numbers rather than one:
 
+> **Illustrative figures withdrawn by correction 3 in the header** — do not copy the numbers below.
+
 ```
 shipped cell per market (53 of 91 in the graded roster; 38 emptied by --years escaping;
   held out by the stratified rule: 20, labelled, never dropped;
@@ -338,6 +344,8 @@ accepted (market, variant) pairs: 0 · expected false families at FWER 0.05 over
    cube, `groupVerdicts` reaches its baseline-exists refusal
    (`scripts/grid-totalr.ts:870-876`) and blames the baseline variant for a calendar's
    doing. That misattribution is caught first:
+
+> **Illustrative figures withdrawn by correction 3 in the header** — do not copy the numbers below.
 
 ```
 --years escaping kept no row on any of the 91 markets the gate would grade (2,141,527 rows
@@ -370,6 +378,8 @@ period (`:235`). Stated that way, the precedent is a rule about dropping, and it
 here.
 
 Printed only when a filter is in force, beside the existing denominators:
+
+> **Illustrative figures withdrawn by correction 3 in the header** — do not copy the numbers below.
 
 ```
 (rows dropped by --years escaping: 1,573,004 of 2,141,527 that reached the cube's door —
