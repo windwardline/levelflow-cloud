@@ -56,7 +56,7 @@ const SEALED_READ_FILE_SHA256 = "f56cea5f816be6bb163d84f8b76b9e653d2fcfec3e6fba2
 /**
  * The burned read's own printed record, written by the same `--confirm-final` run.
  * Of every stdout record here it is the one whose run is not merely owed-not-to-be-
- * repeated but impossible to repeat. Nothing else references it.
+ * repeated but impossible to repeat.
  */
 const SEALED_READ_STDOUT = "docs/research/confirm-reads/ledgered-read-act3.stdout.txt";
 const SEALED_READ_STDOUT_SHA256 = "d3da3825ad627513f3bcf4872b8d9c7c9e5a0ef2f27dd548bbc4b325d08ef9c3";
@@ -110,6 +110,16 @@ const SEALED_STDOUT_TWINS = {
   "docs/research/r4/admission-derived-grading-class.stdout.txt": "51274146e681ee680ff6a7f16312072e8ede17189ff78b0538bf7648ecd8fc64",
 } as const;
 
+/**
+ * Every sealed read in the directory, by file. The README makes "each read's printed
+ * record is sealed" a rule about a class, so the set of reads is derived from the
+ * directory and must equal this map: the next burned read lands as a named failure
+ * until it is pinned, not as a silent omission.
+ */
+const SEALED_READS_BY_FILE = {
+  "ledgered-read-act3.json": { file: SEALED_READ_FILE_SHA256, stdout: SEALED_READ_STDOUT_SHA256 },
+} as const;
+
 /** Says whether a changed sealed file was condemned in place or otherwise altered. Called only on failure. */
 function whatHappened(path: string): string {
   let condemned = false;
@@ -126,7 +136,12 @@ function whatHappened(path: string): string {
 }
 
 async function assertSealedBytes(path: string, expected: string, label = ""): Promise<void> {
-  const actual = await sha256File(path);
+  let actual: string;
+  try {
+    actual = await sha256File(path);
+  } catch {
+    assert.fail(`${label}${path} is MISSING. It belongs to the burned act-3 read: restore it from git; a regrade writes beside a sealed file, never moves it.`);
+  }
   if (actual !== expected) assert.fail(`${label}${whatHappened(path)} (sha256 ${actual.slice(0, 12)}, sealed ${expected.slice(0, 12)})`);
 }
 
@@ -140,6 +155,19 @@ const parseSealed = () => JSON.parse(readFileSync(SEALED_READ, "utf8")) as Ledge
 };
 
 describe("the act-3 freeze and everything it was built from stay sealed with the burned read", () => {
+  it("pins every sealed read the directory holds, and its printed record, and nothing else", () => {
+    const reads = readdirSync(LEDGER_DIR).filter((name) => /^ledgered-read-.*\.json$/.test(name)).sort();
+    assert.deepEqual(
+      reads,
+      Object.keys(SEALED_READS_BY_FILE).sort(),
+      `${LEDGER_DIR} holds a sealed read this test does not pin; pin its file bytes and printed record`,
+    );
+    for (const name of reads) {
+      const stdout = name.replace(/\.json$/, ".stdout.txt");
+      assert.ok(readdirSync(LEDGER_DIR).includes(stdout), `${LEDGER_DIR}/${name} has no printed record ${stdout}`);
+    }
+  });
+
   it("keeps the sealed read's file bytes and its printed record, as written down", async () => {
     await assertSealedBytes(SEALED_READ, SEALED_READ_FILE_SHA256);
     await assertSealedBytes(SEALED_READ_STDOUT, SEALED_READ_STDOUT_SHA256);
@@ -162,11 +190,23 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
     const entries: Array<{ artifactPath?: string; artifactHash?: string; frozenHash?: string }> = [];
     for (const name of ledgers) {
       readFileSync(`${LEDGER_DIR}/${name}`, "utf8").split("\n").filter(Boolean).forEach((line, index) => {
+        // Production refuses three shapes (grid-totalr.ts, the prior-read scan):
+        // not JSON, not a plain object, and no corpusHash string. Each one blocks
+        // every confirm read for every corpus, so each fails here by name.
+        const where = `${LEDGER_DIR}/${name} line ${index + 1}`;
+        let value: unknown;
         try {
-          entries.push(JSON.parse(line));
+          value = JSON.parse(line);
         } catch {
-          assert.fail(`${LEDGER_DIR}/${name} line ${index + 1} is not JSON; it would refuse every confirm read`);
+          assert.fail(`${where} is not JSON; it would refuse every confirm read`);
         }
+        if (value === null || typeof value !== "object" || Array.isArray(value)) {
+          assert.fail(`${where} is not a ledger object; it would refuse every confirm read`);
+        }
+        if (typeof (value as { corpusHash?: unknown }).corpusHash !== "string") {
+          assert.fail(`${where} carries no corpusHash; it would refuse every confirm read`);
+        }
+        entries.push(value as { artifactPath?: string; artifactHash?: string; frozenHash?: string });
       });
     }
     const matching = entries.filter((line) => line.artifactPath === SEALED_READ);
