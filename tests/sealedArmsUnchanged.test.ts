@@ -21,11 +21,15 @@ import { artifactHashOf, type LedgeredReadArtifact, sha256File } from "../script
  * for any stdout record. An owed regrade that overwrote any of them in place would
  * have severed the seal silently.
  *
- * NOTHING HERE IS READ FROM THE FILE IT GUARDS, AND ONLY ONE TEST DEPENDS ON CODE.
- * The freeze file's own bytes, the freeze and read hashes, and the class and stdout
- * checksums are written down. Every test but one reads the freeze with a plain parse,
- * so amending a rule constant in code fails only the one test that is about rules,
- * rather than eleven tests blaming files nobody touched. The class and stdout
+ * NOTHING HERE IS READ FROM THE FILE IT GUARDS. The sealed read's and the freeze's
+ * own file bytes, their content hashes, and the class and stdout checksums are
+ * written down. Three tests depend on code, and each says so in its name: one on
+ * the amendable rule constants through `verifyFrozenCandidates` (which also hashes
+ * with `frozenHashOf`), and two on the hash functions (`artifactHashOf`,
+ * `frozenHashOf`). A hashing refactor fails all three and nothing else. The file-bytes tests are the
+ * code-independent witnesses, so when one of those three fails while the bytes tests
+ * pass, the CODE changed — a re-ruling or a hashing refactor — not the seal. Every
+ * other test reads the freeze with a plain parse. The class and stdout
  * checksums are held to a weaker standard than the market arms and say so: they
  * were read off disk on 2026-09-16 and are justified by commit 7c55cd3 (#573) having
  * written them — the commit that also wrote the freeze and the read — with no later
@@ -44,8 +48,16 @@ const FREEZE = "docs/research/r4/frozen-candidates.json";
 const SEALED_READ = "docs/research/confirm-reads/ledgered-read-act3.json";
 const LEDGER_DIR = "docs/research/confirm-reads";
 
-/** The freeze file's own bytes: a witness no rule amendment can move. */
+/** The freeze's and the read's own file bytes: witnesses no code change can move. */
 const SEALED_FREEZE_FILE_SHA256 = "cb4350693d18ba2a8f8fc3b4e15fad82b1860ddfdd8843b4a04ba06a6b05f0ca";
+const SEALED_READ_FILE_SHA256 = "f56cea5f816be6bb163d84f8b76b9e653d2fcfec3e6fba2167a9713aed5b088e";
+/**
+ * The burned read's own printed record, written by the same `--confirm-final` run.
+ * Of every stdout record here it is the one whose run is not merely owed-not-to-be-
+ * repeated but impossible to repeat. Nothing else references it.
+ */
+const SEALED_READ_STDOUT = "docs/research/confirm-reads/ledgered-read-act3.stdout.txt";
+const SEALED_READ_STDOUT_SHA256 = "d3da3825ad627513f3bcf4872b8d9c7c9e5a0ef2f27dd548bbc4b325d08ef9c3";
 /** Taken from the read on 2026-09-03 and from the confirm-log line recording it. */
 const SEALED_FROZEN_HASH = "6b1e52e0e62be47df9237d8e57ba42797d415630c2907d4212d6b053454a5cf6";
 const SEALED_READ_ARTIFACT_HASH = "3a17f23378f60d01e95c5233739069c3f364da0923feae869a7a4fc21be22283";
@@ -126,9 +138,18 @@ const parseSealed = () => JSON.parse(readFileSync(SEALED_READ, "utf8")) as Ledge
 };
 
 describe("the act-3 freeze and everything it was built from stay sealed with the burned read", () => {
-  it("keeps the sealed read's own content hash, as written down", () => {
+  it("keeps the sealed read's file bytes and its printed record, as written down", async () => {
+    await assertSealedBytes(SEALED_READ, SEALED_READ_FILE_SHA256);
+    await assertSealedBytes(SEALED_READ_STDOUT, SEALED_READ_STDOUT_SHA256);
+  });
+
+  it("keeps the sealed read's own content hash, as written down (depends on artifactHashOf)", () => {
     const sealed = parseSealed();
-    assert.equal(artifactHashOf(sealed), sealed.artifactHash, `${SEALED_READ} was edited after the read`);
+    assert.equal(
+      artifactHashOf(sealed),
+      sealed.artifactHash,
+      `${SEALED_READ} no longer hashes to its artifactHash. If the file-bytes test passes, artifactHashOf changed, not the read.`,
+    );
     assert.equal(sealed.artifactHash, SEALED_READ_ARTIFACT_HASH, `${SEALED_READ} is not the read taken on 2026-09-03`);
   });
 
@@ -156,14 +177,18 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
     await assertSealedBytes(FREEZE, SEALED_FREEZE_FILE_SHA256);
   });
 
-  it("keeps the freeze's body hash, bound by the sealed read", () => {
+  it("keeps the freeze's body hash, bound by the sealed read (depends on frozenHashOf)", () => {
     const freeze = parseFreeze();
     assert.equal(freeze.frozenHash, SEALED_FROZEN_HASH, `${FREEZE} was re-frozen; restore it from git`);
-    assert.equal(frozenHashOf(freeze), SEALED_FROZEN_HASH, `${FREEZE}'s body no longer hashes to its frozenHash`);
+    assert.equal(
+      frozenHashOf(freeze),
+      SEALED_FROZEN_HASH,
+      `${FREEZE}'s body no longer hashes to its frozenHash. If the file-bytes test passes, frozenHashOf changed, not the freeze.`,
+    );
     assert.equal(parseSealed().frozen?.frozenHash, SEALED_FROZEN_HASH, `${SEALED_READ} no longer binds the sealed freeze`);
   });
 
-  it("still opens through the read's door under the rules in code (the only test that depends on code)", () => {
+  it("still opens through the read's door under the rules in code (depends on the rule constants and frozenHashOf)", () => {
     // If the bytes test above passes and this fails, nothing sealed moved: a rule
     // constant was amended. Re-rule deliberately; do not touch the freeze.
     assert.doesNotThrow(() => verifyFrozenCandidates(FREEZE), "verifyFrozenCandidates refused the sealed freeze");
