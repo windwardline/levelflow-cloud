@@ -2417,6 +2417,10 @@ identical-to-baseline pairing case, and zero empty-fit cells reach the removal
 test. The record names all seven corrections to carry; the largest is that under
 #616's underpowered split 71 of the 144 THIN pairs move OUT of no verdict into
 the judged bucket, a disposition move in the opposite direction from #647's.
+**Correction 7 is WITHDRAWN (2026-09-16) and must not be followed.** Seven of the
+eight gradings are the inputs of the sealed act-3 read, and the freeze's
+`frozenHash` covers their checksums, so re-recording them or re-running the freeze
+severs a burned read. A regrade may not overwrite those seven in place.
 
 **Also owed, and found on 2026-09-14 by the review of the disposition
 repairs**: the same absent-reads-as-zero construction publishes

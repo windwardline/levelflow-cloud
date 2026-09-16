@@ -155,9 +155,19 @@ matters most:
    top level, because it predates #571.
 6. Regenerate the eight `*-grading.stdout.txt` records beside the artifacts in
    the same change set; they carry the reason strings and the bucket counts.
-7. Re-run `freeze-candidates` or re-record the seven `artifactSha256` values in
-   `frozen-candidates.json`. All seven match disk exactly today and nothing
-   re-verifies them at run time, so a regrade falsifies that binding silently.
+7. ~~Re-run `freeze-candidates` or re-record the seven `artifactSha256` values in
+   `frozen-candidates.json`.~~ **WITHDRAWN 2026-09-16 — DO NOT DO THIS.** Seven of
+   the eight gradings are the freeze's arms, the inputs of the sealed act-3 read,
+   and `frozenHash` is computed over the whole freeze body INCLUDING those seven
+   checksums (`scripts/freeze-candidates.ts`, `frozenHashOf`). The burned read
+   `docs/research/confirm-reads/ledgered-read-act3.json` binds that `frozenHash`.
+   Re-running the freeze or re-recording a checksum changes it and severs a read
+   that can never be repeated; overwriting an arm in place without doing so
+   leaves the freeze naming a file whose hash no longer matches. The premise that
+   drove this correction is right — a regrade in place does falsify the binding —
+   and the conclusion was the wrong way round: the arms must stay byte-identical.
+   How to regrade without touching them is being designed and refuted before
+   anything is built.
 
 One thing remains unestablished and is stated as such: that a regrade reproduces
 the numeric fields bit for bit. The only behavioural changes on the net-arm path
