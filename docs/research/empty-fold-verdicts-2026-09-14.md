@@ -157,16 +157,20 @@ matters most:
    print. **Scoped by item 7 (2026-09-16):** a stdout record and its JSON are the
    same run's two outputs, so the seven sealed arms' stdout twins are sealed with
    them. Regenerating a twin beside a sealed JSON would leave the pairs
-   disagreeing with nothing cross-checking them. **The seal is twelve gradings,
-   not seven**: the freeze body also carries `classes`, `classAxes`,
+   disagreeing with nothing cross-checking them. **The SEALED INPUTS are twelve
+   gradings, not seven**: the freeze body also carries `classes`, `classAxes`,
    `classCellsTested` and `expectedFalseAcceptsClasses`, computed from five
    class-grain gradings (review-window, review-window-96, stop-cap, stop-cap-8 and
    admission-derived, each `-grading-class.json`), and it records NO checksum for
    them. All four class-grain gradings this note lists as stale are among those
-   five. So of every grading owed a regrade, only
-   `per-market-grading-classfolds` regenerates in place; everything else — seven
-   market arms, five class arms, and the stdout twins of all twelve — gets its
-   regraded output written somewhere new.
+   five. The twelve sealed inputs and the twelve STALE RECORDS listed further
+   down are different sets that share eleven files: `per-market-grading-classfolds`
+   is stale but not sealed, and `review-window-96-grading-class` is sealed but not
+   stale. So of every stale record, only `per-market-grading-classfolds`
+   regenerates in place; the other eleven, and the stdout twins of every sealed
+   input, get their regraded output written somewhere new. A sealed input may not
+   be condemned in place with an INVALID stamp either; a condemnation goes in a
+   note beside the sealed read in `docs/research/confirm-reads/`.
 7. ~~Re-run `freeze-candidates` or re-record the seven `artifactSha256` values in
    `r4/frozen-candidates.json`.~~ **WITHDRAWN 2026-09-16 — DO NOT DO THIS.** Seven of
    the eight gradings are the freeze's arms, the inputs of the sealed act-3 read,
@@ -288,7 +292,9 @@ after that read; the default is `net`, so no figure moved.
 repair changes the label on every judged refusal, and it is GRAIN-AGNOSTIC — the
 exemption two paragraphs above, that the seven class-grain gradings are not the
 same defect, is true of the empty-fold defect and false of this one. Twelve
-tracked records now print a word their own JSON contradicts:
+tracked records — the TWELVE STALE RECORDS, not the twelve sealed inputs named
+under item 6, though eleven files are in both — now print a word their own JSON
+contradicts:
 
 | grain | records | reason occurrences | printed rows that change |
 |---|---:|---:|---:|
@@ -310,7 +316,7 @@ expectancy -0.1821R … (95% lower -0.2896R over 208 filled)`, and the row for
 that same verdict in the table beside it reads `fails`. Same fit ΔR, same
 paired p, same bounds.
 
-All twelve are owed with the regrade already recorded as owed, and until that
+All twelve stale records are owed with the regrade already recorded as owed, and until that
 lands the command in each of them does NOT reproduce the file beside it. Saying
 so is the point: a record that quietly stopped reproducing is worse than one
 that says it stopped.
