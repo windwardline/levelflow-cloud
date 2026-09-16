@@ -153,10 +153,15 @@ matters most:
    `per-market-grading-classfolds.json` exempted from "no new fields": a re-run
    adds `select` and `derived` per variant and `derived` and `emitSha256` at the
    top level, because it predates #571.
-6. Regenerate the eight `*-grading.stdout.txt` records beside the artifacts in
-   the same change set; they carry the reason strings and the bucket counts.
+6. Regenerate the `*-grading.stdout.txt` records with the artifacts they
+   print. **Scoped by item 7 (2026-09-16):** a stdout record and its JSON are the
+   same run's two outputs, so the seven sealed arms' stdout twins are sealed with
+   them. Regenerating a twin beside a sealed JSON would leave seven pairs
+   disagreeing with nothing cross-checking them. Only
+   `per-market-grading-classfolds`, which is not an arm, regenerates in place; the
+   regrade's output for the seven goes somewhere new.
 7. ~~Re-run `freeze-candidates` or re-record the seven `artifactSha256` values in
-   `frozen-candidates.json`.~~ **WITHDRAWN 2026-09-16 — DO NOT DO THIS.** Seven of
+   `r4/frozen-candidates.json`.~~ **WITHDRAWN 2026-09-16 — DO NOT DO THIS.** Seven of
    the eight gradings are the freeze's arms, the inputs of the sealed act-3 read,
    and `frozenHash` is computed over the whole freeze body INCLUDING those seven
    checksums (`scripts/freeze-candidates.ts`, `frozenHashOf`). The burned read
@@ -168,7 +173,10 @@ matters most:
    `verifyFrozenCandidates` checks the rule hashes and `frozenHash` over the body
    and never re-hashes an arm file on disk; the only comparison of
    `artifactSha256` against a real file is `tests/freezeCandidates.test.ts`,
-   against that test's own fixture. The premise that
+   against that test's own fixture. **Enforced since 2026-09-16** by
+   `tests/sealedArmsUnchanged.test.ts`, which re-hashes the seven tracked arms
+   against the tracked freeze and the freeze against the sealed read, and fails by
+   name on an overwritten arm, a tampered freeze, or a consistent re-freeze. The premise that
    drove this correction is right — a regrade in place does falsify the binding —
    and the conclusion was the wrong way round: the arms must stay byte-identical.
    How to regrade without touching them is being designed and refuted before

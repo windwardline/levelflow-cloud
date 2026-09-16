@@ -2420,7 +2420,8 @@ the judged bucket, a disposition move in the opposite direction from #647's.
 **Correction 7 is WITHDRAWN (2026-09-16) and must not be followed.** Seven of the
 eight gradings are the inputs of the sealed act-3 read, and the freeze's
 `frozenHash` covers their checksums, so re-recording them or re-running the freeze
-severs a burned read. A regrade may not overwrite those seven in place.
+severs a burned read. A regrade may not overwrite those seven in place, nor
+their stdout twins. `tests/sealedArmsUnchanged.test.ts` enforces it.
 
 **Also owed, and found on 2026-09-14 by the review of the disposition
 repairs**: the same absent-reads-as-zero construction publishes
@@ -2637,7 +2638,9 @@ bid/ask capture is amendment 43; what a review hour means is amendment 44
 (wall-clock); the market grain against the seven-year arithmetic is amendment 45
 (the per-market grain holds, no exception); whether a new entry family is a new
 program is amendment 46 (it is not). Do not put any of them to the owner again;
-the operative text is in the rulings file. Still unconditionally the owner's: the
+the operative text is
+[`2026-08-02-owner-rulings-amendments.md`](/docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md),
+not the 2026-09-14 rulings record, which says so itself. Still unconditionally the owner's: the
 FMP key rotation (the escalation itself closed 2026-09-14) and the two E8 tab
 captures.
 
