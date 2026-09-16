@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { verifyFrozenCandidates } from "../scripts/freeze-candidates.ts";
+import { type FrozenCandidates, frozenHashOf, verifyFrozenCandidates } from "../scripts/freeze-candidates.ts";
 import { artifactHashOf, type LedgeredReadArtifact, sha256File } from "../scripts/ledgeredRead.ts";
 
 /**
@@ -9,43 +9,43 @@ import { artifactHashOf, type LedgeredReadArtifact, sha256File } from "../script
  *
  * `docs/research/confirm-reads/ledgered-read-act3.json` is a burned confirm read:
  * it cannot be repeated. It binds `frozenHash` of
- * `docs/research/r4/frozen-candidates.json`, and that hash covers the whole
- * freeze body — the seven MARKET arms' `artifactSha256` values, and the `classes`,
- * `classAxes`, `classCellsTested` and `expectedFalseAcceptsClasses` computed from
- * FIVE class-grain gradings. Twelve grading files are therefore the provenance of a
- * read that can never be re-taken.
+ * `docs/research/r4/frozen-candidates.json`, which covers the whole freeze body —
+ * the seven MARKET arms' `artifactSha256` values, and the `classes`, `classAxes`,
+ * `classCellsTested` and `expectedFalseAcceptsClasses` computed from FIVE
+ * class-grain gradings. Those twelve gradings, and the twelve stdout records that
+ * are the same runs' other outputs, are the provenance of a read that can never be
+ * retaken.
  *
  * Nothing checked this at run time. `verifyFrozenCandidates` hashes the freeze body
- * and never an input file, and the freeze records NO checksum for the class half —
- * `classAxes` carries only `{arm, prefix}`. An owed regrade that overwrote any of
- * the twelve in place would have severed the seal silently.
+ * and never an input file, and the freeze records NO checksum for the class half or
+ * for any stdout record. An owed regrade that overwrote any of them in place would
+ * have severed the seal silently.
  *
- * The class half is held to a weaker standard than the market half, and says so.
- * Its checksums were read off disk on 2026-09-16 and are justified by commit
- * 7c55cd3 having written them, not by anything the freeze records. The freeze's
- * class figures ARE a deterministic function of those five files, so re-running
- * `freezeCandidates` and comparing `frozenHash` would prove all twelve at once — but
- * that binds the seal to CURRENT code (`getAssetType`, the rules), so a legitimate
- * later change to class membership would fail here as a severed seal. Pinned bytes
- * do not have that failure mode, which is why they are used instead.
+ * NOTHING HERE IS READ FROM THE FILE IT GUARDS, AND ONLY ONE TEST DEPENDS ON CODE.
+ * The freeze file's own bytes, the freeze and read hashes, and the class and stdout
+ * checksums are written down. Every test but one reads the freeze with a plain parse,
+ * so amending a rule constant in code fails only the one test that is about rules,
+ * rather than eleven tests blaming files nobody touched. The class and stdout
+ * checksums are held to a weaker standard than the market arms and say so: they
+ * were read off disk on 2026-09-16 and are justified by commit 7c55cd3 (#573) having
+ * written them — the commit that also wrote the freeze and the read — with no later
+ * commit touching any of them (`git log`, `git show 7c55cd3:<path>`). Re-running
+ * `freezeCandidates` would prove the class half from the freeze alone, but it binds
+ * the seal to current code, which pinned bytes do not.
  *
  * CONDEMNATION. This repository condemns an artifact by stamping `INVALID` into it in
- * place. A sealed input may not be condemned that way: the stamp rewrites the
- * provenance of a read that cannot be retaken. If one of these files must be
- * condemned, record it in a note beside the sealed read in
- * `docs/research/confirm-reads/` and leave the file's bytes alone. The failure
- * messages below say which of the two happened.
- *
- * Nothing here is read from the file it guards. The sealed hashes are written down,
- * and the sealed read's own content hash is recomputed, so rewriting the freeze, the
- * read and the ledger TOGETHER still fails. A regrade writes its output somewhere
- * new. If this fails, restore the files from git; never update a constant here.
+ * place. A sealed input may not be condemned that way; the stamp rewrites a burned
+ * read's provenance. Record the condemnation in
+ * `docs/research/confirm-reads/CONDEMNATIONS.md` — Markdown, never `.jsonl`, because
+ * that directory is globbed for ledgers on every confirm read.
  */
 
 const FREEZE = "docs/research/r4/frozen-candidates.json";
 const SEALED_READ = "docs/research/confirm-reads/ledgered-read-act3.json";
 const LEDGER_DIR = "docs/research/confirm-reads";
 
+/** The freeze file's own bytes: a witness no rule amendment can move. */
+const SEALED_FREEZE_FILE_SHA256 = "cb4350693d18ba2a8f8fc3b4e15fad82b1860ddfdd8843b4a04ba06a6b05f0ca";
 /** Taken from the read on 2026-09-03 and from the confirm-log line recording it. */
 const SEALED_FROZEN_HASH = "6b1e52e0e62be47df9237d8e57ba42797d415630c2907d4212d6b053454a5cf6";
 const SEALED_READ_ARTIFACT_HASH = "3a17f23378f60d01e95c5233739069c3f364da0923feae869a7a4fc21be22283";
@@ -62,13 +62,10 @@ const SEALED_MARKET_ARMS = {
 } as const;
 
 /**
- * The class arms, by the letter `classAxes` gives them, and the bytes each was frozen
- * from. Seven `*-grading-class.json` files exist; `class-default-grading-class.json`
- * and `class-default-gate-off-grading-class.json` are deliberately NOT class arms,
- * and this literal together with the tie test below is what records that. Each
- * checksum is the blob commit 7c55cd3 (#573) wrote — the commit that also wrote the
- * freeze and the read — and no later commit touched any of them (verified
- * 2026-09-16 with `git log` and `git show 7c55cd3:<path>`).
+ * The class arms, by the letter `classAxes` gives them. Seven `*-grading-class.json`
+ * files exist; `class-default-grading-class.json` and
+ * `class-default-gate-off-grading-class.json` are deliberately NOT class arms, and
+ * this literal plus the tie test below is what records that.
  */
 const SEALED_CLASS_ARM_LETTERS = ["F", "S", "S8", "W", "W96"] as const;
 const SEALED_CLASS_ARMS = {
@@ -79,98 +76,120 @@ const SEALED_CLASS_ARMS = {
   "docs/research/r4/admission-derived-grading-class.json": "00d59bc05a3477764699d218bddd5770ac7985865fd6b9890b4f67b28a371080",
 } as const;
 
-/** Says whether a changed sealed file was condemned in place or otherwise altered. */
+/**
+ * The stdout twin of every sealed input: the same run's other output, so sealed
+ * with it. `per-market-grading-classfolds.stdout.txt` is deliberately absent — it is
+ * not an input of the freeze and is the one record a regrade may overwrite.
+ */
+const SEALED_STDOUT_TWINS = {
+  "docs/research/r4/stop-cap-grading.stdout.txt": "acb67c752d7279ce9029337ebe88f63b3fb180516ae04e602b1e8428c14c9c19",
+  "docs/research/r4/stop-cap-8-grading.stdout.txt": "bdbe11054d1edd5d109911b24adbc9121d243a6b8d3f258f8798d39a606aeab7",
+  "docs/research/r4/review-window-grading.stdout.txt": "64dc6044676c942725804b30e6f32fdd75671ae1e8a62e3daf5b93d0feec2ac5",
+  "docs/research/r4/review-window-96-grading.stdout.txt": "5ab3feee068f6fc18ff6b361251650eb9c3485ac542435a8714d958b6c191bd4",
+  "docs/research/r4/class-default-grading.stdout.txt": "c22efbe722535d3daad314113b51e67cb237c7b502b51ec589b48e496efab8de",
+  "docs/research/r4/class-default-gate-off-grading.stdout.txt": "d18c8c34d0d2cbec5c5180689c9b0135e41c7bdcdc84588d9aba371128d396bc",
+  "docs/research/r4/admission-derived-grading.stdout.txt": "d0c730a11813b2a4acccf2420dfc3664e2a63ce28e4cb2a64e8a46d4b1d45a26",
+  "docs/research/r4/review-window-grading-class.stdout.txt": "708c09f592d9053dad88dfd143422e6d5206a348c487e2a06bac01aa0d1eda05",
+  "docs/research/r4/review-window-96-grading-class.stdout.txt": "aae90c044a75b8facecb5a76c40530922ad6cf90c96eabaa967c8dcf8ae3847d",
+  "docs/research/r4/stop-cap-grading-class.stdout.txt": "170d9142849a1b80f73ccde5a3fe3fae4581f68fa0d2ee3bb3ed22e17a1392f1",
+  "docs/research/r4/stop-cap-8-grading-class.stdout.txt": "f90bb8f39a29666076a18345e356c699701ff4e46cbe84f3e795032a76484db3",
+  "docs/research/r4/admission-derived-grading-class.stdout.txt": "51274146e681ee680ff6a7f16312072e8ede17189ff78b0538bf7648ecd8fc64",
+} as const;
+
+/** Says whether a changed sealed file was condemned in place or otherwise altered. Called only on failure. */
 function whatHappened(path: string): string {
   let condemned = false;
   try {
     condemned = typeof (JSON.parse(readFileSync(path, "utf8")) as { INVALID?: unknown }).INVALID === "string";
   } catch {
-    // Unparseable is plainly "altered"; the message below covers it.
+    // Unparseable, or not JSON at all: "altered" covers it.
   }
   return condemned
     ? `${path} was CONDEMNED IN PLACE with an INVALID stamp. A sealed input of the burned act-3 read ` +
-      `may not be stamped: revert the stamp and record the condemnation in a note beside the sealed ` +
-      `read in docs/research/confirm-reads/.`
-    : `${path} was altered after it was sealed. It is an input of the burned act-3 read: restore it ` +
-      `from git, and write any regrade beside it, never over it.`;
+      `may not be stamped: revert the stamp and record the condemnation in ${LEDGER_DIR}/CONDEMNATIONS.md.`
+    : `${path} was altered after it was sealed. It belongs to the burned act-3 read: restore it from ` +
+      `git, and write any regrade beside it, never over it.`;
 }
 
-// Loaded INSIDE each test, never at collection time. `verifyFrozenCandidates`
-// throws on a tampered freeze, and a throw while the suite is being collected
-// reported zero tests and zero failures — a tampered seal read as a pass that
-// examined nothing. Inside a test it is a named failure.
-const loadFrozen = () => verifyFrozenCandidates(FREEZE);
-const loadSealed = () => JSON.parse(readFileSync(SEALED_READ, "utf8")) as LedgeredReadArtifact & {
+async function assertSealedBytes(path: string, expected: string, label = ""): Promise<void> {
+  const actual = await sha256File(path);
+  if (actual !== expected) assert.fail(`${label}${whatHappened(path)} (sha256 ${actual.slice(0, 12)}, sealed ${expected.slice(0, 12)})`);
+}
+
+// Loaded INSIDE each test, never at collection time: a throw while the suite is
+// collected reported zero tests and zero failures. A plain parse, so no test but
+// the one about rules depends on the rule constants in code.
+const parseFreeze = () => JSON.parse(readFileSync(FREEZE, "utf8")) as FrozenCandidates;
+const parseSealed = () => JSON.parse(readFileSync(SEALED_READ, "utf8")) as LedgeredReadArtifact & {
   artifactHash: string;
   frozen?: { frozenHash?: string; arms?: unknown[] };
 };
 
-describe("the act-3 freeze and every grading it was built from stay sealed with the burned read", () => {
+describe("the act-3 freeze and everything it was built from stay sealed with the burned read", () => {
   it("keeps the sealed read's own content hash, as written down", () => {
-    const sealed = loadSealed();
-    assert.equal(
-      artifactHashOf(sealed),
-      sealed.artifactHash,
-      `${SEALED_READ} no longer hashes to the artifactHash it carries: it was edited after the read`,
-    );
+    const sealed = parseSealed();
+    assert.equal(artifactHashOf(sealed), sealed.artifactHash, `${SEALED_READ} was edited after the read`);
     assert.equal(sealed.artifactHash, SEALED_READ_ARTIFACT_HASH, `${SEALED_READ} is not the read taken on 2026-09-03`);
   });
 
-  it("keeps the confirm-log ledger agreeing with the sealed read", () => {
-    const ledgers = readdirSync(LEDGER_DIR).filter((name) => /^confirm-log-.*\.jsonl$/.test(name)).sort();
+  it("keeps exactly one ledger line recording the sealed read, agreeing with it", () => {
+    // Every .jsonl here, as production globs it (grid-totalr.ts, jsonlIn(dir, "")):
+    // the retired unprefixed ledger form is still honoured in this directory.
+    const ledgers = readdirSync(LEDGER_DIR).filter((name) => name.endsWith(".jsonl")).sort();
     const entries: Array<{ artifactPath?: string; artifactHash?: string; frozenHash?: string }> = [];
     for (const name of ledgers) {
-      const lines = readFileSync(`${LEDGER_DIR}/${name}`, "utf8").split("\n").filter(Boolean);
-      lines.forEach((line, index) => {
+      readFileSync(`${LEDGER_DIR}/${name}`, "utf8").split("\n").filter(Boolean).forEach((line, index) => {
         try {
           entries.push(JSON.parse(line));
         } catch {
-          assert.fail(`${LEDGER_DIR}/${name} line ${index + 1} is not JSON; a ledger line is evidence`);
+          assert.fail(`${LEDGER_DIR}/${name} line ${index + 1} is not JSON; it would refuse every confirm read`);
         }
       });
     }
     const matching = entries.filter((line) => line.artifactPath === SEALED_READ);
-    assert.equal(matching.length, 1, `${matching.length} confirm-log lines record ${SEALED_READ}; expected exactly one`);
-    const [entry] = matching;
-    assert.equal(entry.artifactHash, SEALED_READ_ARTIFACT_HASH, "the ledger's artifactHash moved");
-    assert.equal(entry.frozenHash, SEALED_FROZEN_HASH, "the ledger's frozenHash moved");
+    assert.equal(matching.length, 1, `${matching.length} ledger lines record ${SEALED_READ}; expected exactly one`);
+    assert.equal(matching[0].artifactHash, SEALED_READ_ARTIFACT_HASH, "the ledger's artifactHash moved");
+    assert.equal(matching[0].frozenHash, SEALED_FROZEN_HASH, "the ledger's frozenHash moved");
   });
 
-  it("keeps the freeze's own content hash intact", () => {
-    assert.doesNotThrow(loadFrozen, `${whatHappened(FREEZE)} (or it was re-ruled)`);
+  it("keeps the freeze file's bytes, as written down", async () => {
+    await assertSealedBytes(FREEZE, SEALED_FREEZE_FILE_SHA256);
   });
 
-  it("keeps the freeze bound by the sealed read, at the hash written down", () => {
-    const frozen = loadFrozen();
-    const sealed = loadSealed();
-    assert.equal(frozen.frozenHash, SEALED_FROZEN_HASH, `${FREEZE} was re-frozen; restore it from git`);
-    assert.equal(sealed.frozen?.frozenHash, SEALED_FROZEN_HASH, `${SEALED_READ} no longer binds the sealed freeze`);
+  it("keeps the freeze's body hash, bound by the sealed read", () => {
+    const freeze = parseFreeze();
+    assert.equal(freeze.frozenHash, SEALED_FROZEN_HASH, `${FREEZE} was re-frozen; restore it from git`);
+    assert.equal(frozenHashOf(freeze), SEALED_FROZEN_HASH, `${FREEZE}'s body no longer hashes to its frozenHash`);
+    assert.equal(parseSealed().frozen?.frozenHash, SEALED_FROZEN_HASH, `${SEALED_READ} no longer binds the sealed freeze`);
+  });
+
+  it("still opens through the read's door under the rules in code (the only test that depends on code)", () => {
+    // If the bytes test above passes and this fails, nothing sealed moved: a rule
+    // constant was amended. Re-rule deliberately; do not touch the freeze.
+    assert.doesNotThrow(() => verifyFrozenCandidates(FREEZE), "verifyFrozenCandidates refused the sealed freeze");
   });
 
   it("names exactly the seven market arms it was frozen from", () => {
-    const frozen = loadFrozen();
-    const sealed = loadSealed();
-    const named = Object.fromEntries(frozen.arms.map((arm) => [arm.arm, arm.artifactPath]));
+    const named = Object.fromEntries(parseFreeze().arms.map((arm) => [arm.arm, arm.artifactPath]));
     assert.deepEqual(named, SEALED_MARKET_ARMS, "the freeze's market arm set changed");
-    assert.equal(sealed.frozen?.arms?.length, 7, "the sealed read bound seven market arms");
+    assert.equal(parseSealed().frozen?.arms?.length, 7, "the sealed read bound seven market arms");
   });
 
   for (const [arm, path] of Object.entries(SEALED_MARKET_ARMS)) {
     it(`leaves market arm ${arm} byte-identical to what was frozen (${path})`, async () => {
-      const frozen = loadFrozen();
-      const recorded = frozen.arms.find((entry) => entry.arm === arm);
+      const recorded = parseFreeze().arms.find((entry) => entry.arm === arm);
       assert.ok(recorded, `the freeze carries no arm ${arm}`);
-      assert.equal(await sha256File(path), recorded.artifactSha256, `arm ${arm}: ${whatHappened(path)}`);
+      await assertSealedBytes(path, recorded.artifactSha256, `arm ${arm}: `);
     });
   }
 
   it("ties each class arm to its market arm, so the pinned files are the class arms and not lookalikes", () => {
-    const frozen = loadFrozen();
-    assert.ok(frozen.classAxes, `${FREEZE} carries no classAxes; the sealed freeze had five class arms`);
-    const letters = [...new Set(frozen.classAxes.flatMap((axis) => axis.arms.map((arm) => arm.arm)))].sort();
+    const freeze = parseFreeze();
+    assert.ok(freeze.classAxes, `${FREEZE} carries no classAxes; the sealed freeze had five class arms`);
+    const letters = [...new Set(freeze.classAxes.flatMap((axis) => axis.arms.map((arm) => arm.arm)))].sort();
     assert.deepEqual(letters, [...SEALED_CLASS_ARM_LETTERS], "the freeze's class arm set changed");
     const derived = letters.map((letter) => {
-      const market = frozen.arms.find((arm) => arm.arm === letter);
+      const market = freeze.arms.find((arm) => arm.arm === letter);
       assert.ok(market, `class arm ${letter} has no market arm in the freeze`);
       return { letter, market, path: market.artifactPath.replace(/-grading\.json$/, "-grading-class.json") };
     });
@@ -184,7 +203,20 @@ describe("the act-3 freeze and every grading it was built from stay sealed with 
 
   for (const [path, sha] of Object.entries(SEALED_CLASS_ARMS)) {
     it(`leaves class arm ${path} byte-identical to the blob the freeze was built from`, async () => {
-      assert.equal(await sha256File(path), sha, whatHappened(path));
+      await assertSealedBytes(path, sha);
+    });
+  }
+
+  it("pins the stdout twin of every sealed input, and of nothing else", () => {
+    const expected = [...Object.values(SEALED_MARKET_ARMS), ...Object.keys(SEALED_CLASS_ARMS)]
+      .map((path) => path.replace(/\.json$/, ".stdout.txt"))
+      .sort();
+    assert.deepEqual(Object.keys(SEALED_STDOUT_TWINS).sort(), expected, "the twin set no longer mirrors the sealed inputs");
+  });
+
+  for (const [path, sha] of Object.entries(SEALED_STDOUT_TWINS)) {
+    it(`leaves stdout twin ${path} byte-identical to what its run wrote`, async () => {
+      await assertSealedBytes(path, sha);
     });
   }
 });

@@ -169,8 +169,9 @@ matters most:
    stale. So of every stale record, only `per-market-grading-classfolds`
    regenerates in place; the other eleven, and the stdout twins of every sealed
    input, get their regraded output written somewhere new. A sealed input may not
-   be condemned in place with an INVALID stamp either; a condemnation goes in a
-   note beside the sealed read in `docs/research/confirm-reads/`.
+   be condemned in place with an INVALID stamp either; a condemnation goes in
+   `docs/research/confirm-reads/CONDEMNATIONS.md` — Markdown, never `.jsonl`,
+   since that directory is globbed for ledgers on every confirm read.
 7. ~~Re-run `freeze-candidates` or re-record the seven `artifactSha256` values in
    `r4/frozen-candidates.json`.~~ **WITHDRAWN 2026-09-16 — DO NOT DO THIS.** Seven of
    the eight gradings are the freeze's arms, the inputs of the sealed act-3 read,
@@ -191,7 +192,9 @@ matters most:
    content hash, checks the confirm-log ledger agrees, and holds the freeze and
    read hashes as written-down constants. It fails by name on an overwritten
    market or class arm, a tampered freeze, a consistent re-freeze, and the freeze,
-   read and ledger rewritten together. The premise that
+   read and ledger rewritten together. It also pins the freeze file's own bytes and the stdout twin of every sealed
+   input, and only one of its tests depends on the rule constants in code, so a
+   deliberate re-ruling fails that test alone. The premise that
    drove this correction is right — a regrade in place does falsify the binding —
    and the conclusion was the wrong way round: the arms must stay byte-identical.
    How to regrade without touching them is being designed and refuted before

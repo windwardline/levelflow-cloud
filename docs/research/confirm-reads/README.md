@@ -101,6 +101,16 @@ confirm read, one bad line blocks every corpus, not just its own, which is
 why the message says so and names the file. A `.jsonl` that is not a ledger
 does not belong here; move it rather than leaving it to be read as one.
 
+**What else may live here, and in what form.** Besides the ledgers, this
+directory holds the sealed ledgered-read artifacts (`ledgered-read-*.json`),
+this README, and — only if one is ever needed — `CONDEMNATIONS.md`, the
+record of a condemnation of a SEALED INPUT of a burned read. Such an input is
+never condemned by stamping `INVALID` into it in place, because the stamp
+rewrites the provenance of a read that cannot be retaken
+(`tests/sealedArmsUnchanged.test.ts` fails on it and says so). The note is
+Markdown, never `.jsonl`: every `.jsonl` here is read as a ledger on every
+confirm read.
+
 `--confirm-log-dir` redirects **where a read is written**, never where prior
 reads are looked for: this directory is searched on every `--confirm-final`
 run whatever the flag says, and a redirected run warns that it is filing

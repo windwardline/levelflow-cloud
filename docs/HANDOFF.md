@@ -2427,8 +2427,10 @@ a regrade — `per-market-grading-classfolds` is stale but not sealed, and
 `review-window-96-grading-class` is sealed but not stale. A regrade may overwrite
 in place only `per-market-grading-classfolds`; every other stale record and every
 sealed input's stdout twin gets its output written somewhere new, and a sealed
-input is never condemned by stamping it. `tests/sealedArmsUnchanged.test.ts`
-enforces the twelve sealed inputs and says which of the two happened.
+input is never condemned by stamping it — a condemnation goes in
+`docs/research/confirm-reads/CONDEMNATIONS.md`. `tests/sealedArmsUnchanged.test.ts`
+enforces the twelve sealed inputs, their stdout twins and the freeze file's bytes,
+and says which of the two happened.
 
 **Also owed, and found on 2026-09-14 by the review of the disposition
 repairs**: the same absent-reads-as-zero construction publishes
