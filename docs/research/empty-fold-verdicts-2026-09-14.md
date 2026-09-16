@@ -155,8 +155,8 @@ matters most:
    top level, because it predates #571.
 6. Regenerate the `*-grading.stdout.txt` records with the artifacts they
    print. **Scoped by item 7 (2026-09-16):** a stdout record and its JSON are the
-   same run's two outputs, so the seven sealed arms' stdout twins are sealed with
-   them. Regenerating a twin beside a sealed JSON would leave the pairs
+   same run's two outputs, so the stdout twin of every sealed input is sealed with
+   it — and so are the burned read's own artifact file and its printed record. Regenerating a twin beside a sealed JSON would leave the pairs
    disagreeing with nothing cross-checking them. **The SEALED INPUTS are twelve
    gradings, not seven**: the freeze body also carries `classes`, `classAxes`,
    `classCellsTested` and `expectedFalseAcceptsClasses`, computed from five
@@ -192,7 +192,8 @@ matters most:
    content hash, checks the confirm-log ledger agrees, and holds the freeze and
    read hashes as written-down constants. It fails by name on an overwritten
    market or class arm, a tampered freeze, a consistent re-freeze, and the freeze,
-   read and ledger rewritten together. It also pins the freeze file's own bytes and the stdout twin of every sealed
+   read and ledger rewritten together. It also pins the freeze file's own bytes, the sealed read's own file bytes and
+   printed record, and the stdout twin of every sealed
    input, and only one of its tests depends on the rule constants in code, so a
    deliberate re-ruling fails that test alone. The premise that
    drove this correction is right — a regrade in place does falsify the binding —

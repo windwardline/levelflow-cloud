@@ -103,7 +103,9 @@ does not belong here; move it rather than leaving it to be read as one.
 
 **What else may live here, and in what form.** Besides the ledgers, this
 directory holds the sealed ledgered-read artifacts (`ledgered-read-*.json`),
-this README, and — only if one is ever needed — `CONDEMNATIONS.md`, the
+the printed record of each read's own run (`ledgered-read-*.stdout.txt`, sealed
+with its artifact because that run cannot be repeated), this README, and
+`CONDEMNATIONS.md`, the
 record of a condemnation of a SEALED INPUT of a burned read. Such an input is
 never condemned by stamping `INVALID` into it in place, because the stamp
 rewrites the provenance of a read that cannot be retaken

@@ -26,7 +26,9 @@ import { artifactHashOf, type LedgeredReadArtifact, sha256File } from "../script
  * written down. Three tests depend on code, and each says so in its name: one on
  * the amendable rule constants through `verifyFrozenCandidates` (which also hashes
  * with `frozenHashOf`), and two on the hash functions (`artifactHashOf`,
- * `frozenHashOf`). A hashing refactor fails all three and nothing else. The file-bytes tests are the
+ * `frozenHashOf`). A hashing refactor fails all three and nothing else. Every byte
+ * test still shares one dependency, `sha256File`, a raw digest rather than a
+ * canonicalising hash; a change to it would fail every byte test at once. The file-bytes tests are the
  * code-independent witnesses, so when one of those three fails while the bytes tests
  * pass, the CODE changed — a re-ruling or a hashing refactor — not the seal. Every
  * other test reads the freeze with a plain parse. The class and stdout
