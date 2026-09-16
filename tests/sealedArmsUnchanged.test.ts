@@ -49,6 +49,15 @@ import { artifactHashOf, type LedgeredReadArtifact, sha256File } from "../script
 const FREEZE = "docs/research/r4/frozen-candidates.json";
 const SEALED_READ = "docs/research/confirm-reads/ledgered-read-act3.json";
 const LEDGER_DIR = "docs/research/confirm-reads";
+/**
+ * The tracked ledger that records the sealed read, written down. Production refuses
+ * a malformed line in ANY ledger here, but `tests/acceptanceGate.test.ts` writes
+ * fixture ledgers of exactly those malformed shapes into this directory while the
+ * suite runs files in parallel (`tests/emptyCorpusRefusals.test.ts` documents the
+ * same collision). So shapes are refused strictly only in this file; every other
+ * `.jsonl` is scanned tolerantly, for records of the sealed read and nothing else.
+ */
+const SEALED_LEDGER = "confirm-log-f3b72ce8261a1d0a469f6f152950a9716703ea36a34612fe0187849459f4b062.jsonl";
 
 /** The freeze's and the read's own file bytes: witnesses no code change can move. */
 const SEALED_FREEZE_FILE_SHA256 = "cb4350693d18ba2a8f8fc3b4e15fad82b1860ddfdd8843b4a04ba06a6b05f0ca";
@@ -58,7 +67,6 @@ const SEALED_READ_FILE_SHA256 = "f56cea5f816be6bb163d84f8b76b9e653d2fcfec3e6fba2
  * Of every stdout record here it is the one whose run is not merely owed-not-to-be-
  * repeated but impossible to repeat.
  */
-const SEALED_READ_STDOUT = "docs/research/confirm-reads/ledgered-read-act3.stdout.txt";
 const SEALED_READ_STDOUT_SHA256 = "d3da3825ad627513f3bcf4872b8d9c7c9e5a0ef2f27dd548bbc4b325d08ef9c3";
 /** Taken from the read on 2026-09-03 and from the confirm-log line recording it. */
 const SEALED_FROZEN_HASH = "6b1e52e0e62be47df9237d8e57ba42797d415630c2907d4212d6b053454a5cf6";
@@ -139,7 +147,8 @@ async function assertSealedBytes(path: string, expected: string, label = ""): Pr
   let actual: string;
   try {
     actual = await sha256File(path);
-  } catch {
+  } catch (error) {
+    if ((error as { code?: string }).code !== "ENOENT") throw error;
     assert.fail(`${label}${path} is MISSING. It belongs to the burned act-3 read: restore it from git; a regrade writes beside a sealed file, never moves it.`);
   }
   if (actual !== expected) assert.fail(`${label}${whatHappened(path)} (sha256 ${actual.slice(0, 12)}, sealed ${expected.slice(0, 12)})`);
@@ -156,22 +165,29 @@ const parseSealed = () => JSON.parse(readFileSync(SEALED_READ, "utf8")) as Ledge
 
 describe("the act-3 freeze and everything it was built from stay sealed with the burned read", () => {
   it("pins every sealed read the directory holds, and its printed record, and nothing else", () => {
-    const reads = readdirSync(LEDGER_DIR).filter((name) => /^ledgered-read-.*\.json$/.test(name)).sort();
-    assert.deepEqual(
-      reads,
-      Object.keys(SEALED_READS_BY_FILE).sort(),
-      `${LEDGER_DIR} holds a sealed read this test does not pin; pin its file bytes and printed record`,
-    );
+    const listing = readdirSync(LEDGER_DIR);
+    const reads = listing.filter((name) => /^ledgered-read-.*\.json$/.test(name)).sort();
+    const pinned = Object.keys(SEALED_READS_BY_FILE).sort();
+    const unpinned = reads.filter((name) => !pinned.includes(name));
+    const vanished = pinned.filter((name) => !reads.includes(name));
+    assert.deepEqual(unpinned, [], `${LEDGER_DIR} holds sealed reads this test does not pin: ${unpinned.join(", ")}`);
+    assert.deepEqual(vanished, [], `pinned sealed reads are missing from ${LEDGER_DIR}: ${vanished.join(", ")}`);
     for (const name of reads) {
       const stdout = name.replace(/\.json$/, ".stdout.txt");
-      assert.ok(readdirSync(LEDGER_DIR).includes(stdout), `${LEDGER_DIR}/${name} has no printed record ${stdout}`);
+      assert.ok(listing.includes(stdout), `${LEDGER_DIR}/${name} has no printed record ${stdout}`);
     }
+    const orphans = listing
+      .filter((name) => /^ledgered-read-.*\.stdout\.txt$/.test(name))
+      .filter((name) => !listing.includes(name.replace(/\.stdout\.txt$/, ".json")));
+    assert.deepEqual(orphans, [], `printed records with no sealed read beside them: ${orphans.join(", ")}`);
   });
 
-  it("keeps the sealed read's file bytes and its printed record, as written down", async () => {
-    await assertSealedBytes(SEALED_READ, SEALED_READ_FILE_SHA256);
-    await assertSealedBytes(SEALED_READ_STDOUT, SEALED_READ_STDOUT_SHA256);
-  });
+  for (const [name, sealed] of Object.entries(SEALED_READS_BY_FILE)) {
+    it(`keeps sealed read ${name} and its printed record byte-identical, as written down`, async () => {
+      await assertSealedBytes(`${LEDGER_DIR}/${name}`, sealed.file);
+      await assertSealedBytes(`${LEDGER_DIR}/${name.replace(/\.json$/, ".stdout.txt")}`, sealed.stdout);
+    });
+  }
 
   it("keeps the sealed read's own content hash, as written down (depends on artifactHashOf)", () => {
     const sealed = parseSealed();
@@ -187,8 +203,22 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
     // Every .jsonl here, as production globs it (grid-totalr.ts, jsonlIn(dir, "")):
     // the retired unprefixed ledger form is still honoured in this directory.
     const ledgers = readdirSync(LEDGER_DIR).filter((name) => name.endsWith(".jsonl")).sort();
+    assert.ok(ledgers.includes(SEALED_LEDGER), `${LEDGER_DIR}/${SEALED_LEDGER}, the ledger recording the sealed read, is missing`);
     const entries: Array<{ artifactPath?: string; artifactHash?: string; frozenHash?: string }> = [];
-    for (const name of ledgers) {
+    // Tolerant everywhere but the sealed ledger: a concurrent fixture may be mid-write.
+    for (const name of ledgers.filter((ledger) => ledger !== SEALED_LEDGER)) {
+      for (const line of readFileSync(`${LEDGER_DIR}/${name}`, "utf8").split("\n").filter(Boolean)) {
+        try {
+          const value = JSON.parse(line) as unknown;
+          if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+            entries.push(value as { artifactPath?: string; artifactHash?: string; frozenHash?: string });
+          }
+        } catch {
+          // Not a record of anything; production refuses it on its own at read time.
+        }
+      }
+    }
+    for (const name of [SEALED_LEDGER]) {
       readFileSync(`${LEDGER_DIR}/${name}`, "utf8").split("\n").filter(Boolean).forEach((line, index) => {
         // Production refuses three shapes (grid-totalr.ts, the prior-read scan):
         // not JSON, not a plain object, and no corpusHash string. Each one blocks
