@@ -156,10 +156,17 @@ matters most:
 6. Regenerate the `*-grading.stdout.txt` records with the artifacts they
    print. **Scoped by item 7 (2026-09-16):** a stdout record and its JSON are the
    same run's two outputs, so the seven sealed arms' stdout twins are sealed with
-   them. Regenerating a twin beside a sealed JSON would leave seven pairs
-   disagreeing with nothing cross-checking them. Only
-   `per-market-grading-classfolds`, which is not an arm, regenerates in place; the
-   regrade's output for the seven goes somewhere new.
+   them. Regenerating a twin beside a sealed JSON would leave the pairs
+   disagreeing with nothing cross-checking them. **The seal is twelve gradings,
+   not seven**: the freeze body also carries `classes`, `classAxes`,
+   `classCellsTested` and `expectedFalseAcceptsClasses`, computed from five
+   class-grain gradings (review-window, review-window-96, stop-cap, stop-cap-8 and
+   admission-derived, each `-grading-class.json`), and it records NO checksum for
+   them. All four class-grain gradings this note lists as stale are among those
+   five. So of every grading owed a regrade, only
+   `per-market-grading-classfolds` regenerates in place; everything else — seven
+   market arms, five class arms, and the stdout twins of all twelve — gets its
+   regraded output written somewhere new.
 7. ~~Re-run `freeze-candidates` or re-record the seven `artifactSha256` values in
    `r4/frozen-candidates.json`.~~ **WITHDRAWN 2026-09-16 — DO NOT DO THIS.** Seven of
    the eight gradings are the freeze's arms, the inputs of the sealed act-3 read,
@@ -174,9 +181,13 @@ matters most:
    and never re-hashes an arm file on disk; the only comparison of
    `artifactSha256` against a real file is `tests/freezeCandidates.test.ts`,
    against that test's own fixture. **Enforced since 2026-09-16** by
-   `tests/sealedArmsUnchanged.test.ts`, which re-hashes the seven tracked arms
-   against the tracked freeze and the freeze against the sealed read, and fails by
-   name on an overwritten arm, a tampered freeze, or a consistent re-freeze. The premise that
+   `tests/sealedArmsUnchanged.test.ts`, which re-hashes the seven market arms
+   against the freeze, pins the five class arms to the blobs commit 7c55cd3 wrote
+   (the freeze records no checksum for them), recomputes the sealed read's own
+   content hash, checks the confirm-log ledger agrees, and holds the freeze and
+   read hashes as written-down constants. It fails by name on an overwritten
+   market or class arm, a tampered freeze, a consistent re-freeze, and the freeze,
+   read and ledger rewritten together. The premise that
    drove this correction is right — a regrade in place does falsify the binding —
    and the conclusion was the wrong way round: the arms must stay byte-identical.
    How to regrade without touching them is being designed and refuted before

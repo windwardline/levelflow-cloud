@@ -2420,8 +2420,11 @@ the judged bucket, a disposition move in the opposite direction from #647's.
 **Correction 7 is WITHDRAWN (2026-09-16) and must not be followed.** Seven of the
 eight gradings are the inputs of the sealed act-3 read, and the freeze's
 `frozenHash` covers their checksums, so re-recording them or re-running the freeze
-severs a burned read. A regrade may not overwrite those seven in place, nor
-their stdout twins. `tests/sealedArmsUnchanged.test.ts` enforces it.
+severs a burned read. The seal is twelve gradings, not seven: the freeze's class
+half was computed from five class-grain gradings and records no checksum for
+them. A regrade may overwrite in place only `per-market-grading-classfolds`;
+every other stale grading and every stdout twin gets its output written somewhere
+new. `tests/sealedArmsUnchanged.test.ts` enforces all twelve.
 
 **Also owed, and found on 2026-09-14 by the review of the disposition
 repairs**: the same absent-reads-as-zero construction publishes
