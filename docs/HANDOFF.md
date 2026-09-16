@@ -32,6 +32,16 @@ coverage question closed, and the desk went dark on purpose.
 
 ## 1. Where things actually stand
 
+### Designs that survived refutation live in the repository, not in a scratchpad
+
+The session scratchpad under `/private/tmp` was reaped by the operating system between
+2026-09-14 and 2026-09-16. It held the only copies of two refuted, approved, unbuilt
+designs — the gate's year filter and the random-entry excursion screen — and every
+pull request body and working file of that session. Both designs were recovered, one
+from its workflow journal and one from the session record, and now live under
+[`docs/research/designs/`](/docs/research/designs/), each headed by its status and the
+corrections that govern it. A design that has survived a refuter is a record.
+
 ### The night of 2026-09-14: what a gate defect cost to close properly
 
 Nine pull requests merged on 2026-09-14, six of them after 21:00, and the last
@@ -2365,7 +2375,9 @@ E2E's stand-downs end; the re-simulate is unaffected (zero provider bytes).
 
 **THE GATE CALLED AN UNMEASURED FOLD A MEASURED LOSS — 2026-09-14.**
 [`empty-fold-verdicts-2026-09-14.md`](/docs/research/empty-fold-verdicts-2026-09-14.md).
-Found while refuting the year-filter design, and independent of it.
+Found while refuting the year-filter design
+([`designs/gate-year-filter-2026-09-14.md`](/docs/research/designs/gate-year-filter-2026-09-14.md)),
+and independent of it.
 `grid-totalr`'s acceptance needs `fitTotalDelta > 0`; `totalOf` returns 0 for an
 absent cell, so a market with NO fit-fold rows differences to 0 − 0, fails the
 conjunct, and — with no fold-emptiness leg in the no-verdict ladder — fell
