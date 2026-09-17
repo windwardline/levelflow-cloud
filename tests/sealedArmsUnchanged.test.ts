@@ -122,26 +122,36 @@ const SEALED_STDOUT_TWINS = {
  */
 const SEALED_READS_BY_FILE: Record<
   string,
-  { file: string; stdout: string; ledger: string; artifactHash: string; confirmSpansDigest: string; frozenHash?: string }
+  // frozenHash is REQUIRED in the type, as a string or null: a read taken under a
+  // freeze must pin the hash it bound, and a read taken outside one must say null.
+  // Leaving it off is a type error, never a silent skip.
+  { file: string; stdout: string; ledger: string; artifactHash: string; frozenHash: string | null }
 > = {
   "ledgered-read-act3.json": {
     file: SEALED_READ_FILE_SHA256,
     stdout: SEALED_READ_STDOUT_SHA256,
     ledger: "confirm-log-f3b72ce8261a1d0a469f6f152950a9716703ea36a34612fe0187849459f4b062.jsonl",
     artifactHash: SEALED_READ_ARTIFACT_HASH,
-    // The confirm spans have no twin in the artifact, and a sanctioned
-    // --acknowledge-prior-reads appends to the ledger, so neither the artifact nor
-    // the ledger file's bytes can witness them. This digest can: sha256 of
-    // JSON.stringify of [symbol, startMs, endMs] sorted by symbol (spansDigest below).
-    confirmSpansDigest: "cee9d7b5222c6fb933ad1d008d3cd9928c664b2a38fd342587b427d9d77a9e2c",
     frozenHash: SEALED_FROZEN_HASH,
   },
 };
 
-/** A self-contained canonical digest of a ledger line's confirm spans; depends on no repository code. */
-function spansDigest(spans: Record<string, { startMs?: number; endMs?: number }> | undefined): string {
-  const canonical = JSON.stringify(Object.keys(spans ?? {}).sort().map((symbol) => [symbol, spans?.[symbol]?.startMs, spans?.[symbol]?.endMs]));
-  return createHash("sha256").update(canonical).digest("hex");
+/**
+ * The sha256 of a value in sorted-key canonical JSON — the form production hashes
+ * the confirm spans in to make `calendarHash` (grid-totalr.ts, `sha256Hex(
+ * stableJson(confirmSpans))`). Written out here rather than importing `stableJson`,
+ * so the binding depends on no repository code; verified 2026-09-16 to reproduce the
+ * act-3 read's `calendarHash` exactly.
+ */
+function canonicalSha256(value: unknown): string {
+  const canonical = (v: unknown): string =>
+    v === null || typeof v !== "object"
+      ? JSON.stringify(v)
+      : Array.isArray(v)
+      ? `[${v.map(canonical).join(",")}]`
+      : `{${Object.keys(v as Record<string, unknown>).filter((k) => (v as Record<string, unknown>)[k] !== undefined).sort()
+        .map((k) => `${JSON.stringify(k)}:${canonical((v as Record<string, unknown>)[k])}`).join(",")}}`;
+  return createHash("sha256").update(canonical(value)).digest("hex");
 }
 
 /** Says whether a changed sealed file was condemned in place or otherwise altered. Called only on failure. */
@@ -322,15 +332,18 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
         assert.equal(artifact.corpusId, corpusId, `${name}'s corpusId no longer matches the ledger it names`);
         assert.equal(line.corpusHash, corpusId, `the ledger's corpusHash for ${name} no longer names its corpus`);
         assert.deepEqual(line.shardHashes, artifact.shardHashes, `the ledger's shardHashes for ${name} no longer match the sealed read`);
-        if (read.frozenHash) assert.equal(line.frozenHash, read.frozenHash, `the ledger's frozenHash for ${name} moved`);
+        assert.equal(line.frozenHash ?? null, read.frozenHash, `the ledger's frozenHash for ${name} moved`);
         assert.equal(line.calendarHash, artifact.calendarHash, `the ledger's calendarHash for ${name} no longer matches the sealed read`);
         assert.deepEqual(line.symbolsRead, artifact.symbolsRead, `the ledger's symbolsRead for ${name} no longer match the sealed read`);
-        // For a later corpus the calendar-hash clause is dark by construction, so
-        // these spans are the sole guard on the cross-corpus refusal. Bound by value.
+        // `calendarHash` IS the digest of the confirm spans, so the spans are bound
+        // by value to the byte-pinned artifact, and this also proves the ledger's
+        // calendarHash is the hash of the spans it sits beside. Production's
+        // calendar refusal reads the spans (overlapsCalendar) and the hash; both are
+        // now witnessed by pinned bytes.
         assert.equal(
-          spansDigest(line.confirmSpans),
-          read.confirmSpansDigest,
-          `the ledger's confirm spans for ${name} moved; the calendar match that refuses a later read of these dates would change`,
+          canonicalSha256(line.confirmSpans),
+          artifact.calendarHash,
+          `the ledger's confirm spans for ${name} no longer hash to the sealed read's calendarHash; the calendar refusal would change`,
         );
       }
     }
