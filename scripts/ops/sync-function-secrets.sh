@@ -9,8 +9,12 @@
 #   - NEWS_SYNC_TOKEN        → Supabase function secret (the gate half)
 #   - vault.news_sync_token  → Supabase Vault           (the caller half:
 #     pg_cron reads it at call time to authenticate against the gate)
-# then proves the token clears the gate with one authenticated
-# news-calendar call. Run it after ANY rotation of these Keychain items;
+# then proves, with one token-gated GET to news-calendar that fetches nothing,
+# that the gate half equals the Keychain token and that the running function
+# holds the Keychain's FMP_API_KEY (compared by a SHA-256 prefix; neither
+# fingerprint is printed). It does NOT prove the Vault half — only the psql
+# write under ON_ERROR_STOP does — and it does NOT prove FMP accepts the key:
+# only a fetch that runs can. Run it after ANY rotation of these Keychain items;
 # whatever the current live state (never-propagated, half-propagated,
 # stale), one run lands everything rotated, agreeing, and governed.
 #
@@ -19,8 +23,9 @@
 # BEFORE the first write, because a run that rotates the gate half and
 # then dies on the Vault half would CAUSE the split-token 401s this
 # script exists to prevent. After the preflight, the remaining failure
-# window is a transient between two writes seconds apart, and the verify
-# step at the end would catch exactly that.
+# window is a transient between two writes seconds apart: a failed Vault
+# write exits non-zero under ON_ERROR_STOP, and the verify at the end
+# catches a gate half that did not take.
 #
 # Why this exists (2026-08-18): the fleet credential law (windwardline/ops —
 # "Keychain is the secret store"; credentials.tsv is the governed inventory)
@@ -189,45 +194,88 @@ SQL
 run_psql "$DB_HOST" "$DB_USER" "$SQL_FILE"
 log "vault.news_sync_token synced (${DB_HOST})"
 
-# ---- Prove it: the token must clear the gate -------------------------------
-# One authenticated news-calendar call. A warm function instance can hold
-# the pre-rotation env for a short while (#361 review, finding 5), so a
-# 401 retries before it is believed. Status classes are attributed
-# honestly (#361 review, findings 3/4): only 401/403 means the halves
-# disagree; 404 means the function is not deployed yet; any other
-# non-200 means auth CLEARED (or was never reached) and the function
-# itself is unhealthy — the token sync stands either way, and a 200 here
-# proves the gate, not the depth of the ingestion behind it.
+# ---- Prove it: the token clears the gate, and the key is the one we hold ----
+# One token-gated GET. news-calendar answers it before any spend decision
+# (supabase/functions/news-calendar/gate.ts): `"gate":"accepted"`, the parking
+# state, and a SHA-256 prefix of the FMP_API_KEY the running function reads.
+# It used to be a POST, which ran a full calendar, earnings and news sync to
+# answer "is the token right" — that proved the key worked, and spent a sync
+# every rotation.
+#
+# A warm function instance can hold the pre-rotation env for a short while
+# (#361 review, finding 5), so a 401 — or a 200 naming a different key — retries
+# before it is believed. Status classes are attributed honestly (#361 review,
+# findings 3/4): only 401/403 means the halves disagree; 404 means the function
+# is not deployed yet; 405 means the deployed function predates this verify; any
+# other non-200 means auth CLEARED (or was never reached) and the function itself
+# is unhealthy — the token sync stands either way.
 verify_status() {
   # -sS, not -s (#363 round 6): on a transport failure curl's own error
   # line names WHICH failure — timeout vs DNS vs reset — and nothing on
   # that line is a credential (the bearer is in a header file, not the
   # URL). Suppressing it re-collapsed exactly the distinction the "000"
-  # arm exists to report.
-  curl -sS -o /dev/null -w "%{http_code}" --max-time 180 -X POST \
+  # arm exists to report. The body comes back on stdout with the status on
+  # its own last line; nothing is sent.
+  curl -sS -w '\n%{http_code}' --max-time 60 -X GET \
     "https://${PROJECT_REF}.supabase.co/functions/v1/news-calendar" \
-    -H @"$VERIFY_AUTH_FILE" \
-    -H "Content-Type: application/json" \
-    -d '{"source":"sync-function-secrets-verify"}'
+    -H @"$VERIFY_AUTH_FILE"
+}
+# The Keychain key's fingerprint, the same width gate.ts sends. printf is a
+# builtin, so the key never reaches an argv; the fingerprint is never printed.
+LOCAL_FP="$(printf '%s' "$FMP_API_KEY" | shasum -a 256 | cut -c1-16)"
+# match | mismatch | no-key | no-marker, read from $BODY.
+fingerprint_state() {
+  if ! grep -qF '"gate":"accepted"' <<<"$BODY"; then
+    echo no-marker
+  elif grep -qF '"fmpKeyFingerprint":null' <<<"$BODY"; then
+    echo no-key
+  elif [ "$(sed -nE 's/.*"fmpKeyFingerprint":"([0-9a-f]+)".*/\1/p' <<<"$BODY")" = "$LOCAL_FP" ]; then
+    echo match
+  else
+    echo mismatch
+  fi
 }
 # `|| true` on every capture (#361 round 2, finding 2): a curl TRANSPORT
-# failure (the 180s deadline, DNS, a reset) exits non-zero, and under
+# failure (the 60s deadline, DNS, a reset) exits non-zero, and under
 # `set -e` the bare assignment would abort the script with no VERIFY
 # line at all — seconds after two writes the operator cannot see — the
 # exact ambiguity finding 4's status attribution exists to prevent.
 # curl still emits "000" via -w on those failures, and the case below
 # names that arm.
-STATUS="$(verify_status || true)"
+verify() {
+  RESPONSE="$(verify_status || true)"
+  STATUS="${RESPONSE##*$'\n'}"
+  BODY="${RESPONSE%$'\n'*}"
+}
+verify
 attempt=1
-while { [ "$STATUS" = "401" ] || [ "$STATUS" = "403" ]; } && [ "$attempt" -lt 3 ]; do
-  log "gate refused (HTTP ${STATUS}) — waiting 10s for warm instances to recycle (attempt ${attempt}/3)"
+while { [ "$STATUS" = "401" ] || [ "$STATUS" = "403" ] ||
+  { [ "$STATUS" = "200" ] && [ "$(fingerprint_state)" = "mismatch" ]; }; } &&
+  [ "$attempt" -lt 3 ]; do
+  log "gate refused or answered with another key (HTTP ${STATUS}) — waiting 10s for warm instances to recycle (attempt ${attempt}/3)"
   sleep 10
   attempt=$((attempt + 1))
-  STATUS="$(verify_status || true)"
+  verify
 done
 case "$STATUS" in
   200)
-    log "verified: news-calendar accepted the synced token (HTTP 200)"
+    case "$(fingerprint_state)" in
+      match)
+        log "verified: news-calendar accepted the synced token and runs with the Keychain FMP_API_KEY (fingerprint match); nothing was fetched"
+        ;;
+      no-key)
+        log "VERIFY FAILED: news-calendar accepted the token but has no FMP_API_KEY — investigate the function secrets before trusting the sync"
+        exit 1
+        ;;
+      mismatch)
+        log "VERIFY FAILED: the running news-calendar holds a different FMP_API_KEY than the Keychain (fingerprint mismatch after ${attempt} attempts) — investigate before trusting the sync"
+        exit 1
+        ;;
+      *)
+        log "VERIFY INCONCLUSIVE: news-calendar returned HTTP 200 without the verify marker — the token halves are synced; check which version is deployed"
+        exit 1
+        ;;
+    esac
     ;;
   401 | 403)
     log "VERIFY FAILED: the gate still refuses the synced token (HTTP ${STATUS}) — gate and caller may disagree; investigate before trusting the sync"
@@ -235,6 +283,10 @@ case "$STATUS" in
     ;;
   404)
     log "VERIFY BLOCKED: news-calendar is not deployed (HTTP 404) — run 'npx supabase functions deploy …' then re-run this script; the secret halves ARE synced"
+    exit 1
+    ;;
+  405)
+    log "VERIFY BLOCKED: the deployed news-calendar predates the zero-spend verify (it answers GET with 405); nothing was fetched; deploy main, then re-run; the secret halves ARE synced"
     exit 1
     ;;
   "000" | "")

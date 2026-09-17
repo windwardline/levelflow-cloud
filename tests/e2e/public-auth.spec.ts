@@ -1,7 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
-import { expect, type Page, test } from "@playwright/test";
+import {
+  type BrowserContext,
+  expect,
+  type Page,
+  type Request,
+  test,
+} from "@playwright/test";
 import { DONATION_SUPPORT_COPY } from "../../src/lib/donationCopy";
 import { legalDocument, type LegalSlug } from "../../src/lib/legalDocuments";
+import type { MarketDataResponse } from "../../src/lib/marketData";
 
 // The owner's navigation report of 2026-08-02, as a browser test: signed in, open
 // a legal page from the app, come back with the page's own link — and the app was
@@ -65,6 +72,151 @@ async function freshSession() {
   return data.session;
 }
 
+// THE EDGE FUNCTIONS ARE STUBBED FOR EVERY SIGNED-IN TEST HERE.
+//
+// A real session reaches real functions. A signed-in browser with no remembered
+// tab lands on the Desk, which asks market-data for a chart and forces a
+// refresh_outcomes call — so this spec, which exists to test NAVIGATION, was
+// buying live provider bytes on every deploy and claiming the shared E2E user's
+// refresh budget in parallel with `workspace`. On a parked deploy the Edge now
+// refuses the chart request outright.
+//
+// So every context that seeds a session answers those two calls in the browser
+// with canned, empty, well-formed bodies, and ABORTS any other function call,
+// which the afterEach below turns into a failure: a new call this spec starts
+// making must be stubbed on purpose, never spent by accident. The route is on
+// the CONTEXT, so the legal tab a test opens with context.newPage() is covered
+// too. Nothing here ever continues a function request to the network.
+const FUNCTION_URL = /\/functions\/v1\/([^/?#]+)/;
+
+type EdgeStubRegistry = {
+  pending: number;
+  seen: string[];
+  stubbed: string[];
+  unexpected: string[];
+};
+
+const edgeStubs = new WeakMap<BrowserContext, EdgeStubRegistry>();
+
+const EMPTY_CHART = {
+  adjusted: true,
+  asOf: "2026-09-16T00:00:00.000Z",
+  from: "2026-06-18",
+  latestClose: null,
+  points: [],
+  provider: "e2e-stub",
+  providerStatus: "OK",
+  resultsCount: 0,
+  symbol: "EURUSD",
+  ticker: "EURUSD",
+  timeframe: "1hour",
+  to: "2026-09-16",
+} satisfies MarketDataResponse;
+
+const EMPTY_REFRESH = {
+  advisoryOnly: true,
+  learningRefresh: { skipped: true, updated: 0 },
+  message: "Trade outcomes refreshed.",
+  outcomeRefresh: {
+    ambiguous: 0,
+    expired: 0,
+    expiredAtLoss: 0,
+    expiredInProfit: 0,
+    failed: 0,
+    pending: 0,
+    placed: 0,
+    reviewed: 0,
+    stopLoss: 0,
+    takeProfit: 0,
+    tp1Partial: 0,
+  },
+};
+
+function edgeCorsHeaders(request: Request): Record<string, string> {
+  return {
+    "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-origin": request.headers()["origin"] ?? "*",
+  };
+}
+
+function analyzerAction(request: Request): string | null {
+  try {
+    const body = JSON.parse(request.postData() ?? "{}") as { action?: unknown };
+    return typeof body.action === "string" ? body.action : null;
+  } catch {
+    return null;
+  }
+}
+
+// A route handler can still be running when its test ends and the context
+// closes. That one error is expected; anything else is a real failure.
+function isClosedTargetError(error: unknown): boolean {
+  return error instanceof Error &&
+    /Target page, context or browser has been closed|Test ended/i.test(error.message);
+}
+
+async function stubEdgeFunctions(context: BrowserContext) {
+  if (edgeStubs.has(context)) return;
+  const registry: EdgeStubRegistry = { pending: 0, seen: [], stubbed: [], unexpected: [] };
+  edgeStubs.set(context, registry);
+  context.on("request", (request) => {
+    const name = request.url().match(FUNCTION_URL)?.[1];
+    if (name && request.method() !== "OPTIONS") registry.seen.push(name);
+  });
+  await context.route(FUNCTION_URL, async (route) => {
+    const request = route.request();
+    const headers = edgeCorsHeaders(request);
+    if (request.method() === "OPTIONS") {
+      try {
+        await route.fulfill({ headers, status: 204 });
+      } catch (error) {
+        if (!isClosedTargetError(error)) throw error;
+      }
+      return;
+    }
+    const name = request.url().match(FUNCTION_URL)?.[1] ?? "";
+    registry.pending += 1;
+    try {
+      if (name === "market-data") {
+        registry.stubbed.push(name);
+        await route.fulfill({ body: JSON.stringify(EMPTY_CHART), contentType: "application/json", headers, status: 200 });
+      } else if (name === "trade-analyzer" && analyzerAction(request) === "refresh_outcomes") {
+        registry.stubbed.push(name);
+        await route.fulfill({ body: JSON.stringify(EMPTY_REFRESH), contentType: "application/json", headers, status: 200 });
+      } else {
+        registry.unexpected.push(`${name} ${analyzerAction(request) ?? ""}`.trim());
+        await route.abort();
+      }
+    } catch (error) {
+      if (!isClosedTargetError(error)) throw error;
+    } finally {
+      registry.pending -= 1;
+    }
+  });
+}
+
+// Every function request a signed-in test made was answered by the stub, and
+// none was one it does not know. Polled, because request events and route
+// handlers settle independently of the test body's last await.
+test.afterEach(async ({ context }) => {
+  const registry = edgeStubs.get(context);
+  if (!registry) return;
+  await expect
+    .poll(
+      () => registry.pending === 0 && registry.seen.length === registry.stubbed.length + registry.unexpected.length,
+      {
+        message: "a function request escaped the stub, or its handler never settled",
+        timeout: 5_000,
+      },
+    )
+    .toBe(true);
+  expect(
+    registry.unexpected,
+    "a signed-in public-auth test called an Edge function the stub does not answer; it was aborted",
+  ).toEqual([]);
+});
+
 // A stored session, for the whole browser, seeded once — a browser that has
 // signed in before. Never re-seeded on later loads: a re-seed would hide the one
 // consequence that matters, which is that a token this app decides to drop does
@@ -85,6 +237,9 @@ async function freshSession() {
 // presence is the only honest answer to "did THIS browser start a sign-in" — and
 // the fixture models a browser that genuinely did.
 async function seedStoredSession(page: Page) {
+  // Before the session exists and before any navigation: the first load that
+  // holds a session is the first load that can reach a function.
+  await stubEdgeFunctions(page.context());
   const session = await freshSession();
   await page.addInitScript(({ key, value, verifierKey }) => {
     if (!window.localStorage.getItem(key)) {
@@ -996,6 +1151,16 @@ test("§17o tier 3 — the externals still leave, and they are the only ones tha
   await page.setViewportSize({ width: 1280, height: 800 });
   await seedStoredSession(page);
   await page.goto(MAGIC_LINK_ARRIVAL, { waitUntil: "networkidle" });
+  // No remembered tab, so this lands on the Desk, which asks for a chart. The
+  // stub answering it proves the route matches the URL supabase-js actually
+  // invokes — without this, a matcher that matched nothing would leave every
+  // afterEach above vacuously green.
+  await expect
+    .poll(() => edgeStubs.get(page.context())?.stubbed.includes("market-data") ?? false, {
+      message: "the Desk's chart request never reached the market-data stub",
+      timeout: 15_000,
+    })
+    .toBe(true);
 
   const links = await page.evaluate(() =>
     [...document.querySelectorAll("a")].map((anchor) => ({

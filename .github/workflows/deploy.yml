@@ -77,10 +77,13 @@ jobs:
       # behind entirely. Both gate credentials (and the Vault caller copy
       # the pg_cron jobs read) are set ONLY from the Keychain via
       # scripts/ops/sync-function-secrets.sh (run on the studio machine at
-      # rotation); they persist across deploys, and the E2E chart gate
-      # below plus the script's own authenticated verify call are what
-      # prove they work. The secrets that remain here are the PIPELINE's
-      # own working credentials — GitHub is their legitimate runtime.
+      # rotation); they persist across deploys. The script's verify is a
+      # token-gated GET that spends nothing: it proves the token clears the
+      # gate and that the running functions hold the Keychain's FMP key by
+      # fingerprint. Only a fetch that runs proves FMP accepts that key — the
+      # E2E chart gate below once the desk is unparked, or the minute bank's
+      # next run. The secrets that remain here are the PIPELINE's own working
+      # credentials — GitHub is their legitimate runtime.
       - name: Check required secrets
         run: |
           missing=0
@@ -190,59 +193,37 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      # WHICH E2E PROJECTS SPEND FMP BANDWIDTH, and whether this push earns them.
+      # WHICH E2E PROJECTS SPEND FMP BANDWIDTH, and whether this run earns them.
       #
-      # `workspace`, `visual-proof` and `analyzer-abuse` drive live scans
-      # against the deployed Edge functions, which reach the provider.
-      # `public-auth` and `public-auth-built` touch no market data at all.
+      # `workspace`, `visual-proof` and `analyzer-abuse` drive live charts and
+      # scans against the deployed Edge functions, which reach the provider.
+      # `public-auth` and `public-auth-built` sign in as the E2E user, but
+      # market-data and refresh_outcomes are stubbed in the browser, and any
+      # other function call is aborted and fails the test — so they spend
+      # neither provider bytes nor the analyzer budget.
       #
-      # Measured 2026-09-01 over the last 80 first-parent merges: 36 of them —
-      # 45% — changed nothing under `src/`, `supabase/functions/` or
-      # `supabase/migrations/`. Those runs spent a full live scan matrix
-      # verifying a documentation change.
+      # PARKING IS DECIDED FIRST. While DESK_PARKED is true the Edge refuses
+      # every provider request those three projects make, so they could only
+      # fail — push or dispatch. A dispatch has no base, and the base used to be
+      # checked first, so a parked dispatch ran the full suite anyway.
+      #
+      # Unparked, the measurement that started this still holds: over the 80
+      # first-parent merges before 2026-09-01, 36 — 45% — changed nothing under
+      # `src/`, `supabase/functions/` or `supabase/migrations/`, and each spent
+      # a full live scan matrix verifying a documentation change. A missing or
+      # unresolvable base runs EVERYTHING: the failure to avoid is a silent
+      # narrowing, so the ambiguous case buys coverage rather than saving bytes.
       #
       # THE DEPLOY STILL HAPPENS EVERY TIME. This gates the FMP-SPENDING
-      # VERIFICATION, not the release: a docs merge still builds, still
-      # migrates, still deploys the functions, and still runs the auth suites.
-      # What it does not do is re-prove the chart and scan paths that no commit
-      # in it could have changed.
-      #
-      # A missing or unresolvable base runs EVERYTHING. The failure to avoid is
-      # a silent narrowing, so the ambiguous case buys coverage rather than
-      # saving bytes.
+      # VERIFICATION, not the release: every run still builds, migrates, deploys
+      # the functions and runs the auth suites. The decision lives in
+      # scripts/deploy-e2e-scope.sh, whose cases run as a declared gate.
       - name: Decide whether the E2E may spend bandwidth
         id: e2e-scope
-        run: |
-          base='${{ github.event.before }}'
-          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]              || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
-            echo "base '$base' is not resolvable here — running the full suite"
-            echo "full=true" >> "$GITHUB_OUTPUT"
-            # `scope` must be set on EVERY path: the reporter refuses a value
-            # it cannot read, and an unset output arrives as the empty string.
-            echo "scope=ran" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          changed=$(git diff --name-only "$base" '${{ github.sha }}')
-          echo "$changed" | sed 's/^/  changed: /'
-          # THE DESK'S OWN CONSTANT, imported rather than grepped. A regex over
-          # the source would drift the day the file is reformatted, and this
-          # decides whether ~190 live provider calls go out.
-          parked=$(npx tsx -e "import { PARKING_GATE } from './src/lib/parkingGate.ts'; process.stdout.write(String(PARKING_GATE));")
-          echo "  desk parked: $parked"
-          if ! echo "$changed" | grep -qE '^(src/|supabase/functions/|supabase/migrations/)'; then
-            echo "full=false" >> "$GITHUB_OUTPUT"
-            echo "scope=stood-down" >> "$GITHUB_OUTPUT"
-          elif [ "$parked" = "true" ]; then
-            # The push touched the app, but the surfaces these projects drive
-            # are unreachable in production while PARKING_GATE holds — so the
-            # calls would price a desk nobody can open. Stated as its own scope
-            # so the reason printed is the true one.
-            echo "full=false" >> "$GITHUB_OUTPUT"
-            echo "scope=stood-down-parked" >> "$GITHUB_OUTPUT"
-          else
-            echo "full=true" >> "$GITHUB_OUTPUT"
-            echo "scope=ran" >> "$GITHUB_OUTPUT"
-          fi
+        env:
+          E2E_BASE: ${{ github.event.before }}
+          E2E_HEAD: ${{ github.sha }}
+        run: bash scripts/deploy-e2e-scope.sh
 
       - name: Run browser tests
         run: |

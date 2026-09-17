@@ -313,6 +313,34 @@ describe("security hardening", () => {
     // gate before the script reports success.
     assert.match(sync, /functions\/v1\/news-calendar/);
     assert.match(sync, /VERIFY FAILED/);
+    // ...WITHOUT SPENDING (2026-09-16). The verify used to POST, and a POST
+    // with the token runs every FMP feed: a full calendar, earnings and news
+    // sync bought on every rotation. It is now a token-gated GET that
+    // news-calendar answers before any spend decision, carrying no body.
+    const verifyFn = sync.slice(
+      sync.indexOf("verify_status() {"),
+      sync.indexOf("\n}\n", sync.indexOf("verify_status() {")),
+    );
+    assert.ok(verifyFn.length > 50, "verify_status moved — re-anchor");
+    assert.match(verifyFn, /-X GET/);
+    assert.doesNotMatch(verifyFn, /(^|\s)(-d|--data[\w-]*|--json)(\s|=)/, "the verify sends a body again");
+    assert.doesNotMatch(sync, /-X POST/, "the sync script POSTs, and a POST to news-calendar runs a paid sync");
+    // It proves the running function's key, not just the token: the gate's
+    // marker, a local fingerprint at the function's own width (the width is
+    // held to gate.ts by tests/newsCalendarGate.test.ts), and a comparison
+    // that is the ONLY road to "verified".
+    assert.ok(sync.includes(`'"gate":"accepted"'`), "the script no longer looks for the verify marker");
+    assert.match(sync, /LOCAL_FP="\$\(printf '%s' "\$FMP_API_KEY" \| shasum -a 256 \| cut -c1-16\)"/);
+    assert.match(sync, /"fmpKeyFingerprint":"\(\[0-9a-f\]\+\)"[^\n]*\)" = "\$LOCAL_FP" \]; then\n\s*echo match/);
+    assert.match(
+      sync,
+      /case "\$\(fingerprint_state\)" in\n\s*match\)\n\s*log "verified: /,
+      "a 200 reads as verified without the fingerprint comparison",
+    );
+    assert.equal((sync.match(/log "verified: /g) ?? []).length, 1, "a second road to \"verified\" exists");
+    assert.match(sync, /mismatch\)\n\s*log "VERIFY FAILED: the running news-calendar holds a different FMP_API_KEY/);
+    assert.match(sync, /\[ "\$STATUS" = "200" \] && \[ "\$\(fingerprint_state\)" = "mismatch" \]/);
+    assert.match(sync, /405\)\n\s*log "VERIFY BLOCKED: the deployed news-calendar predates the zero-spend verify/);
     // Values travel by 600-mode temp files, never argv — they must not
     // be readable by other users on the studio machine. Lifetime pinned
     // by EXACT file list (#363 round 3, finding 1 — a bare /chmod 600/
@@ -869,14 +897,16 @@ describe("R1a slice 2 — live grading and construction share the sweep's physic
       // grade on. (The old formatting-keyed doesNotMatch that stood here
       // pinned nothing — the round-1 verdict's own minor — and these two
       // subsume it: a single-series fetch cannot satisfy both.)
+      // Both fetches carry the request's spend permit as their last argument
+      // (fmpBudget.ts), which is why each pattern names it.
       assert.match(
         source,
-        /"5min",\s*\n\s*recordAnalyzerEvent,\s*\n\s*fetchWithTimeout,\s*\n\s*\)\.catch\(\(\) => \[\]\)/,
+        /"5min",\s*\n\s*recordAnalyzerEvent,\s*\n\s*fetchWithTimeout,\s*\n\s*(?:spend\.)?permit,\s*\n\s*\)\.catch\(\(\) => \[\]\)/,
         `${file} must degrade a failed 5-minute fetch to the 15-minute tier`,
       );
       assert.doesNotMatch(
         source,
-        /"15min",\s*\n\s*recordAnalyzerEvent,\s*\n\s*fetchWithTimeout,\s*\n\s*\)\.catch/,
+        /"15min",\s*\n\s*recordAnalyzerEvent,\s*\n\s*fetchWithTimeout,\s*\n\s*(?:(?:spend\.)?permit,\s*\n\s*)?\)\.catch/,
         `${file} must keep a failed 15-minute fetch fatal for the setup`,
       );
       // Format-independent half of the pair (#362 round 2, smaller item):

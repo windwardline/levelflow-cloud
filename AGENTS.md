@@ -40,8 +40,10 @@ Every workflow this repository runs is named here by filename: `ci.yml`, `deploy
 `security.yml`, `claude-review.yml`, `retry-infra-failures.yml`, and
 `dependabot-auto-merge.yml`.
 
-`ci.yml` runs `npm ci` → check → lint → check:migrations →
-`npm run audit:high` → test → build → check:bundle on pushes and pull
+`ci.yml` runs `npm ci`, then every `gate:` line in the fleet-gates block below, in
+order: check → lint → check:migrations → `npm run audit:high` → test → build →
+check:bundle → the two shell harnesses, `scripts/vercel-ignore-build-test.sh` and
+`scripts/deploy-e2e-scope-test.sh`. It runs on pushes and pull
 requests against `main`, plus `workflow_dispatch`, in one 15-minute Node 24 job with
 npm caching. Its job id `build` is the required-check name, and a new commit cancels
 the run in flight. E2E runs only at deploy time in `deploy.yml`. That workflow also
@@ -99,7 +101,8 @@ cannot be re-run; `docs/ci-recovery.md` records the remedies.
 - `tsconfig.tests.json` lists Edge Function modules as an explicit file list to exclude Deno-global files. Never widen it to a glob — Vercel type-checks the whole graph, so a test type error fails production.
 - Bundle budget: `dist/assets` ≤80 KB per `.css`, ≤230 KB per `.js` (`scripts/check-bundle-budget.mjs`); the manualChunks in `vite.config.ts` exist to hold it.
 - Migrations match `^\d{14}_[a-z0-9_]+\.sql$`, unique and strictly increasing; SECURITY DEFINER additions need the reviewed allowlist in `scripts/check-migrations.mjs`.
-- Playwright project order (workspace → visual-proof → analyzer-abuse) is serial and load-bearing: one shared E2E user against per-user analyzer rate limits. `public-auth` runs on dev and built preview.
+- Playwright project order (workspace → visual-proof → analyzer-abuse) is serial and load-bearing: one shared E2E user against per-user analyzer rate limits. `public-auth` runs on dev and built preview. It signs in as the E2E user with market-data and refresh_outcomes stubbed in the browser; any other function call is aborted and fails the test, so it spends neither provider bytes nor the analyzer budget.
+- **The Edge refuses user-class provider spend while `DESK_PARKED` is true** (`supabase/functions/_shared/deskParking.ts`). `PARKING_GATE` turns away signed-out arrivals only, and a live session walks past it. Every Edge fetch site takes an `FmpSpendPermit`, asserts it before it builds a URL, and records its bytes to the permit's class. Only `mayFetch` mints a permit, once per request, and it fails closed on a ledger outage. `DESK_PARKED` implies `PARKING_GATE`: park by raising `PARKING_GATE` first (or both together), then §17p's logout; unpark by lowering `DESK_PARKED` alone, and lower `PARKING_GATE` only after that deploy's full E2E is green. Background work (news-calendar, outcome-sync) is not parked (§21i) and runs under its 200 MiB/day ceiling. `tests/fmpBudgetByClass.test.ts` holds this at fetch-site grain; `scripts/deploy-e2e-scope.sh` reads `DESK_PARKED` before the diff, so a parked dispatch stands the FMP-spending projects down.
 - Env split: the browser sees only `VITE_*`; service-role and API keys are server/Edge-only. CSP `style-src` is `'self'` plus one sha256 — never `unsafe-inline`.
 - `trade_setups` and `trade_outcomes` are **engine-written, client-read**. `authenticated` holds `select` only; every write runs on the service role. Global learning reads both tables unscoped by user and feeds `confidence_adjustment` into scoring for everyone, so a client write grant on either one lets any account set what every operator is told to trade. `tests/securityHardening.test.ts` pins the revoke and the admin call sites in both directions.
 - Frontend that depends on a new migration lands one push after the migration — Vercel builds independently of `deploy.yml`.
@@ -127,5 +130,6 @@ gate: npm test
 gate: npm run build
 gate: npm run check:bundle
 gate: bash scripts/vercel-ignore-build-test.sh
+gate: bash scripts/deploy-e2e-scope-test.sh
 release: npm run test:e2e
 ```

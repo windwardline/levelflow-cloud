@@ -14,13 +14,27 @@
  * into it, and of what IS spent the bulk should be live users generating real
  * trades. A single total cannot say "background yields first". Two classes can.
  *
+ * THE ONE CHOKEPOINT (2026-09-16). Until then `mayFetch` had no production
+ * caller, so the ceilings were bookkeeping, and a parked desk still bought bytes
+ * for any signed-in session. Now every Edge provider fetch requires an
+ * `FmpSpendPermit`, and the only thing that mints one is `mayFetch`, once per
+ * request. A permit is branded for the type-checker and registered at runtime,
+ * so neither a cast nor an object of the right shape passes
+ * `assertSpendPermit`, which every fetch site calls before it builds a URL.
+ *
  * WHAT THIS IS NOT. It does not make a request cheaper — that is the bar
  * store's job, and the two are complementary: the store removes bytes nobody
  * needed to buy, and this refuses bytes nobody budgeted. Nor is it a rate
  * limit; `claim_analyzer_request` bounds requests per user per minute, while
  * this bounds BYTES per class per day. A caller can be inside its rate limit
  * and still be told the day is spent.
+ *
+ * WHAT IT BOUNDS, exactly. The ceiling stops the NEXT request, not the one in
+ * flight, and bytes are recorded fire-and-forget after the response, so the
+ * bound is the ceiling plus in-flight and unrecorded bytes. Whether every
+ * un-awaited write completes after the isolate answers is unverified.
  */
+import { DESK_PARKED } from "../_shared/deskParking.ts";
 
 /**
  * The database calls this module needs, passed in rather than imported.
@@ -50,8 +64,9 @@ export type FmpBudgetDeps = {
  * Who is spending, and therefore who yields first.
  *
  * `user` is a live operator waiting on an answer — a chart they opened, a scan
- * they asked for. `background` is scheduled or automated work nobody is
- * watching: outcome resolution, the calendar sync, a warm-up.
+ * they asked for, an outcome refresh their Desk sent. `background` is scheduled
+ * or automated work nobody is watching: outcome-sync's grading, the calendar
+ * sync, a warm-up.
  */
 export type FmpConsumerClass = "background" | "user";
 
@@ -78,71 +93,183 @@ export const FMP_DAILY_CEILINGS: Record<FmpConsumerClass, number> = {
   user: 800 * 1024 * 1024,
 };
 
-export type FmpBudgetDecision = {
-  allowed: boolean;
-  limitBytes: number;
-  reason: string | null;
-  spentToday: number;
-  trailing30: number;
+/** Why a spend was refused. Carried on the wire as `fmpSpendRefused`. */
+export type FmpSpendRefusal = "ceiling" | "ledger-unavailable" | "parked";
+
+declare const spendPermitBrand: unique symbol;
+
+/** Minted only by `mayFetch`; see `assertSpendPermit`. */
+export type FmpSpendPermit = {
+  readonly consumerClass: FmpConsumerClass;
+  readonly [spendPermitBrand]: true;
 };
 
-/**
- * May this class spend today?
- *
- * FAILS OPEN, and the asymmetry against `claimMarketDataRequest` is deliberate.
- * That one guards an unbounded per-request path where a meter that cannot
- * answer is all that stands between one browser tab and the allowance — so it
- * refuses. This one is a DAILY aggregate on paths that are already bounded per
- * request, and refusing the whole desk because the ledger is briefly
- * unreachable would take the product down to protect a budget. A missed day of
- * accounting is recoverable; a desk that cannot answer is the failure the
- * budget exists to prevent.
- *
- * The choice is stated rather than defaulted, because the two directions look
- * identical in a diff and only one of them is right for a given guard.
- */
-export async function mayFetch(
-  deps: FmpBudgetDeps,
-  consumerClass: FmpConsumerClass,
-): Promise<FmpBudgetDecision> {
-  const limitBytes = FMP_DAILY_CEILINGS[consumerClass];
-  try {
-    const rows = await deps.claim(consumerClass, limitBytes);
-    const row = rows[0];
-    if (!row) {
-      return {
-        allowed: true,
-        limitBytes,
-        reason: "the FMP ledger returned no row; spending was not accounted",
-        spentToday: 0,
-        trailing30: 0,
-      };
-    }
-    const spentToday = Number(row.spent_today) || 0;
-    const trailing30 = Number(row.trailing_30_bytes) || 0;
-    return {
-      allowed: Boolean(row.allowed),
-      limitBytes: Number(row.limit_bytes) || limitBytes,
-      reason: row.allowed ? null : `${consumerClass} has spent its day: ` +
-        `${(spentToday / 1e6).toFixed(1)} MB of ` +
-        `${(limitBytes / 1e6).toFixed(1)} MB. Trailing 30 days across all ` +
-        `classes: ${(trailing30 / 1e9).toFixed(2)} GB.`,
-      spentToday,
-      trailing30,
-    };
-  } catch {
-    return {
-      allowed: true,
-      limitBytes,
-      reason: "the FMP ledger could not be read; spending was not accounted",
-      spentToday: 0,
-      trailing30: 0,
-    };
+export type FmpSpendDecision =
+  | {
+    allowed: true;
+    limitBytes: number;
+    permit: FmpSpendPermit;
+    spentToday: number;
+    trailing30: number;
+  }
+  | FmpSpendRefused;
+
+export type FmpSpendRefused = {
+  allowed: false;
+  consumerClass: FmpConsumerClass;
+  limitBytes: number;
+  reason: string;
+  refusal: FmpSpendRefusal;
+  spentToday: number | null;
+  trailing30: number | null;
+};
+
+const minted = new WeakSet<object>();
+
+export class FmpSpendPermitError extends Error {
+  constructor() {
+    super(
+      "FMP spend attempted without a permit minted by mayFetch — nothing was fetched",
+    );
+    this.name = "FmpSpendPermitError";
   }
 }
 
 /**
- * Credit bytes already served.
+ * The first statement of every fetch site, outside any try block.
+ *
+ * Throws before a byte is bought, and before a catch can turn the refusal into
+ * a cached "unavailable" result (macroContext caches for fifteen minutes).
+ */
+export function assertSpendPermit(
+  permit: unknown,
+): asserts permit is FmpSpendPermit {
+  if (typeof permit !== "object" || permit === null || !minted.has(permit)) {
+    throw new FmpSpendPermitError();
+  }
+}
+
+/**
+ * May this class spend now?
+ *
+ * FAILS CLOSED, and it used to fail open. The old argument was that refusing
+ * the desk because the ledger blinked takes the product down to protect a
+ * budget, and it held only while nothing called this. A ledger that cannot
+ * answer is now the only thing between a session and the allowance — the
+ * position `claimMarketDataRequest` has always refused from — and the minute
+ * bank's loss is permanent while an hour without charts is not.
+ *
+ * THE COST, stated rather than defaulted: a ledger outage turns off charts,
+ * scans and grading until the ledger answers again.
+ *
+ * `parked` is passed in so the branch is testable; production passes
+ * `DESK_PARKED` through `mayFetch`. It refuses class `user` only.
+ */
+export async function decideFmpSpend(
+  deps: FmpBudgetDeps,
+  consumerClass: FmpConsumerClass,
+  parked: boolean,
+): Promise<FmpSpendDecision> {
+  const limitBytes = FMP_DAILY_CEILINGS[consumerClass];
+  if (parked && consumerClass === "user") {
+    return {
+      allowed: false,
+      consumerClass,
+      limitBytes,
+      reason:
+        "the desk is parked (DESK_PARKED): user-class provider spend is refused before any byte is bought",
+      refusal: "parked",
+      spentToday: null,
+      trailing30: null,
+    };
+  }
+
+  let row: Awaited<ReturnType<FmpBudgetDeps["claim"]>>[number] | undefined;
+  try {
+    const rows = await deps.claim(consumerClass, limitBytes);
+    row = Array.isArray(rows) ? rows[0] : undefined;
+  } catch {
+    return ledgerUnavailable(
+      consumerClass,
+      limitBytes,
+      "the FMP ledger could not be read; spending is refused until it answers",
+    );
+  }
+  if (!row) {
+    return ledgerUnavailable(
+      consumerClass,
+      limitBytes,
+      "the FMP ledger returned no row; spending is refused until it answers",
+    );
+  }
+
+  const spentToday = Number(row.spent_today) || 0;
+  const trailing30 = Number(row.trailing_30_bytes) || 0;
+  const ceiling = Number(row.limit_bytes) || limitBytes;
+  // Strictly the boolean the RPC declares. A truthy string is not a yes.
+  if (row.allowed === true) {
+    const permit = Object.freeze({ consumerClass }) as FmpSpendPermit;
+    minted.add(permit);
+    return { allowed: true, limitBytes: ceiling, permit, spentToday, trailing30 };
+  }
+  return {
+    allowed: false,
+    consumerClass,
+    limitBytes: ceiling,
+    reason: `${consumerClass} has spent its day: ` +
+      `${(spentToday / 1e6).toFixed(1)} MB of ` +
+      `${(limitBytes / 1e6).toFixed(1)} MB. Trailing 30 days across all ` +
+      `classes: ${(trailing30 / 1e9).toFixed(2)} GB.`,
+    refusal: "ceiling",
+    spentToday,
+    trailing30,
+  };
+}
+
+function ledgerUnavailable(
+  consumerClass: FmpConsumerClass,
+  limitBytes: number,
+  reason: string,
+): FmpSpendRefused {
+  return {
+    allowed: false,
+    consumerClass,
+    limitBytes,
+    reason,
+    refusal: "ledger-unavailable",
+    spentToday: null,
+    trailing30: null,
+  };
+}
+
+/** The one production decision: once per request, at the first point that needs the provider. */
+export function mayFetch(
+  deps: FmpBudgetDeps,
+  consumerClass: FmpConsumerClass,
+): Promise<FmpSpendDecision> {
+  return decideFmpSpend(deps, consumerClass, DESK_PARKED);
+}
+
+/**
+ * The §21f refusal body: the class, the budget, and which refusal.
+ *
+ * Sent with HTTP 503 by every Edge path, so a refusal can never read as the
+ * rate limit's 429. supabase-js hides a non-2xx body from `data`, and nothing in
+ * src/ reads `error.context`, so `error` here is a diagnostic, not reader copy.
+ */
+export function fmpSpendRefusalBody(refused: FmpSpendRefused) {
+  return {
+    consumerClass: refused.consumerClass,
+    error: refused.reason,
+    fmpSpendRefused: refused.refusal,
+    limitBytes: refused.limitBytes,
+    spentToday: refused.spentToday,
+    trailing30: refused.trailing30,
+  };
+}
+
+/**
+ * Credit bytes already served, to the class the permit was minted for.
  *
  * Never throws. These bytes were spent before they could be counted, and a
  * failure to RECORD must not also fail the request that already paid for
@@ -151,12 +278,12 @@ export async function mayFetch(
  */
 export async function recordFetch(
   deps: FmpBudgetDeps,
-  consumerClass: FmpConsumerClass,
+  permit: FmpSpendPermit,
   bytes: number,
 ): Promise<void> {
   if (!Number.isFinite(bytes) || bytes <= 0) return;
   try {
-    await deps.record(consumerClass, Math.round(bytes));
+    await deps.record(permit.consumerClass, Math.round(bytes));
   } catch {
     // Swallowed on purpose, and it is the one swallow in this file. The
     // alternative is failing a request whose data is already in hand.
@@ -167,9 +294,9 @@ export async function recordFetch(
 export async function readAndRecord(
   deps: FmpBudgetDeps,
   response: { text: () => Promise<string> },
-  consumerClass: FmpConsumerClass,
+  permit: FmpSpendPermit,
 ): Promise<string> {
   const body = await response.text();
-  await recordFetch(deps, consumerClass, new TextEncoder().encode(body).length);
+  await recordFetch(deps, permit, new TextEncoder().encode(body).length);
   return body;
 }

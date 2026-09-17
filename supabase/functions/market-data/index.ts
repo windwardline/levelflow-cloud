@@ -5,7 +5,13 @@ import {
 } from "../trade-analyzer/barStore.ts";
 import { barStoreDeps } from "../trade-analyzer/barStoreDb.ts";
 import { adminRpcRows } from "../trade-analyzer/supabaseRest.ts";
-import { recordFetch } from "../trade-analyzer/fmpBudget.ts";
+import {
+  assertSpendPermit,
+  type FmpSpendPermit,
+  fmpSpendRefusalBody,
+  mayFetch,
+  recordFetch,
+} from "../trade-analyzer/fmpBudget.ts";
 import { fmpBudgetDeps } from "../trade-analyzer/fmpBudgetDb.ts";
 import { corsHeaders, jsonResponse } from "../_shared/http.ts";
 import { classifyUpstreamFailure } from "./upstreamStatus.ts";
@@ -275,12 +281,39 @@ Deno.serve(async (req) => {
 
     const timeframe = normalizeTimeframe(body.timeframe);
     const { from, to } = resolveDateWindow(body, timeframe);
+
+    // ONE SPEND DECISION PER REQUEST, after every refusal that costs nothing
+    // and before the first path that could buy bytes. The rate limit above
+    // bounds requests; this bounds bytes, and it refuses outright while the
+    // desk is parked (supabase/functions/_shared/deskParking.ts) — a live
+    // session walks past the browser's parking gate, so the Edge is the only
+    // place that can say no. It fails closed on a ledger outage. It also
+    // refuses a read the bar store could have answered alone, because the
+    // decision is taken before the store is asked: stated, not hidden.
+    //
+    // 503, never 429: a refusal of spend must not read as the rate limit. No
+    // analyzer_events row, because this function writes none; a parked refusal
+    // is the expected state and logs nothing.
+    const spend = await mayFetch(fmpBudgetDeps(), "user");
+    if (!spend.allowed) {
+      if (spend.refusal !== "parked") {
+        console.error("market-data refused provider spend", spend.refusal, spend.reason);
+      }
+      return jsonResponse(req, fmpSpendRefusalBody(spend), 503);
+    }
+
     const failures: string[] = [];
     let payload: FmpBar[] = [];
     let ticker = providerSymbols[0];
 
     for (const providerSymbol of providerSymbols) {
-      const result = await fetchFmpBars(providerSymbol, timeframe, from, to);
+      const result = await fetchFmpBars(
+        providerSymbol,
+        timeframe,
+        from,
+        to,
+        spend.permit,
+      );
       if (result.ok && result.payload.length > 0) {
         payload = result.payload;
         ticker = providerSymbol;
@@ -489,6 +522,7 @@ async function fetchFmpBars(
   timeframe: ChartTimeframe,
   from: string,
   to: string,
+  permit: FmpSpendPermit,
 ) {
   let unavailable = false;
   try {
@@ -500,6 +534,7 @@ async function fetchFmpBars(
           timeframe,
           windowFrom,
           windowTo,
+          permit,
         );
         if (!raw.ok) throw new Error(raw.status);
         const rows: StoredBar[] = [];
@@ -532,13 +567,15 @@ async function fetchFmpBars(
   }
 }
 
-/** The wire call, unchanged. */
+/** The wire call, and nothing reaches it without the request's permit. */
 async function fetchFmpBarsDirect(
   providerSymbol: string,
   timeframe: ChartTimeframe,
   from: string,
   to: string,
+  permit: FmpSpendPermit,
 ) {
+  assertSpendPermit(permit);
   const endpoint = timeframe === "1day"
     ? new URL(
       `${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-price-eod/full`,
@@ -557,12 +594,12 @@ async function fetchFmpBarsDirect(
     MARKET_DATA_FETCH_TIMEOUT_MS,
   );
   const responseText = await response.text();
-  // Charged to `user`: this is a chart an operator opened and is waiting on.
-  // Never awaited into the response path — accounting must not add latency to
-  // an answer already in hand.
+  // Charged to the permit's class, `user`: this is a chart an operator opened
+  // and is waiting on. Never awaited into the response path — accounting must
+  // not add latency to an answer already in hand.
   void recordFetch(
     fmpBudgetDeps(),
-    "user",
+    permit,
     new TextEncoder().encode(responseText).length,
   );
   if (!response.ok) {

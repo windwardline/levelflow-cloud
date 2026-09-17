@@ -313,15 +313,16 @@ describe("the live review resolves the rate beside the market load and refuses a
 
   it("one rate memo per scan request, handed to every review", () => {
     assert.match(INDEX, /const quoteRates: QuoteCurrencyRateMemo = new Map\(\);/);
-    assert.match(INDEX, /scanOpportunity\(token, userId, symbol, quoteRates\)/);
-    assert.match(INDEX, /reviewCurrentMarket\(token, userId, symbol, quoteRates\)/);
+    // The scan's one spend decision rides beside the memo (fmpBudget.ts).
+    assert.match(INDEX, /scanOpportunity\(token, userId, symbol, quoteRates, spend\.permit\)/);
+    assert.match(INDEX, /reviewCurrentMarket\(token, userId, symbol, quoteRates, permit\)/);
   });
 
   it("starts the leg's load before the market's own, from the bar store's daily bars", () => {
     const resolveAt = INDEX.indexOf("const quoteRatePending = resolveQuoteCurrencyUsd({");
     const loadAt = INDEX.indexOf("await fetchFirstAvailableMarketContext(");
     assert.ok(resolveAt > 0 && loadAt > resolveAt, "the rate is resolved beside the load, not after it");
-    assert.match(INDEX, /fetchFmpBars\(legProviderSymbol, "1day", recordAnalyzerEvent, fetchWithTimeout\)/);
+    assert.match(INDEX, /fetchFmpBars\(legProviderSymbol, "1day", recordAnalyzerEvent, fetchWithTimeout, permit\)/);
   });
 
   it("blocks a cross whose leg did not load, with the fact and nothing else, and only after the market's own gates", () => {

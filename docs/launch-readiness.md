@@ -22,7 +22,13 @@
   reusable layout for a future pause, but nothing in `vercel.json` ever serves
   it directly. Open it by flipping `PARKING_GATE` to false — at which point the
   `/?enter` session-scoped bypass becomes a no-op.
-  **Reopening is NOT just the flag.** `docs/HANDOFF.md` ranks R6 as pre-reopen
+  **Reopening is two pushes, and the Edge goes first.** `DESK_PARKED` in
+  `supabase/functions/_shared/deskParking.ts` refuses every user-class provider
+  request at the Edge, and it implies `PARKING_GATE`. Lower `DESK_PARKED` alone;
+  `deploy.yml` deploys the functions and, with the Edge open, runs the full E2E
+  against it. Lower `PARKING_GATE` only after that run is green. Parking is the
+  reverse: raise `PARKING_GATE` first (or both together), then §17p's logout.
+  **Reopening is NOT just the flags.** `docs/HANDOFF.md` ranks R6 as pre-reopen
   and records what a reopen still owes: reader-facing figures still sourced
   from the corpus the 2026-08-11 programme condemned, a live magic-link
   delivery that no test exercises, and the ordering hazard that Vercel builds

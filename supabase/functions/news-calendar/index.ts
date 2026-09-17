@@ -1,13 +1,25 @@
 import { recordAnalyzerEvent } from "../trade-analyzer/telemetry.ts";
 import { redactProviderSecrets } from "../trade-analyzer/redact.ts";
-import { recordFetch } from "../trade-analyzer/fmpBudget.ts";
+import {
+  assertSpendPermit,
+  type FmpSpendPermit,
+  fmpSpendRefusalBody,
+  mayFetch,
+  recordFetch,
+} from "../trade-analyzer/fmpBudget.ts";
 import { fmpBudgetDeps } from "../trade-analyzer/fmpBudgetDb.ts";
+import { DESK_PARKED } from "../_shared/deskParking.ts";
 import { getAssetType } from "../trade-analyzer/calibration.ts";
 import {
   defaultScanSymbols,
   getHeadlineNewsSymbols,
 } from "../trade-analyzer/symbols.ts";
 import { batchNewsSymbols } from "./newsBatching.ts";
+import {
+  keyFingerprint,
+  routeNewsCalendarRequest,
+  verifyBody,
+} from "./gate.ts";
 import {
   type EconomicEvent,
   parseEarningsEventTime,
@@ -99,12 +111,24 @@ const STOCK_NEWS_SYMBOLS = [
 
 Deno.serve(async (req) => {
   try {
-    if (req.method !== "POST") {
+    // The door first (gate.ts). POST with the token syncs; GET with the token
+    // VERIFIES and spends nothing: scripts/ops/sync-function-secrets.sh proves
+    // the token and the FMP_API_KEY this function holds without buying a feed.
+    // It returns before any spend decision and before any provider call.
+    const route = routeNewsCalendarRequest(req.method, isAuthorized(req));
+    if (route === "method-not-allowed") {
       return jsonResponse({ error: "Method not allowed" }, 405);
     }
-
-    if (!isAuthorized(req)) {
+    if (route === "unauthorized") {
       return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+    if (route === "verify") {
+      return jsonResponse(
+        verifyBody({
+          fingerprint: await keyFingerprint(FMP_API_KEY),
+          parked: DESK_PARKED,
+        }),
+      );
     }
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -122,11 +146,33 @@ Deno.serve(async (req) => {
       failedFeeds: [],
       unparseableDates: 0,
     };
-    const fetched = await fetchProviderEvents(
-      windowStart,
-      windowEnd,
-      diagnostics,
-    );
+    let fetched: MaybeTimedEvent[];
+    if (ECONOMIC_CALENDAR_PROVIDER === "finnhub") {
+      fetched = await fetchFinnhubEvents(windowStart, windowEnd);
+    } else {
+      // ONE SPEND DECISION PER SYNC, charged `background`: nobody is waiting on
+      // the calendar, so it yields first when the day is contested. Not parked
+      // with the desk (§21i: no coupling between the parking gate and the
+      // crons); it fails closed on a ledger outage. A refusal is recorded where
+      // every scheduled job reports and answers 503, which the sync watchdog
+      // reads as a failed call.
+      const spend = await mayFetch(fmpBudgetDeps(), "background");
+      if (!spend.allowed) {
+        await recordAnalyzerEvent({
+          action: "news_calendar_sync",
+          message: spend.reason,
+          metadata: { fmpSpendRefused: spend.refusal },
+          status: "blocked",
+        });
+        return jsonResponse(fmpSpendRefusalBody(spend), 503);
+      }
+      fetched = await fetchFmpEvents(
+        windowStart,
+        windowEnd,
+        diagnostics,
+        spend.permit,
+      );
+    }
     // One filter, one count. A row the provider dated in a shape this code
     // cannot read is dropped here rather than carried in with scheduled_at set
     // to the current moment (I2).
@@ -232,40 +278,33 @@ function isAuthorized(req: Request) {
   return Boolean(NEWS_SYNC_TOKEN && token === NEWS_SYNC_TOKEN);
 }
 
-async function fetchProviderEvents(
-  windowStart: Date,
-  windowEnd: Date,
-  diagnostics: IngestDiagnostics,
-) {
-  if (ECONOMIC_CALENDAR_PROVIDER === "finnhub") {
-    return fetchFinnhubEvents(windowStart, windowEnd);
-  }
-
-  return fetchFmpEvents(windowStart, windowEnd, diagnostics);
-}
-
 async function fetchFmpEvents(
   windowStart: Date,
   windowEnd: Date,
   diagnostics: IngestDiagnostics,
+  permit: FmpSpendPermit,
 ): Promise<MaybeTimedEvent[]> {
   // The scheduled calendar is load-bearing — it is what isBlockingNewsEvent
   // reads — so its failure throws out of the whole run. Earnings and headlines
   // are additive: losing one must not lose the other two, but it must not
   // vanish either, so each records the feed it lost by name.
-  const economicEvents = await fetchFmpEconomicEvents(windowStart, windowEnd);
+  const economicEvents = await fetchFmpEconomicEvents(
+    windowStart,
+    windowEnd,
+    permit,
+  );
   let earningsEvents: MaybeTimedEvent[] = [];
   let headlineEvents: MaybeTimedEvent[] = [];
 
   try {
-    earningsEvents = await fetchFmpEarningsEvents(windowStart, windowEnd);
+    earningsEvents = await fetchFmpEarningsEvents(windowStart, windowEnd, permit);
   } catch (error) {
     diagnostics.failedFeeds.push("earnings");
     console.error("news-calendar earnings feed failed", describeError(error));
   }
 
   try {
-    headlineEvents = await fetchFmpHeadlineEvents(windowStart, windowEnd);
+    headlineEvents = await fetchFmpHeadlineEvents(windowStart, windowEnd, permit);
   } catch (error) {
     diagnostics.failedFeeds.push("headlines");
     console.error("news-calendar headline feed failed", describeError(error));
@@ -277,7 +316,9 @@ async function fetchFmpEvents(
 async function fetchFmpEconomicEvents(
   windowStart: Date,
   windowEnd: Date,
+  permit: FmpSpendPermit,
 ): Promise<MaybeTimedEvent[]> {
+  assertSpendPermit(permit);
   if (!FMP_API_KEY) {
     return [];
   }
@@ -291,14 +332,14 @@ async function fetchFmpEconomicEvents(
 
   const response = await fetchWithTimeout(url, {}, PROVIDER_FETCH_TIMEOUT_MS);
   const responseText = await response.text();
-  // BACKGROUND, and that word is the whole design. Nobody is waiting on the
-  // calendar sync: it runs on a schedule to keep the event table warm. Under
-  // the standing rule it therefore hits its ceiling first when the day is
-  // contested, so a live operator's scan is still served when the background
-  // work has already been refused.
+  // BACKGROUND, and that word is the whole design — the permit carries it.
+  // Nobody is waiting on the calendar sync: it runs on a schedule to keep the
+  // event table warm. Under the standing rule it therefore hits its ceiling
+  // first when the day is contested, so a live operator's scan is still served
+  // when the background work has already been refused.
   void recordFetch(
     fmpBudgetDeps(),
-    "background",
+    permit,
     new TextEncoder().encode(responseText).length,
   );
   if (!response.ok) {
@@ -339,7 +380,9 @@ async function fetchFmpEconomicEvents(
 async function fetchFmpEarningsEvents(
   windowStart: Date,
   windowEnd: Date,
+  permit: FmpSpendPermit,
 ): Promise<MaybeTimedEvent[]> {
+  assertSpendPermit(permit);
   if (!FMP_API_KEY) {
     return [];
   }
@@ -353,12 +396,12 @@ async function fetchFmpEarningsEvents(
 
   const response = await fetchWithTimeout(url, {}, PROVIDER_FETCH_TIMEOUT_MS);
   const responseText = await response.text();
-  // Same ledger, same class, same reason as the economic calendar above: this
+  // Same ledger, same permit, same reason as the economic calendar above: this
   // is background work, so it yields first when the day is contested. Recorded
   // BEFORE the ok check, because a refused response still spent the bytes.
   void recordFetch(
     fmpBudgetDeps(),
-    "background",
+    permit,
     new TextEncoder().encode(responseText).length,
   );
   if (!response.ok) {
@@ -401,15 +444,16 @@ async function fetchFmpEarningsEvents(
 async function fetchFmpHeadlineEvents(
   windowStart: Date,
   windowEnd: Date,
+  permit: FmpSpendPermit,
 ): Promise<MaybeTimedEvent[]> {
   if (!FMP_API_KEY) {
     return [];
   }
 
   const [forexNews, cryptoNews, stockNews] = await Promise.all([
-    fetchFmpNewsEndpoint("forex", FOREX_NEWS_SYMBOLS, windowStart, windowEnd),
-    fetchFmpNewsEndpoint("crypto", CRYPTO_NEWS_SYMBOLS, windowStart, windowEnd),
-    fetchFmpNewsEndpoint("stock", STOCK_NEWS_SYMBOLS, windowStart, windowEnd),
+    fetchFmpNewsEndpoint("forex", FOREX_NEWS_SYMBOLS, windowStart, windowEnd, permit),
+    fetchFmpNewsEndpoint("crypto", CRYPTO_NEWS_SYMBOLS, windowStart, windowEnd, permit),
+    fetchFmpNewsEndpoint("stock", STOCK_NEWS_SYMBOLS, windowStart, windowEnd, permit),
   ]);
 
   return [...forexNews, ...cryptoNews, ...stockNews];
@@ -420,13 +464,14 @@ async function fetchFmpNewsEndpoint(
   symbols: string[],
   windowStart: Date,
   windowEnd: Date,
+  permit: FmpSpendPermit,
 ): Promise<MaybeTimedEvent[]> {
   // One request per batch. A single request carrying the whole list looks
   // like it worked — HTTP 200, a full 100 articles — while everything past
   // the 25th symbol is missing from it, which is why this went unnoticed.
   const batched = await Promise.all(
     batchNewsSymbols(symbols).map((batch) =>
-      fetchFmpNewsBatch(category, batch, windowStart, windowEnd)
+      fetchFmpNewsBatch(category, batch, windowStart, windowEnd, permit)
     ),
   );
   return batched.flat();
@@ -437,7 +482,9 @@ async function fetchFmpNewsBatch(
   symbols: string[],
   windowStart: Date,
   windowEnd: Date,
+  permit: FmpSpendPermit,
 ): Promise<MaybeTimedEvent[]> {
+  assertSpendPermit(permit);
   const url = new URL(
     `${FMP_API_BASE_URL.replace(/\/$/, "")}/news/${category}`,
   );
@@ -448,12 +495,12 @@ async function fetchFmpNewsBatch(
 
   const response = await fetchWithTimeout(url, {}, PROVIDER_FETCH_TIMEOUT_MS);
   const responseText = await response.text();
-  // Same ledger, same class, same reason as the economic calendar above: this
+  // Same ledger, same permit, same reason as the economic calendar above: this
   // is background work, so it yields first when the day is contested. Recorded
   // BEFORE the ok check, because a refused response still spent the bytes.
   void recordFetch(
     fmpBudgetDeps(),
-    "background",
+    permit,
     new TextEncoder().encode(responseText).length,
   );
   if (!response.ok) {
