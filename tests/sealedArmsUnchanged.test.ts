@@ -141,7 +141,9 @@ const SEALED_READS_BY_FILE: Record<
  * the confirm spans in to make `calendarHash` (grid-totalr.ts, `sha256Hex(
  * stableJson(confirmSpans))`). Written out here rather than importing `stableJson`,
  * so the binding depends on no repository code; verified 2026-09-16 to reproduce the
- * act-3 read's `calendarHash` exactly.
+ * act-3 read's `calendarHash` exactly. If `stableJson` ever changes, this copy keeps
+ * passing against the old form; that drift is still caught, because the
+ * `artifactHashOf` and `frozenHashOf` tests route through `stableJson` and fail.
  */
 function canonicalSha256(value: unknown): string {
   const canonical = (v: unknown): string =>
@@ -332,7 +334,10 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
         assert.equal(artifact.corpusId, corpusId, `${name}'s corpusId no longer matches the ledger it names`);
         assert.equal(line.corpusHash, corpusId, `the ledger's corpusHash for ${name} no longer names its corpus`);
         assert.deepEqual(line.shardHashes, artifact.shardHashes, `the ledger's shardHashes for ${name} no longer match the sealed read`);
-        assert.equal(line.frozenHash ?? null, read.frozenHash, `the ledger's frozenHash for ${name} moved`);
+        // No coalescing: production always writes the key (null outside a freeze),
+        // so an ABSENT frozenHash is a tampered line, and must not read as null.
+        assert.ok(Object.hasOwn(line, "frozenHash"), `the ledger line for ${name} has no frozenHash key; production always writes one`);
+        assert.equal(line.frozenHash, read.frozenHash, `the ledger's frozenHash for ${name} moved`);
         assert.equal(line.calendarHash, artifact.calendarHash, `the ledger's calendarHash for ${name} no longer matches the sealed read`);
         assert.deepEqual(line.symbolsRead, artifact.symbolsRead, `the ledger's symbolsRead for ${name} no longer match the sealed read`);
         // `calendarHash` IS the digest of the confirm spans, so the spans are bound
@@ -340,6 +345,10 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
         // calendarHash is the hash of the spans it sits beside. Production's
         // calendar refusal reads the spans (overlapsCalendar) and the hash; both are
         // now witnessed by pinned bytes.
+        assert.ok(
+          line.confirmSpans && typeof line.confirmSpans === "object",
+          `the ledger line for ${name} carries no confirmSpans; the calendar refusal would go dark`,
+        );
         assert.equal(
           canonicalSha256(line.confirmSpans),
           artifact.calendarHash,
