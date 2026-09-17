@@ -101,6 +101,48 @@ confirm read, one bad line blocks every corpus, not just its own, which is
 why the message says so and names the file. A `.jsonl` that is not a ledger
 does not belong here; move it rather than leaving it to be read as one.
 
+**What else may live here, and in what form.** Besides the ledgers, this
+directory holds the sealed ledgered-read artifacts (`ledgered-read-*.json`),
+the printed record of each read's own run (`ledgered-read-*.stdout.txt`, sealed
+with its artifact because that run cannot be repeated), this README, and
+`CONDEMNATIONS.md`, the
+record of a condemnation of a SEALED INPUT of a burned read. Such an input is
+never condemned by stamping `INVALID` into it in place, because the stamp
+rewrites the provenance of a read that cannot be retaken
+(`tests/sealedArmsUnchanged.test.ts` fails on it and says so). The note is
+Markdown, never `.jsonl`: every `.jsonl` here is read as a ledger on every
+confirm read. Every sealed read is pinned by
+`tests/sealedArmsUnchanged.test.ts` together with its printed record and its
+ledger: the ledger is named per read and held strictly to the three shapes
+above, and the fields of its line that make a repeat read refuse are
+each bound by value: `corpusHash` to the ledger's own name and the artifact's
+`corpusId`, `shardHashes`, `calendarHash` and `symbolsRead` to the byte-pinned
+artifact, and the confirm spans to the artifact's `calendarHash`, which is their
+own sorted-key digest. The artifact binds its freeze the same way: its
+`frozen.frozenHash` is the hash pinned for that read, and a read that bound no
+freeze carries no `frozen` block. The ledger file's bytes are deliberately not pinned,
+because a sanctioned `--acknowledge-prior-reads` appends to it. When the next read burns, its artifact, printed record and ledger are pinned in
+the same change set, with the freeze the artifact binds. **A sealed read's
+artifact is written into this directory as `ledgered-read-<name>.json`, and its
+printed record beside it as `ledgered-read-<name>.stdout.txt`.** The guard derives
+the set of sealed reads from this directory by that name, so a read written
+anywhere else, or here under another name, is pinned by nothing. Pass `--read-out`
+REPO-RELATIVE, from the repository root, as act 3 did. The string is recorded
+verbatim in a ledger line that can never be amended, and a relative path is the
+one form that reads the same in every clone: act 3's own `ledgerPath` is an
+absolute path into a worktree that no longer exists. `--read-out` resolves against
+the process's working directory and `grid-totalr` creates missing directories, so
+from anywhere but the root it writes a lookalike `…/docs/research/confirm-reads/`
+tree the guard cannot see. The guard places a ledger line by basename and
+directory suffix, because a read taken without `--read-out` records an absolute
+default path, and so it cannot tell that lookalike, or a scratch clone's copy,
+from this directory. What closes both is resolving `--read-out` against the
+repository rather than the process, as `DEFAULT_CONFIRM_LOG_DIR` already is, and
+refusing a path outside this directory or under another name. That refusal is
+owed and recorded in `docs/HANDOFF.md`; it must bind `--read-out` only, because
+tests drive real confirm reads through `--confirm-log-dir`, whose default artifact
+path is legitimately elsewhere.
+
 `--confirm-log-dir` redirects **where a read is written**, never where prior
 reads are looked for: this directory is searched on every `--confirm-final`
 run whatever the flag says, and a redirected run warns that it is filing

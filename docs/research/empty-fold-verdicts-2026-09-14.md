@@ -153,11 +153,53 @@ matters most:
    `per-market-grading-classfolds.json` exempted from "no new fields": a re-run
    adds `select` and `derived` per variant and `derived` and `emitSha256` at the
    top level, because it predates #571.
-6. Regenerate the eight `*-grading.stdout.txt` records beside the artifacts in
-   the same change set; they carry the reason strings and the bucket counts.
-7. Re-run `freeze-candidates` or re-record the seven `artifactSha256` values in
-   `frozen-candidates.json`. All seven match disk exactly today and nothing
-   re-verifies them at run time, so a regrade falsifies that binding silently.
+6. Regenerate the `*-grading.stdout.txt` records with the artifacts they
+   print. **Scoped by item 7 (2026-09-16):** a stdout record and its JSON are the
+   same run's two outputs, so the stdout twin of every sealed input is sealed with
+   it — and so are the burned read's own artifact file and its printed record. Regenerating a twin beside a sealed JSON would leave the pairs
+   disagreeing with nothing cross-checking them. **The SEALED INPUTS are twelve
+   gradings, not seven**: the freeze body also carries `classes`, `classAxes`,
+   `classCellsTested` and `expectedFalseAcceptsClasses`, computed from five
+   class-grain gradings (review-window, review-window-96, stop-cap, stop-cap-8 and
+   admission-derived, each `-grading-class.json`), and it records NO checksum for
+   them. All four class-grain gradings this note lists as stale are among those
+   five. The twelve sealed inputs and the twelve STALE RECORDS listed further
+   down are different sets that share eleven files: `per-market-grading-classfolds`
+   is stale but not sealed, and `review-window-96-grading-class` is sealed but not
+   stale. So of every stale record, only `per-market-grading-classfolds`
+   regenerates in place; the other eleven, and the stdout twins of every sealed
+   input, get their regraded output written somewhere new. A sealed input may not
+   be condemned in place with an INVALID stamp either; a condemnation goes in
+   `docs/research/confirm-reads/CONDEMNATIONS.md` — Markdown, never `.jsonl`,
+   since that directory is globbed for ledgers on every confirm read.
+7. ~~Re-run `freeze-candidates` or re-record the seven `artifactSha256` values in
+   `r4/frozen-candidates.json`.~~ **WITHDRAWN 2026-09-16 — DO NOT DO THIS.** Seven of
+   the eight gradings are the freeze's arms, the inputs of the sealed act-3 read,
+   and `frozenHash` is computed over the whole freeze body INCLUDING those seven
+   checksums (`scripts/freeze-candidates.ts`, `frozenHashOf`). The burned read
+   `docs/research/confirm-reads/ledgered-read-act3.json` binds that `frozenHash`.
+   Re-running the freeze or re-recording a checksum changes it and severs a read
+   that can never be repeated; overwriting an arm in place without doing so
+   leaves the freeze naming a file whose hash no longer matches — and SILENTLY,
+   because nothing re-verifies the arm checksums at run time.
+   `verifyFrozenCandidates` checks the rule hashes and `frozenHash` over the body
+   and never re-hashes an arm file on disk; the only comparison of
+   `artifactSha256` against a real file is `tests/freezeCandidates.test.ts`,
+   against that test's own fixture. **Enforced since 2026-09-16** by
+   `tests/sealedArmsUnchanged.test.ts`, which re-hashes the seven market arms
+   against the freeze, pins the five class arms to the blobs commit 7c55cd3 wrote
+   (the freeze records no checksum for them), recomputes the sealed read's own
+   content hash and the freeze it binds, binds every field of its ledger line that makes a repeat read refuse, and holds the freeze and
+   read hashes as written-down constants. It fails by name on an overwritten
+   market or class arm, a tampered freeze, a consistent re-freeze, and the freeze,
+   read and ledger rewritten together. It also pins the freeze file's own bytes, the sealed read's own file bytes and
+   printed record, and the stdout twin of every sealed
+   input, and only one of its tests depends on the rule constants in code, so a
+   deliberate re-ruling fails that test alone. The premise that
+   drove this correction is right — a regrade in place does falsify the binding —
+   and the conclusion was the wrong way round: the arms must stay byte-identical.
+   How to regrade without touching them is being designed and refuted before
+   anything is built.
 
 One thing remains unestablished and is stated as such: that a regrade reproduces
 the numeric fields bit for bit. The only behavioural changes on the net-arm path
@@ -254,7 +296,9 @@ after that read; the default is `net`, so no figure moved.
 repair changes the label on every judged refusal, and it is GRAIN-AGNOSTIC — the
 exemption two paragraphs above, that the seven class-grain gradings are not the
 same defect, is true of the empty-fold defect and false of this one. Twelve
-tracked records now print a word their own JSON contradicts:
+tracked records — the TWELVE STALE RECORDS, not the twelve sealed inputs named
+under item 6, though eleven files are in both — now print a word their own JSON
+contradicts:
 
 | grain | records | reason occurrences | printed rows that change |
 |---|---:|---:|---:|
@@ -276,7 +320,7 @@ expectancy -0.1821R … (95% lower -0.2896R over 208 filled)`, and the row for
 that same verdict in the table beside it reads `fails`. Same fit ΔR, same
 paired p, same bounds.
 
-All twelve are owed with the regrade already recorded as owed, and until that
+All twelve stale records are owed with the regrade already recorded as owed, and until that
 lands the command in each of them does NOT reproduce the file beside it. Saying
 so is the point: a record that quietly stopped reproducing is worse than one
 that says it stopped.
