@@ -1789,8 +1789,9 @@ the engine's own resolver rather than one representative per class — so
 the next override is covered without an edit to that test.
 
 **Bar resolution is still the ceiling, and is now measurable.**
-`scripts/probe-minute-bars.ts` reports 1-minute coverage, depth and
-recency per market. 15-minute bars cannot order intrabar events, which is
+Roster coverage of 1-minute bars was measured on 2026-08-06; since
+2026-09-16 `scripts/probe-minute-bars.ts` answers one dated 1-minute
+question per request, through the governor. 15-minute bars cannot order intrabar events, which is
 why a measured ~60% gain at sub-1.0 stop caps was declined in round 25 —
 at a 0.5 cap, 26% of setups end in neither a target nor a stop, and the
 expectancy figure then reports how the harness treats ambiguity rather

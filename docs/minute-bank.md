@@ -10,10 +10,11 @@ which came first. That single limit is why a measured ~60% gain at sub-1.0 stop 
 was declined in round 25: at a 0.5 cap, 26% of setups end in neither a target nor a
 stop, so the expectancy figure describes the harness rather than the market.
 
-Minute bars resolve the order. FMP serves them for 99 of 99 probed symbols and only
-about **three days deep** (`scripts/probe-minute-bars.ts`). The depth cannot be bought
-and it cannot be backfilled. It can only be accumulated forward, one day at a time,
-starting whenever the banking starts.
+Minute bars resolve the order. FMP served them for 99 of 99 probed symbols, and an
+undated request returns about **three days** (probe, 2026-08-06). Whether a dated
+request reaches deeper has not been measured; `scripts/probe-minute-bars.ts --symbol
+--from --to` asks one such question through the governor. Until it is answered, the
+depth is treated as unrecoverable: the bank accumulates forward, one day at a time.
 
 That makes this the one piece of work whose value depends purely on its start date.
 Every day not banked is a day never recovered. The analysis that consumes it comes
@@ -70,10 +71,32 @@ indistinguishable from a real one.
 FMP_API_KEY=$(security find-generic-password -s fmp-api-key -a peacock -w) npx tsx scripts/bank-minute-bars.ts
 ```
 
-It must run at least once every three days or a gap opens that cannot be closed. A
-run that fetches nothing from any symbol exits non-zero — the provider or the key is
-broken and the window is closing. A run that fetches bars but appends none is normal
-and says so.
+It must run at least once every three days or a gap opens that cannot be closed.
+
+The bank is never refused at a door (§21c). It does not consult the shared FMP
+breaker or ask the ledger for room: its first symbol is its probe, so an outage costs
+one request per run. When that scout fetches nothing the run stops, reports a wall no
+retry clears to the breaker, names the remedy and exits 1. When it answers, the bank
+records the answer, which closes the breaker for every other consumer.
+
+It exits 1 when there are no targets, when nothing was fetched, when the scout stood
+down, when a ledger or breaker write failed, when the run reached its **512 MiB
+per-run bound** (symbols past the bound are not attempted, and the output names how
+many), and when the bank's own bytes for the UTC day pass 512 MiB or the ledger
+cannot be read to check them. That last is an alarm, not a refusal. A run that loses some symbols but fetches others still exits 0,
+as before; the daily watcher reads those. A run that fetches bars but appends none is
+normal and says so.
+
+Every byte is recorded under `.fmp-state/usage/<YYYY-MM-DD>.jsonl`, tagged `bank`.
+The other script consumers — the cache top-up and every ad-hoc sweep, probe and
+verifier — share a pool that reserves 333,333,333 bytes a day for the bank whether it
+runs or not.
+
+A clean run — the whole roster, no symbol lost, no bound reached, into the canonical
+`.minute-bank` — writes `.fmp-state/runs/minute-bank.json`. The wrapper's run gate
+(`scripts/fmpRunGate.ts`) reads it: a boot-time run is skipped only when the next
+scheduled slot is at most twelve hours after that clean run, and anything the gate
+cannot read runs the bank.
 
 First run, 2026-08-06: 338,971 bars across 100 symbols, 42 MB.
 
@@ -158,7 +181,9 @@ to come up.
 Retries are classified, not blanket. A 4xx other than 429 is a settled answer: a
 rejected key is still rejected on the fourth ask, and asking costs a hundred
 symbols against a metered quota. Everything else — no response at all, a 429, a
-5xx, an error page where JSON belonged — is retried.
+5xx, an error page where JSON belonged — is retried. The status is read from the
+start of the message even when the provider's body follows it; until 2026-09-16 a
+suspension and a rejected key carried their body and were retried five times each.
 
 A symbol that leaves the roster stops being banked, and the count alone will not
 say so. Amendment 32 dropped `^MID`, `^STOXX50E` and `USDMXN` on 2026-08-09 and

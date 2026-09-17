@@ -41,6 +41,7 @@
  *   FMP_API_KEY=... npx tsx scripts/bank-minute-bars.ts
  *   FMP_API_KEY=... npx tsx scripts/bank-minute-bars.ts --dir .minute-bank --concurrency 4
  */
+import { realpathSync } from "node:fs";
 import {
   appendFile,
   mkdir,
@@ -48,25 +49,41 @@ import {
   readdir,
   writeFile,
 } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
+import { redactProviderSecrets } from "../supabase/functions/trade-analyzer/redact.ts";
 import { flagReader } from "./flagReader.ts";
-import { maySpend, noteRefusal, recordUsage } from "./fmpGovernor.ts";
+import {
+  classifyRefusal,
+  closeCircuit,
+  type FetchLike,
+  isCircuitRefusal,
+} from "./fmpCircuit.ts";
+import {
+  BANK_RUN_BOUND_BYTES,
+  noteRefusal,
+  providerRefusal,
+  readDay,
+  recordUsage,
+  reportDayProblems,
+} from "./fmpGovernor.ts";
+import { writeRunMarker } from "./fmpRunGate.ts";
+import {
+  defaultStatePaths,
+  type FmpStatePaths,
+  reportBookkeepingFailure,
+} from "./fmpState.ts";
 
 const BASE = "https://financialmodelingprep.com/stable";
-const KEY = process.env.FMP_API_KEY;
 
 // Bars carry no timezone and FMP's window is ~3 days, so a key is only ever
 // compared against keys from the same provider and endpoint. Recording both
 // makes that assumption checkable rather than assumed.
-import {
-  closeCircuit,
-  classifyRefusal,
-  isCircuitRefusal,
-  mayCall,
-} from "./fmpCircuit.ts";
-
 const PROVIDER = "fmp";
 const ENDPOINT = "historical-chart/1min";
+/** The pathname the ledger and the breaker key this endpoint by. */
+const ENDPOINT_PATH = new URL(`${BASE}/${ENDPOINT}`).pathname;
+const LABEL = "bank-minute-bars";
 
 // Kept in the sidecar so a top-up dedupes against the overlap without reading
 // the bank back. Three days at 1440 bars/day is 4,320; 8,000 covers a long
@@ -95,6 +112,10 @@ function standDownRemedy(note: string): string {
         "This is a subscription gap, not an exhausted allowance: it does not " +
         "drain by time and the FMP plan must change before any run succeeds."
       );
+    case "suspended":
+      return "The account is suspended: nothing clears it but the owner resolving it with FMP.";
+    case "invalidKey":
+      return "FMP rejected the key in the Keychain item fmp-api-key; no wait or re-run clears it.";
     default:
       return (
         "The refusal did not match a known wall, so neither waiting nor " +
@@ -357,14 +378,19 @@ async function readSidecar(
 /**
  * A failure is worth retrying unless the provider gave a settled answer.
  *
- * `fetchMinuteBars` throws `HTTP nnn` when something answered and undici throws
- * `fetch failed` when nothing did. A 4xx other than 429 is settled — a rejected
- * key is still rejected on the fourth ask, and asking costs 100 symbols' worth
- * of a metered quota. Everything else is the network, the provider's weather,
- * or an error page where JSON was expected, and all three pass on their own.
+ * `fetchMinuteBars` throws `HTTP nnn <body>` when something answered and undici
+ * throws `fetch failed` when nothing did. A 4xx other than 429 is settled — a
+ * rejected key is still rejected on the fourth ask, and asking costs 100
+ * symbols' worth of a metered quota. Everything else is the network, the
+ * provider's weather, or an error page where JSON was expected, and all three
+ * pass on their own.
+ *
+ * The status is read up to a word boundary, not to the end of the message.
+ * Since the body joined the message (#493) an end anchor matched nothing, so
+ * a suspension and a rejected key both read as "no status" and were retried.
  */
 export function isRetryable(error: unknown): boolean {
-  const status = /^HTTP (\d{3})$/.exec(
+  const status = /^HTTP (\d{3})\b/.exec(
     error instanceof Error ? error.message : "",
   )?.[1];
   if (!status) {
@@ -401,31 +427,84 @@ export async function withRetry<T>(
   }
 }
 
-const sleep = (ms: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-async function fetchMinuteBars(fmpSymbol: string): Promise<RawBar[]> {
+const encoder = new TextEncoder();
+
+type Print = { out: (line: string) => void; err: (line: string) => void };
+
+export type BankDeps = {
+  argv: string[];
+  key: string | undefined;
+  fetch: FetchLike;
+  now: () => number;
+  sleep: (ms: number) => Promise<void>;
+  /** Required: a test that forgets to pass state must not reach the machine's ledger. */
+  state: FmpStatePaths;
+  print: Print;
+  /** Bytes one run may spend before it stops starting symbols. */
+  runBoundBytes?: number;
+};
+
+type BankContext = {
+  key: string;
+  fetch: FetchLike;
+  now: () => number;
+  sleep: (ms: number) => Promise<void>;
+  state: FmpStatePaths;
+  print: Print;
+  /** Every body this run was served, refusals included. */
+  runBytes: number;
+  bookkeepingFailed: number;
+  lastAnsweredAt: number | null;
+};
+
+/**
+ * One request for one symbol.
+ *
+ * Every attempt's body is billed, refusals included, and nothing about the
+ * bookkeeping can throw into `withRetry`: a ledger that cannot be written is
+ * counted and reported, never retried, because re-issuing the request would
+ * buy the same bytes again to record them.
+ */
+async function fetchMinuteBars(ctx: BankContext, fmpSymbol: string): Promise<RawBar[]> {
   const url = new URL(`${BASE}/${ENDPOINT}`);
   url.searchParams.set("symbol", fmpSymbol);
-  url.searchParams.set("apikey", KEY!);
-  const res = await fetch(url, { headers: { accept: "application/json" } });
+  url.searchParams.set("apikey", ctx.key);
+  const res = await ctx.fetch(url, { headers: { accept: "application/json" } });
   if (!res.ok) {
-    // THE BODY, not just the status. FMP returns 429 for two different walls —
-    // the 3,000/minute rate limit, which a backoff ladder is exactly right for
-    // and which clears in seconds, and the trailing-30-day bandwidth ceiling,
-    // which clears in DAYS and against which a ladder is pure noise. The code
-    // cannot carry that difference; only the provider's own words can
-    // ("Bandwidth Limit Reach . Please upgrade your plan"). Throwing the bare
-    // status is what left every consumer unable to tell them apart.
-    const detail = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status}${detail ? ` ${detail.trim()}` : ""}`);
+    // THE BODY, not just the status. FMP returns 429 for the per-minute rate
+    // limit and for the trailing-30-day bandwidth wall, and only its own words
+    // tell them apart. The bank never reports a mid-roster refusal to the
+    // breaker; its scout does that once, below.
+    const refusal = await providerRefusal(res, {
+      atMs: ctx.now(),
+      consumer: "bank",
+      endpointPath: ENDPOINT_PATH,
+      label: LABEL,
+      note: false,
+      state: ctx.state,
+    });
+    ctx.runBytes += refusal.bytes;
+    if (refusal.bookkeepingFailed) ctx.bookkeepingFailed += 1;
+    throw new Error(`HTTP ${refusal.status}${refusal.body ? ` ${refusal.body}` : ""}`);
   }
   // Measured at the only moment the real cost is knowable: FMP publishes no
   // usage endpoint and Content-Length is absent on chunked responses, so the
-  // body's own size IS the bill. Written through to the shared daily ledger,
-  // so the next process starts from the truth rather than from zero.
+  // body's own size IS the bill.
+  const answeredAt = ctx.now();
   const body = await res.text();
-  recordUsage(new TextEncoder().encode(body).length, Date.now());
+  const bytes = encoder.encode(body).length;
+  ctx.runBytes += bytes;
+  try {
+    recordUsage(
+      { atMs: answeredAt, bytes, consumer: "bank", endpointPath: ENDPOINT_PATH, label: LABEL },
+      ctx.state,
+    );
+  } catch (error) {
+    reportBookkeepingFailure(`${LABEL} usage record`, error, ctx.print.err);
+    ctx.bookkeepingFailed += 1;
+  }
+  ctx.lastAnsweredAt = answeredAt;
   const payload = JSON.parse(body);
   if (!Array.isArray(payload)) {
     throw new Error("payload was not an array");
@@ -434,6 +513,7 @@ async function fetchMinuteBars(fmpSymbol: string): Promise<RawBar[]> {
 }
 
 async function bankOne(
+  ctx: BankContext,
   dir: string,
   fmpSymbol: string,
   markets: string[],
@@ -442,13 +522,13 @@ async function bankOne(
   const state = await readSidecar(dir, fmpSymbol, markets);
   let raw: RawBar[];
   try {
-    raw = await withRetry(() => fetchMinuteBars(fmpSymbol), {
+    raw = await withRetry(() => fetchMinuteBars(ctx, fmpSymbol), {
       attempts: RETRY_ATTEMPTS,
       baseDelayMs: RETRY_BASE_DELAY_MS,
-      sleep,
+      sleep: ctx.sleep,
     });
   } catch (error) {
-    const note = error instanceof Error ? error.message : "fetch failed";
+    const note = redactProviderSecrets(error instanceof Error ? error.message : "fetch failed");
     state.runs = [...state.runs.slice(-29), { at, fetched: 0, appended: 0, note }];
     await writeFile(sidecarPath(dir, fmpSymbol), JSON.stringify(state, null, 2));
     return { fetched: 0, appended: 0, note };
@@ -495,86 +575,94 @@ async function bankOne(
   return { fetched: candidates.length, appended: fresh.length, note };
 }
 
-async function main() {
-  if (!KEY) {
-    console.error("FMP_API_KEY is required.");
-    process.exitCode = 1;
-    return;
+function sameRealPath(a: string, b: string): boolean {
+  try {
+    return realpathSync(a) === realpathSync(b);
+  } catch {
+    return false;
   }
-  const plan = planRun(process.argv.slice(2));
-  const { dir, concurrency, targets } = plan;
-  await mkdir(dir, { recursive: true });
-  const at = new Date().toISOString();
+}
 
-  // ONE REQUEST BEFORE 97, because the allowance drains by time and nothing
-  // else. `docs/HANDOFF.md` states the rule outright — "Do not re-run the bank
-  // into a 429 — a re-run cannot succeed against an exhausted allowance, and
-  // one whole-roster attempt burns ~485 requests" — and the job was doing
-  // exactly that, twice a day, for five days straight.
-  //
-  // THE RETRY LADDER IS THE REASON, and its own comment says so: five attempts
-  // from a 2s base "costs a doomed run only time", which was true of the
-  // failure it was written for — launchd waking the job before the network is
-  // up (2026-08-08, all 100 symbols lost in six seconds). It is not true of a
-  // quota 429, where every symbol spends its whole ladder against a wall that
-  // will not move until the trailing window drains.
-  //
-  // What this does NOT claim: that the retries made the exhaustion worse. FMP
-  // bills BYTES over a trailing 30 days, not requests
-  // (`2026-08-16-fmp-consumption-governor-design.md`), and a 429 body is a few
-  // of them. The cost is wall time, a log nobody can read, and a failure that
-  // looks identical whether the provider is exhausted or the key is revoked.
+/**
+ * One bank run. Returns the exit code.
+ *
+ * NO DOOR. §21c says the bank "cannot be refused" and §21g that "a proxy
+ * outage must never be able to cost minute bars", and until 2026-09-16 the
+ * bank asked the shared breaker and the day ledger anyway — so a calendar 402
+ * the top-up met at 11:00Z refused the bank at 11:20Z on 09-05 and 09-08, and
+ * a refused bank run exited 0. The bank's first symbol is its own probe: an
+ * outage costs one request per run, and no other consumer's claim, stale entry
+ * or race can darken the one store whose loss is permanent.
+ *
+ * What bounds it instead: a per-run byte bound (512 MiB) after which no new
+ * symbol starts, and an end-of-run alarm when the bank's own bytes for the UTC
+ * day pass that bound. The alarm exits 1; it never refuses a run.
+ */
+export async function runBank(deps: BankDeps): Promise<number> {
+  const { print, state } = deps;
+  if (!deps.key) {
+    print.err("FMP_API_KEY is required.");
+    return 1;
+  }
+  const plan = planRun(deps.argv);
+  const { dir, concurrency, roster, targets } = plan;
+  await mkdir(dir, { recursive: true });
+  const at = new Date(deps.now()).toISOString();
+  const runBoundBytes = deps.runBoundBytes ?? BANK_RUN_BOUND_BYTES;
+  const ctx: BankContext = {
+    bookkeepingFailed: 0,
+    fetch: deps.fetch,
+    key: deps.key,
+    lastAnsweredAt: null,
+    now: deps.now,
+    print,
+    runBytes: 0,
+    sleep: deps.sleep,
+    state,
+  };
+
+  const beforeAt = deps.now();
+  const ledgerBefore = readDay(beforeAt, state);
+  if (ledgerBefore.ok === false) {
+    print.err(`bank proceeds without a readable ledger: ${ledgerBefore.detail}`);
+  } else {
+    reportDayProblems(ledgerBefore.day, { atMs: beforeAt, emit: print.err, state });
+  }
 
   let appendedTotal = 0;
   let fetchedTotal = 0;
   let failed = 0;
   let index = 0;
 
-  // THE SHARED BREAKER, checked before the scout. Six consumers were each
-  // rediscovering the same wall independently; this one asks whether anybody
-  // already found it. An open breaker still lets ONE probe through per
-  // cool-off window, so recovery is noticed without the roster being spent to
-  // notice it.
-  // The bank is §21c's protected consumer — 1-minute bars are re-served only
-  // ~3 days deep, so its loss alone is permanent — and it still asks. A
-  // ceiling it cannot exceed is not a demotion: it is what lets every other
-  // consumer be refused HARDER, because the bank's share is reserved rather
-  // than merely hoped for.
-  const governed = maySpend({
-    atMs: Date.now(),
-    dailyLimitBytes: 512 * 1024 * 1024,
-    label: "bank-minute-bars",
-  });
-  if (!governed.allowed) {
-    console.error(governed.reason);
-    return;
-  }
-  const gate = mayCall(Date.now());
-  if (!gate.allowed) {
-    console.error(`Standing down: ${gate.reason}`);
-    process.exitCode = 1;
-    return;
-  }
-
   // THE FIRST SYMBOL IS THE SCOUT, and it is banked normally rather than
   // probed — a separate probe would discard bars it had already paid for, and
   // the allowance is metered in BYTES. On a healthy run this costs nothing at
-  // all; on an exhausted one it costs one symbol's ladder instead of the
-  // roster's.
+  // all; on a refusing provider it costs one symbol's request instead of the
+  // roster's. `docs/HANDOFF.md` states the rule: do not re-run the bank into a
+  // wall, because a whole-roster attempt learns the same fact ninety-seven
+  // times.
   if (targets.length > 0) {
     const scout = targets[index++];
-    const result = await bankOne(dir, scout.fmpSymbol, scout.markets, at);
+    const result = await bankOne(ctx, dir, scout.fmpSymbol, scout.markets, at);
     appendedTotal += result.appended;
     fetchedTotal += result.fetched;
     if (result.fetched === 0) {
       failed += 1;
-      console.log(`  ${scout.fmpSymbol}: ${result.note || "no bars"}`);
-      // Tell every other consumer what this one just learned, so the cache
-      // top-up and the sweeps do not each spend a roster finding out.
+      print.out(`  ${scout.fmpSymbol}: ${result.note || "no bars"}`);
+      // Tell every other consumer what this one just learned. The bank never
+      // READS the breaker; it only reports to it.
       if (isCircuitRefusal(result.note)) {
-        noteRefusal(result.note, Date.now());
+        try {
+          noteRefusal(
+            result.note,
+            { atMs: deps.now(), consumer: "bank", endpointPath: ENDPOINT_PATH },
+            state,
+          );
+        } catch (error) {
+          reportBookkeepingFailure(`${LABEL} breaker refusal`, error, print.err);
+        }
       }
-      console.error(
+      print.err(
         `The first symbol fetched nothing (${result.note || "no bars"}). ` +
           `Standing down without attempting the remaining ${
             targets.length - 1
@@ -585,28 +673,45 @@ async function main() {
           `Recovery needs no catch-up: one successful run re-pulls each ` +
           `symbol's full window.`,
       );
-      process.exitCode = 1;
-      return;
+      return 1;
     }
-    // The provider answered. Whatever any other consumer recorded is stale.
-    closeCircuit();
+    // The provider answered. Whatever any consumer recorded before this
+    // answer is stale; a refusal recorded after it stays open.
+    if (ctx.lastAnsweredAt !== null) {
+      try {
+        closeCircuit(
+          { consumer: "bank", endpointPath: ENDPOINT_PATH, evidenceAtMs: ctx.lastAnsweredAt },
+          state,
+        );
+      } catch (error) {
+        reportBookkeepingFailure(`${LABEL} breaker answer`, error, print.err);
+        ctx.bookkeepingFailed += 1;
+      }
+    }
   }
 
+  const runBoundReached: string[] = [];
   const workers = Array.from({ length: Math.max(1, concurrency) }, async () => {
     while (index < targets.length) {
       const target = targets[index++];
-      const result = await bankOne(dir, target.fmpSymbol, target.markets, at);
+      // A bound on this run's own bytes, checked before each symbol starts, so
+      // the overshoot is at most one body per worker.
+      if (ctx.runBytes >= runBoundBytes) {
+        runBoundReached.push(target.fmpSymbol);
+        continue;
+      }
+      const result = await bankOne(ctx, dir, target.fmpSymbol, target.markets, at);
       appendedTotal += result.appended;
       fetchedTotal += result.fetched;
       if (result.fetched === 0) {
         failed += 1;
-        console.log(`  ${target.fmpSymbol}: ${result.note || "no bars"}`);
+        print.out(`  ${target.fmpSymbol}: ${result.note || "no bars"}`);
       }
     }
   });
   await Promise.all(workers);
 
-  console.log(
+  print.out(
     `Banked ${appendedTotal} new 1-minute bars across ${targets.length} symbols` +
       (failed > 0 ? `; ${failed} returned nothing` : "") + ".",
   );
@@ -616,18 +721,75 @@ async function main() {
   // Fetching nothing means the provider or the key is broken, and the 3-day
   // window makes that unrecoverable within a day. Fetching bars and appending
   // none is what an immediate re-run does, and is merely worth saying.
+  let code = 0;
   if (targets.length === 0) {
-    console.error(
+    print.err(
       "No symbols to bank. Nothing was examined, so this is a failure, not a quiet day.",
     );
-    process.exitCode = 1;
+    code = 1;
   } else if (fetchedTotal === 0) {
-    console.error(
+    print.err(
       "Nothing was fetched from any symbol. The provider window is 3 days — investigate now.",
     );
-    process.exitCode = 1;
+    code = 1;
   } else if (appendedTotal === 0) {
-    console.log("Nothing new since the last run.");
+    print.out("Nothing new since the last run.");
+  }
+
+  if (runBoundReached.length > 0) {
+    print.err(
+      `runBoundReached: ${runBoundReached.length} symbols were not attempted because this ` +
+        `run had spent ${ctx.runBytes} bytes against its ${runBoundBytes} byte bound ` +
+        `(${runBoundReached.slice(0, 5).join(", ")}${runBoundReached.length > 5 ? ", …" : ""}). ` +
+        `A normal run spends a small fraction of it, so read the ledger before re-running.`,
+    );
+    code = 1;
+  }
+
+  const afterAt = deps.now();
+  const ledgerAfter = readDay(afterAt, state);
+  if (ledgerAfter.ok === false) {
+    print.err(`the bank's day alarm could not read the ledger: ${ledgerAfter.detail}`);
+    code = 1;
+  } else {
+    reportDayProblems(ledgerAfter.day, { atMs: afterAt, emit: print.err, state });
+  }
+  if (ledgerAfter.ok && ledgerAfter.day.bank > BANK_RUN_BOUND_BYTES) {
+    print.err(
+      `the bank spent ${ledgerAfter.day.bank} bytes today, above its 512 MiB run bound — ` +
+        `nothing was refused, but that is several runs' worth; find out why.`,
+    );
+    code = 1;
+  }
+
+  if (ctx.bookkeepingFailed > 0) {
+    print.err(
+      `${ctx.bookkeepingFailed} bookkeeping write(s) failed this run; the bars above are ` +
+        `banked, but the ledger is short by what those writes carried.`,
+    );
+    code = 1;
+  }
+
+  // The run gate skips a boot run only after a clean run, and "clean" means
+  // an exit-0 run that banked the whole roster with nothing lost, into the one
+  // real store. A red run writes no marker even though its bars are banked:
+  // a marker there turned the next boot, kickstart or hand run into a skip
+  // that exits 0, and launchd's last exit code for the job with it.
+  if (
+    code === 0 &&
+    failed === 0 &&
+    runBoundReached.length === 0 &&
+    roster.length > 0 &&
+    targets.length === roster.length &&
+    sameRealPath(dir, state.canonicalBankDir)
+  ) {
+    try {
+      writeRunMarker(state.runsDir, "minute-bank", { atMs: deps.now(), dir: realpathSync(dir) });
+    } catch (error) {
+      reportBookkeepingFailure(`${LABEL} run marker`, error, print.err);
+      print.err("the clean-run marker could not be written; the bars above are banked.");
+      code = 1;
+    }
   }
 
   // Last, and after the exit code is settled. This reads the directory rather
@@ -636,12 +798,21 @@ async function main() {
   // escalation above it.
   const orphans = await departedSymbols(dir, plan);
   if (orphans.length > 0) {
-    console.log(
+    print.out(
       `No longer on the roster, so no longer banked: ${orphans.join(", ")}.`,
     );
   }
+  return code;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  await main();
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  process.exitCode = await runBank({
+    argv: process.argv.slice(2),
+    fetch,
+    key: process.env.FMP_API_KEY,
+    now: Date.now,
+    print: { err: (line) => console.error(line), out: (line) => console.log(line) },
+    sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
+    state: defaultStatePaths(),
+  });
 }

@@ -1,402 +1,414 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { spawn } from "node:child_process";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
-import { noteRefusal } from "../scripts/fmpGovernor.ts";
+import { ProbeLostError } from "../scripts/fmpByteBudget.ts";
 import {
   classifyRefusal,
   closeCircuit,
   COOL_OFF_MS,
+  createProbeGate,
+  type FetchLike,
   isBandwidthRefusal,
   isCircuitRefusal,
   mayCall,
   openCircuit,
-  readCircuit,
+  readBreaker,
+  recoveryClause,
 } from "../scripts/fmpCircuit.ts";
+import { maySpend } from "../scripts/fmpGovernor.ts";
+import { appendRecord, utcDay } from "../scripts/fmpState.ts";
+import { BODIES, INVALID_KEY_BODY_PREFIX, tempState } from "./fixtures/fmpTestState.ts";
 
 /**
  * One shared breaker, because six consumers were each finding the same wall.
  *
- * Measured 2026-08-31, with the account nine GB over a 250 GB ceiling: the
- * minute bank fired twice daily and spent 97 symbols x 5 retries; the cache
- * top-up fired twice daily and climbed a seven-step ladder totalling ~11
- * minutes; two hourly pg_cron jobs called Edge functions that call FMP; and
- * the deploy-time E2E ran on every merge, nineteen times that day.
- *
- * None of them could tell another. There is no usage endpoint — that is §21's
- * premise — so the only shared signal available without the parked proxy is a
- * marker one consumer writes and the rest read.
+ * Since 2026-09-16 it is an append-only event log rather than one JSON marker.
+ * The marker was rewritten whole by whoever wrote last, so a close could erase
+ * a newer refusal and a claim could re-open a breaker another process had just
+ * closed. In the log, open versus closed is decided by EVIDENCE TIME — the
+ * newest refusal against the newest answer — whatever order the lines landed
+ * in, and each scope (the account, or one endpoint) is its own key.
  */
 
-const scratch = () => join(mkdtempSync(join(tmpdir(), "circuit-")), "c.json");
+const MIN1 = "/stable/historical-chart/1min";
+const CAL = "/stable/economic-calendar";
+const EOD = "/stable/historical-price-eod/full";
+const M15 = "/stable/historical-chart/15min";
+const HOUR = 3_600_000;
 
-describe("the two 429s are not the same wall", () => {
-  it("recognises the bandwidth ceiling by the provider's own words", () => {
-    // The real body, copied from `function_logs` on 2026-08-31.
-    assert.equal(
-      isBandwidthRefusal(
-        '{\n  "Error Message": "Bandwidth Limit Reach . Please upgrade your ' +
-          'plan or visit our documentation for more details at ' +
-          'https://site.financialmodelingprep.com/"\n}',
-      ),
-      true,
+function breakerLines(dir: string): Array<Record<string, unknown>> {
+  return readdirSync(dir)
+    .filter((name) => name.endsWith(".jsonl"))
+    .sort()
+    .flatMap((name) =>
+      readFileSync(join(dir, name), "utf8")
+        .split("\n")
+        .filter((line) => line.trim() !== "")
+        .map((line) => JSON.parse(line) as Record<string, unknown>)
     );
+}
+
+describe("each refusal is classified by the provider's own words", () => {
+  it("names the four walls from verbatim bodies", () => {
+    assert.equal(classifyRefusal(BODIES.bandwidth), "bandwidth");
+    assert.equal(classifyRefusal(BODIES.restricted), "entitlement");
+    assert.equal(classifyRefusal(BODIES.suspended), "suspended");
+    // A stored PREFIX of the 401 body; the whole body was never captured.
+    assert.equal(classifyRefusal(BODIES.invalidKeyStoredPrefix), "invalidKey");
+    assert.equal(classifyRefusal(INVALID_KEY_BODY_PREFIX), "invalidKey");
   });
 
-  it("does NOT treat a bare rate limit as the bandwidth wall", () => {
-    // The 3,000/minute ceiling is what the backoff ladder was written for and
-    // clears in seconds. Collapsing the two would retire a retry that works.
+  it("tests entitlement before bandwidth, so a widened pattern cannot swallow a 402 again", () => {
+    // Synthetic on purpose: no captured body carries both phrases. The order
+    // is the guard, and only a body with both can observe it.
+    assert.equal(
+      classifyRefusal("Restricted Endpoint: not available. Bandwidth Limit Reach . Please upgrade your plan"),
+      "entitlement",
+    );
+    assert.equal(classifyRefusal("Account suspended. Bandwidth Limit Reach"), "suspended");
+  });
+
+  it("claims no wall it has not seen", () => {
+    for (
+      const body of [
+        "403 Forbidden",
+        "Your account has been suspended",
+        "HTTP 429",
+        "Too Many Requests",
+        "",
+      ]
+    ) {
+      assert.equal(classifyRefusal(body), null, JSON.stringify(body));
+    }
     assert.equal(isBandwidthRefusal("HTTP 429"), false);
-    assert.equal(isBandwidthRefusal("Too Many Requests"), false);
-    assert.equal(isBandwidthRefusal(""), false);
-  });
-});
-
-describe("an open breaker stops the roster but never the probe", () => {
-  it("allows everything while closed", () => {
-    const path = scratch();
-    const decision = mayCall(Date.parse("2026-08-31T13:00:00Z"), path);
-    assert.equal(decision.allowed, true);
-    assert.equal(decision.probe, false);
   });
 
-  it("refuses inside the cool-off, and says how long is left", () => {
-    const path = scratch();
-    const at = Date.parse("2026-08-31T13:00:00Z");
-    openCircuit("Bandwidth Limit Reach", at, path);
-    const decision = mayCall(at + 60_000, path);
-    assert.equal(decision.allowed, false);
-    assert.match(decision.reason, /circuit open/);
-    // A STABLE TOKEN at the head, for the shell consumers that classify a
-    // driver's output by grep. On 2026-09-02 the nightly top-up read this
-    // refusal — the breaker doing its job — as "no quota signal in the
-    // output, so this is a real failure", because the only tokens it knew
-    // were the provider's own ("(429)"), and the breaker refuses BEFORE the
-    // provider is asked.
-    assert.match(decision.reason, /^fmpCircuitOpen: /);
-    assert.match(
-      decision.reason,
-      /drains by time only/,
-      "the refusal does not say the wall cannot be hurried, so the next " +
-        "reader will try to hurry it",
-    );
-  });
-
-  it("lets exactly one probe through once the cool-off elapses", () => {
-    const path = scratch();
-    const at = Date.parse("2026-08-31T13:00:00Z");
-    openCircuit("Bandwidth Limit Reach", at, path);
-    const decision = mayCall(at + COOL_OFF_MS, path);
-    assert.equal(decision.allowed, true);
-    assert.equal(
-      decision.probe,
-      true,
-      "a call allowed through an OPEN breaker must be marked as the probe, " +
-        "or the caller spends a roster on it",
-    );
-  });
-
-  it("keeps the FIRST opening instant across an outage", () => {
-    // Refreshing it on every refusal would reset the cool-off each time and
-    // defeat the breaker — the marker records when the wall appeared, not
-    // when it was last bumped into.
-    const path = scratch();
-    const first = Date.parse("2026-08-31T13:00:00Z");
-    openCircuit("Bandwidth Limit Reach", first, path);
-    openCircuit("Bandwidth Limit Reach", first + 3_600_000, path);
-    assert.equal(readCircuit(path).openedAt, first);
-  });
-
-  it("re-arms the cool-off when a probe is spent and still refused", () => {
-    const path = scratch();
-    const at = Date.parse("2026-08-31T13:00:00Z");
-    openCircuit("Bandwidth Limit Reach", at, path);
-    // Cool-off elapses, a probe goes out, and it fails: the consumer re-opens.
-    assert.equal(mayCall(at + COOL_OFF_MS, path).probe, true);
-    openCircuit("Bandwidth Limit Reach", at + COOL_OFF_MS, path);
-    assert.equal(
-      mayCall(at + COOL_OFF_MS + 60_000, path).allowed,
-      false,
-      "a spent probe did not re-arm the cool-off, so every subsequent caller " +
-        "probes too and the breaker is a no-op",
-    );
-  });
-
-  it("closes on success, so recovery is not waited out", () => {
-    const path = scratch();
-    const at = Date.parse("2026-08-31T13:00:00Z");
-    openCircuit("Bandwidth Limit Reach", at, path);
-    closeCircuit(path);
-    assert.equal(mayCall(at + 1, path).allowed, true);
-    assert.equal(readCircuit(path).openedAt, null);
-  });
-
-  it("FAILS CLOSED on an unreadable marker, never open", () => {
-    // The wrong direction here is expensive and asymmetric: one unnecessary
-    // request costs a request, while a false refusal costs the minute bank a
-    // day it can never recover.
-    const path = scratch();
-    writeFileSync(path, "{ not json");
-    assert.equal(mayCall(Date.now(), path).allowed, true);
-    assert.equal(readCircuit(path).openedAt, null);
-  });
-});
-
-describe("the bank consults it, records to it, and clears it", () => {
-  const SOURCE = readFileSync("scripts/bank-minute-bars.ts", "utf8");
-
-  it("asks the breaker before spending anything", () => {
-    const gateAt = SOURCE.indexOf("const gate = mayCall(Date.now());");
-    const scoutAt = SOURCE.indexOf("const scout = targets[index++];");
-    assert.ok(gateAt >= 0, "the bank no longer consults the shared breaker");
-    assert.ok(
-      gateAt < scoutAt,
-      "the breaker is checked AFTER the first request, which is the one " +
-        "thing it exists to avoid",
-    );
-  });
-
-  it("tells the other consumers what it learned", () => {
-    // Through the GOVERNOR since 2026-08-31: `noteRefusal` classifies on the
-    // provider's words and opens the breaker, and routing every spender
-    // through it is what took breaker coverage from one of four to four of
-    // four. The claim is unchanged — a bandwidth refusal must become every
-    // consumer's knowledge rather than this one's private discovery.
-    assert.match(
-      SOURCE,
-      /if \(isCircuitRefusal\(result\.note\)\) \{\s*\n\s*noteRefusal\(/,
-      "a refusal is not recorded, so the cache top-up and the " +
-        "sweeps each spend a roster rediscovering it",
-    );
-  });
-
-  it("carries the provider's words into the error, not just the status", () => {
-    // `openCircuit` classifies on the body. Throwing a bare `HTTP 429` makes
-    // the classifier permanently false — the wiring would look right and
-    // never fire.
-    assert.match(
-      SOURCE,
-      /const detail = await res\.text\(\)\.catch\(\(\) => ""\);/,
-      "the bank throws a bare status again, so nothing downstream can tell " +
-        "the bandwidth wall from a rate limit",
-    );
-    assert.match(SOURCE, /throw new Error\(`HTTP \$\{res\.status\}\$\{detail/);
-  });
-
-  it("stops its OWN ladder on a wall no retry clears", () => {
-    // Widened from isBandwidthRefusal on 2026-09-07: the ladder must stop for
-    // the entitlement gap too, which no number of attempts clears either.
-    assert.match(
-      SOURCE,
-      /isCircuitRefusal\(error instanceof Error \? error\.message : ""\)/,
-      "the bank still climbs five attempts against a wall that clears in days",
-    );
-  });
-
-  it("closes the breaker when the provider answers", () => {
-    assert.match(
-      SOURCE,
-      /closeCircuit\(\);/,
-      "a recovered provider leaves the breaker open, so every consumer waits " +
-        "out a cool-off that no longer applies",
-    );
-  });
-});
-
-
-/**
- * The 402 is a THIRD condition, and it was wearing the second one's clothes.
- *
- * `isBandwidthRefusal` matched `/upgrade your plan/i` because FMP's bandwidth
- * body ends with it. So does FMP's 402 Restricted Endpoint body — a plan that
- * does not cover an endpoint at all. On 2026-09-04 that collision opened the
- * BANDWIDTH breaker on an entitlement gap, and the minute bank spent four days
- * printing "the trailing-30-day window drains by time only" about a wall that
- * drains by nothing. The distinction the original docstring drew (words over
- * status code, because 429 covered two conditions) threw away the status
- * code's ability to separate a third.
- */
-describe("an entitlement gap is not a bandwidth wall", () => {
-  // The real body, copied from ~/Library/Logs/levelflow-minute-bank.log on
-  // 2026-09-07, after four days of it.
-  const RESTRICTED =
-    "HTTP 402 Restricted Endpoint: This endpoint is not available under " +
-    "your current subscription please visit our subscription page to " +
-    "upgrade your plan at https://financialmodelingprep.com/";
-
-  const BANDWIDTH =
-    '{\n  "Error Message": "Bandwidth Limit Reach . Please upgrade your ' +
-    "plan or visit our documentation for more details at " +
-    'https://site.financialmodelingprep.com/"\n}';
-
-  it("does NOT call a 402 restricted endpoint the bandwidth wall", () => {
-    assert.equal(isBandwidthRefusal(RESTRICTED), false);
-  });
-
-  it("classifies each refusal by its own condition", () => {
-    assert.equal(classifyRefusal(BANDWIDTH), "bandwidth");
-    assert.equal(classifyRefusal(RESTRICTED), "entitlement");
-    assert.equal(classifyRefusal("HTTP 429"), null);
-    assert.equal(classifyRefusal("Too Many Requests"), null);
-    assert.equal(classifyRefusal(""), null);
-  });
-
-  it("still stops the roster for BOTH, because neither clears by retrying", () => {
-    // The breaker's value is unchanged: one probe per cool-off instead of 97
-    // symbols x 5 retries. Only the diagnosis was wrong.
-    assert.equal(isCircuitRefusal(BANDWIDTH), true);
-    assert.equal(isCircuitRefusal(RESTRICTED), true);
+  it("trips the shared breaker for the walls no retry clears, and not for a rejected key", () => {
+    assert.equal(isCircuitRefusal(BODIES.bandwidth), true);
+    assert.equal(isCircuitRefusal(BODIES.restricted), true);
+    assert.equal(isCircuitRefusal(BODIES.suspended), true);
+    // The key is this machine's to fix, and another consumer holding a good
+    // copy must not be refused because one consumer holds a stale one.
+    assert.equal(isCircuitRefusal(BODIES.invalidKeyStoredPrefix), false);
     assert.equal(isCircuitRefusal("HTTP 429"), false);
   });
 
-  it("does not tell a reader an entitlement gap drains by time", () => {
-    const path = scratch();
-    const opened = Date.parse("2026-09-04T20:38:00Z");
-    openCircuit(RESTRICTED, opened, path);
-    const decision = mayCall(opened + 60_000, path);
+  it("gives each wall its own remedy", () => {
+    assert.match(recoveryClause("bandwidth"), /drains by time only/);
+    assert.match(recoveryClause("entitlement"), /subscription/i);
+    assert.doesNotMatch(recoveryClause("entitlement"), /drains by time/);
+    assert.match(recoveryClause("suspended"), /owner/);
+    assert.doesNotMatch(recoveryClause("suspended"), /drains by time/);
+    assert.match(recoveryClause("invalidKey"), /fmp-api-key/);
+    assert.doesNotMatch(recoveryClause("invalidKey"), /drains by time/);
+  });
+
+  it("refuses to open the breaker on a rejected key", () => {
+    const state = tempState();
+    assert.throws(() =>
+      openCircuit({
+        atMs: Date.parse("2026-08-18T14:02:26Z"),
+        consumer: "adhoc",
+        endpointPath: CAL,
+        kind: "invalidKey",
+        reason: BODIES.invalidKeyStoredPrefix,
+      }, state)
+    );
+  });
+});
+
+describe("an open breaker refuses inside the cool-off and says what it knows", () => {
+  const at = Date.parse("2026-08-31T13:00:00Z");
+
+  it("allows everything while nothing is open", () => {
+    const decision = mayCall(at, { requiredPaths: [EOD] }, tempState());
+    assert.deepEqual(decision, { allowed: true, probe: false });
+  });
+
+  it("refuses inside the cool-off, with the stable head token", () => {
+    const state = tempState();
+    openCircuit({ atMs: at, consumer: "bank", endpointPath: MIN1, kind: "bandwidth", reason: BODIES.bandwidth }, state);
+    const decision = mayCall(at + 60_000, { requiredPaths: [] }, state);
     assert.equal(decision.allowed, false);
     if (decision.allowed) return;
-    assert.doesNotMatch(
-      decision.reason,
-      /drains by time/,
-      "the entitlement message still claims the wall drains by time, which " +
-        "is what made four days of failure read as normal waiting",
+    assert.equal(decision.kind, "bandwidth");
+    assert.match(decision.reason, /^fmpCircuitOpen: /);
+    assert.match(decision.reason, /Next probe in 6\.0h/);
+    assert.match(decision.reason, /drains by time only/);
+  });
+
+  it("grants one probe once the cool-off elapses, naming what it covers", () => {
+    const state = tempState();
+    openCircuit({ atMs: at, consumer: "bank", endpointPath: MIN1, kind: "bandwidth", reason: BODIES.bandwidth }, state);
+    const decision = mayCall(at + COOL_OFF_MS, { requiredPaths: [] }, state);
+    assert.deepEqual(decision, { allowed: true, keys: ["account"], probe: true });
+  });
+
+  it("keeps the first opening and advances the last refusal across re-arms", () => {
+    const state = tempState();
+    openCircuit({ atMs: at, consumer: "bank", endpointPath: MIN1, kind: "bandwidth", reason: BODIES.bandwidth }, state);
+    openCircuit({ atMs: at + 6 * HOUR, consumer: "bank", endpointPath: MIN1, kind: "bandwidth", reason: BODIES.bandwidth }, state);
+    const read = readBreaker(at + 6 * HOUR + 1, state);
+    assert.ok(read.ok);
+    const entry = read.entries.find((candidate) => candidate.key === "account");
+    assert.equal(entry?.openedAt, at);
+    assert.equal(entry?.lastRefusedAt, at + 6 * HOUR);
+    assert.equal(mayCall(at + 6 * HOUR + 60_000, { requiredPaths: [] }, state).allowed, false);
+  });
+});
+
+describe("a refusal is scoped to what it refused", () => {
+  it("keeps the bank's 1-minute gap and the top-up's calendar gap as two keys", () => {
+    // 2026-09-05 and 09-08: a top-up calendar 402 at 11:00Z refused the bank
+    // at 11:20Z with "Next probe in 5.7h". An entitlement gap is a fact about
+    // one endpoint; a consumer that does not call it must not be refused by it.
+    const state = tempState();
+    const t0 = Date.parse("2026-09-05T11:00:03Z");
+    for (let i = 0; i < 3; i += 1) {
+      openCircuit({ atMs: t0 + i * 60_000, consumer: "bank", endpointPath: MIN1, kind: "entitlement", reason: BODIES.restricted }, state);
+      openCircuit({ atMs: t0 + i * 60_000 + 1_000, consumer: "topup", endpointPath: CAL, kind: "entitlement", reason: BODIES.restricted }, state);
+    }
+    const now = t0 + 10 * 60_000;
+    const read = readBreaker(now, state);
+    assert.ok(read.ok);
+    assert.deepEqual(
+      read.entries.filter((entry) => entry.open).map((entry) => entry.key).sort(),
+      [CAL, MIN1],
     );
-    assert.match(
-      decision.reason,
-      /subscription/i,
-      "the message must name the account as the lever, or nobody acts",
-    );
-    // The stable grep token shell consumers classify on must survive.
+    const calendar = mayCall(now, { requiredPaths: [CAL] }, state);
+    assert.equal(calendar.allowed, false);
+    if (!calendar.allowed) assert.match(calendar.reason, new RegExp(`on ${CAL}`));
+    const minute = mayCall(now, { requiredPaths: [MIN1] }, state);
+    assert.equal(minute.allowed, false);
+    if (!minute.allowed) assert.match(minute.reason, new RegExp(`on ${MIN1}`));
+    assert.deepEqual(mayCall(now, { requiredPaths: [EOD, M15] }, state), { allowed: true, probe: false });
+  });
+
+  it("names the most severe kind across every blocking entry", () => {
+    const state = tempState();
+    const t0 = Date.parse("2026-09-05T11:00:00Z");
+    openCircuit({ atMs: t0, consumer: "topup", endpointPath: CAL, kind: "entitlement", reason: BODIES.restricted }, state);
+    openCircuit({ atMs: t0 + 7 * HOUR, consumer: "adhoc", endpointPath: EOD, kind: "bandwidth", reason: BODIES.bandwidth }, state);
+    const decision = mayCall(t0 + 7 * HOUR + 60_000, { requiredPaths: [CAL] }, state);
+    assert.equal(decision.allowed, false);
+    if (decision.allowed) return;
+    assert.equal(decision.kind, "entitlement");
     assert.match(decision.reason, /^fmpCircuitOpen: /);
   });
+});
 
-  it("keeps the time-drains wording for an actual bandwidth wall", () => {
-    const path = scratch();
-    const opened = Date.parse("2026-08-31T13:00:00Z");
-    openCircuit(BANDWIDTH, opened, path);
-    const decision = mayCall(opened + 60_000, path);
+describe("open or closed is decided by evidence time, not by append order", () => {
+  it("keeps a newer refusal open when an older answer is appended after it", () => {
+    const state = tempState();
+    const t1 = Date.parse("2026-09-10T10:00:00Z");
+    const t2 = t1 + 5_000;
+    openCircuit({ atMs: t2, consumer: "topup", endpointPath: M15, kind: "bandwidth", reason: BODIES.bandwidth }, state);
+    closeCircuit({ consumer: "bank", endpointPath: MIN1, evidenceAtMs: t1 }, state);
+    assert.equal(mayCall(t2 + 1_000, { requiredPaths: [] }, state).allowed, false);
+  });
+
+  it("reads an older refusal appended after a newer answer as closed", () => {
+    const state = tempState();
+    const t1 = Date.parse("2026-09-10T10:00:00Z");
+    const t2 = t1 + 5_000;
+    closeCircuit({ consumer: "bank", endpointPath: MIN1, evidenceAtMs: t2 }, state);
+    openCircuit({ atMs: t1, consumer: "topup", endpointPath: M15, kind: "bandwidth", reason: BODIES.bandwidth }, state);
+    assert.deepEqual(mayCall(t2 + 1_000, { requiredPaths: [] }, state), { allowed: true, probe: false });
+  });
+
+  it("closes an endpoint's entitlement only on an answer from that endpoint", () => {
+    const state = tempState();
+    const t0 = Date.parse("2026-09-10T10:00:00Z");
+    openCircuit({ atMs: t0, consumer: "topup", endpointPath: CAL, kind: "entitlement", reason: BODIES.restricted }, state);
+    closeCircuit({ consumer: "topup", endpointPath: M15, evidenceAtMs: t0 + 1_000 }, state);
+    assert.equal(mayCall(t0 + 2_000, { requiredPaths: [CAL] }, state).allowed, false);
+    closeCircuit({ consumer: "topup", endpointPath: CAL, evidenceAtMs: t0 + 3_000 }, state);
+    assert.equal(mayCall(t0 + 4_000, { requiredPaths: [CAL] }, state).allowed, true);
+  });
+});
+
+describe("one probe per cool-off, claimed at the first request", () => {
+  const t0 = Date.parse("2026-09-10T00:00:00Z");
+  const now = t0 + COOL_OFF_MS + 1_000;
+  const opened = () => {
+    const state = tempState();
+    openCircuit({ atMs: t0, consumer: "bank", endpointPath: MIN1, kind: "bandwidth", reason: BODIES.bandwidth }, state);
+    return state;
+  };
+
+  it("lets the first claimant win and makes the second release and stand down", () => {
+    const state = opened();
+    const decision = mayCall(now, { requiredPaths: [] }, state);
+    assert.equal(decision.allowed && decision.probe, true);
+    const first = createProbeGate(decision, { consumer: "topup", now: () => now }, state);
+    const second = createProbeGate(decision, { consumer: "adhoc", now: () => now }, state);
+    first.beforeRequest();
+    assert.throws(() => second.beforeRequest(), ProbeLostError);
+    const lines = breakerLines(state.breakerDir);
+    const claims = lines.filter((line) => line.t === "claim");
+    const releases = lines.filter((line) => line.t === "release");
+    assert.equal(claims.length, 2);
+    assert.deepEqual(releases.map((line) => line.id), [claims[1].id]);
+    const read = readBreaker(now, state);
+    assert.ok(read.ok);
+    assert.equal(read.entries[0].probeWinnerId, claims[0].id, "equal instants resolve by file order");
+  });
+
+  it("lets a late claimant through once another consumer's probe closed the entry", () => {
+    // The first consumer claimed, was answered and closed the breaker; the
+    // second held the same pre-claim decision. A closed entry is nothing to
+    // stand down for, whoever won its probe.
+    const state = opened();
+    const decision = mayCall(now, { requiredPaths: [] }, state);
+    const first = createProbeGate(decision, { consumer: "topup", now: () => now }, state);
+    first.beforeRequest();
+    first.answered();
+    closeCircuit({ consumer: "topup", endpointPath: M15, evidenceAtMs: now + 500 }, state);
+    const late = createProbeGate(decision, { consumer: "adhoc", now: () => now + 1_000 }, state);
+    assert.doesNotThrow(() => late.beforeRequest());
+    const releases = breakerLines(state.breakerDir).filter((line) => line.t === "release");
+    assert.deepEqual(releases, []);
+  });
+
+  it("releases the claim when no answer came, so the next consumer may probe", () => {
+    const state = opened();
+    const decision = mayCall(now, { requiredPaths: [] }, state);
+    const gate = createProbeGate(decision, { consumer: "topup", now: () => now }, state);
+    gate.beforeRequest();
+    gate.noAnswer();
+    const again = maySpend({ atMs: now + 1_000, consumer: "adhoc", label: "test", requiredPaths: [], state });
+    assert.equal(again.allowed, true);
+    assert.equal(again.allowed && again.probe, true);
+  });
+
+  it("keeps the claim once the provider answered, so the cool-off re-arms", () => {
+    const state = opened();
+    const decision = mayCall(now, { requiredPaths: [] }, state);
+    const gate = createProbeGate(decision, { consumer: "topup", now: () => now }, state);
+    gate.beforeRequest();
+    gate.answered();
+    gate.noAnswer();
+    const again = maySpend({ atMs: now + 1_000, consumer: "adhoc", label: "test", requiredPaths: [], state });
+    assert.equal(again.allowed, false);
+  });
+
+  it("claims through the wrapped fetch and releases on a transport failure", async () => {
+    const state = opened();
+    const decision = mayCall(now, { requiredPaths: [] }, state);
+    const gate = createProbeGate(decision, { consumer: "topup", now: () => now }, state);
+    const stub: FetchLike = () => Promise.reject(new TypeError("fetch failed"));
+    const failing = gate.wrapFetch(stub);
+    await assert.rejects(failing("https://example.invalid/"), TypeError);
+    const lines = breakerLines(state.breakerDir);
+    assert.deepEqual(lines.map((line) => line.t), ["refused", "claim", "release"]);
+  });
+
+  it("is a pass-through when no probe was granted", () => {
+    const state = tempState();
+    const decision = mayCall(now, { requiredPaths: [] }, state);
+    const gate = createProbeGate(decision, { consumer: "topup", now: () => now }, state);
+    const f = () => Promise.resolve(new Response("[]"));
+    assert.equal(gate.wrapFetch(f), f);
+  });
+
+  it("gives exactly one of six processes holding the same decision the probe", async () => {
+    // Every child reads its decision first and claims only once all six hold
+    // one, so the claims genuinely race; the winner is the first in file order.
+    const state = tempState();
+    openCircuit({ atMs: Date.now() - 7 * HOUR, consumer: "bank", endpointPath: MIN1, kind: "bandwidth", reason: BODIES.bandwidth }, state);
+    const goFile = join(state.runsDir, "..", "go");
+    let ready = 0;
+    const words = await Promise.all(
+      Array.from({ length: 6 }, () =>
+        new Promise<string>((resolve, reject) => {
+          let out = "";
+          const child = spawn(process.execPath, [
+            "./node_modules/.bin/tsx",
+            "tests/fixtures/fmpProbeClaimer.ts",
+            JSON.stringify(state),
+            goFile,
+          ]);
+          child.stdout.on("data", (chunk) => {
+            const before = out.includes("ready");
+            out += String(chunk);
+            if (!before && out.includes("ready")) {
+              ready += 1;
+              if (ready === 6) {
+                mkdirSync(join(state.runsDir, ".."), { recursive: true });
+                writeFileSync(goFile, "go");
+              }
+            }
+          });
+          child.on("error", reject);
+          child.on("exit", (code) =>
+            code === 0 ? resolve(out.replace("ready", "").trim()) : reject(new Error(`claimer exited ${code}`)));
+        })),
+    );
+    assert.deepEqual(words.filter((word) => word === "won").length, 1, words.join(","));
+    assert.equal(words.filter((word) => word === "lost").length, 5, words.join(","));
+  });
+});
+
+describe("the pre-2026-09-16 marker is read as history and never written", () => {
+  it("reads an open legacy marker as an account refusal that a later answer closes", () => {
+    const t0 = Date.parse("2026-09-04T20:38:00Z");
+    const legacy = JSON.stringify({ lastProbeAt: t0 + HOUR, openedAt: t0, reason: BODIES.bandwidth });
+    const state = tempState({ legacyCircuit: legacy });
+    const decision = mayCall(t0 + 2 * HOUR, { requiredPaths: [] }, state);
     assert.equal(decision.allowed, false);
-    if (decision.allowed) return;
-    assert.match(decision.reason, /drains by time/);
+    closeCircuit({ consumer: "bank", endpointPath: MIN1, evidenceAtMs: t0 + 3 * HOUR }, state);
+    assert.deepEqual(mayCall(t0 + 3 * HOUR + 1, { requiredPaths: [] }, state), { allowed: true, probe: false });
+    assert.equal(readFileSync(state.legacyCircuitPath, "utf8"), legacy);
   });
 
-  it("probes an entitlement gap on the same cool-off, so payment self-heals", () => {
-    // A plan change needs a human, but noticing it must not. One probe per
-    // cool-off closes the breaker the first run after the fee is paid.
-    const path = scratch();
-    const opened = Date.parse("2026-09-04T20:38:00Z");
-    openCircuit(RESTRICTED, opened, path);
-    const decision = mayCall(opened + COOL_OFF_MS, path);
-    assert.equal(decision.allowed, true);
-    if (!decision.allowed) return;
-    assert.equal(decision.probe, true);
+  it("ignores a torn legacy marker without throwing, and names it", () => {
+    const state = tempState({ legacyCircuit: '{"openedAt": 17' });
+    const read = readBreaker(Date.now(), state);
+    assert.ok(read.ok);
+    assert.equal(read.legacyUnreadable, true);
+    const lines: string[] = [];
+    assert.deepEqual(
+      mayCall(Date.now(), { emit: (line) => lines.push(line), requiredPaths: [] }, state),
+      { allowed: true, probe: false },
+    );
+    assert.deepEqual(lines.filter((line) => line.startsWith(`fmpStateUnreadable: legacy breaker ${state.legacyCircuitPath}: `)).length, 1, lines.join("\n"));
+    assert.equal(readFileSync(state.legacyCircuitPath, "utf8"), '{"openedAt": 17');
+  });
+
+  it("reads a legacy marker that exists and cannot be read as unreadable, not absent", () => {
+    const state = tempState();
+    mkdirSync(state.legacyCircuitPath, { recursive: true });
+    const read = readBreaker(Date.now(), state);
+    assert.ok(read.ok);
+    assert.equal(read.legacyUnreadable, true, "EISDIR is not ENOENT");
+    const absent = readBreaker(Date.now(), tempState());
+    assert.ok(absent.ok);
+    assert.equal(absent.legacyUnreadable, false);
   });
 });
 
-/**
- * The narrowing has a sharp edge: every call site that asked
- * "isBandwidthRefusal?" to decide whether to STOP must now ask
- * "isCircuitRefusal?", or the 402 stops tripping the breaker altogether and
- * the fix trades a false message for a silent 485-request roster run.
- */
-describe("both walls still reach the shared breaker", () => {
-  const BANK_SOURCE = readFileSync("scripts/bank-minute-bars.ts", "utf8");
-  const RESTRICTED =
-    "HTTP 402 Restricted Endpoint: This endpoint is not available under " +
-    "your current subscription please visit our subscription page to " +
-    "upgrade your plan at https://financialmodelingprep.com/";
-
-  it("opens the breaker through the governor on an entitlement refusal", () => {
-    const path = scratch();
-    const at = Date.parse("2026-09-04T20:38:00Z");
-    assert.equal(
-      noteRefusal(RESTRICTED, at, path),
-      true,
-      "the governor ignored a 402, so every consumer will rediscover it",
-    );
-    assert.equal(readCircuit(path).openedAt, at);
+describe("an unreadable breaker refuses rather than reading as closed", () => {
+  it("refuses an ad-hoc spender when a day file cannot be read", () => {
+    const state = tempState();
+    const at = Date.parse("2026-09-16T12:00:00Z");
+    mkdirSync(join(state.breakerDir, `${utcDay(at)}.jsonl`), { recursive: true });
+    const decision = maySpend({ atMs: at, consumer: "adhoc", label: "test", requiredPaths: [], state });
+    assert.equal(decision.allowed, false);
+    if (!decision.allowed) assert.equal(decision.kind, "ledgerUnreadable");
   });
 
-  it("still ignores a bare rate limit, whose ladder works", () => {
-    const path = scratch();
-    assert.equal(noteRefusal("HTTP 429", Date.now(), path), false);
-    assert.equal(readCircuit(path).openedAt, null);
+  it("skips a malformed line rather than failing the whole log, and says how many", () => {
+    const state = tempState();
+    const at = Date.parse("2026-09-16T12:00:00Z");
+    appendRecord(state.breakerDir, at, { t: "refused" });
+    const read = readBreaker(at, state);
+    assert.ok(read.ok);
+    assert.equal(read.skippedLines, 1);
+    const lines: string[] = [];
+    mayCall(at, { emit: (line) => lines.push(line), requiredPaths: [] }, state);
+    assert.deepEqual(lines, [`fmpStateUnreadable: breaker log ${state.breakerDir}: 1 unreadable line(s) skipped; the events they carried are not counted`]);
   });
-
-  it("stops the bank's own ladder on EITHER wall", () => {
-    // Source-level, because the ladder is inside a private retry helper. The
-    // claim: the guard names the breaker's predicate, not the narrow one.
-    assert.match(
-      BANK_SOURCE,
-      /isCircuitRefusal\(error instanceof Error \? error\.message : ""\)/,
-      "the bank climbs five attempts against a wall that no retry clears",
-    );
-  });
-
-  it("records EITHER wall for the other consumers", () => {
-    assert.match(
-      BANK_SOURCE,
-      /if \(isCircuitRefusal\(result\.note\)\) \{\s*\n\s*noteRefusal\(/,
-      "a 402 is not recorded, so the top-up and the sweeps each spend a " +
-        "roster rediscovering it",
-    );
-  });
-
-  it("derives the stand-down remedy from the refusal, not from a constant", () => {
-    // The bandwidth sentence itself is still correct FOR BANDWIDTH, so its
-    // presence in the source proves nothing. What matters is that the message
-    // interpolates a decision instead of asserting one remedy for every wall.
-    assert.match(
-      BANK_SOURCE,
-      /requests learning it again\. \$\{standDownRemedy\(result\.note\)\}/,
-      "the stand-down still asserts one remedy for whatever it just hit, " +
-        "which is the same false sentence one layer up",
-    );
-    assert.match(
-      BANK_SOURCE,
-      /case "entitlement":/,
-      "standDownRemedy does not distinguish the entitlement gap",
-    );
-  });
-});
-
-// 2026-09-12: the account moved from an entitlement gap to a SUSPENSION (the
-// balance was paid, the dashboard shows Ultimate, the key still refuses). The
-// round that found this proposed adding /account suspended/i to
-// classifyRefusal. That pattern is NOT added here, deliberately: no suspended
-// -account body has ever been captured in this repository, and this module's
-// own rule is to "match the NARROWEST phrase unique to the condition, never a
-// sentence the vendor reuses across every paywall" (fmpCircuit.ts:90-92).
-// Guessing the vendor's wording would ship a guard that looks present and may
-// never fire — worse than the absent one, because it stops anyone looking.
-//
-// What IS pinned is the honest default: an unrecognised refusal must classify
-// as null and claim NEITHER remedy. When a suspension body is finally captured,
-// add its narrowest phrase and a case here, and delete this comment.
-describe("an unrecognised refusal claims no remedy it has not earned", () => {
-  it("classifies an uncaptured suspension as null rather than guessing", () => {
-    // Plausible shapes for a suspension body. None of these has been observed
-    // from FMP; they exist to prove the classifier does not pretend to know.
-    for (
-      const body of [
-        "Your account has been suspended",
-        "Account suspended. Please contact support.",
-        "403 Forbidden",
-        "Invalid API key",
-      ]
-    ) {
-      assert.equal(
-        classifyRefusal(body),
-        null,
-        `${JSON.stringify(body)} classified as a known wall. If a real ` +
-          `suspension body was captured, add its narrowest phrase AND its own ` +
-          `recoveryClause — do not let it be swallowed by the entitlement or ` +
-          `bandwidth pattern, whose remedies are both wrong for a suspension.`,
-      );
-    }
-  });
-
 });

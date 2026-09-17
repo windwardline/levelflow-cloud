@@ -15,6 +15,22 @@ set -euo pipefail
 REPO="/Users/peacock/Projects/levelflow-cloud"
 cd "$REPO"
 
+# The run gate (scripts/fmpRunGate.ts). RunAtLoad fires this job at every
+# boot, which is what keeps the banked window gapless — and a boot after a
+# clean (exit 0) full-roster run that finished at or after the most recent
+# scheduled slot buys only overlap the next slot buys again. It fails toward
+# running: only exit 75 WITH its skip line skips, and any other outcome runs
+# the bank.
+set +e
+gate_out=$(npx tsx scripts/fmpRunGate.ts --job minute-bank --dir "$REPO/.minute-bank" 2>&1)
+gate=$?
+set -e
+printf '%s\n' "$gate_out"
+if [ "$gate" -eq 75 ] && grep -q '^runGate: skip' <<<"$gate_out"; then
+  echo "$(date -u +%FT%TZ) minute-bank run skipped by the run gate"
+  exit 0
+fi
+
 FMP_API_KEY="$(security find-generic-password -a peacock -s fmp-api-key -w 2>/dev/null || true)"
 if [ -z "$FMP_API_KEY" ]; then
   # A locked keychain is a deferral, not a failure — the window is three days

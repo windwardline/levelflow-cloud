@@ -16,7 +16,9 @@ import {
   ByteBudgetExceededError,
   createByteBudget,
   parseByteBudgetArg,
+  parseDailyCeilingArg,
   readJsonWithBudget,
+  SpendRefusedError,
 } from "../scripts/fmpByteBudget.ts";
 import { formatGib } from "../scripts/replay-sweep.ts";
 
@@ -94,6 +96,40 @@ describe("readJsonWithBudget — what FMP actually billed us for", () => {
     assert.equal(budget.spent(), 7);
   });
 
+  it("hands the ledger the endpoint and the instant the provider answered", async () => {
+    // The breaker closes on EVIDENCE TIME, not on append order, so the
+    // instant must be taken before the body is read: a refusal another
+    // consumer appends while this body streams is newer than the answer.
+    const realNow = Date.now;
+    let bodyRead = false;
+    Date.now = () => (bodyRead ? 2_000 : 1_000);
+    try {
+      const seen: Array<{ bytes: number; meta?: { endpointPath: string; answeredAtMs: number } }> = [];
+      const budget = {
+        record: (bytes: number, meta?: { endpointPath: string; answeredAtMs: number }) => {
+          seen.push({ bytes, meta });
+        },
+        remaining: () => 0,
+        spent: () => 0,
+      };
+      await readJsonWithBudget(
+        {
+          text: () => {
+            bodyRead = true;
+            return Promise.resolve("[]");
+          },
+        },
+        budget,
+        "/stable/historical-chart/5min",
+      );
+      assert.deepEqual(seen, [
+        { bytes: 2, meta: { answeredAtMs: 1_000, endpointPath: "/stable/historical-chart/5min" } },
+      ]);
+    } finally {
+      Date.now = realNow;
+    }
+  });
+
   it("halts when a payload carries the run past its ceiling", async () => {
     const budget = createByteBudget(10);
     await assert.rejects(
@@ -147,6 +183,52 @@ describe("replay-sweep — every FMP read is metered", () => {
 
   it("refuses to start without a declared ceiling", () => {
     assert.match(source, /parseByteBudgetArg\(/);
+  });
+
+  it("sends every provider request through the probe gate's fetch", () => {
+    // A bare fetch(endpoint) skips the breaker's probe claim, so two
+    // consumers past the cool-off would both probe.
+    assert.doesNotMatch(source, /[^\w.]fetch\(endpoint\)/);
+    assert.equal((source.match(/providerFetch\(endpoint\)/g) ?? []).length, 4);
+  });
+
+  it("treats every governor and breaker refusal as final in the retry ladder", () => {
+    assert.match(
+      source,
+      /isRetryableError: \(error: unknown\) => !\(error instanceof SpendRefusedError\)/,
+    );
+  });
+});
+
+describe("the refusal family — one base class every ladder can recognise", () => {
+  it("makes the run budget a spend refusal with its own stand-down kind", () => {
+    const error = new ByteBudgetExceededError(10, 11);
+    assert.ok(error instanceof SpendRefusedError);
+    assert.equal(error.standDownKind, "runBudget");
+    assert.equal(error.source, "governor");
+  });
+});
+
+describe("parseDailyCeilingArg — an owner-approved raise is declared, never implied", () => {
+  it("is absent unless the flag is given", () => {
+    assert.equal(parseDailyCeilingArg(["--byte-budget", "1gb"]), undefined);
+  });
+
+  it("reads the same sizes the byte budget reads", () => {
+    assert.equal(parseDailyCeilingArg(["--daily-ceiling", "30gb"]), 30 * 1024 ** 3);
+  });
+
+  it("refuses a missing value, a repeat and an unreadable size by name", () => {
+    assert.throws(() => parseDailyCeilingArg(["--daily-ceiling"]), /--daily-ceiling/);
+    assert.throws(
+      () => parseDailyCeilingArg(["--daily-ceiling", "--warm-only"]),
+      /--daily-ceiling/,
+    );
+    assert.throws(() => parseDailyCeilingArg(["--daily-ceiling", "lots"]), /--daily-ceiling/);
+    assert.throws(
+      () => parseDailyCeilingArg(["--daily-ceiling", "1gb", "--daily-ceiling", "2gb"]),
+      /--daily-ceiling was given 2 times/,
+    );
   });
 });
 

@@ -80,6 +80,11 @@ per symbol, and was never carried by the defect. Leave it running.
   launchctl kickstart -k "gui/$(id -u)/com.windwardline.levelflow-minute-bank"
   ```
 
+  The kickstarted run passes through the run gate (`scripts/fmpRunGate.ts`),
+  so it banks only when the last clean full-roster run is stale — more than
+  twelve hours before the next scheduled slot. A gate skip logs
+  `minute-bank run skipped by the run gate`.
+
 - Be on a commit that includes the R0 change set (`scripts/intradayChunks.ts`
   exists).
 
@@ -156,8 +161,12 @@ run this long reads as a hang):
 ```sh
 FMP_API_KEY="$(security find-generic-password -a peacock -s fmp-api-key -w)" \
   npx tsx scripts/replay-sweep.ts --symbols roster --days max --warm-only \
-  --byte-budget 30gb 2>&1 | tee ~/levelflow-rebuild-$(date +%Y%m%d).log
+  --byte-budget 30gb --daily-ceiling 30gb 2>&1 | tee ~/levelflow-rebuild-$(date +%Y%m%d).log
 ```
+
+`--daily-ceiling 30gb` is the owner's approval for this run: it lifts the
+ad-hoc class's 256 MiB day ceiling, and the governor refuses any byte budget
+above the ceiling in effect.
 
 - **Budget arithmetic**: 15-minute full depth is ~3 GB across the roster
   (deepest symbols ~380k bars ≈ 45 MB each; futures-era symbols ~6 MB),

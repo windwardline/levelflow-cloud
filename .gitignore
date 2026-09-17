@@ -25,7 +25,10 @@ test-results
 # agent's edit into a commit.
 .claude/worktrees/
 
-# The shared FMP circuit breaker's marker — machine state, never committed.
+# FMP governor state — machine state, never committed. `.fmp-state/` holds
+# the consumer-keyed byte ledger, the breaker's event log and the run markers;
+# the two legacy files are read as history and no longer written.
+.fmp-state/
 .fmp-circuit.json
 .fmp-usage.json
 

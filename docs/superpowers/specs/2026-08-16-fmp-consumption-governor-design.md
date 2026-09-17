@@ -133,6 +133,15 @@ Reservation: **10 GB per 30 days**, against a measured need of ~2.2 GB.
 The margin absorbs roster growth and re-pull churn without revisiting the
 number.
 
+**Script-side implementation (2026-09-16).** Until the proxy exists,
+`scripts/fmpGovernor.ts` carries this for the local scripts. The reservation
+is 333,333,333 bytes per UTC day, subtracted from the pool the top-up and
+ad-hoc classes share whether the bank uses it or not; bank spend above it is
+charged to the pool too. The bank is never refused at a door and does not
+read the shared breaker. It bounds each run at 512 MiB and alarms, without
+refusing, when its day passes that. Every byte is recorded by consumer under
+`.fmp-state/usage`.
+
 ## §21d. The chokepoint
 
 A Cloudflare Worker holds the only copy of the real FMP key and exposes an

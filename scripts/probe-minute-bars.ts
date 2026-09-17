@@ -1,177 +1,239 @@
 /**
- * 1-minute bar availability probe (owner-requested, 2026-08-06).
+ * One dated 1-minute question, through the governor (rewritten 2026-09-16).
  *
- * The gating question for everything downstream of the stop cap. 15-minute bars
- * cannot order intrabar events, which is why a measured ~60% gain at sub-1.0 stop
- * caps was declined in round 25 — at a 0.5 cap, 26% of setups end in neither a
- * target nor a stop, so the expectancy figure reports how the harness treats
- * ambiguity rather than how the market behaved.
+ * The round-28 version looped every roster symbol with an undated request and
+ * recorded nothing to the breaker's scope; the 2026-09-14 hand probes ran
+ * outside every ledger. What it measured stands: an UNDATED request returns
+ * about three days (2026-08-06). What nobody has measured is whether a DATED
+ * request reaches deeper — the question that decides whether the minute bank's
+ * gaps are permanent. This asks exactly that, once per run, for one symbol and
+ * at most seven dates, spending as the ad-hoc class.
  *
- * Bar resolution sits UPSTREAM of the stop cap the way the stop cap sits upstream
- * of the runner ceiling. Round 26 learned that lesson the expensive way: the
- * runner grid ran at the old caps and had to be re-run when they moved. Tuning
- * per-symbol geometry at 15-minute resolution before knowing whether 1-minute is
- * available would repeat it one level up.
+ *   FMP_API_KEY=... npx tsx scripts/probe-minute-bars.ts \
+ *     --symbol EURUSD --from 2026-09-04 --to 2026-09-05 [--json out.json]
  *
- * This answers only the availability question — coverage, depth, and recency per
- * market. What to DO about it is a separate decision that needs this evidence.
- *
- *   FMP_API_KEY=... npx tsx scripts/probe-minute-bars.ts [--json out.json]
+ * Every argument is refused before the governor is asked, and the governor is
+ * asked before the one request.
  */
+import { writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
+import { redactProviderSecrets } from "../supabase/functions/trade-analyzer/redact.ts";
 import { flagReader } from "./flagReader.ts";
-import { maySpend, noteRefusal, recordUsage } from "./fmpGovernor.ts";
+import { createByteBudget, SpendRefusedError } from "./fmpByteBudget.ts";
+import { createProbeGate, type FetchLike } from "./fmpCircuit.ts";
+import {
+  formatStandDown,
+  governedBudget,
+  maySpend,
+  ProviderRefusalError,
+  providerRefusal,
+  standDownFor,
+} from "./fmpGovernor.ts";
+import { defaultStatePaths, type FmpStatePaths } from "./fmpState.ts";
 
 const BASE = "https://financialmodelingprep.com/stable";
-const KEY = process.env.FMP_API_KEY;
-const CONCURRENCY = 4;
-
-type Probe = {
-  fmpSymbol: string;
-  markets: string[];
-  bars: number;
-  firstDate: string | null;
-  lastDate: string | null;
-  spanDays: number | null;
-  note: string;
-};
-
-async function probe(fmpSymbol: string, markets: string[]): Promise<Probe> {
-  const base: Probe = {
-    fmpSymbol,
-    markets,
-    bars: 0,
-    firstDate: null,
-    lastDate: null,
-    spanDays: null,
-    note: "",
-  };
-  try {
-    const url = new URL(`${BASE}/historical-chart/1min`);
-    url.searchParams.set("symbol", fmpSymbol);
-    url.searchParams.set("apikey", KEY!);
-    const res = await fetch(url, { headers: { accept: "application/json" } });
-    if (!res.ok) {
-      // The BODY, not just the status. `noteRefusal` classifies on the
-      // provider's own words — a bare "HTTP 429" makes the bandwidth wall
-      // indistinguishable from the per-minute rate limit, and the breaker
-      // would never open.
-      const detail = await res.text().catch(() => "");
-      noteRefusal(detail, Date.now());
-      return { ...base, note: `HTTP ${res.status}${detail ? ` ${detail}` : ""}` };
-    }
-    const body = await res.text();
-    recordUsage(new TextEncoder().encode(body).length, Date.now());
-    const payload = JSON.parse(body);
-    if (!Array.isArray(payload) || payload.length === 0) {
-      return { ...base, note: "zero 1-minute bars" };
-    }
-    const dates = (payload as Array<{ date?: string }>)
-      .map((b) => b.date ?? "")
-      .filter(Boolean)
-      .sort();
-    const first = dates[0] ?? null;
-    const last = dates.at(-1) ?? null;
-    const span = first && last
-      ? Math.round((Date.parse(last) - Date.parse(first)) / 86_400_000)
-      : null;
-    return {
-      ...base,
-      bars: payload.length,
-      firstDate: first,
-      lastDate: last,
-      spanDays: span,
-      note: "ok",
-    };
-  } catch (error) {
-    return { ...base, note: `failed: ${(error as Error).message}` };
-  }
-}
+const ENDPOINT = "historical-chart/1min";
+const ENDPOINT_PATH = new URL(`${BASE}/${ENDPOINT}`).pathname;
+const LABEL = "probe-minute-bars";
+/** One day of 1-minute bars is ~150 KB; sixteen MiB bounds a seven-date answer with room. */
+const PROBE_BYTE_BUDGET = 16 * 1024 * 1024;
+const MAX_DATES = 7;
+const DAY_MS = 86_400_000;
 
 // The ONE declaration of which flags own the token after them (#364
-// round 50, finding 2 — the scan now globs scripts/, so every reader with
-// a value-taking flag is inside the law rather than on a curated list).
-const VALUE_FLAGS = new Set(["--json"]);
+// round 50, finding 2 — the scan globs scripts/, so every reader with a
+// value-taking flag is inside the law rather than on a curated list).
+const VALUE_FLAGS = new Set(["--symbol", "--from", "--to", "--json"]);
 
+type Print = { out: (line: string) => void; err: (line: string) => void };
 
-async function main(): Promise<void> {
-  // Arguments are refused BEFORE the metered provider run (#364 round
-  // 52, finding 2). The port that gave --json a real refusal left the
-  // read at the end of main(), so a flag typed without its path spent
-  // the entire roster probe against the quota and then died without
-  // writing the artifact the run existed to produce — fail-late, in the
-  // change set that moved the density floors and the curve checks into
-  // pre-flights for exactly this reason.
-  const { str } = flagReader(process.argv, VALUE_FLAGS);
+export type ProbeDeps = {
+  argv: string[];
+  key: string | undefined;
+  fetch: FetchLike;
+  now: () => number;
+  /** Required: a test that forgets to pass state must not reach the machine's ledger. */
+  state: FmpStatePaths;
+  print: Print;
+};
+
+type Question = { symbol: string; from: string; to: string; jsonPath: string | undefined };
+
+function readQuestion(argv: string[]): Question {
+  const { str } = flagReader(argv, VALUE_FLAGS);
+  const symbol = str("--symbol");
+  const from = str("--from");
+  const to = str("--to");
   const jsonPath = str("--json");
-  if (!KEY) {
-    console.error("FMP_API_KEY is required.");
-    process.exit(1);
+  if (symbol === undefined) {
+    throw new Error("--symbol is required: the probe asks one question about one roster symbol");
   }
-  // THE GOVERNOR'S DOOR (2026-08-31). Every FMP spender asks before it spends:
-  // the shared breaker first, then the DAILY byte ceiling — a ceiling per UTC
-  // day, not per process, so re-running does not hand the run a fresh one.
-  // A ceiling declared here rather than passed in, because this is background
-  // work: the owner's rule is that background functions do not touch the
-  // allowance unless the app needs them to, and a probe is diagnostics.
-  const gate = maySpend({
-    atMs: Date.now(),
-    dailyLimitBytes: 128 * 1024 * 1024,
-    label: "probe-minute-bars",
-  });
-  if (!gate.allowed) {
-    console.error(gate.reason);
-    process.exit(1);
+  if (!MASTER_LIST_ROWS.some((row) => row.fmpSymbol === symbol)) {
+    throw new Error(`--symbol ${symbol} is not an fmpSymbol on the master list`);
   }
-  // Distinct FMP symbols only — WTI/CLUSD and BRENT/BZUSD each share one.
-  const bySymbol = new Map<string, string[]>();
-  for (const row of MASTER_LIST_ROWS) {
-    if (!row.fmpSymbol || row.levelflowSymbol === null) continue;
-    bySymbol.set(row.fmpSymbol, [
-      ...(bySymbol.get(row.fmpSymbol) ?? []),
-      row.levelflowSymbol,
-    ]);
-  }
-  const entries = [...bySymbol.entries()];
-  console.log(`probing ${entries.length} distinct FMP symbols for 1-minute bars\n`);
-
-  const results: Probe[] = [];
-  let cursor = 0;
-  async function worker(): Promise<void> {
-    while (cursor < entries.length) {
-      const [symbol, markets] = entries[cursor++];
-      const result = await probe(symbol, markets);
-      results.push(result);
-      console.log(
-        `${result.bars > 0 ? "ok  " : "NONE"} ${symbol.padEnd(10)} ` +
-          `${String(result.bars).padStart(6)} bars  ` +
-          `${result.spanDays === null ? "   -" : String(result.spanDays).padStart(4)}d  ` +
-          `${result.firstDate ?? ""} -> ${result.lastDate ?? ""}  ${result.note}`,
-      );
+  if (from === undefined) throw new Error("--from is required: an undated request answers nothing new");
+  if (to === undefined) throw new Error("--to is required with --from");
+  for (const [flag, value] of [["--from", from], ["--to", to]] as const) {
+    const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : null;
+    if (parsed === null || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+      throw new Error(`${flag} must be a real YYYY-MM-DD date; got ${value}`);
     }
   }
-  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
-
-  const have = results.filter((r) => r.bars > 0);
-  const none = results.filter((r) => r.bars === 0);
-  const spans = have.map((r) => r.spanDays ?? 0).sort((a, b) => a - b);
-  const median = spans.length ? spans[Math.floor(spans.length / 2)] : 0;
-
-  console.log(`\n=== VERDICT ===`);
-  console.log(`1-minute available: ${have.length} / ${results.length} distinct symbols`);
-  console.log(`markets covered:    ${have.flatMap((r) => r.markets).length} Levelflow symbols`);
-  console.log(`span days: min ${spans[0] ?? 0}  median ${median}  max ${spans.at(-1) ?? 0}`);
-  console.log(`bars: min ${Math.min(...have.map((r) => r.bars))}  max ${Math.max(...have.map((r) => r.bars))}`);
-  if (none.length) {
-    console.log(`\nno 1-minute series (${none.length}):`);
-    for (const r of none) console.log(`  ${r.fmpSymbol.padEnd(10)} ${r.note} — ${r.markets.join(" ")}`);
+  if (from > to) throw new Error(`--from ${from} is after --to ${to}`);
+  const dates = (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS + 1;
+  if (dates > MAX_DATES) {
+    throw new Error(
+      `${from}..${to} spans ${dates} dates; one probe asks about at most ${MAX_DATES} dates`,
+    );
   }
-  // (read at the top of main(), before any provider work)
-  if (jsonPath !== undefined) {
-    const { writeFileSync } = await import("node:fs");
-    writeFileSync(jsonPath, JSON.stringify(results, null, 2));
-    console.log(`\nwrote ${jsonPath}`);
+  return { from, jsonPath, symbol, to };
+}
+
+export async function runProbe(deps: ProbeDeps): Promise<number> {
+  const { print, state } = deps;
+  let question: Question;
+  try {
+    question = readQuestion(deps.argv);
+  } catch (error) {
+    print.err(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+  if (!deps.key) {
+    print.err("FMP_API_KEY is required.");
+    return 1;
+  }
+  const decision = maySpend({
+    atMs: deps.now(),
+    consumer: "adhoc",
+    label: LABEL,
+    requiredPaths: [ENDPOINT_PATH],
+    state,
+  });
+  if (!decision.allowed) {
+    print.err(decision.reason);
+    print.err(formatStandDown(decision.kind, decision.source));
+    return 1;
+  }
+  const budget = governedBudget(createByteBudget(PROBE_BYTE_BUDGET), {
+    consumer: "adhoc",
+    label: LABEL,
+    now: deps.now,
+    state,
+  });
+  const providerFetch = createProbeGate(decision, { consumer: "adhoc", now: deps.now }, state)
+    .wrapFetch(deps.fetch);
+
+  const url = new URL(`${BASE}/${ENDPOINT}`);
+  url.searchParams.set("symbol", question.symbol);
+  url.searchParams.set("from", question.from);
+  url.searchParams.set("to", question.to);
+  url.searchParams.set("apikey", deps.key);
+  try {
+    const response = await providerFetch(url, { headers: { accept: "application/json" } });
+    if (!response.ok) {
+      throw await providerRefusal(response, {
+        atMs: deps.now(),
+        consumer: "adhoc",
+        endpointPath: ENDPOINT_PATH,
+        label: LABEL,
+        note: true,
+        state,
+      });
+    }
+    const answeredAtMs = deps.now();
+    const text = await response.text();
+    const bytes = Buffer.byteLength(text);
+    // Recorded first, as every answer is. The bytes are bought either way, so a
+    // refusal the record raises — the class's day crossed, the run's own bound,
+    // a ledger write that failed — waits until the answer it paid for is
+    // printed and written, then ends the run red.
+    let recordRefusal: SpendRefusedError | null = null;
+    try {
+      budget.record(bytes, { answeredAtMs, endpointPath: ENDPOINT_PATH });
+    } catch (error) {
+      if (!(error instanceof SpendRefusedError)) throw error;
+      recordRefusal = error;
+    }
+    let code = 1;
+    try {
+      code = reportAnswer(question, text, bytes, print);
+    } finally {
+      if (recordRefusal) {
+        print.err(recordRefusal.message);
+        print.err(standDownFor(recordRefusal)!);
+      }
+    }
+    return recordRefusal ? 1 : code;
+  } catch (error) {
+    if (error instanceof SpendRefusedError || error instanceof ProviderRefusalError) {
+      print.err(error.message);
+      print.err(standDownFor(error)!);
+      return 1;
+    }
+    print.err(`the probe request failed: ${redactProviderSecrets(error instanceof Error ? error.message : String(error))}`);
+    return 1;
   }
 }
 
-await main();
+/** Print and write what the provider returned. Returns 1 when it was not a list of bars. */
+function reportAnswer(question: Question, text: string, bytes: number, print: Print): number {
+  let payload: unknown;
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    payload = undefined;
+  }
+  if (!Array.isArray(payload)) {
+    print.err(
+      `the provider did not answer with a list of bars: ${redactProviderSecrets(text).slice(0, 300)}`,
+    );
+    return 1;
+  }
+  const range = `${question.from}..${question.to}`;
+  if (payload.length === 0) {
+    print.out(`0 bars returned for ${range} (${question.symbol}, ${bytes} bytes)`);
+    writeAnswer(question, { bars: 0, bytes, dates: {}, firstDate: null, lastDate: null });
+    return 0;
+  }
+  const stamps = (payload as Array<{ date?: unknown }>)
+    .map((bar) => (typeof bar.date === "string" ? bar.date : ""))
+    .filter(Boolean)
+    .sort();
+  const dates: Record<string, number> = {};
+  for (const stamp of stamps) {
+    const date = stamp.slice(0, 10);
+    dates[date] = (dates[date] ?? 0) + 1;
+  }
+  const firstDate = stamps[0] ?? null;
+  const lastDate = stamps.at(-1) ?? null;
+  print.out(
+    `${payload.length} bars for ${question.symbol} ${range}; first ${firstDate}, last ${lastDate}; ${bytes} bytes`,
+  );
+  for (const [date, count] of Object.entries(dates)) print.out(`  ${date}: ${count}`);
+  writeAnswer(question, { bars: payload.length, bytes, dates, firstDate, lastDate });
+  return 0;
+}
+
+function writeAnswer(
+  question: Question,
+  answer: { bars: number; bytes: number; dates: Record<string, number>; firstDate: string | null; lastDate: string | null },
+): void {
+  if (question.jsonPath === undefined) return;
+  writeFileSync(
+    question.jsonPath,
+    JSON.stringify({ from: question.from, symbol: question.symbol, to: question.to, ...answer }, null, 2),
+  );
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  process.exitCode = await runProbe({
+    argv: process.argv.slice(2),
+    fetch,
+    key: process.env.FMP_API_KEY,
+    now: Date.now,
+    print: { err: (line) => console.error(line), out: (line) => console.log(line) },
+    state: defaultStatePaths(),
+  });
+}
