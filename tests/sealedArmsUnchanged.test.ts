@@ -26,10 +26,10 @@ import { artifactHashOf, type LedgeredReadArtifact, sha256File } from "../script
  *
  * NOTHING HERE IS READ FROM THE FILE IT GUARDS. The sealed read's and the freeze's
  * own file bytes, their content hashes, and the class and stdout checksums are
- * written down. Three tests depend on code, and each says so in its name: one on
- * the amendable rule constants through `verifyFrozenCandidates` (which also hashes
- * with `frozenHashOf`), and two on the hash functions (`artifactHashOf`,
- * `frozenHashOf`). A hashing refactor fails all three and nothing else. Every byte
+ * written down. Three kinds of test depend on code, and each says so in its name:
+ * the rule-constants test through `verifyFrozenCandidates` (which also hashes with
+ * `frozenHashOf`), the freeze's `frozenHashOf` test, and one `artifactHashOf` test per
+ * sealed read. A hashing refactor fails those and nothing else. Every byte
  * test still shares one dependency, `sha256File`, a raw digest rather than a
  * canonicalising hash; a change to it would fail every byte test at once. The file-bytes tests are the
  * code-independent witnesses, so when one of those three fails while the bytes tests
@@ -218,15 +218,20 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
     });
   }
 
-  it("keeps the sealed read's own content hash, as written down (depends on artifactHashOf)", () => {
-    const sealed = parseSealed();
-    assert.equal(
-      artifactHashOf(sealed),
-      sealed.artifactHash,
-      `${SEALED_READ} no longer hashes to its artifactHash. If the file-bytes test passes, artifactHashOf changed, not the read.`,
-    );
-    assert.equal(sealed.artifactHash, SEALED_READ_ARTIFACT_HASH, `${SEALED_READ} is not the read taken on 2026-09-03`);
-  });
+  for (const [name, read] of Object.entries(SEALED_READS_BY_FILE)) {
+    it(`keeps sealed read ${name}'s own content hash, as pinned (depends on artifactHashOf)`, () => {
+      const path = `${LEDGER_DIR}/${name}`;
+      const sealed = JSON.parse(readFileSync(path, "utf8")) as LedgeredReadArtifact & { artifactHash: string };
+      assert.equal(
+        artifactHashOf(sealed),
+        sealed.artifactHash,
+        `${path} no longer hashes to its artifactHash. If the file-bytes test passes, artifactHashOf changed, not the read.`,
+      );
+      // Ties the artifact to the map, and so to the ledger line checked below: a
+      // constant transcribed from the wrong place fails here.
+      assert.equal(sealed.artifactHash, read.artifactHash, `${path}'s artifactHash is not the one pinned for it`);
+    });
+  }
 
   it("keeps each sealed read recorded as exactly one read in its ledger, with every burn field agreeing", () => {
     // Every .jsonl here, as production globs it (grid-totalr.ts, jsonlIn(dir, "")):
@@ -318,7 +323,13 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
     for (const [name, read] of Object.entries(SEALED_READS_BY_FILE)) {
       const path = `${LEDGER_DIR}/${name}`;
       const artifact = artifacts[name];
-      const matching = entries.filter((line) => line.artifactPath === path);
+      // By basename within this directory, as ledgerPath is: a read burned without
+      // --read-out records an ABSOLUTE artifactPath, and an exact compare would match
+      // nothing and silently run every burn-field check below zero times.
+      const matching = entries.filter((line) => {
+        const recordedPath = line.artifactPath ?? "";
+        return recordedPath.split("/").pop() === name && recordedPath.replace(/\/[^/]*$/, "").endsWith(LEDGER_DIR);
+      });
       // Production counts a read once per readId: the retired per-directory forms may
       // legitimately carry the same record twice (grid-totalr.ts, seenReadIds).
       const readIds = [...new Set(matching.map((line) => line.readId))];

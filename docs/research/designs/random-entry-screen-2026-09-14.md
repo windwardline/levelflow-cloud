@@ -102,7 +102,7 @@ look-ahead family passes wide, a coin-flip family fails, the shipped entry reads
 reader reproduces the corpus's censored fields on a row sample by re-applying the resolver's
 censoring.
 
-Owner rulings the screen needs — SETTLED 2026-09-14 by amendments 45 and 46: the market grain
+Owner rulings the screen needs — SETTLED 2026-09-14 by amendments 45 and 46, which means no screened family can be confirmed on this calendar (see the header): the market grain
 holds (no class-grain exception for a screened family); a new family is NOT a new program
 (families registered and hashed before any fold is read, charged against one capped total alpha
 shared by every family claiming the post-2026-08-26 calendar). Still open and owed with
