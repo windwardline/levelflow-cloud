@@ -1,7 +1,13 @@
 > **Status (recorded 2026-09-16): designed, refuted, NOT BUILT.** The draft below was
 > refuted on 2026-09-14; the section headed REFUTED carries the verdicts and the
 > smallest defensible design, which governs over the draft above it. Amendments 45 and
-> 46 have since settled two of the rulings the draft left open.
+> 46 have since settled two of the rulings the draft left open — and settling them
+> made the refutation's own conditional unconditional. A new family is NOT a new
+> program, so every roster symbol's confirm window is already burned and **no screened
+> family can be confirmed on this calendar**; amendment 46 says forex's own history
+> closes confirmation for years. The screen's remaining value is the narrower one
+> named below: refusing a family on the fit fold before it spends a sweep. Budget for
+> that, not for a confirmed family.
 >
 > **Why this file is in the repository.** It lived only in a session scratchpad under
 > `/private/tmp`, which the operating system reaped between 2026-09-14 and 2026-09-16.

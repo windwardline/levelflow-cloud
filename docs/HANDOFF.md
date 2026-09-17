@@ -2634,7 +2634,7 @@ citations).** Then: the cost table (E8 bid/ask by hour, 28
 pairs — an owner-run capture is the ONLY source; FMP carries no usable forex
 bid/ask on any endpoint, probed 2026-09-14);
 the 21-cross commission fix in the readers from the daily cache; a
-random-entry excursion screen on fit before any new family earns a sweep; the
+random-entry excursion screen on fit before any new family earns a sweep ([`designs/random-entry-screen-2026-09-14.md`](/docs/research/designs/random-entry-screen-2026-09-14.md), whose refuted design governs over this line's framing); the
 break-expiry specification; the daily arm parked as a pre-registered null;
 amendment 33's grain against the effect size (~1,440 in-span fills per market
 needed at +0.03 R/fill against ~200 per market-year — seven clean years per

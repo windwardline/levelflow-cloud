@@ -141,9 +141,10 @@ const SEALED_READS_BY_FILE: Record<
  * the confirm spans in to make `calendarHash` (grid-totalr.ts, `sha256Hex(
  * stableJson(confirmSpans))`). Written out here rather than importing `stableJson`,
  * so the binding depends on no repository code; verified 2026-09-16 to reproduce the
- * act-3 read's `calendarHash` exactly. If `stableJson` ever changes, this copy keeps
- * passing against the old form; that drift is still caught, because the
- * `artifactHashOf` and `frozenHashOf` tests route through `stableJson` and fail.
+ * act-3 read's `calendarHash` exactly. It only ever needs to reproduce the HISTORICAL
+ * form, because it is compared against a byte-pinned `calendarHash`: if `stableJson`
+ * changes later, this copy diverging from it is harmless, since the sealed hash it
+ * must match was written under the old form and can never move.
  */
 function canonicalSha256(value: unknown): string {
   const canonical = (v: unknown): string =>
@@ -266,7 +267,7 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
     const strict = ledgers.filter((name) => pinnedLedgers.includes(name) || !isLedgerName(name));
     const tolerant = ledgers.filter((name) => !strict.includes(name));
     type LedgerLine = {
-      artifactPath?: string; artifactHash?: string; frozenHash?: string; corpusHash?: string; readId?: string;
+      artifactPath?: string; artifactHash?: string; frozenHash?: string | null; corpusHash?: string; readId?: string;
       shardHashes?: string[]; calendarHash?: string; symbolsRead?: string[];
       confirmSpans?: Record<string, { startMs?: number; endMs?: number }>;
     };
@@ -356,7 +357,6 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
         );
       }
     }
-
   });
 
   it("keeps the freeze file's bytes, as written down", async () => {
