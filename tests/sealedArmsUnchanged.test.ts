@@ -49,15 +49,6 @@ import { artifactHashOf, type LedgeredReadArtifact, sha256File } from "../script
 const FREEZE = "docs/research/r4/frozen-candidates.json";
 const SEALED_READ = "docs/research/confirm-reads/ledgered-read-act3.json";
 const LEDGER_DIR = "docs/research/confirm-reads";
-/**
- * The tracked ledger that records the sealed read, written down. Production refuses
- * a malformed line in ANY ledger here, but `tests/acceptanceGate.test.ts` writes
- * fixture ledgers of exactly those malformed shapes into this directory while the
- * suite runs files in parallel (`tests/emptyCorpusRefusals.test.ts` documents the
- * same collision). So shapes are refused strictly only in this file; every other
- * `.jsonl` is scanned tolerantly, for records of the sealed read and nothing else.
- */
-const SEALED_LEDGER = "confirm-log-f3b72ce8261a1d0a469f6f152950a9716703ea36a34612fe0187849459f4b062.jsonl";
 
 /** The freeze's and the read's own file bytes: witnesses no code change can move. */
 const SEALED_FREEZE_FILE_SHA256 = "cb4350693d18ba2a8f8fc3b4e15fad82b1860ddfdd8843b4a04ba06a6b05f0ca";
@@ -119,14 +110,21 @@ const SEALED_STDOUT_TWINS = {
 } as const;
 
 /**
- * Every sealed read in the directory, by file. The README makes "each read's printed
+ * Every sealed read in the directory, by file, with the ledger that records it and
+ * the artifactHash that ledger must carry. The README makes "each read's printed
  * record is sealed" a rule about a class, so the set of reads is derived from the
  * directory and must equal this map: the next burned read lands as a named failure
- * until it is pinned, not as a silent omission.
+ * until it is pinned — its bytes, its printed record, AND its ledger — not as a
+ * silent omission.
  */
-const SEALED_READS_BY_FILE = {
-  "ledgered-read-act3.json": { file: SEALED_READ_FILE_SHA256, stdout: SEALED_READ_STDOUT_SHA256 },
-} as const;
+const SEALED_READS_BY_FILE: Record<string, { file: string; stdout: string; ledger: string; artifactHash: string }> = {
+  "ledgered-read-act3.json": {
+    file: SEALED_READ_FILE_SHA256,
+    stdout: SEALED_READ_STDOUT_SHA256,
+    ledger: "confirm-log-f3b72ce8261a1d0a469f6f152950a9716703ea36a34612fe0187849459f4b062.jsonl",
+    artifactHash: SEALED_READ_ARTIFACT_HASH,
+  },
+};
 
 /** Says whether a changed sealed file was condemned in place or otherwise altered. Called only on failure. */
 function whatHappened(path: string): string {
@@ -199,19 +197,32 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
     assert.equal(sealed.artifactHash, SEALED_READ_ARTIFACT_HASH, `${SEALED_READ} is not the read taken on 2026-09-03`);
   });
 
-  it("keeps exactly one ledger line recording the sealed read, agreeing with it", () => {
+  it("keeps exactly one ledger line recording each sealed read, agreeing with it", () => {
     // Every .jsonl here, as production globs it (grid-totalr.ts, jsonlIn(dir, "")):
     // the retired unprefixed ledger form is still honoured in this directory.
+    //
+    // Production refuses a malformed line in ANY ledger here, but
+    // tests/acceptanceGate.test.ts writes fixture ledgers of exactly those shapes
+    // into this directory while node:test runs files in parallel
+    // (tests/emptyCorpusRefusals.test.ts documents the same collision). The split
+    // that follows is by NAME, which is what makes it race-free:
+    //  - STRICT: the ledger of every pinned sealed read (a fixture cannot share one;
+    //    acceptanceGate asserts its corpus id collides with no recorded read), and
+    //    any .jsonl whose name is in neither ledger form — a misnamed condemnation
+    //    note, say — because production reads it as a ledger and refuses.
+    //  - TOLERANT: an unpinned name in a ledger form, `confirm-log-<id>.jsonl` or the
+    //    retired bare 64-hex `<identity>.jsonl`, which is all a fixture is ever named.
+    //    Scanned only for records of the sealed reads, and skipped if it vanishes.
     const ledgers = readdirSync(LEDGER_DIR).filter((name) => name.endsWith(".jsonl")).sort();
-    assert.ok(ledgers.includes(SEALED_LEDGER), `${LEDGER_DIR}/${SEALED_LEDGER}, the ledger recording the sealed read, is missing`);
-    // A name in either ledger form: `confirm-log-<id>.jsonl`, or the retired bare
-    // `<hex identity>.jsonl`. Concurrent fixtures from tests/acceptanceGate.test.ts
-    // only ever use these names, so these alone are scanned tolerantly. Any other
-    // `.jsonl` here — a condemnation note misnamed, say — is held to production's
-    // shapes by name, because production reads it as a ledger and refuses.
-    const isLedgerName = (name: string) => /^confirm-log-.+\.jsonl$/.test(name) || /^[0-9a-f]{16,}\.jsonl$/.test(name);
-    const strict = ledgers.filter((name) => name === SEALED_LEDGER || !isLedgerName(name));
-    const tolerant = ledgers.filter((name) => !strict.includes(name));
+    const pinnedLedgers = Object.values(SEALED_READS_BY_FILE).map((read) => read.ledger);
+    for (const [name, read] of Object.entries(SEALED_READS_BY_FILE)) {
+      assert.ok(ledgers.includes(read.ledger), `${LEDGER_DIR}/${read.ledger}, the ledger recording ${name}, is missing`);
+      const recorded = (JSON.parse(readFileSync(`${LEDGER_DIR}/${name}`, "utf8")) as { ledgerPath?: string }).ledgerPath;
+      assert.equal(recorded?.split("/").pop(), read.ledger, `${name} names a different ledger (${recorded})`);
+    }
+    const isLedgerName = (name: string) => /^confirm-log-.+\.jsonl$/.test(name) || /^[0-9a-f]{64}\.jsonl$/.test(name);
+    const strict = ledgers.filter((name) => pinnedLedgers.includes(name) || !isLedgerName(name));
+    const tolerant = ledgers.filter((name) => !pinnedLedgers.includes(name) && isLedgerName(name));
     const entries: Array<{ artifactPath?: string; artifactHash?: string; frozenHash?: string }> = [];
     const readOrSkip = (name: string): string | null => {
       try {
@@ -235,7 +246,7 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
       }
     }
     for (const name of strict) {
-      const text = name === SEALED_LEDGER ? readFileSync(`${LEDGER_DIR}/${name}`, "utf8") : readOrSkip(name);
+      const text = pinnedLedgers.includes(name) ? readFileSync(`${LEDGER_DIR}/${name}`, "utf8") : readOrSkip(name);
       (text ?? "").split("\n").filter(Boolean).forEach((line, index) => {
         // Production refuses three shapes (grid-totalr.ts, the prior-read scan):
         // not JSON, not a plain object, and no corpusHash string. Each one blocks
@@ -256,10 +267,15 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
         entries.push(value as { artifactPath?: string; artifactHash?: string; frozenHash?: string });
       });
     }
-    const matching = entries.filter((line) => line.artifactPath === SEALED_READ);
-    assert.equal(matching.length, 1, `${matching.length} ledger lines record ${SEALED_READ}; expected exactly one`);
-    assert.equal(matching[0].artifactHash, SEALED_READ_ARTIFACT_HASH, "the ledger's artifactHash moved");
-    assert.equal(matching[0].frozenHash, SEALED_FROZEN_HASH, "the ledger's frozenHash moved");
+    for (const [name, read] of Object.entries(SEALED_READS_BY_FILE)) {
+      const path = `${LEDGER_DIR}/${name}`;
+      const matching = entries.filter((line) => line.artifactPath === path);
+      assert.equal(matching.length, 1, `${matching.length} ledger lines record ${path}; expected exactly one`);
+      assert.equal(matching[0].artifactHash, read.artifactHash, `the ledger's artifactHash for ${name} moved`);
+    }
+    // The freeze binding is act 3's alone: its ledger line names the sealed freeze.
+    const act3 = entries.filter((line) => line.artifactPath === SEALED_READ);
+    assert.equal(act3[0]?.frozenHash, SEALED_FROZEN_HASH, "the act-3 ledger line's frozenHash moved");
   });
 
   it("keeps the freeze file's bytes, as written down", async () => {
