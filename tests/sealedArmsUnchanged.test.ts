@@ -204,22 +204,39 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
     // the retired unprefixed ledger form is still honoured in this directory.
     const ledgers = readdirSync(LEDGER_DIR).filter((name) => name.endsWith(".jsonl")).sort();
     assert.ok(ledgers.includes(SEALED_LEDGER), `${LEDGER_DIR}/${SEALED_LEDGER}, the ledger recording the sealed read, is missing`);
+    // A name in either ledger form: `confirm-log-<id>.jsonl`, or the retired bare
+    // `<hex identity>.jsonl`. Concurrent fixtures from tests/acceptanceGate.test.ts
+    // only ever use these names, so these alone are scanned tolerantly. Any other
+    // `.jsonl` here — a condemnation note misnamed, say — is held to production's
+    // shapes by name, because production reads it as a ledger and refuses.
+    const isLedgerName = (name: string) => /^confirm-log-.+\.jsonl$/.test(name) || /^[0-9a-f]{16,}\.jsonl$/.test(name);
+    const strict = ledgers.filter((name) => name === SEALED_LEDGER || !isLedgerName(name));
+    const tolerant = ledgers.filter((name) => !strict.includes(name));
     const entries: Array<{ artifactPath?: string; artifactHash?: string; frozenHash?: string }> = [];
-    // Tolerant everywhere but the sealed ledger: a concurrent fixture may be mid-write.
-    for (const name of ledgers.filter((ledger) => ledger !== SEALED_LEDGER)) {
-      for (const line of readFileSync(`${LEDGER_DIR}/${name}`, "utf8").split("\n").filter(Boolean)) {
+    const readOrSkip = (name: string): string | null => {
+      try {
+        return readFileSync(`${LEDGER_DIR}/${name}`, "utf8");
+      } catch (error) {
+        // A concurrent fixture deleted between the listing and the read.
+        if ((error as { code?: string }).code === "ENOENT") return null;
+        throw error;
+      }
+    };
+    for (const name of tolerant) {
+      for (const line of (readOrSkip(name) ?? "").split("\n").filter(Boolean)) {
         try {
           const value = JSON.parse(line) as unknown;
           if (value !== null && typeof value === "object" && !Array.isArray(value)) {
             entries.push(value as { artifactPath?: string; artifactHash?: string; frozenHash?: string });
           }
         } catch {
-          // Not a record of anything; production refuses it on its own at read time.
+          // A fixture mid-write; it cannot be a record of the sealed read.
         }
       }
     }
-    for (const name of [SEALED_LEDGER]) {
-      readFileSync(`${LEDGER_DIR}/${name}`, "utf8").split("\n").filter(Boolean).forEach((line, index) => {
+    for (const name of strict) {
+      const text = name === SEALED_LEDGER ? readFileSync(`${LEDGER_DIR}/${name}`, "utf8") : readOrSkip(name);
+      (text ?? "").split("\n").filter(Boolean).forEach((line, index) => {
         // Production refuses three shapes (grid-totalr.ts, the prior-read scan):
         // not JSON, not a plain object, and no corpusHash string. Each one blocks
         // every confirm read for every corpus, so each fails here by name.
