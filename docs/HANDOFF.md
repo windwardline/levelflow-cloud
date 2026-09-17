@@ -2496,9 +2496,15 @@ a family buys a confirm read only with unseen dates, under one capped alpha
 shared across families. Rulings 3 and 4 interact and were decided together:
 ruling 45 admits no class-grain exception, so a screened family takes its
 verdict at the per-market grain. **All four are now law — amendments 43, 44, 45
-and 46** in the rulings file. Owed repair work named and not started, now two items: the
-forex cost constants' DERIVATION (the marking itself is done, #645) and the
-gate's span exclusion. The maintenance-break figures have LEFT this list — four
+and 46** in the rulings file. Owed repair work named and not started, now three items: the
+forex cost constants' DERIVATION (the marking itself is done, #645), the
+gate's span exclusion, and a refusal in `grid-totalr` of any `--read-out` that
+does not resolve inside `docs/research/confirm-reads/` (2026-09-16). The last is
+what makes the sealed-read guard's derived population complete: a read written
+elsewhere is pinned by nothing, a relative path resolves against the working
+directory and creates a lookalike tree, and act 3 used the flag. It must bind
+`--read-out` only, never the default artifact path beside a
+`--confirm-log-dir` redirect, which the tests use. The maintenance-break figures have LEFT this list — four
 were stale rather than two, and all four are corrected.
 
 **THE ARMING-BOUND READ: TWO IN-POOL CELLS SURVIVE A ONE-BAR LATENCY, THE

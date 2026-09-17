@@ -123,10 +123,17 @@ because a sanctioned `--acknowledge-prior-reads` appends to it. When the next re
 pinned in the same change set. **A sealed read's artifact is written into
 this directory.** `--read-out` accepts any path, and the act-3 read used it, but
 the guard derives the set of sealed reads from this directory: a read written
-anywhere else is pinned by nothing. Name a path inside
-`docs/research/confirm-reads/`, as an absolute path or one relative to the
-repository root. That `grid-totalr` should refuse any other `--read-out` is owed
-as code, not only as this sentence.
+anywhere else is pinned by nothing. Name it as an ABSOLUTE
+path inside this repository's own `docs/research/confirm-reads/`. A relative
+`--read-out` resolves against the process's working directory and `grid-totalr`
+creates the missing directories on demand, so run from anywhere but the
+repository root it writes a lookalike `…/docs/research/confirm-reads/` tree the
+guard cannot see, while the ledger still records the relative string and the
+guard's directory check — which matches by suffix — places it as if it were here.
+Refusing any other `--read-out` in code is owed; it is recorded in
+`docs/HANDOFF.md`, and it must bind `--read-out` only, because tests drive real
+confirm reads through `--confirm-log-dir`, whose default artifact path is
+legitimately elsewhere.
 
 `--confirm-log-dir` redirects **where a read is written**, never where prior
 reads are looked for: this directory is searched on every `--confirm-final`
