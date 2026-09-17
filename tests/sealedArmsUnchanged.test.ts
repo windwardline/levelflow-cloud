@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { dirname } from "node:path";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { type FrozenCandidates, frozenHashOf, verifyFrozenCandidates } from "../scripts/freeze-candidates.ts";
@@ -32,7 +33,7 @@ import { artifactHashOf, type LedgeredReadArtifact, sha256File } from "../script
  * sealed read. A hashing refactor fails those and nothing else. Every byte
  * test still shares one dependency, `sha256File`, a raw digest rather than a
  * canonicalising hash; a change to it would fail every byte test at once. The file-bytes tests are the
- * code-independent witnesses, so when one of those three fails while the bytes tests
+ * code-independent witnesses, so when one of those fails while the bytes tests
  * pass, the CODE changed — a re-ruling or a hashing refactor — not the seal. Every
  * other test reads the freeze with a plain parse. The class and stdout
  * checksums are held to a weaker standard than the market arms and say so: they
@@ -230,6 +231,10 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
       // Ties the artifact to the map, and so to the ledger line checked below: a
       // constant transcribed from the wrong place fails here.
       assert.equal(sealed.artifactHash, read.artifactHash, `${path}'s artifactHash is not the one pinned for it`);
+      // And the freeze it bound, the same way: a read under a freeze names the
+      // pinned hash; a read outside one binds no freeze.
+      const bound = (sealed as { frozen?: { frozenHash?: string } | null }).frozen?.frozenHash ?? null;
+      assert.equal(bound, read.frozenHash, `${path} binds freeze ${bound}, not the one pinned for it`);
     });
   }
 
@@ -328,8 +333,13 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
       // nothing and silently run every burn-field check below zero times.
       const matching = entries.filter((line) => {
         const recordedPath = line.artifactPath ?? "";
-        return recordedPath.split("/").pop() === name && recordedPath.replace(/\/[^/]*$/, "").endsWith(LEDGER_DIR);
+        return recordedPath.split("/").pop() === name && dirname(recordedPath).endsWith(LEDGER_DIR);
       });
+      assert.ok(
+        matching.length > 0,
+        `no ledger line records ${path} by basename within ${LEDGER_DIR}; a sealed read must be written into this directory (see its README), and a bare or relative --read-out records a path this check cannot place`,
+      );
+      assert.equal(artifact.corpusId, read.ledger.replace(/^confirm-log-/, "").replace(/\.jsonl$/, ""), `${name}'s corpusId no longer matches the ledger it names`);
       // Production counts a read once per readId: the retired per-directory forms may
       // legitimately carry the same record twice (grid-totalr.ts, seenReadIds).
       const readIds = [...new Set(matching.map((line) => line.readId))];
@@ -343,7 +353,6 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
         // carries the shard hashes, calendar hash and symbols. Editing any of them
         // in the ledger would reopen a fold that must never be read again.
         const corpusId = read.ledger.replace(/^confirm-log-/, "").replace(/\.jsonl$/, "");
-        assert.equal(artifact.corpusId, corpusId, `${name}'s corpusId no longer matches the ledger it names`);
         assert.equal(line.corpusHash, corpusId, `the ledger's corpusHash for ${name} no longer names its corpus`);
         assert.deepEqual(line.shardHashes, artifact.shardHashes, `the ledger's shardHashes for ${name} no longer match the sealed read`);
         // No coalescing: production always writes the key (null outside a freeze),

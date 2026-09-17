@@ -120,7 +120,13 @@ each bound by value: `corpusHash` to the ledger's own name and the artifact's
 artifact, and the confirm spans to the artifact's `calendarHash`, which is their
 own sorted-key digest. The ledger file's bytes are deliberately not pinned,
 because a sanctioned `--acknowledge-prior-reads` appends to it. When the next read burns, all three are
-pinned in the same change set.
+pinned in the same change set. **A sealed read's artifact is written into
+this directory.** `--read-out` accepts any path, and the act-3 read used it, but
+the guard derives the set of sealed reads from this directory: a read written
+anywhere else is pinned by nothing. Name a path inside
+`docs/research/confirm-reads/`, as an absolute path or one relative to the
+repository root. That `grid-totalr` should refuse any other `--read-out` is owed
+as code, not only as this sentence.
 
 `--confirm-log-dir` redirects **where a read is written**, never where prior
 reads are looked for: this directory is searched on every `--confirm-final`
