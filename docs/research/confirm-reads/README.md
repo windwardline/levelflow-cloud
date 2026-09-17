@@ -114,9 +114,12 @@ Markdown, never `.jsonl`: every `.jsonl` here is read as a ledger on every
 confirm read. Every sealed read is pinned by
 `tests/sealedArmsUnchanged.test.ts` together with its printed record and its
 ledger: the ledger is named per read and held strictly to the three shapes
-above, and the fields of its line that make a repeat read refuse —
-`corpusHash`, `shardHashes`, `calendarHash`, `symbolsRead` and the confirm spans
-— must agree with the sealed artifact. When the next read burns, all three are
+above, and the fields of its line that make a repeat read refuse are
+each bound by value: `corpusHash` to the ledger's own name and the artifact's
+`corpusId`, `shardHashes`, `calendarHash` and `symbolsRead` to the byte-pinned
+artifact, and the confirm spans — which have no twin anywhere — to a written-down
+digest. The ledger file's bytes are deliberately not pinned, because a sanctioned
+`--acknowledge-prior-reads` appends to it. When the next read burns, all three are
 pinned in the same change set.
 
 `--confirm-log-dir` redirects **where a read is written**, never where prior

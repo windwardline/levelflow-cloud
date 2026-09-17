@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { type FrozenCandidates, frozenHashOf, verifyFrozenCandidates } from "../scripts/freeze-candidates.ts";
@@ -119,14 +120,29 @@ const SEALED_STDOUT_TWINS = {
  * until it is pinned — its bytes, its printed record, AND its ledger — not as a
  * silent omission.
  */
-const SEALED_READS_BY_FILE: Record<string, { file: string; stdout: string; ledger: string; artifactHash: string }> = {
+const SEALED_READS_BY_FILE: Record<
+  string,
+  { file: string; stdout: string; ledger: string; artifactHash: string; confirmSpansDigest: string; frozenHash?: string }
+> = {
   "ledgered-read-act3.json": {
     file: SEALED_READ_FILE_SHA256,
     stdout: SEALED_READ_STDOUT_SHA256,
     ledger: "confirm-log-f3b72ce8261a1d0a469f6f152950a9716703ea36a34612fe0187849459f4b062.jsonl",
     artifactHash: SEALED_READ_ARTIFACT_HASH,
+    // The confirm spans have no twin in the artifact, and a sanctioned
+    // --acknowledge-prior-reads appends to the ledger, so neither the artifact nor
+    // the ledger file's bytes can witness them. This digest can: sha256 of
+    // JSON.stringify of [symbol, startMs, endMs] sorted by symbol (spansDigest below).
+    confirmSpansDigest: "cee9d7b5222c6fb933ad1d008d3cd9928c664b2a38fd342587b427d9d77a9e2c",
+    frozenHash: SEALED_FROZEN_HASH,
   },
 };
+
+/** A self-contained canonical digest of a ledger line's confirm spans; depends on no repository code. */
+function spansDigest(spans: Record<string, { startMs?: number; endMs?: number }> | undefined): string {
+  const canonical = JSON.stringify(Object.keys(spans ?? {}).sort().map((symbol) => [symbol, spans?.[symbol]?.startMs, spans?.[symbol]?.endMs]));
+  return createHash("sha256").update(canonical).digest("hex");
+}
 
 /** Says whether a changed sealed file was condemned in place or otherwise altered. Called only on failure. */
 function whatHappened(path: string): string {
@@ -199,7 +215,7 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
     assert.equal(sealed.artifactHash, SEALED_READ_ARTIFACT_HASH, `${SEALED_READ} is not the read taken on 2026-09-03`);
   });
 
-  it("keeps exactly one ledger line recording each sealed read, agreeing with it", () => {
+  it("keeps each sealed read recorded as exactly one read in its ledger, with every burn field agreeing", () => {
     // Every .jsonl here, as production globs it (grid-totalr.ts, jsonlIn(dir, "")):
     // the retired unprefixed ledger form is still honoured in this directory.
     //
@@ -217,12 +233,21 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
     //    Scanned only for records of the sealed reads, and skipped if it vanishes.
     const ledgers = readdirSync(LEDGER_DIR).filter((name) => name.endsWith(".jsonl")).sort();
     const pinnedLedgers = Object.values(SEALED_READS_BY_FILE).map((read) => read.ledger);
+    // Each sealed artifact parsed once; its bytes are pinned by the test above.
+    const artifacts = Object.fromEntries(
+      Object.keys(SEALED_READS_BY_FILE).map((name) => [
+        name,
+        JSON.parse(readFileSync(`${LEDGER_DIR}/${name}`, "utf8")) as {
+          readId?: string; corpusId?: string; shardHashes?: string[]; calendarHash?: string; symbolsRead?: string[]; ledgerPath?: string;
+        },
+      ]),
+    );
     for (const [name, read] of Object.entries(SEALED_READS_BY_FILE)) {
       assert.ok(ledgers.includes(read.ledger), `${LEDGER_DIR}/${read.ledger}, the ledger recording ${name}, is missing`);
       // By basename, and deliberately: a sealed artifact's ledgerPath is an absolute
       // path on the machine that took the read, into a worktree that no longer
       // exists, and those bytes can never be corrected.
-      const recorded = (JSON.parse(readFileSync(`${LEDGER_DIR}/${name}`, "utf8")) as { ledgerPath?: string }).ledgerPath;
+      const recorded = artifacts[name].ledgerPath;
       assert.equal(recorded?.split("/").pop(), read.ledger, `${name} names a different ledger (${recorded})`);
     }
     const isLedgerName = (name: string) => /^confirm-log-.+\.jsonl$/.test(name) || /^[0-9a-f]{64}\.jsonl$/.test(name);
@@ -279,9 +304,7 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
     }
     for (const [name, read] of Object.entries(SEALED_READS_BY_FILE)) {
       const path = `${LEDGER_DIR}/${name}`;
-      const artifact = JSON.parse(readFileSync(path, "utf8")) as {
-        readId?: string; shardHashes?: string[]; calendarHash?: string; symbolsRead?: string[];
-      };
+      const artifact = artifacts[name];
       const matching = entries.filter((line) => line.artifactPath === path);
       // Production counts a read once per readId: the retired per-directory forms may
       // legitimately carry the same record twice (grid-totalr.ts, seenReadIds).
@@ -295,23 +318,23 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
         // the ledger's own name carries the corpus id, and the sealed artifact
         // carries the shard hashes, calendar hash and symbols. Editing any of them
         // in the ledger would reopen a fold that must never be read again.
-        assert.equal(line.corpusHash, read.ledger.replace(/^confirm-log-/, "").replace(/\.jsonl$/, ""), `the ledger's corpusHash for ${name} no longer names its corpus`);
+        const corpusId = read.ledger.replace(/^confirm-log-/, "").replace(/\.jsonl$/, "");
+        assert.equal(artifact.corpusId, corpusId, `${name}'s corpusId no longer matches the ledger it names`);
+        assert.equal(line.corpusHash, corpusId, `the ledger's corpusHash for ${name} no longer names its corpus`);
         assert.deepEqual(line.shardHashes, artifact.shardHashes, `the ledger's shardHashes for ${name} no longer match the sealed read`);
-        assert.ok((line.shardHashes ?? []).length > 0, `the ledger's shardHashes for ${name} are empty`);
+        if (read.frozenHash) assert.equal(line.frozenHash, read.frozenHash, `the ledger's frozenHash for ${name} moved`);
         assert.equal(line.calendarHash, artifact.calendarHash, `the ledger's calendarHash for ${name} no longer matches the sealed read`);
         assert.deepEqual(line.symbolsRead, artifact.symbolsRead, `the ledger's symbolsRead for ${name} no longer match the sealed read`);
-        for (const symbol of artifact.symbolsRead ?? []) {
-          const span = line.confirmSpans?.[symbol];
-          assert.ok(
-            span && typeof span.startMs === "number" && typeof span.endMs === "number" && span.endMs > span.startMs,
-            `the ledger's confirm span for ${symbol} in ${name} is missing or empty; the calendar match would go dark`,
-          );
-        }
+        // For a later corpus the calendar-hash clause is dark by construction, so
+        // these spans are the sole guard on the cross-corpus refusal. Bound by value.
+        assert.equal(
+          spansDigest(line.confirmSpans),
+          read.confirmSpansDigest,
+          `the ledger's confirm spans for ${name} moved; the calendar match that refuses a later read of these dates would change`,
+        );
       }
     }
-    // The freeze binding is act 3's alone: its ledger line names the sealed freeze.
-    const act3 = entries.filter((line) => line.artifactPath === SEALED_READ);
-    assert.equal(act3[0]?.frozenHash, SEALED_FROZEN_HASH, "the act-3 ledger line's frozenHash moved");
+
   });
 
   it("keeps the freeze file's bytes, as written down", async () => {
