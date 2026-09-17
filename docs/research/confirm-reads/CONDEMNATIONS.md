@@ -3,7 +3,8 @@
 A burned confirm read cannot be retaken, so the files it was frozen from are sealed
 with it: the act-3 freeze, its seven market-arm gradings, its five class-arm gradings,
 and the stdout record of each — and so are the read's own artifact file, its
-printed record, and the ledger line that makes a repeat read refuse
+printed record, the freeze its artifact binds, and the ledger line that makes a
+repeat read refuse
 (`tests/sealedArmsUnchanged.test.ts`).
 
 Elsewhere in this repository an artifact is condemned by stamping `INVALID` into it in

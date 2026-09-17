@@ -189,7 +189,7 @@ matters most:
    `tests/sealedArmsUnchanged.test.ts`, which re-hashes the seven market arms
    against the freeze, pins the five class arms to the blobs commit 7c55cd3 wrote
    (the freeze records no checksum for them), recomputes the sealed read's own
-   content hash, binds every field of its ledger line that makes a repeat read refuse, and holds the freeze and
+   content hash and the freeze it binds, binds every field of its ledger line that makes a repeat read refuse, and holds the freeze and
    read hashes as written-down constants. It fails by name on an overwritten
    market or class arm, a tampered freeze, a consistent re-freeze, and the freeze,
    read and ledger rewritten together. It also pins the freeze file's own bytes, the sealed read's own file bytes and

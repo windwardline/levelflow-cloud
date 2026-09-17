@@ -2430,9 +2430,11 @@ sealed input's stdout twin gets its output written somewhere new, and a sealed
 input is never condemned by stamping it — a condemnation goes in
 `docs/research/confirm-reads/CONDEMNATIONS.md`. `tests/sealedArmsUnchanged.test.ts`
 enforces the twelve sealed inputs, their stdout twins, the freeze file's bytes, and
-the burned read's own file bytes and printed record, and the fields of its ledger
-line that make a repeat read refuse,
-and says which of the two happened.
+the burned read's own file bytes and printed record, the freeze its artifact
+binds, and the fields of its ledger line that make a repeat read refuse,
+and says which of the two happened. The next read is pinnable only if it is written
+into that directory as `ledgered-read-*.json`; the code refusal that makes this
+hold is in the owed repair list under the owner rulings below.
 
 **Also owed, and found on 2026-09-14 by the review of the disposition
 repairs**: the same absent-reads-as-zero construction publishes
@@ -2499,7 +2501,8 @@ verdict at the per-market grain. **All four are now law — amendments 43, 44, 4
 and 46** in the rulings file. Owed repair work named and not started, now three items: the
 forex cost constants' DERIVATION (the marking itself is done, #645), the
 gate's span exclusion, and a refusal in `grid-totalr` of any `--read-out` that
-does not resolve inside `docs/research/confirm-reads/` (2026-09-16). The last is
+does not resolve inside `docs/research/confirm-reads/` or whose basename is not
+`ledgered-read-*.json` (2026-09-16). The last is
 what makes the sealed-read guard's derived population complete: a read written
 elsewhere is pinned by nothing, a relative path resolves against the working
 directory and creates a lookalike tree, and act 3 used the flag. It must bind
