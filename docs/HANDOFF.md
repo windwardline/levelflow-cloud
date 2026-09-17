@@ -2500,9 +2500,10 @@ ruling 45 admits no class-grain exception, so a screened family takes its
 verdict at the per-market grain. **All four are now law — amendments 43, 44, 45
 and 46** in the rulings file. Owed repair work named and not started, now three items: the
 forex cost constants' DERIVATION (the marking itself is done, #645), the
-gate's span exclusion, and a refusal in `grid-totalr` of any `--read-out` that
-does not resolve inside `docs/research/confirm-reads/` or whose basename is not
-`ledgered-read-*.json` (2026-09-16). The last is
+gate's span exclusion, and a refusal in `grid-totalr` of any `--read-out` that,
+resolved against the repository rather than the working directory, is not inside
+`docs/research/confirm-reads/` or is not named `ledgered-read-*.json`
+(2026-09-16). The last is
 what makes the sealed-read guard's derived population complete: a read written
 elsewhere is pinned by nothing, a relative path resolves against the working
 directory and creates a lookalike tree, and act 3 used the flag. It must bind

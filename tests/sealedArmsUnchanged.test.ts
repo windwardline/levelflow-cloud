@@ -16,9 +16,10 @@ import { artifactHashOf, type LedgeredReadArtifact, sha256File } from "../script
  * `classCellsTested` and `expectedFalseAcceptsClasses` computed from FIVE
  * class-grain gradings. Those twelve gradings, and the twelve stdout records that
  * are the same runs' other outputs, are the provenance of a read that can never be
- * retaken. So is the read itself: its artifact, its printed record, and the ledger
- * line whose fields make a repeat read refuse — every sealed read in
- * `docs/research/confirm-reads/` is pinned with all three.
+ * retaken. So is the read itself: its artifact, its printed record, the ledger line
+ * whose fields make a repeat read refuse, and the freeze its artifact binds — every
+ * sealed read in `docs/research/confirm-reads/`, found by the name
+ * `ledgered-read-*.json`, is pinned with all four.
  *
  * Nothing checked this at run time. `verifyFrozenCandidates` hashes the freeze body
  * and never an input file, and the freeze records NO checksum for the class half or
@@ -117,7 +118,7 @@ const SEALED_STDOUT_TWINS = {
  * Every sealed read in the directory, by file, with the ledger that records it and
  * the artifactHash that ledger must carry. The README makes "each read's printed
  * record is sealed" a rule about a class, so the set of reads is derived from the
- * directory and must equal this map: the next burned read lands as a named failure
+ * directory by the name `ledgered-read-*.json` and must equal this map: the next burned read lands as a named failure
  * until it is pinned — its bytes, its printed record, AND its ledger — not as a
  * silent omission.
  */
@@ -158,30 +159,42 @@ function canonicalSha256(value: unknown): string {
   return createHash("sha256").update(canonical(value)).digest("hex");
 }
 
+/**
+ * What a sealed file is sealed AS, so a failure gives advice that fits it: a sealed
+ * INPUT is regraded beside itself, while a sealed read's own record cannot be retaken.
+ */
+type SealedAs = { kind: "input" | "read"; read: string };
+const ACT3_INPUT: SealedAs = { kind: "input", read: "the burned act-3 read" };
+
 /** Says whether a changed sealed file was condemned in place or otherwise altered. Called only on failure. */
-function whatHappened(path: string): string {
+function whatHappened(path: string, sealedAs: SealedAs): string {
   let condemned = false;
   try {
     condemned = typeof (JSON.parse(readFileSync(path, "utf8")) as { INVALID?: unknown }).INVALID === "string";
   } catch {
     // Unparseable, or not JSON at all: "altered" covers it.
   }
+  const what = sealedAs.kind === "input" ? `a sealed input of ${sealedAs.read}` : `sealed read ${sealedAs.read}'s own record`;
   return condemned
-    ? `${path} was CONDEMNED IN PLACE with an INVALID stamp. A sealed input of the burned act-3 read ` +
+    ? `${path} was CONDEMNED IN PLACE with an INVALID stamp. It is ${what} and ` +
       `may not be stamped: revert the stamp and record the condemnation in ${LEDGER_DIR}/CONDEMNATIONS.md.`
-    : `${path} was altered after it was sealed. It belongs to the burned act-3 read: restore it from ` +
-      `git, and write any regrade beside it, never over it.`;
+    : `${path} was altered after it was sealed. It is ${what}: restore it from git` +
+      (sealedAs.kind === "input" ? `, and write any regrade beside it, never over it.` : `; a burned read cannot be retaken.`);
 }
 
-async function assertSealedBytes(path: string, expected: string, label = ""): Promise<void> {
+async function assertSealedBytes(path: string, expected: string, sealedAs: SealedAs, label = ""): Promise<void> {
   let actual: string;
   try {
     actual = await sha256File(path);
   } catch (error) {
     if ((error as { code?: string }).code !== "ENOENT") throw error;
-    assert.fail(`${label}${path} is MISSING. It belongs to the burned act-3 read: restore it from git; a regrade writes beside a sealed file, never moves it.`);
+    assert.fail(
+      sealedAs.kind === "input"
+        ? `${label}${path} is MISSING. It is a sealed input of ${sealedAs.read}: restore it from git; a regrade writes beside a sealed file, never moves it.`
+        : `${label}${path} is MISSING. It is sealed read ${sealedAs.read}'s own record: restore it from git.`,
+    );
   }
-  if (actual !== expected) assert.fail(`${label}${whatHappened(path)} (sha256 ${actual.slice(0, 12)}, sealed ${expected.slice(0, 12)})`);
+  if (actual !== expected) assert.fail(`${label}${whatHappened(path, sealedAs)} (sha256 ${actual.slice(0, 12)}, sealed ${expected.slice(0, 12)})`);
 }
 
 // Loaded INSIDE each test, never at collection time: a throw while the suite is
@@ -214,8 +227,8 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
 
   for (const [name, sealed] of Object.entries(SEALED_READS_BY_FILE)) {
     it(`keeps sealed read ${name} and its printed record byte-identical, as written down`, async () => {
-      await assertSealedBytes(`${LEDGER_DIR}/${name}`, sealed.file);
-      await assertSealedBytes(`${LEDGER_DIR}/${name.replace(/\.json$/, ".stdout.txt")}`, sealed.stdout);
+      await assertSealedBytes(`${LEDGER_DIR}/${name}`, sealed.file, { kind: "read", read: name });
+      await assertSealedBytes(`${LEDGER_DIR}/${name.replace(/\.json$/, ".stdout.txt")}`, sealed.stdout, { kind: "read", read: name });
     });
   }
 
@@ -380,7 +393,7 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
   });
 
   it("keeps the freeze file's bytes, as written down", async () => {
-    await assertSealedBytes(FREEZE, SEALED_FREEZE_FILE_SHA256);
+    await assertSealedBytes(FREEZE, SEALED_FREEZE_FILE_SHA256, ACT3_INPUT);
   });
 
   it("keeps the freeze's body hash, bound by the sealed read (depends on frozenHashOf)", () => {
@@ -410,7 +423,7 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
     it(`leaves market arm ${arm} byte-identical to what was frozen (${path})`, async () => {
       const recorded = parseFreeze().arms.find((entry) => entry.arm === arm);
       assert.ok(recorded, `the freeze carries no arm ${arm}`);
-      await assertSealedBytes(path, recorded.artifactSha256, `arm ${arm}: `);
+      await assertSealedBytes(path, recorded.artifactSha256, ACT3_INPUT, `arm ${arm}: `);
     });
   }
 
@@ -434,7 +447,7 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
 
   for (const [path, sha] of Object.entries(SEALED_CLASS_ARMS)) {
     it(`leaves class arm ${path} byte-identical to the blob the freeze was built from`, async () => {
-      await assertSealedBytes(path, sha);
+      await assertSealedBytes(path, sha, ACT3_INPUT);
     });
   }
 
@@ -447,7 +460,7 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
 
   for (const [path, sha] of Object.entries(SEALED_STDOUT_TWINS)) {
     it(`leaves stdout twin ${path} byte-identical to what its run wrote`, async () => {
-      await assertSealedBytes(path, sha);
+      await assertSealedBytes(path, sha, ACT3_INPUT);
     });
   }
 });

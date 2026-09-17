@@ -121,27 +121,27 @@ artifact, and the confirm spans to the artifact's `calendarHash`, which is their
 own sorted-key digest. The artifact binds its freeze the same way: its
 `frozen.frozenHash` is the hash pinned for that read, and a read that bound no
 freeze carries no `frozen` block. The ledger file's bytes are deliberately not pinned,
-because a sanctioned `--acknowledge-prior-reads` appends to it. When the next read burns, all three are
-pinned in the same change set, with the freeze its artifact binds. **A sealed
-read's artifact is written into this directory, under a name matching
-`ledgered-read-*.json`.** `--read-out` accepts any path, and the act-3 read used
-it (its ledger line records the relative form, from before this rule, which is
-why the guard places a line by basename and directory suffix rather than by
-equality). The guard derives the set of sealed reads from this directory by that
-name: a read written anywhere else, or here under another name, is pinned by
-nothing. Name it as an ABSOLUTE path inside this repository's own
-`docs/research/confirm-reads/`. A relative
-`--read-out` resolves against the process's working directory and `grid-totalr`
-creates the missing directories on demand, so run from anywhere but the
-repository root it writes a lookalike `…/docs/research/confirm-reads/` tree the
-guard cannot see, while the ledger still records the relative string and the
-guard's directory check — which matches by suffix — places it as if it were here.
-Absolute closes that hazard and not the wrong-repository one: a path into a scratch
-clone's own `docs/research/confirm-reads/` passes the same suffix check.
-Refusing any other `--read-out` in code, by location or by name, is owed; it is recorded in
-`docs/HANDOFF.md`, and it must bind `--read-out` only, because tests drive real
-confirm reads through `--confirm-log-dir`, whose default artifact path is
-legitimately elsewhere.
+because a sanctioned `--acknowledge-prior-reads` appends to it. When the next read burns, its artifact, printed record and ledger are pinned in
+the same change set, with the freeze the artifact binds. **A sealed read's
+artifact is written into this directory as `ledgered-read-<name>.json`, and its
+printed record beside it as `ledgered-read-<name>.stdout.txt`.** The guard derives
+the set of sealed reads from this directory by that name, so a read written
+anywhere else, or here under another name, is pinned by nothing. Pass `--read-out`
+REPO-RELATIVE, from the repository root, as act 3 did. The string is recorded
+verbatim in a ledger line that can never be amended, and a relative path is the
+one form that reads the same in every clone: act 3's own `ledgerPath` is an
+absolute path into a worktree that no longer exists. `--read-out` resolves against
+the process's working directory and `grid-totalr` creates missing directories, so
+from anywhere but the root it writes a lookalike `…/docs/research/confirm-reads/`
+tree the guard cannot see. The guard places a ledger line by basename and
+directory suffix, because a read taken without `--read-out` records an absolute
+default path, and so it cannot tell that lookalike, or a scratch clone's copy,
+from this directory. What closes both is resolving `--read-out` against the
+repository rather than the process, as `DEFAULT_CONFIRM_LOG_DIR` already is, and
+refusing a path outside this directory or under another name. That refusal is
+owed and recorded in `docs/HANDOFF.md`; it must bind `--read-out` only, because
+tests drive real confirm reads through `--confirm-log-dir`, whose default artifact
+path is legitimately elsewhere.
 
 `--confirm-log-dir` redirects **where a read is written**, never where prior
 reads are looked for: this directory is searched on every `--confirm-final`

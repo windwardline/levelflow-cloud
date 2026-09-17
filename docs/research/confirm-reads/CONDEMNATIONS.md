@@ -10,7 +10,10 @@ repeat read refuse
 Elsewhere in this repository an artifact is condemned by stamping `INVALID` into it in
 place. A sealed input is never condemned that way, because the stamp rewrites the
 provenance of the read. If a sealed input is found to be wrong, the condemnation is
-recorded here instead, and the file's bytes are left alone.
+recorded here instead, and the file's bytes are left alone. The same holds for a
+sealed read's own artifact: `grid-totalr` carries a standing `INVALID` banner
+forward when it writes a read, which predates the seal, and a pinned read is
+condemned here, never by a banner.
 
 Each entry names the file, the date, what is wrong with it, what evidence shows it, and
 which verdicts that rested on it are affected.
