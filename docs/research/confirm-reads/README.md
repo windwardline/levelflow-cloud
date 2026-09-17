@@ -111,7 +111,13 @@ never condemned by stamping `INVALID` into it in place, because the stamp
 rewrites the provenance of a read that cannot be retaken
 (`tests/sealedArmsUnchanged.test.ts` fails on it and says so). The note is
 Markdown, never `.jsonl`: every `.jsonl` here is read as a ledger on every
-confirm read.
+confirm read. Every sealed read is pinned by
+`tests/sealedArmsUnchanged.test.ts` together with its printed record and its
+ledger: the ledger is named per read and held strictly to the three shapes
+above, and the fields of its line that make a repeat read refuse —
+`corpusHash`, `shardHashes`, `calendarHash`, `symbolsRead` and the confirm spans
+— must agree with the sealed artifact. When the next read burns, all three are
+pinned in the same change set.
 
 `--confirm-log-dir` redirects **where a read is written**, never where prior
 reads are looked for: this directory is searched on every `--confirm-final`

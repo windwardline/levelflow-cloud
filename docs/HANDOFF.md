@@ -2430,7 +2430,8 @@ sealed input's stdout twin gets its output written somewhere new, and a sealed
 input is never condemned by stamping it — a condemnation goes in
 `docs/research/confirm-reads/CONDEMNATIONS.md`. `tests/sealedArmsUnchanged.test.ts`
 enforces the twelve sealed inputs, their stdout twins, the freeze file's bytes, and
-the burned read's own file bytes and printed record,
+the burned read's own file bytes and printed record, and the fields of its ledger
+line that make a repeat read refuse,
 and says which of the two happened.
 
 **Also owed, and found on 2026-09-14 by the review of the disposition
