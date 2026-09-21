@@ -277,6 +277,72 @@ describe("the bank lock serialises the writer and the copier", () => {
     );
   });
 
+  it("refuses to load outside bash, rather than locking nothing", () => {
+    // FOUND BY THE PRODUCTION CHECK, AFTER #658 MERGED. The check held the lock
+    // from an agent's shell — which is zsh — and the backup walked straight
+    // through it. zsh fires an `EXIT` trap set inside a function when the
+    // FUNCTION returns, so the helper's release backstop deleted the lock the
+    // instant `acquire_bank_lock` succeeded. The caller was told it held a
+    // lock it did not hold, which is worse than having no lock at all.
+    //
+    // Both launchd jobs run under bash via their shebangs, so production was
+    // never exposed. Any other caller was: an agent sourcing this to hold the
+    // bank still while it works is exactly the person who would do it.
+    //
+    // `unset BASH_VERSION` makes the guard's input absent on every platform,
+    // including CI runners that ship no zsh.
+    const { bank } = sandbox();
+    const result = (() => {
+      try {
+        return {
+          code: 0,
+          out: execFileSync(
+            "bash",
+            ["-c", `unset BASH_VERSION; . ${HELPER} && acquire_bank_lock "${bank}" && echo GOT_IT`],
+            { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+          ),
+        };
+      } catch (error) {
+        const shell = error as { status?: number; stderr?: string; stdout?: string };
+        return { code: shell.status ?? 1, out: `${shell.stdout ?? ""}${shell.stderr ?? ""}` };
+      }
+    })();
+    assert.notEqual(result.code, 0, `the helper loaded without bash: ${result.out}`);
+    assert.doesNotMatch(result.out, /GOT_IT/);
+    assert.match(result.out, /must be sourced from bash/);
+  });
+
+  it("refuses zsh specifically, the shell that actually broke it", (t) => {
+    // The real trigger, where the machine has it. The test above pins the
+    // guard everywhere; this one pins the behaviour that motivated it.
+    try {
+      execFileSync("zsh", ["-c", "true"]);
+    } catch {
+      t.skip("zsh is not installed here; the BASH_VERSION case above still runs");
+      return;
+    }
+    const { bank, lock } = sandbox();
+    const result = (() => {
+      try {
+        return {
+          code: 0,
+          out: execFileSync(
+            "zsh",
+            ["-c", `. ${HELPER} && acquire_bank_lock "${bank}" && echo GOT_IT`],
+            { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+          ),
+        };
+      } catch (error) {
+        const shell = error as { status?: number; stderr?: string; stdout?: string };
+        return { code: shell.status ?? 1, out: `${shell.stdout ?? ""}${shell.stderr ?? ""}` };
+      }
+    })();
+    assert.notEqual(result.code, 0, `zsh was handed a lock: ${result.out}`);
+    assert.doesNotMatch(result.out, /GOT_IT/);
+    const leftover = withHelper(`[[ -d "${lock}" ]] && echo PRESENT || echo ABSENT`);
+    assert.match(leftover.out, /ABSENT/, "a refused load still created the lock");
+  });
+
   it("does not leave the lock behind when the holder exits", () => {
     const { bank, lock } = sandbox();
     const first = withHelper(`acquire_bank_lock "${bank}"`, {

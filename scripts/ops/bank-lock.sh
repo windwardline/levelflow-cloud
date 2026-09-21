@@ -34,6 +34,20 @@
 # because `ops/agent-exit-status.sh` reads the launchd exit code and a quiet
 # skip would render as a healthy backup.
 
+# BASH ONLY, AND LOUDLY. Found by the production check after #658 merged: the
+# check held this lock from an agent's shell, which is zsh, and the backup
+# walked straight through it. zsh fires an `EXIT` trap set inside a function
+# when the FUNCTION returns, so the release backstop below deleted the lock the
+# instant `acquire_bank_lock` succeeded — reporting a lock it did not hold,
+# which is worse than no lock. Both launchd jobs run under bash through their
+# shebangs and were never exposed; any other caller was. Refusing to load turns
+# that silent no-op into a failure, and `return` rather than `exit` because this
+# file is sourced and must not take an interactive shell down with it.
+if [[ -z ${BASH_VERSION:-} ]]; then
+  echo "bank-lock.sh must be sourced from bash; refusing to load, so no caller believes it holds a lock it does not" >&2
+  return 1 2>/dev/null || exit 1
+fi
+
 # Seconds to wait before giving up. The bank run takes 10-45s and the backup's
 # copy about a second, so the default is generous by two orders of magnitude:
 # the thing being protected has a three-day budget, and a minute of patience

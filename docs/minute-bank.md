@@ -143,9 +143,32 @@ logged. A lock that cannot be taken within `LEVELFLOW_BANK_LOCK_TIMEOUT`
 (900s) gives up non-zero with a reason, because `ops/agent-exit-status.sh` reads
 the launchd exit code and a quiet skip renders as a healthy backup.
 
-`tests/minuteBankLock.test.ts` exercises it against the real scripts, including
-the original failure: a live writer holding the lock and appending while the
-backup wants to copy. Six mutations are recorded against those tests.
+The helper refuses to load outside bash. zsh fires an `EXIT` trap set inside a
+function when that function returns, so under zsh the release backstop deleted
+the lock the instant it was taken — the caller was told it held a lock it did
+not. Both launchd jobs run under bash through their shebangs and were never
+exposed; the production check after #658 was, because it held the lock from an
+agent's zsh and the backup walked straight through.
+
+`tests/minuteBankLock.test.ts` exercises all of it against the real scripts,
+including the original failure: a live writer holding the lock and appending
+while the backup wants to copy. Each guard below was deleted in turn and the
+suite failed every time:
+
+| Mutation | What it removed |
+| --- | --- |
+| M1 | the backup's lock acquisition |
+| M2 | the stale-lock break |
+| M3 | the non-zero exit on timeout |
+| M4 | the bank's lock acquisition |
+| M5 | the pid sanity check (`kill -0 0` hits the process group) |
+| M6 | the ownership check on release |
+| M7 | the fall-through that bounds an unbreakable lock |
+| M8 | the bash-only guard |
+
+M6 survived at first, which is how the release path's ownership check was found
+to be untested. M7 is the one that found a defect in the lock itself: an
+unbreakable lock spun past its own deadline check and never timed out.
 
 The remote layout is a contract, and it generalizes past this dataset:
 
