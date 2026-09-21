@@ -292,9 +292,11 @@ every other refusal is red.
 
 **The run gate.** `scripts/fmpRunGate.ts` skips a login run only when a clean
 run finished at or after the most recent scheduled slot, and runs the job on
-anything it cannot read. Replayed over the logged starts from 09-14 to 09-21,
-it skips 6 of 18 bank starts and 6 of 14 top-up starts, none of them at a slot.
-`docs/minute-bank.md` carries the bank's side, including where the gate sits.
+anything it cannot read. Each marker names its store, the bank's directory or
+the top-up's cache, and a marker for any other store runs the job. Replayed
+over the logged starts from 09-14 to 09-21, it skips 6 of 18 bank starts and 6
+of 14 top-up starts, none of them at a slot. `docs/minute-bank.md` carries the
+bank's side, including where the gate sits.
 
 **Phases 2–3 are parked deliberately** until FMP recovers: a byte-metering proxy
 cannot be validated with no bytes flowing. Until Phase 3 completes the guarantee

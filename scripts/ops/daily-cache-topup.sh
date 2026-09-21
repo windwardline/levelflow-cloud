@@ -47,9 +47,11 @@ TSX="$REPO/node_modules/.bin/tsx"
 # running: only exit 75 WITH its skip line skips, and any other outcome — an
 # error, a missing plist, a torn marker — runs the job. The marker is the
 # CHECKOUT's (LEVELFLOW_CHECKOUT): read from the extracted tree it would never
-# exist, and every login would run the top-up again.
+# exist, and every login would run the top-up again. It names the cache it
+# describes, so a clean hand run against another cache (LEVELFLOW_CACHE_DIR)
+# never skips this one's next login run.
 set +e
-gate_out=$("$TSX" "$REPO/scripts/fmpRunGate.ts" --job cache-topup 2>&1)
+gate_out=$("$TSX" "$REPO/scripts/fmpRunGate.ts" --job cache-topup --dir "$CACHE" 2>&1)
 gate=$?
 set -e
 printf '%s\n' "$gate_out"
@@ -128,7 +130,7 @@ if [ "$rc" -eq 0 ]; then
   # The marker follows a clean exit with no must-stay-red token: a marker that
   # could not be written costs one extra boot run, never a failed top-up.
   set +e
-  "$TSX" "$REPO/scripts/fmpRunGate.ts" --job cache-topup --record-clean
+  "$TSX" "$REPO/scripts/fmpRunGate.ts" --job cache-topup --dir "$CACHE" --record-clean
   rec=$?
   set -e
   if [ "$rec" -ne 0 ]; then

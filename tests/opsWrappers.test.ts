@@ -150,7 +150,7 @@ describe("the nightly top-up wrapper, executed", () => {
   it("skips on the gate's 75 and its skip line, before the Keychain or the driver", () => {
     const result = run(TOPUP, { gate: { out: SKIP_LINE, rc: 75 } });
     assert.equal(result.code, 0);
-    assert.deepEqual(result.calls, [`tsx ${result.repo}/scripts/fmpRunGate.ts --job cache-topup`]);
+    assert.deepEqual(result.calls, [`tsx ${result.repo}/scripts/fmpRunGate.ts --job cache-topup --dir ${result.store}`]);
     assert.match(result.output, /skipped by the run gate/);
   });
 
@@ -170,6 +170,8 @@ describe("the nightly top-up wrapper, executed", () => {
     assert.ok(driver >= 0 && record > driver, result.calls.join("\n"));
     assert.match(result.calls[driver], /--warm-only --spend-class topup --byte-budget 256mb/);
     assert.match(result.calls[driver], new RegExp(`--cache-dir ${result.store} `), "the sweep is handed the named cache");
+    // The marker names the cache the sweep warmed, as the bank's names its store.
+    assert.equal(result.calls[record], `tsx ${result.repo}/scripts/fmpRunGate.ts --job cache-topup --dir ${result.store} --record-clean`);
   });
 
   it("still exits 0 when the marker cannot be written, and says so", () => {

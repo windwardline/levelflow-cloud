@@ -18,6 +18,10 @@
  * bank at 03:39Z and 21:36Z and runs 12:54Z and 23:20Z; it skips the top-up at
  * 03:39Z and 21:36Z and runs 12:54Z.
  *
+ * A marker names the store it describes, the bank's directory or the top-up's
+ * cache, and a marker for any other store runs the job. A clean hand run
+ * against a copy therefore never skips production's next login run.
+ *
  * It fails toward running. Anything it cannot read — the plist, the marker,
  * the flags, the store, the checkout — prints `reason=gateError` and exits 0,
  * so the wrapper runs the job. `--record-clean` fails the other way: a marker
@@ -26,8 +30,8 @@
  * a run.
  *
  *   npx tsx scripts/fmpRunGate.ts --job minute-bank --dir /path/to/.minute-bank
- *   npx tsx scripts/fmpRunGate.ts --job cache-topup
- *   npx tsx scripts/fmpRunGate.ts --job cache-topup --record-clean
+ *   npx tsx scripts/fmpRunGate.ts --job cache-topup --dir /path/to/.calibration-cache
+ *   npx tsx scripts/fmpRunGate.ts --job cache-topup --dir /path/to/.calibration-cache --record-clean
  */
 import { readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
@@ -117,14 +121,14 @@ export function decideRun(input: {
   nowMs: number;
   slots: Slot[] | null;
   marker: RunMarker | null;
-  /** For the minute bank: the real path of the store this run would bank into. */
+  /** The real path of the store this run would write: the bank's directory, or the top-up's cache. */
   dir?: string;
 }): RunDecision {
   if (input.slots === null) return { action: "run", nextSlotMs: null, reason: "slotsUnreadable" };
   const nextSlotMs = nextSlotAfter(input.nowMs, input.slots);
   const { marker } = input;
   if (marker === null) return { action: "run", nextSlotMs, reason: "noCleanRun" };
-  if (input.job === "minute-bank" && (input.dir === undefined || marker.dir !== input.dir)) {
+  if (input.dir === undefined || marker.dir !== input.dir) {
     return { action: "run", nextSlotMs, reason: "markerForAnotherStore" };
   }
   if (marker.atMs > input.nowMs) return { action: "run", nextSlotMs, reason: "markerInFuture" };
@@ -198,22 +202,23 @@ export function runGateCli(
     const { str } = flagReader(args, VALUE_FLAGS);
     job = str("--job");
     const resolved = asJob(job);
+    if (recordClean && resolved !== "cache-topup") {
+      throw new Error("--record-clean is for cache-topup; the minute bank writes its own marker");
+    }
+    const rawDir = str("--dir");
+    if (rawDir === undefined) {
+      throw new Error(`--dir is required for ${resolved}: a marker names the store it describes`);
+    }
     const state = deps.state();
+    // A store that does not exist yet has no real path: a decision reads that
+    // as gateError and runs, and a record fails.
+    const dir = realpathSync(rawDir);
     if (recordClean) {
-      if (resolved !== "cache-topup") {
-        throw new Error("--record-clean is for cache-topup; the minute bank writes its own marker");
-      }
-      writeRunMarker(state.runsDir, resolved, { atMs: nowMs });
-      deps.print(`runGate: recorded clean job=${resolved} at=${new Date(nowMs).toISOString()}`);
+      writeRunMarker(state.runsDir, resolved, { atMs: nowMs, dir });
+      deps.print(`runGate: recorded clean job=${resolved} at=${new Date(nowMs).toISOString()} dir=${dir}`);
       return 0;
     }
     const slots = parseCalendarSlots(readFileSync(join(deps.repoRoot, PLISTS[resolved]), "utf8"));
-    const rawDir = str("--dir");
-    if (resolved === "minute-bank" && rawDir === undefined) {
-      throw new Error("--dir is required for minute-bank: a marker names the store it describes");
-    }
-    // A store that does not exist yet has no real path, and reads as gateError: run.
-    const dir = resolved === "minute-bank" ? realpathSync(rawDir!) : undefined;
     const marker = readRunMarker(state.runsDir, resolved);
     const decision = decideRun({ dir, job: resolved, marker, nowMs, slots });
     deps.print(formatDecision({ decision, job: resolved, marker, nowMs }));

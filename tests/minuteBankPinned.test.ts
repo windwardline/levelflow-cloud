@@ -246,8 +246,10 @@ describe("the run gate reads the checkout's marker from the extracted tree", () 
   it("runs without a marker, records one in the checkout, then skips", () => {
     const tree = gateTree();
     const checkout = scratchDir("gate-checkout-");
+    const cache = join(checkout, ".calibration-cache");
+    mkdirSync(cache);
     const gate = (...args: string[]) =>
-      run(join(tree, "node_modules", ".bin", "tsx"), [join(tree, "scripts/fmpRunGate.ts"), "--job", "cache-topup", ...args], {
+      run(join(tree, "node_modules", ".bin", "tsx"), [join(tree, "scripts/fmpRunGate.ts"), "--job", "cache-topup", "--dir", cache, ...args], {
         LEVELFLOW_CHECKOUT: checkout,
       }, tree);
     const first = gate();
@@ -269,8 +271,9 @@ describe("the run gate reads the checkout's marker from the extracted tree", () 
   it("reads a checkout that names nothing as a gate error, and runs", () => {
     const tree = gateTree();
     const missing = join(scratchDir("gate-checkout-"), "no-such-checkout");
+    const cache = scratchDir("gate-cache-");
     const gate = (...args: string[]) =>
-      run(join(tree, "node_modules", ".bin", "tsx"), [join(tree, "scripts/fmpRunGate.ts"), "--job", "cache-topup", ...args], {
+      run(join(tree, "node_modules", ".bin", "tsx"), [join(tree, "scripts/fmpRunGate.ts"), "--job", "cache-topup", "--dir", cache, ...args], {
         LEVELFLOW_CHECKOUT: missing,
       }, tree);
     const decided = gate();

@@ -44,6 +44,7 @@ process.env.TZ = "America/New_York";
 const bankSlots = parseCalendarSlots(readFileSync(PLISTS["minute-bank"], "utf8"));
 const topupSlots = parseCalendarSlots(readFileSync(PLISTS["cache-topup"], "utf8"));
 const DIR = "/stores/minute-bank";
+const CACHE = "/stores/calibration-cache";
 
 const bank = (now: string, lastClean: string | null) =>
   decideRun({
@@ -55,8 +56,9 @@ const bank = (now: string, lastClean: string | null) =>
   }).action;
 const topup = (now: string, lastClean: string | null) =>
   decideRun({
+    dir: CACHE,
     job: "cache-topup",
-    marker: lastClean === null ? null : { atMs: Date.parse(lastClean) },
+    marker: lastClean === null ? null : { atMs: Date.parse(lastClean), dir: CACHE },
     nowMs: Date.parse(now),
     slots: topupSlots,
   }).action;
@@ -180,6 +182,31 @@ describe("the gate decides from the last clean run and the most recent slot", ()
     );
     assert.equal(bank("2026-09-16T03:39:42Z", null), "run");
   });
+
+  // The top-up's marker names its cache as the bank's names its store. A
+  // marker that named nothing let a hand run against another cache make the
+  // production nightly's next login skip (review round 3, finding 2).
+  it("skips the top-up only on a marker for the same cache", () => {
+    const covered = Date.parse("2026-09-16T12:56:18Z");
+    const decide = (marker: { atMs: number; dir?: string }, dir: string | undefined) =>
+      decideRun({ dir, job: "cache-topup", marker, nowMs: Date.parse("2026-09-16T21:36:34Z"), slots: topupSlots });
+    assert.deepEqual(decide({ atMs: covered, dir: CACHE }, CACHE), {
+      action: "skip",
+      nextSlotMs: Date.parse("2026-09-17T11:00:00Z"),
+      reason: "cleanRunCoversNextSlot",
+    });
+    for (
+      const [marker, dir] of [
+        [{ atMs: covered, dir: "/elsewhere" }, CACHE],
+        [{ atMs: covered }, CACHE],
+        [{ atMs: covered, dir: CACHE }, undefined],
+      ] as const
+    ) {
+      const decision = decide(marker, dir);
+      assert.equal(decision.action, "run", JSON.stringify({ dir, marker }));
+      assert.equal(decision.reason, "markerForAnotherStore");
+    }
+  });
 });
 
 describe("the CLI skips with 75 and runs on everything else", () => {
@@ -215,7 +242,15 @@ describe("the CLI skips with 75 and runs on everything else", () => {
     assert.match(lines.at(-1)!, /^runGate: run .*reason=gateError: /);
     assert.equal(runGateCli(["--job", "minute-bank", "--dir", "/does/not/exist"], deps), 0);
     assert.equal(runGateCli(["--job"], deps), 0);
-    assert.equal(runGateCli(["--job", "cache-topup"], { ...deps, repoRoot: scratchDir("no-plists-") }), 0);
+    const cache = scratchDir("run-gate-cache-");
+    assert.equal(runGateCli(["--job", "cache-topup", "--dir", cache], { ...deps, repoRoot: scratchDir("no-plists-") }), 0);
+    assert.match(lines.at(-1)!, /reason=gateError: ENOENT/);
+    // A marker names the store it describes, so neither job decides or records without one.
+    assert.equal(runGateCli(["--job", "cache-topup"], deps), 0);
+    assert.match(lines.at(-1)!, /^runGate: run job=cache-topup .*reason=gateError: --dir is required/);
+    assert.equal(runGateCli(["--job", "cache-topup", "--record-clean"], deps), 1);
+    assert.match(lines.at(-1)!, /^runGate: record-clean failed job=cache-topup: --dir is required/);
+    assert.equal(runGateCli(["--job", "cache-topup", "--dir", join(cache, "absent"), "--record-clean"], deps), 1);
     // A state root that cannot be resolved is one more thing the gate cannot
     // read: the job runs, and a marker it cannot place is a failure.
     const unresolvable = {
@@ -224,23 +259,40 @@ describe("the CLI skips with 75 and runs on everything else", () => {
         throw new Error("LEVELFLOW_CHECKOUT names /gone, which does not exist");
       },
     };
-    assert.equal(runGateCli(["--job", "cache-topup"], unresolvable), 0);
+    assert.equal(runGateCli(["--job", "cache-topup", "--dir", cache], unresolvable), 0);
     assert.match(lines.at(-1)!, /^runGate: run job=cache-topup .*reason=gateError: LEVELFLOW_CHECKOUT names \/gone/);
-    assert.equal(runGateCli(["--job", "cache-topup", "--record-clean"], unresolvable), 1);
+    assert.equal(runGateCli(["--job", "cache-topup", "--dir", cache, "--record-clean"], unresolvable), 1);
     assert.match(lines.at(-1)!, /^runGate: record-clean failed job=cache-topup: LEVELFLOW_CHECKOUT names \/gone/);
   });
 
-  it("records a clean top-up atomically, and refuses to for any other job", () => {
+  it("records a clean top-up atomically, naming its cache, and refuses to for any other job", () => {
     const state = tempState();
+    const cache = scratchDir("run-gate-cache-");
     const lines: string[] = [];
     const deps = { now: () => Date.parse("2026-09-16T12:56:18Z"), print: (line: string) => lines.push(line), repoRoot: repoCopy(), state: () => state };
-    assert.equal(runGateCli(["--job", "cache-topup", "--record-clean"], deps), 0);
+    assert.equal(runGateCli(["--job", "cache-topup", "--dir", cache, "--record-clean"], deps), 0);
     assert.deepEqual(readdirSync(state.runsDir), ["cache-topup.json"]);
-    assert.equal(
-      (JSON.parse(readFileSync(join(state.runsDir, "cache-topup.json"), "utf8")) as { atMs: number }).atMs,
-      Date.parse("2026-09-16T12:56:18Z"),
-    );
-    assert.equal(runGateCli(["--job", "minute-bank", "--record-clean"], deps), 1);
+    const marker = JSON.parse(readFileSync(join(state.runsDir, "cache-topup.json"), "utf8")) as { atMs: number; dir: string };
+    assert.equal(marker.atMs, Date.parse("2026-09-16T12:56:18Z"));
+    assert.equal(marker.dir, realpathSync(cache));
+    assert.match(lines.at(-1)!, new RegExp(`^runGate: recorded clean job=cache-topup at=\\S+ dir=${realpathSync(cache)}$`));
+    assert.equal(runGateCli(["--job", "minute-bank", "--dir", cache, "--record-clean"], deps), 1);
     assert.match(readFileSync("scripts/fmpRunGate.ts", "utf8"), /writeJsonAtomic\(/);
+  });
+
+  it("never lets a clean run against another cache skip this one's login run", () => {
+    const state = tempState();
+    const production = scratchDir("run-gate-production-cache-");
+    const copy = scratchDir("run-gate-copy-cache-");
+    const lines: string[] = [];
+    const deps = (at: string) => ({ now: () => Date.parse(at), print: (line: string) => lines.push(line), repoRoot: repoCopy(), state: () => state });
+    // A hand run: LEVELFLOW_CACHE_DIR at a copy, from the production checkout.
+    assert.equal(runGateCli(["--job", "cache-topup", "--dir", copy, "--record-clean"], deps("2026-09-16T12:56:18Z")), 0);
+    const login = "2026-09-16T21:36:34Z";
+    assert.equal(runGateCli(["--job", "cache-topup", "--dir", production], deps(login)), 0);
+    assert.match(lines.at(-1)!, /^runGate: run job=cache-topup .*reason=markerForAnotherStore$/);
+    // The same marker still covers the cache it names.
+    assert.equal(runGateCli(["--job", "cache-topup", "--dir", copy], deps(login)), RUN_GATE_SKIP_EXIT);
+    assert.match(lines.at(-1)!, /^runGate: skip job=cache-topup .*reason=cleanRunCoversNextSlot$/);
   });
 });

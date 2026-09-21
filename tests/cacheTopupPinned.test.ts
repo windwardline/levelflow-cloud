@@ -178,7 +178,7 @@ describe("the run gate skips a covered login from the extracted tree", () => {
     assert.match(unmarked.out, /under the temporary root/);
     const recorded = run(
       join(tree, "node_modules", ".bin", "tsx"),
-      [join(tree, "scripts/fmpRunGate.ts"), "--job", "cache-topup", "--record-clean"],
+      [join(tree, "scripts/fmpRunGate.ts"), "--job", "cache-topup", "--dir", join(checkout, ".calibration-cache"), "--record-clean"],
       { LEVELFLOW_CHECKOUT: checkout },
       tree,
     );
