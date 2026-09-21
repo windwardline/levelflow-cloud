@@ -11,6 +11,11 @@
  *   walks "8" somewhere it does not belong;
  * - an undeclared flag reads a value nothing declared it owns.
  *
+ * A fourth mode belongs to the WALK rather than to a value accessor, and
+ * `positionalArgs` below closes it: a walker that skips every `--x` it
+ * does not know reads a typo as nothing at all, so the run measures the
+ * default under a line saying the dial was honoured.
+ *
  * Closing that per file meant the fix reached whichever file someone
  * happened to open. This module is the one implementation FOR THE
  * READERS THAT IMPORT IT — eleven of seventeen. The other six keep
@@ -180,6 +185,58 @@ export function assertInDomain(
         `${domain.basis}`,
     );
   }
+}
+
+/**
+ * The positional arguments, with every UNKNOWN flag refused by name.
+ *
+ * The fourth failure mode, and the one the header's three do not cover:
+ * a walker that consumes the token after a declared value flag and
+ * `continue`s on every other `--x` reads a typo, a retired dial and a
+ * flag meant for a sibling script all as nothing at all. The run then
+ * measures the default while its shell history — and its operator —
+ * says otherwise.
+ *
+ * `grid-totalr` closed this inline in R4 act 1, after a no-op
+ * `--per-market-folds` passed the sealed guard for a day as if it were a
+ * second shape of that reader. Nine siblings kept the silent walk, and
+ * on 2026-09-21 `confirm-4d --not-a-real-flag <shard>` — the script that
+ * BURNS the LA-6 confirm read — reported only the corpus door's refusal
+ * and never named the flag. This is that refusal declared once, with
+ * grid-totalr's wording, so the reader that burns cannot drift from the
+ * gate it grades through.
+ *
+ * Boolean flags are DECLARED rather than inferred from "not a value
+ * flag", which is the inversion the 4d walkers were built on and #364
+ * round 44 removed: under it a typo'd or newly-added boolean silently
+ * ate the shard path after it. A retired flag counts as known — both 4d
+ * scripts declare `--per-market-folds` so their own refusal, which says
+ * what it did to the held-back fold, wins over this generic one.
+ */
+export function positionalArgs(
+  argv: readonly string[],
+  valueFlags: ReadonlySet<string>,
+  booleanFlags: ReadonlySet<string>,
+  scriptName: string,
+): string[] {
+  const positionals: string[] = [];
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token.startsWith("--")) {
+      if (!valueFlags.has(token) && !booleanFlags.has(token)) {
+        throw new OperatorInputError(
+          `${scriptName}: unknown flag ${token} — the flags this reader knows are ` +
+            `${[...valueFlags, ...booleanFlags].sort().join(", ")}; an unknown ` +
+            `flag is refused rather than ignored, because an ignored dial reads ` +
+            `as a run that honoured it`,
+        );
+      }
+      if (valueFlags.has(token)) index += 1;
+      continue;
+    }
+    positionals.push(token);
+  }
+  return positionals;
 }
 
 export function flagReader(

@@ -157,6 +157,7 @@ import { readFileSync } from "node:fs";
 import {
   describeNumericToken,
   assertInDomain,
+  positionalArgs,
   soleFlagIndex,
   tokenFault,
   type NumericDomain,
@@ -290,15 +291,16 @@ function parse(paths: string[]): Row[] {
 // num() call sites against the Set, holding the two shapes together at
 // source the way the round-28 vocabulary scans do.
 const VALUE_FLAGS = new Set(["--min-reached"]);
+// The flags that own no token, declared so an UNKNOWN flag is refused by
+// name rather than walked past in silence (2026-09-21). Nine readers
+// carried the silent walk that grid-totalr closed in R4 act 1; the one
+// that surfaced it burns the LA-6 confirm read.
+// --report is a BOOLEAN flag and must be declared: the walk now refuses an
+// unknown flag by name, and this audit's whole purpose is a refusal that
+// --report acknowledges rather than suppresses.
+const BOOLEAN_FLAGS = new Set(["--report"]);
 const argv = process.argv.slice(2);
-const paths: string[] = [];
-for (let i = 0; i < argv.length; i += 1) {
-  if (argv[i].startsWith("--")) {
-    if (VALUE_FLAGS.has(argv[i])) i += 1;
-    continue;
-  }
-  paths.push(argv[i]);
-}
+const paths = positionalArgs(argv, VALUE_FLAGS, BOOLEAN_FLAGS, "starvation-audit");
 // Below this many geometry-stage decisions a survival ratio prints but is
 // never flagged (#364 round 32, finding 3) — the accessor is
 // account-type-report's num() shape, value riding argv after the flag.

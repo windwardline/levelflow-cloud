@@ -26,12 +26,21 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { flagReader, OperatorInputError } from "./flagReader.ts";
+import {
+  flagReader,
+  OperatorInputError,
+  positionalArgs,
+} from "./flagReader.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 import { type HeldOutSet, heldOutSet } from "./sweepFolds.ts";
 import { assertManifest } from "./sweepStats.ts";
 
 const VALUE_FLAGS = new Set(["--out"]);
+// The flags that own no token, declared so an UNKNOWN flag is refused by
+// name rather than walked past in silence (2026-09-21). Nine readers
+// carried the silent walk that grid-totalr closed in R4 act 1; the one
+// that surfaced it burns the LA-6 confirm read.
+const BOOLEAN_FLAGS = new Set<string>([]);
 const MANIFEST_SUFFIX = ".manifest.json";
 
 /** The emit path a manifest path stands beside; an emit path is returned as is. */
@@ -87,14 +96,7 @@ export function holdoutSetArtifact(paths: readonly string[]): HoldoutSetArtifact
 function main(): void {
   const args = process.argv.slice(2);
   const { str } = flagReader(args, VALUE_FLAGS);
-  const paths: string[] = [];
-  for (let index = 0; index < args.length; index += 1) {
-    if (args[index].startsWith("--")) {
-      if (VALUE_FLAGS.has(args[index])) index += 1;
-      continue;
-    }
-    paths.push(args[index]);
-  }
+  const paths = positionalArgs(args, VALUE_FLAGS, BOOLEAN_FLAGS, "holdout-set");
   const out = str("--out");
   const artifact = holdoutSetArtifact(paths);
   if (out === undefined) {

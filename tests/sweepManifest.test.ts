@@ -1701,12 +1701,13 @@ describe("the driver writes the manifest beside the emit", () => {
       [
         "scripts/flagReader.ts",
         "this file IS the law's implementation — it declares no flags of " +
-        "its own, and its six refusals (undeclared flag, missing or " +
-        "flag-shaped token, unparseable number, repeated flag, and the two " +
+        "its own, and its seven refusals (undeclared flag, missing or " +
+        "flag-shaped token, unparseable number, repeated flag, the two " +
         "DOMAIN refusals added in round 55 — non-integer and below " +
-        "minimum) are pinned by executed tests below rather than by " +
+        "minimum — and the UNKNOWN FLAG refusal the walk took over on " +
+        "2026-09-21) are pinned by executed tests below rather than by " +
         "matching its own source against itself. The count is checked, so " +
-        "a seventh cannot arrive unexecuted.",
+        "an eighth cannot arrive unexecuted.",
       ],
       [
         "scripts/fmpByteBudget.ts",
@@ -1806,7 +1807,7 @@ describe("the driver writes the manifest beside the emit", () => {
     // throw form rather than being loosened to match both.
     assert.equal(
       [...sharedReader.matchAll(/throw new OperatorInputError\(/g)].length,
-      6,
+      7,
       "flagReader's refusal count changed — update the exemption's " +
         "enumeration and add an executed test for the new refusal",
     );

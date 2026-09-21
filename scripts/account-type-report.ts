@@ -74,6 +74,7 @@ import {
 import {
   describeNumericToken,
   assertInDomain,
+  positionalArgs,
   soleFlagIndex,
   tokenFault,
   type NumericDomain,
@@ -209,6 +210,11 @@ function pct(part: number, whole: number): string {
 // out of the file list, and num() refuses a flag outside it, so a future
 // dial forgotten here fails every run at first read instead of shipping.
 const VALUE_FLAGS = new Set(["--min-filled"]);
+// The flags that own no token, declared so an UNKNOWN flag is refused by
+// name rather than walked past in silence (2026-09-21). Nine readers
+// carried the silent walk that grid-totalr closed in R4 act 1; the one
+// that surfaced it burns the LA-6 confirm read.
+const BOOLEAN_FLAGS = new Set<string>([]);
 
 function num(
   arg: string,
@@ -253,14 +259,12 @@ function num(
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
-  const files: string[] = [];
-  for (let i = 0; i < argv.length; i += 1) {
-    if (argv[i].startsWith("--")) {
-      if (VALUE_FLAGS.has(argv[i])) i += 1;
-      continue;
-    }
-    files.push(argv[i]);
-  }
+  const files = positionalArgs(
+    argv,
+    VALUE_FLAGS,
+    BOOLEAN_FLAGS,
+    "account-type-report",
+  );
   // Flags are read BEFORE the empty-file-list check (#364 round 35,
   // finding 1): "--min-filled <emit.jsonl>" eats the corpus path as the
   // flag's value, and the specific refusal — naming the flag and the

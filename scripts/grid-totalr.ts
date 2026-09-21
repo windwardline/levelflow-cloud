@@ -94,6 +94,7 @@ import {
   describeNumericToken,
   describeToken,
   assertInDomain,
+  positionalArgs,
   soleFlagIndex,
   tokenFault,
   type NumericDomain,
@@ -2719,23 +2720,11 @@ async function main(): Promise<void> {
   // smaller — the indexOf-per-flag Set that stood here covered only a
   // flag's FIRST occurrence, so "--seed 7 --seed 8" walked "8" into
   // the shard paths and the corpus door refused it as a missing
-  // manifest, the wrong diagnosis).
-  const paths: string[] = [];
-  for (let i = 0; i < args.length; i += 1) {
-    if (args[i].startsWith("--")) {
-      if (!VALUE_FLAGS.has(args[i]) && !BOOLEAN_FLAGS.has(args[i])) {
-        throw new Error(
-          `grid-totalr: unknown flag ${args[i]} — the flags this reader knows are ` +
-            `${[...VALUE_FLAGS, ...BOOLEAN_FLAGS].sort().join(", ")}; an unknown ` +
-            `flag is refused rather than ignored, because an ignored dial reads ` +
-            `as a run that honoured it`,
-        );
-      }
-      if (VALUE_FLAGS.has(args[i])) i += 1;
-      continue;
-    }
-    paths.push(args[i]);
-  }
+  // manifest, the wrong diagnosis). The walk and its unknown-flag
+  // refusal moved into flagReader on 2026-09-21, wording unchanged:
+  // nine siblings carried the silent form this one closed in R4 act 1,
+  // including the script that burns the confirm read.
+  const paths = positionalArgs(args, VALUE_FLAGS, BOOLEAN_FLAGS, "grid-totalr");
   const num = (
     arg: string,
     fallback: number,

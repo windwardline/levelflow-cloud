@@ -27,7 +27,7 @@ import { PROGRAM_LINES } from "../src/lib/broker/programs.ts";
 import { sizeSetup } from "../src/lib/broker/sizing.ts";
 import type { ProgramLine } from "../src/lib/broker/types.ts";
 import { assertManifestedCorpusSync } from "./sweepStats.ts";
-import { flagReader } from "./flagReader.ts";
+import { flagReader, positionalArgs } from "./flagReader.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 
 type Candidate = {
@@ -57,6 +57,11 @@ function median(values: number[]): number | null {
 }
 
 const VALUE_FLAGS = new Set(["--candidates", "--out"]);
+// The flags that own no token, declared so an UNKNOWN flag is refused by
+// name rather than walked past in silence (2026-09-21). Nine readers
+// carried the silent walk that grid-totalr closed in R4 act 1; the one
+// that surfaced it burns the LA-6 confirm read.
+const BOOLEAN_FLAGS = new Set<string>([]);
 
 async function main() {
   const argv = process.argv.slice(2);
@@ -66,14 +71,7 @@ async function main() {
   // corpus one shard short of the one the operator named. That is the
   // defect round 44 found in the two 4d scripts; the derived scan
   // surfaced it here.
-  const paths: string[] = [];
-  for (let index = 0; index < argv.length; index += 1) {
-    if (argv[index].startsWith("--")) {
-      if (VALUE_FLAGS.has(argv[index])) index += 1;
-      continue;
-    }
-    paths.push(argv[index]);
-  }
+  const paths = positionalArgs(argv, VALUE_FLAGS, BOOLEAN_FLAGS, "feasibility-4d");
   const { str } = flagReader(argv, VALUE_FLAGS);
   const candidatesPath = str("--candidates") ??
     "docs/research/baseline-2026-08-10/4d-candidates.json";

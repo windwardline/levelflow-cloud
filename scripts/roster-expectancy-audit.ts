@@ -70,7 +70,7 @@ import {
   SEALED_FOLD,
   tuningFolds,
 } from "./sweepStats.ts";
-import { flagReader } from "./flagReader.ts";
+import { flagReader, positionalArgs } from "./flagReader.ts";
 import {
   type LedgeredReadArtifact,
   readLedgeredArtifact,
@@ -135,6 +135,11 @@ export function stats(acc: Acc): FoldStats {
  * refuses rather than reports (WIF-4, 2026-08-11).
  */
 const VALUE_FLAGS = new Set(["--baseline-cell", "--ledgered-read", "--out"]);
+// The flags that own no token, declared so an UNKNOWN flag is refused by
+// name rather than walked past in silence (2026-09-21). Nine readers
+// carried the silent walk that grid-totalr closed in R4 act 1; the one
+// that surfaced it burns the LA-6 confirm read.
+const BOOLEAN_FLAGS = new Set<string>([]);
 
 export function shardPathsFromArgv(argv: string[]): string[] {
   // POSITIVE membership test (#364 round 50, finding 2): the old form
@@ -142,14 +147,12 @@ export function shardPathsFromArgv(argv: string[]): string[] {
   // ate the shard path following it and the audit ran over a corpus one
   // shard short of the one named — round 44's defect, surfaced here by
   // the derived scan.
-  const paths: string[] = [];
-  for (let index = 0; index < argv.length; index += 1) {
-    if (argv[index].startsWith("--")) {
-      if (VALUE_FLAGS.has(argv[index])) index += 1;
-      continue;
-    }
-    paths.push(argv[index]);
-  }
+  const paths = positionalArgs(
+    argv,
+    VALUE_FLAGS,
+    BOOLEAN_FLAGS,
+    "roster-expectancy-audit",
+  );
   if (paths.length === 0) {
     throw new Error(
       "roster-expectancy-audit: no shard paths given. Pass the sweep shards " +

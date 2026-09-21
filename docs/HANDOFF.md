@@ -98,6 +98,43 @@ grow.
 - A parked deploy, pushed or dispatched, stands the FMP-spending E2E projects down.
   public-auth runs with market-data and refresh_outcomes stubbed in the browser.
 
+### 2026-09-21: the flag law reached the script that burns
+
+`confirm-4d --not-a-real-flag /tmp/nope.jsonl` named the corpus and never named
+the flag. Two defects in one command, both closed:
+
+- **An unknown flag was walked past in silence.** The walker consumed the token
+  after a declared value flag and dropped every other `--x`. A typo, a retired
+  dial and a sibling's flag all read as nothing at all, so the run measured the
+  default while the shell history said otherwise — in the one script whose run
+  burns the LA-6 confirm read, which cannot be taken again. `grid-totalr` had
+  refused by name since R4 act 1; the fix had reached one file. Nine readers
+  still carried the silent walk: `confirm-4d`, `derive-4d`, `feasibility-4d`,
+  `threshold-rescue`, `roster-expectancy-audit`, `tuning-folds-summary`,
+  `holdout-set`, `account-type-report` and `starvation-audit`.
+- **The freeze ran before the corpus door.** The same command printed
+  "frozen: 41 picks, 11 capacity-gated" and rewrote the tracked
+  `docs/research/baseline-2026-08-10/4d-final-picks.json` — 456 insertions, 456
+  deletions, a fresh `frozenAt` — then died at the manifest door and exited 1.
+  The file had to be restored with `git checkout`. This is the failure class
+  R1b round 54 found and half-closed: that round refused a run naming NO shard,
+  and left the run naming a shard it cannot read.
+
+`positionalArgs` in `scripts/flagReader.ts` is the one walk, with grid-totalr's
+wording. `confirm-4d` now runs `assertManifest` over every path before it writes
+anything, and reuses those manifests for the holdout population. Both 4d readers
+declare `--per-market-folds` as KNOWN so its own refusal, which says what the
+re-cut did to the held-back fold, still wins.
+
+`tests/unknownFlagRefused.test.ts` executes both laws over a DERIVED population:
+the silent walk is asserted extinct across `scripts/`, every adopter is run with
+an unknown flag and must name it, and every adopter is run with all of its own
+declared flags and must accept them. Each subject runs from an empty temp
+directory, so "wrote nothing" is the whole directory listing rather than a path
+someone remembered to name — the readers' default output paths are all
+repo-relative. The refusal count in `flagReader` moved 6 → 7 and the exemption
+in `tests/sweepManifest.test.ts` enumerates the seventh.
+
 ### The desk is PARKED
 
 `PARKING_GATE` is `true` (owner instruction, 2026-08-07). Signed-out visitors see the
@@ -3272,7 +3309,8 @@ reviews: `docs/research/r4-act2-design-2026-09-02.md`. What changed:
   the EMITTED per-class folds; the 2026-08-11 per-market time re-cut is
   retired (under the confirm flag it relabelled a median 329 days of the
   held-back fold into select) and its flag is refused by name; the gate
-  refuses unknown flags by name.
+  refuses unknown flags by name. (The gate ALONE until 2026-09-21 — nine
+  sibling readers kept the silent walk; see the 2026-09-21 section above.)
 - Every market's SHIPPED cell is graded absolutely on select, net and gross
   with intervals, and the pre-registered decline rule (net AND gross upper
   bounds below zero at 30 filled) is applied mechanically. Provenance of all

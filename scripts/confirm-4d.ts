@@ -4,10 +4,17 @@
 //   npx tsx scripts/confirm-4d.ts sweeps/4c/shard-{0..7}.jsonl \
 //     --baseline "confidenceThreshold=0,..." [--acknowledge-prior-reads]
 //
-// Order is the discipline: the per-market choice is assembled and WRITTEN
-// from candidates x feasibility BEFORE the confirm fold is opened, so the
-// held-back data can never influence the pick — it can only pass or fail
-// it. The confirm read runs once, per corpus hash, into the burned log.
+// Order is the discipline, and it has two halves. Every named shard
+// clears the corpus door FIRST, so a run that cannot read its corpus
+// rewrites no artifact. Then the per-market choice is assembled and
+// WRITTEN from candidates x feasibility, still BEFORE the confirm fold is
+// opened, so the held-back data can never influence the pick — it can
+// only pass or fail it. The confirm read runs once, per corpus hash, into
+// the burned log.
+//
+// Unknown flags are refused by name, in the same walk the gate uses. In
+// this script an ignored dial is an ignored dial on a read that cannot be
+// taken twice.
 import { readFileSync } from "node:fs";
 import { gradeCorpus } from "./grid-totalr.ts";
 import { resolveHeldOut } from "./sweepFolds.ts";
@@ -17,6 +24,7 @@ import {
   describeNumericToken,
   describeToken,
   assertInDomain,
+  positionalArgs,
   soleFlagIndex,
   tokenFault,
   type NumericDomain,
@@ -55,16 +63,25 @@ const VALUE_FLAGS = new Set([
   "--confirm-log-dir",
 ]);
 
+// The flags that own no token, declared so an UNKNOWN flag is refused by
+// name rather than walked past in silence (2026-09-21). The walker here
+// dropped any `--x` it did not know, so
+// `confirm-4d --not-a-real-flag <shard>` named only the corpus door's
+// refusal — in the one script whose run BURNS the LA-6 confirm read,
+// where an ignored dial reads as a read that honoured it and the read
+// cannot be taken again. `--per-market-folds` is declared KNOWN so its
+// own refusal below, which says what the re-cut did to the held-back
+// fold, wins over the generic one.
+const BOOLEAN_FLAGS = new Set([
+  "--acknowledge-prior-reads",
+  "--feasibility-disclosure-only",
+  "--holdout-cycle",
+  "--per-market-folds",
+]);
+
 async function main() {
   const argv = process.argv.slice(2);
-  const paths: string[] = [];
-  for (let index = 0; index < argv.length; index += 1) {
-    if (argv[index].startsWith("--")) {
-      if (VALUE_FLAGS.has(argv[index])) index += 1;
-      continue;
-    }
-    paths.push(argv[index]);
-  }
+  const paths = positionalArgs(argv, VALUE_FLAGS, BOOLEAN_FLAGS, "confirm-4d");
   const str = (arg: string): string | undefined => {
     if (!VALUE_FLAGS.has(arg)) {
       throw new Error(
@@ -156,6 +173,18 @@ async function main() {
         "sweep shards explicitly.",
     );
   }
+  // …AND EVERY NAMED PATH, not just their count. Round 54 closed the
+  // zero-paths case and left the one a real operator hits: on 2026-09-21
+  // `confirm-4d --not-a-real-flag /tmp/nope.jsonl` printed "frozen: 41
+  // picks, 11 capacity-gated" and left the TRACKED 4d-final-picks.json
+  // rewritten — 456 insertions, 456 deletions, a fresh `frozenAt` — and
+  // only then died at the corpus door inside gradeCorpus, exit 1. The
+  // operator sees a non-zero exit and reasonably assumes nothing
+  // happened; the file had to be restored with git checkout. A corpus
+  // that cannot be described cannot freeze a pick, so the door for ALL
+  // paths stands above every write. Holding the manifests also makes the
+  // holdout population read them once rather than re-verifying below.
+  const manifests = paths.map((path) => assertManifest(path));
   const candidates = JSON.parse(
     readFileSync(`${dir}/${prefix}-candidates.json`, "utf8"),
   ) as {
@@ -246,7 +275,7 @@ async function main() {
     // The ONE holdout population (R4 act 2): the stratified set over the
     // REQUESTED roster, verified against the anchor's tracked pin — never
     // over the symbols that happen to have rows.
-    symbolFilter = new Set(resolveHeldOut(paths.map((path) => assertManifest(path))).held);
+    symbolFilter = new Set(resolveHeldOut(manifests).held);
   }
   if (targetsFlag) {
     symbolFilter = new Set(

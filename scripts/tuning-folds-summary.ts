@@ -36,7 +36,11 @@
  */
 import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
-import { flagReader, OperatorInputError } from "./flagReader.ts";
+import {
+  flagReader,
+  OperatorInputError,
+  positionalArgs,
+} from "./flagReader.ts";
 import {
   describeHeldOut,
   type ResolvedHeldOut,
@@ -57,6 +61,11 @@ import {
 } from "./sweepStats.ts";
 
 const VALUE_FLAGS = new Set(["--folds", "--min-filled"]);
+// The flags that own no token, declared so an UNKNOWN flag is refused by
+// name rather than walked past in silence (2026-09-21). Nine readers
+// carried the silent walk that grid-totalr closed in R4 act 1; the one
+// that surfaced it burns the LA-6 confirm read.
+const BOOLEAN_FLAGS = new Set<string>([]);
 
 /** The one fold this reader can never be asked for. */
 export const SEALED_FOLD = "confirm";
@@ -496,14 +505,12 @@ export function pooled(cells: Cell[]): Cell {
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const { num, str } = flagReader(args, VALUE_FLAGS);
-  const paths: string[] = [];
-  for (let index = 0; index < args.length; index += 1) {
-    if (args[index].startsWith("--")) {
-      if (VALUE_FLAGS.has(args[index])) index += 1;
-      continue;
-    }
-    paths.push(args[index]);
-  }
+  const paths = positionalArgs(
+    args,
+    VALUE_FLAGS,
+    BOOLEAN_FLAGS,
+    "tuning-folds-summary",
+  );
   const folds = parseFolds(str("--folds") ?? "fit,select");
   const minFilled = num("--min-filled", 30, {
     basis: "below one filled outcome no expectancy exists to flag; 30 is the " +

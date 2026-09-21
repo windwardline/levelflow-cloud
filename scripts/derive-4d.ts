@@ -19,6 +19,7 @@ import {
   describeNumericToken,
   describeToken,
   assertInDomain,
+  positionalArgs,
   soleFlagIndex,
   tokenFault,
   type NumericDomain,
@@ -33,6 +34,17 @@ const VALUE_FLAGS = new Set([
   "--targets",
   "--permutations",
   "--seed",
+]);
+
+// The flags that own no token, declared so an UNKNOWN flag is refused by
+// name rather than walked past in silence (2026-09-21) — the form
+// grid-totalr has carried since R4 act 1, at the sibling it never
+// reached. `--per-market-folds` is declared KNOWN so its own refusal
+// below, which says what the re-cut did to the held-back fold, wins over
+// the generic one.
+const BOOLEAN_FLAGS = new Set([
+  "--holdout-cycle",
+  "--per-market-folds",
 ]);
 
 type MarketCandidates = {
@@ -69,15 +81,10 @@ async function main() {
   // claimed "a flag VALUE can never masquerade as a path" — true, but
   // the inverse was the live hazard: a typo'd or newly-added boolean
   // flag ate the shard PATH after it and the run graded a corpus one
-  // shard short, silently.
-  const paths: string[] = [];
-  for (let index = 0; index < argv.length; index += 1) {
-    if (argv[index].startsWith("--")) {
-      if (VALUE_FLAGS.has(argv[index])) index += 1;
-      continue;
-    }
-    paths.push(argv[index]);
-  }
+  // shard short, silently. Round 44 kept a hazard of its own — an
+  // undeclared flag was walked past in silence — closed 2026-09-21 by
+  // the shared walk, which refuses it by name.
+  const paths = positionalArgs(argv, VALUE_FLAGS, BOOLEAN_FLAGS, "derive-4d");
   const str = (arg: string): string | undefined => {
     if (!VALUE_FLAGS.has(arg)) {
       throw new Error(

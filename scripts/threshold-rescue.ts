@@ -43,7 +43,7 @@ import {
   SEALED_FOLD,
   tuningFolds,
 } from "./sweepStats.ts";
-import { flagReader } from "./flagReader.ts";
+import { flagReader, positionalArgs } from "./flagReader.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 
 const MIN_FILLED = 30; // the same floor the market-unit gate uses
@@ -55,6 +55,11 @@ function expectancy(bucket: Bucket): number | null {
 }
 
 const VALUE_FLAGS = new Set(["--markets", "--out"]);
+// The flags that own no token, declared so an UNKNOWN flag is refused by
+// name rather than walked past in silence (2026-09-21). Nine readers
+// carried the silent walk that grid-totalr closed in R4 act 1; the one
+// that surfaced it burns the LA-6 confirm read.
+const BOOLEAN_FLAGS = new Set<string>([]);
 
 async function main() {
   const argv = process.argv.slice(2);
@@ -64,14 +69,7 @@ async function main() {
   // corpus one shard short of the one the operator named. That is the
   // defect round 44 found in the two 4d scripts; the derived scan
   // surfaced it here.
-  const paths: string[] = [];
-  for (let index = 0; index < argv.length; index += 1) {
-    if (argv[index].startsWith("--")) {
-      if (VALUE_FLAGS.has(argv[index])) index += 1;
-      continue;
-    }
-    paths.push(argv[index]);
-  }
+  const paths = positionalArgs(argv, VALUE_FLAGS, BOOLEAN_FLAGS, "threshold-rescue");
   const { str } = flagReader(argv, VALUE_FLAGS);
   const wanted = new Map<string, string>();
   for (const pair of (str("--markets") ?? "").split(";")) {
