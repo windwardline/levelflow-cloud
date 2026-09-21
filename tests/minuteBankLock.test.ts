@@ -4,6 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { noKeychainEnv } from "./support/noKeychain.ts";
 
 /**
  * THE BANK AND ITS BACKUP MUST NOT RUN AT THE SAME TIME.
@@ -375,6 +376,7 @@ describe("both sides of the race take the lock", () => {
             encoding: "utf8",
             env: {
               ...process.env,
+              ...noKeychainEnv(),
               LEVELFLOW_BANK_DIR: bank,
               LEVELFLOW_BANK_LOCK_TIMEOUT: "1",
             },

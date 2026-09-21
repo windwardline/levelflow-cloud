@@ -64,6 +64,7 @@ import {
   isCircuitRefusal,
   mayCall,
 } from "./fmpCircuit.ts";
+import { isEntryPoint } from "./isEntryPoint.ts";
 
 const PROVIDER = "fmp";
 const ENDPOINT = "historical-chart/1min";
@@ -642,6 +643,6 @@ async function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isEntryPoint(import.meta.url)) {
   await main();
 }

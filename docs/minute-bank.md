@@ -218,6 +218,43 @@ only what is new — and the cost of a missed window is permanent. launchd rathe
 than an in-app scheduler for the same reason: a job that only fires while an app
 happens to be open is not a guarantee, and this one catches up on wake.
 
+### It runs `origin/main`, and names the checkout for its data
+
+Since 2026-09-20 the job runs through `wl-repo-script`, as both backups already did.
+It used to name a path in the shared checkout, so it ran whatever branch a concurrent
+session had out at 07:20. The launcher extracts `origin/main` into a temporary tree,
+and that tree carries code and no ignored data. That split takes more than the plist
+to get right, because the bank touches three pieces of data and each would have
+failed silently:
+
+| Data | Resolved from | Unnamed, it would have |
+| --- | --- | --- |
+| the bank | `LEVELFLOW_CHECKOUT/.minute-bank` | been created in the temp tree by the bank's `mkdir -p`, filled, and deleted |
+| `.fmp-usage.json` | `scripts/checkoutState.ts` | read as empty — the governor believing nothing had been spent |
+| `.fmp-circuit.json` | `scripts/checkoutState.ts` | read as closed, whatever the provider had said |
+
+The plist passes `LEVELFLOW_CHECKOUT`. The daily script refuses a bank that does not
+exist rather than creating one, `checkoutState.ts` refuses a named checkout that does
+not exist, and `node_modules` is linked from the checkout rather than installed.
+
+One more defect surfaced only because the tree lives in `mktemp -d`. The bank's
+entry guard compared `import.meta.url`, which Node resolves through symlinks, against
+`process.argv[1]`, which it does not. Under `/var/folders` — a symlink into
+`/private` on macOS — they never match, `main` is skipped, and the process exits 0
+having banked nothing: twice a day, with a completed run logged each time.
+`scripts/isEntryPoint.ts` compares real paths, and the two other scripts that
+carried the same guard use it too.
+
+**No test may spend FMP bandwidth.** On 2026-09-20 the suite ran the daily script
+against real FMP four times. Two mutations let it past the lock; two red runs of a
+new test predated the refusal they were written for. Each time the keychain answered
+and a full roster, about 280,000 bars, was fetched into a sandbox and thrown away:
+roughly 270 MB, estimated from that day's ledger. Two barriers now stand between the
+suite and the provider. `tests/support/noKeychain.ts` shadows `security` on `PATH`, so
+no test can read the key. The script itself refuses a bank under a temporary root, so
+a barrier the caller forgot still holds. The mutation run that proved them recorded
+zero sandbox writes and an untouched ledger across eight mutations.
+
 A locked keychain logs a skip and exits zero. That is a deferral, not a failure,
 because the window is three days wide — but a run of consecutive skips is the
 job silently doing nothing, so the log says it out loud.

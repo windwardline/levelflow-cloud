@@ -39,6 +39,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { flagReader } from "./flagReader.ts";
+import { isEntryPoint } from "./isEntryPoint.ts";
 
 type Row = Record<string, unknown>;
 type Store = { clock?: string; items?: Row[] };
@@ -315,6 +316,6 @@ function main(): void {
   console.log("No store is shallower than the reference. The rebuild is depth-complete.");
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isEntryPoint(import.meta.url)) {
   main();
 }
