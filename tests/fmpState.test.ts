@@ -3,12 +3,10 @@ import { spawn } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readdirSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
@@ -22,6 +20,7 @@ import {
   utcDay,
   writeJsonAtomic,
 } from "../scripts/fmpState.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 /**
  * The FMP ledger and breaker are shared by processes that start within a
@@ -34,7 +33,7 @@ import {
 
 const DAY = 86_400_000;
 const AT = Date.parse("2026-09-16T12:00:00Z");
-const scratch = () => mkdtempSync(join(tmpdir(), "fmp-state-"));
+const scratch = () => scratchDir("fmp-state-");
 
 describe("a record is one framed line, so a torn write costs only itself", () => {
   it("reads a torn fragment followed by a whole record as one record and one skipped line", () => {

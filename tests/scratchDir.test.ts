@@ -76,11 +76,18 @@ describe("the suites that leaked use it", () => {
     // check, with its limit stated: it cannot see a sibling written BESIDE a
     // scratch dir — the `<bank>.lock` case, found only by counting $TMPDIR
     // before and after a run. scratchBank in minuteBankPinned closes that one.
+    // The FMP governor's suites joined on 2026-09-21: before they moved onto
+    // scratchDir, one run of their six files left 103 directories behind.
     for (const file of [
       "tests/minuteBankLock.test.ts",
       "tests/minuteBankPinned.test.ts",
       "tests/cacheTopupPinned.test.ts",
       "tests/support/noKeychain.ts",
+      "tests/fixtures/fmpTestState.ts",
+      "tests/fmpState.test.ts",
+      "tests/fmpRunGate.test.ts",
+      "tests/probeMinuteBars.test.ts",
+      "tests/opsWrappers.test.ts",
     ]) {
       assert.doesNotMatch(readFileSync(file, "utf8"), /mkdtempSync\(/, `${file} makes a temp dir nobody removes`);
     }

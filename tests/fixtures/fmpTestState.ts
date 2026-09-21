@@ -2,11 +2,11 @@
 // production path helper, so no test can reach this machine's live ledger or
 // breaker by accident: tests/fmpGovernor.test.ts fails if any test file names
 // that helper outside its one resolution assertion.
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { FmpStatePaths } from "../../scripts/fmpState.ts";
+import { scratchDir } from "../support/scratchDir.ts";
 
 /** Provider refusal bodies as FMP actually sent them. */
 export const BODIES = {
@@ -42,7 +42,7 @@ export const INVALID_KEY_BODY_PREFIX = BODIES.invalidKeyStoredPrefix.slice(
 export function tempState(
   options: { sentinel?: boolean; legacyUsage?: unknown; legacyCircuit?: string } = {},
 ): FmpStatePaths {
-  const root = mkdtempSync(join(tmpdir(), "fmp-test-state-"));
+  const root = scratchDir("fmp-test-state-");
   const state: FmpStatePaths = {
     breakerDir: join(root, "state", "breaker"),
     canonicalBankDir: join(root, "bank"),

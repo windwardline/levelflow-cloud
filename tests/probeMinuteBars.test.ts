@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
@@ -10,6 +9,7 @@ import type { FmpStatePaths } from "../scripts/fmpState.ts";
 import { runProbe } from "../scripts/probe-minute-bars.ts";
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
 import { BODIES, tempState } from "./fixtures/fmpTestState.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 /**
  * One dated 1-minute question per run, through the governor.
@@ -78,7 +78,7 @@ describe("probe-minute-bars asks one dated question", () => {
   });
 
   it("writes the answer to --json when asked", async () => {
-    const out = join(mkdtempSync(join(tmpdir(), "probe-json-")), "probe.json");
+    const out = join(scratchDir("probe-json-"), "probe.json");
     const result = await probe({ argv: [...DATED, "--json", out] });
     assert.equal(result.code, 0);
     const written = JSON.parse(readFileSync(out, "utf8")) as { bars: number; dates: Record<string, number> };
@@ -117,7 +117,7 @@ describe("probe-minute-bars refuses red", () => {
   it("prints and writes an answer that crossed the class's day before exiting red on it", async () => {
     const state = tempState();
     recordUsage({ atMs: AT, bytes: 256 * 1024 * 1024 - 100, consumer: "adhoc", label: "seeded" }, state);
-    const out = join(mkdtempSync(join(tmpdir(), "probe-json-")), "probe.json");
+    const out = join(scratchDir("probe-json-"), "probe.json");
     const result = await probe({ argv: [...DATED, "--json", out], state });
     assert.equal(result.code, 1, result.output);
     assert.equal(result.urls.length, 1);

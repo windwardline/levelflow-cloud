@@ -2,12 +2,10 @@ import assert from "node:assert/strict";
 import {
   copyFileSync,
   mkdirSync,
-  mkdtempSync,
   readdirSync,
   readFileSync,
   realpathSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
@@ -22,6 +20,7 @@ import {
   writeRunMarker,
 } from "../scripts/fmpRunGate.ts";
 import { tempState } from "./fixtures/fmpTestState.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 // The slots in the plists are local wall-clock times; launchd runs this
 // machine in New York. Set before any local-time arithmetic below.
@@ -184,7 +183,7 @@ describe("the gate decides from the last clean run and the next slot", () => {
 
 describe("the CLI skips with 75 and runs on everything else", () => {
   const repoCopy = () => {
-    const root = mkdtempSync(join(tmpdir(), "run-gate-repo-"));
+    const root = scratchDir("run-gate-repo-");
     mkdirSync(join(root, "scripts", "ops"), { recursive: true });
     for (const path of Object.values(PLISTS)) copyFileSync(path, join(root, path));
     return root;
@@ -214,7 +213,7 @@ describe("the CLI skips with 75 and runs on everything else", () => {
     assert.match(lines.at(-1)!, /^runGate: run .*reason=gateError: /);
     assert.equal(runGateCli(["--job", "minute-bank", "--dir", "/does/not/exist"], deps), 0);
     assert.equal(runGateCli(["--job"], deps), 0);
-    assert.equal(runGateCli(["--job", "cache-topup"], { ...deps, repoRoot: mkdtempSync(join(tmpdir(), "no-plists-")) }), 0);
+    assert.equal(runGateCli(["--job", "cache-topup"], { ...deps, repoRoot: scratchDir("no-plists-") }), 0);
   });
 
   it("records a clean top-up atomically, and refuses to for any other job", () => {

@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import {
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readdirSync,
   readFileSync,
   realpathSync,
@@ -27,6 +26,7 @@ import { readDay, recordUsage } from "../scripts/fmpGovernor.ts";
 import type { FmpStatePaths } from "../scripts/fmpState.ts";
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
 import { BODIES, INVALID_KEY_BODY_PREFIX, tempState } from "./fixtures/fmpTestState.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 // The bank is append-only against a provider window three days wide, so a bar
 // banked wrong is banked wrong forever and a bar missed is missed forever.
@@ -667,7 +667,7 @@ describe("minute bank — the run, end to end against a stubbed provider", () =>
     assert.equal(existsSync(markerPath(failedOne.state)), false, "a symbol that failed is not clean");
 
     const elsewhere = tempState();
-    const other = await run({ dir: mkdtempSync(join(tmpdir(), "not-the-bank-")), state: elsewhere });
+    const other = await run({ dir: scratchDir("not-the-bank-"), state: elsewhere });
     assert.equal(other.code, 0);
     assert.equal(existsSync(markerPath(elsewhere)), false, "a copy of the store is not the store");
   });
