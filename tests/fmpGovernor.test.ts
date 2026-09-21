@@ -265,8 +265,37 @@ describe("the state resolves from the checkout, never the cwd", () => {
     assert.match(anchor, /fileURLToPath\(import\.meta\.url\)/);
     assert.doesNotMatch(anchor, /process\.cwd\(\)/);
     // No other module resolves a state file of its own.
-    for (const path of ["scripts/fmpCircuit.ts", "scripts/fmpGovernor.ts", "scripts/fmpRunGate.ts"]) {
+    for (const path of ["scripts/fmpCircuit.ts", "scripts/fmpGovernor.ts", "scripts/fmpRunGate.ts", ...spenders]) {
       assert.doesNotMatch(withoutComments(readFileSync(path, "utf8")), /\.fmp-(usage|circuit)\.json|\.fmp-state/, path);
+    }
+  });
+
+  // Each binary picks its state root where it calls the helper, and no
+  // execution test can see that choice: the bank checks its key before it
+  // touches any state, and the wrapper tests run a stub driver. With the bank's
+  // root moved into its own code tree the whole suite stayed green, while in
+  // production the bank would spend with no ledger, alarm on an empty day and
+  // never write the marker the gate reads (2026-09-21, mutation E1). So the
+  // call is pinned as source at every discovered spender and at the gate:
+  // named once in the import, then only ever called with no root.
+  it("lets every binary take its state root from the checkout and no root of its own", () => {
+    const helper = ["default", "StatePaths"].join("");
+    for (const path of [...spenders, "scripts/fmpRunGate.ts"]) {
+      const source = withoutComments(readFileSync(path, "utf8"));
+      const named = [...source.matchAll(new RegExp(`\\b${helper}\\b`, "g"))].length;
+      const bare = [...source.matchAll(new RegExp(`\\b${helper}\\(\\)`, "g"))].length;
+      assert.ok(bare >= 1, `${path} never resolves its state through the helper`);
+      assert.equal(
+        [...source.matchAll(new RegExp(`\\b${helper}\\s*\\(`, "g"))].length,
+        bare,
+        `${path} passes the helper a root of its own`,
+      );
+      assert.equal(named, bare + 1, `${path} names the helper outside its import and its bare calls`);
+      assert.match(
+        source,
+        new RegExp(`import \\{[^}]*\\b${helper}\\b(?!\\s+as\\b)[^}]*\\} from "\\./fmpState\\.ts"`),
+        `${path} imports the helper under another name or from another module`,
+      );
     }
   });
 });
