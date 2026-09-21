@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, it } from "node:test";
@@ -91,5 +91,28 @@ describe("the suites that leaked use it", () => {
     ]) {
       assert.doesNotMatch(readFileSync(file, "utf8"), /mkdtempSync\(/, `${file} makes a temp dir nobody removes`);
     }
+  });
+});
+
+describe("the durable scratch dir stays behind two stubs", () => {
+  it("is called only by a suite whose driver and Keychain are both stubs", () => {
+    // durableScratchDir sits outside every temporary root, so the wrappers'
+    // refusal of a temp-rooted store (barrier 2 of tests/support/noKeychain.ts)
+    // does not stop a run that uses it. Its docstring limits it to a test whose
+    // tsx and security are stubs; this makes that limit a census. A directory
+    // walk, not `git ls-files`: this file is not one of the git-dependent five.
+    const walk = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+        entry.isDirectory() ? walk(join(dir, entry.name)) : [join(dir, entry.name)]
+      );
+    const callers = walk("tests")
+      .filter((file) => /\.tsx?$/.test(file) && file !== join("tests", "support", "scratchDir.ts"))
+      .filter((file) => /\bdurableScratchDir\(/.test(readFileSync(file, "utf8")))
+      .sort();
+    assert.deepEqual(callers, ["tests/opsWrappers.test.ts"]);
+    const suite = readFileSync("tests/opsWrappers.test.ts", "utf8");
+    assert.match(suite, /writeFileSync\(tsx, TSX_STUB\);/, "the wrappers' tsx is no longer a stub");
+    assert.match(suite, /writeFileSync\(join\(bin, "security"\), SECURITY_STUB\);/, "security is no longer a stub");
+    assert.match(suite, /\$\{noKeychainBin\(\)\}/, "the refusing Keychain stub no longer sits behind it on PATH");
   });
 });
