@@ -485,8 +485,20 @@ and one daily is kept beside the protected `20260823`: R2 holds 60 verified
 archives, so the local copy is the staging copy and one offline restore point.
 A skipped push now skips the prune, a named root that does not exist is
 refused rather than created, and the prune never deletes the snapshot its own
-run pushed. The existing folders move by hand after merge. R2's copy of
-`20260823` is not permanent — see §6b-1 item I.
+run pushed. R2's copy of `20260823` is not permanent — see §6b-1 item I.
+
+*Migration, executed 2026-09-21 before this merged:* the fifteen directories
+left `/Users/peacock` by hand. `20260823` and that day's `20260921` moved to the
+new root; the other thirteen went to the Trash, each already held in R2 as
+`minute-bank-<stamp>.tar.zst`. Every stamp the new root holds must have its
+archive in R2, because parity enumerates the root and a stamp without one fails
+it — and a parity failure exits the job before the local prune, which relocates
+the accumulation rather than ending it. Both moved stamps were verified present
+in R2 in the same session. Until this merged, the job still defaulted to
+`/Users/peacock`, so a run after the move could leave one fresh snapshot there;
+it is that day's copy, already pushed, and removing it costs nothing. `mv -n` is
+the verb for any later move: it skips a same-name directory silently and exits
+0, so a survivor means the new root already holds that stamp.
 *2026-09-21:* the calibration-cache top-up runs `origin/main` through
 `wl-repo-script` too. Its trap was worse than the bank's: the sweep's cache is
 the RELATIVE `.calibration-cache`, so from the extracted tree it would have
@@ -5251,9 +5263,9 @@ reader from mixing them.
 2026-09-21.** `minute-bank-20260823.tar.zst` is spared by name from the push's
 remote prune, but `windwardline-backups` carries a 365-day lifecycle expiry
 over every object (windwardline FLEET.md, set 2026-09-03), and a lifecycle rule
-cannot exclude a name. R2 deletes it a year after its upload. The upload date
-has not been read from R2; the off-box push first ran 2026-09-01, so it is no
-earlier than that. After it lapses, parity fails every day naming `20260823`,
+cannot exclude a name. R2 deletes it a year after its upload. It was uploaded
+2026-09-02 15:40:42Z, so it lapses about 2027-09-02 15:40Z [read from R2 with
+`rclone lsf --format tp` on 2026-09-21]. After it lapses, parity fails every day naming `20260823`,
 the backup exits 1 before its local prune, dailies accumulate again, and the
 local snapshot is the corpus's only copy. The option in flight is the
 write-once `windwardline-archives` bucket (windwardline branch

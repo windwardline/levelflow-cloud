@@ -60,7 +60,8 @@ DEST="$DEST_ROOT/levelflow-minute-bank-snapshot-$STAMP"
 #
 # R2's copy of 20260823 IS NOT PERMANENT. The push spares it by name in its
 # own prune, but the bucket's lifecycle rule expires every object 365 days
-# after upload whatever its name (windwardline FLEET.md, set 2026-09-03). From
+# after upload whatever its name (windwardline FLEET.md, set 2026-09-03). That
+# copy was uploaded 2026-09-02 15:40:42Z, so it lapses about 2027-09-02. From
 # that day parity fails naming 20260823, this job exits 1 before the prune,
 # dailies accumulate here again, and the local copy is the naive-era corpus's
 # only custodian. HANDOFF §6b-1 item I owes it a copy that never expires.

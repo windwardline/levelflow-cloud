@@ -213,7 +213,8 @@ corpus in existence and a retention count cannot protect what oldest-first delet
 first. The local prune runs only after the push verified the remote object and parity
 passed; a failed or skipped push skips it. The remote protection is not permanent: the
 bucket's lifecycle rule expires every object 365 days after upload, whatever its name,
-so R2's copy of `20260823` lapses a year after it was uploaded (HANDOFF §6b-1 item I).
+so R2's copy of `20260823` lapses about 2027-09-02, a year after it was uploaded at
+2026-09-02 15:40:42Z (HANDOFF §6b-1 item I).
 
 ## The two sides are checked against each other
 
