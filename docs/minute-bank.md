@@ -96,6 +96,57 @@ missing credential, a failed upload or a mismatched hash each exit non-zero, bec
 `ops/agent-exit-status.sh` reads the launchd exit code and a silent skip would render
 as a healthy backup.
 
+## The two jobs cannot run at once
+
+The bank appends `<symbol>.jsonl` and then writes `<symbol>.state.json` as two
+separate, non-atomic steps. A copy taken while that is happening can hold a torn
+final line, or a sidecar that disagrees with the data file beside it.
+
+Between 2026-09-17 and 2026-09-21 the backup failed eight times, always the same
+way:
+
+```
+VERIFY FAILED: copied 100/3332370 against 100/3326559 — leaving the previous snapshot intact
+```
+
+The copy held *more* bars than the reference count read moments earlier, because
+a bank run was appending underneath it. Nothing reached R2 after 2026-09-19
+while the bank grew by another 107,000 bars, which is the single-location
+exposure R0b exists to remove.
+
+The count check caught this by luck rather than by design. It was written for a
+short copy from a full disk, and a copy taken between the append and the sidecar
+write matches on bar count while still being internally inconsistent — so
+accepting the larger copy would have shipped corruption off-box and reported
+success. The verify is therefore unchanged. What was missing is the guarantee
+that nothing writes while the backup reads.
+
+`scripts/ops/bank-lock.sh` is that guarantee. Both scripts source it and take an
+exclusive lock on `.minute-bank.lock` before touching the store: the bank before
+it reads the keychain, so a refusal costs no provider traffic, and the backup
+before its first count. The backup releases as soon as the snapshot is placed,
+because the archive and the upload work from the frozen copy and there is no
+reason to hold the bank for them.
+
+Staggering the schedule would not have worked. Both plists carry `RunAtLoad`
+deliberately, for the same reason — a machine asleep at 07:20 or 20:10 has missed
+a window — so they co-fire on every login and reload, which is where six of the
+eight failures came from. No choice of clock fixes two jobs that are both correct
+to run at load, and a clock does nothing for the hand-run path: the
+`levelflow-bank-minute-bars` scheduled task tells an agent to run the bank by
+hand when it has stalled, which can land on top of the 20:10 backup.
+
+A lock adds two new ways to stop the work quietly, and both are closed. A lock
+naming a dead or unreadable holder is broken by rename — never by deleting in
+place, which would let two waiters both believe they won — and the break is
+logged. A lock that cannot be taken within `LEVELFLOW_BANK_LOCK_TIMEOUT`
+(900s) gives up non-zero with a reason, because `ops/agent-exit-status.sh` reads
+the launchd exit code and a quiet skip renders as a healthy backup.
+
+`tests/minuteBankLock.test.ts` exercises it against the real scripts, including
+the original failure: a live writer holding the lock and appending while the
+backup wants to copy. Six mutations are recorded against those tests.
+
 The remote layout is a contract, and it generalizes past this dataset:
 
 ```

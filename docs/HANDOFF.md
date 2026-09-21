@@ -442,6 +442,19 @@ a count cannot see a symbol that stopped being attempted: its sidecar keeps a
 non-zero `fetched` forever. The run now names departures (#342); the watchdog
 reads run recency. Store: 903,744 bars, 100 sidecars, 97 live.
 *Still owed:* the bank has no backup, the same gap the 6.0 GB corpus has.
+*Corrected 2026-09-20:* the backup exists (R0b) and had been failing silently
+for two days. Eight `VERIFY FAILED` runs between 09-17 and 09-21 — the copy
+holding more bars than the count taken moments before, because a bank run was
+appending underneath it — and nothing reached R2 after 2026-09-19 while the bank
+grew by 107,000 bars. Both jobs carry `RunAtLoad`, deliberately and for the same
+reason, so they co-fire on every login; six of the eight came from that. The
+count check was not wrong and has not been loosened: the bank writes its data
+file and its sidecar as two separate steps, so accepting the larger copy would
+have shipped a torn line or a mismatched sidecar off-box and called it success.
+`scripts/ops/bank-lock.sh` now serialises the two, both scripts take it before
+they touch the store, and `tests/minuteBankLock.test.ts` exercises it against
+the real scripts. Seven mutations recorded; one of them found an unbounded spin
+in the first version of the lock itself.
 
 ### 0.5 — Close the write surface on the learning corpus — **DONE, verified against production 2026-08-07**
 
