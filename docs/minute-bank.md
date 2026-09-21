@@ -37,10 +37,11 @@ winter 2026-01-30 first=09:30 last=15:45 bars=26
 ```
 
 That convention is wrong and will be corrected. The bank must not inherit it, and it
-cannot be refetched after the correction lands — the provider window is three days
-wide. So the store holds the provider's own date string, unparsed and unconverted.
-Re-normalising later becomes a re-read of local disk instead of a fetch that is no
-longer possible.
+must not need a refetch after the correction lands: an undated request returns about
+three days, and until a dated one is shown to reach deeper a refetch is treated as
+impossible. So the store holds the provider's own date string, unparsed and
+unconverted. Re-normalising later becomes a re-read of local disk instead of a fetch
+that may no longer be possible.
 
 The sidecar carries a `sourceTimezone` field, null until the convention is
 established by measurement rather than assumption.
@@ -96,13 +97,16 @@ indistinguishable from a real one.
 FMP_API_KEY=$(security find-generic-password -s fmp-api-key -a peacock -w) npx tsx scripts/bank-minute-bars.ts
 ```
 
-It must run at least once every three days or a gap opens that cannot be closed.
+It must run at least once every three days. Until a dated request is shown to reach
+deeper, a longer gap is treated as one that cannot be closed.
 
 The bank is never refused at a door (§21c). It does not consult the shared FMP
 breaker or ask the ledger for room: its first symbol is its probe, so an outage costs
 one request per run. When that scout fetches nothing the run stops, reports a wall no
 retry clears to the breaker, names the remedy and exits 1. When it answers, the bank
-records the answer, which closes the breaker for every other consumer.
+records the answer, which closes the account's entry and the 1-minute endpoint's
+entry. An entitlement refusal another consumer met on a different endpoint, such as
+the economic calendar, stays open until that endpoint answers.
 
 It exits 1 when there are no targets, when nothing was fetched, when the scout stood
 down, when a ledger or breaker write failed, when the run reached its **512 MiB
@@ -117,11 +121,13 @@ The other script consumers — the cache top-up and every ad-hoc sweep, probe an
 verifier — share a pool that reserves 333,333,333 bytes a day for the bank whether it
 runs or not.
 
-A clean run — the whole roster, no symbol lost, no bound reached, into the canonical
-`.minute-bank` — writes `.fmp-state/runs/minute-bank.json`. The wrapper's run gate
-(`scripts/fmpRunGate.ts`) reads it: a boot-time run is skipped only when the next
-scheduled slot is at most twelve hours after that clean run, and anything the gate
-cannot read runs the bank.
+A clean run — exit 0, the whole roster, no symbol lost, no bound reached, into the
+canonical `.minute-bank` — writes `.fmp-state/runs/minute-bank.json`. A red run writes
+none, even though its bars are banked, so the next login, kickstart or hand run banks
+again. The wrapper's run gate (`scripts/fmpRunGate.ts`) reads the marker: a login run
+is skipped only when that clean run finished at or after the most recent scheduled
+slot (07:20 or 19:20 local), and anything the gate cannot read runs the bank. The
+rule holds on the DST nights, when the slots sit 11 or 13 hours apart.
 
 First run, 2026-08-06: 338,971 bars across 100 symbols, 42 MB.
 

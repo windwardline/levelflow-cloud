@@ -1,10 +1,13 @@
 /**
  * 1-minute bar bank — append-only, starting 2026-08-06.
  *
- * FMP serves 1-minute bars for 99 of 99 probed symbols and only ~3 days deep
- * (scripts/probe-minute-bars.ts, .calibration-cache/minute-availability.json).
- * So 15-minute resolution is a real ceiling today, and the only way to lift it
- * is to accumulate forward: every day not banked is a day never recovered.
+ * FMP serves 1-minute bars for 99 of 99 probed symbols, and an undated request
+ * returns about three days (probe, 2026-08-06). Whether a dated request reaches
+ * deeper has not been measured; `scripts/probe-minute-bars.ts --symbol --from
+ * --to` asks one such question. Until it is answered the depth is treated as
+ * unrecoverable, so 15-minute resolution is a real ceiling today and the only
+ * way to lift it is to accumulate forward: every day not banked is treated as a
+ * day never recovered.
  * This is the one piece of work whose value depends purely on when it starts.
  *
  * What it is for: 15-minute bars cannot order intrabar events. That single
@@ -22,21 +25,24 @@
  * does not move at all.
  *
  * That convention is wrong and will be corrected. This bank must not inherit
- * the error, and it must not have to be refetched once the correction lands —
- * it cannot be, because the provider's window is three days wide. So the store
- * holds the provider's own date string, unparsed. Re-normalising later is then
- * a re-read of local disk rather than a fetch that is no longer possible.
+ * the error, and it must not have to be refetched once the correction lands:
+ * an undated request returns about three days, and until a dated one is shown
+ * to reach deeper a refetch is treated as impossible. So the store holds the
+ * provider's own date string, unparsed. Re-normalising later is then a re-read
+ * of local disk rather than a fetch that may no longer be possible.
  *
  * ## Shape
  *
- * One JSONL file per provider symbol, one bar per line, appended in provider
- * order. A sidecar carries the high-water mark and a recent-key window so a
- * top-up dedupes without reading the whole file back. Keys are the raw date
- * strings, which sort lexicographically because the format is zero-padded.
+ * One JSONL file per provider symbol, one bar per line, in append order: each
+ * run appends its fresh bars oldest-first, and a minute the provider serves
+ * late lands after that run's newest bar (see bankOne). A sidecar carries the
+ * high-water mark and a recent-key window so a top-up dedupes without reading
+ * the whole file back. Keys are the raw date strings, which sort
+ * lexicographically because the format is zero-padded.
  *
- * Re-running the same day is safe and cheap: overlapping bars are dropped by
- * key, and a revised bar supersedes its stored copy by being appended after it
- * (readers take the last occurrence of a key).
+ * Re-running the same day is safe and cheap: a bar whose key is already in the
+ * window is dropped, so a revised bar is not re-banked and the first copy
+ * stands.
  *
  *   FMP_API_KEY=... npx tsx scripts/bank-minute-bars.ts
  *   FMP_API_KEY=... npx tsx scripts/bank-minute-bars.ts --dir .minute-bank --concurrency 4

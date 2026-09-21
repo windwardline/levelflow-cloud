@@ -4,10 +4,11 @@
 # rolling ~3-day 1-minute window to the durable store in .minute-bank/.
 # Idempotent — bars already banked are dropped by key.
 #
-# Why launchd rather than the app's scheduler: the provider window is three
-# days wide, so a gap longer than that is permanently unrecoverable. A job that
-# only fires while an app happens to be open is not a guarantee. This one runs
-# whether or not anything is open, and catches up on wake.
+# Why launchd rather than the app's scheduler: an undated request returns about
+# three days and a dated one's depth is unmeasured, so a gap longer than that is
+# treated as unrecoverable. A job that only fires while an app happens to be
+# open is not a guarantee. This one runs whether or not anything is open, and
+# catches up on wake.
 #
 # Logs carry no secrets. See docs/minute-bank.md.
 set -euo pipefail

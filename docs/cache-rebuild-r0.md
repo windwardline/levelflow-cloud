@@ -81,8 +81,8 @@ per symbol, and was never carried by the defect. Leave it running.
   ```
 
   The kickstarted run passes through the run gate (`scripts/fmpRunGate.ts`),
-  so it banks only when the last clean full-roster run is stale — more than
-  twelve hours before the next scheduled slot. A gate skip logs
+  so it banks only when the last clean full-roster run finished before the
+  most recent scheduled slot. A gate skip logs
   `minute-bank run skipped by the run gate`.
 
 - Be on a commit that includes the R0 change set (`scripts/intradayChunks.ts`
