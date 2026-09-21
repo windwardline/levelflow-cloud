@@ -82,14 +82,31 @@ export function effectiveDefault(value: string): string {
   }
 }
 
+/**
+ * What a line sets, whichever way it sets it.
+ *
+ * `VAR=value` is one way. `: "${VAR:=default}"` is the other, and it is already
+ * in house — scripts/ops/bank-lock.sh uses it. A parser that reads only the
+ * first calls a script clean while the shell gives VAR a home-folder default.
+ */
+export function assignmentOf(text: string): { variable: string; value: string } | undefined {
+  if (/^\s*#/.test(text)) return undefined;
+  const colon = text.match(/^\s*:\s+(.*)$/);
+  if (colon) {
+    const word = firstWord(colon[1]).replace(/["']/g, "");
+    const expanded = word.match(/^\$\{([A-Za-z_][A-Za-z0-9_]*):?[-=](.*)\}$/);
+    return expanded ? { variable: expanded[1], value: effectiveDefault(expanded[2]) } : undefined;
+  }
+  const match = text.match(ASSIGNMENT);
+  return match ? { variable: match[1], value: effectiveDefault(match[2]) } : undefined;
+}
+
 export function homeRootDefaults(source: string): Array<{ variable: string; value: string; line: number }> {
   const found: Array<{ variable: string; value: string; line: number }> = [];
   source.split("\n").forEach((text, index) => {
-    if (/^\s*#/.test(text)) return;
-    const match = text.match(ASSIGNMENT);
-    if (!match || match[1] === "HOME") return;
-    const value = effectiveDefault(match[2]);
-    if (HOME_ROOT.test(value)) found.push({ variable: match[1], value, line: index + 1 });
+    const set = assignmentOf(text);
+    if (!set || set.variable === "HOME") return;
+    if (HOME_ROOT.test(set.value)) found.push({ ...set, line: index + 1 });
   });
   return found;
 }
@@ -98,9 +115,8 @@ export function homeRootDefaults(source: string): Array<{ variable: string; valu
 function assignments(source: string): Map<string, string> {
   const map = new Map<string, string>();
   for (const text of source.split("\n")) {
-    if (/^\s*#/.test(text)) continue;
-    const match = text.match(ASSIGNMENT);
-    if (match && !map.has(match[1])) map.set(match[1], effectiveDefault(match[2]));
+    const set = assignmentOf(text);
+    if (set && !map.has(set.variable)) map.set(set.variable, set.value);
   }
   return map;
 }
@@ -116,6 +132,8 @@ describe("the parser reads a default the way the shell would", () => {
       '  local root="${ROOT:-~}"',
       'export SNAP_ROOT="${A:-${B:-$HOME}}"',
       'CACHE="${X:=/home/runner}"',
+      ': "${SNAP_ROOT:=$HOME}"',
+      ': ${DEST_ROOT:=/Users/peacock}',
     ]) {
       assert.equal(homeRootDefaults(line).length, 1, line);
     }
@@ -129,9 +147,28 @@ describe("the parser reads a default the way the shell would", () => {
       'REPO="${LEVELFLOW_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"',
       'HOME="${HOME:-/Users/peacock}"',
       "# DEST_ROOT=/Users/peacock",
+      // The in-house spelling of the colon form, from scripts/ops/bank-lock.sh.
+      ': "${LEVELFLOW_BANK_LOCK_TIMEOUT:=900}"',
     ]) {
       assert.deepEqual(homeRootDefaults(line), [], line);
     }
+  });
+
+  it("reads the colon form as the assignment it is", () => {
+    assert.deepEqual(assignmentOf(': "${LEVELFLOW_BANK_LOCK_TIMEOUT:=900}"'), {
+      variable: "LEVELFLOW_BANK_LOCK_TIMEOUT",
+      value: "900",
+    });
+    assert.deepEqual(assignmentOf(': "${SNAP_ROOT:=$HOME/archives}"'), {
+      variable: "SNAP_ROOT",
+      value: "$HOME/archives",
+    });
+    // bank-lock.sh really carries it, so the population keeps covering it.
+    const bankLock = readFileSync(join(OPS, "bank-lock.sh"), "utf8");
+    assert.ok(
+      bankLock.split("\n").some((line) => assignmentOf(line)?.variable === "LEVELFLOW_BANK_LOCK_TIMEOUT"),
+      "bank-lock.sh sets its timeout through the colon builtin; the parser must read it",
+    );
   });
 });
 

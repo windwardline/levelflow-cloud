@@ -7,6 +7,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  rmSync,
   statSync,
   symlinkSync,
   unlinkSync,
@@ -48,8 +49,11 @@ const BASH = "/bin/bash";
 
 // Everything the script and the stubs call. Resolved from the suite's own
 // PATH once and linked into one directory, so the runs see nothing else.
+// `bash` is here because the script re-execs itself through wl-secret, which
+// runs the child under `env -i`: the shebang's `/usr/bin/env bash` then has to
+// find a bash on the PATH wl-secret hands over, and finding none is exit 127.
 const TOOLS = [
-  "awk", "cat", "chmod", "cmp", "cp", "cut", "date", "dd", "diff", "dirname", "find",
+  "awk", "bash", "cat", "chmod", "cmp", "cp", "cut", "date", "dd", "diff", "dirname", "find",
   "grep", "head", "ls", "mkdir", "mktemp", "rm", "shasum", "sleep", "tar", "tr", "wc", "zstd",
 ];
 
@@ -70,7 +74,15 @@ function toolsDir(without: string[] = []): string {
   for (const tool of TOOLS) {
     if (without.includes(tool)) continue;
     const real = which(tool);
-    assert.ok(real, `${tool} is required to exercise ${SCRIPT} and is not installed`);
+    // This is the first suite here to need a real zstd, and ci.yml installs
+    // nothing beyond Node. If a runner image ever ships without it, the message
+    // has to read as an image gap with its remedy, not as a code defect.
+    assert.ok(
+      real,
+      tool === "zstd"
+        ? `zstd is required to exercise ${SCRIPT} and is not on PATH. On this machine: brew install zstd. On a CI runner whose image lacks it: add "sudo apt-get install -y zstd" before the gates step in .github/workflows/ci.yml`
+        : `${tool} is required to exercise ${SCRIPT} and is not installed`,
+    );
     symlinkSync(real, join(dir, tool));
   }
   // md5sum where it exists, md5 where it does not; the script takes either.
@@ -226,6 +238,23 @@ function tarHook(sb: Sandbox, mode: "-cf" | "-tvf", action: string) {
   );
 }
 
+/**
+ * Shadow zstd so COMPRESSION takes an extra flag and everything else does not.
+ * `windwardline-toolchain-update` runs `brew upgrade --formula` daily, so the
+ * compressor this machine builds an archive with will move. A rebuild that no
+ * longer reproduces last year's bytes says nothing about whether the object R2
+ * holds is intact, and the script must not read it as a human decision.
+ */
+function zstdHook(sb: Sandbox, extra: string) {
+  const real = which("zstd");
+  assert.ok(real);
+  writeFileSync(
+    join(sb.bin, "zstd"),
+    `#!/bin/bash\ncase " $* " in *" -o "*) exec '${real}' ${extra} "$@" ;; esac\nexec '${real}' "$@"\n`,
+    { mode: 0o755 },
+  );
+}
+
 interface Result {
   code: number | null;
   stdout: string;
@@ -361,6 +390,76 @@ describe("a permanent archive is proven by restoring it", () => {
     assert.equal(statSync(objectPath(sb)).mtimeMs, before.mtimeMs);
     assertStagingClean(sb.staging);
     assertNoCredential(sb, second);
+  });
+
+  it("re-proves an existing object by restoring it, even when a rebuild no longer makes the same bytes", () => {
+    const sb = sandbox();
+    const first = run(sb);
+    assert.equal(first.code, 0, first.stderr);
+    const object = objectPath(sb);
+    const remoteMd5 = md5(object);
+    const remoteBytes = statSync(object).size;
+
+    // A different compressor build: same source, different archive bytes.
+    zstdHook(sb, "--no-check");
+    const second = run(sb);
+    assert.equal(second.code, 0, second.stderr);
+    assert.match(second.stderr, /already archived/);
+    assert.match(second.stderr, /restore proven/);
+    assert.match(second.stderr, /differs from this rebuild/, "the difference is logged, not swallowed");
+
+    // The register records what R2 holds, never what this run happened to build.
+    const [, bytes, digest] = rowOf(second.stdout);
+    assert.equal(digest, remoteMd5);
+    assert.equal(Number(bytes), remoteBytes);
+    // Without this the case is vacuous: the hook must really change the bytes.
+    const rebuilt = second.stderr.match(/archive \d+ bytes, md5 ([0-9a-f]{32})/);
+    assert.ok(rebuilt, "the run logs the archive it built");
+    assert.notEqual(rebuilt[1], remoteMd5, "the shadow compressor did not change the archive");
+    assert.equal(rowOf(first.stdout)[2], remoteMd5, "the first row records the object R2 holds");
+    assert.equal(uploads(sb).length, 1, "nothing may be written to prove a restore");
+    assert.equal(md5(object), remoteMd5, "the object is untouched");
+    assertStagingClean(sb.staging);
+  });
+
+  it("refuses a re-run whose source changed after the archive was read, and prints no row", () => {
+    // The already-archived twin of the file-changed case. Once the bucket lock
+    // is on, this is the only path any push will ever take again, so a mutation
+    // that skips the restore here must be a red test.
+    const sb = sandbox();
+    const first = run(sb);
+    assert.equal(first.code, 0, first.stderr);
+    tarHook(sb, "-tvf", `printf 'edited\\n' >> '${join(sb.source, "BTCUSD-daily.json")}'`);
+    const second = run(sb);
+    assert.equal(second.code, 1);
+    assert.match(second.stderr, /the restored tree differs from the source/);
+    assert.match(second.stderr, /BTCUSD-daily\.json/);
+    assert.equal(second.stdout, "", "no register row for an unproven restore");
+    assert.equal(uploads(sb).length, 1, "the re-run must not write");
+    assertStagingClean(sb.staging);
+  });
+
+  it("prints no register row when staging cannot be removed, and says why", () => {
+    // The row is what the runbook appends to the register with `>>`. A run that
+    // exits 1 must not leave one behind, so staging is cleared BEFORE the row is
+    // printed — and a failed `rm` has to reach its own named report rather than
+    // tripping errexit inside the trap and exiting on a bare status.
+    const sb = sandbox();
+    const real = which("rm");
+    assert.ok(real);
+    writeFileSync(
+      join(sb.bin, "rm"),
+      `#!/bin/bash\nfor a in "$@"; do case "$a" in '${sb.staging}'/push.*) echo "rm: stub refuses" >&2; exit 1 ;; esac; done\nexec '${real}' "$@"\n`,
+      { mode: 0o755 },
+    );
+    const r = run(sb);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /could not remove staging/);
+    assert.equal(r.stdout, "", "a run that exits 1 must not print a register row");
+    // The object itself landed and was proven; only the housekeeping failed.
+    assert.equal(uploads(sb).length, 1);
+    assert.match(r.stderr, /restore proven/);
+    rmSync(sb.staging, { recursive: true, force: true });
   });
 
   it("refuses to overwrite a different object at the key", () => {
@@ -504,12 +603,23 @@ describe("the push refuses before it can do harm, each refusal by name", () => {
     assert.match(r.stderr, /rclone is not installed/);
   });
 
-  it("refuses when the token was not injected, naming how to invoke it", () => {
+  it("names wl-secret when it cannot deliver the token itself", () => {
     const sb = sandbox();
-    const r = run(sb, { R2_TOKEN: undefined });
+    const r = run(sb, { R2_TOKEN: undefined, LEVELFLOW_WL_SECRET: join(sb.root, "no-such-wl-secret") });
     assert.equal(r.code, 1);
-    assert.match(r.stderr, /R2_TOKEN is unset/);
-    assert.match(r.stderr, /wl-secret cloudflare-r2-backup=R2_TOKEN/);
+    assert.match(r.stderr, /wl-secret is not executable/);
+    assert.equal(rcloneCalls(sb).length, 0);
+  });
+
+  it("refuses to re-exec twice when wl-secret ran and the token is still unset", () => {
+    const sb = sandbox();
+    const r = run(sb, { R2_TOKEN: undefined, LEVELFLOW_WL_SECRET: join(sb.bin, "wl-secret") }, [
+      "--secrets-delivered",
+      sb.source,
+      DATASET,
+    ]);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /refusing to re-exec/);
     assert.equal(rcloneCalls(sb).length, 0);
   });
 
@@ -550,6 +660,40 @@ describe("the push refuses before it can do harm, each refusal by name", () => {
   });
 });
 
+describe("the push delivers its own credential, as its two scheduled siblings do", () => {
+  // wl-secret outermost puts R2_TOKEN in the environment of everything the
+  // launcher runs — git fetch, git archive, tar — and not only the pusher.
+  // backup-minute-bank.sh and backup-postgres-offbox.sh both call wl-secret by
+  // absolute path instead, so the child holding the credential is the only
+  // process that sees it. This script does the same, and the re-exec is proven
+  // by what survives it: wl-secret's `env -i` drops every LEVELFLOW_ override,
+  // so a run that started against the test bucket lands on the real default and
+  // the temp-source barrier refuses it.
+  it("re-execs through wl-secret, and the scrubbed environment is what the refusal proves", () => {
+    const sb = sandbox();
+    const r = run(sb, { R2_TOKEN: undefined, LEVELFLOW_WL_SECRET: join(sb.bin, "wl-secret") });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /refusing to archive a source under a temp directory into windwardline-archives/);
+    assert.doesNotMatch(r.stderr, /wl-secret is not executable/);
+    assert.equal(rcloneCalls(sb).length, 0);
+    assertNoCredential(sb, r);
+  });
+
+  it("refuses a temp source before it asks wl-secret for anything", () => {
+    // The order matters: a refusal that runs after the credential has been read
+    // has already done the thing it exists to prevent.
+    const sb = sandbox();
+    const r = run(sb, {
+      R2_TOKEN: undefined,
+      LEVELFLOW_ARCHIVE_BUCKET: undefined,
+      LEVELFLOW_WL_SECRET: join(sb.root, "no-such-wl-secret"),
+    });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /refusing to archive a source under a temp directory/);
+    assert.doesNotMatch(r.stderr, /wl-secret is not executable/);
+  });
+});
+
 describe("the script's contract, read from its source", () => {
   // Read inside each case, so a missing script is a red case, not a file
   // that fails to register.
@@ -573,12 +717,21 @@ describe("the script's contract, read from its source", () => {
     assert.deepEqual(mine, configLines(readFileSync("scripts/ops/push-minute-bank-offbox.sh", "utf8")));
   });
 
-  it("reads the token in two places only: the guard and the derivation", () => {
-    const uses = code().filter((line) => line.includes("R2_TOKEN"));
+  it("reads the token's value in two places only: the guard and the derivation", () => {
+    // `cloudflare-r2-backup=R2_TOKEN` on the re-exec line names the variable and
+    // never reads it, so the value's readers are the two below and nothing else.
+    const uses = code().filter((line) => /\$\{?R2_TOKEN/.test(line));
     assert.equal(uses.length, 2, uses.join("\n"));
-    assert.ok(uses.some((line) => /\[\[ -n \$\{R2_TOKEN:-\} \]\] \|\| die "R2_TOKEN is unset/.test(line)));
+    assert.ok(uses.some((line) => /\[\[ -z \$\{R2_TOKEN:-\} \]\]/.test(line)));
     assert.ok(uses.some((line) => /printf %s "\$R2_TOKEN" \| shasum -a 256/.test(line)));
     assert.ok(!code().some((line) => /rclone\s+config\b|rclone\.conf/.test(line)), "no rclone config is ever written");
+  });
+
+  it("delivers the credential itself, by absolute path, as backup-postgres-offbox.sh does", () => {
+    assert.match(source(), /^\s*WL_SECRET="\$\{LEVELFLOW_WL_SECRET:-\$HOME\/\.local\/bin\/wl-secret\}"$/m);
+    assert.match(source(), /^\s*exec "\$WL_SECRET" cloudflare-r2-backup=R2_TOKEN -- "\$0" --secrets-delivered "\$@"$/m);
+    const sibling = readFileSync("scripts/ops/backup-postgres-offbox.sh", "utf8");
+    assert.match(sibling, /^\s*exec "\$WL_SECRET" .*-- "\$0" --secrets-delivered "\$@"$/m);
   });
 
   it("never offers rclone's own hashsum as proof", () => {
@@ -587,9 +740,63 @@ describe("the script's contract, read from its source", () => {
   });
 });
 
-/** Every rclone call in a file that can delete or replace what it names. */
-const DESTRUCTIVE = /\brclone\s+(delete|deletefile|purge|rmdir|rmdirs|cleanup|sync|bisync|move|moveto|dedupe)\b/;
-const REFUSES_ARCHIVES = /^\s*\[\[ \$BUCKET != windwardline-archives \]\] \|\| die /;
+/**
+ * Any rclone call that can delete or replace what it names.
+ *
+ * Anchored on the verb, not on the word after `rclone`: a global flag, a
+ * `--config`, or a line continuation sits between the two, and a detector that
+ * demands them adjacent reports a file clean while the shell runs the purge.
+ */
+const DESTRUCTIVE = /\brclone\b[^\n]*?\s(delete|deletefile|purge|rmdir|rmdirs|cleanup|sync|bisync|move|moveto|dedupe)\b/;
+const REFUSES_ARCHIVES = /^\s*\[\[ \$\{BUCKET%%\/\*\} != windwardline-archives \]\] \|\| die /;
+
+/** Physical lines joined across `\` continuations, numbered from the first. */
+export function logicalLines(source: string): Array<{ text: string; line: number }> {
+  const joined: Array<{ text: string; line: number }> = [];
+  let held = "";
+  let start = 0;
+  source.split("\n").forEach((text, index) => {
+    if (held === "") start = index + 1;
+    if (text.endsWith("\\")) {
+      held += `${text.slice(0, -1)} `;
+      return;
+    }
+    joined.push({ text: held + text, line: start });
+    held = "";
+  });
+  if (held !== "") joined.push({ text: held, line: start });
+  return joined;
+}
+
+/** Every line of `source` the shell would run that can delete or replace. */
+export function destructiveLines(source: string): Array<{ text: string; line: number }> {
+  return logicalLines(source).filter(({ text }) => !/^\s*#/.test(text) && DESTRUCTIVE.test(text));
+}
+
+describe("the destructive-call detector reads what the shell would run", () => {
+  it("sees the verb however the call is spelled", () => {
+    for (const text of [
+      'rclone purge "R2:$BUCKET/$PREFIX"',
+      'rclone -q purge "R2:windwardline-archives/levelflow-cloud"',
+      'rclone --config /dev/null delete "R2:$BUCKET/$KEY"',
+      'rclone \\\n  purge "R2:windwardline-archives/levelflow-cloud"',
+      '  rclone deletefile "R2:$BUCKET/$KEY" || true',
+    ]) {
+      assert.equal(destructiveLines(text).length, 1, text);
+    }
+  });
+
+  it("leaves the reads and the write-once copy alone", () => {
+    for (const text of [
+      'rclone lsf --files-only "R2:$BUCKET/$DIR/" 2>"$STAGE/lsf.err"',
+      'rclone cat "R2:$BUCKET/$KEY" > "$RETURNED"',
+      'rclone copyto --immutable --s3-no-check-bucket "$ARCHIVE" "R2:$BUCKET/$KEY"',
+      '# rclone purge "R2:windwardline-archives/levelflow-cloud"',
+    ]) {
+      assert.deepEqual(destructiveLines(text), [], text);
+    }
+  });
+});
 
 describe("no script under scripts/ops prunes the permanent bucket", () => {
   // DERIVED, not listed: every file in scripts/ops is read, so a new pruner
@@ -600,28 +807,29 @@ describe("no script under scripts/ops prunes the permanent bucket", () => {
     for (const expected of ["push-archive-offbox.sh", "push-minute-bank-offbox.sh", "backup-postgres-offbox.sh"]) {
       assert.ok(population.includes(expected), `${expected} must be in the population`);
     }
-    const pruners = population.filter((file) =>
-      readFileSync(join("scripts/ops", file), "utf8").split("\n").some((line) => !/^\s*#/.test(line) && DESTRUCTIVE.test(line)),
+    const pruners = population.filter(
+      (file) => destructiveLines(readFileSync(join("scripts/ops", file), "utf8")).length > 0,
     );
     assert.deepEqual(pruners, ["backup-postgres-offbox.sh", "push-minute-bank-offbox.sh"]);
   });
 
   for (const file of population) {
     it(`${file}: no destructive rclone call can reach windwardline-archives`, () => {
-      const lines = readFileSync(join("scripts/ops", file), "utf8").split("\n");
-      const destructive = lines
-        .map((line, index) => ({ line, index }))
-        .filter(({ line }) => !/^\s*#/.test(line) && DESTRUCTIVE.test(line));
-      for (const { line } of destructive) {
-        assert.doesNotMatch(line, /windwardline-archives/, `${file} names the permanent bucket in a destructive call`);
+      const source = readFileSync(join("scripts/ops", file), "utf8");
+      const lines = source.split("\n");
+      const destructive = destructiveLines(source);
+      for (const { text } of destructive) {
+        // Named or reached through a variable, the permanent bucket is out of
+        // bounds for a delete in ANY file here, pruner or not.
+        assert.doesNotMatch(text, /windwardline-archives/, `${file} names the permanent bucket in a destructive call`);
         // The target must be the bucket variable the refusal governs, or the
         // refusal proves nothing about where the delete lands.
-        assert.match(line, /"R2:\$BUCKET\//, `${file}: a destructive call must target "R2:$BUCKET/...": ${line.trim()}`);
+        assert.match(text, /"R2:\$BUCKET\//, `${file}: a destructive call must target "R2:$BUCKET/...": ${text.trim()}`);
       }
       if (destructive.length > 0) {
         const refusal = lines.findIndex((line) => REFUSES_ARCHIVES.test(line));
         assert.ok(refusal >= 0, `${file} deletes and does not refuse windwardline-archives`);
-        assert.ok(refusal < destructive[0].index, `${file} must refuse the permanent bucket before its first delete`);
+        assert.ok(refusal + 1 < destructive[0].line, `${file} must refuse the permanent bucket before its first delete`);
       }
       // Anything that writes to the permanent bucket writes once.
       if (lines.some((line) => !/^\s*#/.test(line) && /windwardline-archives/.test(line) && !REFUSES_ARCHIVES.test(line))) {
@@ -632,33 +840,39 @@ describe("no script under scripts/ops prunes the permanent bucket", () => {
     });
   }
 
-  it("the minute-bank push refuses the permanent bucket before anything else", () => {
-    const sb = sandbox();
-    const r = spawnSync(BASH, ["scripts/ops/push-minute-bank-offbox.sh", join(sb.root, "no-such-snapshot-20260921")], {
-      encoding: "utf8",
-      env: { HOME: sb.home, PATH: `${sb.bin}:${toolsDir()}`, R2_TOKEN: "", LEVELFLOW_R2_BUCKET: "windwardline-archives" },
-    });
-    assert.equal(r.status, 1);
-    assert.match(`${r.stdout}${r.stderr}`, /refusing to run against windwardline-archives/);
-    assert.doesNotMatch(`${r.stdout}${r.stderr}`, /snapshot directory does not exist/);
-    assert.equal(rcloneCalls(sb).length, 0);
-  });
+  // rclone reads everything after `R2:` as bucket plus path, so an exact-match
+  // refusal on the bucket name is walked past by one suffix. Both forms run.
+  const SUFFIXED = ["windwardline-archives", "windwardline-archives/levelflow-cloud"];
 
-  it("the Postgres backup refuses the permanent bucket before it reads a credential", () => {
-    const sb = sandbox();
-    const r = spawnSync(BASH, ["scripts/ops/backup-postgres-offbox.sh"], {
-      encoding: "utf8",
-      env: {
-        HOME: sb.home,
-        PATH: `${sb.bin}:${toolsDir()}`,
-        R2_TOKEN: "",
-        PGPASSWORD: "",
-        LEVELFLOW_WL_SECRET: join(sb.root, "no-such-wl-secret"),
-        LEVELFLOW_R2_BUCKET: "windwardline-archives",
-      },
+  for (const bucket of SUFFIXED) {
+    it(`the minute-bank push refuses ${bucket} before anything else`, () => {
+      const sb = sandbox();
+      const r = spawnSync(BASH, ["scripts/ops/push-minute-bank-offbox.sh", join(sb.root, "no-such-snapshot-20260921")], {
+        encoding: "utf8",
+        env: { HOME: sb.home, PATH: `${sb.bin}:${toolsDir()}`, R2_TOKEN: "", LEVELFLOW_R2_BUCKET: bucket },
+      });
+      assert.equal(r.status, 1);
+      assert.match(`${r.stdout}${r.stderr}`, /refusing to run against windwardline-archives/);
+      assert.doesNotMatch(`${r.stdout}${r.stderr}`, /snapshot directory does not exist/);
+      assert.equal(rcloneCalls(sb).length, 0);
     });
-    assert.equal(r.status, 1);
-    assert.match(`${r.stdout}${r.stderr}`, /refusing to run against windwardline-archives/);
-    assert.doesNotMatch(`${r.stdout}${r.stderr}`, /wl-secret is not executable/);
-  });
+
+    it(`the Postgres backup refuses ${bucket} before it reads a credential`, () => {
+      const sb = sandbox();
+      const r = spawnSync(BASH, ["scripts/ops/backup-postgres-offbox.sh"], {
+        encoding: "utf8",
+        env: {
+          HOME: sb.home,
+          PATH: `${sb.bin}:${toolsDir()}`,
+          R2_TOKEN: "",
+          PGPASSWORD: "",
+          LEVELFLOW_WL_SECRET: join(sb.root, "no-such-wl-secret"),
+          LEVELFLOW_R2_BUCKET: bucket,
+        },
+      });
+      assert.equal(r.status, 1);
+      assert.match(`${r.stdout}${r.stderr}`, /refusing to run against windwardline-archives/);
+      assert.doesNotMatch(`${r.stdout}${r.stderr}`, /wl-secret is not executable/);
+    });
+  }
 });

@@ -16,23 +16,33 @@
 # prints on stdout, and it prints it only after the restore below has passed.
 #
 # WRITE-ONCE. An existing key is never replaced. The script streams the object
-# back and compares it with the archive it just built: the same bytes mean the
-# archive is already there, so it proves the restore again and exits 0;
-# different bytes are refused. `copyto --immutable` is the second barrier and
-# the bucket lock the third. A re-run can recognise its own object because the
-# archive is deterministic for an unchanged source: ustar (no pax atime, no
-# xattrs), COPYFILE_DISABLE (no AppleDouble entries), and a fixed zstd level.
+# back, restores it, and requires the restored tree to equal the source: that,
+# not byte equality with a fresh build, is what says the archive is intact.
+# `copyto --immutable` is the second barrier and the bucket lock the third.
 #
-# THE PROOF IS A RESTORE, NOT AN UPLOAD. After the upload the object is streamed
-# back (R2 egress is free), its md5 must equal the local archive's, and it is
-# decompressed and extracted into staging, where `diff -rq` against the source
-# must be empty. `rclone hashsum` on a multipart object reports metadata rclone
-# wrote itself, so it says nothing about the bytes R2 holds.
+# A REBUILD IS NOT A REFERENCE. The archive is deterministic for one build of
+# the tools — ustar (no pax atime, no xattrs), COPYFILE_DISABLE (no AppleDouble
+# entries), a fixed zstd level — and windwardline-toolchain-update runs
+# `brew upgrade --formula` daily, so tar and zstd both move. A rebuild that no
+# longer reproduces last year's bytes says nothing about the object R2 holds,
+# and reading it as "a different object" would turn a working archive into a
+# refusal a human has to adjudicate. Matching bytes are logged; a matching
+# RESTORE is what passes. The register row records the object R2 holds.
 #
-# CREDENTIALS exactly as push-minute-bank-offbox.sh: R2_TOKEN arrives from
-# wl-secret in the environment, the S3 secret is its SHA-256 computed here,
-# rclone is configured only through RCLONE_CONFIG_* variables so no rclone.conf
-# is written, and the token never reaches argv or a log.
+# THE PROOF IS A RESTORE, NOT AN UPLOAD. On both paths the object is streamed
+# back (R2 egress is free), decompressed and extracted into staging, where
+# `diff -rq` against the source must be empty. After an upload the returned
+# md5 must also equal what was sent, because there the bytes are known.
+# `rclone hashsum` on a multipart object reports metadata rclone wrote itself,
+# so it says nothing about the bytes R2 holds.
+#
+# CREDENTIALS exactly as push-minute-bank-offbox.sh: the S3 secret is R2_TOKEN's
+# SHA-256 computed here, rclone is configured only through RCLONE_CONFIG_*
+# variables so no rclone.conf is written, and the token never reaches argv or a
+# log. The script DELIVERS ITS OWN, by absolute path, as backup-minute-bank.sh
+# and backup-postgres-offbox.sh do: wl-secret wrapped around the launcher would
+# put the token in the environment of every process the launcher runs — git
+# fetch, git archive, tar — and only this one needs it.
 #
 # A TEMP SOURCE NEVER REACHES THE PERMANENT BUCKET. On 2026-09-01 a test
 # fixture reached production storage because a sandbox path produced a
@@ -90,6 +100,15 @@ under_temp() {
   return 1
 }
 
+# The re-exec guard is an ARGUMENT, not an environment variable: wl-secret runs
+# the child through `env -i`, so a variable set here would not survive to be
+# read on the other side and the script would re-exec forever.
+DELIVERED=0
+if [[ ${1:-} == --secrets-delivered ]]; then
+  DELIVERED=1
+  shift
+fi
+
 [[ $# -eq 2 ]] || die "usage: push-archive-offbox.sh <source-dir> <dataset>"
 SOURCE="$1"
 DATASET="$2"
@@ -118,7 +137,19 @@ fi
 
 command -v zstd >/dev/null || die "zstd is not installed (brew install zstd)"
 command -v rclone >/dev/null || die "rclone is not installed (brew install rclone)"
-[[ -n ${R2_TOKEN:-} ]] || die "R2_TOKEN is unset — invoke through: wl-secret cloudflare-r2-backup=R2_TOKEN -- $0 <source-dir> <dataset>"
+
+# --- self-delivery of the credential -----------------------------------------
+# Last of the pre-flight, so every refusal above runs BEFORE the Keychain is
+# read. wl-secret is located by ABSOLUTE PATH: ~/.local/bin joins PATH in
+# ~/.zshrc, which a launchd `/bin/zsh -lc` never sources, and a PATH lookup
+# that works from every interactive shell failed in the one environment a
+# schedule runs from (2026-09-02T05:36:29Z, backup-minute-bank.sh).
+if [[ -z ${R2_TOKEN:-} ]]; then
+  [[ $DELIVERED == 0 ]] || die "wl-secret ran and R2_TOKEN is still unset; refusing to re-exec again"
+  WL_SECRET="${LEVELFLOW_WL_SECRET:-$HOME/.local/bin/wl-secret}"
+  [[ -x $WL_SECRET ]] || die "wl-secret is not executable at $WL_SECRET; the R2 token cannot be read (set LEVELFLOW_WL_SECRET to relocate it)"
+  exec "$WL_SECRET" cloudflare-r2-backup=R2_TOKEN -- "$0" --secrets-delivered "$@"
+fi
 
 export RCLONE_CONFIG_R2_TYPE=s3
 export RCLONE_CONFIG_R2_PROVIDER=Cloudflare
@@ -149,7 +180,9 @@ cleanup() {
   [[ -n $STAGE && -d $STAGE ]] || return 0
   case $STAGE in "$STAGING_ROOT"/push.?*) ;; *) log "FAIL refusing to remove unexpected staging path $STAGE"; exit 1 ;; esac
   chmod -R u+w "$STAGE" 2>/dev/null || true
-  rm -rf "$STAGE"
+  # `|| true`, because errexit on a failed rm would skip the named report below
+  # and leave the caller with a bare exit status for a directory still on disk.
+  rm -rf "$STAGE" || true
   if [[ -e $STAGE ]]; then
     log "FAIL could not remove staging $STAGE; remove it by hand"
     exit 1
@@ -220,11 +253,8 @@ fetch_back() {
 }
 
 if [[ $EXISTS == 1 ]]; then
-  log "R2:$BUCKET/$KEY exists; streaming it back to compare"
+  log "R2:$BUCKET/$KEY exists; streaming it back to prove"
   fetch_back
-  REMOTE_MD5="$(md5_of "$RETURNED")" || die "cannot hash the returned object"
-  [[ $REMOTE_MD5 == "$LOCAL_MD5" ]] \
-    || die "R2:$BUCKET/$KEY already holds a different object (md5 $REMOTE_MD5, this archive $LOCAL_MD5); refusing to overwrite a permanent archive"
   STATUS="already archived"
 else
   log "uploading to R2:$BUCKET/$KEY"
@@ -232,24 +262,45 @@ else
     || die "upload to R2:$BUCKET/$KEY failed: $(rclone_error "$STAGE/copyto.err")"
   log "uploaded; streaming the object back"
   fetch_back
-  REMOTE_MD5="$(md5_of "$RETURNED")" || die "cannot hash the returned object"
+  STATUS="archived"
+fi
+
+REMOTE_MD5="$(md5_of "$RETURNED")" || die "cannot hash the returned object"
+[[ $REMOTE_MD5 =~ $MD5_RE ]] || die "not an md5: '$REMOTE_MD5'"
+REMOTE_BYTES="$(wc -c < "$RETURNED" | tr -d ' ')"
+
+if [[ $STATUS == archived ]]; then
+  # These bytes were sent from here, so anything else came back wrong.
   [[ $REMOTE_MD5 == "$LOCAL_MD5" ]] \
     || die "the object R2 returned does not match what was uploaded (md5 $REMOTE_MD5, uploaded $LOCAL_MD5) at $KEY"
-  STATUS="archived"
+elif [[ $REMOTE_MD5 != "$LOCAL_MD5" ]]; then
+  log "NOTE the object's md5 $REMOTE_MD5 differs from this rebuild's $LOCAL_MD5; tar or zstd moved. The restore below decides, not these bytes"
 fi
 
 # --- the restore --------------------------------------------------------------
 RESTORE="$STAGE/restore"
 mkdir "$RESTORE"
+WHY=""
 if ! zstd -q -dc "$RETURNED" | tar -xf - -C "$RESTORE"; then
-  die "the object R2 returned did not extract"
+  WHY="the object R2 returned did not extract"
+elif [[ "$(ls -A "$RESTORE")" != "$NAME" ]]; then
+  WHY="the restored tree does not hold $NAME alone: $(ls -A "$RESTORE" | tr '\n' ' ')"
+else
+  DIFF_RC=0
+  DIFF_OUT="$(diff -rq "$SRC" "$RESTORE/$NAME" 2>&1)" || DIFF_RC=$?
+  [[ $DIFF_RC == 0 && -z $DIFF_OUT ]] \
+    || WHY="the restored tree differs from the source (diff exit $DIFF_RC): $(printf '%s\n' "$DIFF_OUT" | head -n 5 | tr '\n' ' ')"
 fi
-[[ "$(ls -A "$RESTORE")" == "$NAME" ]] || die "the restored tree does not hold $NAME alone: $(ls -A "$RESTORE" | tr '\n' ' ')"
-DIFF_RC=0
-DIFF_OUT="$(diff -rq "$SRC" "$RESTORE/$NAME" 2>&1)" || DIFF_RC=$?
-[[ $DIFF_RC == 0 && -z $DIFF_OUT ]] \
-  || die "the restored tree differs from the source (diff exit $DIFF_RC): $(printf '%s\n' "$DIFF_OUT" | head -n 5 | tr '\n' ' ')"
+if [[ -n $WHY ]]; then
+  [[ $STATUS != "already archived" ]] \
+    || die "R2:$BUCKET/$KEY already holds a different object (md5 $REMOTE_MD5, this archive $LOCAL_MD5): $WHY; refusing to overwrite a permanent archive"
+  die "$WHY"
+fi
 
 log "restore proven, $STATUS: R2:$BUCKET/$KEY"
+# Staging goes before the row, not after: on the trap it would run once stdout
+# was already written, and a removal that failed would exit 1 under a row the
+# runbook had appended to the register with `>>`.
+cleanup
 printf '| %s | %s | %s | %s | %s | %s |\n' \
-  "$BUCKET/$KEY" "$ARCHIVE_BYTES" "$LOCAL_MD5" "$FILES" "$SRC_BYTES" "$(date -u +%F)"
+  "$BUCKET/$KEY" "$REMOTE_BYTES" "$REMOTE_MD5" "$FILES" "$SRC_BYTES" "$(date -u +%F)"

@@ -74,7 +74,11 @@ die() { log "FAIL $*"; exit 1; }
 # NEVER the permanent bucket. This script prunes, and windwardline-archives is
 # write-once (docs/offbox-archives.md). The bucket is overridable for tests, so
 # the refusal is by name, not by trust in whoever set the variable.
-[[ $BUCKET != windwardline-archives ]] || die "refusing to run against windwardline-archives: this script prunes, and that bucket is write-once"
+#
+# On the FIRST PATH SEGMENT, because rclone reads everything after `R2:` as a
+# bucket plus a path: an exact-match refusal is walked past by one suffix, and
+# `windwardline-archives/levelflow-cloud` then addresses the permanent bucket.
+[[ ${BUCKET%%/*} != windwardline-archives ]] || die "refusing to run against windwardline-archives: this script prunes, and that bucket is write-once"
 
 # --- self-delivery of secrets ------------------------------------------------
 # The launchd plist invokes this script directly, exactly like its minute-bank
