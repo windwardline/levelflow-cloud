@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+
+import { DESK_PARKED } from "../supabase/functions/_shared/deskParking.ts";
+import { noKeychainEnv } from "./support/noKeychain.ts";
 
 /**
  * The E2E suites spend nothing they do not mean to.
@@ -9,12 +13,15 @@ import { describe, it } from "node:test";
  * remembered tab lands on the Desk, which asks market-data for a chart and
  * forces refresh_outcomes. Its comments said it never signed in and touched no
  * market data; on 2026-09-15 the chart feed recorded 51,246,247 user-class
- * bytes on a deploy whose FMP-spending projects had stood down. The spec now
- * stubs both calls in the browser and fails on any other function call.
+ * bytes over a day of 12 deploys whose FMP-spending projects had stood down
+ * (the ledger keeps one row per day and class, so attributing that total to
+ * public-auth is inferred). The spec now stubs both calls in the browser and
+ * fails on any other function call.
  *
- * These are SOURCE guards. The executed half — every signed-in test's afterEach
- * and the externals test's poll for a stubbed chart request — runs only at
- * deploy time, with the E2E credentials this suite does not hold.
+ * Most of these are SOURCE guards. The executed half — every signed-in test's
+ * afterEach and the externals test's poll for a stubbed chart request — runs
+ * only at deploy time, with the E2E credentials this suite does not hold. The
+ * config's local stand-down is executed here.
  */
 
 const PUBLIC_AUTH = readFileSync("tests/e2e/public-auth.spec.ts", "utf8");
@@ -100,7 +107,56 @@ describe("the workspace stands down only for the Edge's daily ceiling", () => {
   });
 });
 
+const ALL_PROJECTS = ["analyzer-abuse", "cleanup", "public-auth", "public-auth-built", "visual-proof", "workspace"];
+
+/**
+ * The config as it evaluates, in a child that owns its environment: importing
+ * it here would set LEVELFLOW_E2E_FMP_PROJECTS for this whole process, and a
+ * second import would return the first one's cached projects. `--tsconfig` is
+ * deliberately absent — with it, tsx's `--eval` printed nothing and exited 0.
+ */
+function evaluatedConfig(scope: string | undefined): { projects: string[]; scope: string | null } {
+  const env: NodeJS.ProcessEnv = { ...process.env, ...noKeychainEnv() };
+  delete env.LEVELFLOW_E2E_FMP_PROJECTS;
+  if (scope !== undefined) env.LEVELFLOW_E2E_FMP_PROJECTS = scope;
+  const probe =
+    'import("./playwright.config.ts").then(({ default: config }) => { process.stdout.write(JSON.stringify({ ' +
+    "projects: (config.projects ?? []).map((project) => project.name).sort(), " +
+    "scope: process.env.LEVELFLOW_E2E_FMP_PROJECTS ?? null })); })";
+  const run = spawnSync(process.execPath, ["./node_modules/.bin/tsx", "--eval", probe], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    env,
+  });
+  assert.equal(run.status, 0, `playwright.config.ts did not evaluate: ${run.stderr}`);
+  assert.ok(run.stdout.trim().length > 0, "the config probe printed nothing, which is no verdict");
+  return JSON.parse(run.stdout) as { projects: string[]; scope: string | null };
+}
+
 describe("a local E2E run stands the FMP projects down while the Edge is parked", () => {
+  it("runs only public-auth when the scope is unset and DESK_PARKED is true, and says so", () => {
+    // EXECUTED, because a source pin on the predicate held while the filter it
+    // feeds was gone: review mutation R15 replaced the ternary with `projects,`
+    // and the suite stayed green. While the Edge is not yet parked, this filter
+    // is all that keeps a local `npm run test:e2e` off the provider.
+    const unset = evaluatedConfig(undefined);
+    if (DESK_PARKED) {
+      assert.deepEqual(unset.projects, ["public-auth", "public-auth-built"]);
+      assert.equal(unset.scope, "stood-down-parked", "the coverage reporter would not say what stood down");
+    } else {
+      assert.deepEqual(unset.projects, ALL_PROJECTS);
+      assert.equal(unset.scope, null);
+    }
+  });
+
+  it("runs every project when deploy.yml has decided the scope", () => {
+    for (const scope of ["ran", "stood-down", "stood-down-parked"]) {
+      const decided = evaluatedConfig(scope);
+      assert.deepEqual(decided.projects, ALL_PROJECTS, `scope=${scope} narrowed the projects`);
+      assert.equal(decided.scope, scope, `the config overwrote deploy.yml's scope=${scope}`);
+    }
+  });
+
   it("imports DESK_PARKED and keys the stand-down on an unset scope variable", () => {
     assert.match(CONFIG, /import \{ DESK_PARKED \} from "\.\/supabase\/functions\/_shared\/deskParking\.ts";/);
     assert.match(
