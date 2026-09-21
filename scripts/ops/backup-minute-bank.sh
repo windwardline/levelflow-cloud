@@ -40,13 +40,30 @@ REPO="${LEVELFLOW_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 # week removing: the verify branch and the protected-name branch are the two
 # that matter, and neither is provable without running them.
 BANK="${LEVELFLOW_BANK_DIR:-$REPO/.minute-bank}"
-DEST_ROOT="${LEVELFLOW_BACKUP_ROOT:-/Users/peacock}"
+# WHERE THE SNAPSHOTS LIVE. Until 2026-09-21 the default was the home folder
+# itself, and a new dated directory appeared there every day beside the
+# owner's own files — sixteen of them when the owner asked what they were.
+# ~/.local/share is the per-user data directory: same disk, outside the
+# repository (no `git clean -dfx` reaches it), out of the owner's way. The
+# path has no spaces because the plist hands its whole command to `zsh -lc` as
+# one string, and an override set there would split on one. Created below if
+# absent; LEVELFLOW_BACKUP_ROOT still overrides, which is how the tests run it.
+DEST_ROOT="${LEVELFLOW_BACKUP_ROOT:-$HOME/.local/share/levelflow-cloud/minute-bank-snapshots}"
 STAMP="$(date -u +%Y%m%d)"
 DEST="$DEST_ROOT/levelflow-minute-bank-snapshot-$STAMP"
-# Keep a fortnight. The bank only ever grows, so an older snapshot is a strict
-# subset of a newer one and the retention window is about surviving a
-# corruption nobody noticed for a while, not about depth.
-KEEP="${LEVELFLOW_BACKUP_KEEP:-14}"
+# ONE LOCAL DAILY, plus the protected snapshot below. Depth lives off-box: R2
+# keeps 60 verified archives and protects 20260823 by name in its own prune,
+# so the local copy is the staging copy the push archives from and one
+# offline restore point, not the history. The bank only ever grows, so an
+# older snapshot is a strict subset of a newer one; the fourteen kept here
+# until 2026-09-21 duplicated what R2 already held.
+#
+# The prune cannot outrun the push. It runs only after the push has verified
+# the remote object AND the parity check has found every local snapshot in
+# the remote listing, because either failure exits before the prune is
+# reached. A snapshot that never made it off the machine is never the one
+# deleted.
+KEEP="${LEVELFLOW_BACKUP_KEEP:-1}"
 
 log() { echo "$(date -u +%FT%TZ) $*"; }
 
@@ -105,6 +122,10 @@ log "bank: $SRC_FILES symbols, $SRC_BARS bars"
 # path and moved into place, so an interrupted copy never replaces a good
 # snapshot with a partial one.
 TMP="$DEST.partial"
+# Created, not assumed: the default root sits under ~/.local/share, which a
+# fresh machine need not have, and `cp -R` into a missing parent fails naming
+# the .partial path rather than the root that is actually absent.
+mkdir -p "$DEST_ROOT" || { log "FAIL cannot create the snapshot root $DEST_ROOT"; exit 1; }
 rm -rf "$TMP"
 cp -R "$BANK" "$TMP"
 
@@ -181,6 +202,14 @@ EXCESS=$(( TOTAL - KEEP ))
 if [ "$EXCESS" -gt 0 ]; then
   printf "%b" "$PRUNABLE" | sort | head -n "$EXCESS" | while IFS= read -r old; do
     [ -n "$old" ] || continue
+    # Never the snapshot this run just placed and pushed. Oldest-first keeps
+    # the newest NAME, and with one daily kept a directory stamped later than
+    # today — a skewed clock, a hand copy — would make today's the one
+    # deleted, leaving a snapshot nobody verified as the only local copy.
+    if [ "$old" = "$DEST" ]; then
+      log "keeping $old (placed and pushed by this run)"
+      continue
+    fi
     log "pruning $old"
     rm -rf "$old"
   done

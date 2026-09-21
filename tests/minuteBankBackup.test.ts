@@ -3,14 +3,13 @@ import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   readdirSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { describe, it } from "node:test";
+import { scratchDir } from "./support/scratchDir.ts";
 
 /**
  * R0b: the minute bank's RECURRING backup.
@@ -34,7 +33,7 @@ const SOURCE = readFileSync(SCRIPT, "utf8");
 
 /** A sandbox bank with `symbols` files and one bar each, plus a dest root. */
 function sandbox(symbols: string[]) {
-  const root = mkdtempSync(join(tmpdir(), "bank-backup-"));
+  const root = scratchDir("bank-backup-");
   const bank = join(root, "bank");
   const dest = join(root, "dest");
   mkdirSync(bank);
@@ -98,7 +97,10 @@ describe("the backup copies and then PROVES it copied", () => {
     // with today's empty one, and exiting 0.
     const { bank, dest } = sandbox(["EURUSD"]);
     assert.equal(run(bank, dest).code, 0);
-    const empty = mkdtempSync(join(tmpdir(), "empty-bank-"));
+    // Inside a scratch root, not beside one: the lock is taken at
+    // `<bank>.lock`, a sibling of the bank.
+    const empty = join(scratchDir("empty-bank-"), "bank");
+    mkdirSync(empty);
     const second = run(empty, dest);
     assert.notEqual(second.code, 0, "an empty bank exited zero");
     assert.match(second.out, /refusing to write an empty snapshot/);
@@ -332,5 +334,208 @@ describe("the off-box step under launchd's environment", () => {
     // quietly in a refactor that keeps the tests' stub on PATH.
     assert.doesNotMatch(SOURCE, /command -v wl-secret/);
     assert.match(SOURCE, /\$\{LEVELFLOW_WL_SECRET:-\$HOME\/\.local\/bin\/wl-secret\}/);
+  });
+});
+
+describe("the snapshots live under ~/.local/share and one daily is kept", () => {
+  // THE COMPLAINT (owner, 2026-09-21): dated `levelflow-minute-bank-snapshot-*`
+  // directories kept appearing in the home folder. The default root WAS the
+  // home folder, and the default retention kept fourteen of them there, beside
+  // the owner's own files, while R2 already held a verified archive of each.
+  //
+  // Every case here leaves LEVELFLOW_BACKUP_ROOT and LEVELFLOW_BACKUP_KEEP
+  // unset, because the defaults are the claim. They run under a sandbox HOME
+  // with a recording wl-secret stub and launchd's PATH, and they build the
+  // environment from nothing rather than from `process.env`, so no inherited
+  // override can stand in for the default being tested.
+  const LAUNCHD_PATH = "/usr/bin:/bin:/usr/sbin:/sbin";
+  const DEFAULT_ROOT = [".local", "share", "levelflow-cloud", "minute-bank-snapshots"];
+
+  /**
+   * THE BARRIER, and it runs before a single line of the script does.
+   *
+   * These cases execute the script at its DEFAULT root, and until 2026-09-21
+   * that default was the real home folder — where a run places a snapshot and
+   * then PRUNES. The red run of this block against that script would have
+   * deleted real snapshots from the owner's home. So the default is read out
+   * of the source and resolved against the sandbox HOME first, and the script
+   * runs only when it lands inside the sandbox. A red test runs the code it is
+   * written against; this is what makes that safe.
+   */
+  function defaultRootInside(home: string): string {
+    const code = SOURCE.split("\n")
+      .map((line) => line.replace(/(^|\s)#.*$/, "$1"))
+      .join("\n");
+    assert.doesNotMatch(
+      code,
+      /\/Users\//,
+      "the script names a literal /Users/ path — refusing to run it, because its default could reach the real home folder",
+    );
+    const assignments = code.match(/^\s*DEST_ROOT=/gm) ?? [];
+    assert.equal(assignments.length, 1, "DEST_ROOT is assigned more than once — re-anchor this barrier before running anything");
+    const match = code.match(/^DEST_ROOT="\$\{LEVELFLOW_BACKUP_ROOT:-([^}]*)\}"\s*$/m);
+    assert.ok(match, "DEST_ROOT's default moved — re-anchor this barrier before running anything");
+    const expr = match[1];
+    assert.ok(
+      expr.startsWith("$HOME/"),
+      `the default snapshot root is ${expr}, not a path under $HOME — refusing to run the script`,
+    );
+    const rest = expr.slice("$HOME/".length);
+    assert.doesNotMatch(rest, /[$`]|(^|\/)\.\.(\/|$)/, `the default root escapes $HOME: ${expr}`);
+    const resolved = resolve(home, rest);
+    assert.ok(resolved.startsWith(home + sep), `the default root resolves outside the sandbox: ${resolved}`);
+    return resolved;
+  }
+
+  /** A sandbox HOME whose wl-secret stub records its argv and exits `pushCode`. */
+  function sandboxHome(pushCode = 0) {
+    const { bank, root } = sandbox(["EURUSD", "BTCUSD"]);
+    const home = join(root, "home");
+    mkdirSync(join(home, ".local", "bin"), { recursive: true });
+    const calls = join(root, "wl-secret.calls");
+    writeFileSync(
+      join(home, ".local", "bin", "wl-secret"),
+      `#!/bin/sh\nprintf '%s\\n' "$*" >> "${calls}"\nexit ${pushCode}\n`,
+      { mode: 0o755 },
+    );
+    return { bank, calls, home, snapRoot: join(home, ...DEFAULT_ROOT) };
+  }
+
+  /** Seed the default root with pre-existing snapshots, as earlier runs leave it. */
+  function seed(snapRoot: string, stamps: string[]) {
+    for (const stamp of stamps) {
+      const dir = join(snapRoot, `levelflow-minute-bank-snapshot-${stamp}`);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "EURUSD.jsonl"), '{"date":"old"}\n');
+    }
+  }
+
+  function runAtDefault(bank: string, home: string): { code: number; out: string } {
+    defaultRootInside(home);
+    try {
+      const out = execFileSync("bash", [SCRIPT], {
+        encoding: "utf8",
+        env: { HOME: home, LEVELFLOW_BANK_DIR: bank, PATH: LAUNCHD_PATH },
+      });
+      return { code: 0, out };
+    } catch (error) {
+      const shell = error as { status?: number; stderr?: string; stdout?: string };
+      return { code: shell.status ?? 1, out: `${shell.stdout ?? ""}${shell.stderr ?? ""}` };
+    }
+  }
+
+  /** The stamp this run placed: the one snapshot that was not seeded. */
+  function placedStamp(snapRoot: string, seeded: string[]): string {
+    const fresh = snapshots(snapRoot)
+      .map((name) => name.slice("levelflow-minute-bank-snapshot-".length))
+      .filter((stamp) => !seeded.includes(stamp));
+    assert.equal(fresh.length, 1, `expected exactly one new snapshot, found: ${fresh.join(", ")}`);
+    return fresh[0];
+  }
+
+  it("places the snapshot under ~/.local/share/levelflow-cloud/minute-bank-snapshots, creating the root", () => {
+    // A fresh HOME has no ~/.local/share at all, so this also proves the
+    // script creates its root rather than assuming one.
+    const { bank, calls, home, snapRoot } = sandboxHome();
+    assert.ok(!existsSync(join(home, ".local", "share")), "the sandbox already had the root");
+    const { code, out } = runAtDefault(bank, home);
+    assert.equal(code, 0, out);
+    const made = snapshots(snapRoot);
+    assert.equal(made.length, 1, out);
+    assert.equal(
+      readdirSync(join(snapRoot, made[0])).filter((n) => n.endsWith(".jsonl")).length,
+      2,
+    );
+    // Nothing lands in the home folder itself: `.local` is the only entry,
+    // and it was there before the run.
+    assert.deepEqual(readdirSync(home), [".local"]);
+    // The push was handed the snapshot at its new path.
+    const prefix = join(snapRoot, "levelflow-minute-bank-snapshot-").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    assert.match(
+      readFileSync(calls, "utf8"),
+      new RegExp(`-- \\S+/scripts/ops/push-minute-bank-offbox\\.sh ${prefix}\\d{8}\\n$`),
+    );
+  });
+
+  it("keeps one daily by default, and the protected corpus besides it", () => {
+    const seeded = ["20260823", "20260824", "20260825", "20260826"];
+    const { bank, home, snapRoot } = sandboxHome();
+    seed(snapRoot, seeded);
+    const { code, out } = runAtDefault(bank, home);
+    assert.equal(code, 0, out);
+    const today = placedStamp(snapRoot, seeded);
+    assert.deepEqual(snapshots(snapRoot), [
+      "levelflow-minute-bank-snapshot-20260823",
+      `levelflow-minute-bank-snapshot-${today}`,
+    ]);
+    assert.match(out, /protected: the naive-era corpus/);
+    assert.match(out, /keeping 1$/m);
+  });
+
+  it("prunes nothing when the push fails", () => {
+    // Place, push, prune — in that order. With one daily kept, a prune that
+    // ran after a failed push would leave only a snapshot nothing off-box has.
+    const seeded = ["20260824"];
+    const { bank, home, snapRoot } = sandboxHome(1);
+    seed(snapRoot, seeded);
+    const { code, out } = runAtDefault(bank, home);
+    assert.equal(code, 1, out);
+    assert.match(out, /FAIL off-box push did not complete/);
+    assert.doesNotMatch(out, /pruning /);
+    placedStamp(snapRoot, seeded);
+    assert.ok(
+      snapshots(snapRoot).includes("levelflow-minute-bank-snapshot-20260824"),
+      `yesterday's pushed snapshot was pruned behind a failed push: ${snapshots(snapRoot).join(", ")}`,
+    );
+  });
+
+  it("never prunes the snapshot it just pushed, even when a later-named one exists", () => {
+    // Oldest-first keeps the newest NAME. A directory stamped after today —
+    // a skewed clock, a hand copy — would otherwise make today's the one
+    // deleted.
+    const seeded = ["29991231"];
+    const { bank, home, snapRoot } = sandboxHome();
+    seed(snapRoot, seeded);
+    const { code, out } = runAtDefault(bank, home);
+    assert.equal(code, 0, out);
+    const today = placedStamp(snapRoot, seeded);
+    assert.match(out, new RegExp(`keeping \\S+-${today} \\(placed and pushed by this run\\)`));
+  });
+
+  it("leaves a root that is parity-clean against a remote holding the protected archive", () => {
+    // What the push's own parity check sees on the NEXT run: the protected
+    // corpus and one daily. local ⊆ remote holds because R2 keeps 60 and
+    // protects 20260823 by name in its own prune.
+    const seeded = ["20260823", "20260824", "20260825"];
+    const { bank, home, snapRoot } = sandboxHome();
+    seed(snapRoot, seeded);
+    assert.equal(runAtDefault(bank, home).code, 0);
+    const today = placedStamp(snapRoot, seeded);
+    const listing = (stamps: string[]) =>
+      stamps
+        .map((s) => `levelflow-cloud/minute-bank/${s.slice(0, 4)}/${s.slice(4, 6)}/minute-bank-${s}.tar.zst\n`)
+        .join("");
+    const parity = (remote: string) => {
+      try {
+        const out = execFileSync("bash", ["scripts/ops/check-minute-bank-parity.sh", snapRoot], {
+          encoding: "utf8",
+          input: remote,
+        });
+        return { code: 0, out };
+      } catch (error) {
+        const shell = error as { status?: number; stderr?: string; stdout?: string };
+        return { code: shell.status ?? 1, out: `${shell.stdout ?? ""}${shell.stderr ?? ""}` };
+      }
+    };
+
+    const clean = parity(listing(["20260823", "20260824", "20260825", today]));
+    assert.equal(clean.code, 0, clean.out);
+    assert.match(clean.out, /parity ok: 2 local snapshot\(s\), all present off-box/);
+
+    // The dependency, stated by execution: were the remote prune ever to stop
+    // protecting 20260823, the local copy of it would fail parity by name.
+    const unprotected = parity(listing(["20260824", "20260825", today]));
+    assert.equal(unprotected.code, 1, unprotected.out);
+    assert.match(unprotected.out, /PARITY FAILED: .*20260823/);
   });
 });
