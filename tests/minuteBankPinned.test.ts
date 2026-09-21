@@ -281,6 +281,9 @@ describe("the run gate reads the checkout's marker from the extracted tree", () 
     assert.match(unmarked.out, /reason=noCleanRun/);
     assert.match(unmarked.out, /under the temporary root/);
     writeRunMarker(join(checkout, ".fmp-state", "runs"), "minute-bank", { atMs: Date.now(), dir: realpathSync(bank) });
+    // A backup holds the lock: a skip must not wait on it, or go red over it.
+    mkdirSync(`${bank}.lock`);
+    writeFileSync(join(`${bank}.lock`, "pid"), `${process.pid}\n`);
     const marked = daily();
     assert.equal(marked.code, 0, marked.out);
     assert.match(marked.out, /minute-bank run skipped by the run gate/);
