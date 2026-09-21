@@ -28,6 +28,9 @@
   `deploy.yml` deploys the functions and, with the Edge open, runs the full E2E
   against it. Lower `PARKING_GATE` only after that run is green. Parking is the
   reverse: raise `PARKING_GATE` first (or both together), then §17p's logout.
+  Before the first push, read GoTrue's hosted sign-up setting from the
+  dashboard, because no file here states it, and decide whether the owner's
+  `?enter` session is exempt (amendment 47).
   **Reopening is NOT just the flags.** `docs/HANDOFF.md` ranks R6 as pre-reopen
   and records what a reopen still owes: reader-facing figures still sourced
   from the corpus the 2026-08-11 programme condemned, a live magic-link
