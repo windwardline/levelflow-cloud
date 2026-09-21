@@ -46,9 +46,9 @@ established by measurement rather than assumption.
 
 ## Shape
 
-One JSONL file per provider symbol, one bar per line, appended in chronological
-order. A sidecar holds the high-water mark, a recent-key window for deduplication,
-and the last thirty run records.
+One JSONL file per provider symbol, one bar per line, **in append order, not
+chronological order — sort by `date` on read.** A sidecar holds the high-water mark,
+a recent-key window for deduplication, and the last thirty run records.
 
 ```
 .minute-bank/EURUSD.jsonl        {"date":"2026-08-06 09:30:00","open":…}
@@ -57,6 +57,31 @@ and the last thirty run records.
 
 Keys are the raw date strings, which sort chronologically because the format is
 zero-padded. Re-running the same day is safe: overlapping bars are dropped by key.
+
+Each run appends its fresh bars oldest-first, so a run's block is ordered. The file
+is not, because the provider sometimes omits a minute and serves it on a later call.
+The later run appends that minute after its own newest bar. Measured 2026-09-21 across
+3,395,668 bars:
+
+| | |
+| --- | --- |
+| backward date steps | 664, in 76 of 100 files |
+| traceable to a run through the sidecars | 252 |
+| of those, at a run boundary | 252; none inside a run's block |
+| of those, filling a hole inside coverage already banked | 252 — e.g. 12:59 and 13:02 banked, 13:00 served later |
+| how far back | 1 minute to 24.3 hours, median about 13 |
+| date formats | one; no instant appears under two strings |
+| duplicates | none |
+
+The other 412 steps predate the thirty runs a sidecar remembers, so they are
+consistent with the mechanism rather than proven by it. Nothing is lost or
+duplicated, and a sort by `date` yields the true series. The files are deliberately
+not rewritten into order: the bank is unrecoverable, and a reader-side sort costs
+nothing.
+
+De-duplication holds because the key window outlasts the provider's: 8,000 keys
+against a largest single-run fetch of 4,276 bars. Late fills reach back a day at
+most, so they fall well inside it.
 
 A bar is banked only if its date is present and all four prices are finite. A
 malformed bar is dropped and counted — never repaired, and never given the run time
@@ -95,6 +120,80 @@ against the local archive before reporting success. The push is not optional: a
 missing credential, a failed upload or a mismatched hash each exit non-zero, because
 `ops/agent-exit-status.sh` reads the launchd exit code and a silent skip would render
 as a healthy backup.
+
+## The two jobs cannot run at once
+
+The bank appends `<symbol>.jsonl` and then writes `<symbol>.state.json` as two
+separate, non-atomic steps. A copy taken while that is happening can hold a torn
+final line, or a sidecar that disagrees with the data file beside it.
+
+Between 2026-09-17 and 2026-09-21 the backup failed eight times, always the same
+way:
+
+```
+VERIFY FAILED: copied 100/3332370 against 100/3326559 — leaving the previous snapshot intact
+```
+
+The copy held *more* bars than the reference count read moments earlier, because
+a bank run was appending underneath it. Nothing reached R2 after 2026-09-19
+while the bank grew by another 107,000 bars, which is the single-location
+exposure R0b exists to remove.
+
+The count check caught this by luck rather than by design. It was written for a
+short copy from a full disk, and a copy taken between the append and the sidecar
+write matches on bar count while still being internally inconsistent — so
+accepting the larger copy would have shipped corruption off-box and reported
+success. The verify is therefore unchanged. What was missing is the guarantee
+that nothing writes while the backup reads.
+
+`scripts/ops/bank-lock.sh` is that guarantee. Both scripts source it and take an
+exclusive lock on `.minute-bank.lock` before touching the store: the bank before
+it reads the keychain, so a refusal costs no provider traffic, and the backup
+before its first count. The backup releases as soon as the snapshot is placed,
+because the archive and the upload work from the frozen copy and there is no
+reason to hold the bank for them.
+
+Staggering the schedule would not have worked. Both plists carry `RunAtLoad`
+deliberately, for the same reason — a machine asleep at 07:20 or 20:10 has missed
+a window — so they co-fire on every login and reload, which is where six of the
+eight failures came from. No choice of clock fixes two jobs that are both correct
+to run at load, and a clock does nothing for the hand-run path: the
+`levelflow-bank-minute-bars` scheduled task tells an agent to run the bank by
+hand when it has stalled, which can land on top of the 20:10 backup.
+
+A lock adds two new ways to stop the work quietly, and both are closed. A lock
+naming a dead or unreadable holder is broken by rename — never by deleting in
+place, which would let two waiters both believe they won — and the break is
+logged. A lock that cannot be taken within `LEVELFLOW_BANK_LOCK_TIMEOUT`
+(900s) gives up non-zero with a reason, because `ops/agent-exit-status.sh` reads
+the launchd exit code and a quiet skip renders as a healthy backup.
+
+The helper refuses to load outside bash. zsh fires an `EXIT` trap set inside a
+function when that function returns, so under zsh the release backstop deleted
+the lock the instant it was taken — the caller was told it held a lock it did
+not. Both launchd jobs run under bash through their shebangs and were never
+exposed; the production check after #658 was, because it held the lock from an
+agent's zsh and the backup walked straight through.
+
+`tests/minuteBankLock.test.ts` exercises all of it against the real scripts,
+including the original failure: a live writer holding the lock and appending
+while the backup wants to copy. Each guard below was deleted in turn and the
+suite failed every time:
+
+| Mutation | What it removed |
+| --- | --- |
+| M1 | the backup's lock acquisition |
+| M2 | the stale-lock break |
+| M3 | the non-zero exit on timeout |
+| M4 | the bank's lock acquisition |
+| M5 | the pid sanity check (`kill -0 0` hits the process group) |
+| M6 | the ownership check on release |
+| M7 | the fall-through that bounds an unbreakable lock |
+| M8 | the bash-only guard |
+
+M6 survived at first, which is how the release path's ownership check was found
+to be untested. M7 is the one that found a defect in the lock itself: an
+unbreakable lock spun past its own deadline check and never timed out.
 
 The remote layout is a contract, and it generalizes past this dataset:
 
@@ -143,6 +242,54 @@ Twice rather than once because the cost of an extra run is nothing — it append
 only what is new — and the cost of a missed window is permanent. launchd rather
 than an in-app scheduler for the same reason: a job that only fires while an app
 happens to be open is not a guarantee, and this one catches up on wake.
+
+### It runs `origin/main`, and names the checkout for its data
+
+Since 2026-09-20 the job runs through `wl-repo-script`, as both backups already did.
+It used to name a path in the shared checkout, so it ran whatever branch a concurrent
+session had out at 07:20. The launcher extracts `origin/main` into a temporary tree,
+and that tree carries code and no ignored data. That split takes more than the plist
+to get right, because the bank touches three pieces of data and each would have
+failed silently:
+
+| Data | Resolved from | Unnamed, it would have |
+| --- | --- | --- |
+| the bank | `LEVELFLOW_CHECKOUT/.minute-bank` | been created in the temp tree by the bank's `mkdir -p`, filled, and deleted |
+| `.fmp-usage.json` | `scripts/checkoutState.ts` | read as empty — the governor believing nothing had been spent |
+| `.fmp-circuit.json` | `scripts/checkoutState.ts` | read as closed, whatever the provider had said |
+
+The plist passes `LEVELFLOW_CHECKOUT`. The daily script refuses a bank that does not
+exist rather than creating one, `checkoutState.ts` refuses a named checkout that does
+not exist, and `node_modules` is linked from the checkout rather than installed.
+
+One more defect surfaced only because the tree lives in `mktemp -d`. The bank's
+entry guard compared `import.meta.url`, which Node resolves through symlinks, against
+`process.argv[1]`, which it does not. Under `/var/folders` — a symlink into
+`/private` on macOS — they never match, `main` is skipped, and the process exits 0
+having banked nothing: twice a day, with a completed run logged each time.
+`scripts/isEntryPoint.ts` compares real paths, and the two other scripts that
+carried the same guard use it too.
+
+**No test may spend FMP bandwidth.** On 2026-09-20 the suite ran the daily script
+against real FMP six times, and each time the keychain answered and a full roster was
+fetched:
+
+| UTC | Into | Cause |
+| --- | --- | --- |
+| 01:37:21, 01:37:31 | **the production bank** | two red runs of #658's lock test — before the lock, the script ignored `LEVELFLOW_BANK_DIR` |
+| 01:53:47, 01:53:57 | sandboxes | mutations that let the script past the lock |
+| 02:43:07, 02:43:51 | sandboxes | two red runs of #660's missing-bank test, before that refusal existed |
+
+1,684,404 bars in all. One run measured in isolation later that night cost 41.5 MB
+for 286,167 bars, which puts the six at about 244 MB. The two production runs
+appended 2,894 bars through the bank's normal de-duplication: real bars, sidecars
+matching their files, and no ordering violation among them. The #660 record first
+said four runs and 270 MB; the four were only the sandboxes, and the figure was
+divided out of a daily ledger that also held the cache top-up. Two barriers now
+stand between the suite and the provider. `tests/support/noKeychain.ts` shadows `security` on `PATH`, so
+no test can read the key. The script itself refuses a bank under a temporary root, so
+a barrier the caller forgot still holds. The mutation run that proved them recorded
+zero sandbox writes and an untouched ledger across eight mutations.
 
 A locked keychain logs a skip and exits zero. That is a deferral, not a failure,
 because the window is three days wide — but a run of consecutive skips is the

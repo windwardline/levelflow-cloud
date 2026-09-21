@@ -25,8 +25,8 @@
 // consumers x M symbols x R retries into one probe per cool-off window, and it
 // makes "are we still refused?" a question anything can answer for free.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
+import { checkoutStatePath } from "./checkoutState.ts";
 
 /**
  * Anchored to THIS MODULE, not the process cwd.
@@ -36,11 +36,7 @@ import { fileURLToPath } from "node:url";
  * believes the allowance is untouched. That matters most exactly when it is
  * most expensive: a sweep launched from a scratch clone.
  */
-export const FMP_CIRCUIT_PATH = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "..",
-  ".fmp-circuit.json",
-);
+export const FMP_CIRCUIT_PATH = checkoutStatePath(".fmp-circuit.json");
 
 /**
  * How long the breaker stays open before it will let ONE consumer probe again.

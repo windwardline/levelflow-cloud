@@ -452,6 +452,52 @@ a count cannot see a symbol that stopped being attempted: its sidecar keeps a
 non-zero `fetched` forever. The run now names departures (#342); the watchdog
 reads run recency. Store: 903,744 bars, 100 sidecars, 97 live.
 *Still owed:* the bank has no backup, the same gap the 6.0 GB corpus has.
+*Corrected 2026-09-20:* the backup exists (R0b) and had been failing silently
+for two days. Eight `VERIFY FAILED` runs between 09-17 and 09-21 — the copy
+holding more bars than the count taken moments before, because a bank run was
+appending underneath it — and nothing reached R2 after 2026-09-19 while the bank
+grew by 107,000 bars. Both jobs carry `RunAtLoad`, deliberately and for the same
+reason, so they co-fire on every login; six of the eight came from that. The
+count check was not wrong and has not been loosened: the bank writes its data
+file and its sidecar as two separate steps, so accepting the larger copy would
+have shipped a torn line or a mismatched sidecar off-box and called it success.
+`scripts/ops/bank-lock.sh` now serialises the two, both scripts take it before
+they touch the store, and `tests/minuteBankLock.test.ts` exercises it against
+the real scripts. Eight mutations recorded (listed in `docs/minute-bank.md`);
+one found an unbounded spin in the first version of the lock itself. A second
+PR made the helper refuse to load outside bash, after the production check held
+the lock from zsh and watched the backup walk through it — zsh fires a
+function-scoped `EXIT` trap on return, so the lock was released the instant it
+was taken. Re-checked under bash through `wl-repo-script`: the backup waited out
+an 8-second hold and placed a verified snapshot one second after release.
+*2026-09-21, owner-ruled:* the bank's files are **append-ordered, not
+chronological**, and readers sort by `date`. The provider omits minutes and serves
+them later; the late run appends them after its newest bar. 664 backward steps in
+76 of 100 files; all 252 traceable to a run sit at a run boundary and fill a hole
+inside banked coverage. No duplicates, nothing lost. The files are deliberately not
+rewritten. `docs/minute-bank.md` "Shape" holds the measurement, and the doc and the
+writer's comment no longer promise chronological order.
+*2026-09-21:* the calibration-cache top-up runs `origin/main` through
+`wl-repo-script` too. Its trap was worse than the bank's: the sweep's cache is
+the RELATIVE `.calibration-cache`, so from the extracted tree it would have
+warmed the whole roster from nothing, up to the 2 GiB ceiling, nightly, into a
+directory deleted on exit, and logged "top-up complete". `replay-sweep.ts`'s
+entry guard had the `/var/folders` defect as well. The script now names the cache
+with `--cache-dir` and refuses a missing or temp-rooted one before the keychain.
+Eight mutations, all killed, zero spend.
+*Corrected 2026-09-20, later:* the bank itself now runs `origin/main` through
+`wl-repo-script`. Moving it exposed three silent failures, all fixed before the
+plist changed: the FMP ledger and circuit marker anchored to the extracted tree
+(now `scripts/checkoutState.ts`, named by `LEVELFLOW_CHECKOUT`), a bank path that
+`mkdir -p` would have created and lost, and an entry guard that never matches
+under `/var/folders`, so `main` never ran. **The suite spent real FMP bandwidth
+getting there** — six full-roster runs, two of them into the production bank
+(2,894 bars appended, verified clean), about 244 MB scaled from an isolated run;
+the #660 record's "four runs, 270 MB" missed the production two — which is
+why every daily-script test now runs with the keychain shadowed and the script
+refuses a temp-root bank. `wl-repo-script` retries its fetch too (ops #130): the
+fetch had failed at every boot, from a network not yet up plus two launchers
+colliding on one ref.
 
 ### 0.5 — Close the write surface on the learning corpus — **DONE, verified against production 2026-08-07**
 

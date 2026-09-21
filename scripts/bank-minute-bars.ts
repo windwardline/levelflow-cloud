@@ -64,6 +64,7 @@ import {
   isCircuitRefusal,
   mayCall,
 } from "./fmpCircuit.ts";
+import { isEntryPoint } from "./isEntryPoint.ts";
 
 const PROVIDER = "fmp";
 const ENDPOINT = "historical-chart/1min";
@@ -456,8 +457,14 @@ async function bankOne(
 
   const dropped = raw.length - raw.filter(usableBar).length;
   const seen = new Set(state.recentKeys);
-  // Provider order is newest-first; bank oldest-first so the file reads
-  // chronologically and an append is always a forward extension.
+  // Provider order is newest-first; each run's fresh bars are appended
+  // oldest-first. That orders a RUN, not the FILE. The provider sometimes
+  // omits a minute and serves it on a later call, and that later run appends
+  // it after its own newest bar — so the file is append-ordered, not
+  // chronological. Measured 2026-09-21: 664 backward steps in 76 of 100
+  // files, and every one traceable to a run (252) sits at a run boundary
+  // filling a hole inside coverage already banked. Nothing is duplicated or
+  // lost; readers sort by `date`. See docs/minute-bank.md, "Shape".
   const candidates = raw
     .filter(usableBar)
     .map((bar): BankedBar => ({
@@ -642,6 +649,6 @@ async function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isEntryPoint(import.meta.url)) {
   await main();
 }

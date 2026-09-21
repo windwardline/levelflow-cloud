@@ -20,6 +20,7 @@ import {
   readLedgeredArtifact,
 } from "./ledgeredRead.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
+import { isEntryPoint } from "./isEntryPoint.ts";
 
 /**
  * PRE-REGISTERED, and hashed into the artifact so a later run cannot quietly
@@ -458,4 +459,4 @@ function main(): void {
   console.log(`wrote ${outPath}`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main();
+if (isEntryPoint(import.meta.url)) main();

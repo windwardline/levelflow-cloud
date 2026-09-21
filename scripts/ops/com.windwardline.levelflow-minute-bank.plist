@@ -4,11 +4,25 @@
 <dict>
   <key>Label</key>
   <string>com.windwardline.levelflow-minute-bank</string>
+  <!-- Pinned through wl-repo-script since 2026-09-20, as both backups already
+       were. This job named a path inside the shared checkout, so it ran
+       whatever branch a concurrent session had out at 07:20 — and since #658
+       the script also needs its sibling bank-lock.sh, so a checkout parked on
+       an older branch failed it outright.
+
+       LEVELFLOW_CHECKOUT is not optional and not decoration. The extracted
+       tree carries CODE, never ignored DATA, and this job touches three pieces
+       of data: the bank itself, the FMP usage ledger, and the circuit marker.
+       Left to default, the ledger and the breaker would resolve inside the
+       temp tree, read as untouched, and be deleted on exit — the consumption
+       governor switched off while every run reported success. The daily script
+       refuses a missing bank and scripts/checkoutState.ts refuses a missing
+       checkout, so a wrong value here fails loudly instead. -->
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
     <string>-lc</string>
-    <string>/Users/peacock/Projects/levelflow-cloud/scripts/ops/bank-minute-bars-daily.sh</string>
+    <string>LEVELFLOW_CHECKOUT=/Users/peacock/Projects/levelflow-cloud /Users/peacock/.local/bin/wl-repo-script /Users/peacock/Projects/levelflow-cloud scripts/ops/bank-minute-bars-daily.sh</string>
   </array>
   <key>StartCalendarInterval</key>
   <array>
