@@ -79,6 +79,20 @@ count_bank() {
   echo "$files $bars"
 }
 
+# THE LOCK COMES BEFORE THE FIRST COUNT. Between 2026-09-17 and 2026-09-21
+# this script failed eight times with `copied 100/3332370 against 100/3326559`
+# — a reference count read here, a bank run appending underneath, and a copy
+# that legitimately held more than the number it was compared against. R2
+# stopped advancing on 2026-09-19 while the bank grew by another 107,000 bars.
+#
+# The verify below is NOT what was wrong and has not been loosened. Accepting
+# the larger copy would have shipped a torn line or a mismatched sidecar
+# off-box and called it a success, because the bank appends its data file and
+# writes its sidecar as two separate steps. What was missing is the guarantee
+# that nothing is writing while this reads, and that is what the lock is.
+. "$(dirname "${BASH_SOURCE[0]}")/bank-lock.sh"
+acquire_bank_lock "$BANK"
+
 read -r SRC_FILES SRC_BARS <<<"$(count_bank "$BANK")"
 if [ "$SRC_FILES" -eq 0 ]; then
   log "the bank holds no .jsonl files — refusing to write an empty snapshot over a good one"
@@ -104,6 +118,12 @@ fi
 rm -rf "$DEST"
 mv "$TMP" "$DEST"
 log "snapshot verified and placed: $DEST ($DST_FILES symbols, $DST_BARS bars)"
+
+# RELEASED HERE, not at exit. Everything below works from $DEST, which is a
+# frozen copy — holding the lock through the archive and the upload would block
+# the next bank run for a minute or more against a three-day window, for no
+# benefit. The trap in the helper stays armed as a backstop.
+release_bank_lock
 
 # Off-box, before the prune. Order matters: a local snapshot that is about to
 # be pruned should never be the only one that made it off the machine.

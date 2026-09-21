@@ -1492,6 +1492,13 @@ describe("the driver writes the manifest beside the emit", () => {
       "scripts/stop-provenance.ts",
     ];
     const LAW_EXEMPT = new Map<string, string>([
+      [
+        "scripts/isEntryPoint.ts",
+        "reads process.argv[1] — the path of the file Node was asked to run — " +
+        "and nothing else; it takes no flag at all. Checked, not asserted: " +
+        "the scan refuses this exemption if the file ever reads another argv " +
+        "index or contains a --flag literal.",
+      ],
       ...POSITIONAL_ONLY.map((file) =>
         [
           file,
@@ -1576,6 +1583,16 @@ describe("the driver writes the manifest beside the emit", () => {
             !trimmed.startsWith("/*");
         })
         .join("\n");
+    {
+      const entry = withoutComments(readFileSync("scripts/isEntryPoint.ts", "utf8"));
+      assert.deepEqual(
+        [...entry.matchAll(/\bargv\b[^;\n]*/g)].map((m) => m[0]),
+        ["argv[1]"],
+        "scripts/isEntryPoint.ts is exempted for reading argv[1] alone — any " +
+          "other argv access brings it under the law",
+      );
+      assert.doesNotMatch(entry, /["'`]--[a-z]/);
+    }
     for (const file of POSITIONAL_ONLY) {
       assert.doesNotMatch(
         withoutComments(readFileSync(file, "utf8")),

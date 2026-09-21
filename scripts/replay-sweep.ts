@@ -122,7 +122,7 @@ import {
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 import { flagReader, OperatorInputError } from "./flagReader.ts";
 import { governedBudget, maySpend, noteRefusal } from "./fmpGovernor.ts";
-import { fileURLToPath } from "node:url";
+import { isEntryPoint } from "./isEntryPoint.ts";
 
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
 // OP-6: optional inter-request pacing for fleet runs — one env knob,
@@ -2222,7 +2222,13 @@ function sleep(ms: number) {
 // Run only as a binary, never on import (the grid-totalr pattern), so
 // parseArgs' defaults can be pinned — there was no such pin, which is
 // why a 6x depth change landed silently (#364 round 52, finding 1).
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+//
+// Through isEntryPoint since 2026-09-20. The inline comparison this replaced
+// set `fileURLToPath(import.meta.url)`, which Node resolves through symlinks,
+// against `process.argv[1]`, which it does not — so from any tree under
+// /var/folders, where wl-repo-script extracts the nightly top-up, the two never
+// matched, main was skipped, and the process exited 0 having warmed nothing.
+if (isEntryPoint(import.meta.url)) {
   main().catch((error) => {
     // The discriminator `OperatorInputError` was introduced for, finally read
     // here: a refusal caused by what the operator typed prints as one clean
