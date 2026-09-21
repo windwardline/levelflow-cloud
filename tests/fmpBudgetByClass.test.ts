@@ -862,7 +862,12 @@ describe("every provider spend is decided per request, and a refusal returns", (
       assert.match(decision.branch, /fmpSpendRefusalBody\(/, `${decision.file}'s refusal builds its own 503 body`);
     }
 
-    // The helper is the only door to the wire. `reason` carries the account-wide
+    // Every 503 body is BUILT BY CALLING the helper. That is what this proves and
+    // all it proves: the call text is matched, so spreading the helper's result and
+    // re-adding a field would pass. No guard is written for that, because an explicit
+    // `{ ...fmpSpendRefusalBody(spend), trailing30 }` is not the local simplification
+    // this census defends against — it is a deliberate re-leak, and the comment says
+    // so rather than leaving the next reader to trust a stronger claim than the check. `reason` carries the account-wide
     // trailing-30 figure for the operator's log and the body deliberately does
     // not, so an entry that composed its own 503 body from the refusal would put
     // the figure `fmp_usage`'s revoke withholds back in front of any signed-in
