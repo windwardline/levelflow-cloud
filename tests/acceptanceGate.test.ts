@@ -17,12 +17,13 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   buildSweepManifest,
   seriesFacts,
@@ -43,8 +44,34 @@ import {
   DERIVED_FIELDS,
   SELECTIVE_POWER_FLOOR,
   derivedFieldOf,
+  repositoryLedgerDirOf,
 } from "../scripts/grid-totalr.ts";
 import type { SweepEmitRow } from "../scripts/sweepStats.ts";
+import { scratchDir } from "./support/scratchDir.ts";
+
+// The repository's own LA-6 ledger directory, derived the way the binary
+// derives it: from this module's location, never from process.cwd().
+const REPO_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+const REPOSITORY_LEDGER_DIR = join(REPO_ROOT, "docs/research/confirm-reads");
+
+// No test in this file may write, append or remove anything there. The
+// directory's own mtime leads the listing because it moves on every create
+// and every remove, so a fixture written and deleted inside one test still
+// changes it; each entry's size and mtime catch an append. The listing is
+// taken as the file loads and compared by the LAST test in the file, so a
+// writer fails here on every run rather than racing a guard in another file
+// (tests/confirmFoldSealed.test.ts snapshots all of docs/ at collection and
+// again in after(); a fixture alive at one snapshot and not the other failed
+// the suite with `fail 0` on 2026-09-21).
+const repositoryLedgerListing = (): string =>
+  [
+    `(directory) ${statSync(REPOSITORY_LEDGER_DIR).mtimeMs}`,
+    ...readdirSync(REPOSITORY_LEDGER_DIR).sort().map((name) => {
+      const stat = statSync(join(REPOSITORY_LEDGER_DIR, name));
+      return `${name} ${stat.size} ${stat.mtimeMs}`;
+    }),
+  ].join("\n");
+const REPOSITORY_LEDGER_AT_START = repositoryLedgerListing();
 
 // 3b + 3f + 3g (the map): grid-totalr was the only place variants meet, and
 // it read a PRINTED table — total R as expectancy-over-filled x
@@ -2968,109 +2995,80 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // made the test hatch an unrecorded bypass rather than a relocation —
   // a corpus already recorded in the repository's own ledger opened
   // again with no refusal, and the second read left no trace where the
-  // next default run looks. The redirect keeps its write; the canonical
+  // next default run looks. The redirect keeps its write; the repository
   // ledger is searched either way.
   //
-  // This is the one test that touches the canonical directory, because
-  // the property under test IS that directory being consulted. Three
-  // things bound it (#364 round 47, finding 2). The path is derived the
-  // way the BINARY derives it — from this module's own location up to
-  // the repo root, never from process.cwd(); computing it relatively
-  // pinned the claim round 46 replaced and agreed with the real
-  // property only when the suite happened to run from the repo root.
-  // The fixture id is asserted absent first, so the test can never
-  // mistake a real recorded read for its own. And the removal is
-  // registered on process exit and on SIGINT/SIGTERM as well as in
-  // `finally`, since a killed worker would otherwise strand a
-  // fabricated read in a tracked record whose README says to commit
-  // whatever appears there.
-  //
-  // Not taken, deliberately: making the canonical root injectable would
-  // let the suite avoid the directory altogether, but it is the same
-  // shape as the bypass round 46's finding 3 closed — an option that
-  // removes the repository's ledger from the scan. This file's stated
-  // preference is that losing a recorded read is the one outcome the
-  // discipline cannot afford, so the residual risk lands on tidiness
-  // instead: a SIGKILL between write and removal strands one file named
-  // for a corpus id only this fixture produces (analyzerVersion
-  // "2026.08.09.test"), which refuses nothing real.
+  // Driven through an INJECTED repository directory (2026-09-21). This
+  // test used to copy its entry into the real docs/research/confirm-reads
+  // and remove it afterwards, and node:test runs files in parallel:
+  // tests/confirmFoldSealed.test.ts snapshots docs/ at collection and in
+  // after(), so an entry alive at one snapshot and not the other failed
+  // the suite with `fail 0`. gradeCorpus's repositoryLedgerDir replaces
+  // the repository directory for the search and the default write
+  // together. It is not the round-46 bypass: that was a CLI flag an
+  // operator could pass, and this option has no CLI path (pinned below,
+  // with its default). The law under test is unchanged — the redirect
+  // must never move WHICH repository directory is searched — and the
+  // refusal must name the injected file, which is what proves the search
+  // went there.
   it("still refuses a corpus the repository's own ledger recorded, even under a redirect", async () => {
     const corpus = foldedShard("EURUSD");
-    const redirect = mkdtempSync(join(tmpdir(), "gate-redirect-"));
+    const repository = scratchDir("gate-repository-ledger-");
+    const redirect = scratchDir("gate-redirect-");
     const first = await gradeCorpus([corpus], {
       confirmFinal: true,
       confirmLogDir: redirect,
       permutations: 100,
+      repositoryLedgerDir: repository,
       seed: 4,
     });
     assert.equal(first.confirmRead, true);
-    const [ledgerName] = readdirSync(redirect);
-    const canonical = join(
-      dirname(dirname(fileURLToPath(import.meta.url))),
-      "docs/research/confirm-reads",
-      ledgerName,
-    );
-    assert.equal(
-      existsSync(canonical),
-      false,
-      "this fixture's corpus id must not collide with a real recorded read",
-    );
-    const cleanup = () => rmSync(canonical, { force: true });
-    const onSignal = () => {
-      cleanup();
-      process.exit(130);
-    };
-    process.on("exit", cleanup);
-    process.on("SIGINT", onSignal);
-    process.on("SIGTERM", onSignal);
-    // The retired UNPREFIXED form, in the canonical directory (#364
+    assert.deepEqual(readdirSync(repository), [], "a redirected read files nothing in the repository directory");
+    const [ledgerName] = readdirSync(redirect).filter((name) => name.startsWith("confirm-log-"));
+    const recorded = join(repository, ledgerName);
+    // The retired UNPREFIXED form, in the repository directory (#364
     // round 50 verdict, finding 2). Round 50 restored honouring it by
     // globbing this directory with an empty prefix, and the README
     // promises a ledger written by any earlier version keeps refusing —
     // but every fixture wrote the NEW prefixed name, so re-tightening
     // that glob "for symmetry" would orphan the form again, silently,
     // with the suite green. That is the defect round 50 just found.
-    const retired = join(dirname(canonical), ledgerName.replace(/^confirm-log-/, ""));
-    assert.notEqual(retired, canonical, "the retired form must differ by name");
-    const cleanupRetired = () => rmSync(retired, { force: true });
-    process.on("exit", cleanupRetired);
-    try {
-      // The entry a default run would have filed, placed where a
-      // default run files it.
-      writeFileSync(canonical, readFileSync(join(redirect, ledgerName)));
-      await assert.rejects(
-        gradeCorpus([corpus], {
-          confirmFinal: true,
-          confirmLogDir: mkdtempSync(join(tmpdir(), "gate-redirect2-")),
-          permutations: 100,
-          seed: 4,
-        }),
-        /has already been read 1 time\(s\)/,
-      );
-      // …and the same entry under the retired unprefixed name, with the
-      // prefixed one removed, must refuse on its own.
-      rmSync(canonical, { force: true });
-      writeFileSync(retired, readFileSync(join(redirect, ledgerName)));
-      await assert.rejects(
-        gradeCorpus([corpus], {
-          confirmFinal: true,
-          confirmLogDir: mkdtempSync(join(tmpdir(), "gate-redirect3-")),
-          permutations: 100,
-          seed: 4,
-        }),
-        /has already been read 1 time\(s\)/,
-        "the unprefixed form the prefix rename retired must still refuse",
-      );
-    } finally {
-      cleanup();
-      cleanupRetired();
-      process.off("exit", cleanup);
-      process.off("exit", cleanupRetired);
-      process.off("SIGINT", onSignal);
-      process.off("SIGTERM", onSignal);
-    }
-    assert.equal(existsSync(canonical), false);
-    assert.equal(existsSync(retired), false);
+    const retired = join(repository, ledgerName.replace(/^confirm-log-/, ""));
+    assert.notEqual(retired, recorded, "the retired form must differ by name");
+    const refusesNaming = (path: string) => (error: unknown) => {
+      const message = (error as Error).message;
+      assert.match(message, /has already been read 1 time\(s\)/);
+      assert.ok(message.includes(path), `the refusal must name ${path}; got ${message}`);
+      return true;
+    };
+    // The entry a default run would have filed, placed where a default
+    // run files it.
+    writeFileSync(recorded, readFileSync(join(redirect, ledgerName)));
+    await assert.rejects(
+      gradeCorpus([corpus], {
+        confirmFinal: true,
+        confirmLogDir: scratchDir("gate-redirect2-"),
+        permutations: 100,
+        repositoryLedgerDir: repository,
+        seed: 4,
+      }),
+      refusesNaming(recorded),
+    );
+    // …and the same entry under the retired unprefixed name, with the
+    // prefixed one removed, must refuse on its own.
+    rmSync(recorded);
+    writeFileSync(retired, readFileSync(join(redirect, ledgerName)));
+    await assert.rejects(
+      gradeCorpus([corpus], {
+        confirmFinal: true,
+        confirmLogDir: scratchDir("gate-redirect3-"),
+        permutations: 100,
+        repositoryLedgerDir: repository,
+        seed: 4,
+      }),
+      refusesNaming(retired),
+      "the unprefixed form the prefix rename retired must still refuse",
+    );
   });
 
   // #364 round 54, smaller: the identity diff's fallback named the one
@@ -3115,7 +3113,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   });
 
   // #364 round 53, finding 3: the prior-read scan parses every line of
-  // every ledger in the canonical directory, on every confirm read,
+  // every ledger in the repository directory, on every confirm read,
   // whatever corpus is being graded. A bare JSON.parse there threw a
   // SyntaxError naming neither the file nor the line — so one truncated
   // append blocked EVERY corpus with a diagnosis pointing at nothing, and
@@ -3124,101 +3122,71 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // Refusing rather than skipping is the discipline: a line nobody can
   // read may be the entry recording that this very fold was already
   // opened.
+  //
+  // The broken ledger lives in an injected repository directory, never the
+  // tracked one: written there, it raced tests/confirmFoldSealed.test.ts's
+  // docs/ snapshot and failed the suite on 2026-09-21 (see the round-46
+  // test above). The refusal's remedy names the directory it globbed, so
+  // it must name the injected one.
   it("refuses a ledger line it cannot read, naming the file and the line", async () => {
     const corpus = foldedShard("EURUSD");
-    const canonicalDir = join(
-      dirname(dirname(fileURLToPath(import.meta.url))),
-      "docs/research/confirm-reads",
-    );
-    // A name no corpus identity can compute, so this fixture cannot
-    // collide with a real recorded read; the directory is globbed whole,
-    // which is exactly why any .jsonl in it is read.
-    const broken = join(canonicalDir, "confirm-log-round53-fixture.jsonl");
-    assert.equal(existsSync(broken), false, "the fixture name must be free");
-    const cleanup = () => rmSync(broken, { force: true });
-    const onSignal = () => {
-      cleanup();
-      process.exit(130);
-    };
-    process.on("exit", cleanup);
-    process.on("SIGINT", onSignal);
-    process.on("SIGTERM", onSignal);
-    try {
-      // Line 2 is the truncated append — the shape a process killed
-      // mid-write leaves behind.
-      writeFileSync(
-        broken,
-        `{"corpusHash":"deadbeef","readAt":"2026-08-19T00:00:00.000Z"}\n` +
-          `{"corpusHash":"dead\n`,
-      );
-      await assert.rejects(
-        gradeCorpus([corpus], {
-          confirmFinal: true,
-          confirmLogDir: mkdtempSync(join(tmpdir(), "gate-badledger-")),
-          permutations: 100,
-          seed: 4,
-        }),
-        (error: unknown) => {
-          const message = (error as Error).message;
-          assert.match(message, /line 2 is not readable as JSON/);
-          assert.match(message, /confirm-log-round53-fixture\.jsonl/);
-          // The remedy, not just the complaint: repair from history, or
-          // move a non-ledger file out of a directory globbed whole.
-          assert.match(message, /Repair the line from git history/);
-          assert.match(message, /blocks every corpus/);
-          return true;
-        },
-      );
-
-      // A line that PARSES but is not an entry was the worse half: the
-      // property read threw "cannot read properties of null", which names
-      // neither the ledger nor the discipline.
-      writeFileSync(broken, "null\n");
-      await assert.rejects(
-        gradeCorpus([corpus], {
-          confirmFinal: true,
-          confirmLogDir: mkdtempSync(join(tmpdir(), "gate-badledger2-")),
-          permutations: 100,
-          seed: 4,
-        }),
-        /line 1 parses as null rather than a ledger entry object/,
-      );
-
-      // An object with no corpusHash cannot be matched against the read
-      // being attempted, and an entry that cannot be matched is not
-      // evidence of absence.
-      writeFileSync(broken, `{"readAt":"2026-08-19T00:00:00.000Z"}\n`);
-      await assert.rejects(
-        gradeCorpus([corpus], {
-          confirmFinal: true,
-          confirmLogDir: mkdtempSync(join(tmpdir(), "gate-badledger3-")),
-          permutations: 100,
-          seed: 4,
-        }),
-        /line 1 carries no corpusHash string/,
-      );
-
-      // …and a well-formed ledger for a DIFFERENT corpus is read past
-      // without complaint, which is what keeps the refusal about
-      // unreadable lines rather than about unfamiliar ones.
-      writeFileSync(
-        broken,
-        `{"corpusHash":"not-this-corpus","readAt":"2026-08-19T00:00:00.000Z","shardHashes":["other"]}\n`,
-      );
-      const graded = await gradeCorpus([corpus], {
+    const repository = scratchDir("gate-badledger-repository-");
+    // The directory is globbed whole, which is exactly why any .jsonl in
+    // it is read, whatever its name.
+    const broken = join(repository, "confirm-log-round53-fixture.jsonl");
+    const read = (label: string) =>
+      gradeCorpus([corpus], {
         confirmFinal: true,
-        confirmLogDir: mkdtempSync(join(tmpdir(), "gate-badledger4-")),
+        confirmLogDir: scratchDir(`gate-badledger-${label}-`),
         permutations: 100,
+        repositoryLedgerDir: repository,
         seed: 4,
       });
-      assert.equal(graded.confirmRead, true);
-    } finally {
-      cleanup();
-      process.off("exit", cleanup);
-      process.off("SIGINT", onSignal);
-      process.off("SIGTERM", onSignal);
-    }
-    assert.equal(existsSync(broken), false);
+    // Line 2 is the truncated append — the shape a process killed
+    // mid-write leaves behind.
+    writeFileSync(
+      broken,
+      `{"corpusHash":"deadbeef","readAt":"2026-08-19T00:00:00.000Z"}\n` +
+        `{"corpusHash":"dead\n`,
+    );
+    await assert.rejects(read("1"), (error: unknown) => {
+      const message = (error as Error).message;
+      assert.match(message, /line 2 is not readable as JSON/);
+      assert.ok(message.includes(broken), `the refusal must name ${broken}`);
+      // The remedy, not just the complaint: repair from history, or
+      // move a non-ledger file out of a directory globbed whole — the
+      // directory this read globbed, not the default one.
+      assert.match(message, /Repair the line from git history/);
+      assert.match(message, /blocks every corpus/);
+      assert.ok(
+        message.includes(`move it out of ${repository}, which is globbed whole`),
+        `the remedy must name the injected directory; got ${message}`,
+      );
+      assert.ok(!message.includes(REPOSITORY_LEDGER_DIR), "an injected read must not name the tracked directory");
+      return true;
+    });
+
+    // A line that PARSES but is not an entry was the worse half: the
+    // property read threw "cannot read properties of null", which names
+    // neither the ledger nor the discipline.
+    writeFileSync(broken, "null\n");
+    await assert.rejects(read("2"), /line 1 parses as null rather than a ledger entry object/);
+
+    // An object with no corpusHash cannot be matched against the read
+    // being attempted, and an entry that cannot be matched is not
+    // evidence of absence.
+    writeFileSync(broken, `{"readAt":"2026-08-19T00:00:00.000Z"}\n`);
+    await assert.rejects(read("3"), /line 1 carries no corpusHash string/);
+
+    // …and a well-formed ledger for a DIFFERENT corpus is read past
+    // without complaint, which is what keeps the refusal about
+    // unreadable lines rather than about unfamiliar ones.
+    writeFileSync(
+      broken,
+      `{"corpusHash":"not-this-corpus","readAt":"2026-08-19T00:00:00.000Z","shardHashes":["other"]}\n`,
+    );
+    const graded = await read("4");
+    assert.equal(graded.confirmRead, true);
   });
 
   // #364 round 46, smaller: "commit any line that appears here" was a
@@ -3269,10 +3237,10 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     );
   });
 
-  // The default branch's reminder is source-pinned for the same reason
-  // DEFAULT_CONFIRM_LOG_DIR is: executing it means letting a test append
-  // to the repository's real confirm record, which is the one thing that
-  // record must never receive from a test run.
+  // The default branch's reminder is source-pinned, and since 2026-09-21
+  // also executed (the next test) against an injected repository
+  // directory: the tracked record must never receive a line from a test
+  // run, so the executed half never runs the default directory itself.
   it("names the command that finishes the record when the write is NOT redirected", () => {
     const source = readFileSync("scripts/grid-totalr.ts", "utf8");
     const burn = source.slice(source.indexOf("if (confirmRead) {"));
@@ -3290,6 +3258,58 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       burn.slice(burn.indexOf("const unrecordedMessage")),
       /git add/,
       "the redirected branch must never name a git add",
+    );
+  });
+
+  // An UNREDIRECTED read files where the resolved repository directory says,
+  // and says so — executed. This is the internal-consistency half of the
+  // seam: the default ledger path, the recorded-vs-unrecorded comparison
+  // and the git add all go through one resolved directory, so an injected
+  // run cannot search one directory and write another.
+  //
+  // Barrier first. If gradeCorpus read DEFAULT_CONFIRM_LOG_DIR anywhere but
+  // through repositoryLedgerDirOf, this read would append a fixture line to
+  // the tracked record. So the source is checked before anything executes,
+  // and the test stops there when it fails.
+  it("an unredirected read files in the resolved repository directory and names its git add — executed", async () => {
+    const code = readFileSync("scripts/grid-totalr.ts", "utf8")
+      .split("\n")
+      .filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line))
+      .join("\n");
+    assert.equal(
+      (code.match(/DEFAULT_CONFIRM_LOG_DIR/g) ?? []).length,
+      2,
+      "DEFAULT_CONFIRM_LOG_DIR is declared once and read once, by repositoryLedgerDirOf; " +
+        "any other read bypasses the injected directory, so this test refuses to execute",
+    );
+    assert.match(code, /return options\.repositoryLedgerDir \?\? DEFAULT_CONFIRM_LOG_DIR;/);
+
+    const repository = scratchDir("gate-unredirected-");
+    const warnings: string[] = [];
+    const original = console.warn;
+    console.warn = (message: string) => void warnings.push(message);
+    let graded: Awaited<ReturnType<typeof gradeCorpus>>;
+    try {
+      graded = await gradeCorpus([foldedShard("USDJPY")], {
+        confirmFinal: true,
+        permutations: 100,
+        repositoryLedgerDir: repository,
+        seed: 4,
+      });
+    } finally {
+      console.warn = original;
+    }
+    assert.equal(graded.confirmRead, true);
+    const ledgers = readdirSync(repository).filter((name) => name.startsWith("confirm-log-"));
+    assert.equal(ledgers.length, 1, "the read files one ledger in the repository directory");
+    assert.equal(graded.read?.ledgerPath, join(repository, ledgers[0]));
+    assert.ok(
+      warnings.some((line) => line.includes(`git add ${join(repository, ledgers[0])}`)),
+      `an unredirected read names the git add for the file it wrote; got ${JSON.stringify(warnings)}`,
+    );
+    assert.ok(
+      warnings.every((line) => !line.includes("NOT in the repository's confirm record")),
+      "an unredirected read is in the record, and must not say otherwise",
     );
   });
 
@@ -3458,14 +3478,14 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.deepEqual(readdirSync(ledgerDir), []);
   });
 
-  // A source pin, deliberately: the only way to EXECUTE the default is to
-  // let a test append to the repository's real confirm ledger, which is
-  // the one thing that record must never receive from a test run. The
-  // law it holds is the round-45 finding one layer down — a bare relative
+  // A source pin, kept beside the executed check that follows it. The law
+  // it holds is the round-45 finding one layer down — a bare relative
   // default resolves against process.cwd(), so grading from a
   // subdirectory would find no prior read, open the held-back fold, and
   // file the entry somewhere nobody looks. The location must depend on
-  // the repository alone.
+  // the repository alone. No test executes a READ against the default
+  // directory's contents as a write target: that record must never
+  // receive a line from a test run.
   it("resolves the default ledger location from the repository, never from the working directory", () => {
     const source = readFileSync("scripts/grid-totalr.ts", "utf8");
     const declared = source.match(
@@ -3482,6 +3502,81 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       /process\.cwd\(\)/,
       "the working directory is exactly what the location must not depend on",
     );
+  });
+
+  // The executed half of the default (2026-09-21). The resolver's default
+  // IS the tracked directory, and a --confirm-log-dir redirect does not
+  // move it (#364 round 46, finding 3). The default is fixed when the
+  // module loads, so it is also read in a fresh process standing in a
+  // directory outside the repository: a cwd-relative default agrees with
+  // the real one only when the process happens to start at the root.
+  it("the repository ledger directory defaults to docs/research/confirm-reads, whatever the redirect or the working directory — executed", () => {
+    assert.equal(repositoryLedgerDirOf({}), REPOSITORY_LEDGER_DIR);
+    assert.equal(
+      repositoryLedgerDirOf({ confirmLogDir: scratchDir("gate-redirect-only-") }),
+      REPOSITORY_LEDGER_DIR,
+      "a redirect moves the write, never the repository directory that is searched",
+    );
+    const injected = scratchDir("gate-injected-");
+    assert.equal(repositoryLedgerDirOf({ repositoryLedgerDir: injected }), injected);
+    const module = pathToFileURL(join(REPO_ROOT, "scripts/grid-totalr.ts")).href;
+    const elsewhere = scratchDir("gate-cwd-");
+    const printed = execFileSync(
+      join(REPO_ROOT, "node_modules/.bin/tsx"),
+      ["--eval", `import(${JSON.stringify(module)}).then((m) => console.log(m.repositoryLedgerDirOf({})))`],
+      // The suite's tsx exports a RELATIVE tsconfig path to its children,
+      // which a foreign working directory cannot resolve.
+      {
+        cwd: elsewhere,
+        encoding: "utf8",
+        env: { ...process.env, NODE_OPTIONS: "", TSX_TSCONFIG_PATH: join(REPO_ROOT, "tsconfig.tests.json") },
+        timeout: 60_000,
+      },
+    ).trim();
+    assert.equal(printed, REPOSITORY_LEDGER_DIR, `resolved from ${elsewhere}`);
+  });
+
+  // repositoryLedgerDir is an IN-PROCESS test seam and nothing else. A CLI
+  // path to it would be round 46's bypass again: an operator flag that
+  // takes the repository's ledger out of the scan. So the flag is refused
+  // by the binary, and the option's name appears nowhere in scripts/ but
+  // gradeCorpus's own resolution — never in main(), never in confirm-4d or
+  // derive-4d, whose walkers would otherwise carry it in. The population is
+  // every file under scripts/, derived, not listed.
+  it("no CLI reaches the repository ledger seam: the flag refuses, and no script passes the option", () => {
+    const refused = spawnSync(
+      join(REPO_ROOT, "node_modules/.bin/tsx"),
+      [
+        "scripts/grid-totalr.ts",
+        foldedCorpus(),
+        "--confirm-final",
+        "--confirm-log-dir",
+        scratchDir("gate-seam-redirect-"),
+        "--repository-ledger-dir",
+        scratchDir("gate-seam-repository-"),
+      ],
+      { cwd: REPO_ROOT, encoding: "utf8", env: { ...process.env, NODE_OPTIONS: "" }, timeout: 60_000 },
+    );
+    assert.equal(refused.error, undefined, String(refused.error));
+    assert.notEqual(refused.status, 0, "the binary must refuse the flag, not honour it");
+    assert.match(refused.stderr, /unknown flag --repository-ledger-dir/);
+
+    const scripts = (readdirSync(join(REPO_ROOT, "scripts"), { recursive: true }) as string[])
+      .filter((name) => /\.(ts|mts|mjs|js|sh)$/.test(name))
+      .map((name) => join("scripts", name));
+    assert.ok(scripts.includes(join("scripts", "confirm-4d.ts")), "the derived population must reach the burner");
+    // Code only: a comment naming the seam passes nothing.
+    const codeOf = (file: string) =>
+      readFileSync(join(REPO_ROOT, file), "utf8")
+        .split("\n")
+        .filter((line) => !/^\s*(\/\/|\*|\/\*|#)/.test(line))
+        .join("\n");
+    const carriers = scripts.filter((file) => codeOf(file).includes("repositoryLedgerDir"));
+    assert.deepEqual(carriers, [join("scripts", "grid-totalr.ts")], "only grid-totalr.ts may name the seam");
+    const source = codeOf("scripts/grid-totalr.ts");
+    const main = source.slice(source.indexOf("async function main("));
+    assert.ok(main.length > 0 && main.startsWith("async function main("), "main() must be found to be checked");
+    assert.doesNotMatch(main, /repositoryLedgerDir/, "main() must never pass the seam from argv");
   });
 });
 
@@ -4654,6 +4749,20 @@ describe("a disposition the gate drew must survive to the people reading it", ()
       /LOSES MONEY/,
       `the money leg's reason is written so it can never be read as an ordinary ` +
         `failure, and the printer read it as one: ${line}`,
+    );
+  });
+});
+
+// Declared LAST so it runs after every other test in this file (node:test runs
+// a file's top-level tests in declaration order). See repositoryLedgerListing.
+describe("this file never touches the repository's confirm ledger", () => {
+  it("docs/research/confirm-reads lists the same at the end of the file as at its start", () => {
+    assert.equal(
+      repositoryLedgerListing(),
+      REPOSITORY_LEDGER_AT_START,
+      `something wrote into ${REPOSITORY_LEDGER_DIR} while this file ran. A test ` +
+        `drives the ledger through gradeCorpus's repositoryLedgerDir (a scratch ` +
+        `directory), never the tracked record.`,
     );
   });
 });

@@ -155,6 +155,16 @@ binaries without appending here; an operator grading a real corpus has no
 reason to pass it, and it is not an escape from the discipline —
 `--acknowledge-prior-reads` is the sanctioned one, and it still logs.
 
+No test writes here, not even for a moment. In-process tests pass
+`gradeCorpus` a `repositoryLedgerDir`: a scratch directory that stands in
+for this one for both the search and the default write. Their fixture
+ledgers, broken ones included, land there. Until 2026-09-21 two tests
+wrote fixtures here and removed them, and one of them raced
+`tests/confirmFoldSealed.test.ts`'s snapshot of `docs/` and failed the
+suite. The option has no CLI flag. `tests/acceptanceGate.test.ts` pins
+that, pins the default to this directory from any working directory, and
+fails if this directory's listing changes while it runs.
+
 
 ## The read since R4 act 2 (2026-09-02)
 
