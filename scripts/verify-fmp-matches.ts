@@ -20,7 +20,7 @@
  */
 
 import { MASTER_LIST_ROWS, type MasterListRow } from "../src/lib/broker/masterList.ts";
-import { flagReader } from "./flagReader.ts";
+import { flagReader, OperatorInputError } from "./flagReader.ts";
 import {
   type ByteBudget,
   createByteBudget,
@@ -37,7 +37,7 @@ import {
   rethrowIfFinal,
   standDownFor,
 } from "./fmpGovernor.ts";
-import { defaultStatePaths } from "./fmpState.ts";
+import { defaultStatePaths, type FmpStatePaths } from "./fmpState.ts";
 import { isEntryPoint } from "./isEntryPoint.ts";
 
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
@@ -45,8 +45,10 @@ const API_KEY = process.env.FMP_API_KEY;
 const LABEL = "verify-fmp-matches";
 
 // The machine's state, and the ad-hoc class's budget and probe-gated fetch,
-// set once in main() after the governor allows the run.
-const state = defaultStatePaths();
+// all set in main(). The state is resolved there rather than as this module
+// loads, so a checkout that names nothing is refused in one line by main's
+// handler instead of killing module evaluation with a stack.
+let state: FmpStatePaths;
 let budget: ByteBudget = createByteBudget(CLASS_DAILY_CEILING_BYTES.adhoc);
 let providerFetch: FetchLike = fetch;
 
@@ -280,6 +282,8 @@ async function main(): Promise<void> {
   // pre-flights for exactly this reason.
   const { str } = flagReader(process.argv, VALUE_FLAGS);
   const jsonPath = str("--json");
+  // The checkout before the key: both are the operator's to name.
+  state = defaultStatePaths();
   if (!API_KEY) {
     console.error("FMP_API_KEY is required.");
     process.exit(1);
@@ -399,7 +403,9 @@ if (isEntryPoint(import.meta.url)) {
   main().catch((error: unknown) => {
     const token = standDownFor(error);
     if (token) console.error(token);
-    console.error(error);
+    // What the operator typed or named is refused in one line; a real fault
+    // keeps its stack.
+    console.error(error instanceof OperatorInputError ? error.message : error);
     process.exit(1);
   });
 }

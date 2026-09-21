@@ -517,6 +517,10 @@ async function main() {
   // exactly the flag where that misdirection is expensive, since the whole
   // point of it is to avoid spending bandwidth.
   const args = parseArgs(process.argv.slice(2));
+  // The checkout next, and before the key for the same reason: both are the
+  // operator's to name, and a checkout that names nothing is refused in one
+  // line by the handler below, never reported as a missing credential.
+  const state = defaultStatePaths();
   if (!API_KEY) {
     console.error("FMP_API_KEY is required.");
     process.exit(1);
@@ -527,7 +531,6 @@ async function main() {
   // shared ledger under it before the run's own ceiling or the class's day is
   // checked.
   const plan = spendPlanFor(args, process.argv.slice(2));
-  const state = defaultStatePaths();
   spend = { consumer: plan.consumer, state };
   sweepBudget = governedBudget(createByteBudget(plan.byteBudget), {
     consumer: plan.consumer,

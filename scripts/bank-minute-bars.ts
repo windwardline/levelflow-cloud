@@ -57,7 +57,7 @@ import {
 } from "node:fs/promises";
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
 import { redactProviderSecrets } from "../supabase/functions/trade-analyzer/redact.ts";
-import { flagReader } from "./flagReader.ts";
+import { flagReader, OperatorInputError } from "./flagReader.ts";
 import {
   classifyRefusal,
   closeCircuit,
@@ -817,14 +817,34 @@ export async function runBank(deps: BankDeps): Promise<number> {
   return code;
 }
 
-if (isEntryPoint(import.meta.url)) {
-  process.exitCode = await runBank({
+/**
+ * The binary. Its state root is resolved here, inside a function, and not in
+ * the entry block, which runs as the module loads: a checkout that names
+ * nothing is refused in one line and exits 1, rather than dying on a stack
+ * before any handler exists (tests/fmpGovernor.test.ts pins where the call
+ * sits, and runs this with such a checkout).
+ */
+async function main(): Promise<number> {
+  const print = { err: (line: string) => console.error(line), out: (line: string) => console.log(line) };
+  let state: FmpStatePaths;
+  try {
+    state = defaultStatePaths();
+  } catch (error) {
+    if (!(error instanceof OperatorInputError)) throw error;
+    print.err(error.message);
+    return 1;
+  }
+  return runBank({
     argv: process.argv.slice(2),
     fetch,
     key: process.env.FMP_API_KEY,
     now: Date.now,
-    print: { err: (line) => console.error(line), out: (line) => console.log(line) },
+    print,
     sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
-    state: defaultStatePaths(),
+    state,
   });
+}
+
+if (isEntryPoint(import.meta.url)) {
+  process.exitCode = await main();
 }

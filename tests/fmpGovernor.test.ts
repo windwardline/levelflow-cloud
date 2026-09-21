@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -9,6 +10,7 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
+import ts from "typescript";
 
 import { OperatorInputError } from "../scripts/flagReader.ts";
 import {
@@ -52,6 +54,7 @@ import {
   utcDay,
 } from "../scripts/fmpState.ts";
 import { BODIES, INVALID_KEY_BODY_PREFIX, tempState } from "./fixtures/fmpTestState.ts";
+import { noKeychainEnv } from "./support/noKeychain.ts";
 import { scratchDir } from "./support/scratchDir.ts";
 
 /**
@@ -249,7 +252,14 @@ describe("the state resolves from the checkout, never the cwd", () => {
         usageDir: join(checkout, ".fmp-state", "usage"),
       });
       process.env.LEVELFLOW_CHECKOUT = join(checkout, "no-such-checkout");
-      assert.throws(() => defaultStatePaths(), /LEVELFLOW_CHECKOUT names .*no-such-checkout, which does not exist/);
+      // The operator named the checkout, so the refusal is an operator-input
+      // error: the entry points that discriminate print it as one line.
+      assert.throws(
+        () => defaultStatePaths(),
+        (error: unknown) =>
+          error instanceof OperatorInputError &&
+          /LEVELFLOW_CHECKOUT names .*no-such-checkout, which does not exist/.test(error.message),
+      );
     } finally {
       if (named === undefined) delete process.env.LEVELFLOW_CHECKOUT;
       else process.env.LEVELFLOW_CHECKOUT = named;
@@ -298,6 +308,90 @@ describe("the state resolves from the checkout, never the cwd", () => {
       );
     }
   });
+
+  // Where the call sits matters as much as how it is made. A checkout that
+  // names nothing makes the helper throw, and a call evaluated while the
+  // module loads throws before any handler the binary installs. The verifier
+  // resolved its state at module scope, and the bank and the probe in their
+  // entry blocks, so all three died on a raw stack with no line of their own
+  // (2026-09-21, review round 3). A call inside a function runs only when its
+  // caller does, inside that caller's error handling. The population is every
+  // module that names the helper, so a new caller is covered on arrival.
+  it("resolves the state root inside a function, never while a module loads", () => {
+    const helper = ["default", "StatePaths"].join("");
+    const callers = readdirSync("scripts")
+      .filter((name) => name.endsWith(".ts") && name !== "fmpState.ts")
+      .map((name) => `scripts/${name}`)
+      .filter((path) => new RegExp(`\\b${helper}\\b`).test(withoutComments(readFileSync(path, "utf8"))))
+      .sort();
+    for (const path of [...spenders, "scripts/fmpRunGate.ts"]) {
+      assert.ok(callers.includes(path), `${path} was not discovered as a caller`);
+    }
+    for (const path of callers) {
+      const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
+      const loose: number[] = [];
+      let calls = 0;
+      const visit = (node: ts.Node): void => {
+        if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === helper) {
+          calls += 1;
+          let scope: ts.Node | undefined = node.parent;
+          while (scope !== undefined && !ts.isFunctionLike(scope)) scope = scope.parent;
+          if (scope === undefined) loose.push(file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1);
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(file);
+      assert.ok(calls >= 1, `${path} names the helper and never calls it`);
+      assert.deepEqual(loose, [], `${path} resolves its state while the module loads, at line ${loose.join(", ")}`);
+    }
+  });
+});
+
+describe("every FMP binary refuses a checkout that names nothing in one line", () => {
+  const TSX = join("node_modules", ".bin", "tsx");
+  // BARRIER: every child here runs with FMP_API_KEY removed, the keychain
+  // stubbed out, and fetch replaced before any module loads by a tripwire that
+  // exits 97. A red run of these tests executes the binary as it is, so each
+  // barrier holds alone.
+  const NO_FETCH = (() => {
+    const path = join(scratchDir("no-fetch-"), "no-fetch.mjs");
+    writeFileSync(
+      path,
+      'globalThis.fetch = () => { console.error("noFetch: a binary reached fetch"); process.exit(97); };\n',
+    );
+    return path;
+  })();
+  const child = (script: string, env: Record<string, string> = {}) => {
+    const merged: Record<string, string> = {};
+    for (const [key, value] of Object.entries({ ...process.env, ...noKeychainEnv(), ...env })) {
+      if (value !== undefined && key !== "FMP_API_KEY") merged[key] = value;
+    }
+    const result = spawnSync(TSX, ["--import", NO_FETCH, script], { encoding: "utf8", env: merged });
+    return { code: result.status, out: `${result.stdout}${result.stderr}` };
+  };
+
+  it("has a tripwire that fires", () => {
+    const script = join(scratchDir("no-fetch-probe-"), "probe.mts");
+    // Loopback's discard port: were the tripwire gone, nothing leaves the machine.
+    writeFileSync(script, 'await fetch("http://127.0.0.1:9/");\n');
+    const result = child(script);
+    assert.equal(result.code, 97, result.out);
+    assert.match(result.out, /^noFetch: a binary reached fetch$/m);
+  });
+
+  for (const path of spenders) {
+    it(`${path} prints the refusal alone, before its key and with no stack`, () => {
+      const missing = join(scratchDir("no-checkout-"), "no-such-checkout");
+      const result = child(path, { LEVELFLOW_CHECKOUT: missing });
+      assert.equal(result.code, 1, result.out);
+      const lines = result.out.trim().split("\n");
+      assert.equal(lines.length, 1, `more than the refusal was printed:\n${result.out}`);
+      assert.match(
+        lines[0],
+        /^LEVELFLOW_CHECKOUT names .*no-such-checkout, which does not exist; refusing to read the FMP state from nowhere/,
+      );
+    });
+  }
 });
 
 describe("the ledger is keyed by consumer and reads its history", () => {
