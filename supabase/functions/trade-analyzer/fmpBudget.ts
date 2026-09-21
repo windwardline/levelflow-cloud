@@ -272,20 +272,30 @@ export function mayFetch(
 }
 
 /**
- * The §21f refusal body: the class, the budget, and which refusal.
+ * The §21f refusal body: which refusal, the class, and that class's own day.
  *
  * Sent with HTTP 503 by every Edge path, so a refusal can never read as the
  * rate limit's 429. supabase-js hides a non-2xx body from `data`, and nothing in
  * src/ reads `error.context`, so `error` here is a diagnostic, not reader copy.
+ *
+ * It carries NO account-wide figure. `trailing30` sums both classes over thirty
+ * days, and `fmp_usage` is readable by no client role; a signed-in caller who
+ * fetches the function URL reads this body, so the body must not restate what
+ * the table's revoke withholds. The full reason, trailing figure included, is
+ * what the callers log server-side (console and `analyzer_events`, both closed
+ * to clients).
  */
 export function fmpSpendRefusalBody(refused: FmpSpendRefused) {
   return {
     consumerClass: refused.consumerClass,
-    error: refused.reason,
+    error: refused.refusal === "ceiling" && refused.spentToday !== null
+      ? `${refused.consumerClass} has spent its day: ` +
+        `${(refused.spentToday / 1e6).toFixed(1)} MB of ` +
+        `${(refused.limitBytes / 1e6).toFixed(1)} MB.`
+      : refused.reason,
     fmpSpendRefused: refused.refusal,
     limitBytes: refused.limitBytes,
     spentToday: refused.spentToday,
-    trailing30: refused.trailing30,
   };
 }
 

@@ -120,7 +120,7 @@ Deployed functions:
 - `news-calendar`: token-protected economic-calendar ingestion. A token-gated GET is the zero-spend verify described above.
 - `outcome-sync`: token-protected scheduled outcome resolution across users.
 
-Each of the four decides its provider spend once per request and can refuse it with HTTP 503 and a `fmpSpendRefused` of `parked`, `ceiling` or `ledger-unavailable`, never 429. `market-data` and `trade-analyzer` spend as class `user`: they refuse while `DESK_PARKED` is true (`supabase/functions/_shared/deskParking.ts`), when the class has spent its 800 MiB day, or when the ledger cannot answer. `news-calendar` and `outcome-sync` spend as `background`: they are not parked, and they refuse on their 200 MiB day or a ledger outage. A ledger outage is logged with the ledger's own error, redacted; the client body does not carry it. The rule is amendment 47.
+Each of the four decides its provider spend once per request and can refuse it with HTTP 503 and a `fmpSpendRefused` of `parked`, `ceiling` or `ledger-unavailable`, never 429. `market-data` and `trade-analyzer` spend as class `user`: they refuse while `DESK_PARKED` is true (`supabase/functions/_shared/deskParking.ts`), when the class has spent its 800 MiB day, or when the ledger cannot answer. `news-calendar` and `outcome-sync` spend as `background`: they are not parked, and they refuse on their 200 MiB day or a ledger outage. A ledger outage is logged with the ledger's own error, redacted; the client body does not carry it. The body names the refusal, the class and that class's own day (§21f); account-wide spend stays in the server log, because `fmp_usage` is readable by no client role. The rule is amendment 47.
 
 Database cron jobs:
 

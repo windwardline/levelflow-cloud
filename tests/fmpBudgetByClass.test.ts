@@ -329,12 +329,25 @@ describe("the accounting", () => {
     if (ceiling.allowed) return;
     assert.deepEqual(fmpSpendRefusalBody(ceiling), {
       consumerClass: "user",
-      error: ceiling.reason,
+      error: "user has spent its day: 0.0 MB of 0.0 MB.",
       fmpSpendRefused: "ceiling",
       limitBytes: 10,
       spentToday: 12,
-      trailing30: 99,
     });
+    // The account-wide figure stays server-side: fmp_usage is readable by no
+    // client role, so the body a signed-in caller can fetch must not restate it.
+    assert.match(ceiling.reason, /Trailing 30 days/, "the operator's log keeps the trailing figure");
+    const wire = JSON.stringify(fmpSpendRefusalBody(ceiling));
+    assert.doesNotMatch(wire, /trailing|Trailing/, "no account-wide figure on the wire");
+    const big = await decideFmpSpend(
+      deps({
+        claim: async () => [{ allowed: false, limit_bytes: 800e6, spent_today: 801e6, trailing_30_bytes: 123_456_789_012 }],
+      }),
+      "user",
+      false,
+    );
+    if (big.allowed) return assert.fail("expected a ceiling refusal");
+    assert.doesNotMatch(JSON.stringify(fmpSpendRefusalBody(big)), /123|0\.12|123\.46/, "the trailing total must not leak in any form");
     const parked = await decideFmpSpend(deps(), "user", true);
     assert.equal(parked.allowed, false);
     if (parked.allowed) return;
