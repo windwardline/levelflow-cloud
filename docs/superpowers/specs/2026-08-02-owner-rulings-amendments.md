@@ -2515,11 +2515,11 @@ the browser. It does not bound a request in flight: the ceiling stops the next
 request, and bytes are recorded after the response. It does not settle sign-ups,
 because the repository cannot: `signInWithOtp` passes no `shouldCreateUser`, the
 installed auth-js then asks GoTrue to create the user, `supabase/config.toml`
-has no `[auth]` section, and no file names `enable_signup`. Parked, that costs
-nothing. With `DESK_PARKED` false and `PARKING_GATE` true, which the invariant
-allows, `?enter` and an open sign-up would let anyone spend under the 800 MiB
-user ceiling. Approved under the owner's standing approval of recommendations
-that survived adversarial review: a design, two refuters, two checkers, a
+has no `[auth]` section, and no code or config file names `enable_signup`.
+Parked, that costs nothing. With `DESK_PARKED` false and `PARKING_GATE` true,
+which the invariant allows, `?enter` and an open sign-up would let anyone spend
+under the 800 MiB user ceiling. Approved under the owner's standing approval of
+recommendations that survived adversarial review: a design, two refuters, two checkers, a
 revision, an implementation and a fresh-eyes review. Recorded here as law;
 governor §21i and desk §17p carry one-line cross-references.
 
