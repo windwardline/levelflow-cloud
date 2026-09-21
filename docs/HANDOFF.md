@@ -2472,8 +2472,9 @@ checksum for them. They are not the same twelve as the twelve STALE RECORDS owed
 a regrade — `per-market-grading-classfolds` is stale but not sealed, and
 `review-window-96-grading-class` is sealed but not stale. A regrade may overwrite
 in place only `per-market-grading-classfolds`; every other stale record and every
-sealed input's stdout twin gets its output written somewhere new, and a sealed
-input is never condemned by stamping it — a condemnation goes in
+sealed input's stdout twin gets its output written somewhere new, and no sealed
+file (input, twin, freeze, or the read's own record) is condemned by stamping it —
+a condemnation goes in
 `docs/research/confirm-reads/CONDEMNATIONS.md`. `tests/sealedArmsUnchanged.test.ts`
 enforces the twelve sealed inputs, their stdout twins, the freeze file's bytes, and
 the burned read's own file bytes and printed record, the freeze its artifact

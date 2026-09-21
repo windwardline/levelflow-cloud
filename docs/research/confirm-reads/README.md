@@ -106,11 +106,12 @@ directory holds the sealed ledgered-read artifacts (`ledgered-read-*.json`),
 the printed record of each read's own run (`ledgered-read-*.stdout.txt`, sealed
 with its artifact because that run cannot be repeated), this README, and
 `CONDEMNATIONS.md`, the
-record of a condemnation of anything a burned read seals: its inputs, its freeze,
-and its own artifact and printed record. None is ever condemned by stamping
-`INVALID` into it in place, because the stamp
-rewrites the provenance of a read that cannot be retaken
-(`tests/sealedArmsUnchanged.test.ts` fails on it and says so). The note is
+record of a condemnation of any file a burned read seals: its inputs and their
+printed twins, its freeze, and its own artifact and printed record. No sealed file
+is condemned by stamping `INVALID` into it in place, because the stamp rewrites the
+provenance of a read that cannot be retaken. `tests/sealedArmsUnchanged.test.ts`
+fails on a stamp in any sealed JSON file and names it as a condemnation; a printed
+record cannot carry the JSON-only stamp, so an edit to one fails as tampering. The note is
 Markdown, never `.jsonl`: every `.jsonl` here is read as a ledger on every
 confirm read. Every sealed read is pinned by
 `tests/sealedArmsUnchanged.test.ts` together with its printed record and its

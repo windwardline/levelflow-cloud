@@ -45,8 +45,10 @@ import { artifactHashOf, type LedgeredReadArtifact, sha256File } from "../script
  * the seal to current code, which pinned bytes do not.
  *
  * CONDEMNATION. This repository condemns an artifact by stamping `INVALID` into it in
- * place. A sealed input may not be condemned that way; the stamp rewrites a burned
- * read's provenance. Record the condemnation in
+ * place. No sealed file may be condemned that way — input, twin, freeze or the read's
+ * own record — because the stamp rewrites a burned read's provenance; on the freeze it
+ * also breaks `frozenHash`. The stamp is JSON-only, so on a `.stdout.txt` it reads here
+ * as tampering. Record the condemnation in
  * `docs/research/confirm-reads/CONDEMNATIONS.md` — Markdown, never `.jsonl`, because
  * that directory is globbed for ledgers on every confirm read.
  */
@@ -200,8 +202,8 @@ async function assertSealedBytes(path: string, expected: string, sealedAs: Seale
     actual = await sha256File(path);
   } catch (error) {
     if ((error as { code?: string }).code !== "ENOENT") throw error;
-    const { what } = describeSeal(sealedAs);
-    assert.fail(`${label}${path} is MISSING. It is ${what}: restore it from git; nothing sealed is ever moved.`);
+    const { what, restore } = describeSeal(sealedAs);
+    assert.fail(`${label}${path} is MISSING. It is ${what}: ${restore}. Nothing sealed is ever moved.`);
   }
   if (actual !== expected) assert.fail(`${label}${whatHappened(path, sealedAs)} (sha256 ${actual.slice(0, 12)}, sealed ${expected.slice(0, 12)})`);
 }
@@ -407,7 +409,7 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
 
   it("keeps the freeze's body hash, bound by the sealed read (depends on frozenHashOf)", () => {
     const freeze = parseFreeze();
-    assert.equal(freeze.frozenHash, SEALED_FROZEN_HASH, `${FREEZE} was re-frozen; restore it from git`);
+    assert.equal(freeze.frozenHash, SEALED_FROZEN_HASH, `${FREEZE} was re-frozen. It is ${describeSeal(ACT3_FREEZE).what}: ${describeSeal(ACT3_FREEZE).restore}.`);
     assert.equal(
       frozenHashOf(freeze),
       SEALED_FROZEN_HASH,

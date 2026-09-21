@@ -168,8 +168,9 @@ matters most:
    is stale but not sealed, and `review-window-96-grading-class` is sealed but not
    stale. So of every stale record, only `per-market-grading-classfolds`
    regenerates in place; the other eleven, and the stdout twins of every sealed
-   input, get their regraded output written somewhere new. A sealed input may not
-   be condemned in place with an INVALID stamp either; a condemnation goes in
+   input, get their regraded output written somewhere new. No sealed file (input,
+   twin, freeze, or the read's own record) may be condemned in place with an
+   INVALID stamp either; a condemnation goes in
    `docs/research/confirm-reads/CONDEMNATIONS.md` — Markdown, never `.jsonl`,
    since that directory is globbed for ledgers on every confirm read.
 7. ~~Re-run `freeze-candidates` or re-record the seven `artifactSha256` values in
