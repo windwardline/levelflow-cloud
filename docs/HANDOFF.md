@@ -460,6 +460,14 @@ the lock from zsh and watched the backup walk through it — zsh fires a
 function-scoped `EXIT` trap on return, so the lock was released the instant it
 was taken. Re-checked under bash through `wl-repo-script`: the backup waited out
 an 8-second hold and placed a verified snapshot one second after release.
+*2026-09-21:* the calibration-cache top-up runs `origin/main` through
+`wl-repo-script` too. Its trap was worse than the bank's: the sweep's cache is
+the RELATIVE `.calibration-cache`, so from the extracted tree it would have
+warmed the whole roster from nothing, up to the 2 GiB ceiling, nightly, into a
+directory deleted on exit, and logged "top-up complete". `replay-sweep.ts`'s
+entry guard had the `/var/folders` defect as well. The script now names the cache
+with `--cache-dir` and refuses a missing or temp-rooted one before the keychain.
+Eight mutations, all killed, zero spend.
 *Corrected 2026-09-20, later:* the bank itself now runs `origin/main` through
 `wl-repo-script`. Moving it exposed three silent failures, all fixed before the
 plist changed: the FMP ledger and circuit marker anchored to the extracted tree
