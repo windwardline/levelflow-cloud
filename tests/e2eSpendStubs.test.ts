@@ -149,6 +149,45 @@ describe("a local E2E run stands the FMP projects down while the Edge is parked"
     }
   });
 
+  it("lists only public-auth.spec.ts tests, in the two public-auth projects, when the scope is unset", () => {
+    // The project NAMES are not what runs. Review mutation N5 (2026-09-21)
+    // widened public-auth's testMatch to take authenticated-workspace.spec.ts
+    // too; the names held, the test above stayed green, and a local run would
+    // have run 38 authenticated-workspace tests under a project called
+    // public-auth. So Playwright itself lists what it would run: `--list` loads
+    // the config and the specs, and starts no browser and no web server.
+    const env: NodeJS.ProcessEnv = { ...process.env, ...noKeychainEnv() };
+    delete env.LEVELFLOW_E2E_FMP_PROJECTS;
+    const run = spawnSync(
+      process.execPath,
+      ["./node_modules/@playwright/test/cli.js", "test", "--list", "--reporter=json"],
+      { cwd: process.cwd(), encoding: "utf8", env, maxBuffer: 64 * 1024 * 1024 },
+    );
+    assert.equal(run.status, 0, `playwright test --list failed: ${run.stderr}`);
+    assert.ok(run.stdout.trim().length > 0, "playwright test --list printed nothing, which is no verdict");
+    type Suite = { specs?: Array<{ file: string; tests: Array<{ projectName: string }> }>; suites?: Suite[] };
+    const listed = JSON.parse(run.stdout) as { errors: unknown[]; suites: Suite[] };
+    assert.deepEqual(listed.errors, [], "the config or a spec failed to load, so the list is not what would run");
+    const tests: Array<{ file: string; project: string }> = [];
+    const walk = (suite: Suite) => {
+      for (const spec of suite.specs ?? []) {
+        for (const test of spec.tests) tests.push({ file: spec.file, project: test.projectName });
+      }
+      for (const child of suite.suites ?? []) walk(child);
+    };
+    listed.suites.forEach(walk);
+    assert.ok(tests.length >= 10, `only ${tests.length} tests listed — the walk broke, which reads exactly like a clean list`);
+    const files = [...new Set(tests.map((test) => test.file))].sort();
+    const projects = [...new Set(tests.map((test) => test.project))].sort();
+    if (DESK_PARKED) {
+      assert.deepEqual(files, ["public-auth.spec.ts"], "a parked local run would execute these spec files");
+      assert.deepEqual(projects, ["public-auth", "public-auth-built"]);
+    } else {
+      assert.ok(files.includes("authenticated-workspace.spec.ts"), "an unparked local run lost the workspace suite");
+      assert.deepEqual(projects, ALL_PROJECTS);
+    }
+  });
+
   it("runs every project when deploy.yml has decided the scope", () => {
     for (const scope of ["ran", "stood-down", "stood-down-parked"]) {
       const decided = evaluatedConfig(scope);

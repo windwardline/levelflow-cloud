@@ -198,6 +198,25 @@ describe("the decision", () => {
     assert.ok(!decision.allowed && decision.cause?.includes("apikey=REDACTED"));
   });
 
+  it("bounds the cause at 400 characters, in the refusal and in the log line", async (t) => {
+    // An error body can be any length. The cause is cut after it is redacted,
+    // and what is logged is the cut, not what the ledger threw.
+    const logged = t.mock.method(console, "error", () => {});
+    const thrown = `https://ref.supabase.co/rest/v1/rpc/claim_fmp_bytes?apikey=S3CR3T ${"y".repeat(1000)}`;
+    const decision = await decideFmpSpend(deps({ claim: async () => { throw new Error(thrown); } }), "user", false);
+    assert.equal(decision.allowed, false);
+    if (decision.allowed) return;
+    const cause = decision.cause ?? "";
+    assert.equal(cause.length, 400, `the cause is ${cause.length} characters, not bounded at 400`);
+    assert.ok(cause.includes("?apikey=REDACTED y"), `the cause is not the redacted head of the error: ${cause.slice(0, 90)}`);
+    assert.doesNotMatch(cause, /S3CR3T/);
+    const kept = cause.length - cause.indexOf(" y") - 1;
+    assert.equal(logged.mock.callCount(), 1);
+    const line = logged.mock.calls[0].arguments.map(String).join(" ");
+    assert.ok(line.includes(cause), "the log line does not carry the bounded cause");
+    assert.equal(line.includes("y".repeat(kept + 1)), false, "the log line carries more of the error than the bounded cause");
+  });
+
   it("carries no cause on a refusal nothing threw for", async (t) => {
     t.mock.method(console, "error", () => {});
     const parked = await decideFmpSpend(deps(), "user", true);
@@ -413,8 +432,9 @@ function blocksOf(code: string): Block[] {
 
 const squash = (text: string) => text.replace(/\s+/g, "");
 
-type Site = { body: string; file: string; name: string; params: string };
 type AnchorKind = "apikey parameter" | "base URL" | "key value";
+/** `at` is relative to the site's body. */
+type Site = { anchors: Array<{ at: number; kind: AnchorKind }>; body: string; file: string; name: string; params: string };
 
 /**
  * Where code names the provider. Anchored on the identifiers and the key
@@ -431,7 +451,20 @@ type AnchorKind = "apikey parameter" | "base URL" | "key value";
  *   (`keyFingerprint(FMP_API_KEY)`) cannot carry the key onto the wire, so it
  *   may sit anywhere; a value passed on, in a header or anywhere else, is a
  *   site.
+ *
+ * AND EACH ANCHOR HAS ONE SHAPE. Finding a site is not enough if the site can
+ * hand the identifiers to a helper that holds none: review mutation N3
+ * (2026-09-21) passed `FMP_API_BASE_URL` and `FMP_API_KEY` to a permit-less
+ * `probeProfile(base, key, fetcher)`, which the census could not see. So the
+ * base appears only as `${FMP_API_BASE_URL.replace(/\/$/, "")}` inside a URL
+ * template, and the key only as the value of
+ * `.searchParams.set("apikey", FMP_API_KEY`. Neither shape can be passed on.
  */
+const ANCHOR_SHAPE: Record<AnchorKind, (code: string, at: number) => boolean> = {
+  "apikey parameter": (code, at) => code.startsWith('.searchParams.set("apikey", FMP_API_KEY', at),
+  "base URL": (code, at) => code.slice(at - 2, at) === "${" && code.startsWith('FMP_API_BASE_URL.replace(/\\/$/, "")}', at),
+  "key value": (code, at) => code.slice(0, at).endsWith('.searchParams.set("apikey", '),
+};
 const BASE_DECLARATION =
   /const\s+FMP_API_BASE_URL\s*=\s*Deno\.env\.get\("FMP_API_BASE_URL"\)\s*\?\?\s*"https:\/\/financialmodelingprep\.com\/stable";/g;
 const KEY_DECLARATION = /const\s+FMP_API_KEY\s*=\s*Deno\.env\.get\("FMP_API_KEY"\);/g;
@@ -458,30 +491,105 @@ function providerAnchors(code: string): Array<{ at: number; kind: AnchorKind }> 
 function censusSites() {
   const sites: Site[] = [];
   const unattributed: string[] = [];
+  const misshapen: string[] = [];
   const anchorCounts: Record<AnchorKind, number> = { "apikey parameter": 0, "base URL": 0, "key value": 0 };
   for (const file of edgeFiles()) {
     const code = codeOf(readFileSync(file, "utf8"));
     const blocks = blocksOf(code);
-    const seen = new Set<string>();
+    const byName = new Map<string, Site>();
     for (const anchor of providerAnchors(code)) {
       anchorCounts[anchor.kind] += 1;
+      const line = code.slice(0, anchor.at).split("\n").length;
+      if (!ANCHOR_SHAPE[anchor.kind](code, anchor.at)) {
+        misshapen.push(`${file}:${line} (${anchor.kind}): ${squash(code.slice(Math.max(0, anchor.at - 30), anchor.at + 40))}`);
+      }
       const block = blocks.find((b) => b.async && b.name !== "Deno.serve" && b.start <= anchor.at && anchor.at < b.end);
       if (!block) {
-        const line = code.slice(0, anchor.at).split("\n").length;
         unattributed.push(`${file}:${line} (${anchor.kind})`);
         continue;
       }
-      if (seen.has(block.name)) continue;
-      seen.add(block.name);
-      sites.push({ body: code.slice(block.start, block.end), file, name: block.name, params: block.params });
+      let site = byName.get(block.name);
+      if (!site) {
+        site = { anchors: [], body: code.slice(block.start, block.end), file, name: block.name, params: block.params };
+        byName.set(block.name, site);
+        sites.push(site);
+      }
+      site.anchors.push({ at: anchor.at - block.start, kind: anchor.kind });
     }
   }
-  return { anchorCounts, sites, unattributed };
+  return { anchorCounts, misshapen, sites, unattributed };
+}
+
+/** The innermost `{…}` holding `at`, as [open, close] indexes, or null at the top. */
+function enclosingBlock(code: string, at: number): [number, number] | null {
+  for (let open = code.lastIndexOf("{", at); open >= 0; open = code.lastIndexOf("{", open - 1)) {
+    const close = closing(code, open);
+    if (close > at) return [open, close];
+  }
+  return null;
+}
+
+/**
+ * The one request a site makes, and every use of the URL it sends.
+ *
+ * A site builds one URL in one declaration, sets its parameters, and hands it
+ * to one fetch. Anything else a site does with that URL is how a second
+ * request gets made with the key already on it: review mutation N1 re-used
+ * `endpoint.toString()` for a second fetch, and a helper handed `endpoint`
+ * needs no anchor of its own to spend it.
+ */
+function siteRequest(site: Site) {
+  const calls = [...site.body.matchAll(/\b(?:fetch|fetchWithTimeout|fetcher)\s*\(/g)];
+  if (calls.length !== 1) return { calls: calls.length, problems: [] as string[], request: null };
+  const open = calls[0].index + calls[0][0].length - 1;
+  const argsText = site.body.slice(open + 1, closing(site.body, open));
+  const request = argsText.split(",")[0].trim();
+  const requestAt = open + 1 + argsText.indexOf(request);
+  const problems: string[] = [];
+  if (!/^[A-Za-z_$][\w$]*$/.test(request)) {
+    return { calls: 1, problems: [`its fetch is sent \`${squash(request).slice(0, 60)}\`, not the URL variable it built`], request };
+  }
+  const declarations = [...site.body.matchAll(/\b(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=/g)].filter((m) => m[1] === request);
+  if (declarations.length === 0 || declarations[0].index > requestAt) {
+    return { calls: 1, problems: [`\`${request}\` is not declared in the site before it is sent`], request };
+  }
+  const declStart = declarations[0].index;
+  const declEnd = site.body.indexOf(";", declStart);
+  const nameAt = declStart + declarations[0][0].indexOf(request, declarations[0][0].search(/\s/));
+  for (const anchor of site.anchors.filter((a) => a.kind === "base URL")) {
+    if (anchor.at < declStart || anchor.at > declEnd) problems.push("builds a provider URL outside the declaration of the URL it fetches");
+  }
+  // A later `const <same name>` in a nested block is a different variable —
+  // fetchFmpNewsBatch names each article's link `url` inside its payload map —
+  // so that block's tokens are not uses of the request. It must not hold the
+  // fetch, or the shadow is the request.
+  const shadowed: Array<[number, number]> = [];
+  for (const redeclared of declarations.slice(1)) {
+    const block = enclosingBlock(site.body, redeclared.index);
+    if (!block || (block[0] < requestAt && requestAt < block[1])) {
+      problems.push(`redeclares \`${request}\` in the scope it fetches from`);
+      continue;
+    }
+    shadowed.push(block);
+  }
+  const keyed = site.anchors.filter((a) => a.kind === "apikey parameter");
+  if (keyed.length !== 1 || !site.body.startsWith(`${request}.searchParams.set("apikey", FMP_API_KEY`, keyed[0].at - request.length)) {
+    problems.push(`sets the key ${keyed.length} times, or on something other than \`${request}\``);
+  }
+  for (const token of site.body.matchAll(/[A-Za-z_$][\w$]*/g)) {
+    if (token[0] !== request || site.body[token.index - 1] === ".") continue;
+    if (token.index === nameAt || token.index === requestAt) continue;
+    if (shadowed.some(([open, close]) => open < token.index && token.index < close)) continue;
+    if (site.body.startsWith(".searchParams.set(", token.index + request.length)) continue;
+    const line = site.body.slice(0, token.index).split("\n").length;
+    problems.push(`uses \`${request}\` at body line ${line} other than to set a parameter or send it: ${squash(site.body.slice(token.index, token.index + 50))}`);
+  }
+  return { calls: 1, problems, request };
 }
 
 describe("every Edge provider fetch is a governed site", () => {
-  it("(i) attributes every provider anchor to one function, in every file that names the provider", (t) => {
-    const { anchorCounts, sites, unattributed } = censusSites();
+  it("(i) attributes every provider anchor to one function, in its one shape, in every file that names the provider", (t) => {
+    const { anchorCounts, misshapen, sites, unattributed } = censusSites();
     t.diagnostic(`${sites.length} provider fetch sites: ${sites.map((s) => `${s.file.split("/").slice(-2).join("/")}:${s.name}`).join(", ")}`);
     t.diagnostic(`anchors: ${Object.entries(anchorCounts).map(([kind, n]) => `${n} ${kind}`).join(", ")}`);
     assert.deepEqual(
@@ -489,6 +597,12 @@ describe("every Edge provider fetch is a governed site", () => {
       [],
       "the provider is named outside any async function this guard can read — at module scope, in a sync helper, " +
         "in an arrow function or in the Deno.serve handler — so no site guard applies to what it builds",
+    );
+    assert.deepEqual(
+      misshapen,
+      [],
+      'the base appears only as `${FMP_API_BASE_URL.replace(/\\/$/, "")}` and the key only in ' +
+        '`.searchParams.set("apikey", FMP_API_KEY`: any other shape can be handed to a helper that holds no anchor',
     );
     for (const [kind, n] of Object.entries(anchorCounts)) {
       assert.ok(n > 0, `no ${kind} anchor found anywhere — that detector broke, and a broken detector reads as a clean tree`);
@@ -514,7 +628,7 @@ describe("every Edge provider fetch is a governed site", () => {
     }
   });
 
-  it("(ii) each site takes a permit, asserts it first, makes one fetch and records it with that permit before the ok check", () => {
+  it("(ii) each site takes a permit, asserts it first, makes one fetch of the one URL it built and records it with that permit before the ok check", () => {
     const { sites } = censusSites();
     assert.ok(sites.length >= 7);
     for (const site of sites) {
@@ -527,11 +641,13 @@ describe("every Edge provider fetch is a governed site", () => {
         `${label} does not assert its permit as its first statement, outside any try — a byte can be bought, or a refusal cached, before it is checked`,
       );
       assert.equal(body.split("recordFetch(").length - 1, 1, `${label} must record exactly once`);
+      const request = siteRequest(site);
       assert.equal(
-        (body.match(/(fetchWithTimeout|fetcher)\((url|endpoint)\b/g) ?? []).length,
+        request.calls,
         1,
-        `${label} must make exactly one provider request`,
+        `${label} makes ${request.calls} calls to fetch, fetchWithTimeout or fetcher — a site makes exactly one provider request, and the ledger sees only one`,
       );
+      assert.deepEqual(request.problems, [], `${label}: a second request can leave with the key on it`);
       assert.ok(
         body.includes("recordFetch(fmpBudgetDeps(),permit,"),
         `${label} records with something other than its own permit, so the bytes land on a class nobody decided`,
@@ -592,10 +708,21 @@ function refusalGuardAt(scope: string, name: string, from: number): number {
   return -1;
 }
 
+/**
+ * A decision is one of two statements, and nothing else: the request asks the
+ * ledger, or it asks only when there is work and holds null otherwise. The
+ * pattern used to accept any right-hand side containing the call, so review
+ * mutation N4 (2026-09-21) cached the first allowed decision in a module-scope
+ * `let` and re-used it — `lastSpend?.allowed ? lastSpend : (lastSpend = await
+ * mayFetch(…))` — and a warm isolate would have skipped the ledger and its
+ * ceiling on every later request. It passed every guard.
+ */
+const DECISION =
+  /const\s+(\w+)\s*=\s*(?:await\s+mayFetch\(fmpBudgetDeps\(\),\s*"(user|background)"\)|[\w.]+\.length\s*>\s*0\s*\?\s*await\s+mayFetch\(fmpBudgetDeps\(\),\s*"(user|background)"\)\s*:\s*null)\s*;/g;
+
 function decisionsIn(file: string, code: string): { decisions: Decision[]; stray: number } {
   const decisions: Decision[] = [];
-  const pattern = /const\s+(\w+)\s*=[^;]*?\bmayFetch\(fmpBudgetDeps\(\),\s*"(user|background)"\)/g;
-  for (const match of code.matchAll(pattern)) {
+  for (const match of code.matchAll(DECISION)) {
     const name = match[1];
     const block = blocksOf(code).find((b) => b.start <= match.index && match.index < b.end);
     const scope = block ? code.slice(0, block.end) : code;
@@ -613,7 +740,7 @@ function decisionsIn(file: string, code: string): { decisions: Decision[]; stray
     const permitAt = scope.indexOf(`${name}.permit`, match.index);
     decisions.push({
       branch: guardAt >= 0 && (permitAt < 0 || guardAt < permitAt) ? branch : "",
-      cls: match[2],
+      cls: match[2] ?? match[3],
       file,
       index: match.index,
       name,
@@ -656,7 +783,12 @@ describe("every provider spend is decided per request, and a refusal returns", (
     t.diagnostic(`${decisions.length} decisions: ${decisions.map((d) => `${d.file.split("/")[2]}:${d.cls}`).join(", ")}`);
     assert.ok(decisions.length >= 5, `only ${decisions.length} decisions found — the detector broke`);
     for (const entry of all) {
-      assert.equal(entry.stray, 0, `${entry.file} calls mayFetch outside a \`const X = … mayFetch(fmpBudgetDeps(), "<class>")\` decision`);
+      assert.equal(
+        entry.stray,
+        0,
+        `${entry.file} calls mayFetch outside the two decision shapes, \`const X = await mayFetch(fmpBudgetDeps(), "<class>");\` ` +
+          `and \`const X = <list>.length > 0 ? await mayFetch(fmpBudgetDeps(), "<class>") : null;\` — any other right-hand side can hold a decision across requests`,
+      );
     }
     for (const decision of decisions) {
       assert.match(decision.file, /^supabase\/functions\/[\w-]+\/index\.ts$/, `${decision.file} decides spend outside an entry file`);
@@ -728,7 +860,7 @@ describe("every provider spend is decided per request, and a refusal returns", (
     );
   });
 
-  it("(vii) no permit is forged, cached or cast outside fmpBudget.ts, and mayFetch reads the parking line", () => {
+  it("(vii) no permit is forged, cached or cast outside fmpBudget.ts, and mayFetch is one fresh decision that reads the parking line", () => {
     for (const file of edgeFiles().filter((f) => f !== BUDGET_FILE)) {
       const code = codeOf(readFileSync(file, "utf8"));
       for (const forbidden of ["as FmpSpendPermit", "<FmpSpendPermit>", "decideFmpSpend(", "minted"]) {
@@ -738,15 +870,21 @@ describe("every provider spend is decided per request, and a refusal returns", (
         const window = code.slice(Math.max(0, match.index - 40), match.index + 6 + 40);
         assert.doesNotMatch(window, /\bas (never|any|unknown as)\b/, `${file} casts near a permit: ${squash(window)}`);
       }
-      assert.doesNotMatch(code, /^(?:export\s+)?(?:const|let|var)\s+[^=\n]*permit/im, `${file} holds a permit at module scope`);
+      assert.doesNotMatch(
+        code,
+        /^(?:export\s+)?(?:const|let|var)\s+[^=\n]*(?:permit|mayFetch|FmpSpend)/im,
+        `${file} holds a permit or a spend decision at module scope, where it outlives the request`,
+      );
     }
     const budget = readFileSync(BUDGET_FILE, "utf8");
     assert.match(budget, /import \{ DESK_PARKED \} from "\.\.\/_shared\/deskParking\.ts";/);
     const mayFetchFn = blocksOf(codeOf(budget)).find((b) => b.name === "mayFetch")!;
-    assert.match(
-      budget.slice(mayFetchFn.start, mayFetchFn.end),
-      /decideFmpSpend\(deps, consumerClass, DESK_PARKED\)/,
-      "mayFetch no longer passes the parking line",
+    const mayFetchBody = squash(budget.slice(mayFetchFn.start, mayFetchFn.end));
+    assert.equal(
+      mayFetchBody,
+      "exportfunctionmayFetch(deps:FmpBudgetDeps,consumerClass:FmpConsumerClass,):Promise<FmpSpendDecision>{" +
+        "returndecideFmpSpend(deps,consumerClass,DESK_PARKED);}",
+      "mayFetch must be one fresh decision passing the parking line, and nothing that could remember one",
     );
   });
 });
