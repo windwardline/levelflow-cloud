@@ -10,11 +10,18 @@ updates:
     open-pull-requests-limit: 5
     cooldown:
       default-days: 7
+    # One version group and one security group: one lockfile PR per run per
+    # kind. Split groups opened two PRs that rewrote pnpm-lock.yaml from one
+    # base; both auto-merged and git's text merge broke main (pathfinder
+    # #111/#112, 2026-09-21). Majors stay individual PRs — the auto-merge lane
+    # holds them for a human, and inside the group one would hold every patch.
     groups:
-      production-dependencies:
-        dependency-type: production
-      development-dependencies:
-        dependency-type: development
+      npm-dependencies:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
