@@ -201,6 +201,8 @@ describe("the nightly top-up wrapper, executed", () => {
     const green = token === "fmpStandDown: kind=bandwidth source=breaker";
     it(`${green ? "stands down" : "goes red"} on ${token}`, () => {
       const result = run(TOPUP, { driver: { out: `${token}\nError: refused`, rc: 1 } });
+      // A wrapper that refused before its driver exits 1 as well.
+      assert.equal(driverCalls(result.calls).length, 1, result.calls.join("\n"));
       assert.equal(result.code, green ? 0 : 1, result.output);
     });
   }
@@ -237,6 +239,7 @@ describe("the nightly top-up wrapper, executed", () => {
   ) {
     it(`goes red on ${name}`, () => {
       const result = run(TOPUP, { driver: { out, rc: 1 } });
+      assert.equal(driverCalls(result.calls).length, 1, result.calls.join("\n"));
       assert.equal(result.code, 1, result.output);
     });
   }
