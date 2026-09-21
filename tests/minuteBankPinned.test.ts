@@ -5,8 +5,7 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
-  mkdtempSync,
-  readFileSync,
+readFileSync,
   readlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -14,6 +13,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, it } from "node:test";
 import { noKeychainEnv } from "./support/noKeychain.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 /**
  * THE BANK RUNS FROM `origin/main`, NOT FROM A SHARED WORKING TREE.
@@ -85,7 +85,7 @@ function run(
  * before a single path is printed.
  */
 const PRINT_PATHS = (() => {
-  const probe = join(mkdtempSync(join(tmpdir(), "state-probe-")), "probe.mts");
+  const probe = join(scratchDir("state-probe-"), "probe.mts");
   writeFileSync(
     probe,
     `const g = await import(${JSON.stringify(join(REPO, "scripts/fmpGovernor.ts"))});
@@ -103,7 +103,7 @@ console.log("CIRCUIT=" + c.FMP_CIRCUIT_PATH);
  * the test exercises the change under review, not the last commit.
  */
 function extractedTree(): string {
-  const tree = mkdtempSync(join(tmpdir(), "pinned-tree-"));
+  const tree = scratchDir("pinned-tree-");
   for (const part of ["scripts", "src", "package.json", "tsconfig.json"]) {
     if (existsSync(join(REPO, part))) {
       cpSync(join(REPO, part), join(tree, part), { recursive: true });
@@ -112,9 +112,21 @@ function extractedTree(): string {
   return tree;
 }
 
+/**
+ * A bank directory one level INSIDE its scratch root, so the `<bank>.lock`
+ * the lock protocol creates beside it lands inside the root too and goes when
+ * the root goes. A bank that was itself the scratch root left its lock behind
+ * on every run — found by counting $TMPDIR before and after the suite.
+ */
+function scratchBank(prefix: string): string {
+  const bank = join(scratchDir(prefix), "bank");
+  mkdirSync(bank);
+  return bank;
+}
+
 describe("the governor's state is the checkout's, wherever the code runs", () => {
   it("follows LEVELFLOW_CHECKOUT for the ledger and the breaker", () => {
-    const checkout = mkdtempSync(join(tmpdir(), "checkout-"));
+    const checkout = scratchDir("checkout-");
     const r = run(TSX, [PRINT_PATHS], { LEVELFLOW_CHECKOUT: checkout });
     assert.equal(r.code, 0, r.out);
     assert.match(r.out, new RegExp(`USAGE=${checkout}/\\.fmp-usage\\.json`));
@@ -143,7 +155,7 @@ describe("the governor's state is the checkout's, wherever the code runs", () =>
 
 describe("the daily bank never creates its store implicitly", () => {
   it("refuses a bank directory that does not exist, before the lock or the fetch", () => {
-    const missing = join(mkdtempSync(join(tmpdir(), "bankparent-")), "no-bank");
+    const missing = join(scratchDir("bankparent-"), "no-bank");
     const r = run("bash", ["scripts/ops/bank-minute-bars-daily.sh"], {
       LEVELFLOW_BANK_DIR: missing,
       LEVELFLOW_BANK_LOCK_TIMEOUT: "1",
@@ -158,7 +170,7 @@ describe("the daily bank never creates its store implicitly", () => {
 describe("a run from the extracted tree uses the checkout's toolchain and state", () => {
   it("links node_modules from the checkout, and nothing else leaks in", () => {
     const tree = extractedTree();
-    const bank = mkdtempSync(join(tmpdir(), "pinned-bank-"));
+    const bank = scratchBank("pinned-bank-");
     // Hold the lock so the run stops before the keychain and the network:
     // everything this test asserts happens before that point.
     mkdirSync(`${bank}.lock`);
@@ -198,7 +210,7 @@ describe("a run from the extracted tree uses the checkout's toolchain and state"
     // path matters: the entry guard compares against `process.argv[1]`, and a
     // relative path would skip `main` and pass this vacuously.
     const tree = extractedTree();
-    const bank = mkdtempSync(join(tmpdir(), "pinned-bank-"));
+    const bank = scratchBank("pinned-bank-");
     execFileSync("ln", ["-s", join(REPO, "node_modules"), join(tree, "node_modules")]);
     const r = run(
       join(tree, "node_modules", ".bin", "tsx"),
@@ -252,7 +264,7 @@ describe("no test can spend FMP bandwidth", () => {
     // BARRIER 2 of 2, proven with barrier 1 still in place: were it missing,
     // the stub would make the run skip with exit 0, and this would fail
     // without a byte leaving the machine.
-    const bank = mkdtempSync(join(tmpdir(), "tmp-bank-"));
+    const bank = scratchBank("tmp-bank-");
     const r = run("bash", ["scripts/ops/bank-minute-bars-daily.sh"], {
       LEVELFLOW_BANK_DIR: bank,
       LEVELFLOW_BANK_LOCK_TIMEOUT: "5",

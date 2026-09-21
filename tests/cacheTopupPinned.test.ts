@@ -4,14 +4,13 @@ import {
   cpSync,
   existsSync,
   lstatSync,
-  mkdtempSync,
-  readFileSync,
+readFileSync,
   readlinkSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, it } from "node:test";
 import { noKeychainEnv } from "./support/noKeychain.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 /**
  * THE CACHE TOP-UP RUNS `origin/main`, NOT A SHARED WORKING TREE.
@@ -76,7 +75,7 @@ function run(
 
 /** The shape `wl-repo-script` produces: tracked code, no node_modules, no cache. */
 function extractedTree(): string {
-  const tree = mkdtempSync(join(tmpdir(), "topup-tree-"));
+  const tree = scratchDir("topup-tree-");
   for (const part of ["scripts", "src", "supabase", "package.json", "tsconfig.json"]) {
     if (existsSync(join(REPO, part))) {
       cpSync(join(REPO, part), join(tree, part), {
@@ -91,7 +90,7 @@ function extractedTree(): string {
 
 describe("the top-up never warms a cache it was not given", () => {
   it("refuses a cache directory that does not exist, before the keychain", () => {
-    const missing = join(mkdtempSync(join(tmpdir(), "cacheparent-")), "no-cache");
+    const missing = join(scratchDir("cacheparent-"), "no-cache");
     const r = run("bash", [DAILY], { LEVELFLOW_CACHE_DIR: missing });
     assert.notEqual(r.code, 0, r.out);
     assert.match(r.out, /refusing to warm a new cache/);
@@ -117,7 +116,7 @@ describe("the top-up never warms a cache it was not given", () => {
     // BARRIER 2 of 2, proven with barrier 1 in place: were it missing, the
     // stub would make the run skip with exit 0 and this would fail — without
     // a byte leaving the machine.
-    const cache = mkdtempSync(join(tmpdir(), "tmp-cache-"));
+    const cache = scratchDir("tmp-cache-");
     const r = run("bash", [DAILY], { LEVELFLOW_CACHE_DIR: cache });
     assert.notEqual(r.code, 0, r.out);
     assert.match(r.out, /under the temporary root/);
@@ -130,7 +129,7 @@ describe("a run from the extracted tree uses the checkout's toolchain", () => {
     // The temp-root refusal stops this run before the keychain; the link is
     // made before that point, which is what lets this assert it for free.
     const tree = extractedTree();
-    const cache = mkdtempSync(join(tmpdir(), "tmp-cache-"));
+    const cache = scratchDir("tmp-cache-");
     const r = run("bash", [join(tree, DAILY)], {
       LEVELFLOW_CHECKOUT: REPO,
       LEVELFLOW_CACHE_DIR: cache,
