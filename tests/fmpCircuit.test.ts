@@ -17,6 +17,8 @@ import {
   openCircuit,
   readBreaker,
   recoveryClause,
+  REFUSAL_KINDS,
+  refusalSeverity,
 } from "../scripts/fmpCircuit.ts";
 import { maySpend } from "../scripts/fmpGovernor.ts";
 import { appendRecord, utcDay } from "../scripts/fmpState.ts";
@@ -198,6 +200,22 @@ describe("a refusal is scoped to what it refused", () => {
     assert.equal(decision.kind, "entitlement");
     assert.match(decision.reason, /^fmpCircuitOpen: /);
   });
+
+  // Severity only picks which open entry names a blocked run: the account's
+  // against an endpoint's entitlement, since the account holds one kind at a
+  // time, its newest. What the order must guarantee is that bandwidth, the one
+  // kind the nightly top-up stands down green on, names a run only when nothing
+  // else blocks it. The table is total over the kinds, so no kind ranks by
+  // omission, as a rejected key did at 0 (review round 3, finding 3).
+  it("ranks bandwidth below every other kind, an unclassified refusal included", () => {
+    const floor = refusalSeverity("bandwidth");
+    for (const kind of [...REFUSAL_KINDS, null]) {
+      assert.ok(Number.isFinite(refusalSeverity(kind)), `${String(kind)} has no rank`);
+      if (kind !== "bandwidth") assert.ok(refusalSeverity(kind) > floor, `${String(kind)} ranks at or below bandwidth`);
+    }
+    // A log line from another build can name a kind this one does not know.
+    assert.equal(refusalSeverity("rateLimit" as never), refusalSeverity(null));
+  });
 });
 
 describe("open or closed is decided by evidence time, not by append order", () => {
@@ -362,6 +380,27 @@ describe("the pre-2026-09-16 marker is read as history and never written", () =>
     closeCircuit({ consumer: "bank", endpointPath: MIN1, evidenceAtMs: t0 + 3 * HOUR }, state);
     assert.deepEqual(mayCall(t0 + 3 * HOUR + 1, { requiredPaths: [] }, state), { allowed: true, probe: false });
     assert.equal(readFileSync(state.legacyCircuitPath, "utf8"), legacy);
+  });
+
+  // The marker predates the rule that a rejected key never opens the shared
+  // breaker, and 2026-08-18 stored that body 805 times. Read through as it
+  // stood, it opened the account for every top-up and ad-hoc run.
+  it("reads a legacy marker holding a rejected key as no refusal", () => {
+    const t0 = Date.parse("2026-08-18T12:00:00Z");
+    for (const reason of [BODIES.invalidKeyStoredPrefix, `HTTP 401 ${INVALID_KEY_BODY_PREFIX}`]) {
+      const state = tempState({ legacyCircuit: JSON.stringify({ lastProbeAt: null, openedAt: t0, reason }) });
+      const read = readBreaker(t0 + HOUR, state);
+      assert.ok(read.ok);
+      assert.deepEqual(read.entries, [], reason);
+      assert.equal(read.legacyUnreadable, false);
+      assert.deepEqual(mayCall(t0 + HOUR, { requiredPaths: [] }, state), { allowed: true, probe: false });
+      assert.equal(maySpend({ atMs: t0 + HOUR, consumer: "topup", label: "test", requiredPaths: [], state }).allowed, true);
+    }
+    // Only the rejected key is dropped: the same marker on the bandwidth wall still opens it.
+    const bandwidth = tempState({ legacyCircuit: JSON.stringify({ lastProbeAt: null, openedAt: t0, reason: BODIES.bandwidth }) });
+    const decision = mayCall(t0 + HOUR, { requiredPaths: [] }, bandwidth);
+    assert.equal(decision.allowed, false);
+    if (!decision.allowed) assert.equal(decision.kind, "bandwidth");
   });
 
   it("ignores a torn legacy marker without throwing, and names it", () => {
