@@ -7,10 +7,11 @@ import { join } from "node:path";
  *
  * That script reads the FMP key from the login keychain with `security`, and
  * on this machine the keychain answers. On 2026-09-20 the suite ran the script
- * four times against real FMP — two mutations let it past the lock, and two
- * red runs of a new test predated the refusal they were written for — and each
- * time a full roster, about 280,000 bars, was fetched into a sandbox and thrown
- * away. Bandwidth spent that way does not come back.
+ * six times against real FMP, each a full roster of about 280,000 bars and some
+ * 244 MB in all. Two were red runs of a test written to prove a guard that did
+ * not exist yet — and since the script then ignored LEVELFLOW_BANK_DIR, they
+ * banked into the PRODUCTION store. A red run executes the code as it is, not
+ * as the test imagines it. Bandwidth spent that way does not come back.
  *
  * So `security` is shadowed first on PATH by a stub that refuses. The script
  * then logs "keychain unavailable" and stops, whatever else is broken. Barrier

@@ -466,7 +466,9 @@ plist changed: the FMP ledger and circuit marker anchored to the extracted tree
 (now `scripts/checkoutState.ts`, named by `LEVELFLOW_CHECKOUT`), a bank path that
 `mkdir -p` would have created and lost, and an entry guard that never matches
 under `/var/folders`, so `main` never ran. **The suite spent real FMP bandwidth
-getting there** — four full-roster runs into sandboxes, about 270 MB — which is
+getting there** — six full-roster runs, two of them into the production bank
+(2,894 bars appended, verified clean), about 244 MB scaled from an isolated run;
+the #660 record's "four runs, 270 MB" missed the production two — which is
 why every daily-script test now runs with the keychain shadowed and the script
 refuses a temp-root bank. `wl-repo-script` retries its fetch too (ops #130): the
 fetch had failed at every boot, from a network not yet up plus two launchers
