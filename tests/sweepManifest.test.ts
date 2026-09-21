@@ -40,6 +40,7 @@ import {
   budgetAboveCeiling,
   parseArgs,
   spendPlanFor,
+  surveyEndRefusal,
   terminalLines,
   treasuryFailureRoute,
 } from "../scripts/replay-sweep.ts";
@@ -862,7 +863,9 @@ describe("the driver writes the manifest beside the emit", () => {
       /deferredTreasuryRefusal = error as Error;/,
       "integrity refusals defer rather than abort the survey",
     );
-    const deferredThrow = script.indexOf("throw deferredTreasuryRefusal;");
+    // The treasury refusal is thrown through surveyEndRefusal, executed in
+    // "ends a survey red on a deferred refusal, the treasury's first".
+    const deferredThrow = script.indexOf("throw surveyRefusal;");
     const tablePrint = script.indexOf("printTable(rows);");
     assert.ok(
       tablePrint >= 0 && deferredThrow > tablePrint,
@@ -1061,9 +1064,41 @@ describe("the driver writes the manifest beside the emit", () => {
     const printed = /for \(const line of terminalLines\(error\)\) \{\s*console\.error\(line\);\s*\}/.exec(handler);
     assert.ok(printed, "the entry guard no longer prints the terminal lines");
     assert.ok(printed.index < handler.indexOf("console.error(error)"), "the token must precede the error it names");
-    const treasuryThrow = sweep.indexOf("throw deferredTreasuryRefusal;");
-    const cotThrow = sweep.indexOf("throw deferredProviderRefusals[0];");
-    assert.ok(treasuryThrow >= 0 && cotThrow > treasuryThrow, "the COT rethrow follows the treasury one");
+  });
+
+  // A finished survey decides one thing: whether a refusal it deferred ends
+  // the run red. Pinned only as the position of a throw, the COT half could be
+  // switched off and every suite stayed green, while a hand-run --warm-only
+  // sweep such as the R0 rebuild exited 0 over a contract refused for
+  // entitlement, suspension or a rejected key (2026-09-21, mutation DR1). The
+  // nightly top-up was still red, because its wrapper reads the deferral line.
+  it("ends a survey red on a deferred refusal, the treasury's first", async () => {
+    const state = tempState();
+    const refusal = (body: string, status: number) =>
+      providerRefusal(new Response(body, { status }), {
+        atMs: Date.parse("2026-09-16T12:00:00Z"),
+        consumer: "adhoc",
+        endpointPath: "/stable/commitment-of-traders-report",
+        label: "test",
+        note: false,
+        state,
+      });
+    const entitlement = await refusal(BODIES.restricted.slice(9), 402);
+    const suspended = await refusal(BODIES.suspended.slice(9), 403);
+    const treasury = new Error("treasuryChunkHole: a zero-row week inside served coverage");
+    assert.equal(surveyEndRefusal({ provider: [], treasury: null, warmOnly: true }), null);
+    assert.equal(surveyEndRefusal({ provider: [entitlement, suspended], treasury: null, warmOnly: true }), entitlement);
+    assert.equal(surveyEndRefusal({ provider: [entitlement], treasury, warmOnly: true }), treasury);
+    assert.equal(surveyEndRefusal({ provider: [], treasury, warmOnly: false }), treasury);
+    // A full sweep still measures without one COT contract, as it always has.
+    assert.equal(surveyEndRefusal({ provider: [entitlement], treasury: null, warmOnly: false }), null);
+    const sweep = readFileSync("scripts/replay-sweep.ts", "utf8");
+    const wired =
+      /const surveyRefusal = surveyEndRefusal\(\{\s*provider: deferredProviderRefusals,\s*treasury: deferredTreasuryRefusal,\s*warmOnly: args\.warmOnly,\s*\}\);\s*if \(surveyRefusal\) \{\s*throw surveyRefusal;\s*\}/
+        .exec(sweep);
+    assert.ok(wired, "main no longer ends the survey on the refusal it deferred");
+    assert.ok(wired.index > sweep.indexOf("printTable(rows);"), "the survey table prints before the run ends red");
+    assert.equal(sweep.split("surveyEndRefusal(").length - 1, 2, "one definition and one call");
   });
 
   // #364 round 9, finding 1: the density pre-flight binds only the

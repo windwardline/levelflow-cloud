@@ -1639,18 +1639,17 @@ async function main() {
     );
   }
   printTable(rows);
-  // #364 round 22, finding 1: the deferred deterministic treasury
-  // refusal — set only under --warm-only — exits the run red here,
-  // after the roster warmed and the survey table printed, so the
-  // top-up script's nonzero-exit branches still see it while the
-  // nightly bar top-up and rebuild step 2 keep their work.
-  if (deferredTreasuryRefusal) {
-    throw deferredTreasuryRefusal;
-  }
-  // The COT site warns and returns empty, so a contract refused for a reason
-  // no wait clears would otherwise leave "top-up complete" printing over it.
-  if (args.warmOnly && deferredProviderRefusals.length > 0) {
-    throw deferredProviderRefusals[0];
+  // #364 round 22, finding 1: a deferred refusal exits the run red here,
+  // after the roster warmed and the survey table printed, so the top-up
+  // script's nonzero-exit branches still see it while the nightly bar top-up
+  // and rebuild step 2 keep their work.
+  const surveyRefusal = surveyEndRefusal({
+    provider: deferredProviderRefusals,
+    treasury: deferredTreasuryRefusal,
+    warmOnly: args.warmOnly,
+  });
+  if (surveyRefusal) {
+    throw surveyRefusal;
   }
   if (args.emit && emitStream) {
     await new Promise<void>((resolve, reject) => {
@@ -2425,6 +2424,24 @@ function isoDate(date: Date) {
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * The refusal a finished survey ends on, or null. The deterministic treasury
+ * refusal (set only under --warm-only) comes first. Then, under --warm-only,
+ * the first COT refusal no wait clears: the COT site warns and returns empty,
+ * so without this a contract refused for entitlement, suspension or a rejected
+ * key would leave "top-up complete" printing over it. A full sweep still
+ * measures without one COT contract. Exported so it is executed by a test.
+ */
+export function surveyEndRefusal(input: {
+  provider: readonly Error[];
+  treasury: Error | null;
+  warmOnly: boolean;
+}): Error | null {
+  if (input.treasury) return input.treasury;
+  if (input.warmOnly && input.provider.length > 0) return input.provider[0];
+  return null;
 }
 
 /**
