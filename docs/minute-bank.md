@@ -127,7 +127,8 @@ none, even though its bars are banked, so the next login, kickstart or hand run 
 again. The wrapper's run gate (`scripts/fmpRunGate.ts`) reads the marker: a login run
 is skipped only when that clean run finished at or after the most recent scheduled
 slot (07:20 or 19:20 local), and anything the gate cannot read runs the bank. The
-rule holds on the DST nights, when the slots sit 11 or 13 hours apart.
+rule holds on the DST nights, when the slots sit 11 or 13 hours apart. The gate runs
+before the bank lock, so a skipped login never waits on a backup.
 
 First run, 2026-08-06: 338,971 bars across 100 symbols, 42 MB.
 
