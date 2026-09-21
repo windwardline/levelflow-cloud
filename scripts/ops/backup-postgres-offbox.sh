@@ -71,6 +71,11 @@ STAMP="$(date -u +%Y%m%d)"
 log() { echo "$(date -u +%FT%TZ) pg-offbox: $*"; }
 die() { log "FAIL $*"; exit 1; }
 
+# NEVER the permanent bucket. This script prunes, and windwardline-archives is
+# write-once (docs/offbox-archives.md). The bucket is overridable for tests, so
+# the refusal is by name, not by trust in whoever set the variable.
+[[ $BUCKET != windwardline-archives ]] || die "refusing to run against windwardline-archives: this script prunes, and that bucket is write-once"
+
 # --- self-delivery of secrets ------------------------------------------------
 # The launchd plist invokes this script directly, exactly like its minute-bank
 # sibling, and the secrets arrive here rather than in the plist. Two recorded

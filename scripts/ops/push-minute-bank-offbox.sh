@@ -50,6 +50,11 @@ PROTECTED="20260823"
 log() { echo "$(date -u +%FT%TZ) offbox: $*"; }
 die() { log "FAIL $*"; exit 1; }
 
+# NEVER the permanent bucket. This script prunes, and windwardline-archives is
+# write-once (docs/offbox-archives.md). The bucket is overridable for tests, so
+# the refusal is by name, not by trust in whoever set the variable.
+[[ $BUCKET != windwardline-archives ]] || die "refusing to run against windwardline-archives: this script prunes, and that bucket is write-once"
+
 [[ -d $SNAPSHOT ]] || die "snapshot directory does not exist: $SNAPSHOT"
 
 # BARRIER 2 of 2 against a test fixture reaching production storage, and it is
