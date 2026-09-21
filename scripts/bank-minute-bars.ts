@@ -66,6 +66,7 @@ import {
 } from "./fmpCircuit.ts";
 import {
   BANK_RUN_BOUND_BYTES,
+  ledgerAbsent,
   noteRefusal,
   providerRefusal,
   readDay,
@@ -638,6 +639,12 @@ export async function runBank(deps: BankDeps): Promise<number> {
   if (ledgerBefore.ok === false) {
     print.err(`bank proceeds without a readable ledger: ${ledgerBefore.detail}`);
   } else {
+    // A tree with NO ledger at all is not an error: it reads as a day on which
+    // nothing was spent, and the alarm at the end of this run compares against
+    // a day empty by construction. The governor refuses every other spender
+    // there; this one cannot be refused (§21c), so it says so and banks.
+    const absent = ledgerAbsent(state);
+    if (absent) print.err(`bank proceeds (§21c): ${absent.detail}`);
     reportDayProblems(ledgerBefore.day, { atMs: beforeAt, emit: print.err, state });
   }
 

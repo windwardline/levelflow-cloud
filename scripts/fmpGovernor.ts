@@ -123,6 +123,32 @@ export function recordUsage(
 
 export type LedgerProblem = { ok: false; kind: "ledgerMissing" | "ledgerUnreadable"; detail: string };
 
+const ledgerSentinel = (state: FmpStatePaths) => join(state.usageDir, "ledger.json");
+
+function noLedgerHere(state: FmpStatePaths): LedgerProblem {
+  const sentinel = ledgerSentinel(state);
+  return {
+    detail:
+      `no FMP ledger at ${sentinel}: a scratch copy, worktree or extracted tree ` +
+      `reads an empty one; run FMP spenders from the main checkout. ` +
+      `For a deliberate start on a new machine: ` +
+      `mkdir -p ${state.usageDir} && printf '{}\\n' > ${sentinel}`,
+    kind: "ledgerMissing",
+    ok: false,
+  };
+}
+
+/**
+ * Does this tree carry the machine's ledger? READ-ONLY, and the one consumer
+ * that asks is the minute bank: §21c forbids refusing it, so it prints this
+ * and banks. Every other spender asks `ensureLedger`, which refuses.
+ */
+export function ledgerAbsent(state: FmpStatePaths): LedgerProblem | null {
+  return existsSync(ledgerSentinel(state)) || existsSync(state.legacyUsagePath)
+    ? null
+    : noLedgerHere(state);
+}
+
 /**
  * Does this tree have the machine's ledger?
  *
@@ -133,7 +159,7 @@ export type LedgerProblem = { ok: false; kind: "ledgerMissing" | "ledgerUnreadab
  * this IS the machine's tree: the legacy ledger beside it.
  */
 export function ensureLedger(state: FmpStatePaths): { ok: true } | LedgerProblem {
-  const sentinel = join(state.usageDir, "ledger.json");
+  const sentinel = ledgerSentinel(state);
   try {
     if (existsSync(sentinel)) return { ok: true };
     if (existsSync(state.legacyUsagePath)) {
@@ -150,15 +176,7 @@ export function ensureLedger(state: FmpStatePaths): { ok: true } | LedgerProblem
       ok: false,
     };
   }
-  return {
-    detail:
-      `no FMP ledger at ${sentinel}: this tree has no FMP ledger (a scratch copy, ` +
-      `worktree or extracted tree reads an empty one); run FMP spenders from the ` +
-      `main checkout. For a deliberate start on a new machine: ` +
-      `mkdir -p ${state.usageDir} && printf '{}\\n' > ${sentinel}`,
-    kind: "ledgerMissing",
-    ok: false,
-  };
+  return noLedgerHere(state);
 }
 
 export type DayTotals = {

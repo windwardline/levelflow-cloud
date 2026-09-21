@@ -672,6 +672,32 @@ describe("minute bank — the run, end to end against a stubbed provider", () =>
     assert.equal(existsSync(markerPath(elsewhere)), false, "a copy of the store is not the store");
   });
 
+  // An absent `.fmp-state/` is not an error: readDay reads a day of zeros,
+  // recordUsage creates the directory, and the end-of-run alarm compares
+  // against a day that is empty by construction. The governor refuses every
+  // other spender in such a tree; the bank cannot be refused (§21c), so it
+  // says so in one line and banks (review round 3, finding 4).
+  it("names a tree that has no ledger at all, and banks anyway", async () => {
+    const state = tempState({ sentinel: false });
+    const result = await run({ argv: ["--limit", "1"], state });
+    assert.equal(result.code, 0, result.output);
+    assert.equal(result.symbols.length, 1);
+    assert.ok(result.output.includes("bank proceeds (§21c): no FMP ledger at "), result.output);
+    assert.ok(result.output.includes(join(state.usageDir, "ledger.json")), result.output);
+    assert.equal(readdirSync(result.dir).filter((name) => name.endsWith(".jsonl")).length, 1);
+    // And the bank still never makes a scratch tree read as the machine's.
+    assert.equal(existsSync(join(state.usageDir, "ledger.json")), false);
+  });
+
+  it("says nothing about the ledger in a tree that has one", async () => {
+    const sentinel = await run({ argv: ["--limit", "1"] });
+    assert.doesNotMatch(sentinel.output, /no FMP ledger at/);
+    // The legacy ledger beside it is the evidence the governor adopts on.
+    const legacy = await run({ argv: ["--limit", "1"], state: tempState({ legacyUsage: {}, sentinel: false }) });
+    assert.equal(legacy.code, 0, legacy.output);
+    assert.doesNotMatch(legacy.output, /no FMP ledger at/, legacy.output);
+  });
+
   it("keeps banking when the ledger cannot be written, and exits red", async () => {
     const state = tempState({ sentinel: false });
     mkdirSync(dirname(state.usageDir), { recursive: true });

@@ -72,7 +72,8 @@ export type FmpStatePaths = {
  * that tree, every run would read an empty ledger, a closed breaker and no
  * clean-run marker, and the run gate would re-run both jobs at every login; a
  * tree with no ledger at all is refused by the governor rather than read as
- * untouched.
+ * untouched — except for the minute bank, which §21c forbids refusing, and
+ * which names such a tree in one line and banks.
  */
 export function defaultStatePaths(root = checkoutRoot()): FmpStatePaths {
   return {
