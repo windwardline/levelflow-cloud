@@ -5,8 +5,55 @@
 # Idempotent — a day already pinned fetches nothing. Logs carry no secrets.
 set -euo pipefail
 
-REPO="/Users/peacock/Projects/levelflow-cloud"
+# Derived from this script's own location, never hardcoded: launchd runs it
+# through `wl-repo-script`, which extracts origin/main into a temporary tree.
+REPO="${LEVELFLOW_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 cd "$REPO"
+
+# CODE AND DATA ARE TWO DIFFERENT PLACES. $REPO is the extracted tree: code
+# only, no cache, no FMP ledger, no circuit marker, no node_modules.
+# LEVELFLOW_CHECKOUT names the checkout whose ignored state is real, and the
+# ledger and breaker resolve through it (scripts/checkoutState.ts). Run by hand
+# from that checkout, the two are one directory and nothing below changes.
+CHECKOUT="${LEVELFLOW_CHECKOUT:-$REPO}"
+CACHE="${LEVELFLOW_CACHE_DIR:-$CHECKOUT/.calibration-cache}"
+
+# NEVER WARM A CACHE IMPLICITLY. The sweep's default cache is the RELATIVE path
+# `.calibration-cache`, and it creates what it does not find. From the extracted
+# tree that is an empty directory, and `--warm-only --days max` against an empty
+# cache warms the whole roster from nothing — the run that spent a 150 GB
+# allowance in days. The 2 GiB ceiling would halt it at 2 GiB, every night, into
+# a directory deleted on exit, and the log would say "top-up complete". A new
+# cache is a deliberate act (docs/cache-rebuild-r0.md), never a default.
+if [[ ! -d $CACHE ]]; then
+  echo "$(date -u +%FT%TZ) top-up FAILED: no calibration cache at $CACHE; refusing to warm a new cache implicitly (set LEVELFLOW_CHECKOUT or LEVELFLOW_CACHE_DIR)"
+  exit 1
+fi
+
+# The toolchain is the checkout's: linked, not installed, so no run reaches the
+# npm registry, and `rm -rf` of the tree removes the link without following it.
+if [[ ! -e $REPO/node_modules ]]; then
+  ln -s "$CHECKOUT/node_modules" "$REPO/node_modules"
+fi
+TSX="$REPO/node_modules/.bin/tsx"
+[[ -x $TSX ]] || { echo "$(date -u +%FT%TZ) top-up FAILED: tsx is not installed at $TSX; run npm ci in $CHECKOUT"; exit 1; }
+
+# NEVER SPEND INTO A TEMPORARY DIRECTORY. The production cache lives in the
+# checkout; nothing legitimate warms one under a temp root. The tests keep the
+# keychain out of reach (tests/support/noKeychain.ts), but on 2026-09-20 red
+# runs and mutations of the minute bank's tests fetched six full FMP rosters,
+# so the script refuses on its own as well — after the link, so a test can
+# assert the link for free, and before the keychain, so nothing past it spends.
+CACHE_REAL="$(cd "$CACHE" && pwd -P)"
+for tmp_root in "${TMPDIR:-/tmp}" /tmp /var/folders; do
+  tmp_real="$(cd "$tmp_root" 2>/dev/null && pwd -P)" || continue
+  case "$CACHE_REAL/" in
+    "${tmp_real%/}/"*)
+      echo "$(date -u +%FT%TZ) top-up FAILED: the cache at $CACHE is under the temporary root $tmp_real; refusing to spend FMP bandwidth on a directory that will not survive"
+      exit 1
+      ;;
+  esac
+done
 
 FMP_API_KEY="$(security find-generic-password -a peacock -s fmp-api-key -w 2>/dev/null || true)"
 if [ -z "$FMP_API_KEY" ]; then
@@ -42,7 +89,8 @@ echo "$(date -u +%FT%TZ) top-up starting"
 # goes red. Uncertainty resolves toward failing, never toward standing down —
 # a false stand-down hides a real regression, which is the expensive direction.
 set +e
-out=$(npx tsx scripts/replay-sweep.ts --symbols roster --days max --warm-only \
+out=$("$TSX" "$REPO/scripts/replay-sweep.ts" --cache-dir "$CACHE" \
+  --symbols roster --days max --warm-only \
   --byte-budget "${TOPUP_BYTE_BUDGET:-2gb}" 2>&1)
 rc=$?
 set -e
