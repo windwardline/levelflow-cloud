@@ -62,11 +62,11 @@ acquire_bank_lock "$BANK"
 
 # NEVER FETCH INTO A TEMPORARY DIRECTORY. The production bank lives in the
 # checkout; nothing legitimate banks under a temp root. This exists because on
-# 2026-09-20 the test suite ran this script FOUR times against real FMP: two
-# mutations let it past the lock, and two red runs of a new test predated the
-# refusal above, and each time the keychain answered and a full roster —
-# about 280,000 bars, the size of a scheduled run — was fetched into a sandbox
-# and thrown away. The tests now keep the keychain out of reach, but a guard the
+# 2026-09-20 the test suite ran this script SIX times against real FMP — two
+# red runs of the lock test that banked into the PRODUCTION store before this
+# script honoured LEVELFLOW_BANK_DIR, two mutations that let it past the lock,
+# and two red runs of a test that predated the refusal above — each a full
+# roster of about 280,000 bars, some 244 MB in all. The tests now keep the keychain out of reach, but a guard the
 # caller must remember is not a guard, so the script refuses on its own. It sits
 # after the lock so the lock's own tests still reach it, and before the
 # keychain so nothing past it can spend.

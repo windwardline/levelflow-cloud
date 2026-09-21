@@ -246,11 +246,22 @@ having banked nothing: twice a day, with a completed run logged each time.
 carried the same guard use it too.
 
 **No test may spend FMP bandwidth.** On 2026-09-20 the suite ran the daily script
-against real FMP four times. Two mutations let it past the lock; two red runs of a
-new test predated the refusal they were written for. Each time the keychain answered
-and a full roster, about 280,000 bars, was fetched into a sandbox and thrown away:
-roughly 270 MB, estimated from that day's ledger. Two barriers now stand between the
-suite and the provider. `tests/support/noKeychain.ts` shadows `security` on `PATH`, so
+against real FMP six times, and each time the keychain answered and a full roster was
+fetched:
+
+| UTC | Into | Cause |
+| --- | --- | --- |
+| 01:37:21, 01:37:31 | **the production bank** | two red runs of #658's lock test — before the lock, the script ignored `LEVELFLOW_BANK_DIR` |
+| 01:53:47, 01:53:57 | sandboxes | mutations that let the script past the lock |
+| 02:43:07, 02:43:51 | sandboxes | two red runs of #660's missing-bank test, before that refusal existed |
+
+1,684,404 bars in all. One run measured in isolation later that night cost 41.5 MB
+for 286,167 bars, which puts the six at about 244 MB. The two production runs
+appended 2,894 bars through the bank's normal de-duplication: real bars, sidecars
+matching their files, and no ordering violation among them. The #660 record first
+said four runs and 270 MB; the four were only the sandboxes, and the figure was
+divided out of a daily ledger that also held the cache top-up. Two barriers now
+stand between the suite and the provider. `tests/support/noKeychain.ts` shadows `security` on `PATH`, so
 no test can read the key. The script itself refuses a bank under a temporary root, so
 a barrier the caller forgot still holds. The mutation run that proved them recorded
 zero sandbox writes and an untouched ledger across eight mutations.
