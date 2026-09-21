@@ -453,8 +453,13 @@ file and its sidecar as two separate steps, so accepting the larger copy would
 have shipped a torn line or a mismatched sidecar off-box and called it success.
 `scripts/ops/bank-lock.sh` now serialises the two, both scripts take it before
 they touch the store, and `tests/minuteBankLock.test.ts` exercises it against
-the real scripts. Seven mutations recorded; one of them found an unbounded spin
-in the first version of the lock itself.
+the real scripts. Eight mutations recorded (listed in `docs/minute-bank.md`);
+one found an unbounded spin in the first version of the lock itself. A second
+PR made the helper refuse to load outside bash, after the production check held
+the lock from zsh and watched the backup walk through it — zsh fires a
+function-scoped `EXIT` trap on return, so the lock was released the instant it
+was taken. Re-checked under bash through `wl-repo-script`: the backup waited out
+an 8-second hold and placed a verified snapshot one second after release.
 
 ### 0.5 — Close the write surface on the learning corpus — **DONE, verified against production 2026-08-07**
 
