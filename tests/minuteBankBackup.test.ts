@@ -78,6 +78,61 @@ function run(
 const snapshots = (dest: string) =>
   readdirSync(dest).filter((name) => name.startsWith("levelflow-minute-bank-snapshot-")).sort();
 
+// launchd hands its agents this PATH: neither ~/.local/bin nor /opt/homebrew/bin.
+const LAUNCHD_PATH = "/usr/bin:/bin:/usr/sbin:/sbin";
+
+/**
+ * A HOME whose ~/.local/bin holds a recording wl-secret stub, or nothing.
+ *
+ * The stub records its argv and exits 0 WITHOUT running the command it was
+ * handed, so the push script, rclone and R2 are never reached. That is what
+ * lets a case run the real prune, which the script now reaches only after a
+ * push that succeeded.
+ */
+function homeWith(root: string, stub: boolean) {
+  const home = join(root, "home");
+  const bin = join(home, ".local", "bin");
+  mkdirSync(bin, { recursive: true });
+  const calls = join(root, "wl-secret.calls");
+  if (stub) {
+    writeFileSync(
+      join(bin, "wl-secret"),
+      `#!/bin/sh\nprintf '%s\\n' "$*" >> "${calls}"\nexit 0\n`,
+      { mode: 0o755 },
+    );
+  }
+  return { calls, home };
+}
+
+function runUnderLaunchd(
+  bank: string,
+  dest: string,
+  home: string,
+  extra: Record<string, string> = {},
+): { code: number; out: string } {
+  try {
+    const out = execFileSync("bash", [SCRIPT], {
+      encoding: "utf8",
+      // NOT `...process.env`: the point is the environment launchd hands the
+      // agent, and no inherited override can stand in for the one under test.
+      env: {
+        HOME: home,
+        LEVELFLOW_BACKUP_ROOT: dest,
+        LEVELFLOW_BANK_DIR: bank,
+        PATH: LAUNCHD_PATH,
+        ...extra,
+      },
+    });
+    return { code: 0, out };
+  } catch (error) {
+    const shell = error as { status?: number; stderr?: string; stdout?: string };
+    return {
+      code: shell.status ?? 1,
+      out: `${shell.stdout ?? ""}${shell.stderr ?? ""}`,
+    };
+  }
+}
+
 describe("the backup copies and then PROVES it copied", () => {
   it("places a snapshot whose counts match the bank", () => {
     const { bank, dest } = sandbox(["EURUSD", "BTCUSD", "XAUUSD"]);
@@ -140,9 +195,27 @@ describe("the backup copies and then PROVES it copied", () => {
     assert.match(SOURCE, /TMP="\$DEST\.partial"/);
     assert.match(SOURCE, /mv "\$TMP" "\$DEST"/);
   });
+
+  it("refuses a named root that does not exist, rather than creating a fresh one", () => {
+    // Only the default root is created. A mistyped LEVELFLOW_BACKUP_ROOT that
+    // was created silently would hold one snapshot, pass parity over it, and
+    // leave the real root abandoned with nothing to say so.
+    const { bank, root } = sandbox(["EURUSD"]);
+    const missing = join(root, "no-such-root");
+    const result = run(bank, missing);
+    assert.equal(result.code, 1, result.out);
+    assert.match(result.out, /FAIL the snapshot root does not exist: \S+no-such-root/);
+    assert.equal(existsSync(missing), false, "a named root was created");
+  });
 });
 
 describe("the naive-era archive survives the prune", () => {
+  // The prune runs only behind a push that succeeded, so these cases hand the
+  // script a wl-secret stub that exits 0 without running the push.
+  function pushed(root: string) {
+    return homeWith(root, true).home;
+  }
+
   it("keeps it even when it is oldest and the window is full", () => {
     // THE MISTAKE THIS EXISTS FOR. Pruning oldest-first deletes
     // `...-20260823` FIRST, and that one is not an ordinary daily: it is the
@@ -150,14 +223,15 @@ describe("the naive-era archive survives the prune", () => {
     // redesign against real data rather than fixtures, and whether it is ever
     // deleted is an explicit owner decision. A retention COUNT cannot protect
     // it — the whole point of oldest-first is that the oldest goes first.
-    const { bank, dest } = sandbox(["EURUSD"]);
+    const { bank, dest, root } = sandbox(["EURUSD"]);
     for (const day of ["20260823", "20260824", "20260825"]) {
       const dir = join(dest, `levelflow-minute-bank-snapshot-${day}`);
       mkdirSync(dir);
       writeFileSync(join(dir, "EURUSD.jsonl"), '{"date":"old"}\n');
     }
-    const result = run(bank, dest, { LEVELFLOW_BACKUP_KEEP: "1" });
+    const result = runUnderLaunchd(bank, dest, pushed(root), { LEVELFLOW_BACKUP_KEEP: "1" });
     assert.equal(result.code, 0, result.out);
+    assert.match(result.out, /pruning /, "the prune never ran, so this proved nothing");
     const left = snapshots(dest);
     assert.ok(
       left.includes("levelflow-minute-bank-snapshot-20260823"),
@@ -169,17 +243,39 @@ describe("the naive-era archive survives the prune", () => {
   it("still prunes ordinary snapshots once over the window", () => {
     // Protection that quietly stopped pruning would trade one unbounded thing
     // for another.
-    const { bank, dest } = sandbox(["EURUSD"]);
+    const { bank, dest, root } = sandbox(["EURUSD"]);
     for (const day of ["20260824", "20260825", "20260826"]) {
       mkdirSync(join(dest, `levelflow-minute-bank-snapshot-${day}`));
     }
-    const result = run(bank, dest, { LEVELFLOW_BACKUP_KEEP: "1" });
+    const result = runUnderLaunchd(bank, dest, pushed(root), { LEVELFLOW_BACKUP_KEEP: "1" });
     assert.equal(result.code, 0, result.out);
     assert.match(result.out, /pruning /);
     assert.ok(
       snapshots(dest).length < 4,
       `nothing was pruned: ${snapshots(dest).join(", ")}`,
     );
+  });
+
+  it("prunes nothing when the off-box push is skipped", () => {
+    // The skip is the test harness's switch, and it used to fall through to
+    // the prune. With one daily kept, one skipped run would delete every
+    // daily but the newest — including one whose push failed the day before,
+    // which exists nowhere off-box.
+    const { bank, dest } = sandbox(["EURUSD"]);
+    const seeded = ["20260824", "20260825", "20260826"];
+    for (const day of seeded) {
+      mkdirSync(join(dest, `levelflow-minute-bank-snapshot-${day}`));
+    }
+    const result = run(bank, dest, { LEVELFLOW_BACKUP_KEEP: "1" });
+    assert.equal(result.code, 0, result.out);
+    assert.match(result.out, /prune SKIPPED with the off-box push/);
+    assert.doesNotMatch(result.out, /pruning /);
+    for (const day of seeded) {
+      assert.ok(
+        snapshots(dest).includes(`levelflow-minute-bank-snapshot-${day}`),
+        `${day} was pruned behind a skipped push: ${snapshots(dest).join(", ")}`,
+      );
+    }
   });
 
   it("names the protected snapshot rather than trusting arithmetic", () => {
@@ -251,50 +347,6 @@ describe("the off-box step under launchd's environment", () => {
   // shell it was ever tried in and failed in the one environment the schedule
   // actually runs from. The fix is to stop trusting an inherited PATH for the
   // secret launcher at all.
-  const LAUNCHD_PATH = "/usr/bin:/bin:/usr/sbin:/sbin";
-
-  /** A HOME whose ~/.local/bin holds a recording stub, or nothing. */
-  function homeWith(root: string, stub: boolean) {
-    const home = join(root, "home");
-    const bin = join(home, ".local", "bin");
-    mkdirSync(bin, { recursive: true });
-    const calls = join(root, "wl-secret.calls");
-    if (stub) {
-      writeFileSync(
-        join(bin, "wl-secret"),
-        `#!/bin/sh\nprintf '%s\\n' "$*" >> "${calls}"\nexit 0\n`,
-        { mode: 0o755 },
-      );
-    }
-    return { calls, home };
-  }
-
-  function runUnderLaunchd(
-    bank: string,
-    dest: string,
-    home: string,
-  ): { code: number; out: string } {
-    try {
-      const out = execFileSync("bash", [SCRIPT], {
-        encoding: "utf8",
-        // NOT `...process.env`: the point is the environment launchd hands the
-        // agent, which carries neither ~/.local/bin nor /opt/homebrew/bin.
-        env: {
-          HOME: home,
-          LEVELFLOW_BACKUP_ROOT: dest,
-          LEVELFLOW_BANK_DIR: bank,
-          PATH: LAUNCHD_PATH,
-        },
-      });
-      return { code: 0, out };
-    } catch (error) {
-      const shell = error as { status?: number; stderr?: string; stdout?: string };
-      return {
-        code: shell.status ?? 1,
-        out: `${shell.stdout ?? ""}${shell.stderr ?? ""}`,
-      };
-    }
-  }
 
   it("reaches the off-box push with no ~/.local/bin on PATH", () => {
     const { bank, dest, root } = sandbox(["AAA", "BBB"]);
@@ -348,7 +400,6 @@ describe("the snapshots live under ~/.local/share and one daily is kept", () => 
   // with a recording wl-secret stub and launchd's PATH, and they build the
   // environment from nothing rather than from `process.env`, so no inherited
   // override can stand in for the default being tested.
-  const LAUNCHD_PATH = "/usr/bin:/bin:/usr/sbin:/sbin";
   const DEFAULT_ROOT = [".local", "share", "levelflow-cloud", "minute-bank-snapshots"];
 
   /**
@@ -455,6 +506,18 @@ describe("the snapshots live under ~/.local/share and one daily is kept", () => 
       readFileSync(calls, "utf8"),
       new RegExp(`-- \\S+/scripts/ops/push-minute-bank-offbox\\.sh ${prefix}\\d{8}\\n$`),
     );
+  });
+
+  it("creates nothing at all when there is no bank to back up", () => {
+    // A machine without a bank is not a machine that needs a snapshot root.
+    // The root is created only once there is something to put in it.
+    const { home, snapRoot } = sandboxHome();
+    const missingBank = join(home, "..", "no-such-bank");
+    const { code, out } = runAtDefault(missingBank, home);
+    assert.equal(code, 0, out);
+    assert.match(out, /nothing to back up/);
+    assert.equal(existsSync(join(home, ".local", "share")), false, `created ${snapRoot} with no bank`);
+    assert.equal(existsSync(`${missingBank}.lock`), false, "took a lock on a bank that does not exist");
   });
 
   it("keeps one daily by default, and the protected corpus besides it", () => {

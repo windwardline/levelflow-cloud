@@ -42,27 +42,34 @@ REPO="${LEVELFLOW_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 BANK="${LEVELFLOW_BANK_DIR:-$REPO/.minute-bank}"
 # WHERE THE SNAPSHOTS LIVE. Until 2026-09-21 the default was the home folder
 # itself, and a new dated directory appeared there every day beside the
-# owner's own files — sixteen of them when the owner asked what they were.
-# ~/.local/share is the per-user data directory: same disk, outside the
-# repository (no `git clean -dfx` reaches it), out of the owner's way. The
-# path has no spaces because the plist hands its whole command to `zsh -lc` as
-# one string, and an override set there would split on one. Created below if
-# absent; LEVELFLOW_BACKUP_ROOT still overrides, which is how the tests run it.
+# owner's own files — fifteen of them when the owner asked what they were,
+# fourteen dailies plus the protected 20260823. ~/.local/share is the per-user
+# data directory: same disk, outside the repository (no `git clean -dfx`
+# reaches it), out of the owner's way. The path has no spaces because the
+# plist hands its whole command to `zsh -lc` as one string, and an override
+# set there would split on one. The default is created below if absent; an
+# override is not (see there). LEVELFLOW_BACKUP_ROOT is how the tests run it.
 DEST_ROOT="${LEVELFLOW_BACKUP_ROOT:-$HOME/.local/share/levelflow-cloud/minute-bank-snapshots}"
 STAMP="$(date -u +%Y%m%d)"
 DEST="$DEST_ROOT/levelflow-minute-bank-snapshot-$STAMP"
 # ONE LOCAL DAILY, plus the protected snapshot below. Depth lives off-box: R2
-# keeps 60 verified archives and protects 20260823 by name in its own prune,
-# so the local copy is the staging copy the push archives from and one
-# offline restore point, not the history. The bank only ever grows, so an
-# older snapshot is a strict subset of a newer one; the fourteen kept here
-# until 2026-09-21 duplicated what R2 already held.
+# keeps 60 verified archives, so the local copy is the staging copy the push
+# archives from and one offline restore point, not the history. The bank only
+# ever grows, so an older snapshot is a strict subset of a newer one; the
+# fourteen kept here until 2026-09-21 duplicated what R2 already held.
 #
-# The prune cannot outrun the push. It runs only after the push has verified
-# the remote object AND the parity check has found every local snapshot in
-# the remote listing, because either failure exits before the prune is
-# reached. A snapshot that never made it off the machine is never the one
-# deleted.
+# R2's copy of 20260823 IS NOT PERMANENT. The push spares it by name in its
+# own prune, but the bucket's lifecycle rule expires every object 365 days
+# after upload whatever its name (windwardline FLEET.md, set 2026-09-03). From
+# that day parity fails naming 20260823, this job exits 1 before the prune,
+# dailies accumulate here again, and the local copy is the naive-era corpus's
+# only custodian. HANDOFF §6b-1 item I owes it a copy that never expires.
+#
+# The local prune cannot outrun the push. It runs only after the push has
+# verified the remote object AND the parity check has found every local
+# snapshot in the remote listing; a failure of either exits before the prune,
+# and a skipped push skips the prune with it. A daily that never made it off
+# the machine is never the one this prune deletes.
 KEEP="${LEVELFLOW_BACKUP_KEEP:-1}"
 
 log() { echo "$(date -u +%FT%TZ) $*"; }
@@ -122,10 +129,16 @@ log "bank: $SRC_FILES symbols, $SRC_BARS bars"
 # path and moved into place, so an interrupted copy never replaces a good
 # snapshot with a partial one.
 TMP="$DEST.partial"
-# Created, not assumed: the default root sits under ~/.local/share, which a
-# fresh machine need not have, and `cp -R` into a missing parent fails naming
-# the .partial path rather than the root that is actually absent.
-mkdir -p "$DEST_ROOT" || { log "FAIL cannot create the snapshot root $DEST_ROOT"; exit 1; }
+# The DEFAULT root is created, not assumed: it sits under ~/.local/share,
+# which a fresh machine need not have. A NAMED root never is. A mistyped
+# LEVELFLOW_BACKUP_ROOT created here would hold one snapshot, pass parity over
+# it, and leave the real root abandoned with nothing to say so.
+if [[ -n ${LEVELFLOW_BACKUP_ROOT:-} ]]; then
+  [[ -d $DEST_ROOT ]] || { log "FAIL the snapshot root does not exist: $DEST_ROOT (named by LEVELFLOW_BACKUP_ROOT, so it is not created)"; exit 1; }
+elif [[ ! -d $DEST_ROOT ]]; then
+  log "creating the snapshot root $DEST_ROOT"
+  mkdir -p "$DEST_ROOT" || { log "FAIL cannot create the snapshot root $DEST_ROOT"; exit 1; }
+fi
 rm -rf "$TMP"
 cp -R "$BANK" "$TMP"
 
@@ -151,8 +164,12 @@ release_bank_lock
 OFFBOX="$REPO/scripts/ops/push-minute-bank-offbox.sh"
 if [ "${LEVELFLOW_SKIP_OFFBOX:-0}" = "1" ]; then
   # The only way to skip, and it is loud. Used by the test harness, which has
-  # no business writing to the real bucket.
+  # no business writing to the real bucket. The prune goes with it: nothing
+  # was pushed or parity-checked, and with one daily kept a prune here would
+  # delete a daily whose push failed yesterday, which exists nowhere off-box.
   log "off-box SKIPPED by LEVELFLOW_SKIP_OFFBOX=1"
+  log "prune SKIPPED with the off-box push; the snapshot stands"
+  exit 0
 else
   [[ -x $OFFBOX ]] || { log "FAIL off-box script missing or not executable: $OFFBOX"; exit 1; }
   # BY ABSOLUTE PATH, never from an inherited PATH. The plist runs this under
