@@ -95,7 +95,8 @@ export function nextSlotAfter(nowMs: number, slots: readonly Slot[]): number {
 
 /** The most recent slot at or before `nowMs`, in this process's local time. */
 export function previousSlotAtOrBefore(nowMs: number, slots: readonly Slot[]): number {
-  const previous = slotInstants(nowMs, slots).findLast((candidate) => candidate <= nowMs);
+  // `filter().at(-1)`, not `findLast`: the repo's lib target is ES2022.
+  const previous = slotInstants(nowMs, slots).filter((candidate) => candidate <= nowMs).at(-1);
   if (previous === undefined) throw new Error("no slot within two days");
   return previous;
 }
