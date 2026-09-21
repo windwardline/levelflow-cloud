@@ -263,6 +263,28 @@ describe("the run gate reads the checkout's marker from the extracted tree", () 
     assert.match(second.out, /^runGate: skip job=cache-topup .*reason=cleanRunCoversNextSlot$/m);
   });
 
+  // The gate fails toward running, and that includes a checkout it cannot
+  // resolve. Resolved outside the gate's own error handling, a checkout that
+  // names nothing crashed the process with a stack and no decision line.
+  it("reads a checkout that names nothing as a gate error, and runs", () => {
+    const tree = gateTree();
+    const missing = join(scratchDir("gate-checkout-"), "no-such-checkout");
+    const gate = (...args: string[]) =>
+      run(join(tree, "node_modules", ".bin", "tsx"), [join(tree, "scripts/fmpRunGate.ts"), "--job", "cache-topup", ...args], {
+        LEVELFLOW_CHECKOUT: missing,
+      }, tree);
+    const decided = gate();
+    assert.equal(decided.code, 0, decided.out);
+    assert.match(
+      decided.out,
+      /^runGate: run job=cache-topup now=\S+ reason=gateError: LEVELFLOW_CHECKOUT names .*no-such-checkout, which does not exist/m,
+    );
+    const recorded = gate("--record-clean");
+    assert.equal(recorded.code, 1, recorded.out);
+    assert.match(recorded.out, /^runGate: record-clean failed job=cache-topup: LEVELFLOW_CHECKOUT names /m);
+    assert.equal(existsSync(join(tree, ".fmp-state")), false, "the marker went into the extracted tree");
+  });
+
   it("skips the daily bank on a clean marker, before the lock and the keychain", () => {
     const tree = gateTree();
     const checkout = scratchDir("gate-checkout-");

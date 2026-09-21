@@ -19,9 +19,11 @@
  * 03:39Z and 21:36Z and runs 12:54Z.
  *
  * It fails toward running. Anything it cannot read — the plist, the marker,
- * the flags, the store — prints `reason=gateError` and exits 0, so the wrapper
- * runs the job. Only a decided skip exits 75, and the wrapper also requires
- * the skip line, so no other failure that happens to exit 75 can skip a run.
+ * the flags, the store, the checkout — prints `reason=gateError` and exits 0,
+ * so the wrapper runs the job. `--record-clean` fails the other way: a marker
+ * it cannot place exits 1. Only a decided skip exits 75, and the wrapper also
+ * requires the skip line, so no other failure that happens to exit 75 can skip
+ * a run.
  *
  *   npx tsx scripts/fmpRunGate.ts --job minute-bank --dir /path/to/.minute-bank
  *   npx tsx scripts/fmpRunGate.ts --job cache-topup
@@ -180,9 +182,13 @@ function asJob(value: string | undefined): RunJob {
   throw new Error(`--job must be minute-bank or cache-topup; got ${JSON.stringify(value)}`);
 }
 
+/**
+ * The CLI. `state` is resolved inside the error handling, so a checkout that
+ * names nothing reads as a gate error like anything else the gate cannot read.
+ */
 export function runGateCli(
   args: readonly string[],
-  deps: { now: () => number; state: FmpStatePaths; repoRoot: string; print: (line: string) => void },
+  deps: { now: () => number; state: () => FmpStatePaths; repoRoot: string; print: (line: string) => void },
 ): number {
   const nowMs = deps.now();
   let recordClean = false;
@@ -192,11 +198,12 @@ export function runGateCli(
     const { str } = flagReader(args, VALUE_FLAGS);
     job = str("--job");
     const resolved = asJob(job);
+    const state = deps.state();
     if (recordClean) {
       if (resolved !== "cache-topup") {
         throw new Error("--record-clean is for cache-topup; the minute bank writes its own marker");
       }
-      writeRunMarker(deps.state.runsDir, resolved, { atMs: nowMs });
+      writeRunMarker(state.runsDir, resolved, { atMs: nowMs });
       deps.print(`runGate: recorded clean job=${resolved} at=${new Date(nowMs).toISOString()}`);
       return 0;
     }
@@ -207,7 +214,7 @@ export function runGateCli(
     }
     // A store that does not exist yet has no real path, and reads as gateError: run.
     const dir = resolved === "minute-bank" ? realpathSync(rawDir!) : undefined;
-    const marker = readRunMarker(deps.state.runsDir, resolved);
+    const marker = readRunMarker(state.runsDir, resolved);
     const decision = decideRun({ dir, job: resolved, marker, nowMs, slots });
     deps.print(formatDecision({ decision, job: resolved, marker, nowMs }));
     return decision.action === "skip" ? RUN_GATE_SKIP_EXIT : 0;
@@ -229,6 +236,6 @@ if (isEntryPoint(import.meta.url)) {
     now: Date.now,
     print: (line) => console.log(line),
     repoRoot: REPO_ROOT,
-    state: defaultStatePaths(),
+    state: () => defaultStatePaths(),
   });
 }

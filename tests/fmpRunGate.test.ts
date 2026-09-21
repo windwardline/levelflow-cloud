@@ -194,7 +194,7 @@ describe("the CLI skips with 75 and runs on everything else", () => {
     const state = tempState();
     mkdirSync(state.canonicalBankDir, { recursive: true });
     const lines: string[] = [];
-    const deps = { now: () => Date.parse("2026-09-16T03:39:42Z"), print: (line: string) => lines.push(line), repoRoot: repoCopy(), state };
+    const deps = { now: () => Date.parse("2026-09-16T03:39:42Z"), print: (line: string) => lines.push(line), repoRoot: repoCopy(), state: () => state };
     const argv = ["--job", "minute-bank", "--dir", state.canonicalBankDir];
     assert.equal(runGateCli(argv, deps), 0);
     assert.match(lines.at(-1)!, /^runGate: run job=minute-bank now=2026-09-16T03:39:42\.000Z local=2026-09-15 23:39 lastClean=none /);
@@ -209,18 +209,31 @@ describe("the CLI skips with 75 and runs on everything else", () => {
 
   it("runs on any internal error", () => {
     const lines: string[] = [];
-    const deps = { now: () => Date.parse("2026-09-16T03:39:42Z"), print: (line: string) => lines.push(line), repoRoot: repoCopy(), state: tempState() };
+    const state = tempState();
+    const deps = { now: () => Date.parse("2026-09-16T03:39:42Z"), print: (line: string) => lines.push(line), repoRoot: repoCopy(), state: () => state };
     assert.equal(runGateCli(["--job", "nightly"], deps), 0);
     assert.match(lines.at(-1)!, /^runGate: run .*reason=gateError: /);
     assert.equal(runGateCli(["--job", "minute-bank", "--dir", "/does/not/exist"], deps), 0);
     assert.equal(runGateCli(["--job"], deps), 0);
     assert.equal(runGateCli(["--job", "cache-topup"], { ...deps, repoRoot: scratchDir("no-plists-") }), 0);
+    // A state root that cannot be resolved is one more thing the gate cannot
+    // read: the job runs, and a marker it cannot place is a failure.
+    const unresolvable = {
+      ...deps,
+      state: () => {
+        throw new Error("LEVELFLOW_CHECKOUT names /gone, which does not exist");
+      },
+    };
+    assert.equal(runGateCli(["--job", "cache-topup"], unresolvable), 0);
+    assert.match(lines.at(-1)!, /^runGate: run job=cache-topup .*reason=gateError: LEVELFLOW_CHECKOUT names \/gone/);
+    assert.equal(runGateCli(["--job", "cache-topup", "--record-clean"], unresolvable), 1);
+    assert.match(lines.at(-1)!, /^runGate: record-clean failed job=cache-topup: LEVELFLOW_CHECKOUT names \/gone/);
   });
 
   it("records a clean top-up atomically, and refuses to for any other job", () => {
     const state = tempState();
     const lines: string[] = [];
-    const deps = { now: () => Date.parse("2026-09-16T12:56:18Z"), print: (line: string) => lines.push(line), repoRoot: repoCopy(), state };
+    const deps = { now: () => Date.parse("2026-09-16T12:56:18Z"), print: (line: string) => lines.push(line), repoRoot: repoCopy(), state: () => state };
     assert.equal(runGateCli(["--job", "cache-topup", "--record-clean"], deps), 0);
     assert.deepEqual(readdirSync(state.runsDir), ["cache-topup.json"]);
     assert.equal(
