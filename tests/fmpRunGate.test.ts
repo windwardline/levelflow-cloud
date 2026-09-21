@@ -93,7 +93,7 @@ describe("the slots are read from the tracked plists", () => {
   });
 });
 
-describe("the gate decides from the last clean run and the next slot", () => {
+describe("the gate decides from the last clean run and the most recent slot", () => {
   it("replays 2026-09-16 from the logs", () => {
     // Minute bank: boot, boot, boot, slot.
     assert.equal(bank("2026-09-16T03:39:42Z", "2026-09-15T23:20:09Z"), "skip");
@@ -106,9 +106,10 @@ describe("the gate decides from the last clean run and the next slot", () => {
     assert.equal(topup("2026-09-16T21:36:34Z", "2026-09-16T12:56:18Z"), "skip");
   });
 
-  it("measures from the next slot, not from now", () => {
-    // 11h30m after a clean run, with the next slot 11h50m away: the slot is
-    // 23h20m past the clean run, so this boot is the only run in that span.
+  it("runs a boot when no clean run followed the most recent slot", () => {
+    // 07:30 EDT: the 07:20 slot (11:20Z) has passed, and the last clean run
+    // (00:00Z) came before it, so nothing covers this boot. It runs, however
+    // recent the clean run looks.
     assert.equal(bank("2026-09-17T11:30:00Z", "2026-09-17T00:00:00Z"), "run");
   });
 
