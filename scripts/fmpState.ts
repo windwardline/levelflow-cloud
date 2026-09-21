@@ -130,10 +130,13 @@ function parseCompleteLines(text: string): ParsedLines & { consumed: number } {
   if (end === -1) return { consumed: 0, records: [], skippedLines: 0 };
   const records: unknown[] = [];
   let skippedLines = 0;
-  for (const entry of text.slice(0, end).split("\n")) {
-    if (entry.trim() === "") continue;
+  // The sealed-fold census (tests/confirmFoldSealed.test.ts) finds this loop
+  // and exempts this module by name, with its reason: these are the governor's
+  // own state logs, never a corpus emit.
+  for (const line of text.slice(0, end).split("\n")) {
+    if (line.trim() === "") continue;
     try {
-      const parsed = JSON.parse(entry) as unknown;
+      const parsed = JSON.parse(line) as unknown;
       if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
         records.push(parsed);
       } else {
