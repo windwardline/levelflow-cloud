@@ -291,7 +291,10 @@ failed silently:
 
 The plist passes `LEVELFLOW_CHECKOUT`. The daily script refuses a bank that does not
 exist rather than creating one, `checkoutState.ts` refuses a named checkout that does
-not exist, and `node_modules` is linked from the checkout rather than installed.
+not exist, and `node_modules` is linked from the checkout rather than installed. Each
+binary resolves that checkout inside its own error handling, so the refusal prints as
+one line and exits 1. A tree with no ledger at all refuses every other spender; the
+bank is never refused (§21c), so it names that tree in one line and banks.
 
 One more defect surfaced only because the tree lives in `mktemp -d`. The bank's
 entry guard compared `import.meta.url`, which Node resolves through symlinks, against
