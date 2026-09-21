@@ -190,7 +190,7 @@ describe("the decision", () => {
       assert.doesNotMatch(decision.cause ?? "", /S3CR3T/, "the refusal carries an unredacted secret");
       assert.equal(logged.mock.callCount(), 1);
       const line = logged.mock.calls[0].arguments.map(String).join(" ");
-      assert.ok(line.includes(decision.cause ?? " "), `the log line does not carry the cause: ${line}`);
+      assert.ok(decision.cause !== null && line.includes(decision.cause), `the log line does not carry the cause: ${line}`);
       assert.doesNotMatch(line, /S3CR3T/, "the log line carries an unredacted secret");
       assert.equal("cause" in fmpSpendRefusalBody(decision), false, "the HTTP body carries the ledger's internals");
     }
