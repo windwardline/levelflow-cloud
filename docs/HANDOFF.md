@@ -32,6 +32,16 @@ coverage question closed, and the desk went dark on purpose.
 
 ## 1. Where things actually stand
 
+### Designs that survived refutation live in the repository, not in a scratchpad
+
+The session scratchpad under `/private/tmp` was reaped by the operating system between
+2026-09-14 and 2026-09-16. It held the only copies of two refuted, approved, unbuilt
+designs — the gate's year filter and the random-entry excursion screen — and every
+pull request body and working file of that session. Both designs were recovered, one
+from its workflow journal and one from the session record, and now live under
+[`docs/research/designs/`](/docs/research/designs/), each headed by its status and the
+corrections that govern it. A design that has survived a refuter is a record.
+
 ### The night of 2026-09-14: what a gate defect cost to close properly
 
 Nine pull requests merged on 2026-09-14, six of them after 21:00, and the last
@@ -2411,7 +2421,9 @@ E2E's stand-downs end; the re-simulate is unaffected (zero provider bytes).
 
 **THE GATE CALLED AN UNMEASURED FOLD A MEASURED LOSS — 2026-09-14.**
 [`empty-fold-verdicts-2026-09-14.md`](/docs/research/empty-fold-verdicts-2026-09-14.md).
-Found while refuting the year-filter design, and independent of it.
+Found while refuting the year-filter design
+([`designs/gate-year-filter-2026-09-14.md`](/docs/research/designs/gate-year-filter-2026-09-14.md)),
+and independent of it.
 `grid-totalr`'s acceptance needs `fitTotalDelta > 0`; `totalOf` returns 0 for an
 absent cell, so a market with NO fit-fold rows differences to 0 − 0, fails the
 conjunct, and — with no fold-emptiness leg in the no-verdict ladder — fell
@@ -2451,6 +2463,25 @@ identical-to-baseline pairing case, and zero empty-fit cells reach the removal
 test. The record names all seven corrections to carry; the largest is that under
 #616's underpowered split 71 of the 144 THIN pairs move OUT of no verdict into
 the judged bucket, a disposition move in the opposite direction from #647's.
+**Correction 7 is WITHDRAWN (2026-09-16) and must not be followed.** Seven of the
+eight gradings are the inputs of the sealed act-3 read, and the freeze's
+`frozenHash` covers their checksums, so re-recording them or re-running the freeze
+severs a burned read. The SEALED INPUTS are twelve gradings, not seven: the
+freeze's class half was computed from five class-grain gradings and records no
+checksum for them. They are not the same twelve as the twelve STALE RECORDS owed
+a regrade — `per-market-grading-classfolds` is stale but not sealed, and
+`review-window-96-grading-class` is sealed but not stale. A regrade may overwrite
+in place only `per-market-grading-classfolds`; every other stale record and every
+sealed input's stdout twin gets its output written somewhere new, and no sealed
+file (input, twin, freeze, or the read's own record) is condemned by stamping it —
+a condemnation goes in
+`docs/research/confirm-reads/CONDEMNATIONS.md`. `tests/sealedArmsUnchanged.test.ts`
+enforces the twelve sealed inputs, their stdout twins, the freeze file's bytes, and
+the burned read's own file bytes and printed record, the freeze its artifact
+binds, and the fields of its ledger line that make a repeat read refuse,
+and says which of the two happened. The next read is pinnable only if it is written
+into that directory as `ledgered-read-*.json`; the code refusal that makes this
+hold is in the owed repair list under the owner rulings below.
 
 **Also owed, and found on 2026-09-14 by the review of the disposition
 repairs**: the same absent-reads-as-zero construction publishes
@@ -2514,9 +2545,20 @@ a family buys a confirm read only with unseen dates, under one capped alpha
 shared across families. Rulings 3 and 4 interact and were decided together:
 ruling 45 admits no class-grain exception, so a screened family takes its
 verdict at the per-market grain. **All four are now law — amendments 43, 44, 45
-and 46** in the rulings file. Owed repair work named and not started, now two items: the
-forex cost constants' DERIVATION (the marking itself is done, #645) and the
-gate's span exclusion. The maintenance-break figures have LEFT this list — four
+and 46** in the rulings file. Owed repair work named and not started, now three items: the
+forex cost constants' DERIVATION (the marking itself is done, #645), the
+gate's span exclusion, and a refusal in `grid-totalr` of any `--read-out` that,
+resolved against the repository rather than the working directory, is not inside
+`docs/research/confirm-reads/` or is not named `ledgered-read-*.json`, and that
+records the accepted path relative to the repository root, because an absolute
+string in a ledger line can never be amended (2026-09-16). The freeze's `path` in
+the same artifact body is written `relative(process.cwd(), …)`, which is
+repo-relative only when run from the root; the same repair should anchor it. The last is
+what makes the sealed-read guard's derived population complete: a read written
+elsewhere is pinned by nothing, a relative path resolves against the working
+directory and creates a lookalike tree, and act 3 used the flag. It must bind
+`--read-out` only, never the default artifact path beside a
+`--confirm-log-dir` redirect, which the tests use. The maintenance-break figures have LEFT this list — four
 were stale rather than two, and all four are corrected.
 
 **THE ARMING-BOUND READ: TWO IN-POOL CELLS SURVIVE A ONE-BAR LATENCY, THE
@@ -2652,7 +2694,7 @@ citations).** Then: the cost table (E8 bid/ask by hour, 28
 pairs — an owner-run capture is the ONLY source; FMP carries no usable forex
 bid/ask on any endpoint, probed 2026-09-14);
 the 21-cross commission fix in the readers from the daily cache; a
-random-entry excursion screen on fit before any new family earns a sweep; the
+random-entry excursion screen on fit before any new family earns a sweep ([`designs/random-entry-screen-2026-09-14.md`](/docs/research/designs/random-entry-screen-2026-09-14.md), whose refuted design governs over this line's framing); the
 break-expiry specification; the daily arm parked as a pre-registered null;
 amendment 33's grain against the effect size (~1,440 in-span fills per market
 needed at +0.03 R/fill against ~200 per market-year — seven clean years per
@@ -2662,14 +2704,16 @@ market; the read measured +0.0121–0.0135, which worsens the requirement about
 recomputed for amendment 45.** Note also that the two figures are bound columns
 of two in-pool in-span cells, not an effect size of the hour rule).
 
-**Owner items from the round** — recorded as OWED RECOMMENDATIONS, none yet
-refuted: the E8 bid/ask capture (**item 1 closed 2026-09-14; the recommendation
-is in the rulings record of that date, and it is narrower than a deferral**); what
-a review hour means (wall-clock or open-market; owed since 2026-09-12); the
-market grain against the seven-year arithmetic; whether a genuinely new entry
-family is a new program under the one-burn-per-program rule (fold reuse
-itself is already ruled). Unconditionally the owner's: the FMP key rotation
-(above; the escalation itself closed 2026-09-14) and the two E8 tab captures.
+**Owner items from the round — ALL FOUR CLOSED 2026-09-14, now law.** The E8
+bid/ask capture is amendment 43; what a review hour means is amendment 44
+(wall-clock); the market grain against the seven-year arithmetic is amendment 45
+(the per-market grain holds, no exception); whether a new entry family is a new
+program is amendment 46 (it is not). Do not put any of them to the owner again;
+the operative text is
+[`2026-08-02-owner-rulings-amendments.md`](/docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md),
+not the 2026-09-14 rulings record, which says so itself. Still unconditionally the owner's: the
+FMP key rotation (the escalation itself closed 2026-09-14) and the two E8 tab
+captures.
 
 **THE FOREX COMMISSION IS CONVERTED IN THE WRONG CURRENCY — found 2026-09-13.**
 [`forex-commission-conversion-2026-09-13.md`](/docs/research/forex-commission-conversion-2026-09-13.md),
