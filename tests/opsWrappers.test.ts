@@ -47,6 +47,7 @@ const BREAKER_LINE_2026_09_07 =
 
 const TSX_STUB = `#!/bin/bash
 printf '%s\\n' "tsx $*" >> "$STUB_LOG"
+printf '%s\\n' "\${LEVELFLOW_CHECKOUT-unset} $*" >> "$STUB_CHECKOUT_LOG"
 case "$*" in
   *fmpRunGate.ts*--record-clean*) exit "\${STUB_RECORD_RC:-0}" ;;
   *fmpRunGate.ts*)
@@ -86,13 +87,17 @@ function sandbox(wrapper: string) {
   // lands inside it too and goes when it goes.
   const store = join(durableScratchDir("ops-wrapper-store-"), "store");
   mkdirSync(store);
+  // The checkout is its own directory, as in production, so a step that lost
+  // its name would resolve the tree instead and a test can tell the two apart.
+  const checkout = join(root, "checkout");
+  mkdirSync(checkout);
   const PATH = `${bin}:${noKeychainBin()}:/usr/bin:/bin`;
   const resolved = spawnSync("/bin/bash", ["-c", "command -v security"], {
     encoding: "utf8",
     env: { PATH },
   }).stdout.trim();
   assert.equal(resolved, join(bin, "security"), "the Keychain stub must shadow the real security binary");
-  return { PATH, repo, root, script, store };
+  return { PATH, checkout, repo, root, script, store };
 }
 
 type Step = { out?: string; rc?: number };
@@ -100,8 +105,10 @@ type Step = { out?: string; rc?: number };
 function run(wrapper: string, steps: { gate?: Step; driver?: Step; record?: Step }) {
   const box = sandbox(wrapper);
   const log = join(box.root, "calls.log");
+  const checkoutLog = join(box.root, "checkouts.log");
   const driverOut = join(box.root, "driver.out");
   writeFileSync(log, "");
+  writeFileSync(checkoutLog, "");
   writeFileSync(driverOut, steps.driver?.out ?? "");
   const result = spawnSync("/bin/bash", [box.script], {
     encoding: "utf8",
@@ -109,8 +116,9 @@ function run(wrapper: string, steps: { gate?: Step; driver?: Step; record?: Step
       LEVELFLOW_BANK_DIR: box.store,
       LEVELFLOW_BANK_LOCK_TIMEOUT: "5",
       LEVELFLOW_CACHE_DIR: box.store,
-      LEVELFLOW_CHECKOUT: box.repo,
+      LEVELFLOW_CHECKOUT: box.checkout,
       PATH: box.PATH,
+      STUB_CHECKOUT_LOG: checkoutLog,
       STUB_DRIVER_OUT: driverOut,
       STUB_DRIVER_RC: String(steps.driver?.rc ?? 0),
       STUB_GATE_OUT: steps.gate?.out ?? "runGate: run job=test reason=noCleanRun",
@@ -120,7 +128,16 @@ function run(wrapper: string, steps: { gate?: Step; driver?: Step; record?: Step
     },
   });
   const calls = readFileSync(log, "utf8").split("\n").filter(Boolean);
-  return { calls, code: result.status, output: `${result.stdout}${result.stderr}`, repo: box.repo, store: box.store };
+  const checkouts = readFileSync(checkoutLog, "utf8").split("\n").filter(Boolean);
+  return {
+    calls,
+    checkout: box.checkout,
+    checkouts,
+    code: result.status,
+    output: `${result.stdout}${result.stderr}`,
+    repo: box.repo,
+    store: box.store,
+  };
 }
 
 const TOPUP = "scripts/ops/daily-cache-topup.sh";
@@ -251,6 +268,26 @@ describe("the nightly top-up wrapper, executed", () => {
     assert.equal(result.code, 0, result.output);
     assert.match(result.output, /docs\/cache-rebuild-r0\.md/);
   });
+});
+
+describe("every step a wrapper runs is handed the checkout", () => {
+  // The gate reads, and the top-up's --record-clean writes, the clean-run
+  // marker under LEVELFLOW_CHECKOUT's .fmp-state/runs, and the drivers resolve
+  // the ledger and the breaker there. A step that lost the name would resolve
+  // the extracted tree: a marker written there is deleted on exit, and every
+  // login's gate finds no clean run and runs the job again.
+  for (const [wrapper, steps] of [[TOPUP, ["fmpRunGate.ts", "replay-sweep.ts", "--record-clean"]], [BANK, ["fmpRunGate.ts", "bank-minute-bars.ts"]]] as const) {
+    it(`${basename(wrapper)} names it to ${steps.join(", ")}`, () => {
+      const result = run(wrapper, { driver: { out: "", rc: 0 } });
+      assert.equal(result.code, 0, result.output);
+      assert.equal(result.checkouts.length, steps.length, result.checkouts.join("\n"));
+      steps.forEach((step, index) => {
+        const line = result.checkouts[index];
+        assert.ok(line.includes(step), line);
+        assert.ok(line.startsWith(`${result.checkout} `), `${step} ran without the checkout: ${line}`);
+      });
+    });
+  }
 });
 
 describe("the minute-bank wrapper, executed", () => {
