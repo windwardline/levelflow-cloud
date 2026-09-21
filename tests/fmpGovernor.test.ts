@@ -52,6 +52,7 @@ import {
   utcDay,
 } from "../scripts/fmpState.ts";
 import { BODIES, INVALID_KEY_BODY_PREFIX, tempState } from "./fixtures/fmpTestState.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 /**
  * The owner's rule, mechanised: background work does not touch the allowance
@@ -211,12 +212,20 @@ describe("every FMP spender goes through the governor", () => {
     walk("tests");
     assert.deepEqual(naming, ["tests/fmpGovernor.test.ts"]);
     const own = readFileSync("tests/fmpGovernor.test.ts", "utf8").split(helper).length - 1;
-    assert.equal(own, 3, "this file names the helper only in its import and its resolution assertion");
+    assert.equal(own, 6, "this file names the helper only in its import and its two resolution tests");
   });
 });
 
-describe("the state resolves from the module, never the cwd", () => {
-  it("names the machine's paths under the repository root", () => {
+describe("the state resolves from the checkout, never the cwd", () => {
+  // A scratch clone resolving the state against its own cwd reads a CLOSED
+  // breaker and an EMPTY ledger, believing the allowance untouched at exactly
+  // the moment that belief is most expensive. The pinned jobs run from
+  // wl-repo-script's extracted tree, which holds no state at all, so the root
+  // is the one scripts/checkoutState.ts names: LEVELFLOW_CHECKOUT when set,
+  // refused when it names nothing, and otherwise its own module's tree.
+  // Unnamed there, the run gate would find no clean run and re-run both jobs at
+  // every login. tests/minuteBankPinned.test.ts runs the resolution in a child.
+  it("names the machine's paths under the checkout root", () => {
     assert.deepEqual(defaultStatePaths("/r"), {
       breakerDir: "/r/.fmp-state/breaker",
       canonicalBankDir: "/r/.minute-bank",
@@ -225,8 +234,40 @@ describe("the state resolves from the module, never the cwd", () => {
       runsDir: "/r/.fmp-state/runs",
       usageDir: "/r/.fmp-state/usage",
     });
-    assert.equal(defaultStatePaths().usageDir, join(REPO_ROOT, ".fmp-state", "usage"));
-    assert.match(readFileSync("scripts/fmpState.ts", "utf8"), /fileURLToPath\(import\.meta\.url\)/);
+    const named = process.env.LEVELFLOW_CHECKOUT;
+    try {
+      delete process.env.LEVELFLOW_CHECKOUT;
+      assert.equal(defaultStatePaths().usageDir, join(REPO_ROOT, ".fmp-state", "usage"));
+      const checkout = scratchDir("fmp-checkout-");
+      process.env.LEVELFLOW_CHECKOUT = checkout;
+      assert.deepEqual(defaultStatePaths(), {
+        breakerDir: join(checkout, ".fmp-state", "breaker"),
+        canonicalBankDir: join(checkout, ".minute-bank"),
+        legacyCircuitPath: join(checkout, ".fmp-circuit.json"),
+        legacyUsagePath: join(checkout, ".fmp-usage.json"),
+        runsDir: join(checkout, ".fmp-state", "runs"),
+        usageDir: join(checkout, ".fmp-state", "usage"),
+      });
+      process.env.LEVELFLOW_CHECKOUT = join(checkout, "no-such-checkout");
+      assert.throws(() => defaultStatePaths(), /LEVELFLOW_CHECKOUT names .*no-such-checkout, which does not exist/);
+    } finally {
+      if (named === undefined) delete process.env.LEVELFLOW_CHECKOUT;
+      else process.env.LEVELFLOW_CHECKOUT = named;
+    }
+  });
+
+  it("keeps the cwd out of every piece of the resolution", () => {
+    const state = readFileSync("scripts/fmpState.ts", "utf8");
+    assert.match(state, /export function defaultStatePaths\(root = checkoutRoot\(\)\)/);
+    assert.match(state, /fileURLToPath\(import\.meta\.url\)/);
+    assert.doesNotMatch(state, /process\.cwd\(\)/);
+    const anchor = readFileSync("scripts/checkoutState.ts", "utf8");
+    assert.match(anchor, /fileURLToPath\(import\.meta\.url\)/);
+    assert.doesNotMatch(anchor, /process\.cwd\(\)/);
+    // No other module resolves a state file of its own.
+    for (const path of ["scripts/fmpCircuit.ts", "scripts/fmpGovernor.ts", "scripts/fmpRunGate.ts"]) {
+      assert.doesNotMatch(withoutComments(readFileSync(path, "utf8")), /\.fmp-(usage|circuit)\.json|\.fmp-state/, path);
+    }
   });
 });
 
@@ -696,7 +737,8 @@ describe("the scheduled ceilings sit at or below the approved values", () => {
 
   it("runs the nightly top-up as the top-up class under its class ceiling", () => {
     const topup = readFileSync("scripts/ops/daily-cache-topup.sh", "utf8");
-    const driver = topup.split("\n").find((line) => line.includes("scripts/replay-sweep.ts"));
+    // A backslash-continued command is one command.
+    const driver = topup.replace(/\\\n\s*/g, " ").split("\n").find((line) => line.includes("scripts/replay-sweep.ts"));
     assert.ok(driver, "the top-up no longer runs the sweep driver");
     assert.match(driver!, /--spend-class topup/);
     const tokens = driver!.replace(/\$\(|\)|2>&1/g, " ").trim().split(/\s+/);

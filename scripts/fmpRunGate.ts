@@ -29,7 +29,6 @@
  */
 import { readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { flagReader, soleFlagIndex } from "./flagReader.ts";
 import {
@@ -38,6 +37,7 @@ import {
   REPO_ROOT,
   writeJsonAtomic,
 } from "./fmpState.ts";
+import { isEntryPoint } from "./isEntryPoint.ts";
 
 /** EX_TEMPFAIL: outside Node's reserved 1-14 and wl-secret's 78. */
 export const RUN_GATE_SKIP_EXIT = 75;
@@ -223,7 +223,7 @@ export function runGateCli(
   }
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (isEntryPoint(import.meta.url)) {
   process.exitCode = runGateCli(process.argv.slice(2), {
     now: Date.now,
     print: (line) => console.log(line),

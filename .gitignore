@@ -39,3 +39,7 @@ docs/research/r3/*.jsonl
 # *.stdout-redacted.txt beside them, which starvation-audit reads identically.
 docs/research/r4/*.jsonl
 docs/research/r4/*.jsonl.rejections.jsonl
+
+# The bank lock (scripts/ops/bank-lock.sh). A sibling of the bank rather than
+# a child, so it never lands inside a snapshot or an off-box archive.
+.minute-bank.lock/

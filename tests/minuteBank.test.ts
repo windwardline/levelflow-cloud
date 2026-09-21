@@ -740,4 +740,45 @@ describe("minute bank — the run, end to end against a stubbed provider", () =>
     assert.equal(result.code, 1);
     assert.match(result.output, /fmpBookkeepingFailed: bank-minute-bars run marker: /);
   });
+
+  // The contract #663 corrected, now executed: the provider omits a minute and
+  // serves it on a later call, and that later run appends it after the run's
+  // own newest bar. The file is append-ordered; nothing is duplicated or lost.
+  it("appends a late-served minute after the newest bar, once", async () => {
+    const state = tempState();
+    const bar = (minute: string) => ({ close: 1.5, date: `2026-09-16 09:${minute}:00`, high: 2, low: 0.5, open: 1, volume: 1 });
+    await run({ argv: ["--limit", "1"], respond: () => new Response(JSON.stringify([bar("32"), bar("30")])), state });
+    const second = await run({
+      argv: ["--limit", "1"],
+      respond: () => new Response(JSON.stringify([bar("32"), bar("31"), bar("30")])),
+      state,
+    });
+    assert.equal(second.code, 0, second.output);
+    const file = readdirSync(second.dir).find((name) => name.endsWith(".jsonl"))!;
+    const dates = readFileSync(join(second.dir, file), "utf8").trim().split("\n")
+      .map((line) => (JSON.parse(line) as { date: string }).date.slice(11, 16));
+    assert.deepEqual(dates, ["09:30", "09:32", "09:31"]);
+  });
+});
+
+describe("the bank's files are append-ordered, and say so", () => {
+  // PINNED IN SOURCE: what this holds is the CONTRACT the writer and the doc
+  // state. The late-fill ordering itself is measured on the real bank
+  // (docs/minute-bank.md, "Shape") and exercised against a stubbed provider in
+  // "appends a late-served minute after the newest bar, once". Until 2026-09-21 both
+  // the doc and the writer promised chronological files while 76 of 100 were
+  // not, and a reader building on that promise would have mis-ordered minutes.
+  it("no longer promises a chronological file", () => {
+    const writer = readFileSync("scripts/bank-minute-bars.ts", "utf8");
+    const doc = readFileSync("docs/minute-bank.md", "utf8");
+    assert.doesNotMatch(writer, /an append is always a forward extension/);
+    assert.doesNotMatch(doc, /appended in chronological\s+order/);
+  });
+
+  it("tells every reader to sort by date", () => {
+    const writer = readFileSync("scripts/bank-minute-bars.ts", "utf8");
+    const doc = readFileSync("docs/minute-bank.md", "utf8");
+    assert.match(writer, /append-ordered, not\s+\/\/\s+chronological/);
+    assert.match(doc, /in append order, not\s+chronological order — sort by `date` on read/);
+  });
 });

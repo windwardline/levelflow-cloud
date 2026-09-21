@@ -49,7 +49,6 @@ import {
   readdir,
   writeFile,
 } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
 import { redactProviderSecrets } from "../supabase/functions/trade-analyzer/redact.ts";
 import { flagReader } from "./flagReader.ts";
@@ -68,6 +67,7 @@ import {
   reportDayProblems,
 } from "./fmpGovernor.ts";
 import { writeRunMarker } from "./fmpRunGate.ts";
+import { isEntryPoint } from "./isEntryPoint.ts";
 import {
   defaultStatePaths,
   type FmpStatePaths,
@@ -536,8 +536,14 @@ async function bankOne(
 
   const dropped = raw.length - raw.filter(usableBar).length;
   const seen = new Set(state.recentKeys);
-  // Provider order is newest-first; bank oldest-first so the file reads
-  // chronologically and an append is always a forward extension.
+  // Provider order is newest-first; each run's fresh bars are appended
+  // oldest-first. That orders a RUN, not the FILE. The provider sometimes
+  // omits a minute and serves it on a later call, and that later run appends
+  // it after its own newest bar — so the file is append-ordered, not
+  // chronological. Measured 2026-09-21: 664 backward steps in 76 of 100
+  // files, and every one traceable to a run (252) sits at a run boundary
+  // filling a hole inside coverage already banked. Nothing is duplicated or
+  // lost; readers sort by `date`. See docs/minute-bank.md, "Shape".
   const candidates = raw
     .filter(usableBar)
     .map((bar): BankedBar => ({
@@ -805,7 +811,7 @@ export async function runBank(deps: BankDeps): Promise<number> {
   return code;
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (isEntryPoint(import.meta.url)) {
   process.exitCode = await runBank({
     argv: process.argv.slice(2),
     fetch,

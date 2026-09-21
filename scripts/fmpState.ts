@@ -35,14 +35,13 @@ import {
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { checkoutRoot } from "./checkoutState.ts";
+
 /**
- * The repository root, resolved from THIS FILE rather than the process cwd.
- *
- * The state is gitignored, so `scripts/scratch-clone.sh` excludes it, and a
- * copy resolving it against its own cwd would read an empty ledger and a
- * closed breaker. Anchoring to the module means every copy of the tree on this
- * machine names the one real state; a tree with no ledger at all is refused
- * by the governor rather than read as untouched.
+ * The repository root, resolved from THIS FILE rather than the process cwd:
+ * where the CODE is, and what tracked files such as the plists are read from.
+ * Under `wl-repo-script` that is the extracted tree of `origin/main`, which
+ * carries no ignored state, so the state below is not resolved from it.
  */
 export const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -65,8 +64,17 @@ export type FmpStatePaths = {
  * The machine's real state. Only binary entry points call this; every
  * governor function takes the paths as a required argument, so a test cannot
  * reach this machine's live ledger by forgetting to pass one.
+ *
+ * The root is the checkout's, through `checkoutRoot`: `LEVELFLOW_CHECKOUT`
+ * when it is named, refused when it names nothing, and otherwise this module's
+ * own tree, never the process cwd. The state is gitignored, so a scratch copy
+ * or `wl-repo-script`'s extracted tree carries none of it. Resolved against
+ * that tree, every run would read an empty ledger, a closed breaker and no
+ * clean-run marker, and the run gate would re-run both jobs at every login; a
+ * tree with no ledger at all is refused by the governor rather than read as
+ * untouched.
  */
-export function defaultStatePaths(root = REPO_ROOT): FmpStatePaths {
+export function defaultStatePaths(root = checkoutRoot()): FmpStatePaths {
   return {
     breakerDir: join(root, ".fmp-state", "breaker"),
     canonicalBankDir: join(root, ".minute-bank"),

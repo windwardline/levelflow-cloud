@@ -4,11 +4,25 @@
 <dict>
   <key>Label</key>
   <string>com.windwardline.levelflow-cache-topup</string>
+  <!-- Pinned through wl-repo-script since 2026-09-20, as the minute bank and
+       both backups are. This named a path inside the shared checkout, so the
+       07:00 run executed whatever branch a concurrent session had out.
+
+       LEVELFLOW_CHECKOUT is not optional and not decoration. The extracted
+       tree carries code and none of the checkout's ignored data, and this job
+       touches two pieces of it: the 7.7 GB calibration cache and the FMP
+       state (.fmp-state/, plus the legacy ledger and marker it reads as
+       history). Unnamed, the cache would resolve to an empty directory in the
+       temp tree and the sweep would warm the whole roster into it from
+       nothing, up to its 256 MiB class ceiling, every night, and the run gate
+       would find no clean run and re-run the top-up at every login. The
+       script refuses a missing cache and checkoutState.ts refuses a missing
+       checkout, so a wrong value here fails loudly instead. -->
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
     <string>-lc</string>
-    <string>/Users/peacock/Projects/levelflow-cloud/scripts/ops/daily-cache-topup.sh</string>
+    <string>LEVELFLOW_CHECKOUT=/Users/peacock/Projects/levelflow-cloud /Users/peacock/.local/bin/wl-repo-script /Users/peacock/Projects/levelflow-cloud scripts/ops/daily-cache-topup.sh</string>
   </array>
   <key>StartCalendarInterval</key>
   <dict>

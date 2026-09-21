@@ -95,6 +95,13 @@ it too) must not write into a cache that is mid-rebuild: after the `mv`,
 stores are absent or half-written, not unstamped, so the clock guard has
 nothing to refuse. Boot it out first; step 4 re-arms it.
 
+Since 2026-09-20 the agent also refuses a cache directory that does not exist, so
+between the `mv` and step 2 a stray run stops instead of warming a new one. That
+covers the gap only until step 2 recreates the directory, which is why the bootout
+stays. The agent runs `origin/main` through `wl-repo-script`, with the cache named
+by `LEVELFLOW_CHECKOUT`; the rebuild below runs the sweep directly from the
+checkout and is unaffected.
+
 ```sh
 launchctl bootout "gui/$(id -u)/com.windwardline.levelflow-cache-topup" 2>/dev/null || true
 ```

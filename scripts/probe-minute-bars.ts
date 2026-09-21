@@ -16,7 +16,6 @@
  * asked before the one request.
  */
 import { writeFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
 import { redactProviderSecrets } from "../supabase/functions/trade-analyzer/redact.ts";
@@ -32,6 +31,7 @@ import {
   standDownFor,
 } from "./fmpGovernor.ts";
 import { defaultStatePaths, type FmpStatePaths } from "./fmpState.ts";
+import { isEntryPoint } from "./isEntryPoint.ts";
 
 const BASE = "https://financialmodelingprep.com/stable";
 const ENDPOINT = "historical-chart/1min";
@@ -227,7 +227,7 @@ function writeAnswer(
   );
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (isEntryPoint(import.meta.url)) {
   process.exitCode = await runProbe({
     argv: process.argv.slice(2),
     fetch,

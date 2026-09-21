@@ -18,7 +18,6 @@
  * Exit code is 1 when any served-or-visible row lapses — this is a gate, not
  * a report.
  */
-import { fileURLToPath } from "node:url";
 
 import { MASTER_LIST_ROWS, type MasterListRow } from "../src/lib/broker/masterList.ts";
 import { flagReader } from "./flagReader.ts";
@@ -39,6 +38,7 @@ import {
   standDownFor,
 } from "./fmpGovernor.ts";
 import { defaultStatePaths } from "./fmpState.ts";
+import { isEntryPoint } from "./isEntryPoint.ts";
 
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
 const API_KEY = process.env.FMP_API_KEY;
@@ -395,7 +395,7 @@ async function main(): Promise<void> {
 
 // Run only as a binary, never on import, so the governor's wiring can be read
 // by tests without a provider run.
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (isEntryPoint(import.meta.url)) {
   main().catch((error: unknown) => {
     const token = standDownFor(error);
     if (token) console.error(token);
