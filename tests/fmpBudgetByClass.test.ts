@@ -868,7 +868,11 @@ describe("every provider spend is decided per request, and a refusal returns", (
     // the figure `fmp_usage`'s revoke withholds back in front of any signed-in
     // caller. Every 503 each entry answers is therefore built by the helper.
     for (const file of [...new Set(decisions.map((d) => d.file))]) {
-      const source = readFileSync(file, "utf8");
+      // Through codeOf, as every sibling check here reads: a comment naming the
+      // shape this census forbids — the way this repo documents a closed defect —
+      // would otherwise fail a declared gate over clean code. codeOf blanks whole
+      // comment LINES, so a trailing comment on a code line still reaches the regex.
+      const source = codeOf(readFileSync(file, "utf8"));
       const answers = [...source.matchAll(/jsonResponse\(([^;]*?),\s*503\s*\)/g)];
       assert.ok(answers.length > 0, `${file} answers no 503, so this census examined nothing there`);
       for (const [call] of answers) {
