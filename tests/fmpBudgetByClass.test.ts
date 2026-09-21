@@ -283,7 +283,8 @@ describe("the accounting", () => {
 // marketLoader's quote record left the file green on the bars record beside it
 // (mutation-proven 2026-09-16). Every guard here reads the Edge tree directly
 // (readdirSync, never git) and derives its population; none is a count someone
-// edits.
+// edits. The population is only as good as its anchor, so `providerAnchors`
+// says what makes a function a site.
 // ---------------------------------------------------------------------------
 
 const EDGE_ROOT = "supabase/functions";
@@ -367,18 +368,61 @@ function blocksOf(code: string): Block[] {
 const squash = (text: string) => text.replace(/\s+/g, "");
 
 type Site = { body: string; file: string; name: string; params: string };
+type AnchorKind = "apikey parameter" | "base URL" | "key value";
+
+/**
+ * Where code names the provider. Anchored on the identifiers and the key
+ * parameter, never on how a URL is spelled: the first census anchored on the
+ * template `${FMP_API_BASE_URL`, so a fetch built by concatenation
+ * (`FMP_API_BASE_URL + "/profile"`) was not a site, no guard below applied to
+ * it, and it bought bytes without a permit (review mutation R3, 2026-09-21: it
+ * survived the whole suite). Three anchors now:
+ * - every `FMP_API_BASE_URL` except its one permitted declaration, which (i)
+ *   pins to the provider default;
+ * - every `apikey` query parameter, set, appended or spelled into a URL;
+ * - every use of `FMP_API_KEY`'s VALUE except its declaration. A presence test
+ *   (`!FMP_API_KEY`, `Boolean(FMP_API_KEY`) or the verify route's hash
+ *   (`keyFingerprint(FMP_API_KEY)`) cannot carry the key onto the wire, so it
+ *   may sit anywhere; a value passed on, in a header or anywhere else, is a
+ *   site.
+ */
+const BASE_DECLARATION =
+  /const\s+FMP_API_BASE_URL\s*=\s*Deno\.env\.get\("FMP_API_BASE_URL"\)\s*\?\?\s*"https:\/\/financialmodelingprep\.com\/stable";/g;
+const KEY_DECLARATION = /const\s+FMP_API_KEY\s*=\s*Deno\.env\.get\("FMP_API_KEY"\);/g;
+const KEY_PRESENCE = ["!", "Boolean(", "keyFingerprint("];
+
+function providerAnchors(code: string): Array<{ at: number; kind: AnchorKind }> {
+  const blank = (text: string) => " ".repeat(text.length);
+  const scan = code.replace(BASE_DECLARATION, blank).replace(KEY_DECLARATION, blank);
+  const anchors: Array<{ at: number; kind: AnchorKind }> = [];
+  for (const match of scan.matchAll(/\bFMP_API_BASE_URL\b/g)) {
+    anchors.push({ at: match.index, kind: "base URL" });
+  }
+  for (const match of scan.matchAll(/\.searchParams\s*\.\s*(?:set|append)\(\s*["'`]apikey["'`]|[?&]apikey=/g)) {
+    anchors.push({ at: match.index, kind: "apikey parameter" });
+  }
+  for (const match of scan.matchAll(/\bFMP_API_KEY\b/g)) {
+    const before = scan.slice(Math.max(0, match.index - 20), match.index).trimEnd();
+    if (KEY_PRESENCE.some((shape) => before.endsWith(shape))) continue;
+    anchors.push({ at: match.index, kind: "key value" });
+  }
+  return anchors;
+}
 
 function censusSites() {
   const sites: Site[] = [];
   const unattributed: string[] = [];
+  const anchorCounts: Record<AnchorKind, number> = { "apikey parameter": 0, "base URL": 0, "key value": 0 };
   for (const file of edgeFiles()) {
     const code = codeOf(readFileSync(file, "utf8"));
     const blocks = blocksOf(code);
     const seen = new Set<string>();
-    for (const match of code.matchAll(/\$\{FMP_API_BASE_URL/g)) {
-      const block = blocks.find((b) => b.async && b.name !== "Deno.serve" && b.start <= match.index && match.index < b.end);
+    for (const anchor of providerAnchors(code)) {
+      anchorCounts[anchor.kind] += 1;
+      const block = blocks.find((b) => b.async && b.name !== "Deno.serve" && b.start <= anchor.at && anchor.at < b.end);
       if (!block) {
-        unattributed.push(`${file}@${match.index}`);
+        const line = code.slice(0, anchor.at).split("\n").length;
+        unattributed.push(`${file}:${line} (${anchor.kind})`);
         continue;
       }
       if (seen.has(block.name)) continue;
@@ -386,14 +430,23 @@ function censusSites() {
       sites.push({ body: code.slice(block.start, block.end), file, name: block.name, params: block.params });
     }
   }
-  return { sites, unattributed };
+  return { anchorCounts, sites, unattributed };
 }
 
 describe("every Edge provider fetch is a governed site", () => {
-  it("(i) attributes every provider URL to one function, in every file that names the provider", (t) => {
-    const { sites, unattributed } = censusSites();
+  it("(i) attributes every provider anchor to one function, in every file that names the provider", (t) => {
+    const { anchorCounts, sites, unattributed } = censusSites();
     t.diagnostic(`${sites.length} provider fetch sites: ${sites.map((s) => `${s.file.split("/").slice(-2).join("/")}:${s.name}`).join(", ")}`);
-    assert.deepEqual(unattributed, [], "a provider URL is built outside any async function this guard can read");
+    t.diagnostic(`anchors: ${Object.entries(anchorCounts).map(([kind, n]) => `${n} ${kind}`).join(", ")}`);
+    assert.deepEqual(
+      unattributed,
+      [],
+      "the provider is named outside any async function this guard can read — at module scope, in a sync helper, " +
+        "in an arrow function or in the Deno.serve handler — so no site guard applies to what it builds",
+    );
+    for (const [kind, n] of Object.entries(anchorCounts)) {
+      assert.ok(n > 0, `no ${kind} anchor found anywhere — that detector broke, and a broken detector reads as a clean tree`);
+    }
     assert.ok(sites.length >= 7, `only ${sites.length} sites found — the detector broke, which reads exactly like a clean tree`);
 
     const siteFiles = new Set(sites.map((s) => s.file));
