@@ -203,9 +203,20 @@ describe("the breaker and the ledger are anchored to the repo, not the cwd", () 
     // A scratch clone resolving these against its own cwd reads a CLOSED
     // breaker and an EMPTY ledger — believing the allowance is untouched at
     // exactly the moment that belief is most expensive.
+    //
+    // Both now resolve through ONE helper, scripts/checkoutState.ts, which
+    // still anchors its default to its own module and never to the cwd. It
+    // also honours LEVELFLOW_CHECKOUT, an explicit name for the checkout —
+    // added 2026-09-20 because the minute bank runs from wl-repo-script's
+    // extracted tree, where a module anchor points at a directory holding
+    // neither file. tests/minuteBankPinned.test.ts proves the resolved paths
+    // by running them; this pins that nothing reintroduces the cwd.
     const circuit = readFileSync("scripts/fmpCircuit.ts", "utf8");
-    assert.match(circuit, /fileURLToPath\(import\.meta\.url\)/);
+    assert.match(circuit, /FMP_CIRCUIT_PATH = checkoutStatePath\("\.fmp-circuit\.json"\)/);
     const governor = readFileSync("scripts/fmpGovernor.ts", "utf8");
-    assert.match(governor, /fileURLToPath\(import\.meta\.url\)/);
+    assert.match(governor, /FMP_USAGE_PATH = checkoutStatePath\("\.fmp-usage\.json"\)/);
+    const anchor = readFileSync("scripts/checkoutState.ts", "utf8");
+    assert.match(anchor, /fileURLToPath\(import\.meta\.url\)/);
+    assert.doesNotMatch(anchor, /process\.cwd\(\)/);
   });
 });

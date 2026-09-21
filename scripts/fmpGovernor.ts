@@ -34,6 +34,7 @@ import {
   openCircuit,
 } from "./fmpCircuit.ts";
 import { type ByteBudget } from "./fmpByteBudget.ts";
+import { checkoutStatePath } from "./checkoutState.ts";
 
 /**
  * The repository root, resolved from THIS FILE rather than the process cwd.
@@ -48,7 +49,11 @@ import { type ByteBudget } from "./fmpByteBudget.ts";
 export const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Where the daily ledger lives. Beside the breaker's marker, deliberately. */
-export const FMP_USAGE_PATH = join(REPO_ROOT, ".fmp-usage.json");
+/**
+ * Resolved through `checkoutStatePath`, so a run from `wl-repo-script`'s
+ * extracted tree reads the checkout's real ledger rather than an empty one.
+ */
+export const FMP_USAGE_PATH = checkoutStatePath(".fmp-usage.json");
 
 /** FMP bills a trailing 30-day window; the ledger keeps enough to show it. */
 export const LEDGER_DAYS = 35;
