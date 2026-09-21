@@ -382,6 +382,18 @@ describe("both sides of the race take the lock", () => {
     assert.ok(live > 1, "the writer never appended, so this proved nothing");
   });
 
+  it("the bank script resolves its own checkout, not one machine's path", () => {
+    // The literal `/Users/peacock/...` that stood here passed every local run
+    // and failed in CI the moment a test EXECUTED the script — `cd: No such
+    // file or directory`. Nothing had ever run it off this machine before.
+    assert.doesNotMatch(
+      DAILY,
+      /REPO="\/Users\//,
+      "the repo path is hardcoded again; it resolves on exactly one machine",
+    );
+    assert.match(DAILY, /REPO="\$\{LEVELFLOW_REPO:-\$\(cd "\$\(dirname/);
+  });
+
   it("neither script can drop its lock without this test noticing", () => {
     // The source pin exists because the two call sites are what make the
     // exercised behaviour above true of PRODUCTION rather than of a sandbox.

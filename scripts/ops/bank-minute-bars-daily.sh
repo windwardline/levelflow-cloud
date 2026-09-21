@@ -12,7 +12,14 @@
 # Logs carry no secrets. See docs/minute-bank.md.
 set -euo pipefail
 
-REPO="/Users/peacock/Projects/levelflow-cloud"
+# Derived from this script's own location, never hardcoded. The literal that
+# stood here resolved only on one machine: the first test to EXECUTE this
+# script failed in CI on `cd: /Users/peacock/Projects/levelflow-cloud: No such
+# file or directory`, having passed locally for the obvious reason. The launchd
+# plist invokes this by absolute path inside the checkout, so this resolves to
+# the same place it always did. `backup-minute-bank.sh` made the same repair on
+# 2026-09-02.
+REPO="${LEVELFLOW_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 cd "$REPO"
 
 # Overridable so the lock ordering below can be EXERCISED rather than read.
