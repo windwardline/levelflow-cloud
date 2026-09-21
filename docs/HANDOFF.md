@@ -5274,7 +5274,17 @@ a permanent copy of `20260823`, its upload date read from R2, and a ruling on
 whether the parity check should then stop requiring the protected stamp in
 `windwardline-backups`.
 
-### 6b-0. The diminished-returns register — what is closed, and what re-opens it
+**J. Nobody has ever restored the minute bank from R2 — OPEN, raised
+2026-09-21.** The push verifies the remote object's md5 against the local
+archive's, which proves the bytes that left are the bytes that landed. It does
+not prove bars come back out of a `tar | zstd` archive pulled from R2, and
+parity compares names, not contents. Until 2026-09-21 fourteen local dailies
+meant ordinary recovery never touched R2; local retention is now one, so R2 is
+the only route to any day but today. The bank is the artifact this repo calls
+unrecoverable at any price. Postgres has `scripts/ops/verify-postgres-restore.sh`
+under the rule that structure is not recoverability; the bank has no analogue.
+Owed: a restore proof that pulls the newest archive, unpacks it, and counts bars
+and sidecars against the live store, on the weekly cadence rather than the daily. The diminished-returns register — what is closed, and what re-opens it
 
 **Rounds run is NOT evidence of exhaustion.** The counter-example is in this
 repo and it is one day old: R1 — the sweep↔live divergence surface — was

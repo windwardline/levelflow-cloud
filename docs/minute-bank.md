@@ -216,6 +216,13 @@ bucket's lifecycle rule expires every object 365 days after upload, whatever its
 so R2's copy of `20260823` lapses about 2027-09-02, a year after it was uploaded at
 2026-09-02 15:40:42Z (HANDOFF §6b-1 item I).
 
+**Nothing has ever been restored from these archives.** The push compares the remote
+object's md5 with the local archive's, and parity compares names; neither unpacks
+anything. A bad `zstd` stream or a layout nobody has unpacked passes both every day
+and is found on the day it is needed. Postgres is proven by restoring it; the bank is
+not, and since 2026-09-21 local retention is one day rather than fourteen, so R2 is
+the only route to any earlier day. HANDOFF §6b-1 item J owes the restore proof.
+
 ## The two sides are checked against each other
 
 Verifying an upload and verifying the archive set are different claims, and only the
