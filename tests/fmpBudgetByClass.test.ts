@@ -940,7 +940,10 @@ describe("the Edge graph type-checks against its REAL runtime", () => {
       assert.ok(existsSync(entry), `${entry} is gone — re-anchor this gate`);
       let output = "";
       try {
-        execFileSync("deno", ["check", entry], { encoding: "utf8", stdio: "pipe" });
+        // The documented form (AGENTS.md): --no-config keeps a future Deno from
+        // reading tsconfig.app.json. On Deno 2.9.7 the bare form also checks
+        // (a planted TS2322 fails both, 2026-09-21), so this pins the form, not a fix.
+        execFileSync("deno", ["check", "--no-config", entry], { encoding: "utf8", stdio: "pipe" });
       } catch (error) {
         const shell = error as { stderr?: string; stdout?: string };
         output = `${shell.stdout ?? ""}${shell.stderr ?? ""}`;
