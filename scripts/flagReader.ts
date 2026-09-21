@@ -18,13 +18,16 @@
  *
  * Closing that per file meant the fix reached whichever file someone
  * happened to open. This module is the one implementation FOR THE
- * READERS THAT IMPORT IT — eleven of seventeen. The other six keep
- * their own value accessors, because their specific error messages are
- * what executed tests assert, and rewriting those would trade a live
- * pin for uniformity; they share `soleFlagIndex` below, so flag
- * RESOLUTION is one implementation everywhere even where the messages
- * are not (#364 round 53, finding 1 — the first version of this
- * sentence claimed all of them and was false). A reader
+ * READERS THAT IMPORT IT. A minority keep their own value accessors,
+ * because their specific error messages are what executed tests assert,
+ * and rewriting those would trade a live pin for uniformity; they share
+ * `soleFlagIndex` below, so flag RESOLUTION is one implementation
+ * everywhere even where the messages are not (#364 round 53, finding 1 —
+ * the first version of this sentence claimed all of them and was false).
+ * The split is a rule here rather than a tally: round 53's "eleven of
+ * seventeen" stood in this paragraph while the population grew past
+ * thirty, and a count nothing derives rots the day a reader is added.
+ * A reader
  * declares which of its flags take a value and reads them through here,
  * and `tests/sweepManifest.test.ts` derives the list of files the law
  * applies to by globbing this directory rather than curating it.
