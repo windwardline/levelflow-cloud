@@ -206,6 +206,15 @@ accumulating. Local retention is 14 snapshots and remote is 60; `20260823` is
 protected by name in both prunes, because it is the only naive-era corpus in existence
 and a retention count cannot protect what oldest-first deletes first.
 
+Name-protection binds this repo's prunes and nothing else. `windwardline-backups`
+carries the lifecycle rule `expire-backups-after-365-days` over every object, so R2
+deletes the remote `minute-bank-20260823.tar.zst` around 2027-09-02 whatever its
+name. The copy that outlives it is
+`windwardline-archives/levelflow-cloud/minute-bank/levelflow-minute-bank-snapshot-20260823.tar.zst`,
+written once by `push-archive-offbox.sh` and never pruned. Until the operator's push
+fills its row in `docs/offbox-archives.md`, the local snapshot and the expiring daily
+are the only copies.
+
 ## The two sides are checked against each other
 
 Verifying an upload and verifying the archive set are different claims, and only the
