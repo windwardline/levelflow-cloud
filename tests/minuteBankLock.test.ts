@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { noKeychainEnv } from "./support/noKeychain.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 /**
  * THE BANK AND ITS BACKUP MUST NOT RUN AT THE SAME TIME.
@@ -44,7 +44,7 @@ const HELPER = "scripts/ops/bank-lock.sh";
 
 /** A sandbox bank with one symbol and one bar, plus its own lock path. */
 function sandbox() {
-  const root = mkdtempSync(join(tmpdir(), "bank-lock-"));
+  const root = scratchDir("bank-lock-");
   const bank = join(root, "bank");
   mkdirSync(bank);
   writeFileSync(join(bank, "EURUSD.jsonl"), '{"date":"2026-08-01"}\n');
@@ -407,7 +407,7 @@ describe("both sides of the race take the lock", () => {
     // moved underneath it, and refused its own snapshot — eight times, with
     // nothing reaching R2 after 2026-09-19.
     const { bank } = sandbox();
-    const dest = mkdtempSync(join(tmpdir(), "bank-lock-dest-"));
+    const dest = scratchDir("bank-lock-dest-");
     const holder = holdLock(bank, 0.8);
     await holder.held;
 

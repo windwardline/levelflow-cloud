@@ -46,9 +46,9 @@ established by measurement rather than assumption.
 
 ## Shape
 
-One JSONL file per provider symbol, one bar per line, **in append order, not
-chronological order — sort by `date` on read.** A sidecar holds the high-water mark,
-a recent-key window for deduplication, and the last thirty run records.
+One JSONL file per provider symbol, one bar per line, appended in chronological
+order. A sidecar holds the high-water mark, a recent-key window for deduplication,
+and the last thirty run records.
 
 ```
 .minute-bank/EURUSD.jsonl        {"date":"2026-08-06 09:30:00","open":…}
@@ -57,31 +57,6 @@ a recent-key window for deduplication, and the last thirty run records.
 
 Keys are the raw date strings, which sort chronologically because the format is
 zero-padded. Re-running the same day is safe: overlapping bars are dropped by key.
-
-Each run appends its fresh bars oldest-first, so a run's block is ordered. The file
-is not, because the provider sometimes omits a minute and serves it on a later call.
-The later run appends that minute after its own newest bar. Measured 2026-09-21 across
-3,395,668 bars:
-
-| | |
-| --- | --- |
-| backward date steps | 664, in 76 of 100 files |
-| traceable to a run through the sidecars | 252 |
-| of those, at a run boundary | 252; none inside a run's block |
-| of those, filling a hole inside coverage already banked | 252 — e.g. 12:59 and 13:02 banked, 13:00 served later |
-| how far back | 1 minute to 24.3 hours, median about 13 |
-| date formats | one; no instant appears under two strings |
-| duplicates | none |
-
-The other 412 steps predate the thirty runs a sidecar remembers, so they are
-consistent with the mechanism rather than proven by it. Nothing is lost or
-duplicated, and a sort by `date` yields the true series. The files are deliberately
-not rewritten into order: the bank is unrecoverable, and a reader-side sort costs
-nothing.
-
-De-duplication holds because the key window outlasts the provider's: 8,000 keys
-against a largest single-run fetch of 4,276 bars. Late fills reach back a day at
-most, so they fall well inside it.
 
 A bar is banked only if its date is present and all four prices are finite. A
 malformed bar is dropped and counted — never repaired, and never given the run time

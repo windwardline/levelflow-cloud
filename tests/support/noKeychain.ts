@@ -1,6 +1,6 @@
-import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { chmodSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { scratchDir } from "./scratchDir.ts";
 
 /**
  * BARRIER 1 of 2 for any test that executes `bank-minute-bars-daily.sh`.
@@ -23,7 +23,7 @@ let stubDir: string | undefined;
 
 export function noKeychainEnv(): { PATH: string } {
   if (!stubDir) {
-    stubDir = mkdtempSync(join(tmpdir(), "no-keychain-"));
+    stubDir = scratchDir("no-keychain-");
     const stub = join(stubDir, "security");
     writeFileSync(
       stub,

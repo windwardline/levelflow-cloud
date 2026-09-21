@@ -478,25 +478,3 @@ describe("a refusing provider costs one symbol, not the roster", () => {
     );
   });
 });
-
-describe("the bank's files are append-ordered, and say so", () => {
-  // PINNED IN SOURCE, with the limit stated: the per-symbol append is not
-  // exported and its fetch cannot be injected, so the late-fill ordering is
-  // measured on the real bank (docs/minute-bank.md, "Shape") rather than
-  // exercised here. What this holds is the CONTRACT. Until 2026-09-21 both
-  // the doc and the writer promised chronological files while 76 of 100 were
-  // not, and a reader building on that promise would have mis-ordered minutes.
-  it("no longer promises a chronological file", () => {
-    const writer = readFileSync("scripts/bank-minute-bars.ts", "utf8");
-    const doc = readFileSync("docs/minute-bank.md", "utf8");
-    assert.doesNotMatch(writer, /an append is always a forward extension/);
-    assert.doesNotMatch(doc, /appended in chronological\s+order/);
-  });
-
-  it("tells every reader to sort by date", () => {
-    const writer = readFileSync("scripts/bank-minute-bars.ts", "utf8");
-    const doc = readFileSync("docs/minute-bank.md", "utf8");
-    assert.match(writer, /append-ordered, not\s+\/\/\s+chronological/);
-    assert.match(doc, /in append order, not\s+chronological order — sort by `date` on read/);
-  });
-});

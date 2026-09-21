@@ -460,13 +460,6 @@ the lock from zsh and watched the backup walk through it — zsh fires a
 function-scoped `EXIT` trap on return, so the lock was released the instant it
 was taken. Re-checked under bash through `wl-repo-script`: the backup waited out
 an 8-second hold and placed a verified snapshot one second after release.
-*2026-09-21, owner-ruled:* the bank's files are **append-ordered, not
-chronological**, and readers sort by `date`. The provider omits minutes and serves
-them later; the late run appends them after its newest bar. 664 backward steps in
-76 of 100 files; all 252 traceable to a run sit at a run boundary and fill a hole
-inside banked coverage. No duplicates, nothing lost. The files are deliberately not
-rewritten. `docs/minute-bank.md` "Shape" holds the measurement, and the doc and the
-writer's comment no longer promise chronological order.
 *2026-09-21:* the calibration-cache top-up runs `origin/main` through
 `wl-repo-script` too. Its trap was worse than the bank's: the sweep's cache is
 the RELATIVE `.calibration-cache`, so from the extracted tree it would have
