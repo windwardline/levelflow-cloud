@@ -854,10 +854,26 @@ describe("every provider spend is decided per request, and a refusal returns", (
       assert.ok(at > 0, `the handler has no \`${branch}\` branch`);
       const open = analyzer.indexOf("{", at + branch.length - 1);
       assert.match(analyzer.slice(open, closing(analyzer, open)), /\b503\b/, `${branch} does not return 503`);
+      assert.match(analyzer.slice(open, closing(analyzer, open)), /fmpSpendRefusalBody\(/, `${branch} builds its own 503 body`);
     }
 
     for (const decision of decisions.filter((d) => !d.file.endsWith("trade-analyzer/index.ts"))) {
       assert.match(decision.branch, /\b503\b/, `${decision.file}'s refusal is not a 503`);
+      assert.match(decision.branch, /fmpSpendRefusalBody\(/, `${decision.file}'s refusal builds its own 503 body`);
+    }
+
+    // The helper is the only door to the wire. `reason` carries the account-wide
+    // trailing-30 figure for the operator's log and the body deliberately does
+    // not, so an entry that composed its own 503 body from the refusal would put
+    // the figure `fmp_usage`'s revoke withholds back in front of any signed-in
+    // caller. Every 503 each entry answers is therefore built by the helper.
+    for (const file of [...new Set(decisions.map((d) => d.file))]) {
+      const source = readFileSync(file, "utf8");
+      const answers = [...source.matchAll(/jsonResponse\(([^;]*?),\s*503\s*\)/g)];
+      assert.ok(answers.length > 0, `${file} answers no 503, so this census examined nothing there`);
+      for (const [call] of answers) {
+        assert.match(call, /fmpSpendRefusalBody\(/, `${file} answers a 503 not built by fmpSpendRefusalBody: ${call}`);
+      }
     }
     const outcome = decisions.find((d) => d.file.endsWith("outcome-sync/index.ts"))!;
     const pruneAt = outcome.branch.indexOf("pruneAnalyzerEvents()");
