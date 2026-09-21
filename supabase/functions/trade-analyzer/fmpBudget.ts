@@ -35,6 +35,7 @@
  * un-awaited write completes after the isolate answers is unverified.
  */
 import { DESK_PARKED } from "../_shared/deskParking.ts";
+import { redactProviderSecrets } from "./redact.ts";
 
 /**
  * The database calls this module needs, passed in rather than imported.
@@ -116,6 +117,11 @@ export type FmpSpendDecision =
 
 export type FmpSpendRefused = {
   allowed: false;
+  /**
+   * What the ledger threw, redacted and bounded; null for every other refusal.
+   * For the operator's log, never the client: `fmpSpendRefusalBody` omits it.
+   */
+  cause: string | null;
   consumerClass: FmpConsumerClass;
   limitBytes: number;
   reason: string;
@@ -174,6 +180,7 @@ export async function decideFmpSpend(
   if (parked && consumerClass === "user") {
     return {
       allowed: false,
+      cause: null,
       consumerClass,
       limitBytes,
       reason:
@@ -188,11 +195,19 @@ export async function decideFmpSpend(
   try {
     const rows = await deps.claim(consumerClass, limitBytes);
     row = Array.isArray(rows) ? rows[0] : undefined;
-  } catch {
+  } catch (error) {
+    // Kept, because failing closed made it matter: an outage turns the desk
+    // off, and the fixed sentence cannot say whether the ledger answered 401,
+    // lost its function or never answered. adminRpcRows throws the response
+    // text and a transport error can carry a URL, so it is redacted here.
+    const cause = redactProviderSecrets(
+      error instanceof Error ? error.message : String(error),
+    ).slice(0, 400);
     return ledgerUnavailable(
       consumerClass,
       limitBytes,
       "the FMP ledger could not be read; spending is refused until it answers",
+      cause,
     );
   }
   if (!row) {
@@ -200,6 +215,7 @@ export async function decideFmpSpend(
       consumerClass,
       limitBytes,
       "the FMP ledger returned no row; spending is refused until it answers",
+      null,
     );
   }
 
@@ -214,6 +230,7 @@ export async function decideFmpSpend(
   }
   return {
     allowed: false,
+    cause: null,
     consumerClass,
     limitBytes: ceiling,
     reason: `${consumerClass} has spent its day: ` +
@@ -226,13 +243,17 @@ export async function decideFmpSpend(
   };
 }
 
+/** Both ledger-outage refusals, each logged once with what is known of why. */
 function ledgerUnavailable(
   consumerClass: FmpConsumerClass,
   limitBytes: number,
   reason: string,
+  cause: string | null,
 ): FmpSpendRefused {
+  console.error("FMP ledger unavailable; provider spend refused", consumerClass, reason, cause ?? "");
   return {
     allowed: false,
+    cause,
     consumerClass,
     limitBytes,
     reason,

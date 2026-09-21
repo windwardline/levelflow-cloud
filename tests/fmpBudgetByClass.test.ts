@@ -143,7 +143,7 @@ describe("the decision", () => {
     }
   });
 
-  it("FAILS CLOSED when the ledger cannot answer, and says so", async () => {
+  it("FAILS CLOSED when the ledger cannot answer, and says so", async (t) => {
     // It used to fail OPEN, on the argument that refusing the desk because the
     // ledger blinked takes the product down to protect a budget. That argument
     // held only while nothing called it. A ledger that cannot answer is now all
@@ -151,6 +151,7 @@ describe("the decision", () => {
     // `claimMarketDataRequest` has always refused from — and the minute bank's
     // loss is permanent while a desk that cannot chart for an hour is not.
     // THE COST, stated: a ledger outage turns off charts, scans and grading.
+    const logged = t.mock.method(console, "error", () => {});
     for (const broken of [
       { claim: async () => { throw new Error("ledger down"); } },
       { claim: async () => [] },
@@ -165,6 +166,51 @@ describe("the decision", () => {
       assert.match(decision.reason, /ledger/);
       assert.equal(decision.spentToday, null);
       assert.equal(decision.trailing30, null);
+    }
+    assert.equal(logged.mock.callCount(), 3, "each ledger outage is logged exactly once");
+  });
+
+  it("keeps the ledger's own error, redacted, for the operator and not the client", async (t) => {
+    // Fail-closed made the cause matter: an outage now turns the desk off, and
+    // the fixed sentence cannot say whether it was a 401, a missing function or
+    // the network. adminRpcRows throws the response text, and a transport error
+    // can carry a URL, so the cause is redacted where it is born.
+    const logged = t.mock.method(console, "error", () => {});
+    const thrown = 'error sending request for url (https://ref.supabase.co/rest/v1/rpc/claim_fmp_bytes?apikey=S3CR3T): {"code":"PGRST202"}';
+    for (const [broken, expected] of [
+      [async () => { throw new Error(thrown); }, /PGRST202/],
+      [async () => { throw "ledger down"; }, /^ledger down$/],
+    ] as const) {
+      logged.mock.resetCalls();
+      const decision = await decideFmpSpend(deps({ claim: broken as FmpBudgetDeps["claim"] }), "user", false);
+      assert.equal(decision.allowed, false);
+      if (decision.allowed) continue;
+      assert.equal(decision.refusal, "ledger-unavailable");
+      assert.match(decision.cause ?? "", expected);
+      assert.doesNotMatch(decision.cause ?? "", /S3CR3T/, "the refusal carries an unredacted secret");
+      assert.equal(logged.mock.callCount(), 1);
+      const line = logged.mock.calls[0].arguments.map(String).join(" ");
+      assert.ok(line.includes(decision.cause ?? " "), `the log line does not carry the cause: ${line}`);
+      assert.doesNotMatch(line, /S3CR3T/, "the log line carries an unredacted secret");
+      assert.equal("cause" in fmpSpendRefusalBody(decision), false, "the HTTP body carries the ledger's internals");
+    }
+    const decision = await decideFmpSpend(deps({ claim: async () => { throw new Error(thrown); } }), "user", false);
+    assert.ok(!decision.allowed && decision.cause?.includes("apikey=REDACTED"));
+  });
+
+  it("carries no cause on a refusal nothing threw for", async (t) => {
+    t.mock.method(console, "error", () => {});
+    const parked = await decideFmpSpend(deps(), "user", true);
+    const ceiling = await decideFmpSpend(
+      deps({ claim: async () => [{ allowed: false, limit_bytes: 1, spent_today: 1, trailing_30_bytes: 1 }] }),
+      "user",
+      false,
+    );
+    const noRow = await decideFmpSpend(deps({ claim: async () => [] }), "user", false);
+    for (const refused of [parked, ceiling, noRow]) {
+      assert.equal(refused.allowed, false);
+      if (refused.allowed) continue;
+      assert.equal(refused.cause, null);
     }
   });
 
