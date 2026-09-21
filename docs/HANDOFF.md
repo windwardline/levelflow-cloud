@@ -2548,8 +2548,11 @@ and 46** in the rulings file. Owed repair work named and not started, now three 
 forex cost constants' DERIVATION (the marking itself is done, #645), the
 gate's span exclusion, and a refusal in `grid-totalr` of any `--read-out` that,
 resolved against the repository rather than the working directory, is not inside
-`docs/research/confirm-reads/` or is not named `ledgered-read-*.json`
-(2026-09-16). The last is
+`docs/research/confirm-reads/` or is not named `ledgered-read-*.json`, and that
+records the accepted path relative to the repository root, because an absolute
+string in a ledger line can never be amended (2026-09-16). The freeze's `path` in
+the same artifact body is written `relative(process.cwd(), …)`, which is
+repo-relative only when run from the root; the same repair should anchor it. The last is
 what makes the sealed-read guard's derived population complete: a read written
 elsewhere is pinned by nothing, a relative path resolves against the working
 directory and creates a lookalike tree, and act 3 used the flag. It must bind

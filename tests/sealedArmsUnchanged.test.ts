@@ -161,10 +161,23 @@ function canonicalSha256(value: unknown): string {
 
 /**
  * What a sealed file is sealed AS, so a failure gives advice that fits it: a sealed
- * INPUT is regraded beside itself, while a sealed read's own record cannot be retaken.
+ * INPUT is regraded beside itself, the FREEZE is never re-run, and a sealed read's
+ * own record cannot be retaken.
  */
-type SealedAs = { kind: "input" | "read"; read: string };
+type SealedAs = { kind: "input" | "freeze" | "read"; read: string };
 const ACT3_INPUT: SealedAs = { kind: "input", read: "the burned act-3 read" };
+const ACT3_FREEZE: SealedAs = { kind: "freeze", read: "the burned act-3 read" };
+
+function describeSeal(sealedAs: SealedAs): { what: string; restore: string } {
+  switch (sealedAs.kind) {
+    case "input":
+      return { what: `a sealed input of ${sealedAs.read}`, restore: "restore it from git, and write any regrade beside it, never over it" };
+    case "freeze":
+      return { what: `the freeze ${sealedAs.read} binds`, restore: "restore it from git, and never re-run the freeze" };
+    case "read":
+      return { what: `sealed read ${sealedAs.read}'s own record`, restore: "restore it from git; a burned read cannot be retaken" };
+  }
+}
 
 /** Says whether a changed sealed file was condemned in place or otherwise altered. Called only on failure. */
 function whatHappened(path: string, sealedAs: SealedAs): string {
@@ -174,12 +187,11 @@ function whatHappened(path: string, sealedAs: SealedAs): string {
   } catch {
     // Unparseable, or not JSON at all: "altered" covers it.
   }
-  const what = sealedAs.kind === "input" ? `a sealed input of ${sealedAs.read}` : `sealed read ${sealedAs.read}'s own record`;
+  const { what, restore } = describeSeal(sealedAs);
   return condemned
     ? `${path} was CONDEMNED IN PLACE with an INVALID stamp. It is ${what} and ` +
       `may not be stamped: revert the stamp and record the condemnation in ${LEDGER_DIR}/CONDEMNATIONS.md.`
-    : `${path} was altered after it was sealed. It is ${what}: restore it from git` +
-      (sealedAs.kind === "input" ? `, and write any regrade beside it, never over it.` : `; a burned read cannot be retaken.`);
+    : `${path} was altered after it was sealed. It is ${what}: ${restore}.`;
 }
 
 async function assertSealedBytes(path: string, expected: string, sealedAs: SealedAs, label = ""): Promise<void> {
@@ -188,11 +200,8 @@ async function assertSealedBytes(path: string, expected: string, sealedAs: Seale
     actual = await sha256File(path);
   } catch (error) {
     if ((error as { code?: string }).code !== "ENOENT") throw error;
-    assert.fail(
-      sealedAs.kind === "input"
-        ? `${label}${path} is MISSING. It is a sealed input of ${sealedAs.read}: restore it from git; a regrade writes beside a sealed file, never moves it.`
-        : `${label}${path} is MISSING. It is sealed read ${sealedAs.read}'s own record: restore it from git.`,
-    );
+    const { what } = describeSeal(sealedAs);
+    assert.fail(`${label}${path} is MISSING. It is ${what}: restore it from git; nothing sealed is ever moved.`);
   }
   if (actual !== expected) assert.fail(`${label}${whatHappened(path, sealedAs)} (sha256 ${actual.slice(0, 12)}, sealed ${expected.slice(0, 12)})`);
 }
@@ -393,7 +402,7 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
   });
 
   it("keeps the freeze file's bytes, as written down", async () => {
-    await assertSealedBytes(FREEZE, SEALED_FREEZE_FILE_SHA256, ACT3_INPUT);
+    await assertSealedBytes(FREEZE, SEALED_FREEZE_FILE_SHA256, ACT3_FREEZE);
   });
 
   it("keeps the freeze's body hash, bound by the sealed read (depends on frozenHashOf)", () => {

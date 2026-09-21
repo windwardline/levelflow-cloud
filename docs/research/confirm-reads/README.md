@@ -106,8 +106,9 @@ directory holds the sealed ledgered-read artifacts (`ledgered-read-*.json`),
 the printed record of each read's own run (`ledgered-read-*.stdout.txt`, sealed
 with its artifact because that run cannot be repeated), this README, and
 `CONDEMNATIONS.md`, the
-record of a condemnation of a SEALED INPUT of a burned read. Such an input is
-never condemned by stamping `INVALID` into it in place, because the stamp
+record of a condemnation of anything a burned read seals: its inputs, its freeze,
+and its own artifact and printed record. None is ever condemned by stamping
+`INVALID` into it in place, because the stamp
 rewrites the provenance of a read that cannot be retaken
 (`tests/sealedArmsUnchanged.test.ts` fails on it and says so). The note is
 Markdown, never `.jsonl`: every `.jsonl` here is read as a ledger on every
@@ -130,7 +131,9 @@ anywhere else, or here under another name, is pinned by nothing. Pass `--read-ou
 REPO-RELATIVE, from the repository root, as act 3 did. The string is recorded
 verbatim in a ledger line that can never be amended, and a relative path is the
 one form that reads the same in every clone: act 3's own `ledgerPath` is an
-absolute path into a worktree that no longer exists. `--read-out` resolves against
+absolute path into a worktree that no longer exists. (`ledgerPath` stays absolute
+whatever `--read-out` is, because it is built from `DEFAULT_CONFIRM_LOG_DIR`; the
+guard compares it by basename for that reason.) `--read-out` resolves against
 the process's working directory and `grid-totalr` creates missing directories, so
 from anywhere but the root it writes a lookalike `…/docs/research/confirm-reads/`
 tree the guard cannot see. The guard places a ledger line by basename and

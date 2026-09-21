@@ -1,4 +1,4 @@
-# Condemnations of sealed inputs
+# Condemnations of sealed files
 
 A burned confirm read cannot be retaken, so the files it was frozen from are sealed
 with it: the act-3 freeze, its seven market-arm gradings, its five class-arm gradings,
