@@ -3413,7 +3413,8 @@ Executed so far, per `docs/cache-rebuild-r0.md`:
   (the minute-bank agent deliberately left loaded and running — it is a
   different store and the runbook says so). The condemned 3.9 GB store
   moved to `~/levelflow-cache-condemned-2026-08-11`, outside the repo,
-  with its `INVALID-READ-ME.txt` and the `cot-*.json` files.
+  with its `INVALID-READ-ME.txt` and the `cot-*.json` files. Since
+  2026-09-21 it is at `~/.local/share/levelflow-cloud/archives/levelflow-cache-condemned-2026-08-11`.
 - **Step 2 RUNNING**, `--symbols roster --days max --warm-only
   --byte-budget 30gb`, under `caffeinate` so the machine cannot idle-sleep
   through it, with the key delivered by `wl-secret` at exec and never on
@@ -3424,15 +3425,16 @@ Executed so far, per `docs/cache-rebuild-r0.md`:
   ever claimed and all it can claim — see R0c and the coverage paragraph
   below.***
 - **Is step 2 still running? Derive it, do not assume.** The log is
-  `~/levelflow-rebuild-20260823.log` (the runbook writes
-  `~/levelflow-rebuild-$(date +%Y%m%d).log`, stamped the day the run
+  `~/.local/share/levelflow-cloud/archives/levelflow-rebuild-20260823.log`, in the home folder until
+  2026-09-21 (the runbook writes
+  `~/.local/share/levelflow-cloud/archives/levelflow-rebuild-$(date +%Y%m%d).log`, stamped the day the run
   STARTED — a session resuming after midnight must look for the start
   date, not today's).
 
   ```sh
   pgrep -fl replay-sweep                       # alive?
-  tail -3 ~/levelflow-rebuild-20260823.log     # where it got to
-  grep -c '	warm	' ~/levelflow-rebuild-20260823.log   # symbols warmed, of 97
+  tail -3 ~/.local/share/levelflow-cloud/archives/levelflow-rebuild-20260823.log     # where it got to
+  grep -c '	warm	' ~/.local/share/levelflow-cloud/archives/levelflow-rebuild-20260823.log   # symbols warmed, of 97
   ```
 
   A run that is gone with fewer than 97 warm lines died or was killed.
@@ -3447,7 +3449,7 @@ Executed so far, per `docs/cache-rebuild-r0.md`:
   sweep pre-flight at this depth.
 
   ```sh
-  grep -nE 'treasury top-up failed|WOULD REFUSE|429' ~/levelflow-rebuild-20260823.log
+  grep -nE 'treasury top-up failed|WOULD REFUSE|429' ~/.local/share/levelflow-cloud/archives/levelflow-rebuild-20260823.log
   ```
 
   The density observation above is early-run evidence, not this grep.
@@ -4219,7 +4221,8 @@ key. Sequenced after item 6's `init.sql` work.
 
 ### The two cache archives, and why v2 was released (2026-08-26)
 
-`~/levelflow-cache-v3-preDateFix-20260824` is **KEPT**. Its own retention condition is
+`~/.local/share/levelflow-cloud/archives/levelflow-cache-v3-preDateFix-20260824` (in the home folder until 2026-09-21) is
+**KEPT**. Its own retention condition is
 measured and unmet: `verify-rebuild-depth --reference` against it reports **24 stores /
 10,850 rows** master did not recover.
 
@@ -4323,7 +4326,7 @@ sample of one); and it REFUSES a thin sample rather than passing it. `tests/rebu
 pins all three.
 
 **This rule exists in the repo because it previously existed only in a README inside
-`~/levelflow-cache-v3-preDateFix-20260824` — an archive that has itself been a deletion
+`~/.local/share/levelflow-cloud/archives/levelflow-cache-v3-preDateFix-20260824` — an archive that has itself been a deletion
 candidate.** A premise whose only record sits inside the thing it protects is one cleanup away
 from being lost.
 
