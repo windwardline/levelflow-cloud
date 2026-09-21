@@ -40,12 +40,19 @@ the whole of it.
 | `/economic-calendar` | `news-calendar/index.ts:285` | timing risk |
 | `/earnings-calendar` | `news-calendar/index.ts:347` | timing risk |
 | `/news/{category}` | `news-calendar/index.ts:433` | timing risk, never direction |
-| `/commitment-of-traders-report` | `scripts/replay-sweep.ts:1835` | `cotPercentile`, `cotStance`, `cotSampleSize` on every corpus row; `trade-analyzer/sweep.ts` only consumes it, via `cotContext.ts` |
-| `/commodities-list`, `/index-list` | `scripts/verify-fmp-matches.ts:173` | the two authoritative enumerations, for re-probing the unmatched register |
+| `/commitment-of-traders-report` | `scripts/replay-sweep.ts:2017` | `cotPercentile`, `cotStance`, `cotSampleSize` on every corpus row; `trade-analyzer/sweep.ts` only consumes it, via `cotContext.ts` |
+| `/commodities-list`, `/index-list` | `scripts/verify-fmp-matches.ts:205` | the two authoritative enumerations, for re-probing the unmatched register |
 
-Spend is governed, not merely rate-limited: `trade-analyzer/fmpBudget.ts` and
-`scripts/fmpGovernor.ts` hold a byte ledger in two classes, background yielding
-to live users, with the bulk of each rolling 30-day window deliberately unused.
+Spend is governed, not merely rate-limited, and the bulk of each rolling 30-day
+window stays deliberately unused. On the Edge, `trade-analyzer/fmpBudget.ts`
+holds a byte ledger in two classes, background yielding to live users. The
+scripts share `scripts/fmpGovernor.ts`, whose state lives in the checkout's
+`.fmp-state/`: a ledger keyed by consumer, the breaker's event log and the run
+gate's markers. The top-up and ad-hoc classes each get 256 MiB a UTC day from a
+pool that reserves 333,333,333 bytes for the minute bank, and only the owner's
+`--daily-ceiling` lifts one ad-hoc run above that. The bank is never refused at
+a door; it bounds each run at 512 MiB instead. A 1-minute question goes through
+`scripts/probe-minute-bars.ts --symbol --from --to`, which the governor meters.
 
 ## What the subscription includes and Levelflow does not use
 
