@@ -239,7 +239,8 @@ hour rule.
 It does not build anything. Rulings 1 and 3 each name owed repair work — the
 forex cost constants, and the gate's missing span exclusion — and neither is
 started here. The random-entry screen that ruling 4 depends on is designed and
-refuted but not built.
+refuted but not built; its design is
+[`designs/random-entry-screen-2026-09-14.md`](/docs/research/designs/random-entry-screen-2026-09-14.md).
 
 **Amended 2026-09-14, after five investigations established the facts behind
 that owed work.** Ruling 2's stale figures are corrected in the same change set
