@@ -8,7 +8,11 @@ import { redactProviderSecrets } from "./redact.ts";
 import { parseFmpQuoteSnapshot, type QuoteSnapshot } from "./quotes.ts";
 import { barStoreDeps } from "./barStoreDb.ts";
 import type { AnalyzerEventStatus } from "./telemetry.ts";
-import { recordFetch } from "./fmpBudget.ts";
+import {
+  assertSpendPermit,
+  type FmpSpendPermit,
+  recordFetch,
+} from "./fmpBudget.ts";
 import { fmpBudgetDeps } from "./fmpBudgetDb.ts";
 import { labelZoneFor } from "./venues.ts";
 import {
@@ -83,6 +87,9 @@ export async function fetchFirstAvailableMarketContext(
   // would silently fork what live indicators see from what the replay
   // corpus admits (dailyCompletion.ts holds the shared rule and evidence).
   completeDaily: (bars: Bar[]) => Bar[],
+  // The request's one spend decision (fmpBudget.ts). Threaded, never minted
+  // here: every provider fetch below asserts it before building a URL.
+  permit: FmpSpendPermit,
 ): Promise<ProviderContextResult> {
   const providerFailures: string[] = [];
   // 1m: the two failure arms below are different facts — a thrown fetch is a
@@ -98,6 +105,7 @@ export async function fetchFirstAvailableMarketContext(
         recordEvent,
         fetchWithTimeout,
         completeDaily,
+        permit,
       );
       if (marketContext.daily.length >= 80) {
         if (index > 0) {
@@ -144,11 +152,12 @@ async function fetchMarketContext(
   recordEvent: MarketDataEventRecorder,
   fetchWithTimeout: FetchWithTimeout,
   completeDaily: (bars: Bar[]) => Bar[],
+  permit: FmpSpendPermit,
 ): Promise<MarketContext> {
   const providerWarnings: string[] = [];
   const [fetchedDaily, quote] = await Promise.all([
-    fetchFmpBars(fmpSymbol, "1day", recordEvent, fetchWithTimeout),
-    fetchFmpQuoteSnapshot(fmpSymbol, recordEvent, fetchWithTimeout),
+    fetchFmpBars(fmpSymbol, "1day", recordEvent, fetchWithTimeout, permit),
+    fetchFmpQuoteSnapshot(fmpSymbol, recordEvent, fetchWithTimeout, permit),
   ]);
   // Gate before anything reads the series: sufficiency (the >=80 check
   // upstream), timeframes["1day"], and the latest-bar fallback must all see
@@ -191,6 +200,7 @@ async function fetchMarketContext(
             timeframe,
             recordEvent,
             fetchWithTimeout,
+            permit,
           ),
           timeframe,
         );
@@ -256,7 +266,9 @@ async function fetchFmpQuoteSnapshot(
   fmpSymbol: string,
   recordEvent: MarketDataEventRecorder,
   fetchWithTimeout: FetchWithTimeout,
+  permit: FmpSpendPermit,
 ): Promise<QuoteSnapshot | null> {
+  assertSpendPermit(permit);
   const endpoint = new URL(
     `${FMP_API_BASE_URL.replace(/\/$/, "")}/quote`,
   );
@@ -275,12 +287,13 @@ async function fetchFmpQuoteSnapshot(
     // THE LEDGER (2026-09-01). Measured at the only moment the real cost is
     // knowable: the provider publishes no usage endpoint and Content-Length is
     // absent on chunked responses, so the body's own size IS the bill. Charged
-    // to `user` because this path serves an operator who is waiting — a scan
-    // they asked for, or a market they opened. Never awaited into the response
-    // path: accounting must not add latency to an answer already in hand.
+    // to the class the request's permit was minted for: `user` for a scan or
+    // an outcome refresh, `background` for outcome-sync. Never awaited into the
+    // response path: accounting must not add latency to an answer already in
+    // hand.
     void recordFetch(
       fmpBudgetDeps(),
-      "user",
+      permit,
       new TextEncoder().encode(responseText).length,
     );
 
@@ -370,7 +383,9 @@ async function fetchRawWindow(
   fetchWithTimeout: FetchWithTimeout,
   windowFrom: string,
   windowTo: string,
+  permit: FmpSpendPermit,
 ): Promise<StoredBar[]> {
+  assertSpendPermit(permit);
   const endpoint = timeframe === "1day"
     ? new URL(
       `${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-price-eod/full`,
@@ -396,12 +411,13 @@ async function fetchRawWindow(
     // THE LEDGER (2026-09-01). Measured at the only moment the real cost is
     // knowable: the provider publishes no usage endpoint and Content-Length is
     // absent on chunked responses, so the body's own size IS the bill. Charged
-    // to `user` because this path serves an operator who is waiting — a scan
-    // they asked for, or a market they opened. Never awaited into the response
-    // path: accounting must not add latency to an answer already in hand.
+    // to the class the request's permit was minted for: `user` for a scan or
+    // an outcome refresh, `background` for outcome-sync. Never awaited into the
+    // response path: accounting must not add latency to an answer already in
+    // hand.
     void recordFetch(
       fmpBudgetDeps(),
-      "user",
+      permit,
       new TextEncoder().encode(responseText).length,
     );
   } catch (error) {
@@ -504,15 +520,17 @@ async function fetchRawWindow(
  * Bars for one series: read what the store already owns, buy only the window
  * it does not, merge, and normalize the whole thing.
  *
- * The signature and the return are unchanged, so every caller — the analyzer's
- * loader, outcome-sync, and the deploy-time E2E that exercises both — is
- * fixed by this one function.
+ * The return is unchanged, so every caller — the analyzer's loader,
+ * outcome-sync, and the deploy-time E2E that exercises both — is fixed by this
+ * one function. The permit is the caller's one spend decision for its request;
+ * a warm cache or a fresh store spends none of it.
  */
 export async function fetchFmpBars(
   fmpSymbol: string,
   timeframe: Timeframe,
   recordEvent: MarketDataEventRecorder,
   fetchWithTimeout: FetchWithTimeout,
+  permit: FmpSpendPermit,
 ) {
   const cacheKey = `${fmpSymbol}:${timeframe}`;
   const cached = candleCache.get(cacheKey);
@@ -535,7 +553,15 @@ export async function fetchFmpBars(
   const result = await readThrough(barStoreDeps(), {
     coldStartFrom: coldStart.from,
     fetchWindow: (from, to) =>
-      fetchRawWindow(fmpSymbol, timeframe, recordEvent, fetchWithTimeout, from, to),
+      fetchRawWindow(
+        fmpSymbol,
+        timeframe,
+        recordEvent,
+        fetchWithTimeout,
+        from,
+        to,
+        permit,
+      ),
     limit,
     providerSymbol: fmpSymbol,
     timeframe,

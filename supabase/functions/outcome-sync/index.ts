@@ -12,6 +12,11 @@ import {
   type ResolvedOutcome,
 } from "../trade-analyzer/replay.ts";
 import { fetchFmpBars } from "../trade-analyzer/marketLoader.ts";
+import {
+  fmpSpendRefusalBody,
+  mayFetch,
+} from "../trade-analyzer/fmpBudget.ts";
+import { fmpBudgetDeps } from "../trade-analyzer/fmpBudgetDb.ts";
 import { resolveProviderSymbols } from "../trade-analyzer/symbols.ts";
 import { recordAnalyzerEvent } from "../trade-analyzer/telemetry.ts";
 import {
@@ -83,6 +88,28 @@ Deno.serve(async (req) => {
         `created_at&status=in.(generated,placed)&order=created_at.asc&limit=${MAX_SETUPS_PER_RUN}`,
     );
 
+    // ONE SPEND DECISION PER RUN, charged `background`: nobody is waiting on
+    // this grading, so it yields first when the day is contested. It is not
+    // parked with the desk — §21i binds no coupling between the parking gate
+    // and the crons — and it fails closed on a ledger outage. An empty backlog
+    // reads no ledger.
+    //
+    // A refused run still PRUNES: retention is a database job and must not
+    // depend on the provider budget.
+    const spend = setups.length > 0
+      ? await mayFetch(fmpBudgetDeps(), "background")
+      : null;
+    if (spend !== null && !spend.allowed) {
+      const prune = await pruneAnalyzerEvents();
+      await recordAnalyzerEvent({
+        action: "outcome_sync",
+        message: spend.reason,
+        metadata: { fmpSpendRefused: spend.refusal, ...prune },
+        status: "blocked",
+      });
+      return jsonResponse(fmpSpendRefusalBody(spend), 503);
+    }
+
     const summary = {
       failed: 0,
       pending: 0,
@@ -95,6 +122,9 @@ Deno.serve(async (req) => {
     const barsByProviderSymbol = new Map<string, Promise<Bar[]>>();
 
     for (const setup of setups) {
+      // Non-null by construction: this body runs only for a non-empty
+      // `setups`, and a non-empty list was decided (and allowed) above.
+      const permit = spend!.permit;
       if (Date.now() - startedAtMs > RUN_BUDGET_MS) {
         summary.skippedForBudget = setups.length - summary.reviewed;
         break;
@@ -128,6 +158,7 @@ Deno.serve(async (req) => {
               "15min",
               recordAnalyzerEvent,
               fetchWithTimeout,
+              permit,
             ),
           );
         }
@@ -140,6 +171,7 @@ Deno.serve(async (req) => {
               "5min",
               recordAnalyzerEvent,
               fetchWithTimeout,
+              permit,
             ).catch(() => []),
           );
         }
@@ -211,22 +243,7 @@ Deno.serve(async (req) => {
     // OP-1: age out events beyond retention, bounded per run, count
     // reported. Runs after the budget broke the loop still prune — the
     // prune is one bounded request, not another loop.
-    let prunedEvents = 0;
-    let pruneFailed = false;
-    try {
-      const cutoff = new Date(
-        Date.now() - EVENT_RETENTION_DAYS * 24 * 60 * 60 * 1000,
-      ).toISOString();
-      const pruned = await adminDeleteRows<{ id: string }>(
-        `analyzer_events?created_at=lt.${
-          encodeURIComponent(cutoff)
-        }&order=created_at.asc&limit=${EVENT_PRUNE_LIMIT}`,
-      );
-      prunedEvents = pruned.length;
-    } catch (error) {
-      pruneFailed = true;
-      console.error("analyzer_events prune failed", error);
-    }
+    const { prunedEvents, pruneFailed } = await pruneAnalyzerEvents();
 
     const saturated = setups.length >= MAX_SETUPS_PER_RUN ||
       summary.skippedForBudget > 0;
@@ -245,6 +262,28 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Outcome sync failed." }, 500);
   }
 });
+
+// OP-1's retention prune, shared by the graded run and the refused one. One
+// bounded, age-based delete; the count removed is reported, never silent.
+async function pruneAnalyzerEvents(): Promise<{
+  prunedEvents: number;
+  pruneFailed: boolean;
+}> {
+  try {
+    const cutoff = new Date(
+      Date.now() - EVENT_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const pruned = await adminDeleteRows<{ id: string }>(
+      `analyzer_events?created_at=lt.${
+        encodeURIComponent(cutoff)
+      }&order=created_at.asc&limit=${EVENT_PRUNE_LIMIT}`,
+    );
+    return { prunedEvents: pruned.length, pruneFailed: false };
+  } catch (error) {
+    console.error("analyzer_events prune failed", error);
+    return { prunedEvents: 0, pruneFailed: true };
+  }
+}
 
 function isAuthorized(req: Request) {
   const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");

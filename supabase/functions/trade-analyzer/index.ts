@@ -68,6 +68,13 @@ import {
   fetchFirstAvailableMarketContext,
   fetchFmpBars,
 } from "./marketLoader.ts";
+import {
+  type FmpSpendPermit,
+  type FmpSpendRefused,
+  fmpSpendRefusalBody,
+  mayFetch,
+} from "./fmpBudget.ts";
+import { fmpBudgetDeps } from "./fmpBudgetDb.ts";
 import { corsHeaders, getBearerToken, jsonResponse } from "../_shared/http.ts";
 import {
   buildNewsContext,
@@ -263,6 +270,11 @@ type OutcomeRefreshSummary = {
   stopLoss: number;
   takeProfit: number;
   tp1Partial: number;
+  /**
+   * Set when the request's one spend decision refused (fmpBudget.ts). Absent on
+   * every refresh that graded, so the success record and response are unchanged.
+   */
+  refused?: FmpSpendRefused;
 };
 
 type UpsertedSetupResult = {
@@ -425,6 +437,21 @@ Deno.serve(async (req) => {
 
     if (actionName === "refresh_outcomes") {
       const outcomeRefresh = await refreshUserOutcomes(token, user.id);
+      // A refused spend is not a graded refresh. One blocked row per refused
+      // request — the rate limit's own precedent above, bounded by the same
+      // per-user budget — and 503, never 429, so it cannot read as the limiter.
+      // Refused before the learning refresh, which would otherwise run for a
+      // request that did nothing.
+      if (outcomeRefresh.refused) {
+        await recordAnalyzerEvent({
+          action: "refresh_outcomes",
+          message: outcomeRefresh.refused.reason,
+          metadata: { buildStamp, fmpSpendRefused: outcomeRefresh.refused.refusal },
+          status: "blocked",
+          userId: user.id,
+        });
+        return jsonResponse(req, fmpSpendRefusalBody(outcomeRefresh.refused), 503);
+      }
       const learningRefresh = await refreshGlobalStrategyWeightsThrottled();
       await recordAnalyzerEvent({
         action: "refresh_outcomes",
@@ -466,6 +493,18 @@ Deno.serve(async (req) => {
       scanRequest.symbols,
       scanTrace,
     );
+    // The scan's one spend decision refused: parked, the class's day spent, or
+    // a ledger that could not answer. Same shape as the refresh branch above.
+    if (scan.refused) {
+      await recordAnalyzerEvent({
+        action: "scan_opportunities",
+        message: scan.refused.reason,
+        metadata: { buildStamp, fmpSpendRefused: scan.refused.refusal, ...scanTrace },
+        status: "blocked",
+        userId: user.id,
+      });
+      return jsonResponse(req, fmpSpendRefusalBody(scan.refused), 503);
+    }
     await recordAnalyzerEvent({
       action: "scan_opportunities",
       metadata: {
@@ -554,13 +593,24 @@ async function scanOpportunities(
     ),
   );
 
+  // ONE SPEND DECISION PER SCAN REQUEST, after normalization and only when a
+  // market survived it. A request whose every symbol normalizes away — the
+  // analyzer-abuse flood's RATE_LIMIT_TEST — needs no provider, so it reads no
+  // ledger and still answers 200 with an empty scan. Refused while the desk is
+  // parked (supabase/functions/_shared/deskParking.ts), when the user class has
+  // spent its day, or when the ledger cannot answer.
+  const spend = normalizedSymbols.length > 0
+    ? await mayFetch(fmpBudgetDeps(), "user")
+    : null;
+  if (spend !== null && !spend.allowed) return { refused: spend };
+
   // One rate memo per scan request (quoteCurrencyRate.ts): the crosses that
   // share a USD leg share one load of its daily bars.
   const quoteRates: QuoteCurrencyRateMemo = new Map();
-  const results = await mapWithConcurrency(
+  const results = spend === null ? [] : await mapWithConcurrency(
     normalizedSymbols,
     4,
-    (symbol) => scanOpportunity(token, userId, symbol, quoteRates),
+    (symbol) => scanOpportunity(token, userId, symbol, quoteRates, spend.permit),
   );
   const opportunities: MarketScanCandidate[] = [];
   const blocked: MarketScanCandidate[] = [];
@@ -638,6 +688,7 @@ async function reviewCurrentMarket(
   userId: string,
   symbol: SupportedSymbol,
   quoteRates: QuoteCurrencyRateMemo,
+  permit: FmpSpendPermit,
 ): Promise<CurrentMarketReview> {
   // §17m.1: every review that runs is part of a scan, so the telemetry action
   // and the status a refusal records are fixed rather than chosen by a caller.
@@ -799,7 +850,7 @@ async function reviewCurrentMarket(
       if (!legProviderSymbol) {
         return Promise.reject(new Error(`${legSymbol}: no provider symbol`));
       }
-      return fetchFmpBars(legProviderSymbol, "1day", recordAnalyzerEvent, fetchWithTimeout);
+      return fetchFmpBars(legProviderSymbol, "1day", recordAnalyzerEvent, fetchWithTimeout, permit);
     },
     memo: quoteRates,
     nowMs: Date.now(),
@@ -814,6 +865,7 @@ async function reviewCurrentMarket(
       // classifies the session close; the forming current row and weekend
       // transients drop out here exactly as they do in the replay corpus.
       (bars) => completedDailyBars(normalizedSymbol, bars, Date.now()),
+      permit,
     );
   await recordMarketDataHealth(
     normalizedSymbol,
@@ -911,6 +963,7 @@ async function reviewCurrentMarket(
 
   const macroRateContext = await fetchMacroRateContext(
     fetchWithTimeout,
+    permit,
     recordAnalyzerEvent,
   );
   const correlationGroup = getCorrelationGroup(normalizedSymbol);
@@ -1029,13 +1082,14 @@ async function scanOpportunity(
   userId: string,
   symbol: SupportedSymbol,
   quoteRates: QuoteCurrencyRateMemo,
+  permit: FmpSpendPermit,
 ): Promise<{
   blocked?: MarketScanCandidate;
   opportunity?: MarketScanCandidate;
   persistence?: ScanPersistenceContext;
 }> {
   try {
-    const review = await reviewCurrentMarket(token, userId, symbol, quoteRates);
+    const review = await reviewCurrentMarket(token, userId, symbol, quoteRates, permit);
     if (review.blocked) {
       return {
         blocked: {
@@ -1994,6 +2048,13 @@ async function refreshUserOutcomes(
       )
     }&status=in.(generated,placed)${symbolFilter}&order=created_at.asc&limit=${limit}`,
   );
+  // Nothing pending is nothing to grade, and nothing to spend on: the ledger is
+  // not read, so a Desk with no open setups refreshes even while parked.
+  if (setups.length === 0) return summary;
+  // One spend decision for the whole refresh, charged `user` because the
+  // reader's own Desk asked for it (outcome-sync grades as `background`).
+  const spend = await mayFetch(fmpBudgetDeps(), "user");
+  if (!spend.allowed) return { ...summary, refused: spend };
   const barsByProviderSymbol = new Map<string, Promise<Bar[]>>();
 
   for (const setup of setups) {
@@ -2027,6 +2088,7 @@ async function refreshUserOutcomes(
             "15min",
             recordAnalyzerEvent,
             fetchWithTimeout,
+            spend.permit,
           ),
         );
       }
@@ -2039,6 +2101,7 @@ async function refreshUserOutcomes(
             "5min",
             recordAnalyzerEvent,
             fetchWithTimeout,
+            spend.permit,
           ).catch(() => []),
         );
       }

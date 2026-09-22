@@ -77,6 +77,27 @@ moment — #649 and #650 both were, with the corrections still local. And a clai
 of the form "N of these terms do X" is a census: enumerate the conjunction from
 source before writing the count.
 
+### 2026-09-21: a parked desk buys no provider bytes (amendment 47)
+
+A signed-in session walked past `PARKING_GATE` and the Edge served it: market-data
+checked a session and a rate limit, and `mayFetch` had no production caller and failed
+open. The branch `fix/fmp-edge-spend-while-parked` closes it. It is live when its merge
+deploy is green, and that deploy is its acceptance: the log shows `DESK_PARKED` true and
+`stood-down-parked`, public-auth passes, and the user class's `fmp_usage` bytes do not
+grow.
+
+- `DESK_PARKED` refuses user-class spend before a byte is bought: charts, scans and
+  outcome refreshes, each a 503 naming `parked`, `ceiling` or `ledger-unavailable`.
+- Background is not parked. news-calendar and outcome-sync run under the 200 MiB/day
+  background ceiling, so parked spend is bounded, not zero. outcome-sync is now charged
+  to background, not user.
+- Every Edge fetch site takes a permit that only `mayFetch` mints, once per request,
+  and a ledger outage refuses. `tests/fmpBudgetByClass.test.ts` holds this at site
+  grain: 7 sites, each sending one keyed URL through one fetch, and 5 decisions in 4
+  entry files.
+- A parked deploy, pushed or dispatched, stands the FMP-spending E2E projects down.
+  public-auth runs with market-data and refresh_outcomes stubbed in the browser.
+
 ### The desk is PARKED
 
 `PARKING_GATE` is `true` (owner instruction, 2026-08-07). Signed-out visitors see the
@@ -94,14 +115,31 @@ grading numbers changed, so the version moved with them). (The
 E2E account's rows reappear on every deploy — pipeline debris, not history;
 group by user before trusting a raw `count(*)`.)
 
-**Reopening is one flag plus its tests.** Flip `PARKING_GATE` to `false`, invert the two
-gate tests in `tests/e2e/public-auth.spec.ts`, return the four sign-in tests from
-`/?enter` to `/`, and update the pin in `tests/parkingGate.test.ts`. Nothing else.
-Spec §17p records it.
+**Reopening is two pushes, and the Edge goes first (amendment 47).** `DESK_PARKED`
+(`supabase/functions/_shared/deskParking.ts`) refuses every user-class provider request
+at the Edge, and it implies `PARKING_GATE`.
+
+- **Before push 1**, three preconditions. Read GoTrue's hosted sign-up setting from the
+  dashboard: `signInWithOtp` passes no `shouldCreateUser`, and no code or config file
+  here states the setting. Decide whether the owner's `?enter` session is exempt: with
+  the Edge open and the door closed, `?enter` and an open sign-up let anyone spend under
+  the 800 MiB user ceiling. And make the refusal visible in `src/`, as §21f requires: a
+  spent ceiling or a ledger outage now answers the user class with a 503 that nothing in
+  `src/` reads.
+- **Push 1**: lower `DESK_PARKED` alone, with its pins in `tests/deskParking.test.ts`
+  and `tests/e2eParkedScope.test.ts`. `deploy.yml` deploys the functions and runs the
+  full E2E against the open Edge.
+- **Push 2**, only after that run is green: flip `PARKING_GATE` to `false`, invert the
+  two gate tests in `tests/e2e/public-auth.spec.ts`, return the four sign-in tests from
+  `/?enter` to `/`, and update the pin in `tests/parkingGate.test.ts`. Spec §17p records
+  it.
+
+Parking is the reverse: raise `PARKING_GATE` first, or both together, then §17p's logout.
 
 **The trap, learned the hard way:** the gate is consulted inside App's `!session`
 branch, so it turns away arrivals and does **not** end visits. A park without the logout
-step leaves every signed-in operator working behind a closed door.
+step leaves every signed-in operator working behind a closed door. `DESK_PARKED` now
+refuses those visits' provider spend; the logout is still what ends them.
 
 ### FMP is dark, and the loss is permanent — **ENDED EARLY 2026-08-18**
 
@@ -137,6 +175,13 @@ step leaves every signed-in operator working behind a closed door.
 > existed, blanking Supabase's Finnhub value on every deploy) is
 > removed. Rotation from now on, for both credentials: rotate in the
 > Keychain, run the script, done.
+>
+> **Since 2026-09-21 the proving call spends nothing** (amendment 47).
+> The old POST ran a full calendar, earnings and news sync. The script
+> now sends a token-gated GET that news-calendar answers before any
+> spend decision, and compares a 16-hex SHA-256 prefix of the function's
+> `FMP_API_KEY` with the Keychain value. It proves the token and the key
+> the function holds; it no longer proves that FMP accepts the key.
 >
 > **The argv law and its scope** (#363, nine rounds; reflowed after the
 > post-merge round said this paragraph read as a changelog, not a law):
@@ -232,6 +277,9 @@ Re-enable them AFTER the minute bank has had one clean run, never before:
 §21c says the bank is the only consumer whose loss is permanent and dated, so
 it takes the door first when the window drains. This is the §17p shape again —
 a park is two steps, and the second one is the one that gets forgotten.
+`DESK_PARKED` does not cover these two: background work is not parked
+(amendment 47), so once re-enabled they spend under the 200 MiB/day background
+ceiling whether or not the desk is parked.
 
 The account's trailing-30-day bandwidth allowance was exhausted on 2026-08-13 by
 the rebuild's **replay sweeps** — not by the minute bank, whose steady draw is
@@ -2049,7 +2097,8 @@ that fixed it.
   change set alongside anything else can open the public door while the Edge
   deploy, the deploy-time E2E suite and the header poll are still running or
   have failed. **Land the flag flip alone, one push AFTER a green
-  `deploy.yml`.**
+  `deploy.yml`.** Amendment 47 makes that push 2 of two: push 1 lowers
+  `DESK_PARKED` alone, and its deploy's full E2E is the green run meant here.
 - **The real-fill measurement, in both its branches.** §5 states the boundary —
   either operator-entered fill prices get captured, or Levelflow has no
   measurement of a real fill and should say so — and neither branch appears in

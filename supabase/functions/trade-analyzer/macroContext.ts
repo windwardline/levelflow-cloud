@@ -19,7 +19,11 @@ import {
   treasuryCurveStaleMs,
   unavailableContext,
 } from "./macroRates.ts";
-import { recordFetch } from "./fmpBudget.ts";
+import {
+  assertSpendPermit,
+  type FmpSpendPermit,
+  recordFetch,
+} from "./fmpBudget.ts";
 import { fmpBudgetDeps } from "./fmpBudgetDb.ts";
 
 export {
@@ -58,6 +62,8 @@ let cachedTreasuryContext:
 
 export async function fetchMacroRateContext(
   fetcher: Fetcher,
+  // The scan request's one spend decision. A cached curve spends none of it.
+  permit: FmpSpendPermit,
   recordEvent?: MacroEventRecorder,
 ): Promise<MacroRateContext> {
   const now = Date.now();
@@ -68,7 +74,7 @@ export async function fetchMacroRateContext(
     return cachedTreasuryContext.context;
   }
 
-  const context = await requestMacroRateContext(fetcher);
+  const context = await requestMacroRateContext(fetcher, permit);
   cachedTreasuryContext = { context, fetchedAt: now };
   // Recorded once per fetch rather than once per request: the context is cached
   // for fifteen minutes, and a repeat caller reading that cache has not
@@ -88,7 +94,12 @@ export async function fetchMacroRateContext(
 
 async function requestMacroRateContext(
   fetcher: Fetcher,
+  permit: FmpSpendPermit,
 ): Promise<MacroRateContext> {
+  // Before the key check and outside the try: a refused or forged permit must
+  // throw to the caller, never become an "unavailable" curve cached for
+  // fifteen minutes.
+  assertSpendPermit(permit);
   if (!FMP_API_KEY) {
     return unavailableContext("FMP API key is not configured.");
   }
@@ -100,11 +111,11 @@ async function requestMacroRateContext(
     url.searchParams.set("apikey", FMP_API_KEY);
     const response = await fetcher(url, {}, PROVIDER_FETCH_TIMEOUT_MS);
     const responseText = await response.text();
-    // Charged to `user`: the Treasury curve is context for a scan an operator
-    // asked for, fetched on that request's path.
+    // Charged to the permit's class, which is `user`: the Treasury curve is
+    // context for a scan an operator asked for, fetched on that request's path.
     void recordFetch(
       fmpBudgetDeps(),
-      "user",
+      permit,
       new TextEncoder().encode(responseText).length,
     );
     if (!response.ok) {
