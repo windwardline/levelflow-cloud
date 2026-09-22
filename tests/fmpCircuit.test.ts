@@ -120,6 +120,36 @@ describe("each refusal is classified by the provider's own words", () => {
       }, state)
     );
   });
+
+  // No writer can put that line in the log, so only a hand edit can. Read
+  // through, it would open the account, and as the newest refusal it would
+  // rename a bandwidth stand-down, which the top-up takes green, as a red one.
+  it("reads a hand-written rejected-key line in the log as no refusal", () => {
+    const at = Date.parse("2026-09-16T12:00:00Z");
+    const line = (atMs: number) => ({
+      at: atMs,
+      consumer: "adhoc",
+      endpointPath: CAL,
+      key: "account",
+      kind: "invalidKey",
+      reason: BODIES.invalidKeyStoredPrefix,
+      t: "refused",
+    });
+    const alone = tempState();
+    appendRecord(alone.breakerDir, at, line(at));
+    const read = readBreaker(at + 1, alone);
+    assert.ok(read.ok);
+    assert.deepEqual(read.entries, []);
+    assert.equal(read.skippedLines, 0, "a readable line is not an unreadable one");
+    assert.deepEqual(mayCall(at + 1, { requiredPaths: [] }, alone), { allowed: true, probe: false });
+
+    const beside = tempState();
+    openCircuit({ atMs: at, consumer: "topup", endpointPath: CAL, kind: "bandwidth", reason: BODIES.bandwidth }, beside);
+    appendRecord(beside.breakerDir, at + 1, line(at + 1));
+    const decision = mayCall(at + 2, { requiredPaths: [] }, beside);
+    assert.equal(decision.allowed, false);
+    if (!decision.allowed) assert.equal(decision.kind, "bandwidth");
+  });
 });
 
 describe("an open breaker refuses inside the cool-off and says what it knows", () => {

@@ -178,9 +178,9 @@ export function recoveryClause(kind: RefusalKind | null): string {
  * the order is by reach, and only decides which condition the line names: the
  * one nothing recognises, then one endpoint's plan, then one consumer's copy
  * of the key, then the whole account. A rejected key never opens the breaker
- * at all — `openCircuit` refuses to write one and `legacyEvent` drops one —
- * so its row is there for totality, and sits above bandwidth for the same
- * reason as the rest.
+ * at all — `openCircuit` refuses to write one and `readBreaker` drops one
+ * from any record — so its row is there for totality, and sits above
+ * bandwidth for the same reason as the rest.
  *
  * In practice it compares the account's entry against an endpoint's
  * entitlement: the account entry holds one kind at a time, its newest.
@@ -267,14 +267,9 @@ const DAY_MS = 86_400_000;
  * The pre-2026-09-16 marker, read as history. An open marker becomes one
  * account-scope refusal at its last probe; a torn one, or one that exists and
  * cannot be read at all, is ignored and reported as unreadable. Only an absent
- * file is absent. Nothing in this module writes it.
- *
- * Except on a rejected key. `openCircuit` refuses to open the shared breaker
- * on one, because it is a fact about one consumer's copy of the key rather
- * than about the account — and this marker predates that rule, while the
- * 2026-08-18 key failure (805 stored rows) is a shape it can hold. Read
- * through, it would refuse every top-up and ad-hoc run under `invalidKey`.
- * The consumer holding the bad key still meets it, red, on its own call.
+ * file is absent. Nothing in this module writes it. It predates the rule
+ * that a rejected key opens nothing, so it can hold one; `readBreaker` drops
+ * it with the rest.
  */
 function legacyEvent(path: string): { event: RefusedEvent | null; unreadable: boolean } {
   let text: string;
@@ -287,13 +282,11 @@ function legacyEvent(path: string): { event: RefusedEvent | null; unreadable: bo
     const raw = JSON.parse(text) as Record<string, unknown>;
     if (typeof raw.openedAt !== "number") return { event: null, unreadable: false };
     const reason = typeof raw.reason === "string" ? raw.reason : "provider refused";
-    const kind = classifyRefusal(reason);
-    if (kind === "invalidKey") return { event: null, unreadable: false };
     return {
       event: {
         at: typeof raw.lastProbeAt === "number" ? raw.lastProbeAt : raw.openedAt,
         key: "account",
-        kind,
+        kind: classifyRefusal(reason),
         reason,
         t: "refused",
       },
@@ -340,7 +333,16 @@ export function readBreaker(nowMs: number, state: FmpStatePaths): BreakerRead {
   const released = new Set(
     events.filter((event): event is ReleaseEvent => event.t === "release").map((event) => event.id),
   );
-  const refusals = events.filter((event): event is RefusedEvent => event.t === "refused");
+  // A rejected key opens nothing, whichever record carries one. `openCircuit`
+  // refuses to write it, because it is a fact about one consumer's copy of the
+  // key rather than about the account; the legacy marker predates that rule and
+  // the 2026-08-18 key failure (805 stored rows) is a shape it can hold; and a
+  // log line with that kind can only be a hand edit. Read through, either would
+  // refuse every top-up and ad-hoc run under `invalidKey`. The consumer holding
+  // the bad key still meets it, red, on its own call.
+  const refusals = events.filter(
+    (event): event is RefusedEvent => event.t === "refused" && event.kind !== "invalidKey",
+  );
   const answers = events.filter((event): event is AnsweredEvent => event.t === "answered");
   const claims = events.filter((event): event is ClaimEvent => event.t === "claim");
   const keys = [...new Set(refusals.map((event) => event.key))].sort();

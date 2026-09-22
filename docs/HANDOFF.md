@@ -285,8 +285,9 @@ from a pool that reserves 333,333,333 bytes for the minute bank. An ad-hoc
 `--daily-ceiling` raises that run's share. The bank is never refused at a door:
 it stops starting symbols at 512 MiB a run and alarms when its day passes 512
 MiB. The breaker keys an entitlement refusal by endpoint, and bandwidth or
-suspension by account; a rejected key goes red without opening it, including
-one held by the legacy marker read as history. The top-up stands down green
+suspension by account; a rejected key goes red without opening it, and the
+breaker's read drops one from the legacy marker or a hand-edited log line
+alike. The top-up stands down green
 only when the run's one terminal token is
 `fmpStandDown: kind=bandwidth` or `cacheStandDown: kind=clockMismatch`, and
 every other refusal is red.
