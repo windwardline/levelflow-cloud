@@ -1169,6 +1169,7 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
     // withdrawal is what the operator reads next.
     assert.match(again.stdout, /frozen: 1 picks/);
     assert.match(again.stderr, /4d-final-picks\.json restored to the bytes it held before this run/);
+    assert.match(again.stderr, /the read failed after the freeze and recorded nothing, so the freeze is withdrawn/);
   });
 
   it("a corrupt row on a first read leaves no picks artifact behind", async () => {
@@ -1184,6 +1185,7 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
     assert.deepEqual(readdirSync(ledgerDir), [], "the ledger moved on a run that recorded nothing");
     assert.deepEqual(run.wrote, []);
     assert.match(run.stderr, /4d-final-picks\.json removed — there was none before this run/);
+    assert.match(run.stderr, /the read failed after the freeze and recorded nothing, so the freeze is withdrawn/);
   });
 
   it("--holdout-cycle draws its held-out set over the UNION of every shard's roster, in either order", async () => {
@@ -1243,6 +1245,19 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
     assertOneLine(run, why);
   });
 
+  for (const [why, args, refusal] of [
+    ["the retired --per-market-folds", () => [shard("EURGBP"), "--per-market-folds"], /--per-market-folds was retired/],
+    ["a run with no shard", () => [], /confirm-4d: no shard paths given/],
+  ] as const) {
+    it(`refuses ${why} in one line, before the freeze`, async () => {
+      const researchDir = seededResearchDir();
+      const ledgerDir = scratchDir("confirm4d-ledger-");
+      const run = await confirm4d(args(), researchDir, ledgerDir);
+      assertRefusedWritingNothing(run, refusal, researchDir, ledgerDir, why);
+      assertOneLine(run, why);
+    });
+  }
+
   it("a withdrawal that fails is reported beside the refusal, never in place of it", async () => {
     // A read-only picks file fails the freeze's own write and then the
     // withdrawal's; the operator is told both, and which file to fix by hand.
@@ -1291,6 +1306,27 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
         assert.deepEqual(readdirSync(outDir), [], `${why}: candidates were written for a run that refused`);
       });
     }
+
+    for (const [why, args] of [
+      ["a value flag that swallows the next flag", ["--seed"]],
+      ["the retired --per-market-folds", ["--per-market-folds"]],
+    ] as const) {
+      it(`refuses ${why} in one line`, async () => {
+        const outDir = scratchDir("derive4d-out-");
+        const run = await derive4d([shard("EURGBP"), ...args], outDir);
+        assertExecuted("scripts/derive-4d.ts", run);
+        assert.notEqual(run.exitCode, 0, `${why}: must refuse`);
+        assert.equal(run.stderr.trim().split("\n").length, 1, `${why}: an operator's typo is one line:\n${run.stderr}`);
+        assert.deepEqual(readdirSync(outDir), [], `${why}: candidates were written for a run that refused`);
+      });
+    }
+
+    it("refuses a run with no shard in one line", async () => {
+      const outDir = scratchDir("derive4d-out-");
+      const run = await derive4d([], outDir);
+      assertExecuted("scripts/derive-4d.ts", run);
+      assert.match(run.stderr, /^derive-4d: no corpus shards given\s*$/);
+    });
 
     it("reads a target list on the roster", async () => {
       const outDir = scratchDir("derive4d-out-");

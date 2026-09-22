@@ -98,7 +98,7 @@ async function main() {
     if (index === -1) return undefined;
     const token = argv[index + 1];
     if (tokenFault(token) !== null) {
-      throw new Error(
+      throw new OperatorInputError(
         `${arg} owns the token after it and got ${describeToken(token)} — a ` +
           `value, never a flag and never blank; pass ${arg} <value>`,
       );
@@ -126,7 +126,7 @@ async function main() {
     const token = argv[index + 1];
     const parsed = Number(token);
     if (tokenFault(token) !== null || !Number.isFinite(parsed)) {
-      throw new Error(
+      throw new OperatorInputError(
         `${arg} owns the token after it and cannot read ${
           describeNumericToken(token)
         } as a number — the walker already kept that token out of the ` +
@@ -144,7 +144,7 @@ async function main() {
   // per-class folds are the only fold source; the market grain is
   // `verdictUnit: "market"` below, which this script has always passed.
   if (argv.includes("--per-market-folds")) {
-    throw new Error(
+    throw new OperatorInputError(
       "--per-market-folds was retired on 2026-09-02: it re-cut each market's " +
         "span at 50/75% from row instants and, under --confirm-final, " +
         "relabelled a median 329 days of the held-back fold into select. " +
@@ -154,7 +154,7 @@ async function main() {
     );
   }
   if (paths.length === 0) {
-    throw new Error("derive-4d: no corpus shards given");
+    throw new OperatorInputError("derive-4d: no corpus shards given");
   }
 
   // The holdout cycle (owner word, 2026-08-11) grades ONLY the markets the

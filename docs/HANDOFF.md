@@ -238,13 +238,13 @@ beside `--holdout-cycle` — each script used to take the list over the draw in
 silence.
 
 `tests/unknownFlagRefused.test.ts` derives its population from every script
-that reads argv, in any spelling (42; `isEntryPoint` exempt by name), and
+that reads argv, in any spelling (43 on 2026-09-22; `isEntryPoint` exempt by name), and
 executes each with an unknown flag, with its own flags, and, where it takes
 flags only, with a stray argument. Subjects run from an empty temp cwd, which
 is also their `LEVELFLOW_CHECKOUT`, without the provider key. The refusal must
 be one line; twelve readers still print a stack under it (thirteen until
 `derive-4d`'s fix on 2026-09-22) and are named in
-`STACK_ON_REFUSAL` until fixed. Fourteen confirm-4d cases cover the door,
+`STACK_ON_REFUSAL` until fixed. Executed confirm-4d cases cover the door,
 `--targets` against the roster, the withdrawn freeze and a `--holdout-cycle`
 read over two rosters. confirm-4d's own typo refusals are held to one line too:
 a bad dial value, a misspelt `--baseline`, a target off the roster. No test

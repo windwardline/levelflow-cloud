@@ -160,7 +160,7 @@ async function main() {
   // per-class folds are the only fold source; the market grain is
   // `verdictUnit: "market"` below, which this script has always passed.
   if (argv.includes("--per-market-folds")) {
-    throw new Error(
+    throw new OperatorInputError(
       "--per-market-folds was retired on 2026-09-02: it re-cut each market's " +
         "span at 50/75% from row instants and, under --confirm-final, " +
         "relabelled a median 329 days of the held-back fold into select. " +
@@ -204,7 +204,7 @@ async function main() {
   // the work first and validated second, which is the state-mutated-
   // before-validation shape, in the script that BURNS the confirm read.
   if (paths.length === 0) {
-    throw new Error(
+    throw new OperatorInputError(
       "confirm-4d: no shard paths given. This script freezes the final " +
         "picks and then burns the held-back confirm fold, so it must not " +
         "rewrite the picks artifact for a corpus it cannot read; pass the " +
