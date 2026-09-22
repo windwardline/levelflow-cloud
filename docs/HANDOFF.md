@@ -60,7 +60,7 @@ Agreement is highest at offset zero: the bank's close matches a neighbouring min
 1. **Review follow-ups, none blocking, all measured or read:**
    - #681: a window with no same-key overlap is appended unjudged and its tally line says nothing, so print the pair count below the floor and tell the runbook a window must include a partly held day; and the offset scan walks every held minute 2,880 times, which at a 31-day window nears the bank lock's 900 s, so build the offset histogram in one pass.
    - #680: list the archive's member names before extracting, refusing `..` or an absolute path, rather than relying on tar's own sanitation.
-   - #678: `positionalArgs` prints an empty known-flag list where `flagsOnly` prints `none`; `--targets` silently overrides `--holdout-cycle`; a population floor lets one reader leave unnoticed; `frozenAt` is set before the write it reports; the withdrawal in `confirm-4d`'s catch is unguarded; `derive-4d --targets` needs the roster check; an empty `--holdout-cycle` draw can refuse at the door.
+   - #678: all seven CLOSED 2026-09-22 (branch `fix/4d-population-and-withdrawal`). `confirm-4d` and `derive-4d` resolve their population through one function, `resolveGradingPopulation` in `sweepFolds.ts`, before either writes: `--targets` beside `--holdout-cycle` refuses, a target off the roster refuses in both, and an empty holdout draw refuses at the door. A failed withdrawal is reported beside the refusal and names the file to fix by hand. `positionalArgs` prints `none`. The population floors sit at the measured counts. `derive-4d` refuses a typo in one line and has left `STACK_ON_REFUSAL`.
 2. **Amendment 48** is parked, and the redesign is this repo's to do. The adopted sections disagree with each other (filters carry no readiness floor; the cluster and df rules differ), calibration programs have no rule, and the settled effect floor conflicts with the random-entry screen's ATR unit.
 3. The regrade build and the FMP records change set, both designed (session artifacts `regrade-design-revised-2026-09-16.md`, `fmp-plan-2026-09-16.md`).
 
@@ -73,7 +73,7 @@ Agreement is highest at offset zero: the bank's close matches a neighbouring min
 - Rule on `confirm-4d`'s `--baseline` default (the 4d section below).
 - Answer the offered zero-byte measurement of the share and R of fills priced "ambiguous" on the fit and select folds.
 
-**Carried minors.** The restore proof's three `|| die` guards behind an already-open walk are unreachable. Thirteen readers still print a stack on an operator's typo (`STACK_ON_REFUSAL`).
+**Carried minors.** The restore proof's three `|| die` guards behind an already-open walk are unreachable. Twelve readers still print a stack on an operator's typo (`STACK_ON_REFUSAL`).
 
 ### 2026-09-21: FMP spend closed at both ends, backups out of the home folder — and what the next session picks up
 
@@ -218,8 +218,8 @@ misspelt entry, or a list that splits to nothing, refuses by name. Until then
 corpus's one read with GBPJPY unread. What refuses after the freeze is found
 in the rows: an unparseable line, emit bytes that are not the manifest's, and
 a gate no accepted baseline row reaches. Targets on the roster that carry no
-rows reach that last one, and so does an empty `--holdout-cycle` draw, which
-the door could refuse without a row and does not. Each throws before the
+rows reach that last one, and so does a holdout draw whose markets carry none;
+an EMPTY draw refuses at the door since 2026-09-22. Each throws before the
 ledger append, so confirm-4d withdraws the freeze: the picks file goes back to
 its prior bytes, or away if the run created it.
 
@@ -230,18 +230,21 @@ against a different baseline than the picks were accepted over, or, where the
 corpus has no `baseline` cell, refuses at the door. It wants a ruling on
 whether confirm-4d should take its baseline from the candidates file.
 
-Found, not changed: `derive-4d --targets` still splits unchecked. Over EURGBP
-and GBPJPY, `--targets EURGBP,GBPJYP` exits 0, prints `targets: 2 markets` and
-writes candidates for EURGBP alone. It burns nothing, but GBPJPY then has no
-candidate for confirm-4d to pick. The same roster check belongs there.
+*Fixed 2026-09-22:* `derive-4d --targets` split unchecked: over EURGBP and
+GBPJPY, `--targets EURGBP,GBPJYP` exited 0 and wrote candidates for EURGBP
+alone. Both scripts now resolve their population through
+`resolveGradingPopulation` (`sweepFolds.ts`), which also refuses `--targets`
+beside `--holdout-cycle` — each script used to take the list over the draw in
+silence.
 
 `tests/unknownFlagRefused.test.ts` derives its population from every script
-that reads argv, in any spelling (42; `isEntryPoint` exempt by name), and
+that reads argv, in any spelling (43 on 2026-09-22; `isEntryPoint` exempt by name), and
 executes each with an unknown flag, with its own flags, and, where it takes
 flags only, with a stray argument. Subjects run from an empty temp cwd, which
 is also their `LEVELFLOW_CHECKOUT`, without the provider key. The refusal must
-be one line; thirteen readers still print a stack under it and are named in
-`STACK_ON_REFUSAL` until fixed. Fourteen confirm-4d cases cover the door,
+be one line; twelve readers still print a stack under it (thirteen until
+`derive-4d`'s fix on 2026-09-22) and are named in
+`STACK_ON_REFUSAL` until fixed. Executed confirm-4d cases cover the door,
 `--targets` against the roster, the withdrawn freeze and a `--holdout-cycle`
 read over two rosters. confirm-4d's own typo refusals are held to one line too:
 a bad dial value, a misspelt `--baseline`, a target off the roster. No test

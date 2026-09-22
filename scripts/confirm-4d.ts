@@ -12,16 +12,16 @@
 // whole row-free corpus door (every shard's manifest, their agreement as
 // one measurement, the requested roster, a --baseline that names a cell of
 // the grid, the prior-read refusal) and before the first confirm row is
-// read. `--targets` is checked before gradeCorpus is called: an entry on no
-// shard's roster, or a list that splits to nothing, refuses there. A run
-// refused at any of these rewrites no artifact, and a run admitted has its
-// picks on disk, with a `frozenAt` that precedes the ledger's `readAt`,
-// before the fold opens. What refuses after the freeze is found in the
-// rows: an unparseable line, emit bytes that are not the manifest's, and
-// a gate that no accepted baseline row reaches — a corpus with none,
-// targets on the roster that carry none, or a `--holdout-cycle` draw that
-// holds none. An empty draw is known before any row is read and is still
-// refused only there. gradeCorpus throws each of them before its ledger
+// read. The population is resolved before gradeCorpus is called
+// (resolveGradingPopulation): a `--targets` entry on no shard's roster, a
+// list that splits to nothing, `--targets` beside `--holdout-cycle`, and a
+// holdout draw that holds no market all refuse there. A run refused at any
+// of these rewrites no artifact, and a run admitted has its picks on disk,
+// with a `frozenAt` that precedes the ledger's `readAt`, before the fold
+// opens. What refuses after the freeze is found in the rows: an
+// unparseable line, emit bytes that are not the manifest's, and a gate
+// that no accepted baseline row reaches — a corpus with none, or targets
+// or a holdout draw whose markets carry none. gradeCorpus throws each of them before its ledger
 // append, so a throw means nothing was recorded, and the freeze is
 // withdrawn: the picks file goes back to the bytes it held before the
 // run, or away if it did not exist. The confirm read runs once, per
@@ -32,7 +32,7 @@
 // taken twice.
 import { readFileSync } from "node:fs";
 import { gradeCorpus } from "./grid-totalr.ts";
-import { resolveHeldOut } from "./sweepFolds.ts";
+import { resolveGradingPopulation } from "./sweepFolds.ts";
 import { assertManifest } from "./sweepStats.ts";
 import {
   researchArtifactBytes,
@@ -160,7 +160,7 @@ async function main() {
   // per-class folds are the only fold source; the market grain is
   // `verdictUnit: "market"` below, which this script has always passed.
   if (argv.includes("--per-market-folds")) {
-    throw new Error(
+    throw new OperatorInputError(
       "--per-market-folds was retired on 2026-09-02: it re-cut each market's " +
         "span at 50/75% from row instants and, under --confirm-final, " +
         "relabelled a median 329 days of the held-back fold into select. " +
@@ -204,7 +204,7 @@ async function main() {
   // the work first and validated second, which is the state-mutated-
   // before-validation shape, in the script that BURNS the confirm read.
   if (paths.length === 0) {
-    throw new Error(
+    throw new OperatorInputError(
       "confirm-4d: no shard paths given. This script freezes the final " +
         "picks and then burns the held-back confirm fold, so it must not " +
         "rewrite the picks artifact for a corpus it cannot read; pass the " +
@@ -226,55 +226,19 @@ async function main() {
   // requested roster and the prior-read refusal live in gradeCorpus, and
   // the freeze waits for all of them in its `beforeOpen` hook.
   const manifests = paths.map((path) => assertManifest(path));
-  // EVERY TARGET IS A MARKET OF THE ROSTER (2026-09-22). The filter was
-  // read and never checked, so over a shard of EURGBP and GBPJPY,
-  // `--targets EURGBP,GBPJYP` exited 0: it froze the picks and recorded a
-  // read with symbolFilter ["EURGBP","GBPJYP"] and symbolsRead ["EURGBP"].
-  // That read is the corpus's one, so the market the operator meant could
-  // not be read again without --acknowledge-prior-reads. The roster is
-  // every market the shards were asked for or swept, and a target outside
-  // it is refused here, before the freeze. The match is exact, as the
-  // read's own row filter is: each target is upper-cased as it is split,
-  // and every symbol the driver sweeps is upper-case (replay-sweep
-  // upper-cases --symbols, and the scan roster is upper-case), so a roster
-  // market matches, and a target no row could match is refused rather than
-  // read as nothing. So is a list that splits to nothing: as an empty
-  // filter it froze the picks and failed only when the empty cube reached
-  // the baseline check.
-  let targets: Set<string> | undefined;
-  if (targetsFlag !== undefined) {
-    const named = [
-      ...new Set(
-        targetsFlag.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
-      ),
-    ];
-    if (named.length === 0) {
-      throw new OperatorInputError(
-        `confirm-4d: --targets ${JSON.stringify(targetsFlag)} names no market ` +
-          `once split on commas — an empty filter reads nothing; name the ` +
-          `markets to read, or drop --targets`,
-      );
-    }
-    const roster = new Set(
-      manifests.flatMap((manifest) => [
-        ...(manifest.requestedSymbols ?? []),
-        ...manifest.symbols.map((entry) => entry.symbol),
-      ]),
-    );
-    const outside = named.filter((symbol) => !roster.has(symbol));
-    if (outside.length > 0) {
-      const listed = outside.length === 1
-        ? outside[0]
-        : `${outside.slice(0, -1).join(", ")} and ${outside[outside.length - 1]}`;
-      throw new OperatorInputError(
-        `confirm-4d: --targets names ${listed}, on no shard's roster of ` +
-          `${roster.size} markets (requested or swept) — a target off the ` +
-          `roster reads nothing, and the read still spends the corpus's one ` +
-          `confirm read; name markets the shards carry`,
-      );
-    }
-    targets = new Set(named);
-  }
+  // EVERY TARGET IS A MARKET OF THE ROSTER, and --holdout-cycle and --targets
+  // are never taken together (resolveGradingPopulation, sweepFolds.ts). Over a
+  // shard of EURGBP and GBPJPY, `--targets EURGBP,GBPJYP` once exited 0: it
+  // froze the picks and recorded the corpus's one read with GBPJPY unread; and
+  // `--holdout-cycle --targets X` read X under the holdout prefix. Resolved
+  // here, before the freeze, and shared with derive-4d so the two cannot drift.
+  const { symbolFilter } = resolveGradingPopulation({
+    consequence: "and a read over it would still spend the corpus's one confirm read",
+    holdoutCycle,
+    manifests,
+    script: "confirm-4d",
+    targetsFlag,
+  });
   const candidates = JSON.parse(
     readFileSync(`${dir}/${prefix}-candidates.json`, "utf8"),
   ) as {
@@ -356,7 +320,10 @@ async function main() {
   // which re-stamped the picks with a `frozenAt` later than the recorded
   // read and so overwrote the only evidence that the picks were frozen
   // before the fold was opened.
+  // `frozenAt` is set before the write, so a write that fails part-way is
+  // still withdrawn below; `frozen` says whether the write completed.
   let frozenAt: string | null = null;
+  let frozen = false;
   const freeze = () => {
     frozenAt = new Date().toISOString();
     writeResearchArtifact(`${dir}/${prefix}-final-picks.json`, {
@@ -365,6 +332,7 @@ async function main() {
       finalPicks,
       frozenAt,
     });
+    frozen = true;
     console.log(
       `frozen: ${Object.keys(finalPicks).length} picks, ` +
         `${capacityGated.length} capacity-gated -> ${prefix}-final-picks.json`,
@@ -373,14 +341,6 @@ async function main() {
 
   // THE ONE READ. Confirm totals come back per market per accepted
   // variant; only the frozen picks' rows are reported.
-  let symbolFilter: Set<string> | undefined;
-  if (holdoutCycle) {
-    // The ONE holdout population (R4 act 2): the stratified set over the
-    // REQUESTED roster, verified against the anchor's tracked pin — never
-    // over the symbols that happen to have rows.
-    symbolFilter = new Set(resolveHeldOut(manifests).held);
-  }
-  if (targets !== undefined) symbolFilter = targets;
   // The picks file's bytes BEFORE this run, or null when it has none, so a
   // read that fails after the freeze can withdraw it exactly (2026-09-22).
   // The freeze must land before the fold opens, so a refusal that needs
@@ -409,14 +369,28 @@ async function main() {
     // in it lands before the ledger append, and nothing after the append
     // throws (grid-totalr.ts says so where the append sits).
     if (frozenAt !== null) {
-      restoreResearchArtifact(picksPath, priorPicks);
-      console.error(
-        `confirm-4d: the read failed after the freeze and recorded nothing, ` +
-          `so the freeze is withdrawn — ${prefix}-final-picks.json ` +
-          (priorPicks === null
-            ? "removed — there was none before this run"
-            : "restored to the bytes it held before this run"),
-      );
+      const failed = frozen
+        ? "the read failed after the freeze and recorded nothing"
+        : "the freeze's own write failed";
+      // The refusal the operator needs is `error`; a failure to withdraw is
+      // reported beside it and never replaces it.
+      try {
+        restoreResearchArtifact(picksPath, priorPicks);
+        console.error(
+          `confirm-4d: ${failed}, so the freeze is withdrawn — ${prefix}-final-picks.json ` +
+            (priorPicks === null
+              ? "removed — there was none before this run"
+              : "restored to the bytes it held before this run"),
+        );
+      } catch (restoreError) {
+        console.error(
+          `confirm-4d: ${failed}, and the freeze could NOT be withdrawn ` +
+            `(${restoreError instanceof Error ? restoreError.message : String(restoreError)}): ` +
+            (priorPicks === null
+              ? `remove ${picksPath} by hand — there was none before this run`
+              : `restore ${picksPath} by hand to the bytes it held before this run (git show HEAD:${picksPath} if it is tracked)`),
+        );
+      }
     }
     throw error;
   }
