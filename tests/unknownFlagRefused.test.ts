@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { promisify } from "node:util";
@@ -154,7 +154,6 @@ const STACK_ON_REFUSAL = new Set([
   "scripts/ag-class-derivation.ts",
   "scripts/confidence-bands.ts",
   "scripts/data-limits.ts",
-  "scripts/derive-4d.ts",
   "scripts/exclusion-suspects.ts",
   "scripts/feasibility-4d.ts",
   "scripts/geometry-evidence.ts",
@@ -330,15 +329,17 @@ const CONCURRENCY = 4;
 
 describe("every argv reader refuses an unknown flag by name", { concurrency: CONCURRENCY }, () => {
   it("the population is derived, its exemptions hold, and the named readers are in it", () => {
-    // Floors one below the counts on 2026-09-21 (42 argv readers, 41
-    // executed, 30 on the shared walk, 14 of them flags-only). A glob that
+    // Floors AT the counts measured on 2026-09-22 (43 argv readers, 42
+    // executed, 31 on the shared walk, 15 of them flags-only). A glob that
     // silently matched nothing would otherwise pass every law below
-    // vacuously; a refactor that legitimately shrinks a population lowers
-    // its floor in the same commit and says which readers left and why.
-    assert.ok(ARGV_READERS.length >= 41, `argv readers: ${ARGV_READERS.length}`);
-    assert.ok(EXECUTED.length >= 40, `executed: ${EXECUTED.length}`);
-    assert.ok(ADOPTERS.length >= 29, `adopters: ${ADOPTERS.length}`);
-    assert.ok(FLAGS_ONLY.length >= 13, `flags-only: ${FLAGS_ONLY.length}`);
+    // vacuously, and a floor one below the count — as these were until
+    // 2026-09-22 — let one reader leave unnoticed. A refactor that
+    // legitimately shrinks a population lowers its floor in the same commit
+    // and says which readers left and why; one that grows it may raise it.
+    assert.ok(ARGV_READERS.length >= 43, `argv readers: ${ARGV_READERS.length}`);
+    assert.ok(EXECUTED.length >= 42, `executed: ${EXECUTED.length}`);
+    assert.ok(ADOPTERS.length >= 31, `adopters: ${ADOPTERS.length}`);
+    assert.ok(FLAGS_ONLY.length >= 15, `flags-only: ${FLAGS_ONLY.length}`);
     for (const exempt of [...NOT_OPERATOR_INPUT.keys(), ...FAILS_TOWARD_RUNNING.keys(), ...STACK_ON_REFUSAL]) {
       assert.ok(
         ARGV_READERS.includes(exempt),
@@ -643,6 +644,15 @@ describe("the walk itself, in process", () => {
         assert.match(error.message, /refused rather than ignored/);
         return true;
       },
+    );
+  });
+
+  it("a reader that declares no flag says so, rather than listing nothing", () => {
+    // Five readers pass two empty sets; the list used to render as "the
+    // flags this reader knows are ;".
+    assert.throws(
+      () => positionalArgs(["--nope", "a.jsonl"], new Set(), new Set(), "reader"),
+      /the flags this reader knows are none; an unknown flag is refused/,
     );
   });
 
@@ -1204,5 +1214,90 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
         .map((line) => JSON.parse(line) as { symbolFilter: string[] | null });
       assert.deepEqual(entry.symbolFilter, union, `${label}: the read was filtered to another set`);
     }
+  });
+
+  it("--holdout-cycle beside --targets refuses before the freeze: two populations, one read", async () => {
+    // Both used to be accepted and --targets won in silence, so the read took
+    // the listed markets under the holdout prefix.
+    const researchDir = seededResearchDir(["EURGBP", "GBPJPY"]);
+    const ledgerDir = scratchDir("confirm4d-ledger-");
+    const run = await confirm4d(
+      [shard(["EURGBP", "GBPJPY"]), "--holdout-cycle", "--targets", "EURGBP", "--prefix", "4d"],
+      researchDir,
+      ledgerDir,
+    );
+    const why = "--holdout-cycle with --targets";
+    assertRefusedWritingNothing(run, /--holdout-cycle and --targets name two different populations/, researchDir, ledgerDir, why);
+    assertOneLine(run, why);
+  });
+
+  it("a holdout draw that holds no market refuses before the freeze", async () => {
+    // A two-market forex roster holds nothing out by stated policy. The empty
+    // draw is known before any row is read; it used to freeze the picks and
+    // refuse only when the empty cube reached the baseline check.
+    const researchDir = seededResearchDir(["EURGBP", "GBPJPY"]);
+    const ledgerDir = scratchDir("confirm4d-ledger-");
+    const run = await confirm4d([shard(["EURGBP", "GBPJPY"]), "--holdout-cycle", "--prefix", "4d"], researchDir, ledgerDir);
+    const why = "an empty holdout draw";
+    assertRefusedWritingNothing(run, /--holdout-cycle drew no held-out market/, researchDir, ledgerDir, why);
+    assertOneLine(run, why);
+  });
+
+  it("a withdrawal that fails is reported beside the refusal, never in place of it", async () => {
+    // A read-only picks file fails the freeze's own write and then the
+    // withdrawal's; the operator is told both, and which file to fix by hand.
+    const corpus = shard("EURGBP");
+    const researchDir = seededResearchDir();
+    const ledgerDir = scratchDir("confirm4d-ledger-");
+    const first = await confirm4d([corpus], researchDir, ledgerDir);
+    assertExecuted("scripts/confirm-4d.ts", first);
+    assert.equal(first.exitCode, 0, `the first read must succeed:\n${first.stderr}`);
+    const picks = join(researchDir, "4d-final-picks.json");
+    const researchBefore = snapshot(researchDir);
+    const ledgerBefore = snapshot(ledgerDir);
+    chmodSync(picks, 0o444);
+    try {
+      const again = await confirm4d([corpus, "--acknowledge-prior-reads"], researchDir, ledgerDir);
+      assertExecuted("scripts/confirm-4d.ts", again);
+      assert.notEqual(again.exitCode, 0, "a freeze that cannot be written must refuse");
+      assert.match(again.stderr, /EACCES|permission denied/i, "the refusal itself must reach the operator");
+      assert.match(
+        again.stderr,
+        /the freeze's own write failed, and the freeze could NOT be withdrawn .*restore .*4d-final-picks\.json by hand/,
+      );
+      assert.deepEqual(snapshot(researchDir), researchBefore, "a byte of the prior picks moved");
+      assert.deepEqual(snapshot(ledgerDir), ledgerBefore, "the ledger moved on a run that read nothing");
+    } finally {
+      chmodSync(picks, 0o644);
+    }
+  });
+
+  describe("derive-4d resolves the same population", () => {
+    const derive4d = (args: readonly string[], outDir: string) =>
+      runReader("scripts/derive-4d.ts", [...args, "--out", join(outDir, "4d-candidates.json"), "--permutations", "200"]);
+
+    for (const [why, args, refusal] of [
+      ["a misspelt target", ["--targets", "EURGBP,GBPJYP"], /derive-4d: --targets names GBPJYP, on no shard's roster/],
+      ["--holdout-cycle with --targets", ["--holdout-cycle", "--targets", "EURGBP"], /derive-4d: --holdout-cycle and --targets name two different populations/],
+      ["an empty holdout draw", ["--holdout-cycle"], /derive-4d: --holdout-cycle drew no held-out market/],
+    ] as const) {
+      it(`refuses ${why} by name and writes no candidates`, async () => {
+        const outDir = scratchDir("derive4d-out-");
+        const run = await derive4d([shard(["EURGBP", "GBPJPY"]), ...args], outDir);
+        assertExecuted("scripts/derive-4d.ts", run);
+        assert.equal(run.exitCode, 1, `${why}: must exit 1:\n${run.stderr}`);
+        assert.match(run.stderr, refusal);
+        assert.equal(run.stderr.trim().split("\n").length, 1, `${why}: an operator's typo is one line:\n${run.stderr}`);
+        assert.deepEqual(readdirSync(outDir), [], `${why}: candidates were written for a run that refused`);
+      });
+    }
+
+    it("reads a target list on the roster", async () => {
+      const outDir = scratchDir("derive4d-out-");
+      const run = await derive4d([shard(["EURGBP", "GBPJPY"]), "--targets", "gbpjpy"], outDir);
+      assertExecuted("scripts/derive-4d.ts", run);
+      assert.equal(run.exitCode, 0, `a target on the roster must grade:\n${run.stderr}`);
+      assert.match(run.stdout, /targets: 1 markets/);
+    });
   });
 });

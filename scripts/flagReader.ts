@@ -254,7 +254,7 @@ export function positionalArgs(
       if (!valueFlags.has(token) && !booleanFlags.has(token)) {
         throw new OperatorInputError(
           `${scriptName}: unknown flag ${token} — the flags this reader knows are ` +
-            `${[...valueFlags, ...booleanFlags].sort().join(", ")}; an unknown ` +
+            `${[...valueFlags, ...booleanFlags].sort().join(", ") || "none"}; an unknown ` +
             `flag is refused rather than ignored, because an ignored dial reads ` +
             `as a run that honoured it`,
         );
