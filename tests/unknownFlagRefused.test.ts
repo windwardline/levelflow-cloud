@@ -912,13 +912,13 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
     assertExecuted("scripts/confirm-4d.ts", again);
     assert.notEqual(again.exitCode, 0, "a holed corpus must refuse");
     assert.match(again.stderr, /line \d+ failed to parse — a holed corpus is refused/);
+    assert.deepEqual(snapshot(researchDir), researchBefore, "the picks were left re-frozen for a read nobody recorded");
+    assert.deepEqual(snapshot(ledgerDir), ledgerBefore, "the failed re-read moved the ledger");
+    assert.deepEqual(again.wrote, []);
     // The freeze DID happen before the fold was opened, and says so; the
     // withdrawal is what the operator reads next.
     assert.match(again.stdout, /frozen: 1 picks/);
     assert.match(again.stderr, /4d-final-picks\.json restored to the bytes it held before this run/);
-    assert.deepEqual(snapshot(researchDir), researchBefore, "the picks were left re-frozen for a read nobody recorded");
-    assert.deepEqual(snapshot(ledgerDir), ledgerBefore, "the failed re-read moved the ledger");
-    assert.deepEqual(again.wrote, []);
   });
 
   it("a corrupt row on a first read leaves no picks artifact behind", async () => {
@@ -930,10 +930,10 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
     assertExecuted("scripts/confirm-4d.ts", run);
     assert.notEqual(run.exitCode, 0, "a holed corpus must refuse");
     assert.match(run.stderr, /line \d+ failed to parse — a holed corpus is refused/);
-    assert.match(run.stderr, /4d-final-picks\.json removed — there was none before this run/);
     assert.deepEqual(written(researchDir), [], "a first read that recorded nothing left picks on disk");
     assert.deepEqual(readdirSync(ledgerDir), [], "the ledger moved on a run that recorded nothing");
     assert.deepEqual(run.wrote, []);
+    assert.match(run.stderr, /4d-final-picks\.json removed — there was none before this run/);
   });
 
   it("--holdout-cycle draws its held-out set over the UNION of every shard's roster, in either order", async () => {
