@@ -86,6 +86,16 @@ const DISAGREE_SHARE = 0.02;
 const DISAGREE_FLOOR = 5;
 const NOVEL_SHARE = 0.05;
 const NOVEL_FLOOR = 10;
+/**
+ * One symbol refused on either bound is its own: a revised history, or a thin
+ * contract whose short file has not seen its session (ZOUSX, replayed against
+ * the bank on 2026-09-22: 59 of 508 ordinary minutes at never-held times, the
+ * only trip in 100 symbols). A second is the endpoint's or the calendar's, and
+ * the run stands down. The bounds count together because a 24-hour market's
+ * file holds every time of day: for forex and crypto, the scout among them, a
+ * moved clock shows only as prices that disagree on a partly held day.
+ */
+const DISPUTED_STOP = 2;
 
 // The ONE declaration of which flags own the token after them.
 const VALUE_FLAGS = new Set(["--from", "--to", "--concurrency"]);
@@ -258,6 +268,8 @@ type Context = {
   dir: string;
   /** Set once, by the first refusal no later request can clear. */
   stop: unknown;
+  /** Symbols refused on a price or clock bound, in the order they were refused. */
+  disputed: string[];
   requests: number;
   /**
    * Refusal bodies. The governor records them itself; the run's own budget
@@ -411,30 +423,35 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
   const overfull = [...perDay].find(([day, added]) => (store.perDay.get(day) ?? 0) + added > MINUTES_PER_DAY);
   const heldMinutes = [...store.perDay.values()].reduce((sum, count) => sum + count, 0);
   const novel = heldMinutes >= MINUTES_PER_DAY ? fresh.filter((bar) => !store.times.has(bar.date.slice(11))).length : 0;
-  let refusal: string | null = null;
+  const movedClock = novel > Math.max(NOVEL_FLOOR, NOVEL_SHARE * fresh.length);
+  let refusal: { kind: "foreign" | "overfull" | "disagree" | "novel"; message: string } | null = null;
   if (foreign !== null) {
-    refusal = `the provider answered with the date "${foreign}", not the bank's YYYY-MM-DD HH:MM:SS; dedupe could not hold`;
+    refusal = { kind: "foreign", message: `the provider answered with the date "${foreign}", not the bank's YYYY-MM-DD HH:MM:SS; dedupe could not hold` };
   } else if (overfull !== undefined) {
-    refusal = `${overfull[0]} would hold ${(store.perDay.get(overfull[0]) ?? 0) + overfull[1]} minutes, more than a day has; dedupe did not hold`;
+    refusal = { kind: "overfull", message: `${overfull[0]} would hold ${(store.perDay.get(overfull[0]) ?? 0) + overfull[1]} minutes, more than a day has; dedupe did not hold` };
   } else if (disagree > Math.max(DISAGREE_FLOOR, DISAGREE_SHARE * overlaps)) {
-    refusal = `${disagree} of ${overlaps} minutes the file already holds came back at another price; the keys no longer name the same minutes`;
-  } else if (novel > Math.max(NOVEL_FLOOR, NOVEL_SHARE * fresh.length)) {
-    refusal = `${novel} of ${fresh.length} new minutes fall at times of day the file has never held; the session's clock moved`;
+    refusal = { kind: "disagree", message: `${disagree} of ${overlaps} minutes the file already holds came back at another price; the keys no longer name the same minutes` };
+  } else if (movedClock) {
+    refusal = { kind: "novel", message: `${novel} of ${fresh.length} new minutes fall at times of day the file has never held; the session's clock moved` };
   }
   if (refusal !== null) {
     // Every asked day was bought and none is kept: an append-only store takes
     // no minute it cannot place.
-    ctx.deps.print.err(`${symbol}: ${refusal}, so nothing was appended (${tally.fetched} bars were bought)`);
+    const also = refusal.kind === "disagree" && movedClock ? `; ${novel} of ${fresh.length} new minutes also fall at times of day the file has never held` : "";
+    ctx.deps.print.err(`${symbol}: ${refusal.message}${also}, so nothing was appended (${tally.fetched} bars were bought)`);
     tally.refused = true;
-    // A date shape, a day's granularity and a session's clock belong to the
-    // endpoint or the calendar, not the symbol: every other symbol would be
-    // bought and refused the same way. Only a price disagreement is the file's.
-    if (foreign !== null || overfull !== undefined) {
-      ctx.stop ??= new Error(`${symbol}: ${refusal}; the endpoint answers this way for every symbol, so the run stands down`);
-    } else if (disagree <= Math.max(DISAGREE_FLOOR, DISAGREE_SHARE * overlaps)) {
-      ctx.stop ??= new Error(
-        `${symbol}: ${refusal}; a daylight-saving change or a provider timezone moves every session alike, so the run stands down: recover each side of a change separately`,
-      );
+    // A date shape and a day's granularity belong to the endpoint: every other
+    // symbol would be bought and refused the same way. The price and clock
+    // bounds stand the run down on their second symbol (DISPUTED_STOP).
+    if (refusal.kind === "foreign" || refusal.kind === "overfull") {
+      ctx.stop ??= new Error(`${symbol}: ${refusal.message}; the endpoint answers this way for every symbol, so the run stands down`);
+    } else {
+      ctx.disputed.push(symbol);
+      if (ctx.disputed.length >= DISPUTED_STOP) {
+        ctx.stop ??= new Error(
+          `${ctx.disputed.join(", ")} each came back at other prices or at times of day its file has never held; one file can be its own, ${DISPUTED_STOP} are the endpoint or the calendar, and a daylight-saving change or a provider timezone moves every session alike, so the run stands down: recover each side of a change separately`,
+        );
+      }
     }
     return tally;
   }
@@ -510,10 +527,14 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
     } else stores.push({ store: read, symbol: fmpSymbol });
   }
   if (absent.length > 0) print.out(`No bank file, so no hole to fill: ${absent.join(", ")}.`);
-  if (stores.length === 0 && code === 0) {
+  if (stores.length === 0) {
     // A roster with no bank file at all is a checkout that holds no bank:
     // a scratch copy, or LEVELFLOW_CHECKOUT naming the wrong tree.
-    print.err(`no roster symbol has a bank file under ${dir}; this checkout holds no minute bank, so there is nothing to recover into`);
+    print.err(
+      code === 0
+        ? `no roster symbol has a bank file under ${dir}; this checkout holds no minute bank, so there is nothing to recover into`
+        : `no bank file under ${dir} could be read whole, so there is nothing to recover into`,
+    );
     return 1;
   }
   const questions = stores.reduce((sum, { store }) => sum + plan.dates.filter((date) => date >= store.firstDay).length, 0);
@@ -553,6 +574,7 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
       return deps.fetch(input, init);
     }),
     bookkeepingFailed: 0,
+    disputed: [],
     refusalBytes: 0,
     requests: 0,
     stop: undefined,

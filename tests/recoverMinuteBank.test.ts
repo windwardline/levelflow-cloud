@@ -343,6 +343,7 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
     const state = tempState();
     const minutes = Array.from({ length: 20 }, (_, i) => `2026-09-03 00:${String(i).padStart(2, "0")}:00`);
     const eur = bank(state, "EURUSD", ["2026-08-06 00:00:00", ...minutes]);
+    const gbp = bank(state, "GBPUSD", ["2026-08-06 00:00:00"]);
     const before = readFileSync(eur.file, "utf8");
     const provider: Provider = (_symbol, date) =>
       new Response(JSON.stringify(date === "2026-09-03" ? minutes.map((m) => bar(m, 2)) : []));
@@ -351,6 +352,9 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
     assert.match(result.output, /EURUSD: 20 of 20 minutes the file already holds came back at another price/);
     assert.match(result.output, /nothing was appended \(20 bars were bought\)/);
     assert.equal(readFileSync(eur.file, "utf8"), before);
+    // A price disagreement is the file's own, so the run goes on.
+    assert.doesNotMatch(result.output, /stands down|Not started after the stop/);
+    assert.equal(lines(gbp.file).length, 1 + 20);
   });
 
   it("refuses new minutes at times of day the file has never held", async () => {
@@ -370,15 +374,98 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
         const m = 13 * 60 + 30 + i;
         return bar(`${date} ${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`);
       });
-    const other = bank(state, "GBPUSD", session);
+    const gbp = bank(state, "GBPUSD", session);
+    const other = bank(state, "USDJPY", session);
+    const result = await recover({
+      argv: [...WINDOW, "--concurrency", "1"],
+      provider: (_symbol, date) => new Response(JSON.stringify(shifted(date))),
+      state,
+    });
+    assert.equal(result.code, 1);
+    assert.match(result.output, /EURUSD: 720 of 1170 new minutes fall at times of day the file has never held/);
+    assert.match(result.output, /GBPUSD: 720 of 1170 new minutes fall at times of day the file has never held/);
+    assert.match(result.output, /EURUSD, GBPUSD each came back .* so the run stands down: recover each side of a change separately/);
+    assert.match(result.output, /^Not started after the stop: USDJPY\.$/m);
+    assert.ok(!result.urls.some((url) => url.searchParams.get("symbol") === "USDJPY"), "the calendar's fact is learned from two symbols");
+    assert.ok(readFileSync(other.file, "utf8").length > 0);
+    assert.equal(readFileSync(eur.file, "utf8"), before);
+    assert.equal(readFileSync(gbp.file, "utf8"), before);
+  });
+
+  it("refuses one symbol whose clock looks moved, and goes on", async () => {
+    // A thin contract's short file has not seen its whole session: on the
+    // real bank ZOUSX trips the clock bound on ordinary days. One such file
+    // costs its own symbol, not the run.
+    const state = tempState();
+    const session: string[] = [];
+    for (const day of ["2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11"]) {
+      for (let m = 9 * 60 + 30; m < 16 * 60; m += 1) {
+        session.push(`${day} ${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`);
+      }
+    }
+    bank(state, "EURUSD", session);
+    const gbp = bank(state, "GBPUSD", ["2026-08-06 00:00:00"]);
+    const shifted = (date: string) =>
+      Array.from({ length: 390 }, (_, i) => {
+        const m = 13 * 60 + 30 + i;
+        return bar(`${date} ${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`);
+      });
     const result = await recover({ provider: (_symbol, date) => new Response(JSON.stringify(shifted(date))), state });
     assert.equal(result.code, 1);
     assert.match(result.output, /EURUSD: 720 of 1170 new minutes fall at times of day the file has never held/);
-    assert.match(result.output, /moves every session alike, so the run stands down: recover each side of a change separately/);
-    assert.match(result.output, /^Not started after the stop: GBPUSD\.$/m);
-    assert.ok(!result.urls.some((url) => url.searchParams.get("symbol") === "GBPUSD"), "the calendar's fact is learned once");
-    assert.ok(readFileSync(other.file, "utf8").length > 0);
+    assert.doesNotMatch(result.output, /stands down|Not started after the stop/);
+    assert.equal(lines(gbp.file).length, 1 + 1170);
+  });
+
+  it("stands down on a moved clock that also re-prices a partly held day", async () => {
+    // The approved window's ends are partial days, so a session served an hour
+    // late collides with minutes the file holds at other prices AND lands at
+    // times it has never held. The clock is the cause, and it is every symbol's.
+    const state = tempState();
+    const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`;
+    const session: string[] = [];
+    for (const day of ["2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11"]) {
+      for (let m = 9 * 60 + 30; m < 16 * 60; m += 1) session.push(`${day} ${hhmm(m)}`);
+    }
+    for (let m = 9 * 60 + 30; m < 13 * 60; m += 1) session.push(`2026-09-03 ${hhmm(m)}`);
+    const eur = bank(state, "EURUSD", session);
+    const gbp = bank(state, "GBPUSD", session);
+    const other = bank(state, "USDJPY", session);
+    const before = readFileSync(eur.file, "utf8");
+    const late = (date: string) => Array.from({ length: 390 }, (_, i) => bar(`${date} ${hhmm(10 * 60 + 30 + i)}`, 2));
+    const result = await recover({
+      argv: [...WINDOW, "--concurrency", "1"],
+      provider: (_symbol, date) => new Response(JSON.stringify(late(date))),
+      state,
+    });
+    assert.equal(result.code, 1);
+    assert.match(result.output, /EURUSD: 150 of 150 minutes the file already holds came back at another price; the keys no longer name the same minutes; 180 of 1020 new minutes also fall at times of day the file has never held/);
+    assert.match(result.output, /EURUSD, GBPUSD each came back .* so the run stands down/);
+    assert.match(result.output, /^Not started after the stop: USDJPY\.$/m);
+    assert.ok(!result.urls.some((url) => url.searchParams.get("symbol") === "USDJPY"), "two symbols pay, not the roster");
     assert.equal(readFileSync(eur.file, "utf8"), before);
+    assert.equal(readFileSync(gbp.file, "utf8"), before);
+    assert.ok(readFileSync(other.file, "utf8").length > 0);
+  });
+
+  it("stands down when two 24-hour files disagree on price, whose clock cannot look moved", async () => {
+    // Forex and crypto files hold every time of day, so a shifted session
+    // lands only on held times; on a partly held day it shows as prices alone.
+    const state = tempState();
+    const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`;
+    const allDay = (date: string) => Array.from({ length: 1440 }, (_, m) => `${date} ${hhmm(m)}`);
+    const held = [...allDay("2026-08-06"), ...allDay("2026-09-03").slice(0, 720)];
+    for (const symbol of ["EURUSD", "GBPUSD", "USDJPY"]) bank(state, symbol, held);
+    const late = (date: string) => allDay(date).map((key) => bar(key, 2));
+    const result = await recover({
+      argv: [...WINDOW, "--concurrency", "1"],
+      provider: (_symbol, date) => new Response(JSON.stringify(late(date))),
+      state,
+    });
+    assert.equal(result.code, 1);
+    assert.match(result.output, /EURUSD: 720 of 720 minutes the file already holds came back at another price; the keys no longer name the same minutes, so nothing/);
+    assert.match(result.output, /EURUSD, GBPUSD each came back .* so the run stands down/);
+    assert.match(result.output, /^Not started after the stop: USDJPY\.$/m);
   });
 
   it("does not judge the clock from less than a day of history", async () => {
@@ -555,6 +642,20 @@ describe("the first symbol that asks is the scout", () => {
     assert.match(result.output, /^Not started after the stop: EURUSD\.$/m);
   });
 
+  it("scouts with the first symbol that asks a question, not the first by name", async () => {
+    const state = tempState();
+    bank(state, "BTCUSD", ["2026-09-12 00:00:00"]);
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    bank(state, "GBPUSD", ["2026-08-06 00:00:00"]);
+    const result = await recover({ provider: () => new Response(BODIES.bandwidth, { status: 429 }), state });
+    assert.equal(result.code, 1);
+    assert.deepEqual(result.urls.map((url) => url.searchParams.get("symbol")), ["EURUSD"], "one request, from a symbol that asks");
+    assert.match(result.output, /^Not started after the stop: GBPUSD\.$/m);
+    assert.match(result.output, /holding the bank lock .*\.lock: the scheduled bank and its backup wait for it \(900 s by default\)/);
+  });
+});
+
+describe("what a run refuses and reports", () => {
   it("refuses a checkout that holds no bank file at all", async () => {
     const state = tempState();
     mkdirSync(state.canonicalBankDir, { recursive: true });
@@ -587,16 +688,14 @@ describe("the first symbol that asks is the scout", () => {
     assert.match(result.output, new RegExp(`${body * 2 + 2} bytes to the ad-hoc class \\(2 of them refusal bodies\\)`));
   });
 
-  it("scouts with the first symbol that asks a question, not the first by name", async () => {
+  it("refuses a checkout whose every bank file is unreadable, before the governor is asked", async () => {
     const state = tempState();
-    bank(state, "BTCUSD", ["2026-09-12 00:00:00"]);
-    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
-    bank(state, "GBPUSD", ["2026-08-06 00:00:00"]);
-    const result = await recover({ provider: () => new Response(BODIES.bandwidth, { status: 429 }), state });
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"], { torn: true });
+    const result = await recover({ state });
     assert.equal(result.code, 1);
-    assert.deepEqual(result.urls.map((url) => url.searchParams.get("symbol")), ["EURUSD"], "one request, from a symbol that asks");
-    assert.match(result.output, /^Not started after the stop: GBPUSD\.$/m);
-    assert.match(result.output, /holding the bank lock .*\.lock: the scheduled bank and its backup wait for it \(900 s by default\)/);
+    assert.match(result.output, /no bank file under .* could be read whole, so there is nothing to recover into/);
+    assert.doesNotMatch(result.output, /Recovered 0 bars/);
+    assert.equal(result.urls.length, 0);
   });
 });
 

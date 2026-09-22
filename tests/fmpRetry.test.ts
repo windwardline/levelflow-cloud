@@ -6,7 +6,7 @@
 // exercise every branch without a network.
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import {
   fetchFmpJsonWithRetry,
@@ -294,9 +294,11 @@ describe("every FMP spender retries on a ladder that knows the provider, or asks
       // The dependency, not the name: a private ladder called withRetry would
       // satisfy a call-site pattern. bank-minute-bars.ts is the one that
       // defines the 1-minute ladder rather than importing it.
+      const imports = [...text.matchAll(/from "(\.{1,2}\/[^"]+)"/g)].map((match) => join(dirname(join("scripts", name)), match[1]!));
       const ladder =
         /\b(fetchFmpWithRetry|fetchFmpJsonWithRetry|withRetry)\(/.test(text) &&
-        (name === "bank-minute-bars.ts" || /from "\.\/(fmpRetry|bank-minute-bars)\.ts"/.test(text));
+        (name === "bank-minute-bars.ts" ||
+          imports.some((path) => path === join("scripts", "fmpRetry.ts") || path === join("scripts", "bank-minute-bars.ts")));
       if (name in ASKS_ONCE) {
         assert.ok(!ladder, `${name} is named as asking once and retries after all`);
       } else {

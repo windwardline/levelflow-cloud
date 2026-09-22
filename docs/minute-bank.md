@@ -172,12 +172,14 @@ fills a hole like that one from dated requests, once, as the ad-hoc class:
   holds a day's worth, more than 5% of the new minutes at times of day it has never held.
   Dedupe is string equality in an append-only store, so a clock that moved would append
   every minute again for good. The bytes stay spent; nothing is written. A foreign date
-  shape, an over-full day or a moved clock belongs to the endpoint or the calendar, so
-  each stops the whole run; a price disagreement refuses the one symbol and the rest go
-  on. A failed ledger write on a refusal fails the run. Recovered lines take the bank's
-  own key order. A window across
-  a US daylight-saving change shifts an equity session by an hour and trips the second
-  bound, so recover each side of the change separately.
+  shape or an over-full day belongs to the endpoint and stops the run at once. The price
+  and clock bounds stop it at their second symbol: one file can be its own (ZOUSX, a
+  thin contract, trips the clock bound on ordinary days), and a 24-hour market's file
+  holds every time of day, so a shifted session shows there only as other prices on a
+  partly held day. A failed ledger write on a refusal fails the run. Recovered lines take
+  the bank's own key order. A window across a US daylight-saving change shifts an equity
+  session by an hour and trips the second bound, so recover each side of the change
+  separately.
 
 Its sidecar record is `recovered <from>..<to>`. The high-water mark, first date and
 recent keys stay the scheduled bank's.
