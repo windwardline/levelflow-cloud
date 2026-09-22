@@ -744,6 +744,8 @@ export function assertEmbargoCoversReview(
  */
 export function resolveGradingPopulation(input: {
   script: string;
+  /** What the script's read spends, added to the off-roster refusal where it spends something. */
+  consequence?: string;
   manifests: readonly HoldoutManifest[];
   targetsFlag: string | undefined;
   holdoutCycle: boolean;
@@ -781,7 +783,7 @@ export function resolveGradingPopulation(input: {
       throw new OperatorInputError(
         `${script}: --targets names ${listed}, on no shard's roster of ` +
           `${roster.size} markets (requested or swept) — a target off the ` +
-          `roster reads nothing; name markets the shards carry`,
+          `roster reads nothing${input.consequence ? `, ${input.consequence}` : ""}; name markets the shards carry`,
       );
     }
     return { heldOut: undefined, symbolFilter: new Set(named) };

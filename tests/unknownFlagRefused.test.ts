@@ -145,8 +145,8 @@ const FAILS_TOWARD_RUNNING = new Map<string, string>([
  * Readers whose unknown-flag refusal still prints the OperatorInputError with
  * its stack, by name. The one-line law below binds every other reader. Nine
  * entry points were brought under it on 2026-09-22; executing the law then
- * found these thirteen as well, outside that change's scope, and they are
- * named rather than skipped. Each premise is CHECKED: a reader that starts
+ * found thirteen more, outside that change's scope, and they are named here
+ * rather than skipped (derive-4d has since left). Each premise is CHECKED: a reader that starts
  * refusing in one line fails until its entry is dropped.
  */
 const STACK_ON_REFUSAL = new Set([
@@ -1101,6 +1101,8 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
     const run = await confirm4d([shard(["EURGBP", "GBPJPY"]), "--targets", "EURGBP,GBPJYP"], researchDir, ledgerDir);
     const why = "a misspelt target";
     assertRefusedWritingNothing(run, /--targets names GBPJYP, on no shard's roster/, researchDir, ledgerDir, why);
+    // In the script that burns the read, the refusal says what re-running costs.
+    assert.match(run.stderr, /and the read still spends the corpus's one confirm read/, `${why}: the refusal lost its consequence`);
     assert.equal(run.exitCode, 1, `${why}: the refusal must exit 1`);
     assert.doesNotMatch(run.stderr, /EURGBP/, `${why}: the refusal named a target that is on the roster`);
     assertOneLine(run, why);
@@ -1258,7 +1260,10 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
     });
   }
 
-  it("a withdrawal that fails is reported beside the refusal, never in place of it", async () => {
+  // A read-only file is writable to root, so the case built on one means nothing there.
+  const readOnlyHolds = process.getuid?.() === 0 ? "root writes a read-only file" : false;
+
+  it("a withdrawal that fails is reported beside the refusal, never in place of it", { skip: readOnlyHolds }, async () => {
     // A read-only picks file fails the freeze's own write and then the
     // withdrawal's; the operator is told both, and which file to fix by hand.
     const corpus = shard("EURGBP");
