@@ -470,6 +470,12 @@ type Tally = {
   expected: boolean;
   /** Held minutes that came back at another close, when they were not a moved clock. */
   revision: { revised: number; overlaps: number; median: number | null } | null;
+  /**
+   * The same-key pairs an answer had, when fewer than the shift test needs:
+   * the price bound did not judge this symbol's clock at all. Printed, because
+   * a tally line that says nothing reads the same as one judged clean.
+   */
+  shiftUnjudged: number | null;
 };
 
 async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan): Promise<Tally> {
@@ -481,6 +487,7 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
     missed: [],
     refused: false,
     revision: null,
+    shiftUnjudged: null,
     symbol,
     usable: 0,
   };
@@ -548,6 +555,7 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
   if (prices.overlaps > 0 && shift === null) {
     tally.revision = { median: prices.medianRevision, overlaps: prices.overlaps, revised: prices.revised };
   }
+  if (answer.size > 0 && prices.overlaps < SHIFT_MIN_PAIRS) tally.shiftUnjudged = prices.overlaps;
   let refusal: { kind: "foreign" | "overfull" | "shifted" | "novel"; message: string } | null = null;
   if (foreign !== null) {
     refusal = { kind: "foreign", message: `the provider answered with the date "${foreign}", not the bank's YYYY-MM-DD HH:MM:SS; dedupe could not hold` };
@@ -784,7 +792,11 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
         ? ""
         : `\t${revision.revised} of ${revision.overlaps} held minutes came back revised` +
           (revision.median === null ? "" : `, median relative close difference ${revision.median.toExponential(2)}`);
-    print.out(`${tally.symbol}\tfetched ${tally.fetched}\tappended ${tally.appended}\tdropped ${tally.dropped}${revised}${missed}${refused}`);
+    const unjudged =
+      tally.shiftUnjudged === null
+        ? ""
+        : `\tshift test unjudged: ${plural(tally.shiftUnjudged, "same-key pair")}, below the ${SHIFT_MIN_PAIRS} it needs`;
+    print.out(`${tally.symbol}\tfetched ${tally.fetched}\tappended ${tally.appended}\tdropped ${tally.dropped}${revised}${unjudged}${missed}${refused}`);
     if (tally.missed.length > 0 || tally.refused) code = 1;
   }
   const appended = tallies.reduce((sum, tally) => sum + tally.appended, 0);

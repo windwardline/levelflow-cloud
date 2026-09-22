@@ -474,7 +474,7 @@ describe("recover-minute-bank keeps a revised history and refuses a moved clock"
       date === "2026-09-03" ? new Response("{}", { status: 404 }) : answered(symbol, date);
     const result = await recover({ provider, state });
     assert.doesNotMatch(result.output, /match the answer/);
-    assert.match(result.output, /^EURUSD\tfetched 2880\tappended 2880\tdropped 0\tnot recovered: 2026-09-03$/m);
+    assert.match(result.output, /^EURUSD\tfetched 2880\tappended 2880\tdropped 0\tshift test unjudged: 0 same-key pairs, below the 60 it needs\tnot recovered: 2026-09-03$/m);
     assert.equal(lines(eur.file).length, held.length + 2880);
   });
 
@@ -489,7 +489,7 @@ describe("recover-minute-bank keeps a revised history and refuses a moved clock"
       new Response(JSON.stringify(wholeDay(date).slice(0, 30).map((key, m) => bar(key, date === "2026-09-03" && m < 3 ? 1.00001 : 1))));
     const result = await recover({ provider, state });
     assert.equal(result.code, 0, result.output);
-    assert.match(result.output, /^EURUSD\tfetched 90\tappended 85\tdropped 0\t3 of 5 held minutes came back revised, median relative close difference 1\.00e-5$/m);
+    assert.match(result.output, /^EURUSD\tfetched 90\tappended 85\tdropped 0\t3 of 5 held minutes came back revised, median relative close difference 1\.00e-5\tshift test unjudged: 5 same-key pairs, below the 60 it needs$/m);
     assert.equal(lines(eur.file).length, held.length + 85);
   });
 
@@ -795,7 +795,7 @@ describe("recover-minute-bank stops on a wall and keeps what it paid for", () =>
     const result = await recover({ provider, state });
     assert.equal(result.code, 1);
     assert.equal(result.urls.filter((url) => url.searchParams.get("from") === "2026-09-04").length, 1);
-    assert.match(result.output, /EURUSD\tfetched 6\tappended 6\tdropped 0\tnot recovered: 2026-09-04/);
+    assert.match(result.output, /EURUSD\tfetched 6\tappended 6\tdropped 0\tshift test unjudged: 0 same-key pairs, below the 60 it needs\tnot recovered: 2026-09-04/);
     assert.doesNotMatch(result.output, /fmpStandDown/);
   });
 
@@ -807,7 +807,7 @@ describe("recover-minute-bank stops on a wall and keeps what it paid for", () =>
     const result = await recover({ provider, state });
     assert.equal(result.code, 1);
     assert.equal(result.urls.filter((url) => url.searchParams.get("from") === "2026-09-04").length, 5);
-    assert.match(result.output, /EURUSD\tfetched 6\tappended 6\tdropped 0\tnot recovered: 2026-09-04/);
+    assert.match(result.output, /EURUSD\tfetched 6\tappended 6\tdropped 0\tshift test unjudged: 0 same-key pairs, below the 60 it needs\tnot recovered: 2026-09-04/);
     assert.deepEqual(
       [...new Set(lines(eur.file).slice(1).map((b) => b.date.slice(0, 10)))],
       ["2026-09-03", "2026-09-05"],

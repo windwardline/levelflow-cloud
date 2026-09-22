@@ -302,6 +302,32 @@ function uploadWithModes(sb: Sandbox, stamp: string, parent: string, entries: st
   return object;
 }
 
+/** Write members with exactly the names given — whatever they are — and compress them to the stamp's key. */
+function uploadNamed(sb: Sandbox, stamp: string, members: ReadonlyArray<{ name: string; body: string; link?: string }>): string {
+  const object = objectFor(sb, stamp);
+  mkdirSync(dirname(object), { recursive: true });
+  const tarPath = `${object}.tar`;
+  const script = [
+    "import io, json, sys, tarfile",
+    "out, members = sys.argv[1], json.loads(sys.argv[2])",
+    "with tarfile.open(out, 'w', format=tarfile.USTAR_FORMAT) as t:",
+    "    for m in members:",
+    "        info = tarfile.TarInfo(m['name'])",
+    "        if m.get('link'):",
+    "            info.type, info.linkname, info.mode = tarfile.SYMTYPE, m['link'], 0o777",
+    "            t.addfile(info)",
+    "            continue",
+    "        data = m['body'].encode()",
+    "        info.size, info.mode = len(data), 0o644",
+    "        t.addfile(info, io.BytesIO(data))",
+  ].join("\n");
+  const built = spawnSync("python3", ["-c", script, tarPath, JSON.stringify(members)], { encoding: "utf8" });
+  assert.equal(built.status, 0, built.stderr);
+  const packed = spawnSync("zstd", ["-q", "-19", "-T0", "--rm", tarPath, "-o", object], { encoding: "utf8" });
+  assert.equal(packed.status, 0, packed.stderr);
+  return object;
+}
+
 /** Overwrite bytes in the middle of an object, so its zstd checksum no longer holds. */
 function corrupt(object: string) {
   const bytes = readFileSync(object);
@@ -1060,7 +1086,47 @@ describe("the archive itself is checked before anything is compared", () => {
     // Restored, it names the run's scratch directory, which holds directories.
     symlinkSync("..", join(parent, name));
     upload(sb, sb.stamp, parent, [name]);
-    assertFails(run(sb), new RegExp(`holds entries that are neither files nor directories: \\./${name}`));
+    // Refused from the member listing, before anything is extracted; the name
+    // carries no "./" there.
+    assertFails(run(sb), new RegExp(`holds entries that are neither files nor directories: (\\./)?${name}`));
+  });
+
+  it("refuses a member that climbs out of the restore, before extracting anything", () => {
+    // tar's own sanitising of ".." differs between GNU and BSD, so the member
+    // names are read first. run() asserts the scratch directory is empty.
+    const sb = sandbox();
+    const snap = `levelflow-minute-bank-snapshot-${sb.stamp}`;
+    uploadNamed(sb, sb.stamp, [
+      { body: "", name: `${snap}/EURUSD.jsonl` },
+      { body: "escaped\n", name: `${snap}/../../escaped.txt` },
+    ]);
+    assertFails(run(sb), /names members outside its own directory \(an absolute path or a \.\. segment\): \S*\.\.\/\.\.\/escaped\.txt/);
+    assert.ok(!existsSync(join(sb.root, "escaped.txt")), "a member was written outside the restore");
+  });
+
+  it("refuses a link member before anything can be written through it", () => {
+    // A later member named under the link would land wherever it points; GNU
+    // and BSD tar differ on following it, so the listing refuses the link.
+    const sb = sandbox();
+    const snap = `levelflow-minute-bank-snapshot-${sb.stamp}`;
+    uploadNamed(sb, sb.stamp, [
+      { body: "", name: `${snap}/EURUSD.jsonl` },
+      { body: "", link: "../..", name: `${snap}/out` },
+      { body: "through\n", name: `${snap}/out/through.txt` },
+    ]);
+    assertFails(run(sb), new RegExp(`holds entries that are neither files nor directories: ${snap}/out `));
+    assert.ok(!existsSync(join(sb.root, "through.txt")), "a member was written through the link");
+  });
+
+  it("refuses a member with an absolute name, before extracting anything", () => {
+    const sb = sandbox();
+    const target = join(sb.root, "absolute.txt");
+    uploadNamed(sb, sb.stamp, [
+      { body: "", name: `levelflow-minute-bank-snapshot-${sb.stamp}/EURUSD.jsonl` },
+      { body: "absolute\n", name: target },
+    ]);
+    assertFails(run(sb), /names members outside its own directory \(an absolute path or a \.\. segment\): \//);
+    assert.ok(!existsSync(target), "a member was written at its absolute name");
   });
 
   it("fails naming a subdirectory, because the bank is flat", () => {

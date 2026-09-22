@@ -58,8 +58,8 @@ Agreement is highest at offset zero: the bank's close matches a neighbouring min
 
 **Immediate next steps, in order.**
 1. **Review follow-ups, none blocking, all measured or read:**
-   - #681: a window with no same-key overlap is appended unjudged and its tally line says nothing, so print the pair count below the floor and tell the runbook a window must include a partly held day; and the offset scan walks every held minute 2,880 times, which at a 31-day window nears the bank lock's 900 s, so build the offset histogram in one pass.
-   - #680: list the archive's member names before extracting, refusing `..` or an absolute path, rather than relying on tar's own sanitation.
+   - #681: CLOSED 2026-09-22 (branch `fix/minute-bank-followups`) — a symbol judged on fewer same-key pairs than the shift test needs says so on its tally line, and the runbook says a window must include a partly held day. The scan-cost half is REFUTED by measurement: on a fully held window with a quarter of it revised, `checkPrices` takes 0.93 s per symbol at 9 days and 3.3 s at 31, about 320 s for 97 symbols against the bank lock's 900 s wait.
+   - #680: CLOSED 2026-09-22 (same branch) — the restore proof reads the archive's member listing before it extracts and refuses an absolute name, a `..` segment or a link member.
    - #678: `positionalArgs` prints an empty known-flag list where `flagsOnly` prints `none`; `--targets` silently overrides `--holdout-cycle`; a population floor lets one reader leave unnoticed; `frozenAt` is set before the write it reports; the withdrawal in `confirm-4d`'s catch is unguarded; `derive-4d --targets` needs the roster check; an empty `--holdout-cycle` draw can refuse at the door.
 2. **Amendment 48** is parked, and the redesign is this repo's to do. The adopted sections disagree with each other (filters carry no readiness floor; the cluster and df rules differ), calibration programs have no rule, and the settled effect floor conflicts with the random-entry screen's ATR unit.
 3. The regrade build and the FMP records change set, both designed (session artifacts `regrade-design-revised-2026-09-16.md`, `fmp-plan-2026-09-16.md`).
