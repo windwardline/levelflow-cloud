@@ -613,7 +613,8 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
       fetched: tally.usable,
       note:
         `recovered ${plan.from}..${plan.to}` +
-        (tally.revision ? `; ${tally.revision.revised} of ${tally.revision.overlaps} held minutes came back revised` : ""),
+        (tally.revision ? `; ${tally.revision.revised} of ${tally.revision.overlaps} held minutes came back revised` : "") +
+        (tally.shiftUnjudged === null ? "" : `; shift test unjudged (${plural(tally.shiftUnjudged, "same-key pair")})`),
     },
   ];
   writeFileSync(sidecarPath(ctx.dir, symbol), JSON.stringify(sidecar, null, 2));
@@ -674,11 +675,15 @@ export async function runRecover(deps: RecoverDeps): Promise<number> {
  * sees a shifted session only as new minutes at times of day the file has
  * never held, so a file that already holds nearly every time of day — the
  * 24-hour markets, and futures with an hour's break — leaves it too little to
- * see: even every unheld time of every asked day cannot clear its bound. A
- * moved clock in such a window would be appended for good, so the symbol is
- * refused from the file alone, before a byte is bought (2026-09-22). A file of
- * under a day's minutes is judged by neither bound whatever the window, as the
- * runbook states, and is left as it was.
+ * see. A shift makes at most `unheld` minutes of an answered day novel, and a
+ * day that comes back whole puts the bound at NOVEL_SHARE of 1,440, 72; so a
+ * file with 72 or fewer unheld times of day is blind to a shift ASSUMING the
+ * answer fills its days. A thin answer lowers the bound, and the bound after
+ * the ask could then see what this refuses — the refusal is the conservative
+ * side of that assumption, because the other side appends a moved clock for
+ * good (2026-09-22). Refused from the file alone, before a byte is bought. A
+ * file of under a day's minutes is judged by neither bound whatever the
+ * window, as the runbook states, and is left as it was.
  */
 function unjudgeable(store: Store, plan: Plan): string | null {
   const days = plan.dates.filter((date) => date >= store.firstDay).length;
@@ -686,11 +691,11 @@ function unjudgeable(store: Store, plan: Plan): string | null {
   const held = [...store.perDay.values()].reduce((sum, count) => sum + count, 0);
   if (held < MINUTES_PER_DAY) return null;
   const unheld = MINUTES_PER_DAY - store.times.size;
-  if (unheld * days > Math.max(NOVEL_FLOOR, NOVEL_SHARE * MINUTES_PER_DAY * days)) return null;
+  if (unheld > NOVEL_SHARE * MINUTES_PER_DAY) return null;
   return (
     `its window holds ${plural(store.closes.size, "minute")}, below the ${SHIFT_MIN_PAIRS} the price bound pairs on, ` +
     `and its file ${store.times.size} of ${MINUTES_PER_DAY} times of day, too many for the clock bound to see a shifted session; ` +
-    `include a partly held day in the window`
+    `widen the window until it holds ${SHIFT_MIN_PAIRS} held minutes (a partly held day does)`
   );
 }
 

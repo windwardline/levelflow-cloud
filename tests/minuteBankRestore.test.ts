@@ -1098,10 +1098,12 @@ describe("the archive itself is checked before anything is compared", () => {
     const snap = `levelflow-minute-bank-snapshot-${sb.stamp}`;
     uploadNamed(sb, sb.stamp, [
       { body: "", name: `${snap}/EURUSD.jsonl` },
-      { body: "escaped\n", name: `${snap}/../../escaped.txt` },
+      // Three levels up from the restore is the run's TMPDIR, which outlives
+      // the run and which afterEveryRun asserts is left empty.
+      { body: "escaped\n", name: `${snap}/../../../escaped.txt` },
     ]);
-    assertFails(run(sb), /names members outside its own directory \(an absolute path or a \.\. segment\): \S*\.\.\/\.\.\/escaped\.txt/);
-    assert.ok(!existsSync(join(sb.root, "escaped.txt")), "a member was written outside the restore");
+    assertFails(run(sb), /names members outside its own directory \(an absolute path or a \.\. segment\): \S*\.\.\/\.\.\/\.\.\/escaped\.txt/);
+    assert.ok(!existsSync(join(sb.tmp, "escaped.txt")), "a member was written outside the restore");
   });
 
   it("refuses a link member before anything can be written through it", () => {
@@ -1111,11 +1113,11 @@ describe("the archive itself is checked before anything is compared", () => {
     const snap = `levelflow-minute-bank-snapshot-${sb.stamp}`;
     uploadNamed(sb, sb.stamp, [
       { body: "", name: `${snap}/EURUSD.jsonl` },
-      { body: "", link: "../..", name: `${snap}/out` },
+      { body: "", link: "../../..", name: `${snap}/out` },
       { body: "through\n", name: `${snap}/out/through.txt` },
     ]);
     assertFails(run(sb), new RegExp(`holds entries that are neither files nor directories: ${snap}/out `));
-    assert.ok(!existsSync(join(sb.root, "through.txt")), "a member was written through the link");
+    assert.ok(!existsSync(join(sb.tmp, "through.txt")), "a member was written through the link");
   });
 
   it("refuses a member with an absolute name, before extracting anything", () => {

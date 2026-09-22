@@ -222,6 +222,11 @@ zstd -q --decompress --stdout "$WORK/archive.tar.zst" | tar -tvf - >"$WORK/membe
   || die "$NEWEST did not extract: it does not list as a tar: $(head -3 "$WORK/tar.err")"
 ESCAPES="$({ grep -E '^/|(^|/)\.\.(/|$)' "$WORK/members" || true; } | head -5 | tr '\n' ' ')"
 [[ -z $ESCAPES ]] || die "$NEWEST names members outside its own directory (an absolute path or a .. segment): $ESCAPES"
+# Both listings print one line per member on the tars measured, so this count
+# cannot differ today; it is kept because this check trusts no tar, and a
+# pairing that ran short would leave members unchecked in silence.
+[[ $(wc -l <"$WORK/members") -eq $(wc -l <"$WORK/members.long") ]] \
+  || die "$NEWEST lists a different number of members in its two listings; its member types cannot be checked"
 LINKS=""
 while IFS= read -r long && IFS= read -r name <&3; do
   case "${long:0:1}" in -|d) ;; *) LINKS="$LINKS$name " ;; esac

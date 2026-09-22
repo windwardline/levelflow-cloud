@@ -194,7 +194,8 @@ A symbol neither bound can judge in the window is refused before a byte is bough
 fewer than 60 held minutes inside the window leaves the price bound nothing to pair
 on, and a file that already holds nearly every time of day (every 24-hour market, and
 futures with an hour's daily break) leaves the clock bound nothing to see. Its line
-reads `not asked`, and the remedy is a window that includes a partly held day. A file
+reads `not asked`, and the remedy is a window holding 60 held minutes, which any
+partly held day provides. A file
 of under a day's minutes is judged by neither bound whatever the window; it is asked,
 and its tally line says `shift test unjudged`.
 

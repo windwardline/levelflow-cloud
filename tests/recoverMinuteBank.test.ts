@@ -274,7 +274,7 @@ describe("recover-minute-bank fills the hole and nothing else", () => {
     assert.equal(after.bars, before.bars + 8);
     assert.equal(after.bars, lines(eur.file).length);
     // It held one minute of 2026-09-03, and the answer agreed with it.
-    assert.deepEqual(after.runs.at(-1).note, "recovered 2026-09-03..2026-09-05; 0 of 1 held minutes came back revised");
+    assert.deepEqual(after.runs.at(-1).note, "recovered 2026-09-03..2026-09-05; 0 of 1 held minutes came back revised; shift test unjudged (1 same-key pair)");
     assert.equal(after.runs.at(-1).appended, 8);
   });
 
@@ -705,6 +705,9 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
       assert.doesNotMatch(result.output, /not asked/);
       assert.match(result.output, /^EURUSD\tfetched \d+\tappended \d+\tdropped 0\tshift test unjudged: 0 same-key pairs/m);
       assert.ok(lines(eur.file).length > 1400);
+      // Stdout is not kept; the sidecar's run record is.
+      const runs = (JSON.parse(readFileSync(eur.sidecar, "utf8")) as { runs: Array<{ note: string }> }).runs;
+      assert.match(runs.at(-1)!.note, /; shift test unjudged \(0 same-key pairs\)$/);
     });
   });
 
