@@ -3,6 +3,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   appendFileSync,
+  chmodSync,
   copyFileSync,
   cpSync,
   existsSync,
@@ -34,6 +35,11 @@ import { scratchDir } from "./support/scratchDir.ts";
  * the script needs. The real `rclone`, `security` and `wl-secret` are not in
  * either, so a missing stub is `command not found`, never a live call. The
  * first test proves that before anything else runs.
+ *
+ * EVERY STAMP AND BAR DATE IS RELATIVE TO TODAY (UTC). The script refuses an
+ * archive more than three days old by the real clock, and the test must not
+ * reach into the script to move that clock. So a fixed date here would pass
+ * on the day it was written and fail from then on.
  */
 
 const SCRIPT = "scripts/ops/verify-minute-bank-restore.sh";
@@ -49,9 +55,35 @@ const BASH = "/bin/bash";
 // Everything the script and the stub call, linked into one directory so the
 // runs see nothing else.
 const TOOLS = [
-  "bash", "cat", "cmp", "cp", "cut", "date", "dirname", "find", "grep", "head", "jq", "ls", "mkdir",
+  "bash", "cat", "chmod", "cmp", "cp", "cut", "date", "dirname", "find", "grep", "head", "jq", "ls", "mkdir",
   "mktemp", "rm", "sed", "shasum", "sleep", "sort", "tail", "tar", "tr", "wc", "zstd",
 ];
+
+/** A mode-000 path is readable to root, so the cases built on one mean nothing there. */
+const PERMISSIONS = process.getuid?.() === 0 ? "root reads a mode-000 path" : false;
+
+const DAY_MS = 86_400_000;
+/** Today as the script's clock reads it: the UTC calendar day, YYYY-MM-DD. */
+const todayUtc = () => new Date().toISOString().slice(0, 10);
+/** The calendar day `offset` days from `day`, both YYYY-MM-DD. */
+const dayFrom = (day: string, offset: number) =>
+  new Date(Date.parse(`${day}T00:00:00Z`) + offset * DAY_MS).toISOString().slice(0, 10);
+/** YYYY-MM-DD as the archive stamps it, YYYYMMDD. */
+const stampOf = (day: string) => day.replace(/-/g, "");
+/** The stamp `offset` days from today (UTC). */
+const stampFromToday = (offset: number) => stampOf(dayFrom(todayUtc(), offset));
+
+/**
+ * Run a case whose verdict turns on today's date, and run it again if the UTC
+ * day turned while it ran: the fixture and the script must read the same day.
+ */
+function onOneUtcDay<T>(body: () => T): T {
+  for (let attempt = 0; ; attempt++) {
+    const before = todayUtc();
+    const result = body();
+    if (todayUtc() === before || attempt > 0) return result;
+  }
+}
 
 function which(tool: string): string | undefined {
   const found = spawnSync("/bin/sh", ["-c", `command -v ${tool}`], { encoding: "utf8" });
@@ -119,6 +151,10 @@ interface Sandbox {
   bin: string;
   tmp: string;
   log: string;
+  /** The stamp of the snapshot most cases archive: yesterday (UTC). */
+  stamp: string;
+  /** The day the fixture's bars carry: the day before the stamp. */
+  day: string;
 }
 
 /** A checkout holding a live bank, a fake R2 with its bucket, and the stub. */
@@ -132,14 +168,20 @@ function sandbox(): Sandbox {
   const bin = join(root, "bin");
   const tmp = join(root, "tmp");
   for (const dir of [bank, bucketDir, home, bin, tmp]) mkdirSync(dir, { recursive: true });
-  const sb: Sandbox = { root, checkout, bank, remote, bucketDir, home, bin, tmp, log: join(root, "rclone.argv") };
+  const snapshotDay = dayFrom(todayUtc(), -1);
+  const sb: Sandbox = {
+    root, checkout, bank, remote, bucketDir, home, bin, tmp,
+    log: join(root, "rclone.argv"),
+    stamp: stampOf(snapshotDay),
+    day: dayFrom(snapshotDay, -1),
+  };
   writeFileSync(join(bin, "rclone"), rcloneStub(sb), { mode: 0o755 });
   // The bank as it stood when the snapshot was taken. `%5EGSPC` is how the
   // bank spells ^GSPC (encodeURIComponent), so a name carrying `%` is covered.
   // USDMXN has a sidecar and no data file: a symbol whose first fetch failed.
-  writeBank(sb, "EURUSD", minutes("2026-09-01", 30, 5, 1.1));
-  writeBank(sb, "%5EGSPC", minutes("2026-09-01", 30, 4, 6500));
-  writeBank(sb, "BTCUSD", minutes("2026-09-01", 30, 3, 110000));
+  writeBank(sb, "EURUSD", minutes(sb.day, 30, 5, 1.1));
+  writeBank(sb, "%5EGSPC", minutes(sb.day, 30, 4, 6500));
+  writeBank(sb, "BTCUSD", minutes(sb.day, 30, 3, 110000));
   writeFileSync(join(bank, "USDMXN.state.json"), sidecar("USDMXN", 0));
   return sb;
 }
@@ -161,11 +203,13 @@ function appendBank(sb: Sandbox, symbol: string, bars: Bar[]) {
 function growSinceSnapshot(sb: Sandbox) {
   // 09:35 is new; 09:20 is a late fill, OLDER than bars already banked,
   // appended at the end the way the provider's omitted minutes arrive.
-  appendBank(sb, "EURUSD", [bar("2026-09-01 09:35:00", 1.1005), bar("2026-09-01 09:20:00", 1.0995)]);
-  writeBank(sb, "GBPUSD", minutes("2026-09-01", 30, 2, 1.3));
+  appendBank(sb, "EURUSD", [bar(`${sb.day} 09:35:00`, 1.1005), bar(`${sb.day} 09:20:00`, 1.0995)]);
+  writeBank(sb, "GBPUSD", minutes(sb.day, 30, 2, 1.3));
 }
 
 const keyFor = (stamp: string) => `${PREFIX}/${stamp.slice(0, 4)}/${stamp.slice(4, 6)}/minute-bank-${stamp}.tar.zst`;
+/** The key below the prefix, as the script's messages name an archive. */
+const tailFor = (stamp: string) => keyFor(stamp).slice(PREFIX.length + 1);
 const objectFor = (sb: Sandbox, stamp: string) => join(sb.bucketDir, keyFor(stamp));
 
 interface ArchiveOptions {
@@ -175,6 +219,8 @@ interface ArchiveOptions {
   top?: string;
   /** A second top-level entry beside the snapshot. */
   alongside?: string;
+  /** Empty directories to add to the snapshot at mode 000. */
+  unreadable?: string[];
 }
 
 let archives = 0;
@@ -183,6 +229,11 @@ let archives = 0;
  * Snapshot the live bank and upload it to the fake R2 exactly as the backup
  * and push do: `cp -R` into levelflow-minute-bank-snapshot-<stamp>, then
  * `tar -C <parent> -cf - <name> | zstd -19` to the layout's key.
+ *
+ * tar cannot walk a directory it cannot read, so a snapshot holding one is
+ * archived member by member under --no-recursion, which records the
+ * directory without opening it. The mode goes back afterwards, so the
+ * fixture can be cleaned up.
  */
 function archive(sb: Sandbox, stamp: string, options: ArchiveOptions = {}): string {
   const parent = join(sb.root, `snapshots-${archives++}`);
@@ -191,16 +242,31 @@ function archive(sb: Sandbox, stamp: string, options: ArchiveOptions = {}): stri
   mkdirSync(parent);
   cpSync(sb.bank, snap, { recursive: true });
   options.edit?.(snap);
-  const entries = [name];
+  const locked = (options.unreadable ?? []).map((dir) => join(snap, dir));
+  for (const dir of locked) mkdirSync(dir);
+  const entries = locked.length > 0 ? [name, ...readdirSync(snap).sort().map((entry) => `${name}/${entry}`)] : [name];
   if (options.alongside) {
     writeFileSync(join(parent, options.alongside), "stray\n");
     entries.push(options.alongside);
   }
+  for (const dir of locked) chmodSync(dir, 0o000);
+  try {
+    return upload(sb, stamp, parent, entries, locked.length > 0);
+  } finally {
+    for (const dir of locked) chmodSync(dir, 0o755);
+  }
+}
+
+/** tar `entries` from `parent`, compress, and place the object at the stamp's key. */
+function upload(sb: Sandbox, stamp: string, parent: string, entries: string[], noRecursion = false): string {
   const object = objectFor(sb, stamp);
   mkdirSync(dirname(object), { recursive: true });
   const built = spawnSync(
     "/bin/sh",
-    ["-c", `tar -C '${parent}' -cf - ${entries.map((e) => `'${e}'`).join(" ")} | zstd -q -19 -T0 -o '${object}'`],
+    [
+      "-c",
+      `tar -cf - ${noRecursion ? "--no-recursion " : ""}-C '${parent}' ${entries.map((e) => `'${e}'`).join(" ")} | zstd -q -19 -T0 -o '${object}'`,
+    ],
     { encoding: "utf8" },
   );
   assert.equal(built.status, 0, built.stderr);
@@ -382,16 +448,26 @@ function afterEveryRun(sb: Sandbox, r: Result, before: string) {
   if (r.code !== 0) assert.equal(r.stdout, "", "a failure prints nothing on stdout");
 }
 
-/** Every path under `dir` with its bytes (or link target), in one hash. */
+/**
+ * Every path under `dir` with its bytes (or link target), in one hash. A path
+ * a case made unreadable is hashed by its mode, which the run must not change
+ * either.
+ */
 function digest(dir: string): string {
   const hash = createHash("sha256");
+  const denied = (error: unknown) => (error as NodeJS.ErrnoException).code === "EACCES";
   const walk = (at: string) => {
     for (const name of readdirSync(at).sort()) {
       const path = join(at, name);
       const stat = statSync(path, { throwIfNoEntry: false });
       hash.update(`${relative(dir, path)}\0`);
-      if (stat?.isDirectory()) walk(path);
-      else if (stat?.isFile()) hash.update(readFileSync(path));
+      try {
+        if (stat?.isDirectory()) walk(path);
+        else if (stat?.isFile()) hash.update(readFileSync(path));
+      } catch (error) {
+        if (!denied(error)) throw error;
+        hash.update(`unreadable ${stat?.mode}\0`);
+      }
     }
   };
   walk(dir);
@@ -444,44 +520,47 @@ describe("the harness cannot reach anything real", () => {
 describe("the newest archive restores, and every restored byte is the head of the live bank", () => {
   it("passes over a bank that grew since the snapshot, a late fill appended at a file's end included", () => {
     const sb = sandbox();
-    archive(sb, "20260902");
+    archive(sb, sb.stamp);
     growSinceSnapshot(sb);
-    // Decoys the --include filter must keep out of the listing.
-    writeFileSync(join(sb.bucketDir, PREFIX, "2026", "09", "minute-bank-20260930.tar.zst.partial"), "x");
-    writeFileSync(join(sb.bucketDir, PREFIX, "2026", "09", "README.txt"), "x");
+    // Decoys the --include filter must keep out of the listing; the first
+    // would sort newest if it were let in.
+    const month = dirname(objectFor(sb, sb.stamp));
+    writeFileSync(join(month, `minute-bank-${stampFromToday(0)}.tar.zst.partial`), "x");
+    writeFileSync(join(month, "README.txt"), "x");
     const r = run(sb);
     const summary = summaryOf(r);
-    assert.equal(summary.object, `R2:${BUCKET}/${keyFor("20260902")}`);
+    assert.equal(summary.object, `R2:${BUCKET}/${keyFor(sb.stamp)}`);
     assert.equal(summary.files, 3);
     assert.equal(summary.restored, 5 + 4 + 3);
     assert.equal(summary.live, 7 + 4 + 3 + 2);
     // Added since the snapshot: named, and not a failure.
-    assert.match(r.stderr, /added since 20260902, not in the archive: GBPUSD\b/);
+    assert.match(r.stderr, new RegExp(`added since ${sb.stamp}, not in the archive: GBPUSD\\b`));
     // A listing and one download, and nothing else. The download lands in
     // the run's own scratch directory, under TMPDIR.
     const calls = rcloneCalls(sb);
     assert.deepEqual(calls.map((call) => call.split(" ")[0]), ["lsf", "copyto"]);
     assert.equal(calls[0], `lsf -R --files-only R2:${BUCKET}/${PREFIX}/ --include minute-bank-*.tar.zst`);
-    assert.match(calls[1], new RegExp(`^copyto ${literal(`R2:${BUCKET}/${keyFor("20260902")}`)} ${literal(sb.tmp)}/[^/ ]+/archive\\.tar\\.zst$`));
+    assert.match(calls[1], new RegExp(`^copyto ${literal(`R2:${BUCKET}/${keyFor(sb.stamp)}`)} ${literal(sb.tmp)}/[^/ ]+/archive\\.tar\\.zst$`));
   });
 
   it("chooses the newest archive by name, whatever order the listing arrives in", () => {
     const sb = sandbox();
     // The older archives cannot be restored, so choosing one fails the run.
-    corrupt(archive(sb, "20251231"));
-    corrupt(archive(sb, "20260831"));
-    appendBank(sb, "EURUSD", [bar("2026-09-01 09:35:00", 1.1005), bar("2026-09-01 09:20:00", 1.0995)]);
-    archive(sb, "20260915");
-    writeBank(sb, "GBPUSD", minutes("2026-09-01", 30, 2, 1.3));
+    // A year back, a month back, and yesterday: three years and months apart.
+    corrupt(archive(sb, stampFromToday(-400)));
+    corrupt(archive(sb, stampFromToday(-30)));
+    appendBank(sb, "EURUSD", [bar(`${sb.day} 09:35:00`, 1.1005), bar(`${sb.day} 09:20:00`, 1.0995)]);
+    archive(sb, sb.stamp);
+    writeBank(sb, "GBPUSD", minutes(sb.day, 30, 2, 1.3));
     const summary = summaryOf(run(sb));
-    assert.equal(summary.object, `R2:${BUCKET}/${keyFor("20260915")}`);
+    assert.equal(summary.object, `R2:${BUCKET}/${keyFor(sb.stamp)}`);
     assert.equal(summary.restored, 7 + 4 + 3);
     assert.equal(summary.live, 7 + 4 + 3 + 2);
   });
 
   it("passes when the bank is unchanged since the snapshot", () => {
     const sb = sandbox();
-    archive(sb, "20260902");
+    archive(sb, sb.stamp);
     const r = run(sb);
     const summary = summaryOf(r);
     assert.equal(summary.restored, 12);
@@ -489,9 +568,9 @@ describe("the newest archive restores, and every restored byte is the head of th
     assert.doesNotMatch(r.stderr, /added since/);
   });
 
-  it("runs through wl-secret's scrubbed environment, as the weekly cadence invokes it", () => {
+  it("runs through wl-secret's scrubbed environment, the checkout named inside it by env", () => {
     const sb = sandbox();
-    archive(sb, "20260902");
+    archive(sb, sb.stamp);
     growSinceSnapshot(sb);
     const launcher = wlSecretStub(sb);
     const before = digest(sb.checkout);
@@ -524,7 +603,7 @@ describe("the newest archive restores, and every restored byte is the head of th
 
   it("reads the bank of the repository it sits in when LEVELFLOW_CHECKOUT is unset", () => {
     const sb = sandbox();
-    archive(sb, "20260902");
+    archive(sb, sb.stamp);
     // A copy of the script in a repository of its own, whose bank is the
     // sandbox's: the default must resolve from the script's location.
     const repo = join(sb.root, "repo");
@@ -540,7 +619,7 @@ describe("the newest archive restores, and every restored byte is the head of th
 
   it("neither waits on nor takes the bank lock", () => {
     const sb = sandbox();
-    archive(sb, "20260902");
+    archive(sb, sb.stamp);
     // A live holder: this test process. The backup would wait 900s here.
     const lock = join(sb.checkout, ".minute-bank.lock");
     mkdirSync(lock);
@@ -558,7 +637,7 @@ describe("the newest archive restores, and every restored byte is the head of th
 describe("a restore that does not match the live bank fails, naming the file", () => {
   it("fails when a banked bar was rewritten in the live file", () => {
     const sb = sandbox();
-    archive(sb, "20260902");
+    archive(sb, sb.stamp);
     growSinceSnapshot(sb);
     const file = join(sb.bank, "%5EGSPC.jsonl");
     const lines = readFileSync(file, "utf8").split("\n");
@@ -574,7 +653,7 @@ describe("a restore that does not match the live bank fails, naming the file", (
 
   it("fails when the live file is shorter than the restored one", () => {
     const sb = sandbox();
-    archive(sb, "20260902");
+    archive(sb, sb.stamp);
     const file = join(sb.bank, "BTCUSD.jsonl");
     writeFileSync(file, readFileSync(file, "utf8").split("\n").slice(0, 2).join("\n") + "\n");
     assertFails(run(sb), /BTCUSD\.jsonl — the live file holds \d+ byte\(s\), fewer than the \d+ restored/);
@@ -582,38 +661,132 @@ describe("a restore that does not match the live bank fails, naming the file", (
 
   it("fails when a restored symbol is missing from the live bank", () => {
     const sb = sandbox();
-    archive(sb, "20260902");
+    archive(sb, sb.stamp);
     unlinkSync(join(sb.bank, "BTCUSD.jsonl"));
     assertFails(run(sb), /BTCUSD\.jsonl — restored, and absent from the live bank/);
   });
 
   it("names every failing file, not only the first", () => {
     const sb = sandbox();
-    archive(sb, "20260902");
+    archive(sb, sb.stamp);
     unlinkSync(join(sb.bank, "BTCUSD.jsonl"));
     unlinkSync(join(sb.bank, "EURUSD.jsonl"));
     const r = run(sb);
     assertFails(r, /BTCUSD\.jsonl — restored, and absent/);
     assert.match(r.stderr, /EURUSD\.jsonl — restored, and absent/);
   });
+
+  it("fails by name when the live bank cannot be listed", { skip: PERMISSIONS }, () => {
+    const sb = sandbox();
+    archive(sb, sb.stamp);
+    const stale = join(sb.bank, "stale");
+    mkdirSync(stale);
+    chmodSync(stale, 0o000);
+    try {
+      assertFails(run(sb), new RegExp(`could not list the live bank at ${literal(sb.bank)}: .*stale`));
+    } finally {
+      chmodSync(stale, 0o755);
+    }
+  });
+});
+
+describe("a live symbol the archive lacks passes only when it is newer than the snapshot", () => {
+  /** The calendar day the default snapshot was stamped. */
+  const snapshotDay = (sb: Sandbox) => dayFrom(sb.day, 1);
+  const without = (...symbols: string[]) => (snap: string) => {
+    for (const symbol of symbols) {
+      unlinkSync(join(snap, `${symbol}.jsonl`));
+      unlinkSync(join(snap, `${symbol}.state.json`));
+    }
+  };
+
+  it("fails naming every symbol that predates the snapshot: an archive holding one of three", () => {
+    const sb = sandbox();
+    // A bank a month older than the snapshot, which has grown since: the
+    // newest bar is recent, and only the first line tells the symbol's age.
+    const old = dayFrom(snapshotDay(sb), -30);
+    writeBank(sb, "EURUSD", minutes(old, 30, 5, 1.1));
+    writeBank(sb, "%5EGSPC", minutes(old, 30, 4, 6500));
+    archive(sb, sb.stamp, { edit: without("EURUSD", "%5EGSPC") });
+    appendBank(sb, "EURUSD", minutes(sb.day, 40, 2, 1.1));
+    const r = run(sb);
+    assertFails(r, new RegExp(`EURUSD predates ${sb.stamp} and the archive does not hold it`));
+    assert.match(r.stderr, new RegExp(`%5EGSPC predates ${sb.stamp} and the archive does not hold it`));
+    assert.match(r.stderr, new RegExp(`first live bar is ${old}, 30 day\\(s\\) before`));
+    assert.doesNotMatch(r.stderr, /BTCUSD predates/);
+  });
+
+  // By calendar day, not by the hour: the earliest minute of the fourth day
+  // before passes, and the last minute of the fifth fails.
+  for (const [gap, time, verdict] of [[4, "00:00:00", "passes"], [5, "23:59:00", "fails"]] as const) {
+    it(`${verdict} when a symbol missing from the archive starts ${gap} days before the snapshot`, () => {
+      const sb = sandbox();
+      archive(sb, sb.stamp);
+      const first = dayFrom(snapshotDay(sb), -gap);
+      writeBank(sb, "GBPUSD", [bar(`${first} ${time}`, 1.3), ...minutes(sb.day, 30, 2, 1.3)]);
+      const r = run(sb);
+      if (verdict === "passes") {
+        assert.equal(summaryOf(r).live, 12 + 3);
+        assert.match(r.stderr, new RegExp(`added since ${sb.stamp}, not in the archive: GBPUSD\\b`));
+      } else {
+        assertFails(r, new RegExp(`GBPUSD predates ${sb.stamp} and the archive does not hold it`));
+      }
+    });
+  }
+
+  // Every recent-looking date below would pass as new if it were read.
+  for (const [label, firstLine] of [
+    ["is empty", () => ""],
+    ["is not JSON", () => "not json"],
+    ["carries no date", () => '{"open":1.3}'],
+    ["carries a date that is not a string", () => '{"date":20260901,"open":1.3}'],
+    ["carries a date in no shape the bank writes", () => '{"date":"yesterday","open":1.3}'],
+    ["carries a date with a T and a zone after it", (sb: Sandbox) => `{"date":"${sb.day}T09:30:00Z","open":1.3}`],
+    ["carries a date with text before it", (sb: Sandbox) => `{"date":"x${sb.day} 09:30:00","open":1.3}`],
+    ["carries a record with text after it", (sb: Sandbox) => `${JSON.stringify(bar(`${sb.day} 09:30:00`, 1.3))}garbage`],
+    // Read as arithmetic, month 13 is next January and day 45 is weeks ahead.
+    ["carries a month that is not on the calendar", (sb: Sandbox) => `{"date":"${sb.day.slice(0, 4)}-13-01 09:30:00","open":1.3}`],
+    ["carries a day that is not on the calendar", (sb: Sandbox) => `{"date":"${sb.day.slice(0, 7)}-45 09:30:00","open":1.3}`],
+  ] as const) {
+    it(`fails naming a symbol missing from the archive whose first line ${label}`, () => {
+      const sb = sandbox();
+      archive(sb, sb.stamp);
+      const first = firstLine(sb);
+      writeFileSync(join(sb.bank, "GBPUSD.jsonl"), first === "" ? "" : `${first}\n${jsonl(minutes(sb.day, 30, 2, 1.3))}`);
+      assertFails(run(sb), /GBPUSD\.jsonl — absent from the archive, and its first line carries no parseable date/);
+    });
+  }
+
+  it("fails naming a symbol missing from the archive whose first line cannot be read", { skip: PERMISSIONS }, () => {
+    const sb = sandbox();
+    archive(sb, sb.stamp);
+    const file = join(sb.bank, "GBPUSD.jsonl");
+    writeFileSync(file, jsonl(minutes(sb.day, 30, 2, 1.3)));
+    chmodSync(file, 0o000);
+    try {
+      assertFails(run(sb), /GBPUSD\.jsonl — absent from the archive, and its first line cannot be read/);
+    } finally {
+      chmodSync(file, 0o644);
+    }
+  });
 });
 
 describe("a restore that disagrees with itself fails, naming the file", () => {
   it("fails when a sidecar's bars disagrees with its file's lines", () => {
     const sb = sandbox();
-    archive(sb, "20260902", { edit: (snap) => writeFileSync(join(snap, "BTCUSD.state.json"), sidecar("BTCUSD", 4)) });
+    archive(sb, sb.stamp, { edit: (snap) => writeFileSync(join(snap, "BTCUSD.state.json"), sidecar("BTCUSD", 4)) });
     assertFails(run(sb), /BTCUSD\.jsonl — the sidecar counts 4 bar\(s\) and the file holds 3 line\(s\)/);
   });
 
   it("fails when a data file has no sidecar beside it", () => {
     const sb = sandbox();
-    archive(sb, "20260902", { edit: (snap) => unlinkSync(join(snap, "EURUSD.state.json")) });
+    archive(sb, sb.stamp, { edit: (snap) => unlinkSync(join(snap, "EURUSD.state.json")) });
     assertFails(run(sb), /EURUSD\.jsonl — no sidecar EURUSD\.state\.json beside it/);
   });
 
   it("fails when a sidecar does not parse", () => {
     const sb = sandbox();
-    archive(sb, "20260902", { edit: (snap) => writeFileSync(join(snap, "EURUSD.state.json"), '{ "bars": 5, ') });
+    archive(sb, sb.stamp, { edit: (snap) => writeFileSync(join(snap, "EURUSD.state.json"), '{ "bars": 5, ') });
     assertFails(run(sb), /EURUSD\.state\.json — does not parse as a JSON object/);
   });
 
@@ -626,20 +799,20 @@ describe("a restore that disagrees with itself fails, naming the file", () => {
     it(`fails when a sidecar's bars is ${label}`, () => {
       const sb = sandbox();
       const body = value === undefined ? '{ "fmpSymbol": "EURUSD" }' : `{ "fmpSymbol": "EURUSD", "bars": ${value} }`;
-      archive(sb, "20260902", { edit: (snap) => writeFileSync(join(snap, "EURUSD.state.json"), body) });
+      archive(sb, sb.stamp, { edit: (snap) => writeFileSync(join(snap, "EURUSD.state.json"), body) });
       assertFails(run(sb), /EURUSD\.state\.json — "bars" is '[^']*', not a count/);
     });
   }
 
   it("fails when a sidecar counts bars and the archive holds no data file for it", () => {
     const sb = sandbox();
-    archive(sb, "20260902", { edit: (snap) => writeFileSync(join(snap, "AUDUSD.state.json"), sidecar("AUDUSD", 7)) });
+    archive(sb, sb.stamp, { edit: (snap) => writeFileSync(join(snap, "AUDUSD.state.json"), sidecar("AUDUSD", 7)) });
     assertFails(run(sb), /AUDUSD\.state\.json — counts 7 bar\(s\) and the archive holds no data file for it/);
   });
 
   it("fails when an orphan sidecar does not parse", () => {
     const sb = sandbox();
-    archive(sb, "20260902", { edit: (snap) => writeFileSync(join(snap, "USDMXN.state.json"), "not json") });
+    archive(sb, sb.stamp, { edit: (snap) => writeFileSync(join(snap, "USDMXN.state.json"), "not json") });
     assertFails(run(sb), /USDMXN\.state\.json — does not parse as a JSON object/);
   });
 
@@ -648,10 +821,10 @@ describe("a restore that disagrees with itself fails, naming the file", () => {
     // The torn bytes are the head of a line the live file completed, and the
     // sidecar still counts the complete lines, so only the final byte tells.
     const sb = sandbox();
-    const whole = `${JSON.stringify(bar("2026-09-01 09:35:00", 1.1005))}\n`;
+    const whole = `${JSON.stringify(bar(`${sb.day} 09:35:00`, 1.1005))}\n`;
     const torn = whole.slice(0, 20);
-    archive(sb, "20260902", { edit: (snap) => appendFileSync(join(snap, "EURUSD.jsonl"), torn) });
-    appendBank(sb, "EURUSD", [bar("2026-09-01 09:35:00", 1.1005)]);
+    archive(sb, sb.stamp, { edit: (snap) => appendFileSync(join(snap, "EURUSD.jsonl"), torn) });
+    appendBank(sb, "EURUSD", [bar(`${sb.day} 09:35:00`, 1.1005)]);
     assertFails(run(sb), /EURUSD\.jsonl — the restored file ends in a torn line/);
   });
 });
@@ -659,7 +832,7 @@ describe("a restore that disagrees with itself fails, naming the file", () => {
 describe("a restore that examined nothing is refused", () => {
   it("fails when the archive holds no data file", () => {
     const sb = sandbox();
-    archive(sb, "20260902", {
+    archive(sb, sb.stamp, {
       edit: (snap) => {
         for (const name of readdirSync(snap)) unlinkSync(join(snap, name));
       },
@@ -669,7 +842,7 @@ describe("a restore that examined nothing is refused", () => {
 
   it("fails when every restored data file is empty", () => {
     const sb = sandbox();
-    archive(sb, "20260902", {
+    archive(sb, sb.stamp, {
       edit: (snap) => {
         for (const name of readdirSync(snap).filter((n) => n.endsWith(".jsonl"))) {
           writeFileSync(join(snap, name), "");
@@ -692,21 +865,22 @@ describe("the listing is read strictly", () => {
 
   it("fails when the prefix holds only what the include filter keeps out", () => {
     const sb = sandbox();
-    mkdirSync(join(sb.bucketDir, PREFIX, "2026", "09"), { recursive: true });
-    writeFileSync(join(sb.bucketDir, PREFIX, "2026", "09", "minute-bank-20260902.tar.zst.partial"), "x");
+    const partial = `${objectFor(sb, sb.stamp)}.partial`;
+    mkdirSync(dirname(partial), { recursive: true });
+    writeFileSync(partial, "x");
     assertFails(run(sb), /there is nothing to restore/);
   });
 
   it("reads a final listing line that arrives without its newline", () => {
     const sb = sandbox();
-    archive(sb, "20260902");
+    archive(sb, sb.stamp);
     writeFileSync(join(sb.remote, ".lsf-unterminated"), "");
-    assert.equal(summaryOf(run(sb)).object, `R2:${BUCKET}/${keyFor("20260902")}`);
+    assert.equal(summaryOf(run(sb)).object, `R2:${BUCKET}/${keyFor(sb.stamp)}`);
   });
 
   it("fails on an unreadable listing rather than reading it as empty", () => {
     const sb = sandbox();
-    archive(sb, "20260902");
+    archive(sb, sb.stamp);
     writeFileSync(join(sb.remote, ".lsf-fails"), "");
     const r = run(sb);
     assertFails(r, new RegExp(`could not list ${literal(`R2:${BUCKET}/${PREFIX}/`)} \\(rclone exit 5\\); an unreadable listing is not an empty one`));
@@ -723,7 +897,7 @@ describe("the listing is read strictly", () => {
   for (const stray of ["2026/08/minute-bank-20260902.tar.zst", "minute-bank-20260902.tar.zst", "2026/09/minute-bank-2026092.tar.zst"]) {
     it(`fails naming an archive outside the layout: ${stray}`, () => {
       const sb = sandbox();
-      archive(sb, "20260903");
+      archive(sb, sb.stamp);
       mkdirSync(dirname(join(sb.bucketDir, PREFIX, stray)), { recursive: true });
       writeFileSync(join(sb.bucketDir, PREFIX, stray), "x");
       const r = run(sb);
@@ -734,54 +908,156 @@ describe("the listing is read strictly", () => {
   }
 });
 
+describe("the newest archive is recent, or the push has stopped", () => {
+  for (const age of [4, 40]) {
+    it(`fails when the newest archive is ${age} days old, before downloading it`, () => {
+      const { sb, stamp, r } = onOneUtcDay(() => {
+        const sb = sandbox();
+        const stamp = stampFromToday(-age);
+        archive(sb, stamp);
+        return { sb, stamp, r: run(sb) };
+      });
+      assertFails(r, new RegExp(`stamped ${stamp}, ${age} day\\(s\\) before today .*; the daily push has not advanced`));
+      assert.deepEqual(rcloneCalls(sb).map((call) => call.split(" ")[0]), ["lsf"], "nothing may be downloaded");
+    });
+  }
+
+  for (const age of [0, 3]) {
+    it(`passes when the newest archive is ${age} days old`, () => {
+      const { stamp, r } = onOneUtcDay(() => {
+        const sb = sandbox();
+        const stamp = stampFromToday(-age);
+        archive(sb, stamp);
+        return { stamp, r: run(sb) };
+      });
+      assert.equal(summaryOf(r).object, `R2:${BUCKET}/${keyFor(stamp)}`);
+    });
+  }
+
+  it("fails when the newest archive is stamped later than today, which would hide a stopped push", () => {
+    const sb = sandbox();
+    archive(sb, sb.stamp);
+    const future = stampFromToday(30);
+    archive(sb, future);
+    assertFails(run(sb), new RegExp(`stamped ${future}, later than today`));
+    assert.deepEqual(rcloneCalls(sb).map((call) => call.split(" ")[0]), ["lsf"], "nothing may be downloaded");
+  });
+
+  // The push stamps the UTC day, so today is the UTC day too. Fourteen hours
+  // ahead puts the local date past UTC's from 10:00Z, and twelve behind puts
+  // it short of UTC's until 12:00Z, so at any hour a local reading moves one
+  // of these two edges.
+  for (const zone of ["Etc/GMT-14", "Etc/GMT+12"]) {
+    it(`reads today in UTC under TZ=${zone}: three days passes and four fails`, () => {
+      const edges = onOneUtcDay(() =>
+        [3, 4].map((age) => {
+          const sb = sandbox();
+          archive(sb, stampFromToday(-age));
+          return run(sb, { TZ: zone });
+        }),
+      );
+      summaryOf(edges[0]);
+      assertFails(edges[1], /4 day\(s\) before today .*; the daily push has not advanced/);
+    });
+  }
+});
+
 describe("the archive itself is checked before anything is compared", () => {
   it("fails when the download fails", () => {
     const sb = sandbox();
-    archive(sb, "20260902");
+    archive(sb, sb.stamp);
     writeFileSync(join(sb.remote, ".copy-fails"), "");
     const r = run(sb);
-    assertFails(r, /could not download 2026\/09\/minute-bank-20260902\.tar\.zst \(rclone exit 7\)/);
+    assertFails(r, new RegExp(`could not download ${literal(tailFor(sb.stamp))} \\(rclone exit 7\\)`));
     assert.match(r.stderr, /connection reset \(stub\)/);
   });
 
   it("fails when the download is empty", () => {
     const sb = sandbox();
-    archive(sb, "20260902");
+    archive(sb, sb.stamp);
     writeFileSync(join(sb.remote, ".copy-empty"), "");
-    assertFails(run(sb), /the download of 2026\/09\/minute-bank-20260902\.tar\.zst produced no bytes/);
+    assertFails(run(sb), new RegExp(`the download of ${literal(tailFor(sb.stamp))} produced no bytes`));
   });
 
   it("fails when the archive does not pass zstd's integrity test", () => {
     const sb = sandbox();
-    corrupt(archive(sb, "20260902"));
-    assertFails(run(sb), /2026\/09\/minute-bank-20260902\.tar\.zst fails zstd's integrity test/);
+    corrupt(archive(sb, sb.stamp));
+    assertFails(run(sb), new RegExp(`${literal(tailFor(sb.stamp))} fails zstd's integrity test`));
   });
 
   it("fails when the archive is sound zstd around something that is not a tar", () => {
     const sb = sandbox();
-    const object = objectFor(sb, "20260902");
+    const object = objectFor(sb, sb.stamp);
     mkdirSync(dirname(object), { recursive: true });
     const built = spawnSync("/bin/sh", ["-c", `printf 'not a tar archive\\n' | zstd -q -19 -o '${object}'`], { encoding: "utf8" });
     assert.equal(built.status, 0, built.stderr);
-    assertFails(run(sb), /2026\/09\/minute-bank-20260902\.tar\.zst did not extract/);
+    assertFails(run(sb), new RegExp(`${literal(tailFor(sb.stamp))} did not extract`));
   });
 
   it("fails when the archive's directory is stamped differently from its key", () => {
     const sb = sandbox();
-    archive(sb, "20260902", { top: "levelflow-minute-bank-snapshot-20260901" });
-    assertFails(run(sb), /must hold exactly one directory, levelflow-minute-bank-snapshot-20260902; it holds: levelflow-minute-bank-snapshot-20260901/);
+    const other = stampOf(sb.day);
+    archive(sb, sb.stamp, { top: `levelflow-minute-bank-snapshot-${other}` });
+    assertFails(
+      run(sb),
+      new RegExp(`must hold exactly one directory, levelflow-minute-bank-snapshot-${sb.stamp}; it holds: levelflow-minute-bank-snapshot-${other}`),
+    );
   });
 
   it("fails when the archive holds anything beside its one directory", () => {
     const sb = sandbox();
-    archive(sb, "20260902", { alongside: "stray.txt" });
-    assertFails(run(sb), /must hold exactly one directory, levelflow-minute-bank-snapshot-20260902; it holds: .*stray\.txt/);
+    archive(sb, sb.stamp, { alongside: "stray.txt" });
+    assertFails(run(sb), new RegExp(`must hold exactly one directory, levelflow-minute-bank-snapshot-${sb.stamp}; it holds: .*stray\\.txt`));
   });
 
   it("fails when the archive holds a link", () => {
     const sb = sandbox();
-    archive(sb, "20260902", { edit: (snap) => symlinkSync("EURUSD.jsonl", join(snap, "LINKED.jsonl")) });
+    archive(sb, sb.stamp, { edit: (snap) => symlinkSync("EURUSD.jsonl", join(snap, "LINKED.jsonl")) });
     assertFails(run(sb), /holds entries that are neither files nor directories: .*LINKED\.jsonl/);
+  });
+
+  it("fails when the archive's one directory is a link", () => {
+    const sb = sandbox();
+    const parent = join(sb.root, "linked-snapshot");
+    const name = `levelflow-minute-bank-snapshot-${sb.stamp}`;
+    mkdirSync(parent);
+    // Restored, it names the run's scratch directory, which holds directories.
+    symlinkSync("..", join(parent, name));
+    upload(sb, sb.stamp, parent, [name]);
+    assertFails(run(sb), new RegExp(`holds entries that are neither files nor directories: \\./${name}`));
+  });
+
+  it("fails naming a subdirectory, because the bank is flat", () => {
+    const sb = sandbox();
+    archive(sb, sb.stamp, {
+      edit: (snap) => {
+        mkdirSync(join(snap, "nested"));
+        writeFileSync(join(snap, "nested", "notes.txt"), "not a bank file\n");
+      },
+    });
+    assertFails(run(sb), new RegExp(`holds subdirectories under levelflow-minute-bank-snapshot-${sb.stamp}, and the bank is flat: nested`));
+  });
+
+  it("fails naming an unreadable subdirectory, and still removes its scratch directory", () => {
+    // run() asserts the scratch directory is gone. rm -rf alone cannot
+    // remove a directory it cannot read, even an empty one.
+    const sb = sandbox();
+    archive(sb, sb.stamp, { unreadable: ["locked"] });
+    assertFails(run(sb), new RegExp(`holds subdirectories under levelflow-minute-bank-snapshot-${sb.stamp}, and the bank is flat: locked`));
+  });
+
+  it("fails by name when the snapshot directory itself cannot be read", { skip: PERMISSIONS }, () => {
+    const sb = sandbox();
+    const parent = join(sb.root, "unreadable-snapshot");
+    const name = `levelflow-minute-bank-snapshot-${sb.stamp}`;
+    mkdirSync(join(parent, name), { recursive: true });
+    chmodSync(join(parent, name), 0o000);
+    try {
+      upload(sb, sb.stamp, parent, [name], true);
+    } finally {
+      chmodSync(join(parent, name), 0o755);
+    }
+    assertFails(run(sb), new RegExp(`could not walk the restore of ${literal(tailFor(sb.stamp))}: .*${name}: Permission denied`));
   });
 });
 
@@ -789,7 +1065,7 @@ describe("refusals before any rclone call", () => {
   for (const [label, value] of [["unset", undefined], ["empty", ""]] as const) {
     it(`refuses when R2_TOKEN is ${label}, naming the invocation`, () => {
       const sb = sandbox();
-      archive(sb, "20260902");
+      archive(sb, sb.stamp);
       const r = run(sb, { R2_TOKEN: value });
       assertFails(r, /R2_TOKEN is unset/);
       assert.ok(
@@ -802,7 +1078,7 @@ describe("refusals before any rclone call", () => {
 
   it("refuses when LEVELFLOW_CHECKOUT names nothing", () => {
     const sb = sandbox();
-    archive(sb, "20260902");
+    archive(sb, sb.stamp);
     const missing = join(sb.root, "no-such-checkout");
     assertFails(run(sb, { LEVELFLOW_CHECKOUT: missing }), new RegExp(`LEVELFLOW_CHECKOUT names no directory: ${literal(missing)}`));
     assert.equal(rcloneCalls(sb).length, 0);
@@ -810,7 +1086,7 @@ describe("refusals before any rclone call", () => {
 
   it("refuses a checkout with no bank rather than reading it as empty", () => {
     const sb = sandbox();
-    archive(sb, "20260902");
+    archive(sb, sb.stamp);
     const empty = join(sb.root, "empty-checkout");
     mkdirSync(empty);
     assertFails(run(sb, { LEVELFLOW_CHECKOUT: empty }), new RegExp(`no live bank at ${literal(join(empty, ".minute-bank"))}`));
@@ -835,7 +1111,7 @@ describe("the scratch directory goes on a signal too", () => {
   for (const [signal, code] of [["SIGTERM", 143], ["SIGINT", 130], ["SIGHUP", 129]] as const) {
     it(`removes it and exits ${code} on ${signal} mid-download`, async () => {
       const sb = sandbox();
-      archive(sb, "20260902");
+      archive(sb, sb.stamp);
       writeFileSync(join(sb.remote, ".slow-copy"), "");
       const before = digest(sb.checkout);
       const child = spawn(BASH, [SCRIPT], { env: envFor(sb) });
@@ -862,6 +1138,23 @@ describe("the scratch directory goes on a signal too", () => {
 describe("the script's shape", () => {
   const source = readFileSync(SCRIPT, "utf8");
   const code = source.split("\n").filter((line) => !/^\s*#/.test(line));
+
+  it("counts days as the calendar does, leap days and century years included", () => {
+    const fn = source.match(/^day_number\(\) \{\n[\s\S]*?\n\}\n/m);
+    assert.ok(fn, "day_number() is defined at the top level of the script");
+    const days = ["1970-01-01", "1999-12-31", "2000-02-28", "2000-02-29", "2000-03-01", "2024-02-29", "2024-03-01",
+      "2026-12-31", "2027-01-01", "2028-02-29", "2100-02-28", "2100-03-01", todayUtc()];
+    const counted = spawnSync(
+      BASH,
+      ["-c", `${fn[0]}for d in ${days.join(" ")}; do day_number "\${d:0:4}" "\${d:5:2}" "\${d:8:2}"; done`],
+      { encoding: "utf8" },
+    );
+    assert.equal(counted.status, 0, counted.stderr);
+    assert.deepEqual(
+      counted.stdout.trim().split("\n").map(Number),
+      days.map((day) => Date.parse(`${day}T00:00:00Z`) / DAY_MS),
+    );
+  });
 
   it("is tracked executable, like its siblings", () => {
     assert.ok((statSync(SCRIPT).mode & 0o111) !== 0, `${SCRIPT} must be executable`);
