@@ -173,13 +173,21 @@ fills a hole like that one from dated requests, once, as the ad-hoc class:
   Dedupe is string equality in an append-only store, so a clock that moved would append
   every minute again for good. The bytes stay spent; nothing is written. A foreign date
   shape or an over-full day belongs to the endpoint and stops the run at once. The price
-  and clock bounds stop it at their second symbol: one file can be its own (ZOUSX, a
-  thin contract, trips the clock bound on ordinary days), and a 24-hour market's file
-  holds every time of day, so a shifted session shows there only as other prices on a
-  partly held day. A failed ledger write on a refusal fails the run. Recovered lines take
+  and clock bounds stop it at their second symbol: one file can be its own, and a
+  24-hour market's file holds every time of day, so a shifted session shows there only
+  as other prices on a partly held day. A disputed scout is settled by the next symbol
+  alone, before the pool opens; inside the pool the workers already in flight finish,
+  so a dispute first met there costs up to `--concurrency` symbols. A failed ledger write on a refusal fails the run. Recovered lines take
   the bank's own key order. A window across a US daylight-saving change shifts an equity
   session by an hour and trips the second bound, so recover each side of the change
   separately.
+
+ZOUSX is expected to refuse on the clock bound, and its share of a hole stays open. Its
+file had held 1,618 minutes at 561 distinct times of day by 2026-09-03, and its trades
+still land at new ones: replayed against the bank's own 09-12..09-20, 59 of 508 minutes
+fell at never-held times, scattered across the day, where a moved clock would shift
+one edge of a session. It was the only one of 100 symbols to trip. A run that refuses
+ZOUSX alone exits 1 with everything else recovered; read the `refused` column.
 
 Its sidecar record is `recovered <from>..<to>`. The high-water mark, first date and
 recent keys stay the scheduled bank's.

@@ -604,6 +604,15 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
       );
     }
   }
+  // A disputed scout may be its own file or the endpoint's. The next symbol
+  // that asks settles it alone, before the pool opens: in the pool the workers
+  // already in flight would each buy their whole window before a second
+  // dispute could stop them.
+  while (ctx.disputed.length > 0 && !ctx.stop && next < order.length) {
+    const item = order[next++];
+    tallies.push(await recoverOne(ctx, item.symbol, item.store, plan));
+    if (asks(item)) break;
+  }
   const workers = Array.from({ length: plan.concurrency }, async () => {
     while (next < order.length && !ctx.stop) {
       const { symbol, store } = order[next++];

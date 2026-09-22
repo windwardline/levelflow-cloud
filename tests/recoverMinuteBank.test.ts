@@ -377,7 +377,6 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
     const gbp = bank(state, "GBPUSD", session);
     const other = bank(state, "USDJPY", session);
     const result = await recover({
-      argv: [...WINDOW, "--concurrency", "1"],
       provider: (_symbol, date) => new Response(JSON.stringify(shifted(date))),
       state,
     });
@@ -434,7 +433,6 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
     const before = readFileSync(eur.file, "utf8");
     const late = (date: string) => Array.from({ length: 390 }, (_, i) => bar(`${date} ${hhmm(10 * 60 + 30 + i)}`, 2));
     const result = await recover({
-      argv: [...WINDOW, "--concurrency", "1"],
       provider: (_symbol, date) => new Response(JSON.stringify(late(date))),
       state,
     });
@@ -458,7 +456,6 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
     for (const symbol of ["EURUSD", "GBPUSD", "USDJPY"]) bank(state, symbol, held);
     const late = (date: string) => allDay(date).map((key) => bar(key, 2));
     const result = await recover({
-      argv: [...WINDOW, "--concurrency", "1"],
       provider: (_symbol, date) => new Response(JSON.stringify(late(date))),
       state,
     });
