@@ -17,6 +17,8 @@ import {
 import { gradeCorpus, projectArm } from "../scripts/grid-totalr.ts";
 import { ARM_COLUMNS, type SweepEmitRow } from "../scripts/sweepStats.ts";
 import { SEALED_FOLD } from "../scripts/tuning-folds-summary.ts";
+import { declareRepositoryLedgerCensus } from "./support/repositoryLedger.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 /**
  * The two graders of the arming-bound arm, on a corpus whose every figure is
@@ -282,8 +284,19 @@ describe("grid-totalr --r-arm — the gate reads the named convention", () => {
       gradeCorpus(bare, { includeHoldout: true, permutations: 20, rArm: "bound" }),
       /does not carry armingBoundRealizedR/,
     );
+    // The arm refusal fires before the ledger block, so this read writes
+    // nothing today — but it is the only confirmFinal call in the suite that
+    // relied on a refusal's POSITION to stay out of the repository's confirm
+    // record. It takes a scratch repositoryLedgerDir anyway, and the census
+    // at the foot of this file proves the record was untouched either way.
     await assert.rejects(
-      gradeCorpus(writeCorpus(fixtureRows(), { feedCharacter: null }), { confirmFinal: true, includeHoldout: true, permutations: 20, rArm: "bound" }),
+      gradeCorpus(writeCorpus(fixtureRows(), { feedCharacter: null }), {
+        confirmFinal: true,
+        includeHoldout: true,
+        permutations: 20,
+        rArm: "bound",
+        repositoryLedgerDir: scratchDir("arming-bound-repository-"),
+      }),
       /--r-arm bound with --confirm-final: the ledger records no arm/,
     );
   });
@@ -300,3 +313,9 @@ describe("grid-totalr --r-arm — the gate reads the named convention", () => {
     );
   });
 });
+
+// Declared LAST so it runs after every other test in this file. This file
+// drives gradeCorpus with --confirm-final, so it declares the same census
+// tests/acceptanceGate.test.ts does: the repository's confirm record must
+// list identically at the end of the file and at its start.
+declareRepositoryLedgerCensus();

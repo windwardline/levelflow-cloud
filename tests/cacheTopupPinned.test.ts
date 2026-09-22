@@ -4,6 +4,7 @@ import {
   cpSync,
   existsSync,
   lstatSync,
+  mkdirSync,
 readFileSync,
   readlinkSync,
 } from "node:fs";
@@ -25,8 +26,8 @@ import { scratchDir } from "./support/scratchDir.ts";
  * the script `cd`s into its own tree — under `wl-repo-script` a temp tree with
  * no cache in it. `--warm-only --days max` against an empty cache warms the
  * roster from nothing: the scenario this script's own comment records as
- * having "spent a 150 GB allowance in days". The 2 GiB ceiling would stop it
- * — at 2 GiB, every night, into a directory deleted on exit, logged as
+ * having "spent a 150 GB allowance in days". The class ceiling would stop it
+ * — at 256 MiB, every night, into a directory deleted on exit, logged as
  * "top-up complete". And `replay-sweep.ts` carried the entry guard that never
  * matches under `/var/folders`, so the sweep might instead have done nothing
  * at all and exited 0. One defect spends, the other hides; both are closed.
@@ -157,6 +158,35 @@ describe("a run from the extracted tree uses the checkout's toolchain", () => {
     assert.notEqual(r.code, 0, r.out);
     assert.match(r.out, /--anchor must be YYYY-MM-DD/, "main never ran");
     assert.doesNotMatch(r.out, /Cannot find (module|package)|ERR_MODULE_NOT_FOUND/);
+  });
+});
+
+describe("the run gate skips a covered login from the extracted tree", () => {
+  it("reads the checkout's marker, and skips before the keychain", () => {
+    // The marker is written by the gate's own --record-clean, as the wrapper
+    // writes it, into the CHECKOUT named by LEVELFLOW_CHECKOUT. A gate reading
+    // the extracted tree would never find it and every login would run again.
+    const tree = extractedTree();
+    execFileSync("ln", ["-s", join(REPO, "node_modules"), join(tree, "node_modules")]);
+    const checkout = scratchDir("gate-checkout-");
+    mkdirSync(join(checkout, ".calibration-cache"));
+    const daily = () =>
+      run("bash", [join(tree, DAILY)], { LEVELFLOW_CACHE_DIR: undefined, LEVELFLOW_CHECKOUT: checkout });
+    const unmarked = daily();
+    assert.notEqual(unmarked.code, 0, unmarked.out);
+    assert.match(unmarked.out, /reason=noCleanRun/);
+    assert.match(unmarked.out, /under the temporary root/);
+    const recorded = run(
+      join(tree, "node_modules", ".bin", "tsx"),
+      [join(tree, "scripts/fmpRunGate.ts"), "--job", "cache-topup", "--dir", join(checkout, ".calibration-cache"), "--record-clean"],
+      { LEVELFLOW_CHECKOUT: checkout },
+      tree,
+    );
+    assert.equal(recorded.code, 0, recorded.out);
+    const marked = daily();
+    assert.equal(marked.code, 0, marked.out);
+    assert.match(marked.out, /top-up skipped by the run gate/);
+    assert.doesNotMatch(marked.out, /under the temporary root|keychain|top-up starting/);
   });
 });
 

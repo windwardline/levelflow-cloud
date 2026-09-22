@@ -22,6 +22,11 @@ import { scratchDir } from "./scratchDir.ts";
 let stubDir: string | undefined;
 
 export function noKeychainEnv(): { PATH: string } {
+  return { PATH: `${noKeychainBin()}:${process.env.PATH ?? ""}` };
+}
+
+/** The directory holding the refusing stub, for a test that builds its own PATH. */
+export function noKeychainBin(): string {
   if (!stubDir) {
     stubDir = scratchDir("no-keychain-");
     const stub = join(stubDir, "security");
@@ -31,5 +36,5 @@ export function noKeychainEnv(): { PATH: string } {
     );
     chmodSync(stub, 0o755);
   }
-  return { PATH: `${stubDir}:${process.env.PATH ?? ""}` };
+  return stubDir;
 }

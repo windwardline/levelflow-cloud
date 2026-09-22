@@ -32,6 +32,34 @@ coverage question closed, and the desk went dark on purpose.
 
 ## 1. Where things actually stand
 
+### 2026-09-21: FMP spend closed at both ends, backups out of the home folder — and what the next session picks up
+
+**Landed today, merged and deployed where that applies.**
+- **#657** — the two refuted designs recovered into `docs/research/designs/`; the act-3 read's arms sealed by `tests/sealedArmsUnchanged.test.ts`.
+- **#668** — the Edge refuses user-class FMP spend while `DESK_PARKED` is true (amendment 47). Every Edge fetch site takes a permit only `mayFetch` mints; the ledger fails closed; a refusal is a 503 built only by `fmpSpendRefusalBody` and carries no account-wide figure. The deploy scope reads parking before the base. Deploy run green; live `GET /functions/v1/news-calendar` without a token answers 401.
+- **#669** — the script-side governor: one append-only ledger keyed by consumer in `.fmp-state/`, the bank's 333,333,333 B daily reserve, a breaker event log, a run gate that skips a login run duplicating a clean one, and `probe-minute-bars.ts --symbol --from --to` for one governed 1-minute question. Seven design decisions recorded under the standing approval; the eighth, whether `--daily-ceiling` needs a dated approval label, is the owner's.
+- **#671** — minute-bank snapshots live in `~/.local/share/levelflow-cloud/minute-bank-snapshots/`, one daily plus the protected `20260823`, the prune only behind a verified push and parity. §6b-1 **I** and **J** raised.
+- **#672** — no test writes into `docs/research/confirm-reads/` any more; the two exemptions that lived with those writers are gone.
+- **#674** — the off-box token refusal is proven from a directory outside every temp root; the suite is 4052/0 from a temp-rooted copy.
+- **ops#139** — `home-tidy-check.sh` runs daily and fails naming any undeclared entry at the top of `$HOME`; `~/AGENTS.md` carries the rule; `guardrail-drift.sh` watches `~/AGENTS.md`.
+
+**Machine state.** Home folder clean (13 declared entries). In the Trash, for the owner to empty: thirteen redundant minute-bank dailies (each verified in R2), `~/Developer` (an orphaned Gemini CLI backup holding `oauth_creds.json`), `AGENTS.md.bak-20260721-122130`, a Supabase CLI `.temp`. `~/.local/share/levelflow-cloud/archives/` holds the two cache archives (condemned, 313 files; v3-preDateFix, 311 files, the only copy of 10,850 rows the rebuild never recovered) and the August rebuild logs, **not yet in R2**. Bucket `windwardline-archives` exists (2026-09-21T22:13Z, ENAM, no expiry) **with no lock yet**. FMP spent 412,641,447 B on 2026-09-21 from login-duplicate runs; #669's run gate is the fix, and its first real test is the next natural slot. The minute bank has a hole from the 2026-09-04→09-14 suspension: 09-04..09-10 missing, 09-03 and 09-11 partial, about a million bars.
+
+**Immediate next steps, in order.**
+1. **#673 and windwardline#117 are open and held.** #673's review found four defects in `push-archive-offbox.sh`, and the bucket lock makes any of them permanent: (1) it uploads before it proves, so a failed proof leaves an unprovable object at a write-once key — prove locally (extract `$ARCHIVE`, `diff -rq` against the source) before `copyto --immutable`, keep the remote md5 check; (2) re-proving an existing archive costs a full recompression; (3) the write-once half of the derived guard reads physical lines and has no floor, so it can govern zero files; (4) no free-space check before writing. Fix all four in `/Users/peacock/Projects/.lf-archives-wt` (branch `feat/offbox-archives`), re-review, merge both PRs, then run the three pushes in the branch's `docs/offbox-archives.md` runbook, record each row with its measured compressed size, set the bucket's indefinite lock, and only then move each local archive to the Trash.
+2. **Watch #669's first natural slots** (top-up 07:00, bank 07:20 and 19:20 local): a login duplicate prints the run gate's skip line, `.fmp-state/usage/` grows by one day's spend, and the day total falls from 2026-09-21's 412 MB. The installed plists still carry the old comments; their schedules match the tracked ones. Copy them into `~/Library/LaunchAgents/` without a reload, because a reload fires a run.
+3. **E3, approved:** one probe, EURUSD and BTCUSD, `from=to=2026-09-08`, through `probe-minute-bars.ts`. If dated 1-minute bars are served, recover the suspension hole in one governed run under the 256 MiB ad-hoc day; if not, record the hole as permanent.
+4. **The 4d flag law** (`fix/4d-unknown-flags`, worktree `/Users/peacock/Projects/.lf-4dflags-wt`): one unknown-flag refusal in `scripts/flagReader.ts` for confirm-4d, derive-4d and grid-totalr, and confirm-4d validates every corpus before any write. Implementation, review and a repair pass ran on 2026-09-21; the branch was rebased onto `cead1fb`. Open its PR once the repair's own gates pass on the branch head.
+5. **Item J:** `scripts/ops/verify-minute-bank-restore.sh`, weekly, the Postgres shape.
+6. **Amendment 48:** record amendment 46's parameters as law under the standing approval — design record `amendment-46-parameters-2026-09-21.md` in the session artifacts — stating the per-market reading of "one capped total alpha" as the reading taken.
+7. The regrade build and the FMP records change set, both designed (session artifacts `regrade-design-revised-2026-09-16.md`, `fmp-plan-2026-09-16.md`).
+
+**Owner only.** Revoke the Gemini CLI's Google OAuth grant (myaccount.google.com → Security → Third-party access). Empty the Trash. Read the FMP dashboard (ceiling, boost billing, trailing-30) and refresh the expired population attestation. Say whether `--daily-ceiling` must carry a dated approval label.
+
+**Carried minors.** #657: a stamped freeze's message should say "never re-run the freeze", and the twelve stdout twins need their own `SealedAs` kind. #671: the §6b-1 preamble should list I and J among the marker-less items, and `docs/minute-bank.md` should give the manual restore sequence beside J. #674: a test that makes a real directory outside every temp root should do it under `~/.cache` by a shared helper, and nothing pins that yet.
+
+Session artifacts, outside the reaped scratchpad: `~/Library/Application Support/WindwardLineToolchain/levelflow/session-artifacts-2026-09-16/`.
+
 ### Designs that survived refutation live in the repository, not in a scratchpad
 
 The session scratchpad under `/private/tmp` was reaped by the operating system between
@@ -322,6 +350,31 @@ and will not start without it** (#347) — see §4's 4c note. `market-data` retu
 named condition, which repaired a deploy gate that had been red since 2026-08-13
 for a non-regression. The E2E run also prints every stood-down test and its
 reason, and refuses an unexplained skip (#348).
+
+**The script-side governor (branch `fix/fmp-script-governor`, 2026-09-21).**
+The scripts' state lives in the checkout's `.fmp-state/`: a byte ledger keyed
+by consumer, the breaker's event log and the run gate's markers. Every writer
+appends one line; `.fmp-usage.json` and `.fmp-circuit.json` are read as history
+and never written. The top-up and ad-hoc classes each get 256 MiB a UTC day,
+from a pool that reserves 333,333,333 bytes for the minute bank. An ad-hoc
+`--byte-budget` above 256 MiB is refused at the command line unless the owner's
+`--daily-ceiling` raises that run's share. The bank is never refused at a door:
+it stops starting symbols at 512 MiB a run and alarms when its day passes 512
+MiB. The breaker keys an entitlement refusal by endpoint, and bandwidth or
+suspension by account; a rejected key goes red without opening it, and the
+breaker's read drops one from the legacy marker or a hand-edited log line
+alike. The top-up stands down green
+only when the run's one terminal token is
+`fmpStandDown: kind=bandwidth` or `cacheStandDown: kind=clockMismatch`, and
+every other refusal is red.
+
+**The run gate.** `scripts/fmpRunGate.ts` skips a login run only when a clean
+run finished at or after the most recent scheduled slot, and runs the job on
+anything it cannot read. Each marker names its store, the bank's directory or
+the top-up's cache, and a marker for any other store runs the job. Replayed
+over the logged starts from 09-14 to 09-21, it skips 6 of 18 bank starts and 6
+of 14 top-up starts, none of them at a slot. `docs/minute-bank.md` carries the
+bank's side, including where the gate sits.
 
 **Phases 2–3 are parked deliberately** until FMP recovers: a byte-metering proxy
 cannot be validated with no bytes flowing. Until Phase 3 completes the guarantee
@@ -1013,8 +1066,10 @@ read a corpus built under different calibration.
 
 **`--byte-budget` is now required and the sweep will not start without it**
 (§21j Phase 1, after the 2026-08-13 blackout). Declare a ceiling in bytes or
-with a `gb` suffix — `--byte-budget 20gb` — and the run halts the moment its
-measured payload crosses it. FMP bills bytes over a trailing 30 days; the
+with a `gb` suffix and the run halts the moment its measured payload crosses
+it. Since the script-side governor, a budget above the ad-hoc class's 256 MiB
+day share also needs the owner's raise for that run: `--byte-budget 20gb
+--daily-ceiling 20gb`. FMP bills bytes over a trailing 30 days; the
 sweeps spent a 150 GB allowance in days, and every day the minute bank stayed
 dark after that was a day of permanently unrecoverable 1-minute history. Size
 the ceiling deliberately before a long sweep. Raising it is a decision; there
@@ -3097,7 +3152,9 @@ remedies for the other two walls are both wrong for a suspension.
 
 **Note:** `.fmp-circuit.json` is gitignored local state. The stale
 "Restricted Endpoint" it holds from 2026-09-04 is a machine condition, not a
-repo defect.
+repo defect. *(Superseded 2026-09-21: the breaker is an event log under
+`.fmp-state/breaker`, and `.fmp-circuit.json` is read as history and never
+written.)*
 
 ### ▶ RESUME HERE — 2026-09-04 05:00 UTC (the register moved twice; act 4 is refuted; a corpus was destroyed and is regenerating)
 
@@ -3417,7 +3474,10 @@ reading are tracked beside them. Full record:
   so the script's stand-down grep fell through to "no quota signal … a real
   failure" on every refused run since #493. The breaker's refusal now leads
   with `fmpCircuitOpen:` and the top-up stands down on it by name. The
-  minute-bank agent's own stand-down already exits 0.
+  minute-bank agent's own stand-down already exits 0. *(Superseded
+  2026-09-21: the top-up no longer stands down on `fmpCircuitOpen:`. A
+  refusal is red unless the run's one terminal token is `fmpStandDown:
+  kind=bandwidth` or `cacheStandDown: kind=clockMismatch`.)*
 - **Four hours passed between the arms ending (08:48Z) and the gate
   starting (12:56Z), unexplained.** Not sleep — `kern.sleeptime` is zero
   since boot and `pmset` logs none; the session simply did not resume. A
@@ -3477,7 +3537,9 @@ Executed so far, per `docs/cache-rebuild-r0.md`:
   with its `INVALID-READ-ME.txt` and the `cot-*.json` files. Since
   2026-09-21 it is at `~/.local/share/levelflow-cloud/archives/levelflow-cache-condemned-2026-08-11`.
 - **Step 2 RUNNING**, `--symbols roster --days max --warm-only
-  --byte-budget 30gb`, under `caffeinate` so the machine cannot idle-sleep
+  --byte-budget 30gb` *(a re-run since 2026-09-21 also needs
+  `--daily-ceiling 30gb`; `docs/cache-rebuild-r0.md` carries the command)*,
+  under `caffeinate` so the machine cannot idle-sleep
   through it, with the key delivered by `wl-secret` at exec and never on
   argv. The economic calendar (75,206 events) and the Treasury curve (853
   rows) both loaded — the two instant-death hazards the runbook names —

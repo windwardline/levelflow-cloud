@@ -258,19 +258,19 @@ describe("every corpus reader refuses a run that names no corpus", () => {
   const DEFINES_THE_DOOR = "scripts/sweepStats.ts";
   const repoRoot = process.cwd();
 
-  // The tree as git sees it, minus the one directory a CONCURRENT test
-  // file legitimately writes to: tests/acceptanceGate.test.ts drives the
-  // LA-6 ledger through docs/research/confirm-reads/ and cleans up after
-  // itself, but node:test runs files in parallel, so its fixture can be
-  // on disk while this scan samples. Nothing here can write there — a
-  // ledger line is only appended on a confirm READ, which needs a corpus.
+  // The tree as git sees it, whole. Until 2026-09-21 this filtered out
+  // docs/research/confirm-reads/, because tests/acceptanceGate.test.ts
+  // wrote fixture ledgers there while files ran in parallel. Those tests
+  // now drive the ledger through an injected scratch directory, and
+  // acceptanceGate checks the tracked directory is untouched across its
+  // run, so no concurrent file writes into the tree and nothing is exempt.
   const trackedState = () =>
     execFileSync("git", ["status", "--porcelain"], {
       cwd: repoRoot,
       encoding: "utf8",
     })
       .split("\n")
-      .filter((line) => line.trim() && !line.includes("docs/research/confirm-reads/"))
+      .filter((line) => line.trim())
       .sort()
       .join("\n");
 

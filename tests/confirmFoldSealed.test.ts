@@ -644,12 +644,30 @@ function codeOf(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 }
 
-function population(): string[] {
+// Scripts the door scan finds that read no corpus at all, each with its reason
+// (the same file carries the same reason in tests/sweepStats.test.ts's door
+// census). An exemption rather than a variable name: fmpState stayed out of the
+// population only because its loop variable was not called `line`, so the next
+// rename would have pulled it in for a reason nobody could see. Checked below:
+// an exemption the scan no longer finds is stale, and an exempt file that
+// reaches the door or names an outcome column is a reader after all.
+const NOT_A_FOLD_READER: Record<string, string> = {
+  fmpState:
+    "reads the FMP governor's own state logs under .fmp-state/ — byte records " +
+    "and breaker events this machine appended; it opens no corpus, has no " +
+    "manifest for the door to judge, and names no outcome column",
+};
+
+function scanned(): string[] {
   return readdirSync(join(REPO, "scripts"))
     .filter((name) => name.endsWith(".ts") && name !== DEFINES_THE_DOOR)
     .filter((name) => DOOR.test(codeOf(readFileSync(join(REPO, "scripts", name), "utf8"))))
     .map((name) => name.replace(/\.ts$/, ""))
     .sort();
+}
+
+function population(): string[] {
+  return scanned().filter((name) => !(name in NOT_A_FOLD_READER));
 }
 
 type Surface = { lines: string[]; name: string };
@@ -802,6 +820,16 @@ describe("the confirm fold is sealed: no reader's output moves with it", () => {
     assert.deepEqual(uncovered, [], `readers without an entry: ${uncovered.join(", ")}`);
     assert.deepEqual(stale, [], `entries without a reader: ${stale.join(", ")}`);
     assert.ok(readers.length >= 16, `population ${readers.length} — the door scan found too few readers`);
+  });
+
+  it("exempts only what the scan finds, and only what reads no corpus", () => {
+    const found = scanned();
+    for (const name of Object.keys(NOT_A_FOLD_READER)) {
+      assert.ok(found.includes(name), `${name} is exempted but the door scan no longer finds it`);
+      const source = codeOf(readFileSync(join(REPO, "scripts", `${name}.ts`), "utf8"));
+      assert.doesNotMatch(source, /assertManifest|sweepStats|createInterface\(|readLinesSync\(/, `${name} reaches the corpus door`);
+      assert.doesNotMatch(source, /\b(outcome|realizedR|grossRealizedR|tp1Hit|exitAtMs|filledAtMs)\b/, `${name} names an outcome column`);
+    }
   });
 
   it("no reader outside the burner declares a flag or a door option that names the fold", () => {

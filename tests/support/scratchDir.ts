@@ -1,6 +1,7 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 /**
  * A temporary directory that is removed when the test process exits.
@@ -23,6 +24,24 @@ const made: string[] = [];
 
 export function scratchDir(prefix: string): string {
   const dir = mkdtempSync(join(tmpdir(), prefix));
+  made.push(dir);
+  return dir;
+}
+
+/**
+ * A scratch directory OUTSIDE every temporary root, removed at exit like the
+ * rest: under this checkout's `node_modules/.cache`, which git ignores.
+ *
+ * The daily scripts refuse a store under a temporary root, their own barrier
+ * against a test spending FMP bandwidth. A test that drives a wrapper past that
+ * refusal therefore needs its store here, and ONLY a test whose driver and
+ * keychain are both stubs may use it: this directory defeats that barrier by
+ * design, so the stubs are what keep such a test off the provider.
+ */
+export function durableScratchDir(prefix: string): string {
+  const parent = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "node_modules", ".cache", "levelflow-test-scratch");
+  mkdirSync(parent, { recursive: true });
+  const dir = mkdtempSync(join(parent, prefix));
   made.push(dir);
   return dir;
 }

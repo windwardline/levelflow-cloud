@@ -510,7 +510,7 @@ describe("a budget refusal is final, a truncated body is not", () => {
     const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
     assert.match(
       driver,
-      /isRetryableError:[\s\S]{0,120}ByteBudgetExceededError/,
+      /isRetryableError:[\s\S]{0,120}SpendRefusedError/,
       "the sweep driver no longer calls a budget refusal final",
     );
   });

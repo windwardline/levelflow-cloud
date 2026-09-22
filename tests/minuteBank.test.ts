@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync,
+} from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import {
   bankableSymbols,
@@ -10,10 +17,16 @@ import {
   isRetryable,
   orphanedSidecars,
   planRun,
+  runBank,
   usableBar,
   withRetry,
 } from "../scripts/bank-minute-bars.ts";
+import { openCircuit, readBreaker } from "../scripts/fmpCircuit.ts";
+import { readDay, recordUsage } from "../scripts/fmpGovernor.ts";
+import type { FmpStatePaths } from "../scripts/fmpState.ts";
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
+import { BODIES, INVALID_KEY_BODY_PREFIX, tempState } from "./fixtures/fmpTestState.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 // The bank is append-only against a provider window three days wide, so a bar
 // banked wrong is banked wrong forever and a bar missed is missed forever.
@@ -266,6 +279,19 @@ describe("minute bank — which failures are worth retrying", () => {
     assert.equal(isRetryable(new Error("HTTP 403")), false);
     assert.equal(isRetryable(new Error("HTTP 404")), false);
   });
+
+  it("reads the status even when the provider's body follows it", () => {
+    // Since #493 the bank throws the body after the status. The old
+    // `/^HTTP (\d{3})$/` then matched nothing, so a suspension and a rejected
+    // key both read as "no status" and were retried five times each.
+    assert.equal(isRetryable(new Error(BODIES.suspended)), false);
+    assert.equal(isRetryable(new Error(`HTTP 401 ${INVALID_KEY_BODY_PREFIX}`)), false);
+    assert.equal(isRetryable(new Error(BODIES.restricted)), false);
+    assert.equal(isRetryable(new Error('HTTP 429 {"Error Message": "slow down"}')), true);
+    assert.equal(isRetryable(new Error("HTTP 503 <html>unavailable</html>")), true);
+    assert.equal(isRetryable(new Error("HTTP 429")), true);
+    assert.equal(isRetryable(new TypeError("fetch failed")), true);
+  });
 });
 
 describe("minute bank — retrying a fetch", () => {
@@ -410,7 +436,7 @@ describe("a refusing provider costs one symbol, not the roster", () => {
 
   it("stands down before the rest of the roster when the scout fetches nothing", () => {
     const at = SOURCE.indexOf("const scout = targets[index++];");
-    const body = SOURCE.slice(at, at + 1400);
+    const body = SOURCE.slice(at, at + 2400);
     assert.match(
       body,
       /if \(result\.fetched === 0\) \{/,
@@ -418,9 +444,12 @@ describe("a refusing provider costs one symbol, not the roster", () => {
     );
     assert.match(
       body,
-      /process\.exitCode = 1;\s*\n\s*return;/,
+      /symbol's full window\.`,\s*\n\s*\);\s*\n\s*return 1;/,
       "the run continues into the remaining symbols after the scout failed",
     );
+    const remedy = SOURCE.slice(SOURCE.indexOf("function standDownRemedy"));
+    assert.match(remedy, /case "suspended":/);
+    assert.match(remedy, /case "invalidKey":/);
   });
 
   it("says what it did not attempt, and that recovery needs no catch-up", () => {
@@ -479,11 +508,296 @@ describe("a refusing provider costs one symbol, not the roster", () => {
   });
 });
 
+/**
+ * The bank run, executed against stubbed fetch and temporary state.
+ *
+ * §21c: the bank "cannot be refused", and §21g: "a proxy outage must never be
+ * able to cost minute bars". So the bank never consults the shared breaker —
+ * its first symbol is its own probe — and it never asks the ledger for room.
+ * It reports what it learns, bounds each run, and tells the run gate only
+ * when a whole roster banked clean into the one real store.
+ */
+describe("minute bank — the run, end to end against a stubbed provider", () => {
+  const AT = Date.parse("2026-09-16T23:20:05Z");
+  const MIN1 = "/stable/historical-chart/1min";
+  const ROSTER = bankableSymbols().length;
+  const BAR_BODY = JSON.stringify([
+    { close: 1.5, date: "2026-09-16 09:30:00", high: 2, low: 0.5, open: 1, volume: 1 },
+    { close: 1.6, date: "2026-09-16 09:31:00", high: 2, low: 0.5, open: 1, volume: 1 },
+  ]);
+  const SUSPENDED_BODY = BODIES.suspended.slice(BODIES.suspended.indexOf("{"));
+  const RESTRICTED_BODY = BODIES.restricted.slice("HTTP 402 ".length);
+
+  type Responder = (symbol: string, call: number) => Response;
+
+  async function run(options: {
+    argv?: string[];
+    dir?: string;
+    respond?: Responder;
+    runBoundBytes?: number;
+    state?: FmpStatePaths;
+  } = {}) {
+    const state = options.state ?? tempState();
+    const dir = options.dir ?? state.canonicalBankDir;
+    mkdirSync(dir, { recursive: true });
+    const symbols: string[] = [];
+    const out: string[] = [];
+    const sleeps: number[] = [];
+    const code = await runBank({
+      argv: ["--dir", dir, ...(options.argv ?? [])],
+      fetch: (input) => {
+        const url = new URL(String(input));
+        assert.equal(url.pathname, MIN1);
+        symbols.push(url.searchParams.get("symbol") ?? "");
+        const respond = options.respond ?? (() => new Response(BAR_BODY));
+        return Promise.resolve(respond(url.searchParams.get("symbol") ?? "", symbols.length));
+      },
+      key: "test-key",
+      now: () => AT,
+      print: { err: (line) => out.push(line), out: (line) => out.push(line) },
+      sleep: (ms) => {
+        sleeps.push(ms);
+        return Promise.resolve();
+      },
+      state,
+      ...(options.runBoundBytes === undefined ? {} : { runBoundBytes: options.runBoundBytes }),
+    });
+    return { code, dir, output: out.join("\n"), sleeps, state, symbols };
+  }
+
+  const breakerEvents = (state: FmpStatePaths) =>
+    existsSync(state.breakerDir)
+      ? readdirSync(state.breakerDir).flatMap((name) =>
+        readFileSync(join(state.breakerDir, name), "utf8")
+          .split("\n")
+          .filter((line) => line.trim() !== "")
+          .map((line) => JSON.parse(line) as Record<string, unknown>)
+      )
+      : [];
+  const markerPath = (state: FmpStatePaths) => join(state.runsDir, "minute-bank.json");
+
+  it("spends its scout through an open breaker and closes it on an answer", async () => {
+    const state = tempState();
+    openCircuit({ atMs: AT - 60_000, consumer: "topup", endpointPath: "/stable/historical-chart/5min", kind: "bandwidth", reason: BODIES.bandwidth }, state);
+    const result = await run({ argv: ["--limit", "1"], state });
+    assert.equal(result.symbols.length, 1);
+    assert.equal(result.code, 0);
+    const read = readBreaker(AT + 1, state);
+    assert.ok(read.ok);
+    assert.deepEqual(read.entries.map((entry) => [entry.key, entry.open]), [["account", false]]);
+  });
+
+  it("stands down red on a scout 402 and records it against the 1-minute endpoint", async () => {
+    const result = await run({ respond: () => new Response(RESTRICTED_BODY, { status: 402 }) });
+    assert.equal(result.code, 1);
+    assert.equal(result.symbols.length, 1);
+    const refused = breakerEvents(result.state).filter((event) => event.t === "refused");
+    assert.deepEqual(refused.map((event) => [event.key, event.kind]), [[MIN1, "entitlement"]]);
+    const sidecars = readdirSync(result.dir).filter((name) => name.endsWith(".state.json"));
+    assert.deepEqual(sidecars, [`${encodeURIComponent(bankableSymbols()[0].fmpSymbol)}.state.json`]);
+  });
+
+  it("asks once on a rejected key, opens nothing, and names the Keychain item", async () => {
+    const result = await run({ respond: () => new Response(INVALID_KEY_BODY_PREFIX, { status: 401 }) });
+    assert.equal(result.code, 1);
+    assert.equal(result.symbols.length, 1);
+    assert.deepEqual(result.sleeps, []);
+    assert.deepEqual(breakerEvents(result.state), []);
+    assert.doesNotMatch(result.output, /fmpBookkeepingFailed/, "a rejected key never reaches the breaker at all");
+    assert.match(result.output, /fmp-api-key/);
+  });
+
+  it("names the owner as the only remedy for a suspension", async () => {
+    const result = await run({ respond: () => new Response(SUSPENDED_BODY, { status: 403 }) });
+    assert.equal(result.code, 1);
+    assert.equal(result.symbols.length, 1);
+    assert.match(result.output, /nothing clears it but the owner/);
+    assert.doesNotMatch(result.output, /did not match a known wall/);
+  });
+
+  it("does not report a mid-roster refusal to the shared breaker", async () => {
+    const result = await run({
+      argv: ["--concurrency", "1"],
+      respond: (_symbol, call) =>
+        call === 3 ? new Response(RESTRICTED_BODY, { status: 402 }) : new Response(BAR_BODY),
+    });
+    assert.equal(result.code, 0, "a partial loss still exits 0; the watcher owns it");
+    assert.deepEqual(breakerEvents(result.state).filter((event) => event.t === "refused"), []);
+    assert.equal(existsSync(markerPath(result.state)), false, "a partial run is not clean");
+  });
+
+  it("bounds a run and leaves the rest unattempted, whatever the ledger says", async () => {
+    const state = tempState();
+    recordUsage({ atMs: AT, bytes: 600 * 1024 * 1024, consumer: "adhoc", label: "seeded" }, state);
+    const padded = BAR_BODY.padEnd(300, " ");
+    assert.equal(Buffer.byteLength(padded), 300);
+    const result = await run({
+      argv: ["--concurrency", "1"],
+      respond: () => new Response(padded),
+      runBoundBytes: 1_000,
+      state,
+    });
+    assert.equal(result.symbols.length, 4);
+    assert.equal(result.code, 1);
+    assert.match(result.output, /runBoundReached/);
+    assert.match(result.output, new RegExp(`\\b${ROSTER - 4}\\b`));
+    assert.equal(readdirSync(result.dir).filter((name) => name.endsWith(".state.json")).length, 4);
+    assert.equal(existsSync(markerPath(state)), false);
+  });
+
+  it("marks a clean full roster into the canonical store, and nothing less", async () => {
+    const clean = await run();
+    assert.equal(clean.code, 0, clean.output);
+    const marker = JSON.parse(readFileSync(markerPath(clean.state), "utf8")) as { atMs: number; dir: string };
+    assert.equal(marker.dir, realpathSync(clean.dir));
+    assert.equal(marker.atMs, AT);
+    const usage = readFileSync(join(clean.state.usageDir, "2026-09-16.jsonl"), "utf8")
+      .split("\n")
+      .filter((line) => line.includes('"consumer":"bank"'));
+    assert.equal(usage.length, ROSTER);
+
+    const limited = await run({ argv: ["--limit", "5"] });
+    assert.equal(existsSync(markerPath(limited.state)), false, "a limited run is not the roster");
+
+    const failedOne = await run({
+      respond: (symbol) =>
+        symbol === bankableSymbols()[10].fmpSymbol ? new Response("", { status: 500 }) : new Response(BAR_BODY),
+    });
+    assert.equal(failedOne.code, 0);
+    assert.equal(existsSync(markerPath(failedOne.state)), false, "a symbol that failed is not clean");
+
+    const elsewhere = tempState();
+    const other = await run({ dir: scratchDir("not-the-bank-"), state: elsewhere });
+    assert.equal(other.code, 0);
+    assert.equal(existsSync(markerPath(elsewhere)), false, "a copy of the store is not the store");
+  });
+
+  // An absent `.fmp-state/` is not an error: readDay reads a day of zeros,
+  // recordUsage creates the directory, and the end-of-run alarm compares
+  // against a day that is empty by construction. The governor refuses every
+  // other spender in such a tree; the bank cannot be refused (§21c), so it
+  // says so in one line and banks (review round 3, finding 4).
+  it("names a tree that has no ledger at all, and banks anyway", async () => {
+    const state = tempState({ sentinel: false });
+    const result = await run({ argv: ["--limit", "1"], state });
+    assert.equal(result.code, 0, result.output);
+    assert.equal(result.symbols.length, 1);
+    assert.ok(result.output.includes("bank proceeds (§21c): no FMP ledger at "), result.output);
+    assert.ok(result.output.includes(join(state.usageDir, "ledger.json")), result.output);
+    assert.equal(readdirSync(result.dir).filter((name) => name.endsWith(".jsonl")).length, 1);
+    // And the bank still never makes a scratch tree read as the machine's.
+    assert.equal(existsSync(join(state.usageDir, "ledger.json")), false);
+    // The first run made .fmp-state/usage/ and wrote no sentinel, so the next
+    // run from this tree is still a run from a tree with no ledger.
+    assert.ok(existsSync(state.usageDir));
+    const again = await run({ argv: ["--limit", "1"], state });
+    assert.equal(again.code, 0, again.output);
+    assert.ok(again.output.includes("bank proceeds (§21c): no FMP ledger at "), again.output);
+  });
+
+  it("says nothing about the ledger in a tree that has one", async () => {
+    const sentinel = await run({ argv: ["--limit", "1"] });
+    assert.doesNotMatch(sentinel.output, /no FMP ledger at/);
+    // The legacy ledger beside it is the evidence the governor adopts on.
+    const legacy = await run({ argv: ["--limit", "1"], state: tempState({ legacyUsage: {}, sentinel: false }) });
+    assert.equal(legacy.code, 0, legacy.output);
+    assert.doesNotMatch(legacy.output, /no FMP ledger at/, legacy.output);
+  });
+
+  it("keeps banking when the ledger cannot be written, and exits red", async () => {
+    const state = tempState({ sentinel: false });
+    mkdirSync(dirname(state.usageDir), { recursive: true });
+    writeFileSync(state.usageDir, "a file where the ledger directory belongs");
+    const result = await run({ state });
+    assert.equal(result.symbols.length, ROSTER, "a bookkeeping failure never re-issues a request");
+    assert.equal(result.code, 1);
+    assert.match(result.output, /fmpBookkeepingFailed: /);
+    const banked = readdirSync(result.dir).filter((name) => name.endsWith(".jsonl"));
+    assert.equal(banked.length, ROSTER);
+    assert.equal(existsSync(markerPath(state)), false, "a red run is not clean");
+  });
+
+  // A marker after a red run turned the next boot, kickstart or hand run into
+  // "skipped by the run gate" with exit 0, and launchd's last exit code for the
+  // job with it. The bars are banked either way; what the marker must not do is
+  // hide the red.
+  it("alarms when the bank's own day passes its run bound, and writes no clean-run marker", async () => {
+    const state = tempState();
+    recordUsage({ atMs: AT, bytes: 536_870_000, consumer: "bank", label: "seeded" }, state);
+    const result = await run({ state });
+    assert.equal(result.code, 1);
+    const day = readDay(AT, state);
+    assert.ok(day.ok);
+    assert.ok(result.output.includes(`spent ${day.day.bank} bytes today`), result.output);
+    assert.equal(existsSync(markerPath(state)), false, "a red run is not clean");
+  });
+
+  // Each reading is checked alone: the provider stub repairs or tears the
+  // legacy file mid-run, so only the reading that saw it torn can name it.
+  it("names a torn legacy ledger in the reading before it banks, and still banks", async () => {
+    const state = tempState({ legacyUsage: {} });
+    writeFileSync(state.legacyUsagePath, '{"2026-09-16": ');
+    const result = await run({
+      argv: ["--limit", "1"],
+      respond: () => {
+        writeFileSync(state.legacyUsagePath, "{}");
+        return new Response(BAR_BODY);
+      },
+      state,
+    });
+    assert.equal(result.symbols.length, 1);
+    assert.equal(result.code, 0, result.output);
+    assert.ok(result.output.includes(`fmpStateUnreadable: legacy ledger ${state.legacyUsagePath}: `), result.output);
+  });
+
+  it("names a legacy ledger torn during the run in the reading after it", async () => {
+    const state = tempState({ legacyUsage: {} });
+    const result = await run({
+      argv: ["--limit", "1"],
+      respond: () => {
+        writeFileSync(state.legacyUsagePath, '{"2026-09-16": ');
+        return new Response(BAR_BODY);
+      },
+      state,
+    });
+    assert.equal(result.symbols.length, 1);
+    assert.ok(result.output.includes(`fmpStateUnreadable: legacy ledger ${state.legacyUsagePath}: `), result.output);
+  });
+
+  it("exits red when the clean-run marker cannot be written", async () => {
+    const state = tempState();
+    mkdirSync(dirname(state.runsDir), { recursive: true });
+    writeFileSync(state.runsDir, "a file where the runs directory belongs");
+    const result = await run({ state });
+    assert.equal(result.code, 1);
+    assert.match(result.output, /fmpBookkeepingFailed: bank-minute-bars run marker: /);
+  });
+
+  // The contract #663 corrected, now executed: the provider omits a minute and
+  // serves it on a later call, and that later run appends it after the run's
+  // own newest bar. The file is append-ordered; nothing is duplicated or lost.
+  it("appends a late-served minute after the newest bar, once", async () => {
+    const state = tempState();
+    const bar = (minute: string) => ({ close: 1.5, date: `2026-09-16 09:${minute}:00`, high: 2, low: 0.5, open: 1, volume: 1 });
+    await run({ argv: ["--limit", "1"], respond: () => new Response(JSON.stringify([bar("32"), bar("30")])), state });
+    const second = await run({
+      argv: ["--limit", "1"],
+      respond: () => new Response(JSON.stringify([bar("32"), bar("31"), bar("30")])),
+      state,
+    });
+    assert.equal(second.code, 0, second.output);
+    const file = readdirSync(second.dir).find((name) => name.endsWith(".jsonl"))!;
+    const dates = readFileSync(join(second.dir, file), "utf8").trim().split("\n")
+      .map((line) => (JSON.parse(line) as { date: string }).date.slice(11, 16));
+    assert.deepEqual(dates, ["09:30", "09:32", "09:31"]);
+  });
+});
+
 describe("the bank's files are append-ordered, and say so", () => {
-  // PINNED IN SOURCE, with the limit stated: the per-symbol append is not
-  // exported and its fetch cannot be injected, so the late-fill ordering is
-  // measured on the real bank (docs/minute-bank.md, "Shape") rather than
-  // exercised here. What this holds is the CONTRACT. Until 2026-09-21 both
+  // PINNED IN SOURCE: what this holds is the CONTRACT the writer and the doc
+  // state. The late-fill ordering itself is measured on the real bank
+  // (docs/minute-bank.md, "Shape") and exercised against a stubbed provider in
+  // "appends a late-served minute after the newest bar, once". Until 2026-09-21 both
   // the doc and the writer promised chronological files while 76 of 100 were
   // not, and a reader building on that promise would have mis-ordered minutes.
   it("no longer promises a chronological file", () => {

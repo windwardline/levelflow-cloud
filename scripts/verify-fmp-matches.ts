@@ -18,12 +18,39 @@
  * Exit code is 1 when any served-or-visible row lapses — this is a gate, not
  * a report.
  */
+
 import { MASTER_LIST_ROWS, type MasterListRow } from "../src/lib/broker/masterList.ts";
-import { flagReader } from "./flagReader.ts";
-import { maySpend, noteRefusal, recordUsage } from "./fmpGovernor.ts";
+import { flagReader, OperatorInputError } from "./flagReader.ts";
+import {
+  type ByteBudget,
+  createByteBudget,
+  readJsonWithBudget,
+} from "./fmpByteBudget.ts";
+import { createProbeGate, type FetchLike } from "./fmpCircuit.ts";
+import {
+  bookkeepingRefusal,
+  CLASS_DAILY_CEILING_BYTES,
+  formatStandDown,
+  governedBudget,
+  maySpend,
+  providerRefusal,
+  rethrowIfFinal,
+  standDownFor,
+} from "./fmpGovernor.ts";
+import { defaultStatePaths, type FmpStatePaths } from "./fmpState.ts";
+import { isEntryPoint } from "./isEntryPoint.ts";
 
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
 const API_KEY = process.env.FMP_API_KEY;
+const LABEL = "verify-fmp-matches";
+
+// The machine's state, and the ad-hoc class's budget and probe-gated fetch,
+// all set in main(). The state is resolved there rather than as this module
+// loads, so a checkout that names nothing is refused in one line by main's
+// handler instead of killing module evaluation with a stack.
+let state: FmpStatePaths;
+let budget: ByteBudget = createByteBudget(CLASS_DAILY_CEILING_BYTES.adhoc);
+let providerFetch: FetchLike = fetch;
 
 /** A year of daily bars is the floor the calibration work assumes. */
 const MIN_DAILY_BARS = 250;
@@ -47,18 +74,21 @@ type Probe = {
 };
 
 async function fetchJson(url: URL): Promise<unknown> {
-  const response = await fetch(url, { headers: { accept: "application/json" } });
+  const response = await providerFetch(url, { headers: { accept: "application/json" } });
   if (!response.ok) {
     // The provider's own words reach the classifier, not just the status:
     // a bare `HTTP 429` cannot be told from the per-minute rate limit, and
     // the shared breaker would never open on the wall that matters.
-    const detail = await response.text().catch(() => "");
-    noteRefusal(detail, Date.now());
-    throw new Error(`HTTP ${response.status}${detail ? ` ${detail}` : ""}`);
+    throw await providerRefusal(response, {
+      atMs: Date.now(),
+      consumer: "adhoc",
+      endpointPath: url.pathname,
+      label: LABEL,
+      note: true,
+      state,
+    });
   }
-  const body = await response.text();
-  recordUsage(new TextEncoder().encode(body).length, Date.now());
-  return JSON.parse(body) as unknown;
+  return readJsonWithBudget(response, budget, url.pathname);
 }
 
 type EodBar = { date?: string; close?: number };
@@ -85,6 +115,7 @@ async function probe(row: MasterListRow): Promise<Probe> {
     const payload = await fetchJson(eod);
     daily = Array.isArray(payload) ? (payload as EodBar[]) : [];
   } catch (error) {
+    rethrowIfFinal(error);
     return {
       ...base,
       verdict: "lapse-no-data",
@@ -98,7 +129,10 @@ async function probe(row: MasterListRow): Promise<Probe> {
     chart.searchParams.set("apikey", API_KEY!);
     const payload = await fetchJson(chart);
     intraday = Array.isArray(payload) ? (payload as IntradayBar[]) : [];
-  } catch {
+  } catch (error) {
+    rethrowIfFinal(error);
+    // A refusal no later request clears ends the run above, so a bandwidth
+    // wall cannot be reported as a roster of lapses.
     // Intraday depth is reported, never a lapse on its own: the analyzer
     // resamples from whatever the primary timeframe returns.
     intraday = [];
@@ -182,6 +216,7 @@ async function reprobeUnmatched(rows: MasterListRow[]): Promise<void> {
       }
       console.log(`  ${path}: ${Array.isArray(payload) ? payload.length : 0} entries`);
     } catch (error) {
+      rethrowIfFinal(error);
       console.log(`  ${path}: FAILED (${(error as Error).message}) — this pass is incomplete`);
     }
   }
@@ -214,7 +249,8 @@ async function reprobeUnmatched(rows: MasterListRow[]): Promise<void> {
               (barCount === 0 ? "  (QUOTE ONLY, not analyzable)" : "  <-- CANDIDATE MATCH"),
           );
         }
-      } catch {
+      } catch (error) {
+        rethrowIfFinal(error);
         // A miss is the expected case; only hits are worth reporting.
       }
     }
@@ -246,6 +282,8 @@ async function main(): Promise<void> {
   // pre-flights for exactly this reason.
   const { str } = flagReader(process.argv, VALUE_FLAGS);
   const jsonPath = str("--json");
+  // The checkout before the key: both are the operator's to name.
+  state = defaultStatePaths();
   if (!API_KEY) {
     console.error("FMP_API_KEY is required.");
     process.exit(1);
@@ -256,13 +294,23 @@ async function main(): Promise<void> {
   // largest ad-hoc spender in the tree and had no guard of any kind.
   const gate = maySpend({
     atMs: Date.now(),
-    dailyLimitBytes: 256 * 1024 * 1024,
-    label: "verify-fmp-matches",
+    consumer: "adhoc",
+    label: LABEL,
+    requiredPaths: ["/stable/historical-price-eod/full", "/stable/historical-chart/15min"],
+    state,
   });
   if (!gate.allowed) {
     console.error(gate.reason);
+    console.error(formatStandDown(gate.kind, gate.source));
     process.exit(1);
   }
+  budget = governedBudget(createByteBudget(CLASS_DAILY_CEILING_BYTES.adhoc), {
+    consumer: "adhoc",
+    label: LABEL,
+    now: Date.now,
+    state,
+  });
+  providerFetch = createProbeGate(gate, { consumer: "adhoc", now: Date.now }, state).wrapFetch(fetch);
   const mapped = MASTER_LIST_ROWS.filter((row) => row.fmpSymbol !== null);
   const unmapped = MASTER_LIST_ROWS.filter((row) => row.fmpSymbol === null);
 
@@ -342,7 +390,22 @@ async function main(): Promise<void> {
   const servedLapse = lapses.some((entry) =>
     bySymbol.get(entry.fmpSymbol)!.some((row) => row.levelflowSymbol !== null),
   );
+  // A ledger or breaker write that failed inside a probe whose catch kept
+  // going leaves this run's verdicts intact and the ledger short: red.
+  const bookkeeping = bookkeepingRefusal(LABEL);
+  if (bookkeeping) throw bookkeeping;
   process.exit(servedLapse ? 1 : 0);
 }
 
-await main();
+// Run only as a binary, never on import, so the governor's wiring can be read
+// by tests without a provider run.
+if (isEntryPoint(import.meta.url)) {
+  main().catch((error: unknown) => {
+    const token = standDownFor(error);
+    if (token) console.error(token);
+    // What the operator typed or named is refused in one line; a real fault
+    // keeps its stack.
+    console.error(error instanceof OperatorInputError ? error.message : error);
+    process.exit(1);
+  });
+}

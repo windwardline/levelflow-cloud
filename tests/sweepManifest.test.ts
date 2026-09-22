@@ -36,7 +36,18 @@ import {
   soleFlagIndex,
   tokenFault,
 } from "../scripts/flagReader.ts";
-import { parseArgs } from "../scripts/replay-sweep.ts";
+import {
+  budgetAboveCeiling,
+  parseArgs,
+  spendPlanFor,
+  surveyEndRefusal,
+  terminalLines,
+  treasuryFailureRoute,
+} from "../scripts/replay-sweep.ts";
+import { DailyCeilingExceededError, ProbeLostError } from "../scripts/fmpByteBudget.ts";
+import { bookkeepingRefusal, CLASS_DAILY_CEILING_BYTES, providerRefusal } from "../scripts/fmpGovernor.ts";
+import { OperatorInputError } from "../scripts/flagReader.ts";
+import { BODIES, INVALID_KEY_BODY_PREFIX, tempState } from "./fixtures/fmpTestState.ts";
 
 // 2i (2026-08-09): the corpus describes itself. Nothing used to persist a
 // sweep's conditions except stdout and an operator-pathed JSONL with NO
@@ -695,7 +706,10 @@ describe("the driver writes the manifest beside the emit", () => {
     // I3's lesson holds for the curve exactly as for the calendar: a
     // warned-and-continued hole would be pinned as the anchor day's truth
     // and never refetched.
-    assert.match(script, /Treasury-rate fetch failed \(\$\{response\.status\}\)/);
+    assert.match(
+      script,
+      /async function fetchTreasuryRates[\s\S]*?if \(!response\.ok\) \{[\s\S]*?throw await providerRefusal\(response, \{\s*\n\s*\.\.\.refusalInput\(endpoint\),/,
+    );
     // Scoped to the FETCH body (#364 round 13): the no-warn-continue law
     // is about the join — a warned-over chunk would pin a hole as the
     // anchor day's truth. The load SITE's warm-only tolerance is a
@@ -849,7 +863,9 @@ describe("the driver writes the manifest beside the emit", () => {
       /deferredTreasuryRefusal = error as Error;/,
       "integrity refusals defer rather than abort the survey",
     );
-    const deferredThrow = script.indexOf("throw deferredTreasuryRefusal;");
+    // The treasury refusal is thrown through surveyEndRefusal, executed in
+    // "ends a survey red on a deferred refusal, the treasury's first".
+    const deferredThrow = script.indexOf("throw surveyRefusal;");
     const tablePrint = script.indexOf("printTable(rows);");
     assert.ok(
       tablePrint >= 0 && deferredThrow > tablePrint,
@@ -904,17 +920,185 @@ describe("the driver writes the manifest beside the emit", () => {
     // tests/cacheClock.test.ts against the strings sweepManifest actually
     // mints; this test holds only the ORDER.
     const redGuard = sh.search(/grep -qE '(?:[A-Za-z]+)(?:\|[A-Za-z]+)*' <<</);
-    const quotaStandDown = sh.indexOf("providerQuotaExhausted");
-    const clockStandDown = sh.indexOf("grep -q 'cacheClockMismatch'");
+    const terminal = sh.indexOf("grep -E '^(fmpStandDown|cacheStandDown): '");
     assert.ok(redGuard >= 0, "the must-stay-red guard must exist");
     assert.ok(
-      quotaStandDown >= 0 && redGuard < quotaStandDown,
-      "must-stay-red tokens are checked before the 429 stand-down",
+      terminal >= 0 && redGuard < terminal,
+      "must-stay-red tokens are checked before the terminal stand-down token",
     );
-    assert.ok(
-      clockStandDown >= 0 && redGuard < clockStandDown,
-      "must-stay-red tokens are checked before the clock stand-down",
+    // 2026-09-16: every stand-down now reads ONE terminal token the driver
+    // prints for the error that ended the run. The whole-output greps are
+    // gone: a tolerated treasury 429 re-printed anywhere, or a deferred
+    // clock warning beside an unrelated TypeError, stood the run down green.
+    assert.doesNotMatch(sh, /\\\(429\\\)/);
+    assert.doesNotMatch(sh, /providerQuotaExhausted/);
+    assert.doesNotMatch(sh, /fmpCircuitOpen/);
+    assert.doesNotMatch(sh, /grep -q 'cacheClockMismatch'/);
+  });
+
+  // The spend class is declared by the caller and checked before any byte.
+  it("parses the spend class and refuses the ones no run may claim", () => {
+    assert.equal(parseArgs([]).spendClass, "adhoc");
+    assert.equal(parseArgs(["--warm-only", "--spend-class", "topup"]).spendClass, "topup");
+    assert.throws(() => parseArgs(["--spend-class", "topup"]), /--warm-only/);
+    assert.throws(() => parseArgs(["--spend-class", "bank"]), OperatorInputError);
+    assert.throws(() => parseArgs(["--spend-class", "nightly"]), OperatorInputError);
+  });
+
+  it("plans the spend: class, ceiling in effect and the endpoints the breaker must clear", () => {
+    const plan = (argv: string[]) => spendPlanFor(parseArgs(argv), argv);
+    const adhoc = plan(["--byte-budget", "100mb"]);
+    assert.equal(adhoc.consumer, "adhoc");
+    assert.equal(adhoc.byteBudget, 100 * 1024 * 1024);
+    assert.equal(adhoc.dailyCeilingBytes, undefined);
+    assert.equal(adhoc.ceilingInEffect, CLASS_DAILY_CEILING_BYTES.adhoc);
+    assert.deepEqual([...adhoc.requiredPaths].sort(), [
+      "/stable/economic-calendar",
+      "/stable/historical-chart/15min",
+      "/stable/historical-chart/5min",
+      "/stable/historical-price-eod/full",
+      "/stable/treasury-rates",
+    ]);
+    const raised = plan(["--byte-budget", "30gb", "--daily-ceiling", "30gb"]);
+    assert.equal(raised.ceilingInEffect, 30 * 1024 ** 3);
+    const warm = plan(["--warm-only", "--spend-class", "topup", "--byte-budget", "256mb"]);
+    assert.equal(warm.consumer, "topup");
+    assert.equal(warm.ceilingInEffect, CLASS_DAILY_CEILING_BYTES.topup);
+    assert.equal(warm.requiredPaths.includes("/stable/treasury-rates"), false);
+    assert.equal(warm.requiredPaths.includes("/stable/economic-calendar"), true);
+    const discover = plan(["--discover", "--byte-budget", "1mb"]);
+    assert.equal(discover.requiredPaths.includes("/stable/economic-calendar"), false);
+    assert.equal(discover.requiredPaths.includes("/stable/treasury-rates"), false);
+    assert.throws(
+      () => plan(["--warm-only", "--spend-class", "topup", "--byte-budget", "256mb", "--daily-ceiling", "1gb"]),
+      /--daily-ceiling/,
     );
+  });
+
+  it("refuses a run budget above the class's ceiling at the command line, before the governor", () => {
+    const plan = (argv: string[]) => spendPlanFor(parseArgs(argv), argv);
+    assert.match(
+      budgetAboveCeiling(plan(["--byte-budget", "300mb"])) ?? "",
+      /^replay-sweep: --byte-budget .* is above the adhoc class's daily ceiling of /,
+    );
+    assert.equal(budgetAboveCeiling(plan(["--byte-budget", "256mb"])), null);
+    assert.equal(budgetAboveCeiling(plan(["--byte-budget", "30gb", "--daily-ceiling", "30gb"])), null);
+    assert.notEqual(
+      budgetAboveCeiling(plan(["--warm-only", "--spend-class", "topup", "--byte-budget", "257mb"])),
+      null,
+    );
+    const sweep = readFileSync("scripts/replay-sweep.ts", "utf8");
+    const refusal =
+      /const aboveCeiling = budgetAboveCeiling\(plan\);\s*if \(aboveCeiling !== null\) \{\s*console\.error\(aboveCeiling\);\s*process\.exit\(1\);\s*\}/
+        .exec(sweep);
+    assert.ok(refusal, "main no longer refuses a budget above the ceiling");
+    const door = sweep.indexOf("const decision = maySpend({");
+    assert.ok(door > refusal.index, "the command-line refusal must come before the governor's door");
+  });
+
+  it("routes a warm-only Treasury failure by what it is", async () => {
+    const state = tempState();
+    const refusal = (body: string, status: number) =>
+      providerRefusal(new Response(body, { status }), {
+        atMs: Date.parse("2026-09-16T12:00:00Z"),
+        consumer: "topup",
+        endpointPath: "/stable/treasury-rates",
+        label: "test",
+        note: false,
+        state,
+      });
+    assert.equal(treasuryFailureRoute(new DailyCeilingExceededError("spent")), "rethrow");
+    assert.equal(treasuryFailureRoute(await refusal(BODIES.restricted.slice(9), 402)), "defer-provider");
+    assert.equal(treasuryFailureRoute(await refusal(BODIES.suspended.slice(9), 403)), "defer-provider");
+    assert.equal(treasuryFailureRoute(await refusal(INVALID_KEY_BODY_PREFIX, 401)), "defer-provider");
+    assert.equal(treasuryFailureRoute(await refusal(BODIES.bandwidth, 429)), "warn");
+    assert.equal(treasuryFailureRoute(new TypeError("fetch failed")), "warn");
+    assert.equal(
+      treasuryFailureRoute(new Error("treasuryChunkHole: a zero-row week inside served coverage")),
+      "defer-integrity",
+    );
+  });
+
+  // The other half of the sweep-to-wrapper contract. The wrapper tests stub
+  // the driver's output and the census checks where the strings are created;
+  // neither saw whether the driver prints them. With the print removed every
+  // bandwidth night would go red and every test stayed green (2026-09-16).
+  it("names exactly one terminal token for the error that ended the run", async () => {
+    const state = tempState();
+    const bandwidth = await providerRefusal(new Response(BODIES.bandwidth, { status: 429 }), {
+      atMs: Date.parse("2026-09-16T12:00:00Z"),
+      consumer: "topup",
+      endpointPath: "/stable/historical-chart/5min",
+      label: "test",
+      note: false,
+      state,
+    });
+    assert.deepEqual(terminalLines(bandwidth), ["fmpStandDown: kind=bandwidth source=provider"]);
+    assert.deepEqual(
+      terminalLines(new ProbeLostError("bandwidth", "another consumer claimed the probe")),
+      ["fmpStandDown: kind=bandwidth source=breaker"],
+    );
+    assert.deepEqual(
+      terminalLines(new Error('cacheClockMismatch: EURUSD-15min-max carries clock "naive-et"')),
+      ["cacheStandDown: kind=clockMismatch"],
+    );
+    assert.deepEqual(
+      terminalLines(bookkeepingRefusal("replay-sweep", 1)),
+      ["fmpStandDown: kind=ledgerWriteFailed source=governor"],
+    );
+    assert.deepEqual(terminalLines(new TypeError("Cannot read properties of undefined")), []);
+    assert.deepEqual(terminalLines(new OperatorInputError("--step abc")), []);
+  });
+
+  it("wires the governor to the declared class and prints the token before the error", () => {
+    const sweep = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.match(sweep, /governedBudget\(createByteBudget\(plan\.byteBudget\), \{\s*\n?\s*consumer: plan\.consumer,/);
+    assert.match(sweep, /maySpend\(\{[\s\S]{0,200}consumer: plan\.consumer,/);
+    assert.match(sweep, /console\.error\(decision\.reason\);\s*\n\s*console\.error\(formatStandDown\(decision\.kind, decision\.source\)\);/);
+    const catchAt = sweep.indexOf("main().catch(");
+    assert.ok(catchAt >= 0);
+    const handler = sweep.slice(catchAt);
+    // The entry guard prints what terminalLines returns, first. The lines
+    // themselves are executed below; this holds the one connection a unit
+    // test of the function cannot see.
+    const printed = /for \(const line of terminalLines\(error\)\) \{\s*console\.error\(line\);\s*\}/.exec(handler);
+    assert.ok(printed, "the entry guard no longer prints the terminal lines");
+    assert.ok(printed.index < handler.indexOf("console.error(error)"), "the token must precede the error it names");
+  });
+
+  // A finished survey decides one thing: whether a refusal it deferred ends
+  // the run red. Pinned only as the position of a throw, the COT half could be
+  // switched off and every suite stayed green, while a hand-run --warm-only
+  // sweep such as the R0 rebuild exited 0 over a contract refused for
+  // entitlement, suspension or a rejected key (2026-09-21, mutation DR1). The
+  // nightly top-up was still red, because its wrapper reads the deferral line.
+  it("ends a survey red on a deferred refusal, the treasury's first", async () => {
+    const state = tempState();
+    const refusal = (body: string, status: number) =>
+      providerRefusal(new Response(body, { status }), {
+        atMs: Date.parse("2026-09-16T12:00:00Z"),
+        consumer: "adhoc",
+        endpointPath: "/stable/commitment-of-traders-report",
+        label: "test",
+        note: false,
+        state,
+      });
+    const entitlement = await refusal(BODIES.restricted.slice(9), 402);
+    const suspended = await refusal(BODIES.suspended.slice(9), 403);
+    const treasury = new Error("treasuryChunkHole: a zero-row week inside served coverage");
+    assert.equal(surveyEndRefusal({ provider: [], treasury: null, warmOnly: true }), null);
+    assert.equal(surveyEndRefusal({ provider: [entitlement, suspended], treasury: null, warmOnly: true }), entitlement);
+    assert.equal(surveyEndRefusal({ provider: [entitlement], treasury, warmOnly: true }), treasury);
+    assert.equal(surveyEndRefusal({ provider: [], treasury, warmOnly: false }), treasury);
+    // A full sweep still measures without one COT contract, as it always has.
+    assert.equal(surveyEndRefusal({ provider: [entitlement], treasury: null, warmOnly: false }), null);
+    const sweep = readFileSync("scripts/replay-sweep.ts", "utf8");
+    const wired =
+      /const surveyRefusal = surveyEndRefusal\(\{\s*provider: deferredProviderRefusals,\s*treasury: deferredTreasuryRefusal,\s*warmOnly: args\.warmOnly,\s*\}\);\s*if \(surveyRefusal\) \{\s*throw surveyRefusal;\s*\}/
+        .exec(sweep);
+    assert.ok(wired, "main no longer ends the survey on the refusal it deferred");
+    assert.ok(wired.index > sweep.indexOf("printTable(rows);"), "the survey table prints before the run ends red");
+    assert.equal(sweep.split("surveyEndRefusal(").length - 1, 2, "one definition and one call");
   });
 
   // #364 round 9, finding 1: the density pre-flight binds only the
@@ -1526,13 +1710,13 @@ describe("the driver writes the manifest beside the emit", () => {
       ],
       [
         "scripts/fmpByteBudget.ts",
-        "one flag, --byte-budget, whose value is parsed by a strict " +
-        "size regex at the read. All THREE of the header's failure modes " +
-        "are closed by mechanism: a missing value throws by name, a " +
-        "flag-shaped token fails the regex, and a repeat is refused by " +
-        "soleFlagIndex. Verified below, not asserted — the premise had " +
-        "argued exactly two modes while the read was a bare indexOf " +
-        "(#364 round 53, finding 1).",
+        "two flags, --byte-budget and --daily-ceiling, whose values are " +
+        "parsed by one strict size regex at the read. All THREE of the " +
+        "header's failure modes are closed by mechanism for both: a missing " +
+        "value throws by name, a flag-shaped token fails the regex, and a " +
+        "repeat is refused by soleFlagIndex. Verified below, not asserted — " +
+        "the premise had argued exactly two modes while the read was a bare " +
+        "indexOf (#364 round 53, finding 1).",
       ],
     ]);
     // Membership is decided by whether a file touches argv at all, not
@@ -1649,6 +1833,17 @@ describe("the driver writes the manifest beside the emit", () => {
       /soleFlagIndex\(argv, "--byte-budget"\)/,
       "the byte-budget exemption claims a repeat is refused — it must " +
         "resolve through soleFlagIndex to be true",
+    );
+    assert.match(
+      byteBudget,
+      /soleFlagIndex\(argv, "--daily-ceiling"\)/,
+      "the exemption claims a repeated --daily-ceiling is refused — it must " +
+        "resolve through soleFlagIndex to be true",
+    );
+    assert.equal(
+      [...byteBudget.matchAll(/\/\^\(\\d\+/g)].length,
+      1,
+      "both flags must share the one strict size regex the exemption names",
     );
     assert.match(
       byteBudget,

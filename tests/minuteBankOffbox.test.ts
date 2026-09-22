@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { scratchDir } from "./support/scratchDir.ts";
 
 /**
  * 6b-1 item G: the minute bank's OFF-BOX copy.
@@ -44,7 +45,7 @@ describe("the off-box push refuses before it can do harm", () => {
     // 450-byte fixture replaced the real 17,461,396-byte archive. The env
     // flag added afterwards is barrier 1; this is barrier 2, and it is the one
     // that does not depend on a caller remembering anything.
-    const root = mkdtempSync(join(tmpdir(), "offbox-"));
+    const root = scratchDir("offbox-");
     const snap = join(root, "levelflow-minute-bank-snapshot-20260902");
     mkdirSync(snap);
     writeFileSync(join(snap, "AAA.jsonl"), "{}\n");
@@ -63,20 +64,53 @@ describe("the off-box push refuses before it can do harm", () => {
   });
 
   it("refuses when the token was not injected, naming how to invoke it", () => {
-    // process.cwd(), not a hardcoded home directory. The first version of this
-    // passed "/Users/peacock" and went green here and RED on CI, where the
-    // path does not exist and the earlier existence guard fired instead — so
-    // the test proved the wrong refusal and said nothing about the token. Any
-    // real directory outside a temp root reaches the token check, because the
-    // guards run existence, then sandbox, then token, in that order.
-    // TMPDIR is pinned to a sentinel so the sandbox barrier cannot fire on a
-    // runner whose temp root happens to prefix the checkout. Without this the
-    // test would depend on the CI image's environment, which is the same class
-    // of assumption that made the first version machine-specific.
-    const { code, out } = run(process.cwd(), { TMPDIR: "/nonexistent-tmp-for-this-test" });
-    assert.equal(code, 1);
-    assert.match(out, /R2_TOKEN is unset/);
-    assert.match(out, /wl-secret cloudflare-r2-backup=R2_TOKEN/);
+    // A real directory that exists on every machine and sits outside every temp
+    // root, because the guards run existence, then sandbox, then token: only such
+    // a path reaches the token check. Two earlier choices each proved the wrong
+    // refusal somewhere. A hardcoded "/Users/peacock" did not exist on CI, so the
+    // existence guard fired. process.cwd() failed from any copy under a temp root
+    // — scripts/scratch-clone.sh into the session scratchpad under /private/tmp —
+    // where the sandbox guard, which matches /tmp, /private/tmp and /var/folders
+    // literally, fired first (2026-09-21, 1 fail in 14).
+    //
+    // So a fresh directory under the home directory's .cache: the home directory
+    // exists on macOS and on ubuntu-latest, a dot-directory is outside what
+    // ops/home-tidy-check.sh watches, and the directory is removed afterwards.
+    // TMPDIR stays pinned to a sentinel so a runner whose temp root prefixes the
+    // home directory cannot trip the sandbox guard either. R2_TOKEN stays empty
+    // (run() forces it), so the script stops at the token check: no archive, no
+    // rclone, no network. Even without that guard it could not reach one — a
+    // mkdtemp suffix is six characters and never the eight-digit stamp the next
+    // guard requires.
+    const cacheRoot = join(homedir(), ".cache", "levelflow-tests");
+    mkdirSync(cacheRoot, { recursive: true });
+    const snapshot = realpathSync(mkdtempSync(join(cacheRoot, "offbox-token-")));
+    // Exactly the roots the script's sandbox guard consults: its three literal
+    // patterns and the TMPDIR this run hands it (pinned below), never this
+    // process's own tmpdir, which the script does not see.
+    const SENTINEL_TMPDIR = "/nonexistent-tmp-for-this-test";
+    try {
+      for (const root of ["/tmp/", "/private/tmp/", "/var/folders/", SENTINEL_TMPDIR]) {
+        assert.ok(
+          !`${snapshot}/`.startsWith(root),
+          `${snapshot} sits under the temp root ${root}, so the sandbox guard would fire before the token check`,
+        );
+      }
+      const { code, out } = run(snapshot, { TMPDIR: SENTINEL_TMPDIR });
+      assert.equal(code, 1);
+      assert.match(out, /R2_TOKEN is unset/);
+      assert.match(out, /wl-secret cloudflare-r2-backup=R2_TOKEN/);
+      assert.doesNotMatch(out, /refusing to push a snapshot under a temp directory/);
+    } finally {
+      rmSync(snapshot, { recursive: true, force: true });
+      // The parent too, when this run left it empty, so the home directory
+      // keeps nothing of the suite's.
+      try {
+        if (readdirSync(cacheRoot).length === 0) rmdirSync(cacheRoot);
+      } catch {
+        // A concurrent run still holds a directory in it; that run removes it.
+      }
+    }
   });
 
   it("orders its guards so each one can actually be reached", () => {
