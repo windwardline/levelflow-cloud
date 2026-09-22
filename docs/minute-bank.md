@@ -128,7 +128,12 @@ again. The wrapper's run gate (`scripts/fmpRunGate.ts`) reads the marker: a logi
 is skipped only when that clean run finished at or after the most recent scheduled
 slot (07:20 or 19:20 local), and anything the gate cannot read runs the bank. The
 rule holds on the DST nights, when the slots sit 11 or 13 hours apart. The gate runs
-before the bank lock, so a skipped login never waits on a backup.
+before the bank lock, so a skipped login never waits on a backup. It reads the slots
+from the TRACKED plists in `scripts/ops/`, while launchd fires the INSTALLED copies in
+`~/Library/LaunchAgents/`; nothing compares the two. Their schedules agreed on
+2026-09-21 (bank 07:20 and 19:20, top-up 07:00). A schedule change updates both in one
+change set, because an installed slot moved earlier than the tracked one would let a
+clean overnight run skip a genuine scheduled start.
 
 First run, 2026-08-06: 338,971 bars across 100 symbols, 42 MB.
 
