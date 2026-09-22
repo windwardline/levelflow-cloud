@@ -126,17 +126,18 @@ describe("each refusal is classified by the provider's own words", () => {
   // rename a bandwidth stand-down, which the top-up takes green, as a red one.
   it("reads a hand-written rejected-key line in the log as no refusal", () => {
     const at = Date.parse("2026-09-16T12:00:00Z");
-    const line = (atMs: number) => ({
+    const line = (atMs: number, key = "account") => ({
       at: atMs,
       consumer: "adhoc",
       endpointPath: CAL,
-      key: "account",
+      key,
       kind: "invalidKey",
       reason: BODIES.invalidKeyStoredPrefix,
       t: "refused",
     });
     const alone = tempState();
     appendRecord(alone.breakerDir, at, line(at));
+    appendRecord(alone.breakerDir, at, line(at, CAL));
     const read = readBreaker(at + 1, alone);
     assert.ok(read.ok);
     assert.deepEqual(read.entries, []);
