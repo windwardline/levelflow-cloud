@@ -731,7 +731,9 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
     return false;
   });
   if (stores.length === 0) {
-    print.err(`no symbol's clock can be judged in ${plan.from}..${plan.to}; include a partly held day in the window`);
+    print.err(
+      `no symbol's clock can be judged in ${plan.from}..${plan.to}; widen the window until it holds ${SHIFT_MIN_PAIRS} held minutes (a partly held day does)`,
+    );
     return 1;
   }
   const questions = stores.reduce((sum, { store }) => sum + plan.dates.filter((date) => date >= store.firstDay).length, 0);

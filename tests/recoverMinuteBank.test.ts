@@ -685,7 +685,7 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
       bank(state, "EURUSD", held(everyMinute));
       const result = await recover({ argv: [...WINDOW, "--dry-run"], state });
       assert.match(result.output, /EURUSD: not asked — /);
-      assert.match(result.output, /no symbol's clock can be judged in 2026-09-03\.\.2026-09-05/);
+      assert.match(result.output, /no symbol's clock can be judged in 2026-09-03\.\.2026-09-05; widen the window until it holds 60 held minutes/);
       assert.equal(result.urls.length, 0);
     });
 

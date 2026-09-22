@@ -162,6 +162,7 @@ the date the script's restore passed, or a later monthly stream-back matched the
 | --- | ---: | --- | ---: | ---: | --- |
 | `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-condemned-2026-08-11.tar.zst` | 531361803 | 1c67c6747c2b2076333af605c028b895 | 313 | 4159601762 | 2026-09-22 |
 | `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-v3-preDateFix-20260824.tar.zst` | 1025065828 | 5c2da51d92d26bed3e7a2986e2b07636 | 311 | 8213923007 | 2026-09-22 |
+| `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-v4-20260922.tar.zst` | 1034173076 | ba069959b977bbacd8e155071e3925c0 | 310 | 8291450783 | 2026-09-22 |
 | `windwardline-archives/levelflow-cloud/minute-bank/levelflow-minute-bank-snapshot-20260823.tar.zst` | 14194704 | d777df47dc62d26c09e21e8d84d88493 | 200 | 190643620 | 2026-09-22 |
 
 Bucket lock on `windwardline-archives`: rule `lock-archives-indefinitely`, prefix `""`,
@@ -179,6 +180,7 @@ parity and spares it by name.
 | --- | --- | --- |
 | `levelflow-cache-condemned-2026-08-11` | `~/.local/share/levelflow-cloud/archives/levelflow-cache-condemned-2026-08-11` (4,159,601,762 bytes, 313 files) | The only real naive-era cache. It validated the clock-witness redesign against real data on 2026-08-24. Deleting it is an owner call (`docs/HANDOFF.md`, R0b row) |
 | `levelflow-cache-v3-preDateFix-20260824` | `~/.local/share/levelflow-cloud/archives/levelflow-cache-v3-preDateFix-20260824` (8,213,923,007 bytes, 311 files) | `verify-rebuild-depth --reference` against it reports 24 stores / 10,850 rows master did not recover |
+| `levelflow-cache-v4-20260922` | An APFS clone of the live `.calibration-cache` taken 2026-09-22 just before the push began at 22:59:05Z, between top-ups (8,291,450,783 bytes, 310 files); the clone went to the Trash once the object was proven | The v4 cache is the input to every corpus of record since the 2026-08-25 rebuild, including the pinned 2026-08-26 slice the act-3 read and the 2026-09-14 re-simulate were built on. A rebuild costs about fourteen metered hours and does not reproduce the depth (the rebuild-depth rule). Round 1 adopted one archive per cache state |
 | `levelflow-minute-bank-snapshot-20260823` | `~/.local/share/levelflow-cloud/minute-bank-snapshots/levelflow-minute-bank-snapshot-20260823` (190,643,620 bytes, 200 files) | The naive-era minute bank. Its daily copy in `windwardline-backups` expires around 2027-09-02 |
 
 Measured 2026-09-22: no hard links, symlinks or special files in any of the three. The

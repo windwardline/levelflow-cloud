@@ -1335,6 +1335,17 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
       assert.match(run.stderr, /^derive-4d: no corpus shards given\s*$/);
     });
 
+    it("grades a holdout draw over the union of the shards' rosters, and says which markets", async () => {
+      // Either two-market roster alone holds nothing out; their union holds
+      // out EURUSD. The log line is the only output that tells a holdout
+      // derivation from a full one.
+      const outDir = scratchDir("derive4d-out-");
+      const run = await derive4d([shard(["EURGBP", "GBPJPY"]), shard(["EURUSD", "USDJPY"]), "--holdout-cycle"], outDir);
+      assertExecuted("scripts/derive-4d.ts", run);
+      assert.equal(run.exitCode, 0, `a holdout draw that holds a market must grade:\n${run.stderr}`);
+      assert.match(run.stdout, /^holdout cycle: 1 held-out markets -> EURUSD$/m);
+    });
+
     it("reads a target list on the roster", async () => {
       const outDir = scratchDir("derive4d-out-");
       const run = await derive4d([shard(["EURGBP", "GBPJPY"]), "--targets", "gbpjpy"], outDir);

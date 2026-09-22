@@ -209,8 +209,10 @@ it still exits 1, because its hole is still open. Its asked days are bought on e
 and discarded. Read the `refused` column.
 
 A recovery's sidecar record is `recovered <from>..<to>`, followed by `; N of M held
-minutes came back revised` when the answer landed on minutes the file held. The
-high-water mark, first date and recent keys stay the scheduled bank's.
+minutes came back revised` when the answer landed on minutes the file held, and by
+`; shift test unjudged (N same-key pairs)` when the answer paired fewer than 60 times;
+both can appear on one record. The high-water mark, first date and recent keys stay
+the scheduled bank's.
 
 ## Backup
 
