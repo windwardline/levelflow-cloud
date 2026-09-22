@@ -251,12 +251,13 @@ bucket's lifecycle rule expires every object 365 days after upload, whatever its
 so R2's copy of `20260823` lapses about 2027-09-02, a year after it was uploaded at
 2026-09-02 15:40:42Z (HANDOFF §6b-1 item I).
 
-**Nothing has ever been restored from these archives.** The push compares the remote
-object's md5 with the local archive's, and parity compares names; neither unpacks
-anything. A bad `zstd` stream or a layout nobody has unpacked passes both every day
-and is found on the day it is needed. Postgres is proven by restoring it; the bank is
-not, and since 2026-09-21 local retention is one day rather than fourteen, so R2 is
-the only route to any earlier day. HANDOFF §6b-1 item J owes the restore proof.
+The push compares the remote object's md5 with the local archive's, and parity
+compares names; neither unpacks anything. A bad `zstd` stream or a layout nobody has
+unpacked passes both every day and is found on the day it is needed. Since 2026-09-21
+local retention is one day rather than fourteen, so R2 is the only route to any
+earlier day. The restore proof below unpacks one. Its first run against the bucket is
+the operator's, and until that run is recorded here nothing has been restored from
+these archives.
 
 ## The two sides are checked against each other
 
@@ -280,6 +281,89 @@ would fail every day from the second day.
 The comparison takes the remote listing on stdin and touches no network, which is why
 it is exercised against real directories in `tests/minuteBankParity.test.ts` rather
 than asserted by reading its source.
+
+## An archive is proven by restoring it
+
+```bash
+~/.local/bin/wl-secret cloudflare-r2-backup=R2_TOKEN -- bash scripts/ops/verify-minute-bank-restore.sh
+```
+
+`verify-minute-bank-restore.sh` lists `windwardline-backups/levelflow-cloud/minute-bank/`,
+downloads the newest archive by name into a scratch directory under `$TMPDIR`, runs
+`zstd -t`, extracts it and compares the restore with the live bank. It fails when:
+
+- the listing cannot be read, the bucket is missing, a key sits outside
+  `<YYYY>/<MM>/minute-bank-<YYYYMMDD>.tar.zst`, or there is no archive;
+- the archive holds anything but one directory stamped as its key is, or holds a link;
+- a restored `.jsonl` has no sidecar, its sidecar does not parse, or the sidecar's
+  `bars` differs from the file's line count;
+- a sidecar with no data file counts any bars;
+- a restored file ends without a newline, which is a torn final line;
+- a restored file is missing from the live bank, or its bytes are not the head of the
+  live file;
+- the restore holds no data file, or no bars.
+
+Every failure is named, not counted. Live symbols added since the snapshot are named
+and pass. Success prints one line on stdout: the archive, the files and bars restored,
+and the live bars. The scratch directory goes on every exit, signals included, and
+needs room for one uncompressed bank.
+
+The prefix test carries the proof. The bank appends and never rewrites, so a
+snapshot's bytes stay the head of the live file for good, late fills included. The
+same property is why the proof takes no bank lock: it reads no live sidecar, and an
+append in flight only extends a file past the bytes it compares. It can run while the
+bank runs. macOS `cmp -n` cannot make that comparison, because it reports unequal
+lengths even inside its limit, so the script pipes `head -c` of the live file into
+`cmp`.
+
+It runs on the weekly cadence beside `verify-postgres-restore.sh`, not daily, because
+it downloads and unpacks a whole archive. From a checkout it reads that checkout's
+`.minute-bank`. From any other tree, set `LEVELFLOW_CHECKOUT`; a named checkout that
+does not exist, or one with no bank, is refused before anything is listed.
+`tests/minuteBankRestore.test.ts` runs the real script, tar and zstd against a stub
+`rclone` over a directory. Fifty-seven mutations of the script's guards each failed it.
+
+### Restoring by hand
+
+Pull an archive into the project's data directory. The rclone settings are the
+script's, and the secret lives only in this one child's environment:
+
+```bash
+mkdir -p ~/.local/share/levelflow-cloud/restore
+~/.local/bin/wl-secret cloudflare-r2-backup=R2_TOKEN -- bash -c '
+  export RCLONE_CONFIG_R2_TYPE=s3 RCLONE_CONFIG_R2_PROVIDER=Cloudflare
+  export RCLONE_CONFIG_R2_ENDPOINT=https://c8da9a44c29c435205b2ec133ee05f20.r2.cloudflarestorage.com
+  export RCLONE_CONFIG_R2_ACCESS_KEY_ID=fafbbe863abb74c59933f028095a04ce
+  export RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="$(printf %s "$R2_TOKEN" | shasum -a 256 | cut -d" " -f1)"
+  rclone lsf -R --files-only R2:windwardline-backups/levelflow-cloud/minute-bank/
+  rclone copyto R2:windwardline-backups/levelflow-cloud/minute-bank/2026/09/minute-bank-20260921.tar.zst \
+    ~/.local/share/levelflow-cloud/restore/minute-bank-20260921.tar.zst'
+```
+
+Verify it, then extract it:
+
+```bash
+cd ~/.local/share/levelflow-cloud/restore
+zstd -t minute-bank-20260921.tar.zst
+zstd -q --decompress --stdout minute-bank-20260921.tar.zst | tar -xf -
+```
+
+The archive holds one directory, `levelflow-minute-bank-snapshot-20260921`, laid out
+as `.minute-bank/` is. To rebuild a lost bank, move that directory to
+`<checkout>/.minute-bank`. To put one symbol back, copy its data file and sidecar
+together, under the bank lock, from the checkout:
+
+```bash
+bash -c '. scripts/ops/bank-lock.sh && acquire_bank_lock .minute-bank &&
+  cp ~/.local/share/levelflow-cloud/restore/levelflow-minute-bank-snapshot-20260921/EURUSD.{jsonl,state.json} .minute-bank/ &&
+  release_bank_lock'
+```
+
+The pair travels together because the sidecar's `bars` and `recentKeys` describe that
+data file. Bars banked after the snapshot leave with the replaced file. The next bank
+run appends whatever the provider's three-day window still holds, since the restored
+key window no longer lists those bars; anything older is gone. Run the restore proof
+afterwards, then delete the restore directory.
 
 ## Keeping it running
 
