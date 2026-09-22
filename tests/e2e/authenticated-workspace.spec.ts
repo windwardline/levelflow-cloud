@@ -2,6 +2,7 @@ import {
   expect,
   type Locator,
   type Page,
+  type Request,
   type Response,
   test,
 } from "@playwright/test";
@@ -2273,15 +2274,21 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   // Matched on the ACTION, not just the URL: the Desk's own mount fires a
   // refresh_outcomes call at the same endpoint, and "a POST to trade-analyzer"
   // would collect that one too.
+  const isScanRequest = (request: Request) =>
+    request.url().includes("/functions/v1/trade-analyzer") &&
+    request.method() === "POST" &&
+    (request.postData() ?? "").includes("scan_opportunities");
   const scanResponses: Response[] = [];
+  // Requests too, because the client stops fanning out at the first failure
+  // (src/lib/scanBatching.ts: `aborted`, SCAN_REQUEST_CONCURRENCY in flight), so
+  // after a refusal fewer than expectedChunks will ever answer. The poll below
+  // needs to know when every request that WAS sent has answered.
+  let scanRequestsSent = 0;
+  page.on("request", (request) => {
+    if (isScanRequest(request)) scanRequestsSent += 1;
+  });
   page.on("response", (response) => {
-    if (
-      response.url().includes("/functions/v1/trade-analyzer") &&
-      response.request().method() === "POST" &&
-      (response.request().postData() ?? "").includes("scan_opportunities")
-    ) {
-      scanResponses.push(response);
-    }
+    if (isScanRequest(response.request())) scanResponses.push(response);
   });
   // What this click owes, derived from the same source the app derives it from
   // — the availability-filtered universe, partitioned by the same function
@@ -2322,12 +2329,23 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   //
   // Every chunk, not the first: one 429 among the rest's 200s is exactly the
   // partial scan this suite must never read as a quiet market.
+  // Settled when every chunk has answered, or when a chunk was refused and every
+  // request already sent has answered: after a refusal the client sends no more,
+  // so waiting for the full count would time out and read a spent day as a
+  // dropped request. A refusal still reaches the all-200 assertion below unless
+  // every refusal is the daily ceiling.
   await expect
-    .poll(() => scanResponses.length, {
-      message: `expected ${expectedChunks} scan chunk request(s) for one Scan click`,
-      timeout: 90_000,
-    })
-    .toBe(expectedChunks);
+    .poll(
+      () =>
+        scanResponses.length === expectedChunks ||
+        (scanResponses.some((response) => response.status() !== 200) &&
+          scanResponses.length === scanRequestsSent),
+      {
+        message: `expected ${expectedChunks} scan chunk request(s) for one Scan click`,
+        timeout: 90_000,
+      },
+    )
+    .toBe(true);
   // One stand-down, and only one: every chunk that did not answer 200 is the
   // Edge refusing because the user class has spent its day. A mix with any
   // other status, a parked or ledger refusal, or a 429 falls through to the

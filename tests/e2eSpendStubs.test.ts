@@ -105,6 +105,19 @@ describe("the workspace stands down only for the Edge's daily ceiling", () => {
     const scan = WORKSPACE.slice(WORKSPACE.indexOf("expected ${expectedChunks} scan chunk request(s)"));
     assert.match(scan.slice(0, 2500), /refusedChunks\.every\(\(response, index\) =>\s*isDailyCeilingRefusal\(/);
   });
+
+  // The client stops fanning out at the first failed chunk (scanBatching.ts's
+  // `aborted`), so on a spent day fewer than expectedChunks ever answer. A poll
+  // that waits for the full count times out and reads the ceiling as a dropped
+  // request, and the stand-down after it never runs.
+  it("the Scan poll settles once a refused chunk and every sent request have answered", () => {
+    const start = WORKSPACE.indexOf("await expect\n    .poll(\n      () =>\n        scanResponses.length === expectedChunks ||");
+    assert.ok(start > 0, "the Scan poll no longer settles on anything but the full chunk count");
+    const poll = WORKSPACE.slice(start, WORKSPACE.indexOf(".toBe(true);", start));
+    assert.match(poll, /scanResponses\.some\(\(response\) => response\.status\(\) !== 200\)/);
+    assert.match(poll, /scanResponses\.length === scanRequestsSent/);
+    assert.match(WORKSPACE, /page\.on\("request", \(request\) => \{\s*if \(isScanRequest\(request\)\) scanRequestsSent \+= 1;/);
+  });
 });
 
 const ALL_PROJECTS = ["analyzer-abuse", "cleanup", "public-auth", "public-auth-built", "visual-proof", "workspace"];
