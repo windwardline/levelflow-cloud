@@ -594,6 +594,29 @@ describe("a permanent archive is proven by restoring it", () => {
     assertStagingClean(sb.staging);
   });
 
+  it("refuses, before extracting, an object that unpacks to more than a tar of this source could be", () => {
+    // Small compressed, large unpacked: zeros at zstd -19. It passes the size
+    // bound and the space check, which are both about compressed bytes.
+    const sb = sandbox();
+    const other = join(sb.root, "other", NAME);
+    mkdirSync(other, { recursive: true });
+    writeFileSync(join(other, "zeros.bin"), Buffer.alloc(8 * 1024 * 1024));
+    mkdirSync(join(sb.remote, TEST_BUCKET, "levelflow-cloud", DATASET), { recursive: true });
+    const built = spawnSync(
+      "/bin/sh",
+      ["-c", `COPYFILE_DISABLE=1 tar --format=ustar -C '${join(sb.root, "other")}' -cf - '${NAME}' | zstd -q -19 -o '${objectPath(sb)}'`],
+      { encoding: "utf8" },
+    );
+    assert.equal(built.status, 0, built.stderr);
+    assert.ok(statSync(objectPath(sb)).size < 1024 * 1024, "the planted object must be small compressed");
+    const r = run(sb);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /unpacks to \d+ bytes, more than a tar of this source can be/);
+    assert.match(r.stderr, /key is spent/);
+    assert.doesNotMatch(r.stderr, /the restored tree/, "nothing may be extracted");
+    assertStagingClean(sb.staging);
+  });
+
   it("sizes a re-proof from the object it streams back, never from a rebuild it will not make", () => {
     // 1 GiB of headroom plus 1 MiB: room for this object beside its restore,
     // not for the incompressible bound a new push of the same source claims.
@@ -728,7 +751,7 @@ describe("a permanent archive is proven by restoring it", () => {
     assert.match(r.stderr, /has 1048576 bytes free and an archive of this source beside its restore needs \d+/);
     assert.match(r.stderr, /through LEVELFLOW_ARCHIVE_STAGING, which survives the re-exec/, "the refusal names its remedy");
     // A listing is a free read; what the check guards is the build and the write.
-    assert.equal(uploads(sb).length, 0, "nothing may be uploaded");
+    assert.deepEqual(rcloneCalls(sb).map((call) => call.split(" ")[0]), ["lsf"], "only the listing may run");
     assert.doesNotMatch(r.stderr, /archiving at zstd/);
     assert.equal(r.stdout, "");
     assertStagingClean(sb.staging);

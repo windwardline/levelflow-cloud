@@ -347,6 +347,12 @@ if [[ $EXISTS == 1 ]]; then
     || die "R2:$BUCKET/$KEY is damaged: its $REMOTE_BYTES bytes (md5 $REMOTE_MD5) fail zstd -t. $SPENT"
   zstd -q -dc "$RETURNED" | tar -tf - >/dev/null 2>&1 \
     || die "R2:$BUCKET/$KEY does not list as a tar (md5 $REMOTE_MD5). $SPENT"
+  # What it unpacks to, measured on the stream before a byte is extracted: the
+  # object on this path may be another tree, and the space reserved above is
+  # this source's. A tar of this source cannot exceed TAR_MAX.
+  UNPACKED="$(zstd -q -dc "$RETURNED" | wc -c | tr -d ' ')" || die "cannot measure what R2:$BUCKET/$KEY unpacks to"
+  (( UNPACKED <= TAR_MAX )) \
+    || die "R2:$BUCKET/$KEY unpacks to $UNPACKED bytes, more than a tar of this source can be ($TAR_MAX): it holds another tree. $SPENT"
   restore_and_compare "$RETURNED"
   if [[ $WHY_KIND == local ]]; then
     die "could not compare R2:$BUCKET/$KEY with the source here: $WHY. The object passed zstd -t and lists as a tar; nothing was decided about it. Fix the local cause and run again"

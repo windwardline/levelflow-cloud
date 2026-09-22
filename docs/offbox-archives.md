@@ -46,7 +46,8 @@ source with no files. After the listing, each branch checks the space it will us
 before it writes. A new key needs an archive of the source beside its restore, bounded
 as if the archive did not compress, with 1 GiB left for the rest of the machine: 9.43 GB
 for the condemned cache, 17.57 GB for the v3-preDateFix cache, 1.46 GB for the snapshot,
-measured 2026-09-22. A re-proof needs only the object it lists beside the restore.
+measured 2026-09-22. A re-proof needs only the object it lists beside the restore:
+a row's Archive bytes plus its Source bytes and 1 GiB.
 `LEVELFLOW_ARCHIVE_STAGING` names staging on another filesystem.
 
 **A new key is proven before it is written.** The script builds
@@ -69,12 +70,14 @@ walks a directory, and `copyto` of one file replaced a different object and exit
 last year's bytes and prove nothing about the object. The script checks the object's
 listed size against the largest archive the source could make and against the free
 space, streams it back, and requires the returned length to match the listing. Then it
-tests it with `zstd -t`, lists it as a tar, extracts it and compares it with `diff -rq`.
+tests it with `zstd -t`, lists it as a tar, measures what it unpacks to against the
+largest tar the source could make, and only then extracts it and compares it with
+`diff -rq`.
 The register records that object's md5 and bytes.
 
 A verdict against the object needs the object to fail on its own: damaged bytes, a tar
-that does not list, more bytes than the source could make, or a restored tree that
-differs from the source. Then the refusal says **the basename is spent**. Archive a
+that does not list, more bytes than the source could make packed or unpacked, or a
+restored tree that differs from the source. Then the refusal says **the basename is spent**. Archive a
 changed source under a new directory name; the old object stays as long as the lock
 does. A short transfer, an extraction that fails here, or a `diff` that cannot run
 decides nothing about the object: fix the local cause and run again.
