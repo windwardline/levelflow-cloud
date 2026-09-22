@@ -70,14 +70,15 @@ walks a directory, and `copyto` of one file replaced a different object and exit
 last year's bytes and prove nothing about the object. The script checks the object's
 listed size against the largest archive the source could make and against the free
 space, streams it back, and requires the returned length to match the listing. Then it
-tests it with `zstd -t`, lists it as a tar, measures what it unpacks to against the
-largest tar the source could make, and only then extracts it and compares it with
-`diff -rq`.
+tests it with `zstd -t`, lists it as a tar, and requires it to hold no more entries
+than the source and to unpack to no more than the largest tar the source could make.
+It reserves the stream's bytes plus a block per entry, and only then extracts it and
+compares it with `diff -rq`.
 The register records that object's md5 and bytes.
 
 A verdict against the object needs the object to fail on its own: damaged bytes, a tar
-that does not list, more bytes than the source could make packed or unpacked, or a
-restored tree that differs from the source. Then the refusal says **the basename is spent**. Archive a
+that does not list, more entries or more bytes than the source could make, packed or
+unpacked, or a restored tree that differs from the source. Then the refusal says **the basename is spent**. Archive a
 changed source under a new directory name; the old object stays as long as the lock
 does. A short transfer, an extraction that fails here, or a `diff` that cannot run
 decides nothing about the object: fix the local cause and run again.

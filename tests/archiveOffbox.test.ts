@@ -200,6 +200,7 @@ case "$sub" in
     f="$(onr2 "\${pos[0]}")" || { echo "stub rclone: not an R2 path" >&2; exit 98; }
     if [ ! -f "$f" ]; then echo "ERROR : error listing: directory not found" >&2; exit 3; fi
     if [ -e "$ROOT/.short-cat" ]; then head -c 10 "$f"; exit 0; fi
+    if [ -e "$ROOT/.cat-fails" ]; then echo "ERROR : transfer failed (stub)" >&2; exit 5; fi
     if [ -e "$ROOT/.corrupt-cat" ]; then
       t="$ROOT/.corrupt.tmp"
       cp "$f" "$t"
@@ -617,6 +618,41 @@ describe("a permanent archive is proven by restoring it", () => {
     assertStagingClean(sb.staging);
   });
 
+  it("refuses, before extracting, an object with more entries than this source has", () => {
+    // Tiny files cost a block each on disk and a kilobyte each in the stream,
+    // so a stream bound alone does not bound what extracting costs.
+    const sb = sandbox();
+    const other = join(sb.root, "other", NAME);
+    mkdirSync(other, { recursive: true });
+    for (let i = 0; i < 8; i++) writeFileSync(join(other, `t${i}`), "x");
+    mkdirSync(join(sb.remote, TEST_BUCKET, "levelflow-cloud", DATASET), { recursive: true });
+    const built = spawnSync(
+      "/bin/sh",
+      ["-c", `COPYFILE_DISABLE=1 tar --format=ustar -C '${join(sb.root, "other")}' -cf - '${NAME}' | zstd -q -19 -o '${objectPath(sb)}'`],
+      { encoding: "utf8" },
+    );
+    assert.equal(built.status, 0, built.stderr);
+    const r = run(sb);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /lists 9 entries, more than this source has \(7\): it holds another tree/);
+    assert.match(r.stderr, /key is spent/);
+    assert.doesNotMatch(r.stderr, /the restored tree/, "nothing may be extracted");
+    assertStagingClean(sb.staging);
+  });
+
+  it("names the way out when the object cannot be streamed back after the upload", () => {
+    const sb = sandbox();
+    writeFileSync(join(sb.remote, ".cat-fails"), "");
+    const r = run(sb);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /cannot stream R2:\S+ back: .*The object is at its key: run again with the source unchanged/);
+    assert.equal(uploads(sb).length, 1);
+    rmToggle(sb, ".cat-fails");
+    const again = run(sb);
+    assert.equal(again.code, 0, again.stderr);
+    assert.match(again.stderr, /already archived/);
+  });
+
   it("sizes a re-proof from the object it streams back, never from a rebuild it will not make", () => {
     // 1 GiB of headroom plus 1 MiB: room for this object beside its restore,
     // not for the incompressible bound a new push of the same source claims.
@@ -633,7 +669,7 @@ describe("a permanent archive is proven by restoring it", () => {
     const reproof = run(sb);
     assert.equal(reproof.code, 0, reproof.stderr);
     assert.match(reproof.stderr, /already archived/);
-    assert.equal(dfCalls(sb), 1, "a re-proof checks once, for what it will hold");
+    assert.equal(dfCalls(sb), 2, "a re-proof checks the object before streaming it and the restore before extracting it");
     assertStagingClean(sb.staging);
   });
 

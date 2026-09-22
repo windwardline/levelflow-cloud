@@ -250,6 +250,7 @@ KEY_LOCK_HELD=1
 FILES="$(find "$SRC" -type f | wc -l | tr -d ' ')" || die "cannot count the files in $SRC"
 [[ $FILES -gt 0 ]] || die "the source holds no files: $SRC — refusing to archive nothing"
 DIRS="$(find "$SRC" -type d | wc -l | tr -d ' ')" || die "cannot count the directories in $SRC"
+ENTRIES="$(find "$SRC" | wc -l | tr -d ' ')" || die "cannot count the entries in $SRC"
 SRC_BYTES="$(find "$SRC" -type f -exec wc -c {} \; | awk '{ s += $1 } END { printf "%.0f\n", s }')" \
   || die "cannot measure $SRC"
 log "source $SRC: $FILES files in $DIRS directories, $SRC_BYTES bytes"
@@ -299,7 +300,7 @@ RESTORE="$STAGE/restore"
 
 fetch_back() {
   rclone cat "R2:$BUCKET/$KEY" > "$RETURNED" 2>"$STAGE/cat.err" \
-    || die "cannot stream R2:$BUCKET/$KEY back: $(rclone_error "$STAGE/cat.err")"
+    || die "cannot stream R2:$BUCKET/$KEY back: $(rclone_error "$STAGE/cat.err")${FETCH_HINT:-}"
   REMOTE_MD5="$(md5_of "$RETURNED")" || die "cannot hash the returned object"
   [[ $REMOTE_MD5 =~ $MD5_RE ]] || die "not an md5: '$REMOTE_MD5'"
   REMOTE_BYTES="$(wc -c < "$RETURNED" | tr -d ' ')"
@@ -345,14 +346,19 @@ if [[ $EXISTS == 1 ]]; then
     || die "R2:$BUCKET/$KEY streamed back $REMOTE_BYTES bytes and lists $OBJECT_BYTES; the transfer failed, nothing was decided about the object, run again"
   zstd -q -t "$RETURNED" 2>/dev/null \
     || die "R2:$BUCKET/$KEY is damaged: its $REMOTE_BYTES bytes (md5 $REMOTE_MD5) fail zstd -t. $SPENT"
-  zstd -q -dc "$RETURNED" | tar -tf - >/dev/null 2>&1 \
+  LISTED_ENTRIES="$(zstd -q -dc "$RETURNED" | tar -tf - 2>/dev/null | wc -l | tr -d ' ')" \
     || die "R2:$BUCKET/$KEY does not list as a tar (md5 $REMOTE_MD5). $SPENT"
   # What it unpacks to, measured on the stream before a byte is extracted: the
   # object on this path may be another tree, and the space reserved above is
-  # this source's. A tar of this source cannot exceed TAR_MAX.
+  # this source's. A tar of this source holds no more entries than the source
+  # and cannot exceed TAR_MAX; within both, extracting costs at most the
+  # stream's bytes plus a block per entry, and that is reserved before it runs.
+  (( LISTED_ENTRIES <= ENTRIES )) \
+    || die "R2:$BUCKET/$KEY lists $LISTED_ENTRIES entries, more than this source has ($ENTRIES): it holds another tree. $SPENT"
   UNPACKED="$(zstd -q -dc "$RETURNED" | wc -c | tr -d ' ')" || die "cannot measure what R2:$BUCKET/$KEY unpacks to"
   (( UNPACKED <= TAR_MAX )) \
     || die "R2:$BUCKET/$KEY unpacks to $UNPACKED bytes, more than a tar of this source can be ($TAR_MAX): it holds another tree. $SPENT"
+  require_space $(( UNPACKED + LISTED_ENTRIES * 4096 + HEADROOM )) "restoring the existing object"
   restore_and_compare "$RETURNED"
   if [[ $WHY_KIND == local ]]; then
     die "could not compare R2:$BUCKET/$KEY with the source here: $WHY. The object passed zstd -t and lists as a tar; nothing was decided about it. Fix the local cause and run again"
@@ -393,6 +399,7 @@ else
   rclone copyto --ignore-existing --s3-no-check-bucket "$ARCHIVE" "R2:$BUCKET/$KEY" 2>"$STAGE/copyto.err" \
     || die "upload to R2:$BUCKET/$KEY failed: $(rclone_error "$STAGE/copyto.err")"
   log "uploaded; streaming the object back"
+  FETCH_HINT=". The object is at its key: run again with the source unchanged, which proves it by restoring it"
   fetch_back
   # These bytes were sent from here and proven above. Anything else came back
   # wrong, or an object reached the key after the listing and the upload left
