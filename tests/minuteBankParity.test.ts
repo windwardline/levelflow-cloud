@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { scratchDir } from "./support/scratchDir.ts";
 
 /**
  * LOCAL/OFF-BOX PARITY.
@@ -15,10 +15,10 @@ import { describe, it } from "node:test";
  * snapshot was placed anyway, leaving a local stamp with no archive behind it
  * and the next day's successful run reporting nothing wrong.
  *
- * The invariant is deliberately one-directional. Local retention is 14 and
- * remote is 60, so the steady state is local ⊆ remote: every local snapshot
- * must have an off-box archive, and remote archives with no local snapshot are
- * expected rather than drift.
+ * The invariant is deliberately one-directional. Local keeps one daily plus
+ * the protected 20260823 and remote keeps 60, so the steady state is
+ * local ⊆ remote: every local snapshot must have an off-box archive, and
+ * remote archives with no local snapshot are expected rather than drift.
  *
  * NOTHING HERE TOUCHES R2. The checker reads the remote listing from stdin
  * precisely so the comparison can be EXERCISED rather than read — the caller
@@ -30,7 +30,7 @@ const SCRIPT = "scripts/ops/check-minute-bank-parity.sh";
 
 /** A snapshot root holding one directory per stamp, as the backup writes them. */
 function rootWith(stamps: string[], extras: string[] = []) {
-  const root = mkdtempSync(join(tmpdir(), "parity-"));
+  const root = scratchDir("parity-");
   for (const stamp of stamps) {
     const snap = join(root, `levelflow-minute-bank-snapshot-${stamp}`);
     mkdirSync(snap);
@@ -75,7 +75,8 @@ describe("local/off-box parity", () => {
   });
 
   it("accepts remote archives with no local snapshot, because retention differs by design", () => {
-    // Local keeps 14, remote keeps 60. Depth off-box is the point of off-box.
+    // Local keeps one daily plus 20260823, remote keeps 60. Depth off-box is
+    // the point of off-box.
     const root = rootWith(["20260902"]);
     const { code, out } = check(root, listing(["20260823", "20260825", "20260902"]));
     assert.equal(code, 0);
@@ -111,7 +112,7 @@ describe("local/off-box parity", () => {
   });
 
   it("refuses a snapshot root that does not exist, rather than passing vacuously", () => {
-    const { code, out } = check(join(tmpdir(), "no-such-parity-root"), listing([]));
+    const { code, out } = check(join(scratchDir("parity-"), "no-such-root"), listing([]));
     assert.equal(code, 1);
     assert.match(out, /snapshot root does not exist/);
   });

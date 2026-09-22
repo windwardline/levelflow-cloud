@@ -72,14 +72,17 @@ describe("scratchDir", () => {
 
 describe("the suites that leaked use it", () => {
   it("make no temp directory outside scratchDir", () => {
-    // The four files that leaked 1,000+ directories in one evening. A static
-    // check, with its limit stated: it cannot see a sibling written BESIDE a
-    // scratch dir — the `<bank>.lock` case, found only by counting $TMPDIR
-    // before and after a run. scratchBank in minuteBankPinned closes that one.
-    // The FMP governor's suites joined on 2026-09-21: before they moved onto
-    // scratchDir, one run of their six files left 103 directories behind.
+    // The four files that leaked 1,000+ directories in one evening, the two
+    // minute-bank suites converted on 2026-09-21 (the parity suite had left 378
+    // `parity-*` directories), and the FMP governor's suites, which joined the
+    // same day after one run of their six files left 103 directories behind. A
+    // static check, with its limit stated: it cannot see a sibling written
+    // BESIDE a scratch dir — the `<bank>.lock` case, found only by counting
+    // $TMPDIR before and after a run. scratchBank in minuteBankPinned closes that one.
     for (const file of [
+      "tests/minuteBankBackup.test.ts",
       "tests/minuteBankLock.test.ts",
+      "tests/minuteBankParity.test.ts",
       "tests/minuteBankPinned.test.ts",
       "tests/cacheTopupPinned.test.ts",
       "tests/support/noKeychain.ts",
