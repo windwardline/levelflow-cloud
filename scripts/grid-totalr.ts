@@ -2841,7 +2841,7 @@ async function main(): Promise<void> {
       throw new Error(
         `${arg} owns the token after it and got ${describeToken(token)} — a ` +
           `variant name, never a flag and never blank; pass ${arg} <variant> (an ` +
-          `eaten shard path lands at the cube's baseline-exists refusal)`,
+          `eaten shard path lands at the door's refusal of a baseline no grid cell names)`,
       );
     }
     return token;
