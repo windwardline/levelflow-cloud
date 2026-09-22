@@ -652,6 +652,10 @@ function codeOf(source: string): string {
 // an exemption the scan no longer finds is stale, and an exempt file that
 // reaches the door or names an outcome column is a reader after all.
 const NOT_A_FOLD_READER: Record<string, string> = {
+  "recover-minute-bank":
+    "reads the minute bank's own JSONL, one provider bar per line, to dedupe " +
+    "the minutes it appends; it opens no corpus, has no manifest for the door " +
+    "to judge, and names no outcome column",
   fmpState:
     "reads the FMP governor's own state logs under .fmp-state/ — byte records " +
     "and breaker events this machine appended; it opens no corpus, has no " +

@@ -1945,6 +1945,11 @@ describe("every emit reader passes the one-clock door (R0) — the population, n
       "records and breaker events this machine appended, never a corpus " +
       "emit, with no manifest and no clock for the door to judge; it reads " +
       "no bar, no decision and no outcome column",
+    "recover-minute-bank.ts":
+      "reads the minute bank's own JSONL, one provider bar per line, to " +
+      "dedupe the minutes it appends — never a corpus emit, with no manifest " +
+      "and no clock for the door to judge; it reads no decision and no " +
+      "outcome column",
     "symbolCensus.ts":
       "reads TYPESCRIPT SOURCE, not a corpus emit — it walks src/, scripts/ " +
       "and supabase/functions/ with the TypeScript AST to find declarations " +
