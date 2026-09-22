@@ -169,8 +169,8 @@ fills a hole like that one from dated requests, once, as the ad-hoc class:
 - refuses a whole symbol, after buying its days and before writing a line, when its
   answers cannot be placed: a date in another shape, a day over 1,440 minutes, held
   minutes that match the answer more often at some offset within a day than where they
-  are keyed (an offset is judged over 60 pairs or more; a move between New York and UTC
-  is 240 or 300 minutes), or, once the file holds a day's worth, more than 5% of the new
+  are keyed (both sides are judged over 60 pairs or more, so a day whose fetch failed
+  judges nothing; a move between New York and UTC is 240 or 300 minutes), or, once the file holds a day's worth, more than 5% of the new
   minutes at times of day it has never held. Other prices alone refuse nothing: FMP
   revises minutes after the bank takes them live, and a dated probe of 2026-09-03 found
   164 of ^GSPC's 389 held minutes and 114 of AAVEUSD's 1,159 revised, with agreement

@@ -461,6 +461,23 @@ describe("recover-minute-bank keeps a revised history and refuses a moved clock"
     });
   });
 
+  it("does not judge a day whose same-key pairs fall below the floor, whatever a neighbouring day matches", async () => {
+    // The held minutes sit on a day whose fetch failed, so none pairs with its
+    // own key; at a whole day's offset they pair with the next day's answer,
+    // which repeats each time of day's price. That is no evidence of a clock.
+    const state = tempState();
+    const daily = (key: string) => 100 + (minuteOf(key) % 1440) / 100;
+    const held = [...wholeDay("2026-08-06"), ...wholeDay("2026-09-03").slice(0, 720)];
+    const eur = bank(state, "EURUSD", held, { price: daily });
+    const answered = answering(wholeDay, daily);
+    const provider: Provider = (symbol, date) =>
+      date === "2026-09-03" ? new Response("{}", { status: 404 }) : answered(symbol, date);
+    const result = await recover({ provider, state });
+    assert.doesNotMatch(result.output, /match the answer/);
+    assert.match(result.output, /^EURUSD\tfetched 2880\tappended 2880\tdropped 0\tnot recovered: 2026-09-03$/m);
+    assert.equal(lines(eur.file).length, held.length + 2880);
+  });
+
   it("does not judge the prices from fewer pairs than the floor", async () => {
     // Five held minutes of a flat price, the first three revised: a shift of
     // three minutes slides the revision off the edge and matches all five,

@@ -351,9 +351,12 @@ export function checkPrices(held: ReadonlyMap<string, number>, answer: ReadonlyM
   const medianRevision =
     revisions.length === 0 ? null : revisions.length % 2 === 1 ? revisions[middle] : (revisions[middle - 1] + revisions[middle]) / 2;
   let shift: PriceCheck["shift"] = null;
+  // Both sides of the comparison need the floor: with fewer same-key pairs (a
+  // day whose fetch failed leaves its held minutes none) the baseline is noise,
+  // and a neighbouring day's answer at a whole day's offset would "beat" it.
   // Nothing beats every held minute agreeing, so a clean overlap skips the scan.
-  if (!(zero.pairs > 0 && zero.agree === zero.pairs)) {
-    let best = zero.pairs > 0 ? zero.agree / zero.pairs : 0;
+  if (zero.pairs >= SHIFT_MIN_PAIRS && zero.agree < zero.pairs) {
+    let best = zero.agree / zero.pairs;
     // Nearest offsets first, so a tie keeps the smaller shift.
     for (let reach = 1; reach <= SHIFT_REACH_MINUTES; reach += 1) {
       for (const minutes of [reach, -reach]) {
