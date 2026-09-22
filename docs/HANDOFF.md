@@ -56,7 +56,7 @@ coverage question closed, and the desk went dark on purpose.
 
 **Owner only.** Revoke the Gemini CLI's Google OAuth grant (myaccount.google.com → Security → Third-party access). Empty the Trash. Read the FMP dashboard (ceiling, boost billing, trailing-30) and refresh the expired population attestation. Say whether `--daily-ceiling` must carry a dated approval label.
 
-**Carried minors.** The dated depth (E3, 2026-09-22) moves premises that still stand in code: §21c's "the one store whose loss is permanent" (`bank-minute-bars.ts`, the no-door exemption), `scripts/ops/bank-lock.sh`'s "the bars it missed are unrecoverable" (why both plists carry `RunAtLoad`), and the ops scripts' "unrecoverable at any price" comments. None of their conclusions changes today; they belong to the change that makes the bank fetch incrementally, and §21c's premise is the owner's. #657: a stamped freeze's message should say "never re-run the freeze", and the twelve stdout twins need their own `SealedAs` kind. #671: the §6b-1 preamble should list I and J among the marker-less items, and `docs/minute-bank.md` should give the manual restore sequence beside J. #674: a test that makes a real directory outside every temp root should do it under `~/.cache` by a shared helper, and nothing pins that yet.
+**Carried minors.** The dated depth (E3, 2026-09-22) moves premises that still stand in code: §21c's "the one store whose loss is permanent" (`bank-minute-bars.ts`, the no-door exemption), `scripts/ops/bank-lock.sh`'s "the bars it missed are unrecoverable" (why both plists carry `RunAtLoad`), and the ops scripts' "unrecoverable at any price" comments. None of their conclusions changes today; they belong to the change that makes the bank fetch incrementally, and §21c's premise is the owner's. #657: a stamped freeze's message should say "never re-run the freeze", and the twelve stdout twins need their own `SealedAs` kind. #671: the §6b-1 preamble should list I and J among the marker-less items (the manual restore sequence beside J landed with it). #674: a test that makes a real directory outside every temp root should do it under `~/.cache` by a shared helper, and nothing pins that yet.
 
 Session artifacts, outside the reaped scratchpad: `~/Library/Application Support/WindwardLineToolchain/levelflow/session-artifacts-2026-09-16/`.
 
@@ -5470,8 +5470,12 @@ a permanent copy of `20260823`, its upload date read from R2, and a ruling on
 whether the parity check should then stop requiring the protected stamp in
 `windwardline-backups`.
 
-**J. Nobody has ever restored the minute bank from R2 — OPEN, raised
-2026-09-21.** The push verifies the remote object's md5 against the local
+**J. Nobody had ever restored the minute bank from R2 — CLOSED 2026-09-22,
+raised 2026-09-21.** `scripts/ops/verify-minute-bank-restore.sh` pulls the newest
+archive, restores it and compares it with the live bank; it runs weekly on the
+fleet-health cadence (windwardline#118). First proof 2026-09-22:
+`minute-bank-20260922`, 100 data files, 3,516,278 bars, equal to live. The case as
+raised: The push verifies the remote object's md5 against the local
 archive's, which proves the bytes that left are the bytes that landed. It does
 not prove bars come back out of a `tar | zstd` archive pulled from R2, and
 parity compares names, not contents. Until 2026-09-21 fourteen local dailies
