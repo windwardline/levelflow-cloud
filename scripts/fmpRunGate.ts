@@ -195,10 +195,14 @@ export function runGateCli(
   deps: { now: () => number; state: () => FmpStatePaths; repoRoot: string; print: (line: string) => void },
 ): number {
   const nowMs = deps.now();
-  let recordClean = false;
+  // Read from the raw argv BEFORE the try. soleFlagIndex throws on a repeated
+  // flag, and a record-clean whose flag parse threw must still fail as a record
+  // (exit 1, "record-clean failed"), never fall through to the decide branch and
+  // report success with no marker placed.
+  const recordClean = args.includes("--record-clean");
   let job: string | undefined;
   try {
-    recordClean = soleFlagIndex(args, "--record-clean") !== -1;
+    soleFlagIndex(args, "--record-clean");
     const { str } = flagReader(args, VALUE_FLAGS);
     job = str("--job");
     const resolved = asJob(job);

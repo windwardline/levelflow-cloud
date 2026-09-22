@@ -251,6 +251,10 @@ describe("the CLI skips with 75 and runs on everything else", () => {
     assert.equal(runGateCli(["--job", "cache-topup", "--record-clean"], deps), 1);
     assert.match(lines.at(-1)!, /^runGate: record-clean failed job=cache-topup: --dir is required/);
     assert.equal(runGateCli(["--job", "cache-topup", "--dir", join(cache, "absent"), "--record-clean"], deps), 1);
+    // A repeated flag the reader refuses to choose between is still a record
+    // that failed, not a decision that succeeded with no marker placed.
+    assert.equal(runGateCli(["--job", "cache-topup", "--dir", cache, "--record-clean", "--record-clean"], deps), 1);
+    assert.match(lines.at(-1)!, /^runGate: record-clean failed job=unknown: /);
     // A state root that cannot be resolved is one more thing the gate cannot
     // read: the job runs, and a marker it cannot place is a failure.
     const unresolvable = {
