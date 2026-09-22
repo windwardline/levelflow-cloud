@@ -48,7 +48,7 @@ before it writes. A new key needs an archive of the source beside its restore, b
 as if the archive did not compress, with 1 GiB left for the rest of the machine: 9.43 GB
 for the condemned cache, 17.57 GB for the v3-preDateFix cache, 1.46 GB for the snapshot,
 measured 2026-09-22. A re-proof needs only the object it lists beside the restore:
-a row's Archive bytes plus its Source bytes and 1 GiB.
+a row's Archive bytes plus its Source bytes, 4 KiB per entry and 1 GiB.
 `LEVELFLOW_ARCHIVE_STAGING` names staging on another filesystem.
 
 **A new key is proven before it is written.** The script builds
@@ -124,8 +124,9 @@ code is an unreadable listing, and the push refuses it.
 
 ## Restore
 
-With the source still present, run the push again: it finds its own object, streams it
-back and proves the restore, and changes nothing. Without the source, restore by hand
+With the source still present and still free of links and special files, run the push
+again: it finds its own object, streams it back and proves the restore, and changes
+nothing. Without the source, restore by hand
 from the register's Archive column, and check the md5 against the register before
 extracting:
 
@@ -164,7 +165,8 @@ the date the script's restore passed, or a later monthly stream-back matched the
 | `windwardline-archives/levelflow-cloud/minute-bank/levelflow-minute-bank-snapshot-20260823.tar.zst` | pending | pending | pending | pending | pending |
 
 Bucket lock on `windwardline-archives`: pending, to be added after the three rows above
-are filled.
+are filled. Last, not first: until the three first pushes are proven, a hand delete is
+the only way back from a mistake.
 
 ### Sources
 

@@ -168,7 +168,7 @@ command -v rclone >/dev/null || die "rclone is not installed (brew install rclon
 # name, rather than half-proven.
 OTHER="$(find "$SRC" ! -type f ! -type d -print -quit)" || die "cannot scan $SRC"
 [[ -z $OTHER ]] \
-  || die "the source holds an entry that is neither a file nor a directory ($OTHER); the restore proof compares file contents and cannot prove a symlink, fifo or device, so this script refuses such a source"
+  || die "the source holds an entry that is neither a file nor a directory ($OTHER); the restore proof compares file contents and cannot prove a symlink, fifo or device, so this script refuses such a source. An object already archived from it is unaffected: the register's md5 and the fleet cadence's monthly stream-back cover it. Archive a source that must hold links from a link-free copy under a new directory name"
 
 # --- self-delivery of the credential -----------------------------------------
 # Last of the pre-flight, so every refusal above runs BEFORE the Keychain is
@@ -268,7 +268,9 @@ log "source $SRC: $FILES files in $DIRS directories, $SRC_BYTES bytes"
 # header and at most 511 bytes of padding per entry plus a 10240-byte end
 # block; zstd's own bound adds 1/256 and a frame. A restore takes the source's
 # bytes and at most one 4 KiB block more per entry. An entry is anything tar
-# writes a header for: a symlink or a fifo costs a header as a file does. Each branch below checks
+# writes a header for. The refusal above keeps symlinks and fifos out, so today
+# ENTRIES equals FILES + DIRS; the budget stays per entry so it holds if that
+# refusal is ever narrowed. Each branch below checks
 # its own peak before it writes: a new key an archive beside its restore, then
 # the returned copy beside the archive once the restore is gone; an existing
 # key the object it lists beside the restore. HEADROOM stays free for
@@ -411,7 +413,7 @@ else
   log "restore proven locally; uploading to R2:$BUCKET/$KEY"
   # From here an object may be at a permanent key, whatever rclone reports.
   FETCH_HINT=". The object may be at its key: run again with the source unchanged, which proves it by restoring it"
-  rclone copyto --ignore-existing --s3-no-check-bucket "$ARCHIVE" "R2:$BUCKET/$KEY" 2>"$STAGE/copyto.err" \
+  rclone copyto --ignore-existing --s3-no-check-bucket "$ARCHIVE" "R2:$BUCKET/$KEY" >/dev/null 2>"$STAGE/copyto.err" \
     || die "upload to R2:$BUCKET/$KEY failed: $(rclone_error "$STAGE/copyto.err")$FETCH_HINT"
   log "uploaded; streaming the object back"
   fetch_back

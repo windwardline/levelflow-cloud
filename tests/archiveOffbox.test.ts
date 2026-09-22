@@ -977,6 +977,7 @@ describe("the push refuses before it can do harm, each refusal by name", () => {
     const r = run(sb, { R2_TOKEN: undefined, LEVELFLOW_WL_SECRET: join(sb.root, "no-such-wl-secret") });
     assert.equal(r.code, 1);
     assert.match(r.stderr, /neither a file nor a directory \(.*dangling\.json\)/);
+    assert.match(r.stderr, /An object already archived from it is unaffected/, "the refusal names the way out");
     assert.doesNotMatch(r.stderr, /wl-secret is not executable/, "refused before the credential");
     assert.equal(rcloneCalls(sb).length, 0);
   });
