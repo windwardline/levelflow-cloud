@@ -11,11 +11,13 @@
        an older branch failed it outright.
 
        LEVELFLOW_CHECKOUT is not optional and not decoration. The extracted
-       tree carries CODE, never ignored DATA, and this job touches three pieces
-       of data: the bank itself, the FMP usage ledger, and the circuit marker.
-       Left to default, the ledger and the breaker would resolve inside the
-       temp tree, read as untouched, and be deleted on exit — the consumption
-       governor switched off while every run reported success. The daily script
+       tree carries CODE, never ignored DATA, and this job touches two pieces
+       of data: the bank itself and the FMP state (.fmp-state/, plus the
+       legacy ledger and marker it reads as history). Left to default, the
+       ledger and the breaker would resolve inside the temp tree, read as
+       untouched, and be deleted on exit — the consumption governor switched
+       off while every run reported success — and the run gate would find no
+       clean-run marker and re-run the bank at every login. The daily script
        refuses a missing bank and scripts/checkoutState.ts refuses a missing
        checkout, so a wrong value here fails loudly instead. -->
   <key>ProgramArguments</key>

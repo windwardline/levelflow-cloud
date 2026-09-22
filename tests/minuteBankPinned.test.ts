@@ -7,11 +7,13 @@ import {
   mkdirSync,
 readFileSync,
   readlinkSync,
+  realpathSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, it } from "node:test";
+import { writeRunMarker } from "../scripts/fmpRunGate.ts";
 import { noKeychainEnv } from "./support/noKeychain.ts";
 import { scratchDir } from "./support/scratchDir.ts";
 
@@ -80,18 +82,19 @@ function run(
 }
 
 /**
- * Prints where the two state files resolve. A file rather than `--eval`,
- * because tsx compiles `--eval` as CommonJS and top-level `await` fails there
- * before a single path is printed.
+ * Prints the root every piece of the FMP state resolves under: `.fmp-state/`
+ * (the byte ledger, the breaker log, the run gate's markers) and the legacy
+ * ledger and marker. The binaries build their paths on it
+ * (tests/fmpGovernor.test.ts pins that and checks every path in-process). A
+ * file rather than `--eval`, because tsx compiles `--eval` as CommonJS and
+ * top-level `await` fails there before a single path is printed.
  */
 const PRINT_PATHS = (() => {
   const probe = join(scratchDir("state-probe-"), "probe.mts");
   writeFileSync(
     probe,
-    `const g = await import(${JSON.stringify(join(REPO, "scripts/fmpGovernor.ts"))});
-const c = await import(${JSON.stringify(join(REPO, "scripts/fmpCircuit.ts"))});
-console.log("USAGE=" + g.FMP_USAGE_PATH);
-console.log("CIRCUIT=" + c.FMP_CIRCUIT_PATH);
+    `const c = await import(${JSON.stringify(join(REPO, "scripts/checkoutState.ts"))});
+console.log("ROOT=" + c.checkoutRoot());
 `,
   );
   return probe;
@@ -104,9 +107,15 @@ console.log("CIRCUIT=" + c.FMP_CIRCUIT_PATH);
  */
 function extractedTree(): string {
   const tree = scratchDir("pinned-tree-");
-  for (const part of ["scripts", "src", "package.json", "tsconfig.json"]) {
+  // `supabase` because the bank imports the analyzer's redaction module;
+  // `git archive` extracts the whole tracked tree, so production has it.
+  for (const part of ["scripts", "src", "supabase", "package.json", "tsconfig.json"]) {
     if (existsSync(join(REPO, part))) {
-      cpSync(join(REPO, part), join(tree, part), { recursive: true });
+      cpSync(join(REPO, part), join(tree, part), {
+        recursive: true,
+        // Tracked code only: a working tree can hold ignored data under these.
+        filter: (src) => !src.includes(`${join(REPO, "supabase")}/.temp`),
+      });
     }
   }
   return tree;
@@ -125,12 +134,11 @@ function scratchBank(prefix: string): string {
 }
 
 describe("the governor's state is the checkout's, wherever the code runs", () => {
-  it("follows LEVELFLOW_CHECKOUT for the ledger and the breaker", () => {
+  it("follows LEVELFLOW_CHECKOUT for the ledger, the breaker and the run markers", () => {
     const checkout = scratchDir("checkout-");
     const r = run(TSX, [PRINT_PATHS], { LEVELFLOW_CHECKOUT: checkout });
     assert.equal(r.code, 0, r.out);
-    assert.match(r.out, new RegExp(`USAGE=${checkout}/\\.fmp-usage\\.json`));
-    assert.match(r.out, new RegExp(`CIRCUIT=${checkout}/\\.fmp-circuit\\.json`));
+    assert.match(r.out, new RegExp(`^ROOT=${checkout}$`, "m"));
   });
 
   it("keeps the module-anchored default when nothing is named", () => {
@@ -138,18 +146,17 @@ describe("the governor's state is the checkout's, wherever the code runs", () =>
     // on this, so the override must change nothing for them.
     const r = run(TSX, [PRINT_PATHS], { LEVELFLOW_CHECKOUT: undefined });
     assert.equal(r.code, 0, r.out);
-    assert.match(r.out, new RegExp(`USAGE=${REPO}/\\.fmp-usage\\.json`));
-    assert.match(r.out, new RegExp(`CIRCUIT=${REPO}/\\.fmp-circuit\\.json`));
+    assert.match(r.out, new RegExp(`^ROOT=${REPO}$`, "m"));
   });
 
   it("refuses a named checkout that does not exist, rather than an empty ledger", () => {
     // A typo in a plist must not become a governor that believes nothing has
-    // been spent this month.
+    // been spent this month, or a run gate that finds no clean run.
     const missing = join(tmpdir(), "no-such-checkout-" + process.pid);
     const r = run(TSX, [PRINT_PATHS], { LEVELFLOW_CHECKOUT: missing });
     assert.notEqual(r.code, 0, r.out);
     assert.match(r.out, /LEVELFLOW_CHECKOUT/);
-    assert.doesNotMatch(r.out, /USAGE=/);
+    assert.doesNotMatch(r.out, /ROOT=/);
   });
 });
 
@@ -220,6 +227,92 @@ describe("a run from the extracted tree uses the checkout's toolchain and state"
     );
     assert.match(r.out, /FMP_API_KEY is required\./, r.out);
     assert.doesNotMatch(r.out, /Cannot find (module|package)|ERR_MODULE_NOT_FOUND/);
+  });
+});
+
+describe("the run gate reads the checkout's marker from the extracted tree", () => {
+  // RunAtLoad fires the bank at every login. The gate skips a login run only
+  // when a clean run already finished at or after the latest scheduled slot,
+  // and it can only know that from a marker in the CHECKOUT's .fmp-state/runs.
+  // Read from the extracted tree, the marker never exists and every login runs
+  // the job again. This is the path production takes: a tree under
+  // /var/folders, LEVELFLOW_CHECKOUT naming the checkout.
+  function gateTree(): string {
+    const tree = extractedTree();
+    execFileSync("ln", ["-s", join(REPO, "node_modules"), join(tree, "node_modules")]);
+    return tree;
+  }
+
+  it("runs without a marker, records one in the checkout, then skips", () => {
+    const tree = gateTree();
+    const checkout = scratchDir("gate-checkout-");
+    const cache = join(checkout, ".calibration-cache");
+    mkdirSync(cache);
+    const gate = (...args: string[]) =>
+      run(join(tree, "node_modules", ".bin", "tsx"), [join(tree, "scripts/fmpRunGate.ts"), "--job", "cache-topup", "--dir", cache, ...args], {
+        LEVELFLOW_CHECKOUT: checkout,
+      }, tree);
+    const first = gate();
+    assert.equal(first.code, 0, first.out);
+    assert.match(first.out, /^runGate: run job=cache-topup .*reason=noCleanRun$/m, "the gate's main never ran");
+    const recorded = gate("--record-clean");
+    assert.equal(recorded.code, 0, recorded.out);
+    assert.match(recorded.out, /^runGate: recorded clean job=cache-topup /m);
+    assert.equal(existsSync(join(checkout, ".fmp-state", "runs", "cache-topup.json")), true, "the marker is not in the checkout");
+    assert.equal(existsSync(join(tree, ".fmp-state")), false, "the marker went into the extracted tree");
+    const second = gate();
+    assert.equal(second.code, 75, second.out);
+    assert.match(second.out, /^runGate: skip job=cache-topup .*reason=cleanRunCoversNextSlot$/m);
+  });
+
+  // The gate fails toward running, and that includes a checkout it cannot
+  // resolve. Resolved outside the gate's own error handling, a checkout that
+  // names nothing crashed the process with a stack and no decision line.
+  it("reads a checkout that names nothing as a gate error, and runs", () => {
+    const tree = gateTree();
+    const missing = join(scratchDir("gate-checkout-"), "no-such-checkout");
+    const cache = scratchDir("gate-cache-");
+    const gate = (...args: string[]) =>
+      run(join(tree, "node_modules", ".bin", "tsx"), [join(tree, "scripts/fmpRunGate.ts"), "--job", "cache-topup", "--dir", cache, ...args], {
+        LEVELFLOW_CHECKOUT: missing,
+      }, tree);
+    const decided = gate();
+    assert.equal(decided.code, 0, decided.out);
+    assert.match(
+      decided.out,
+      /^runGate: run job=cache-topup now=\S+ reason=gateError: LEVELFLOW_CHECKOUT names .*no-such-checkout, which does not exist/m,
+    );
+    const recorded = gate("--record-clean");
+    assert.equal(recorded.code, 1, recorded.out);
+    assert.match(recorded.out, /^runGate: record-clean failed job=cache-topup: LEVELFLOW_CHECKOUT names /m);
+    assert.equal(existsSync(join(tree, ".fmp-state")), false, "the marker went into the extracted tree");
+  });
+
+  it("skips the daily bank on a clean marker, before the lock and the keychain", () => {
+    const tree = gateTree();
+    const checkout = scratchDir("gate-checkout-");
+    const bank = join(checkout, ".minute-bank");
+    mkdirSync(bank);
+    const daily = () =>
+      run("bash", [join(tree, "scripts/ops/bank-minute-bars-daily.sh")], {
+        LEVELFLOW_BANK_DIR: undefined,
+        LEVELFLOW_BANK_LOCK_TIMEOUT: "1",
+        LEVELFLOW_CHECKOUT: checkout,
+      });
+    // No marker: the gate says run, and the script goes on to its own refusal
+    // of a temp-rooted bank. Nothing past that point can spend.
+    const unmarked = daily();
+    assert.notEqual(unmarked.code, 0, unmarked.out);
+    assert.match(unmarked.out, /reason=noCleanRun/);
+    assert.match(unmarked.out, /under the temporary root/);
+    writeRunMarker(join(checkout, ".fmp-state", "runs"), "minute-bank", { atMs: Date.now(), dir: realpathSync(bank) });
+    // A backup holds the lock: a skip must not wait on it, or go red over it.
+    mkdirSync(`${bank}.lock`);
+    writeFileSync(join(`${bank}.lock`, "pid"), `${process.pid}\n`);
+    const marked = daily();
+    assert.equal(marked.code, 0, marked.out);
+    assert.match(marked.out, /minute-bank run skipped by the run gate/);
+    assert.doesNotMatch(marked.out, /bank lock|under the temporary root|keychain|run starting/);
   });
 });
 

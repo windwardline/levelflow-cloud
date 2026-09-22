@@ -10,10 +10,12 @@
 
        LEVELFLOW_CHECKOUT is not optional and not decoration. The extracted
        tree carries code and none of the checkout's ignored data, and this job
-       touches three pieces of it: the 7.7 GB calibration cache, the FMP usage
-       ledger and the circuit marker. Unnamed, the cache would resolve to an
-       empty directory in the temp tree and the sweep would warm the whole
-       roster into it from nothing, up to its 2 GiB ceiling, every night. The
+       touches two pieces of it: the 7.7 GB calibration cache and the FMP
+       state (.fmp-state/, plus the legacy ledger and marker it reads as
+       history). Unnamed, the cache would resolve to an empty directory in the
+       temp tree and the sweep would warm the whole roster into it from
+       nothing, up to its 256 MiB class ceiling, every night, and the run gate
+       would find no clean run and re-run the top-up at every login. The
        script refuses a missing cache and checkoutState.ts refuses a missing
        checkout, so a wrong value here fails loudly instead. -->
   <key>ProgramArguments</key>

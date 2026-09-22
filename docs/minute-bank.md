@@ -10,10 +10,11 @@ which came first. That single limit is why a measured ~60% gain at sub-1.0 stop 
 was declined in round 25: at a 0.5 cap, 26% of setups end in neither a target nor a
 stop, so the expectancy figure describes the harness rather than the market.
 
-Minute bars resolve the order. FMP serves them for 99 of 99 probed symbols and only
-about **three days deep** (`scripts/probe-minute-bars.ts`). The depth cannot be bought
-and it cannot be backfilled. It can only be accumulated forward, one day at a time,
-starting whenever the banking starts.
+Minute bars resolve the order. FMP served them for 99 of 99 probed symbols, and an
+undated request returns about **three days** (probe, 2026-08-06). Whether a dated
+request reaches deeper has not been measured; `scripts/probe-minute-bars.ts --symbol
+--from --to` asks one such question through the governor. Until it is answered, the
+depth is treated as unrecoverable: the bank accumulates forward, one day at a time.
 
 That makes this the one piece of work whose value depends purely on its start date.
 Every day not banked is a day never recovered. The analysis that consumes it comes
@@ -36,10 +37,11 @@ winter 2026-01-30 first=09:30 last=15:45 bars=26
 ```
 
 That convention is wrong and will be corrected. The bank must not inherit it, and it
-cannot be refetched after the correction lands — the provider window is three days
-wide. So the store holds the provider's own date string, unparsed and unconverted.
-Re-normalising later becomes a re-read of local disk instead of a fetch that is no
-longer possible.
+must not need a refetch after the correction lands: an undated request returns about
+three days, and until a dated one is shown to reach deeper a refetch is treated as
+impossible. So the store holds the provider's own date string, unparsed and
+unconverted. Re-normalising later becomes a re-read of local disk instead of a fetch
+that may no longer be possible.
 
 The sidecar carries a `sourceTimezone` field, null until the convention is
 established by measurement rather than assumption.
@@ -95,10 +97,43 @@ indistinguishable from a real one.
 FMP_API_KEY=$(security find-generic-password -s fmp-api-key -a peacock -w) npx tsx scripts/bank-minute-bars.ts
 ```
 
-It must run at least once every three days or a gap opens that cannot be closed. A
-run that fetches nothing from any symbol exits non-zero — the provider or the key is
-broken and the window is closing. A run that fetches bars but appends none is normal
-and says so.
+It must run at least once every three days. Until a dated request is shown to reach
+deeper, a longer gap is treated as one that cannot be closed.
+
+The bank is never refused at a door (§21c). It does not consult the shared FMP
+breaker or ask the ledger for room: its first symbol is its probe, so an outage costs
+one request per run. When that scout fetches nothing the run stops, reports a wall no
+retry clears to the breaker, names the remedy and exits 1. When it answers, the bank
+records the answer, which closes the account's entry and the 1-minute endpoint's
+entry. An entitlement refusal another consumer met on a different endpoint, such as
+the economic calendar, stays open until that endpoint answers.
+
+It exits 1 when there are no targets, when nothing was fetched, when the scout stood
+down, when a ledger or breaker write failed, when the run reached its **512 MiB
+per-run bound** (symbols past the bound are not attempted, and the output names how
+many), and when the bank's own bytes for the UTC day pass 512 MiB or the ledger
+cannot be read to check them. That last is an alarm, not a refusal. A run that loses some symbols but fetches others still exits 0,
+as before; the daily watcher reads those. A run that fetches bars but appends none is
+normal and says so.
+
+Every byte is recorded under `.fmp-state/usage/<YYYY-MM-DD>.jsonl`, tagged `bank`.
+The other script consumers — the cache top-up and every ad-hoc sweep, probe and
+verifier — share a pool that reserves 333,333,333 bytes a day for the bank whether it
+runs or not.
+
+A clean run — exit 0, the whole roster, no symbol lost, no bound reached, into the
+canonical `.minute-bank` — writes `.fmp-state/runs/minute-bank.json`. A red run writes
+none, even though its bars are banked, so the next login, kickstart or hand run banks
+again. The wrapper's run gate (`scripts/fmpRunGate.ts`) reads the marker: a login run
+is skipped only when that clean run finished at or after the most recent scheduled
+slot (07:20 or 19:20 local), and anything the gate cannot read runs the bank. The
+rule holds on the DST nights, when the slots sit 11 or 13 hours apart. The gate runs
+before the bank lock, so a skipped login never waits on a backup. It reads the slots
+from the TRACKED plists in `scripts/ops/`, while launchd fires the INSTALLED copies in
+`~/Library/LaunchAgents/`; nothing compares the two. Their schedules agreed on
+2026-09-21 (bank 07:20 and 19:20, top-up 07:00). A schedule change updates both in one
+change set, because an installed slot moved earlier than the tracked one would let a
+clean overnight run skip a genuine scheduled start.
 
 First run, 2026-08-06: 338,971 bars across 100 symbols, 42 MB.
 
@@ -266,26 +301,33 @@ Since 2026-09-20 the job runs through `wl-repo-script`, as both backups already 
 It used to name a path in the shared checkout, so it ran whatever branch a concurrent
 session had out at 07:20. The launcher extracts `origin/main` into a temporary tree,
 and that tree carries code and no ignored data. That split takes more than the plist
-to get right, because the bank touches three pieces of data and each would have
+to get right, because the bank touches four pieces of data and each would have
 failed silently:
 
 | Data | Resolved from | Unnamed, it would have |
 | --- | --- | --- |
 | the bank | `LEVELFLOW_CHECKOUT/.minute-bank` | been created in the temp tree by the bank's `mkdir -p`, filled, and deleted |
-| `.fmp-usage.json` | `scripts/checkoutState.ts` | read as empty — the governor believing nothing had been spent |
-| `.fmp-circuit.json` | `scripts/checkoutState.ts` | read as closed, whatever the provider had said |
+| `.fmp-state/usage/` and the legacy `.fmp-usage.json` | `scripts/checkoutState.ts` | read as empty — the governor believing nothing had been spent |
+| `.fmp-state/breaker/` and the legacy `.fmp-circuit.json` | `scripts/checkoutState.ts` | read as closed, whatever the provider had said |
+| `.fmp-state/runs/` | `scripts/checkoutState.ts` | held no clean-run marker, so the run gate re-ran the job at every login |
 
 The plist passes `LEVELFLOW_CHECKOUT`. The daily script refuses a bank that does not
 exist rather than creating one, `checkoutState.ts` refuses a named checkout that does
-not exist, and `node_modules` is linked from the checkout rather than installed.
+not exist, and `node_modules` is linked from the checkout rather than installed. Each
+binary resolves that checkout inside its own error handling, so the refusal prints as
+one line and exits 1. A tree with no ledger at all refuses every other spender; the
+bank is never refused (§21c), so it names that tree in one line and banks.
 
 One more defect surfaced only because the tree lives in `mktemp -d`. The bank's
 entry guard compared `import.meta.url`, which Node resolves through symlinks, against
 `process.argv[1]`, which it does not. Under `/var/folders` — a symlink into
 `/private` on macOS — they never match, `main` is skipped, and the process exits 0
 having banked nothing: twice a day, with a completed run logged each time.
-`scripts/isEntryPoint.ts` compares real paths, and the two other scripts that
-carried the same guard use it too.
+`scripts/isEntryPoint.ts` compares real paths. Every script the pinned jobs run uses
+it: the bank, the run gate (`scripts/fmpRunGate.ts`) and the sweep. Under the old guard
+the gate printed nothing and exited 0, so every login ran the job, and
+`--record-clean` wrote no marker while reporting success. The probe and the match
+verifier use it too.
 
 **No test may spend FMP bandwidth.** On 2026-09-20 the suite ran the daily script
 against real FMP six times, and each time the keychain answered and a full roster was
@@ -322,7 +364,9 @@ to come up.
 Retries are classified, not blanket. A 4xx other than 429 is a settled answer: a
 rejected key is still rejected on the fourth ask, and asking costs a hundred
 symbols against a metered quota. Everything else — no response at all, a 429, a
-5xx, an error page where JSON belonged — is retried.
+5xx, an error page where JSON belonged — is retried. The status is read from the
+start of the message even when the provider's body follows it; until 2026-09-16 a
+suspension and a rejected key carried their body and were retried five times each.
 
 A symbol that leaves the roster stops being banked, and the count alone will not
 say so. Amendment 32 dropped `^MID`, `^STOXX50E` and `USDMXN` on 2026-08-09 and

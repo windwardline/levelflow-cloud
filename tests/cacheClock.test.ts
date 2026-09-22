@@ -113,26 +113,30 @@ describe("the store guard's refusals are loud and the ops jobs know their names"
     assert.doesNotMatch(cache, /seedFromLegacy|legacyPrefix/);
   });
 
-  it("the nightly top-up stands down ONLY for the store-stamp refusal, via herestrings", () => {
+  it("the nightly top-up stands down ONLY for a terminal bandwidth or store-stamp token, via herestrings", () => {
     const topup = readFileSync("scripts/ops/daily-cache-topup.sh", "utf8");
-    // Same discipline as the 429 branch (#356): one named, proven
-    // condition; everything else stays red. Herestrings because a piped
-    // grep -q can SIGPIPE the writer under pipefail and flip a legitimate
-    // stand-down red.
-    assert.match(topup, /grep -q 'cacheClockMismatch' <<<"\$out"/);
-    assert.match(topup, /grep -qE '\\\(429\\\)\|providerQuotaExhausted\|Too Many Requests' <<<"\$out"/);
-    // The shared breaker's refusal is a THIRD named condition (2026-09-02):
-    // it fires before the provider is asked, so no "(429)" token appears,
-    // and the 11:00Z run read it as "no quota signal … a real failure". Its
-    // own branch, its own message, and it must sit AFTER the must-stay-red
-    // guard like the two stand-downs beside it.
-    assert.match(topup, /grep -q 'fmpCircuitOpen' <<<"\$out"/);
-    assert.match(topup, /STOOD DOWN: the shared FMP breaker is open/);
+    // One named, proven condition per stand-down; everything else stays red.
+    // Since 2026-09-16 both read ONE terminal token the driver prints for the
+    // error that ended the run, never the whole output: a whole-output grep
+    // stood the 09-07T11:00:05Z run down green on a 402, and would stand down
+    // a TypeError that followed a deferred clock warning. Herestrings because
+    // a piped grep -q can SIGPIPE the writer under pipefail. The executed
+    // cases live in tests/opsWrappers.test.ts.
+    assert.match(topup, /terminal=\$\(grep -E '\^\(fmpStandDown\|cacheStandDown\): ' <<<"\$out" \|\| true\)/);
+    assert.match(topup, /"cacheStandDown: kind=clockMismatch"\*\)/);
+    assert.match(topup, /"fmpStandDown: kind=bandwidth "\*\)/);
+    const clockBranch = topup.slice(topup.indexOf('"cacheStandDown: kind=clockMismatch"*)'));
+    assert.match(clockBranch.slice(0, clockBranch.indexOf(";;")), /rebuild per docs\/cache-rebuild-r0\.md/);
+    assert.doesNotMatch(topup, /grep -q 'cacheClockMismatch'/);
     assert.ok(
-      topup.indexOf("grep -q 'fmpCircuitOpen'") > topup.indexOf("top-up FAILED: integrity refusal"),
-      "the breaker stand-down must come after the must-stay-red guard",
+      topup.indexOf("terminal=$(grep") > topup.indexOf("top-up FAILED: must-stay-red refusal"),
+      "the terminal-token stand-downs must come after the must-stay-red guard",
     );
-    assert.match(topup, /rebuild per docs\/cache-rebuild-r0\.md/);
+    // The two FMP tokens the driver defers are must-stay-red too, read from
+    // where they are created: a provider refusal no wait clears, and spend the
+    // ledger could not record.
+    assert.match(readFileSync("scripts/replay-sweep.ts", "utf8"), /`fmpDeferredRefusal: kind=/);
+    assert.match(readFileSync("scripts/fmpState.ts", "utf8"), /`fmpBookkeepingFailed: /);
     // The actionable refusals must NOT be swallowed by a stand-down.
     // #364 round 23 turned this from absence into a positive shape: the
     // driver now DEFERS treasury integrity refusals past the bar
@@ -164,12 +168,19 @@ describe("the store guard's refusals are loud and the ops jobs know their names"
     // guard, so the mint scan above cannot see them. Deriving only the
     // treasury half silently unpinned these two, which is the same shape as
     // the omission this whole pin exists to catch, one axis over.
-    for (const token of [...minted, "cacheStoreUnreadable", "cacheClockWitnessRefused"]) {
+    for (
+      const token of [
+        ...minted,
+        "cacheStoreUnreadable",
+        "cacheClockWitnessRefused",
+        "fmpDeferredRefusal",
+        "fmpBookkeepingFailed",
+      ]
+    ) {
       assert.ok(
         guardTokens.has(token),
-        `${token} is minted by treasuryChunkRefusal but is not in the ` +
-          `top-up script's must-stay-red guard — a refusal carrying it would ` +
-          `fall past this branch into the 429 stand-down and exit 0`,
+        `${token} is must-stay-red but is not in the top-up script's guard — ` +
+          `a refusal carrying it beside a bandwidth wall would stand down green`,
       );
     }
     const redGuard = guardMatch!.index;

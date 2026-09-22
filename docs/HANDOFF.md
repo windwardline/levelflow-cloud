@@ -323,6 +323,31 @@ named condition, which repaired a deploy gate that had been red since 2026-08-13
 for a non-regression. The E2E run also prints every stood-down test and its
 reason, and refuses an unexplained skip (#348).
 
+**The script-side governor (branch `fix/fmp-script-governor`, 2026-09-21).**
+The scripts' state lives in the checkout's `.fmp-state/`: a byte ledger keyed
+by consumer, the breaker's event log and the run gate's markers. Every writer
+appends one line; `.fmp-usage.json` and `.fmp-circuit.json` are read as history
+and never written. The top-up and ad-hoc classes each get 256 MiB a UTC day,
+from a pool that reserves 333,333,333 bytes for the minute bank. An ad-hoc
+`--byte-budget` above 256 MiB is refused at the command line unless the owner's
+`--daily-ceiling` raises that run's share. The bank is never refused at a door:
+it stops starting symbols at 512 MiB a run and alarms when its day passes 512
+MiB. The breaker keys an entitlement refusal by endpoint, and bandwidth or
+suspension by account; a rejected key goes red without opening it, and the
+breaker's read drops one from the legacy marker or a hand-edited log line
+alike. The top-up stands down green
+only when the run's one terminal token is
+`fmpStandDown: kind=bandwidth` or `cacheStandDown: kind=clockMismatch`, and
+every other refusal is red.
+
+**The run gate.** `scripts/fmpRunGate.ts` skips a login run only when a clean
+run finished at or after the most recent scheduled slot, and runs the job on
+anything it cannot read. Each marker names its store, the bank's directory or
+the top-up's cache, and a marker for any other store runs the job. Replayed
+over the logged starts from 09-14 to 09-21, it skips 6 of 18 bank starts and 6
+of 14 top-up starts, none of them at a slot. `docs/minute-bank.md` carries the
+bank's side, including where the gate sits.
+
 **Phases 2–3 are parked deliberately** until FMP recovers: a byte-metering proxy
 cannot be validated with no bytes flowing. Until Phase 3 completes the guarantee
 does not hold — anything still holding the real key is invisible to the ledger.
@@ -1013,8 +1038,10 @@ read a corpus built under different calibration.
 
 **`--byte-budget` is now required and the sweep will not start without it**
 (§21j Phase 1, after the 2026-08-13 blackout). Declare a ceiling in bytes or
-with a `gb` suffix — `--byte-budget 20gb` — and the run halts the moment its
-measured payload crosses it. FMP bills bytes over a trailing 30 days; the
+with a `gb` suffix and the run halts the moment its measured payload crosses
+it. Since the script-side governor, a budget above the ad-hoc class's 256 MiB
+day share also needs the owner's raise for that run: `--byte-budget 20gb
+--daily-ceiling 20gb`. FMP bills bytes over a trailing 30 days; the
 sweeps spent a 150 GB allowance in days, and every day the minute bank stayed
 dark after that was a day of permanently unrecoverable 1-minute history. Size
 the ceiling deliberately before a long sweep. Raising it is a decision; there
@@ -3097,7 +3124,9 @@ remedies for the other two walls are both wrong for a suspension.
 
 **Note:** `.fmp-circuit.json` is gitignored local state. The stale
 "Restricted Endpoint" it holds from 2026-09-04 is a machine condition, not a
-repo defect.
+repo defect. *(Superseded 2026-09-21: the breaker is an event log under
+`.fmp-state/breaker`, and `.fmp-circuit.json` is read as history and never
+written.)*
 
 ### ▶ RESUME HERE — 2026-09-04 05:00 UTC (the register moved twice; act 4 is refuted; a corpus was destroyed and is regenerating)
 
@@ -3417,7 +3446,10 @@ reading are tracked beside them. Full record:
   so the script's stand-down grep fell through to "no quota signal … a real
   failure" on every refused run since #493. The breaker's refusal now leads
   with `fmpCircuitOpen:` and the top-up stands down on it by name. The
-  minute-bank agent's own stand-down already exits 0.
+  minute-bank agent's own stand-down already exits 0. *(Superseded
+  2026-09-21: the top-up no longer stands down on `fmpCircuitOpen:`. A
+  refusal is red unless the run's one terminal token is `fmpStandDown:
+  kind=bandwidth` or `cacheStandDown: kind=clockMismatch`.)*
 - **Four hours passed between the arms ending (08:48Z) and the gate
   starting (12:56Z), unexplained.** Not sleep — `kern.sleeptime` is zero
   since boot and `pmset` logs none; the session simply did not resume. A
@@ -3477,7 +3509,9 @@ Executed so far, per `docs/cache-rebuild-r0.md`:
   with its `INVALID-READ-ME.txt` and the `cot-*.json` files. Since
   2026-09-21 it is at `~/.local/share/levelflow-cloud/archives/levelflow-cache-condemned-2026-08-11`.
 - **Step 2 RUNNING**, `--symbols roster --days max --warm-only
-  --byte-budget 30gb`, under `caffeinate` so the machine cannot idle-sleep
+  --byte-budget 30gb` *(a re-run since 2026-09-21 also needs
+  `--daily-ceiling 30gb`; `docs/cache-rebuild-r0.md` carries the command)*,
+  under `caffeinate` so the machine cannot idle-sleep
   through it, with the key delivered by `wl-secret` at exec and never on
   argv. The economic calendar (75,206 events) and the Treasury curve (853
   rows) both loaded — the two instant-death hazards the runbook names —

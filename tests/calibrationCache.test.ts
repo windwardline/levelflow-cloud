@@ -321,16 +321,21 @@ describe("the sweep's fetchers report an incomplete series rather than pinning i
     // result was then pinned as the anchor day's truth, the hole was permanent
     // under every later run.
     assert.doesNotMatch(sweep, /Calendar fetch failed \(\$\{response\.status\}\); continuing\./);
+    // Since 2026-09-16 the throw carries the provider's body, bills it and
+    // records a wall on the shared breaker (`providerRefusal`). Pinned inside
+    // the calendar fetcher's own body, with the chunk it failed on.
+    const calendarStart = sweep.indexOf("async function fetchCalendarEvents");
+    const calendar = sweep.slice(calendarStart, sweep.indexOf("\n}\n", calendarStart));
     assert.match(
-      sweep,
-      /throw new Error\(\s*`Calendar fetch failed \(\$\{response\.status\}\)/,
+      calendar,
+      /if \(!response\.ok\) \{[\s\S]*?throw await providerRefusal\(response, \{\s*\n\s*\.\.\.refusalInput\(endpoint\),\s*\n\s*context: /,
     );
-    // The precedent it now matches. Asserted on the SENTENCE rather than on
-    // the exact interpolation: `fetchBars` reads its body inside the retry
-    // now, so the status arrives as `result.response.status`, and pinning the
-    // old expression would have failed a change that strengthened the very
-    // behaviour this test protects.
-    assert.match(sweep, /throw new Error\(\s*`FMP request failed \(\$\{[\w.]+\.status\}\)/);
+    // The precedent it matches: the bar fetcher throws too, now with the body.
+    const barsStart = sweep.indexOf("async function fetchBars");
+    assert.match(
+      sweep.slice(barsStart, sweep.indexOf("\n}\n", barsStart)),
+      /if \(!result\.ok\) \{[\s\S]*?throw await providerRefusal\(result\.response,/,
+    );
   });
 });
 

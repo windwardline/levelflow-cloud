@@ -1940,6 +1940,11 @@ describe("every emit reader passes the one-clock door (R0) — the population, n
       "reader's printed verdict and HIDDEN-months lines, never a corpus " +
       "emit, with no manifest for the door to judge. It states which months " +
       "are refused; it reads no row and reaches no outcome column",
+    "fmpState.ts":
+      "reads the FMP governor's own state logs under .fmp-state/ — byte " +
+      "records and breaker events this machine appended, never a corpus " +
+      "emit, with no manifest and no clock for the door to judge; it reads " +
+      "no bar, no decision and no outcome column",
     "symbolCensus.ts":
       "reads TYPESCRIPT SOURCE, not a corpus emit — it walks src/, scripts/ " +
       "and supabase/functions/ with the TypeScript AST to find declarations " +

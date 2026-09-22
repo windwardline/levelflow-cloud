@@ -22,19 +22,80 @@ const UNITS: Record<string, number> = {
   gb: 1024 ** 3,
 };
 
-export class ByteBudgetExceededError extends Error {
+/** Who refused: this machine's governor, the shared breaker, or the provider. */
+export type StandDownSource = "governor" | "breaker" | "provider";
+
+/**
+ * Every refusal the governor or the breaker raises, as ONE family.
+ *
+ * The retry ladders recognise the base class, so a refusal added later is
+ * final the day it exists instead of the day someone remembers to widen a
+ * predicate — which is how the byte budget's own refusal was retried seven
+ * times until the ladder learned its name. `standDownKind` and `source` are
+ * what the entry point prints as its stand-down token, so a shell reader
+ * classifies the refusal from what raised it rather than from prose.
+ */
+export class SpendRefusedError extends Error {
+  constructor(
+    message: string,
+    readonly standDownKind: string,
+    readonly source: StandDownSource,
+  ) {
+    super(message);
+    this.name = "SpendRefusedError";
+  }
+}
+
+export class ByteBudgetExceededError extends SpendRefusedError {
   constructor(readonly limitBytes: number, readonly spentBytes: number) {
     super(
       `FMP byte budget exhausted: ${spentBytes} bytes spent against a ${limitBytes} byte ` +
         `ceiling. Halting before the next fetch. Raise --byte-budget deliberately or ` +
         `narrow the sweep; do not remove the ceiling.`,
+      "runBudget",
+      "governor",
     );
     this.name = "ByteBudgetExceededError";
   }
 }
 
+/** The consumer class's share of the UTC day is spent, counting every process. */
+export class DailyCeilingExceededError extends SpendRefusedError {
+  constructor(message: string) {
+    super(message, "dailyCeiling", "governor");
+    this.name = "DailyCeilingExceededError";
+  }
+}
+
+/** Spend or breaker evidence could not be appended; every later ceiling would be blind to it. */
+export class LedgerWriteError extends SpendRefusedError {
+  constructor(message: string) {
+    super(message, "ledgerWriteFailed", "governor");
+    this.name = "LedgerWriteError";
+  }
+}
+
+/** The ledger or the breaker log exists and could not be read. Never read as zero. */
+export class LedgerUnreadableError extends SpendRefusedError {
+  constructor(message: string) {
+    super(message, "ledgerUnreadable", "governor");
+    this.name = "LedgerUnreadableError";
+  }
+}
+
+/** Another consumer claimed the breaker's one probe first. */
+export class ProbeLostError extends SpendRefusedError {
+  constructor(kind: string, message: string) {
+    super(message, kind, "breaker");
+    this.name = "ProbeLostError";
+  }
+}
+
+/** What the governor needs to close the breaker on this answer's evidence. */
+export type RecordMeta = { endpointPath: string; answeredAtMs: number };
+
 export type ByteBudget = {
-  record: (bytes: number) => void;
+  record: (bytes: number, meta?: RecordMeta) => void;
   spent: () => number;
   remaining: () => number;
 };
@@ -75,11 +136,19 @@ const encoder = new TextEncoder();
 export async function readJsonWithBudget<T = unknown>(
   response: { text: () => Promise<string> },
   budget: ByteBudget,
+  endpointPath?: string,
 ): Promise<T> {
+  // The answer's instant is taken BEFORE the body streams. The breaker
+  // closes on evidence time, and a refusal another consumer records while
+  // this body is still arriving is newer than this answer.
+  const answeredAtMs = Date.now();
   const text = await response.text();
   // Charge before parsing. A payload that halts the run still cost what it
   // cost, and an unparseable one is not free either.
-  budget.record(encoder.encode(text).length);
+  budget.record(
+    encoder.encode(text).length,
+    endpointPath === undefined ? undefined : { answeredAtMs, endpointPath },
+  );
   return JSON.parse(text) as T;
 }
 
@@ -96,14 +165,39 @@ export function parseByteBudgetArg(argv: readonly string[]): number {
   if (raw === undefined) {
     throw new Error(
       `--byte-budget is required. An ad-hoc FMP run declares its ceiling before ` +
-        `it starts (e.g. --byte-budget 2gb). See §21j.`,
+        `it starts (e.g. --byte-budget 256mb). See §21j.`,
     );
   }
+  return parseSize(raw, "--byte-budget");
+}
 
+/**
+ * An owner-approved raise of the ad-hoc class's daily ceiling, or undefined.
+ *
+ * Absent means the class ceiling holds. Present, it must carry a readable
+ * size: a raise typed without its value stops the run rather than falling
+ * back to a ceiling nobody chose. Resolved through soleFlagIndex, so a raise
+ * given twice is refused rather than read as whichever came first.
+ */
+export function parseDailyCeilingArg(argv: readonly string[]): number | undefined {
+  const flagAt = soleFlagIndex(argv, "--daily-ceiling");
+  if (flagAt === -1) return undefined;
+  const raw = argv[flagAt + 1];
+  if (raw === undefined) {
+    throw new Error(
+      `--daily-ceiling was given without a size. A raise names its ceiling ` +
+        `(e.g. --daily-ceiling 30gb) or is not passed at all.`,
+    );
+  }
+  return parseSize(raw, "--daily-ceiling");
+}
+
+/** A size in bytes or with a b/kb/mb/gb suffix, refused by the flag's name when unreadable. */
+function parseSize(raw: string, flag: string): number {
   const match = /^(\d+(?:\.\d+)?)\s*(b|kb|mb|gb)?$/i.exec(raw.trim());
   if (!match) {
     throw new Error(
-      `--byte-budget could not be read: ${raw}. Use bytes or a b/kb/mb/gb suffix.`,
+      `${flag} could not be read: ${raw}. Use bytes or a b/kb/mb/gb suffix.`,
     );
   }
 

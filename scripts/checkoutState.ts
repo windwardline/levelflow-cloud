@@ -2,9 +2,12 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { OperatorInputError } from "./flagReader.ts";
+
 /**
- * Where a piece of the checkout's IGNORED state lives: the FMP usage ledger,
- * the circuit breaker's marker.
+ * Where a piece of the checkout's IGNORED state lives: the FMP state under
+ * `.fmp-state/` (the byte ledger, the breaker log, the run gate's markers),
+ * the legacy usage ledger and circuit marker, and the minute bank.
  *
  * Anchored to this module by default, so every existing caller reads exactly
  * the file it always read. `LEVELFLOW_CHECKOUT` overrides it, and exists
@@ -17,21 +20,27 @@ import { fileURLToPath } from "node:url";
  *
  * A named checkout that does not exist is REFUSED rather than read as empty,
  * because an empty ledger is not a neutral default — it is a claim that
- * nothing has been spent this month.
+ * nothing has been spent this month. The operator named it, so the refusal is
+ * an `OperatorInputError`: every FMP binary prints it as one line, not a stack.
  */
 const MODULE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-export function checkoutStatePath(file: string): string {
+/**
+ * The checkout whose ignored state is real. Read at call time, so an entry
+ * point resolves it when it starts rather than when a module was imported.
+ */
+export function checkoutRoot(what = "the FMP state"): string {
   const named = process.env.LEVELFLOW_CHECKOUT;
   if (named) {
     if (!existsSync(named)) {
-      throw new Error(
+      throw new OperatorInputError(
         `LEVELFLOW_CHECKOUT names ${named}, which does not exist; refusing to ` +
-          `read ${file} from nowhere, because an empty FMP ledger or a closed ` +
+          `read ${what} from nowhere, because an empty FMP ledger or a closed ` +
           `breaker is not a safe default`,
       );
     }
-    return join(named, file);
+    return named;
   }
-  return join(MODULE_ROOT, file);
+  return MODULE_ROOT;
 }
+

@@ -4,10 +4,11 @@
 # rolling ~3-day 1-minute window to the durable store in .minute-bank/.
 # Idempotent — bars already banked are dropped by key.
 #
-# Why launchd rather than the app's scheduler: the provider window is three
-# days wide, so a gap longer than that is permanently unrecoverable. A job that
-# only fires while an app happens to be open is not a guarantee. This one runs
-# whether or not anything is open, and catches up on wake.
+# Why launchd rather than the app's scheduler: an undated request returns about
+# three days and a dated one's depth is unmeasured, so a gap longer than that is
+# treated as unrecoverable. A job that only fires while an app happens to be
+# open is not a guarantee. This one runs whether or not anything is open, and
+# catches up on wake.
 #
 # Logs carry no secrets. See docs/minute-bank.md.
 set -euo pipefail
@@ -51,6 +52,25 @@ fi
 TSX="$REPO/node_modules/.bin/tsx"
 [[ -x $TSX ]] || { echo "$(date -u +%FT%TZ) FAIL tsx is not installed at $TSX; run npm ci in $CHECKOUT"; exit 1; }
 
+# The run gate (scripts/fmpRunGate.ts). RunAtLoad fires this job at every
+# login, which is what keeps the banked window gapless — and a login after a
+# clean (exit 0) full-roster run that finished at or after the most recent
+# scheduled slot buys only overlap the next slot buys again. It fails toward
+# running: only exit 75 WITH its skip line skips, and any other outcome runs
+# the bank. It reads the clean-run marker from the CHECKOUT's `.fmp-state/runs`
+# (scripts/checkoutState.ts, through LEVELFLOW_CHECKOUT), because the extracted
+# tree has none and a gate reading it would find no clean run at every login.
+# Before the lock, so a skip never waits on a backup, and after the toolchain
+# check, because the gate is the toolchain's first use.
+set +e
+gate_out=$("$TSX" "$REPO/scripts/fmpRunGate.ts" --job minute-bank --dir "$BANK" 2>&1)
+gate=$?
+set -e
+printf '%s\n' "$gate_out"
+if [ "$gate" -eq 75 ] && grep -q '^runGate: skip' <<<"$gate_out"; then
+  echo "$(date -u +%FT%TZ) minute-bank run skipped by the run gate"
+  exit 0
+fi
 
 # BEFORE THE KEYCHAIN, AND BEFORE THE FETCH. The backup copies this store, and
 # a copy taken mid-append captures a torn line or a sidecar that disagrees with

@@ -41,10 +41,11 @@ import {
 } from "./fmpRetry.ts";
 import {
   type ByteBudget,
-  ByteBudgetExceededError,
   parseByteBudgetArg,
+  parseDailyCeilingArg,
   createByteBudget,
   readJsonWithBudget,
+  SpendRefusedError,
 } from "./fmpByteBudget.ts";
 import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
@@ -121,7 +122,19 @@ import {
 } from "../supabase/functions/trade-analyzer/bars.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 import { flagReader, OperatorInputError } from "./flagReader.ts";
-import { governedBudget, maySpend, noteRefusal } from "./fmpGovernor.ts";
+import { createProbeGate, type FetchLike } from "./fmpCircuit.ts";
+import {
+  bookkeepingRefusal,
+  CLASS_DAILY_CEILING_BYTES,
+  formatStandDown,
+  governedBudget,
+  maySpend,
+  oneLine,
+  ProviderRefusalError,
+  providerRefusal,
+  standDownFor,
+} from "./fmpGovernor.ts";
+import { defaultStatePaths, type FmpStatePaths } from "./fmpState.ts";
 import { isEntryPoint } from "./isEntryPoint.ts";
 
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
@@ -175,9 +188,12 @@ const FMP_RETRY = {
   // Since the body read joined the retried unit, that throw looked like a
   // transport fault and the ladder reissued it — re-serving and re-charging a
   // full bar body up to seven more times, on a governor whose own contract is
-  // "halting before the next fetch". A refusal is final; a truncated body
-  // (SyntaxError) is a genuine failed read and still retries.
-  isRetryableError: (error: unknown) => !(error instanceof ByteBudgetExceededError),
+  // "halting before the next fetch". Every governor and breaker refusal —
+  // the run budget, the class's day, a ledger that cannot be written or read,
+  // a lost probe — shares one base class, so a refusal added later is final
+  // the day it exists. A truncated body (SyntaxError) is a genuine failed read
+  // and still retries.
+  isRetryableError: (error: unknown) => !(error instanceof SpendRefusedError),
   onRetry: (event: FmpRetryEvent) => {
     console.warn(
       `fmp retry ${event.reason} (${event.detail}); attempt ${
@@ -214,6 +230,106 @@ function budget(): ByteBudget {
   }
   return sweepBudget;
 }
+
+// Every provider request goes through this, never a bare fetch: when the
+// shared breaker grants this run its one probe, the gate's fetch claims it at
+// the first request and releases it if nothing answered. An anchored run that
+// proved it cannot reach the provider keeps the plain fetch.
+let providerFetch: FetchLike = fetch;
+
+// Which class this run spends as, and the machine's state, set once in main().
+let spend: { consumer: "topup" | "adhoc"; state: FmpStatePaths } | undefined;
+
+function spendContext(): { consumer: "topup" | "adhoc"; state: FmpStatePaths } {
+  if (!spend) {
+    throw new Error("the FMP spend class was never declared before a provider read");
+  }
+  return spend;
+}
+
+/**
+ * What every non-ok site hands `providerRefusal`: bill the body to this run's
+ * class, and record a wall on the shared breaker under the endpoint's path.
+ */
+function refusalInput(endpoint: URL) {
+  const { consumer, state } = spendContext();
+  return {
+    atMs: Date.now(),
+    consumer,
+    endpointPath: endpoint.pathname,
+    label: "replay-sweep",
+    note: true,
+    state,
+  };
+}
+
+/**
+ * The spend a run declares, resolved from its arguments before any byte.
+ *
+ * `requiredPaths` are the endpoints whose open breaker entries refuse the run.
+ * The Treasury curve is left out under --warm-only, where its failure is
+ * tolerated, and COT contracts are left out everywhere, because the COT site
+ * warns and continues.
+ */
+export function spendPlanFor(args: SweepArgs, argv: readonly string[]) {
+  const consumer = args.spendClass;
+  const byteBudget = parseByteBudgetArg(argv);
+  const dailyCeilingBytes = parseDailyCeilingArg(argv);
+  if (dailyCeilingBytes !== undefined && consumer !== "adhoc") {
+    throw new OperatorInputError(
+      `--daily-ceiling raises the ad-hoc class's day; the ${consumer} class's ceiling is fixed`,
+    );
+  }
+  const requiredPaths = [
+    ...(args.discover ? [] : ["/stable/economic-calendar"]),
+    ...(args.warmOnly || args.discover ? [] : ["/stable/treasury-rates"]),
+    "/stable/historical-chart/15min",
+    "/stable/historical-chart/5min",
+    "/stable/historical-price-eod/full",
+  ];
+  return {
+    byteBudget,
+    ceilingInEffect: dailyCeilingBytes ?? CLASS_DAILY_CEILING_BYTES[consumer],
+    consumer,
+    dailyCeilingBytes,
+    requiredPaths,
+  };
+}
+
+/**
+ * What a --warm-only run does with a Treasury load failure.
+ *
+ * A governor or breaker refusal is final for the whole run. An integrity
+ * refusal defers red past the bar survey (#364 rounds 21-23). A provider
+ * refusal no wait clears — an entitlement gap, a suspension, a rejected key —
+ * also defers red, printed as `fmpDeferredRefusal`, so the bars still warm and
+ * the nightly wrapper still exits 1. Everything else, a bandwidth wall
+ * included, warns and continues: the next bar request meets the same wall and
+ * stands the run down by its own token.
+ */
+export function treasuryFailureRoute(
+  error: unknown,
+): "rethrow" | "defer-integrity" | "defer-provider" | "warn" {
+  if (error instanceof SpendRefusedError) return "rethrow";
+  const message = error instanceof Error ? error.message : String(error);
+  if (
+    /cacheStoreUnreadable|cacheClockMismatch|treasuryCoverageRefused|treasuryChunkHole|treasuryChunkTruncated/
+      .test(message)
+  ) {
+    return "defer-integrity";
+  }
+  if (
+    error instanceof ProviderRefusalError &&
+    (error.kind === "entitlement" || error.kind === "suspended" || error.kind === "invalidKey")
+  ) {
+    return "defer-provider";
+  }
+  return "warn";
+}
+
+// COT refusals no wait clears, collected so a --warm-only run exits red after
+// the survey instead of printing "top-up complete" over a missing contract.
+const deferredProviderRefusals: ProviderRefusalError[] = [];
 const WARMUP_BARS = 240;
 // Legacy two-split share, retired by the calendar folds below; still
 // recorded in the manifest so legacy-corpus readers can state what they
@@ -283,6 +399,12 @@ type SweepArgs = {
    * the LA-6 ledger will record.
    */
   printConfirmTable: boolean;
+  /**
+   * Which class this run spends as. `topup` is the nightly launchd job and
+   * exists only with --warm-only; everything else is `adhoc`. The minute bank
+   * is its own script, and no sweep may spend as it.
+   */
+  spendClass: "topup" | "adhoc";
   days: number;
   discover: boolean;
   emit: string | undefined;
@@ -355,6 +477,24 @@ export async function anchoredPreflight(input: {
 }
 
 /**
+ * A run budget above the class's day could never finish inside it, so it is
+ * refused before the governor is asked. The comparison is against the
+ * CEILING, not today's remaining headroom: a budget refused here is a
+ * command-line fact, not the day's weather. Returns the refusal, or null.
+ */
+export function budgetAboveCeiling(
+  plan: { byteBudget: number; ceilingInEffect: number; consumer: string },
+): string | null {
+  if (plan.byteBudget <= plan.ceilingInEffect) return null;
+  return (
+    `replay-sweep: --byte-budget ${formatGib(plan.byteBudget)} is above the ` +
+    `${plan.consumer} class's daily ceiling of ${formatGib(plan.ceilingInEffect)}. ` +
+    `Narrow the run, or — for an owner-approved larger run — pass ` +
+    `--daily-ceiling with a size at least the byte budget.`
+  );
+}
+
+/**
  * The instant a staleness bound should be judged at, for a run at `anchor`.
  *
  * `min`, so the default anchor (today) keeps judging against the wall clock
@@ -377,16 +517,28 @@ async function main() {
   // exactly the flag where that misdirection is expensive, since the whole
   // point of it is to avoid spending bandwidth.
   const args = parseArgs(process.argv.slice(2));
+  // The checkout next, and before the key for the same reason: both are the
+  // operator's to name, and a checkout that names nothing is refused in one
+  // line by the handler below, never reported as a missing credential.
+  const state = defaultStatePaths();
   if (!API_KEY) {
     console.error("FMP_API_KEY is required.");
     process.exit(1);
   }
   // Declared before anything reaches the provider, so a run without a ceiling
-  // dies at the command line rather than partway through a sweep.
-  sweepBudget = governedBudget(
-    createByteBudget(parseByteBudgetArg(process.argv.slice(2))),
-    () => Date.now(),
-  );
+  // dies at the command line rather than partway through a sweep. The class
+  // the run spends as comes from --spend-class; every byte is written to the
+  // shared ledger under it before the run's own ceiling or the class's day is
+  // checked.
+  const plan = spendPlanFor(args, process.argv.slice(2));
+  spend = { consumer: plan.consumer, state };
+  sweepBudget = governedBudget(createByteBudget(plan.byteBudget), {
+    consumer: plan.consumer,
+    dailyCeilingBytes: plan.dailyCeilingBytes,
+    label: "replay-sweep",
+    now: Date.now,
+    state,
+  });
   // THE GOVERNOR'S DOOR — AFTER the dials are validated, deliberately.
   //
   // The first placement put it before `parseArgs`, and three tests caught
@@ -457,14 +609,27 @@ async function main() {
         `spend gate is not consulted`,
     );
   }
-  const sweepGate = preflight !== null ? { allowed: true, reason: "" } : maySpend({
-    atMs: Date.now(),
-    dailyLimitBytes: 8 * 1024 * 1024 * 1024,
-    label: "replay-sweep",
-  });
-  if (!sweepGate.allowed) {
-    console.error(sweepGate.reason);
-    process.exit(1);
+  if (preflight === null) {
+    const aboveCeiling = budgetAboveCeiling(plan);
+    if (aboveCeiling !== null) {
+      console.error(aboveCeiling);
+      process.exit(1);
+    }
+    const decision = maySpend({
+      atMs: Date.now(),
+      consumer: plan.consumer,
+      dailyCeilingBytes: plan.dailyCeilingBytes,
+      label: "replay-sweep",
+      requiredPaths: plan.requiredPaths,
+      state,
+    });
+    if (!decision.allowed) {
+      console.error(decision.reason);
+      console.error(formatStandDown(decision.kind, decision.source));
+      process.exit(1);
+    }
+    providerFetch = createProbeGate(decision, { consumer: plan.consumer, now: Date.now }, state)
+      .wrapFetch(fetch);
   }
   // THE COST SCALE, resolved and refused before a single byte is fetched.
   //
@@ -656,14 +821,26 @@ async function main() {
       // because simulation spends hours on a corpus already known
       // dead; the survey spends nothing after its loop.) Only genuine
       // transport failures reach the warn-and-continue below.
-      if (
-        /cacheStoreUnreadable|cacheClockMismatch|treasuryCoverageRefused|treasuryChunkHole|treasuryChunkTruncated/
-          .test(message)
-      ) {
+      // 2026-09-16: routed by `treasuryFailureRoute`. A governor or breaker
+      // refusal is final for the whole run; a provider refusal no wait clears
+      // defers red beside the integrity refusals.
+      const route = treasuryFailureRoute(error);
+      if (route === "rethrow") {
+        throw error;
+      } else if (route === "defer-integrity") {
         deferredTreasuryRefusal = error as Error;
         console.warn(
           `treasury refusal deferred to end of survey — bars still warm, ` +
             `run exits red after the table: ${message}`,
+        );
+      } else if (route === "defer-provider") {
+        deferredTreasuryRefusal = error as Error;
+        console.warn(
+          `treasury provider refusal deferred to end of survey — bars still warm, ` +
+            `run exits red after the table: ${message.replace(/\((\d{3})\)/g, "status $1")}`,
+        );
+        console.warn(
+          `fmpDeferredRefusal: kind=${(error as ProviderRefusalError).kind} source=treasury`,
         );
       } else {
         // #364 round 24, finding 1: the top-up script's quota stand-down
@@ -1465,13 +1642,17 @@ async function main() {
     );
   }
   printTable(rows);
-  // #364 round 22, finding 1: the deferred deterministic treasury
-  // refusal — set only under --warm-only — exits the run red here,
-  // after the roster warmed and the survey table printed, so the
-  // top-up script's nonzero-exit branches still see it while the
-  // nightly bar top-up and rebuild step 2 keep their work.
-  if (deferredTreasuryRefusal) {
-    throw deferredTreasuryRefusal;
+  // #364 round 22, finding 1: a deferred refusal exits the run red here,
+  // after the roster warmed and the survey table printed, so the top-up
+  // script's nonzero-exit branches still see it while the nightly bar top-up
+  // and rebuild step 2 keep their work.
+  const surveyRefusal = surveyEndRefusal({
+    provider: deferredProviderRefusals,
+    treasury: deferredTreasuryRefusal,
+    warmOnly: args.warmOnly,
+  });
+  if (surveyRefusal) {
+    throw surveyRefusal;
   }
   if (args.emit && emitStream) {
     await new Promise<void>((resolve, reject) => {
@@ -1566,6 +1747,14 @@ async function main() {
       })`,
     );
   }
+  // LAST, after every artifact is written. A ledger or breaker write that
+  // failed on a path that warns and continues (the COT site, a tolerated
+  // Treasury warning) leaves the run's work intact and the ledger short, so the
+  // run exits red here rather than printing a clean finish over it.
+  const bookkeeping = bookkeepingRefusal("replay-sweep");
+  if (bookkeeping) {
+    throw bookkeeping;
+  }
 }
 
 // Scheduled macro calendar for the replay news join. FMP coverage begins in
@@ -1609,12 +1798,12 @@ async function fetchCalendarEvents(
       isoDate(new Date(Math.min(from + chunkMs, Date.now()))),
     );
     endpoint.searchParams.set("apikey", API_KEY!);
-    const response = await fetchFmpWithRetry(() => fetch(endpoint), FMP_RETRY);
+    const response = await fetchFmpWithRetry(() => providerFetch(endpoint), FMP_RETRY);
     if (!response.ok) {
-      // The provider's own words reach the shared breaker before this throws.
-      // Without it a bandwidth wall discovered mid-sweep stays this run's
-      // private knowledge, and the bank and the top-up each rediscover it.
-      noteRefusal(await response.clone().text().catch(() => ""), Date.now());
+      // The provider's own words reach the shared breaker and its bytes reach
+      // the ledger before this throws. Without it a wall discovered mid-sweep
+      // stays this run's private knowledge, and the other consumers each
+      // rediscover it.
       // I3: this used to warn and `continue`. loadRollingSeries then merged the
       // holed result and pinned it as the anchor day's truth, and because later
       // runs only top up from the last stored time, the dropped 90-day window
@@ -1623,13 +1812,12 @@ async function fetchCalendarEvents(
       // coverage signal anywhere in the output. fetchBars has always thrown for
       // exactly this reason: a run that cannot see the whole calendar has to
       // stop rather than quietly measure against part of it.
-      throw new Error(
-        `Calendar fetch failed (${response.status}) for ${
-          endpoint.searchParams.get("from")
-        }..${endpoint.searchParams.get("to")}`,
-      );
+      throw await providerRefusal(response, {
+        ...refusalInput(endpoint),
+        context: ` ${endpoint.searchParams.get("from")}..${endpoint.searchParams.get("to")}`,
+      });
     }
-    const payload = await readJsonWithBudget(response, budget());
+    const payload = await readJsonWithBudget(response, budget(), endpoint.pathname);
     // Per-chunk accounting, so a chunk that contributes NOTHING is refused
     // rather than merged and pinned. The Treasury path has had exactly this
     // guard since #364 (treasuryChunkHole); the calendar never got it, and
@@ -1758,24 +1946,21 @@ async function fetchTreasuryRates(
       isoDate(new Date(Math.min(from + chunkMs, Date.now()))),
     );
     endpoint.searchParams.set("apikey", API_KEY!);
-    const response = await fetchFmpWithRetry(() => fetch(endpoint), FMP_RETRY);
+    const response = await fetchFmpWithRetry(() => providerFetch(endpoint), FMP_RETRY);
     if (!response.ok) {
-      // The provider's own words reach the shared breaker before this throws.
-      // Without it a bandwidth wall discovered mid-sweep stays this run's
-      // private knowledge, and the bank and the top-up each rediscover it.
-      noteRefusal(await response.clone().text().catch(() => ""), Date.now());
+      // The provider's own words reach the shared breaker and its bytes reach
+      // the ledger before this throws.
       // I3, verbatim from the calendar: a warned-and-continued hole would
       // be merged and pinned as the anchor day's truth, and later top-ups
       // never revisit it — one transient failure would permanently hole
       // the macro join under every future measurement. A run that cannot
       // see the whole curve stops.
-      throw new Error(
-        `Treasury-rate fetch failed (${response.status}) for ${
-          endpoint.searchParams.get("from")
-        }..${endpoint.searchParams.get("to")}`,
-      );
+      throw await providerRefusal(response, {
+        ...refusalInput(endpoint),
+        context: ` ${endpoint.searchParams.get("from")}..${endpoint.searchParams.get("to")}`,
+      });
     }
-    const payload = await readJsonWithBudget(response, budget());
+    const payload = await readJsonWithBudget(response, budget(), endpoint.pathname);
     let chunkRows = 0;
     const parserRefusalsBefore = treasuryParserRefusals;
     if (Array.isArray(payload)) {
@@ -1878,12 +2063,21 @@ async function fetchCotContract(
   endpoint.searchParams.set("from", "2009-01-01");
   endpoint.searchParams.set("to", isoDate(new Date()));
   endpoint.searchParams.set("apikey", API_KEY!);
-  const response = await fetchFmpWithRetry(() => fetch(endpoint), FMP_RETRY);
+  const response = await fetchFmpWithRetry(() => providerFetch(endpoint), FMP_RETRY);
   if (!response.ok) {
-    console.warn(`COT fetch failed for ${contract}: ${response.status}`);
+    // Warned and continued, as ever: a sweep without one COT contract still
+    // measures. The status stays unparenthesized. A refusal no wait clears is
+    // collected and printed as deferred, so a --warm-only run exits red after
+    // its survey instead of reporting a clean top-up over a missing contract.
+    const refusal = await providerRefusal(response, refusalInput(endpoint));
+    console.warn(`COT fetch failed for ${contract}: status ${refusal.status} ${oneLine(refusal.body)}`);
+    if (refusal.kind === "entitlement" || refusal.kind === "suspended" || refusal.kind === "invalidKey") {
+      deferredProviderRefusals.push(refusal);
+      console.warn(`fmpDeferredRefusal: kind=${refusal.kind} source=cot`);
+    }
     return [];
   }
-  const payload = await readJsonWithBudget(response, budget());
+  const payload = await readJsonWithBudget(response, budget(), endpoint.pathname);
   const rows: CotReportRow[] = [];
   if (Array.isArray(payload)) {
     for (const raw of payload as Array<Record<string, unknown>>) {
@@ -1918,10 +2112,25 @@ export function parseArgs(argv: string[]): SweepArgs {
     "--fold-spec",
     "--fold-start",
     "--grid",
+    "--spend-class",
     "--step",
     "--symbols",
   ]);
   const { num, str } = flagReader(argv, VALUE_FLAGS);
+  const spendClassArg = str("--spend-class") ?? "adhoc";
+  if (spendClassArg !== "topup" && spendClassArg !== "adhoc") {
+    throw new OperatorInputError(
+      `--spend-class must be topup or adhoc and got "${spendClassArg}" — the ` +
+        `minute bank is its own script and is never a sweep's class`,
+    );
+  }
+  if (spendClassArg === "topup" && !argv.includes("--warm-only")) {
+    throw new OperatorInputError(
+      `--spend-class topup is the nightly top-up's class and requires --warm-only; ` +
+        `a sweep that simulates spends as adhoc`,
+    );
+  }
+  const spendClass: "topup" | "adhoc" = spendClassArg;
   // OP-9: "--symbols roster" derives the list from the engine's own scan
   // roster instead of a hand-kept copy — the ops top-up ran a 57-name
   // snapshot that had silently lost 40+ onboarded markets (and kept
@@ -2035,6 +2244,7 @@ export function parseArgs(argv: string[]): SweepArgs {
     ignoreLowEdge: argv.includes("--ignore-low-edge"),
     printConfirmTable: argv.includes("--print-confirm-table"),
     repin: argv.includes("--repin"),
+    spendClass,
     warmOnly: argv.includes("--warm-only"),
     days,
     discover: argv.includes("--discover"),
@@ -2126,14 +2336,14 @@ async function fetchBars(endpoint: URL, zone: string): Promise<Bar[]> {
   // read ECONNRESET` mid-stream, and logged no retry at all: from the retry's
   // point of view the request had already succeeded.
   const result = await fetchFmpJsonWithRetry(
-    () => fetch(endpoint),
-    (response) => readJsonWithBudget(response, budget()),
+    () => providerFetch(endpoint),
+    (response) => readJsonWithBudget(response, budget(), endpoint.pathname),
     FMP_RETRY,
   );
   if (!result.ok) {
-    throw new Error(
-      `FMP request failed (${result.response.status}) for ${endpoint.pathname}`,
-    );
+    // With its body, its bytes and the breaker: this site used to throw the
+    // bare status, so a wall met on a bar request reached no other consumer.
+    throw await providerRefusal(result.response, refusalInput(endpoint));
   }
   const payload = result.body;
   const rows = Array.isArray(payload)
@@ -2219,6 +2429,41 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * The refusal a finished survey ends on, or null. The deterministic treasury
+ * refusal (set only under --warm-only) comes first. Then, under --warm-only,
+ * the first COT refusal no wait clears: the COT site warns and returns empty,
+ * so without this a contract refused for entitlement, suspension or a rejected
+ * key would leave "top-up complete" printing over it. A full sweep still
+ * measures without one COT contract. Exported so it is executed by a test.
+ */
+export function surveyEndRefusal(input: {
+  provider: readonly Error[];
+  treasury: Error | null;
+  warmOnly: boolean;
+}): Error | null {
+  if (input.treasury) return input.treasury;
+  if (input.warmOnly && input.provider.length > 0) return input.provider[0];
+  return null;
+}
+
+/**
+ * THE TERMINAL TOKEN for the error that ended the run: at most one line, which
+ * the entry guard prints on its own before anything else. The nightly wrapper
+ * stands down green on exactly one of these and reads nothing else from the
+ * output, so a tolerated treasury 429 or a deferred clock warning earlier in
+ * the log can never again stand a run down that died of something unrelated.
+ * Exported so the lines are executed by a test rather than only located.
+ */
+export function terminalLines(error: unknown): string[] {
+  const token = standDownFor(error);
+  if (token) return [token];
+  if (error instanceof Error && /cacheClockMismatch/.test(error.message)) {
+    return ["cacheStandDown: kind=clockMismatch"];
+  }
+  return [];
+}
+
 // Run only as a binary, never on import (the grid-totalr pattern), so
 // parseArgs' defaults can be pinned — there was no such pin, which is
 // why a 6x depth change landed silently (#364 round 52, finding 1).
@@ -2230,6 +2475,9 @@ function sleep(ms: number) {
 // matched, main was skipped, and the process exited 0 having warmed nothing.
 if (isEntryPoint(import.meta.url)) {
   main().catch((error) => {
+    for (const line of terminalLines(error)) {
+      console.error(line);
+    }
     // The discriminator `OperatorInputError` was introduced for, finally read
     // here: a refusal caused by what the operator typed prints as one clean
     // line, and a real fault keeps its stack. Printing the error object for
