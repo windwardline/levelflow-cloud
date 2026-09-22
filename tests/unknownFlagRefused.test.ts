@@ -12,6 +12,11 @@ import {
 } from "../scripts/flagReader.ts";
 import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import {
+  ARGV_FLAG_OF_PARSER,
+  parseByteBudgetArg,
+  parseDailyCeilingArg,
+} from "../scripts/fmpByteBudget.ts";
+import {
   buildSweepManifest,
   seriesFacts,
   type TreasuryCurveFacts,
@@ -365,12 +370,24 @@ describe("every argv reader refuses an unknown flag by name", { concurrency: CON
 
   // The other direction, and the one a mutation that simply deletes the
   // refusal would leave green: every flag the reader USES must still be
-  // accepted. Two halves, because each alone has a blind spot. Reading the
-  // flags from the declaration cannot see a flag the code reads but the
-  // declaration dropped — removing `--acknowledge-prior-reads` from
-  // confirm-4d's set passed the whole suite, and the operator would have
-  // met it at the burn. Reading them from the code cannot see a flag
-  // resolved by a helper in another module.
+  // accepted. Three checks, because each alone has a blind spot.
+  //
+  // Declared, read from the reader's code: every flag literal it reads must
+  // be declared, or the walk refuses a flag the reader honours — dropping
+  // `--acknowledge-prior-reads` from confirm-4d's set would reach the
+  // operator at the burn. The check sees only a flag the code names, so a
+  // boolean is read by name after the walk (`args.includes("--x")`), never
+  // set by the walk's own membership test: set that way, a dropped
+  // declaration took the reader's only literal with it (five readers until
+  // 2026-09-22).
+  //
+  // Declared, read from a helper: a flag parsed in another module never
+  // appears in the reader's code at all. fmpByteBudget exports the flag each
+  // argv parser reads, and every caller must declare it.
+  //
+  // Accepted, executed from the declaration: every declared flag passes the
+  // walk. The refusal is sought on stdout as well as stderr, because
+  // fmpRunGate prints its refusals as a gateError line on stdout.
   for (const reader of EXECUTED) {
     it(`${reader} declares every flag it reads`, () => {
       const source = sourceOf(reader);
@@ -385,6 +402,40 @@ describe("every argv reader refuses an unknown flag by name", { concurrency: CON
       );
     });
   }
+
+  it("every caller of fmpByteBudget's argv parsers declares the flag each one reads", () => {
+    // The map is true of the parsers, EXECUTED: each one refuses its own
+    // flag given twice, by that flag's name.
+    for (const [parse, flag] of [
+      [parseByteBudgetArg, ARGV_FLAG_OF_PARSER.parseByteBudgetArg],
+      [parseDailyCeilingArg, ARGV_FLAG_OF_PARSER.parseDailyCeilingArg],
+    ] as const) {
+      assert.throws(
+        () => parse([flag, "1mb", flag, "2mb"]),
+        (error: unknown) => error instanceof Error && error.message.startsWith(`${flag} was given 2 times`),
+      );
+    }
+    let callers = 0;
+    for (const [parser, flag] of Object.entries(ARGV_FLAG_OF_PARSER)) {
+      const calls = new RegExp(`\\b${parser}\\s*\\(`);
+      const readers = scriptFiles.filter((file) =>
+        file !== "scripts/fmpByteBudget.ts" && calls.test(withoutComments(sourceOf(file)))
+      );
+      // replay-sweep calls both; a pattern that matched nothing would pass
+      // the loop below vacuously.
+      assert.ok(readers.includes("scripts/replay-sweep.ts"), `no caller of ${parser} found`);
+      for (const reader of readers) {
+        callers += 1;
+        assert.ok(
+          declaredFlags(sourceOf(reader)).value.includes(flag),
+          `${reader} calls ${parser}, which reads ${flag} from argv, and does ` +
+            `not declare ${flag} as a value flag — its walk refuses the flag ` +
+            `the parser honours`,
+        );
+      }
+    }
+    assert.ok(callers >= 2, `callers: ${callers}`);
+  });
 
   for (const reader of EXECUTED) {
     it(`${reader} accepts every flag it declares — executed`, async (t) => {
@@ -411,7 +462,7 @@ describe("every argv reader refuses an unknown flag by name", { concurrency: CON
       const run = await runReader(reader, every);
       assertExecuted(reader, run);
       assert.doesNotMatch(
-        run.stderr,
+        run.stderr + run.stdout,
         /unknown ?flag/i,
         `${reader} refuses a flag it declares itself, out of ` +
           `${every.join(" ")} — a guard that refuses everything is not a guard`,
