@@ -167,23 +167,28 @@ exit 0, and the job runs.
 `beforeOpen` hook, which runs after every row-free check and before the first
 row. To make that possible the prior-read scan moved above the row stream, for
 every confirm read: a refused re-read no longer streams the held-back fold
-first. What still refuses after the freeze needs rows: an unparseable line,
-emit bytes that are not the manifest's, a `--baseline` naming no cell.
+first. A `--baseline` that names no cell of the shards' grid refuses there too,
+as do the provenance artifact's own refusals. What refuses after the freeze
+needs rows: an unparseable line, emit bytes that are not the manifest's. Each
+throws before the ledger append, so confirm-4d withdraws the freeze: the picks
+file goes back to its prior bytes, or away if the run created it.
 
 Found, not changed: `confirm-4d` defaults `--baseline` to `baseline`, while
 `4d-candidates.json` records the variant it was derived against
 (`confidenceThreshold=0,…`). An omitted `--baseline` grades the confirm fold
 against a different baseline than the picks were accepted over, or, where the
-corpus has no `baseline` cell, refuses after the freeze. It wants a ruling on
+corpus has no `baseline` cell, refuses at the door. It wants a ruling on
 whether confirm-4d should take its baseline from the candidates file.
 
 `tests/unknownFlagRefused.test.ts` derives its population from every script
-that reads `process.argv` (42; `isEntryPoint` exempt by name) and executes each
-with an unknown flag, with its own flags, and, where it takes flags only, with
-a stray argument. Subjects run from an empty temp cwd without the provider key.
-Seven confirm-4d cases assert a refused run leaves the scratch research dir and
-ledger untouched, and the first read's `frozenAt` precedes its ledger `readAt`.
-No test writes into `docs/research/confirm-reads`.
+that reads argv, in any spelling (42; `isEntryPoint` exempt by name), and
+executes each with an unknown flag, with its own flags, and, where it takes
+flags only, with a stray argument. Subjects run from an empty temp cwd, which
+is also their `LEVELFLOW_CHECKOUT`, without the provider key. The refusal must
+be one line; thirteen readers still print a stack under it and are named in
+`STACK_ON_REFUSAL` until fixed. Eleven confirm-4d cases cover the door, the
+withdrawn freeze and a `--holdout-cycle` read over two rosters. No test writes
+into `docs/research/confirm-reads`.
 
 ### The desk is PARKED
 
