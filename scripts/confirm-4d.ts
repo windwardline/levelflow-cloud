@@ -4,13 +4,17 @@
 //   npx tsx scripts/confirm-4d.ts sweeps/4c/shard-{0..7}.jsonl \
 //     --baseline "confidenceThreshold=0,..." [--acknowledge-prior-reads]
 //
-// Order is the discipline, and it has two halves. Every named shard
-// clears the corpus door FIRST, so a run that cannot read its corpus
-// rewrites no artifact. Then the per-market choice is assembled and
-// WRITTEN from candidates x feasibility, still BEFORE the confirm fold is
-// opened, so the held-back data can never influence the pick — it can
-// only pass or fail it. The confirm read runs once, per corpus hash, into
-// the burned log.
+// Order is the discipline. Every flag and dial is read and refused
+// first. The per-market choice is then assembled from candidates x
+// feasibility, in memory, before the corpus is opened, so the held-back
+// data can never influence the pick — it can only pass or fail it. The
+// choice is WRITTEN inside gradeCorpus's `beforeOpen` hook: after the
+// whole row-free corpus door (every shard's manifest, their agreement as
+// one measurement, the requested roster, the prior-read refusal) and
+// before the first confirm row is read. A run the door refuses therefore
+// rewrites no artifact, and a run it admits has its picks on disk, with a
+// `frozenAt` that precedes the ledger's `readAt`, before the fold opens.
+// The confirm read runs once, per corpus hash, into the burned log.
 //
 // Unknown flags are refused by name, in the same walk the gate uses. In
 // this script an ignored dial is an ignored dial on a read that cannot be
@@ -152,6 +156,24 @@ async function main() {
   const targetsFlag = str("--targets");
   const prefix = str("--prefix") ??
     (holdoutCycle ? "4d-holdout" : "4d");
+  // Every dial is read HERE, with the others, and not in gradeCorpus's
+  // argument list where it used to be evaluated (2026-09-21). There it
+  // stood below the freeze, so `--permutations 0`, `--seed 7 --seed 8`, a
+  // trailing `--seed` and a repeated `--confirm-log-dir` each froze the
+  // picks and only then refused — the corpus-door defect again, reached
+  // through a typo.
+  const confirmLogDir = str("--confirm-log-dir");
+  const permutations = num("--permutations", 1_000, {
+    basis:
+      "a permutation p-value is (1 + #{at least as extreme}) / " +
+      "(permutations + 1), so zero permutations makes every p exactly 1 " +
+      "and the gate refuses every variant in silence",
+    integer: true,
+    min: 1,
+  });
+  const seed = num("--seed", 7);
+  const acknowledgePriorReads = argv.includes("--acknowledge-prior-reads");
+  const disclosureOnly = argv.includes("--feasibility-disclosure-only");
   // VALIDATE BEFORE MUTATING (#364 round 54, found by round 54's own
   // derived scan running every corpus reader with no arguments). This
   // script wrote `<prefix>-final-picks.json` — a TRACKED artifact naming
@@ -180,10 +202,13 @@ async function main() {
   // rewritten — 456 insertions, 456 deletions, a fresh `frozenAt` — and
   // only then died at the corpus door inside gradeCorpus, exit 1. The
   // operator sees a non-zero exit and reasonably assumes nothing
-  // happened; the file had to be restored with git checkout. A corpus
-  // that cannot be described cannot freeze a pick, so the door for ALL
-  // paths stands above every write. Holding the manifests also makes the
-  // holdout population read them once rather than re-verifying below.
+  // happened; the file had to be restored with git checkout.
+  //
+  // Every manifest is verified here, before the candidates are even read,
+  // and the holdout population below is resolved from them. This pass is
+  // not the whole door and does not claim to be: shard agreement, the
+  // requested roster and the prior-read refusal live in gradeCorpus, and
+  // the freeze waits for all of them in its `beforeOpen` hook.
   const manifests = paths.map((path) => assertManifest(path));
   const candidates = JSON.parse(
     readFileSync(`${dir}/${prefix}-candidates.json`, "utf8"),
@@ -227,7 +252,6 @@ async function main() {
     // the §19 governor already refuses per account at runtime, which is
     // the product's honest surface for sizing. The per-line feasibility
     // still rides the artifact for every pick.
-    const disclosureOnly = argv.includes("--feasibility-disclosure-only");
     for (const candidate of market.accepted) {
       const entry = feasibility.feasibility[symbol]?.[candidate.variant];
       const lines = entry?.feasibleLines ?? [];
@@ -257,16 +281,30 @@ async function main() {
   // the artifact market-dossier and roster-expectancy-audit read to decide
   // which markets carry a confirmed derived cell. A hand-picked fix, in
   // the same commit that corrected a hand-picked population.
-  writeResearchArtifact(`${dir}/${prefix}-final-picks.json`, {
-    analyzerVersion: candidates.analyzerVersion,
-    capacityGated,
-    finalPicks,
-    frozenAt: new Date().toISOString(),
-  });
-  console.log(
-    `frozen: ${Object.keys(finalPicks).length} picks, ` +
-      `${capacityGated.length} capacity-gated -> ${prefix}-final-picks.json`,
-  );
+  //
+  // THE FREEZE IS WRITTEN FROM INSIDE gradeCorpus (2026-09-21), in the one
+  // hook that runs after its row-free door and before its first row. The
+  // pick itself is already fixed above; only the write waits. Written here
+  // instead — above the call, as it was — every refusal inside the door
+  // came after it: two shards of different depth, a manifest with no
+  // requested roster, and, worst, a SECOND read refused as already read,
+  // which re-stamped the picks with a `frozenAt` later than the recorded
+  // read and so overwrote the only evidence that the picks were frozen
+  // before the fold was opened.
+  let frozenAt: string | null = null;
+  const freeze = () => {
+    frozenAt = new Date().toISOString();
+    writeResearchArtifact(`${dir}/${prefix}-final-picks.json`, {
+      analyzerVersion: candidates.analyzerVersion,
+      capacityGated,
+      finalPicks,
+      frozenAt,
+    });
+    console.log(
+      `frozen: ${Object.keys(finalPicks).length} picks, ` +
+        `${capacityGated.length} capacity-gated -> ${prefix}-final-picks.json`,
+    );
+  };
 
   // THE ONE READ. Confirm totals come back per market per accepted
   // variant; only the frozen picks' rows are reported.
@@ -283,23 +321,27 @@ async function main() {
     );
   }
   const { confirmRead, heldOutSet, shipped, verdicts } = await gradeCorpus(paths, {
-    acknowledgePriorReads: argv.includes("--acknowledge-prior-reads"),
+    acknowledgePriorReads,
     baselineVariant,
+    beforeOpen: freeze,
     confirmFinal: true,
-    confirmLogDir: str("--confirm-log-dir"),
+    confirmLogDir,
     includeHoldout: holdoutCycle || targetsFlag !== undefined,
-    permutations: num("--permutations", 1_000, {
-    basis:
-      "a permutation p-value is (1 + #{at least as extreme}) / " +
-      "(permutations + 1), so zero permutations makes every p exactly 1 " +
-      "and the gate refuses every variant in silence",
-    integer: true,
-    min: 1,
-  }),
-    seed: num("--seed", 7),
+    permutations,
+    seed,
     symbolFilter,
     verdictUnit: "market",
   });
+  // The hook is the freeze's only route to disk, so a gradeCorpus that
+  // returned without calling it opened the fold over picks nobody froze.
+  // Loud, never a silent success: the confirm-read artifact below would
+  // otherwise name picks with no frozen record behind them.
+  if (frozenAt === null) {
+    throw new Error(
+      "confirm-4d: gradeCorpus returned without calling beforeOpen, so the " +
+        "confirm fold was opened over picks that were never frozen to disk",
+    );
+  }
 
   const confirmReport: Record<
     string,

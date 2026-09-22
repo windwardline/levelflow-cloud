@@ -10,7 +10,8 @@
 // grades every market on its own rows: singleton groups, the paired
 // permutation, the 30-filled floor. Emits the candidate table the
 // feasibility join and the one confirm-final read consume — this script
-// never touches the confirm fold.
+// never touches the confirm fold. Unknown flags are refused by name, in
+// the walk the gate and confirm-4d share.
 import { gradeCorpus, type VariantVerdict } from "./grid-totalr.ts";
 import { assertManifest } from "./sweepStats.ts";
 import { resolveHeldOut } from "./sweepFolds.ts";
@@ -38,8 +39,8 @@ const VALUE_FLAGS = new Set([
 
 // The flags that own no token, declared so an UNKNOWN flag is refused by
 // name rather than walked past in silence (2026-09-21) — the form
-// grid-totalr has carried since R4 act 1, at the sibling it never
-// reached. `--per-market-folds` is declared KNOWN so its own refusal
+// grid-totalr has carried since R4 act 2 (#570), at the sibling it
+// never reached. `--per-market-folds` is declared KNOWN so its own refusal
 // below, which says what the re-cut did to the held-back fold, wins over
 // the generic one.
 const BOOLEAN_FLAGS = new Set([

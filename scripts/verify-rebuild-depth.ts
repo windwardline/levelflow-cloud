@@ -38,7 +38,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { flagReader } from "./flagReader.ts";
+import { flagReader, flagsOnly } from "./flagReader.ts";
 import { isEntryPoint } from "./isEntryPoint.ts";
 
 type Row = Record<string, unknown>;
@@ -137,6 +137,10 @@ const DISPLACEMENT_RETAINED = 0.5;
 /** Declared literally: tests/sweepManifest.test.ts requires every flagReader
  * consumer to name its value-taking flags where a reader can see them. */
 const VALUE_FLAGS = new Set(["--reference", "--cache-dir"]);
+// The flags that own no token, declared so the walk can refuse an UNKNOWN
+// flag or a stray argument by name (2026-09-21): this reader read its
+// flags through accessors alone, so a typo ran as the default.
+const BOOLEAN_FLAGS = new Set<string>([]);
 
 function readStore(path: string): Store | null {
   try {
@@ -256,6 +260,7 @@ export function compareDepth(
 }
 
 function main(): void {
+  flagsOnly(process.argv.slice(2), VALUE_FLAGS, BOOLEAN_FLAGS, "verify-rebuild-depth");
   const { str } = flagReader(process.argv, VALUE_FLAGS);
   const referenceDir = str("--reference");
   const candidateDir = str("--cache-dir") ?? ".calibration-cache";

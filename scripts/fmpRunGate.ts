@@ -36,7 +36,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 
-import { flagReader, soleFlagIndex } from "./flagReader.ts";
+import { flagReader, flagsOnly, soleFlagIndex } from "./flagReader.ts";
 import {
   defaultStatePaths,
   type FmpStatePaths,
@@ -180,6 +180,12 @@ export function writeRunMarker(runsDir: string, job: RunJob, marker: RunMarker):
 }
 
 const VALUE_FLAGS = new Set(["--job", "--dir"]);
+// The flag that owns no token, declared so the walk names an UNKNOWN flag
+// or a stray argument (2026-09-21) instead of deciding as if it were absent:
+// a typo beside valid flags used to run the normal decision in silence. The
+// walk runs inside the try, so the gate keeps its contract — anything it
+// cannot read is a gateError and the job RUNS; only a record fails as one.
+const BOOLEAN_FLAGS = new Set(["--record-clean"]);
 
 function asJob(value: string | undefined): RunJob {
   if (value === "minute-bank" || value === "cache-topup") return value;
@@ -202,6 +208,7 @@ export function runGateCli(
   const recordClean = args.includes("--record-clean");
   let job: string | undefined;
   try {
+    flagsOnly(args, VALUE_FLAGS, BOOLEAN_FLAGS, "fmpRunGate");
     soleFlagIndex(args, "--record-clean");
     const { str } = flagReader(args, VALUE_FLAGS);
     job = str("--job");

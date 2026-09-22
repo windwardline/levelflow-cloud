@@ -12,9 +12,10 @@
  * - an undeclared flag reads a value nothing declared it owns.
  *
  * A fourth mode belongs to the WALK rather than to a value accessor, and
- * `positionalArgs` below closes it: a walker that skips every `--x` it
- * does not know reads a typo as nothing at all, so the run measures the
- * default under a line saying the dial was honoured.
+ * `positionalArgs` below closes it — `flagsOnly` for a reader that takes
+ * no positional argument: a walker that skips every `--x` it does not
+ * know, or a reader with no walk at all, reads a typo as nothing, so the
+ * run measures the default under a line saying the dial was honoured.
  *
  * Closing that per file meant the fix reached whichever file someone
  * happened to open. This module is the one implementation FOR THE
@@ -200,19 +201,38 @@ export function assertInDomain(
  * measures the default while its shell history — and its operator —
  * says otherwise.
  *
- * `grid-totalr` closed this inline in R4 act 1, after a no-op
+ * `grid-totalr` closed this inline in R4 act 2 (#570), after a no-op
  * `--per-market-folds` passed the sealed guard for a day as if it were a
- * second shape of that reader. Twelve siblings kept the silence, and on
- * 2026-09-21 `confirm-4d --not-a-real-flag <shard>` — the script that
- * BURNS the LA-6 confirm read — reported only the corpus door's refusal
- * and never named the flag. This is that refusal declared once, with
- * grid-totalr's wording, so the reader that burns cannot drift from the
- * gate it grades through.
+ * second shape of that reader. On 2026-09-21 `confirm-4d
+ * --not-a-real-flag <shard>` — the script that BURNS the LA-6 confirm
+ * read — reported only the corpus door's refusal and never named the
+ * flag. This is that refusal declared once, with grid-totalr's wording,
+ * so the reader that burns cannot drift from the gate it grades through.
+ * Which readers take it is not listed here: `tests/unknownFlagRefused.test.ts`
+ * derives the population from every script that reads `process.argv` and
+ * executes the refusal in each.
  *
  * A reader that takes no flag passes two empty sets and refuses every
- * `--x` by name. That is not ceremony: the three readers that did so
- * filtered flags away with `argv.filter((a) => !a.startsWith("--"))`,
- * which is the line a reader's FIRST flag gets added on top of.
+ * `--x` by name. That is not ceremony: the readers that did so filtered
+ * flags away with `argv.filter((a) => !a.startsWith("--"))`, or read
+ * `process.argv.slice(2)` whole as file names and refused `--x` as a
+ * missing manifest — the wrong diagnosis, and the line a reader's FIRST
+ * flag gets added on top of.
+ *
+ * A SINGLE-dash token is flag-shaped too (`-x`), and refused by the same
+ * sentence: read as a path it came back "no manifest beside the emit",
+ * the misdiagnosis round 38 fixed for a repeated `--seed`. A bare `-` and
+ * a negative number (`-1`, `-0.5`) are values, never flags.
+ *
+ * A declared value flag owns the token after it UNLESS that token is
+ * itself flag-shaped or absent. Then it owns nothing, the next flag is
+ * walked as a flag, and the accessor refuses the missing value by name.
+ * Swallowing it instead misdiagnosed the ordinary slip:
+ * `market-dossier --out --net x.jsonl` would walk `--net` as --out's
+ * value and refuse x.jsonl as a stray argument, when what the operator
+ * got wrong is that --out has no value — the refusal
+ * tests/marketDossier.test.ts pins. A value the flag DOES own is not
+ * examined here: blank or unparseable, the accessor judges it.
  *
  * Boolean flags are DECLARED rather than inferred from "not a value
  * flag", which is the inversion the 4d walkers were built on and #364
@@ -230,7 +250,7 @@ export function positionalArgs(
   const positionals: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
-    if (token.startsWith("--")) {
+    if (flagShaped(token)) {
       if (!valueFlags.has(token) && !booleanFlags.has(token)) {
         throw new OperatorInputError(
           `${scriptName}: unknown flag ${token} — the flags this reader knows are ` +
@@ -239,12 +259,60 @@ export function positionalArgs(
             `as a run that honoured it`,
         );
       }
-      if (valueFlags.has(token)) index += 1;
+      if (valueFlags.has(token) && ownsNext(argv[index + 1])) index += 1;
       continue;
     }
     positionals.push(token);
   }
   return positionals;
+}
+
+/** `--x` or `-x`; never a bare `-` and never a negative number. */
+function flagShaped(token: string): boolean {
+  return token.startsWith("--") || /^-[^\d.]/.test(token);
+}
+
+/** Whether a value flag may take this token as its value. */
+function ownsNext(token: string | undefined): boolean {
+  return token !== undefined && !flagShaped(token);
+}
+
+/**
+ * The same walk for a reader that takes FLAGS ONLY, which also refuses
+ * any argument left over.
+ *
+ * Until 2026-09-21 the readers that read their flags through
+ * `flagReader` or `soleFlagIndex` had no walk at all, so nothing in them
+ * ever looked at a token no accessor asked for.
+ * `sweep-analysis --emit <shard> --min-nn 5` exited 0 at the default
+ * `--min-n 30` and never named the typo; `derive-baselines --new-eraa`
+ * ran as a plain re-derivation and reached the write of the tracked
+ * `market-baselines.json` it defaults to. A stray bare token is the same
+ * silence one character over — `sweep-analysis --emit a.jsonl b.jsonl`
+ * reported over a.jsonl without a word — so it is refused in the same
+ * sentence.
+ *
+ * Called FIRST, before any accessor reads a value and before any
+ * credential check, so the refusal a typo earns is the one it gets: a
+ * mistyped flag on a machine without the provider key must not send the
+ * operator to their credentials.
+ */
+export function flagsOnly(
+  argv: readonly string[],
+  valueFlags: ReadonlySet<string>,
+  booleanFlags: ReadonlySet<string>,
+  scriptName: string,
+): void {
+  const [stray] = positionalArgs(argv, valueFlags, booleanFlags, scriptName);
+  if (stray !== undefined) {
+    const known = [...valueFlags, ...booleanFlags].sort();
+    throw new OperatorInputError(
+      `${scriptName}: stray argument ${JSON.stringify(stray)} — this reader ` +
+        `takes flags only (${known.length > 0 ? known.join(", ") : "none"}); ` +
+        `a stray argument is refused rather than ignored, because an ` +
+        `ignored argument reads as a run that honoured it`,
+    );
+  }
 }
 
 export function flagReader(

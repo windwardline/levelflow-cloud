@@ -57,7 +57,7 @@ import {
 } from "node:fs/promises";
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
 import { redactProviderSecrets } from "../supabase/functions/trade-analyzer/redact.ts";
-import { flagReader, OperatorInputError } from "./flagReader.ts";
+import { flagReader, flagsOnly, OperatorInputError } from "./flagReader.ts";
 import {
   classifyRefusal,
   closeCircuit,
@@ -179,8 +179,13 @@ type SidecarState = {
 // scripts/, so a new reader joins the law automatically instead of being
 // found by a review round.
 const VALUE_FLAGS = new Set(["--dir", "--concurrency", "--limit"]);
+// The flags that own no token, declared so the walk can refuse an UNKNOWN
+// flag or a stray argument by name (2026-09-21): this reader read its
+// flags through accessors alone, so a typo ran as the default.
+const BOOLEAN_FLAGS = new Set<string>([]);
 
 function parseArgs(argv: string[]) {
+  flagsOnly(argv, VALUE_FLAGS, BOOLEAN_FLAGS, "bank-minute-bars");
   const { num, str } = flagReader(argv, VALUE_FLAGS);
   return {
     dir: str("--dir") ?? ".minute-bank",
@@ -613,11 +618,14 @@ function sameRealPath(a: string, b: string): boolean {
  */
 export async function runBank(deps: BankDeps): Promise<number> {
   const { print, state } = deps;
+  // Arguments FIRST, before the credential check (2026-09-21) — the order
+  // replay-sweep and the probe already keep, so a typo is never reported as
+  // a missing key. planRun reads and refuses; it spends and writes nothing.
+  const plan = planRun(deps.argv);
   if (!deps.key) {
     print.err("FMP_API_KEY is required.");
     return 1;
   }
-  const plan = planRun(deps.argv);
   const { dir, concurrency, roster, targets } = plan;
   await mkdir(dir, { recursive: true });
   const at = new Date(deps.now()).toISOString();

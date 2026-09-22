@@ -293,7 +293,7 @@ function parse(paths: string[]): Row[] {
 const VALUE_FLAGS = new Set(["--min-reached"]);
 // The flags that own no token, declared so an UNKNOWN flag is refused by
 // name rather than walked past in silence (2026-09-21). Nine readers
-// carried the silent walk that grid-totalr closed in R4 act 1; the one
+// carried the silent walk that grid-totalr closed in R4 act 2 (#570); the one
 // that surfaced it burns the LA-6 confirm read.
 // --report is a BOOLEAN flag and must be declared: the walk now refuses an
 // unknown flag by name, and this audit's whole purpose is a refusal that

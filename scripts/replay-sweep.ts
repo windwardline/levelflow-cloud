@@ -121,7 +121,7 @@ import {
   normalizeFmpBars,
 } from "../supabase/functions/trade-analyzer/bars.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
-import { flagReader, OperatorInputError } from "./flagReader.ts";
+import { flagReader, flagsOnly, OperatorInputError } from "./flagReader.ts";
 import { createProbeGate, type FetchLike } from "./fmpCircuit.ts";
 import {
   bookkeepingRefusal,
@@ -2116,6 +2116,26 @@ export function parseArgs(argv: string[]): SweepArgs {
     "--step",
     "--symbols",
   ]);
+  // The flags that own no token, declared so the walk can refuse an
+  // UNKNOWN flag or a stray argument by name (2026-09-21). The driver read
+  // its flags through accessors alone, so a typo ran as the default — and
+  // here a default is a corpus identity: `days`, the grid and the
+  // acceptance mode are hashed into conditionsOf and the LA-6 ledger key.
+  const BOOLEAN_FLAGS = new Set([
+    "--capture-all",
+    "--discover",
+    "--ignore-low-edge",
+    "--print-confirm-table",
+    "--repin",
+    "--warm-only",
+  ]);
+  // `--byte-budget` and `--daily-ceiling` own a token too, but
+  // fmpByteBudget reads them (spendPlanFor) and refuses their faults
+  // itself — no value, an unreadable size, a repeat — so they are known to
+  // the walk and absent from VALUE_FLAGS, whose every member this function
+  // reads through its own accessors.
+  const WALK_VALUE_FLAGS = new Set([...VALUE_FLAGS, "--byte-budget", "--daily-ceiling"]);
+  flagsOnly(argv, WALK_VALUE_FLAGS, BOOLEAN_FLAGS, "replay-sweep");
   const { num, str } = flagReader(argv, VALUE_FLAGS);
   const spendClassArg = str("--spend-class") ?? "adhoc";
   if (spendClassArg !== "topup" && spendClassArg !== "adhoc") {

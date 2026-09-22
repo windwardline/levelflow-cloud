@@ -60,7 +60,7 @@ import {
   SEALED_FOLD,
   tuningFolds,
 } from "./sweepStats.ts";
-import { flagReader } from "./flagReader.ts";
+import { flagReader, flagsOnly } from "./flagReader.ts";
 import {
   type LedgeredReadArtifact,
   readLedgeredArtifact,
@@ -298,6 +298,11 @@ async function main() {
     "--ledgered-read",
     "--out",
   ]);
+  // The flags that own no token, declared so the walk can refuse an UNKNOWN
+  // flag or a stray argument by name (2026-09-21): this reader read its
+  // flags through accessors alone, so a typo ran as the default.
+  const BOOLEAN_FLAGS = new Set<string>([]);
+  flagsOnly(argv, VALUE_FLAGS, BOOLEAN_FLAGS, "cost-sensitivity-verdict");
   const { str } = flagReader(argv, VALUE_FLAGS);
   // ONE CORPUS, BOTH ARMS (item 5). Every emitted row carries
   // `grossRealizedR` beside `realizedR` — the same decision re-resolved at the

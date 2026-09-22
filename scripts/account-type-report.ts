@@ -212,7 +212,7 @@ function pct(part: number, whole: number): string {
 const VALUE_FLAGS = new Set(["--min-filled"]);
 // The flags that own no token, declared so an UNKNOWN flag is refused by
 // name rather than walked past in silence (2026-09-21). Nine readers
-// carried the silent walk that grid-totalr closed in R4 act 1; the one
+// carried the silent walk that grid-totalr closed in R4 act 2 (#570); the one
 // that surfaced it burns the LA-6 confirm read.
 const BOOLEAN_FLAGS = new Set<string>([]);
 

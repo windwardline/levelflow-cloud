@@ -41,6 +41,7 @@ import {
   describeNumericToken,
   describeToken,
   assertInDomain,
+  flagsOnly,
   soleFlagIndex,
   tokenFault,
   type NumericDomain,
@@ -200,6 +201,12 @@ async function main(): Promise<void> {
   // required was optional in fact. Both dials are read BEFORE the usage
   // check so the specific refusal wins over the generic error.
   const VALUE_FLAGS = new Set(["--min-n", "--emit"]);
+  // The flags that own no token, declared so the walk can refuse an UNKNOWN
+  // flag or a stray argument by name (2026-09-21): this reader read its
+  // flags through accessors alone, so a typo ran as the default.
+  // `--min-nn 5` exited 0 at --min-n 30 and never named the typo.
+  const BOOLEAN_FLAGS = new Set<string>([]);
+  flagsOnly(args, VALUE_FLAGS, BOOLEAN_FLAGS, "sweep-analysis");
   function str(arg: string): string | undefined {
     if (!VALUE_FLAGS.has(arg)) {
       throw new Error(

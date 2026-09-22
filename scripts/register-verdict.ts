@@ -14,7 +14,7 @@
 // tampered or re-ruled artifact.
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { flagReader } from "./flagReader.ts";
+import { flagReader, flagsOnly } from "./flagReader.ts";
 import {
   type LedgeredReadArtifact,
   readLedgeredArtifact,
@@ -363,6 +363,10 @@ export function withdrawalVerdicts(
 
 /** Declared, because the reader refuses a flag it was not told owns its token. */
 const VALUE_FLAGS = new Set(["--arms", "--manifest", "--out", "--prior", "--read"]);
+// The flags that own no token, declared so the walk can refuse an UNKNOWN
+// flag or a stray argument by name (2026-09-21): this reader read its
+// flags through accessors alone, so a typo ran as the default.
+const BOOLEAN_FLAGS = new Set<string>([]);
 
 /**
  * The register as it stood before this re-decision, taken from the artifact the
@@ -428,6 +432,7 @@ export function withdrawalArtifact(options: {
 }
 
 function main(): void {
+  flagsOnly(process.argv.slice(2), VALUE_FLAGS, BOOLEAN_FLAGS, "register-verdict");
   const flags = flagReader(process.argv.slice(2), VALUE_FLAGS);
   const readPath = flags.str("--read");
   const manifestHash = flags.str("--manifest");

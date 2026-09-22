@@ -36,11 +36,15 @@ import {
   DEFAULT_CACHE_DIR,
   loadRollingSeries,
 } from "./calibrationCache.ts";
-import { flagReader, OperatorInputError } from "./flagReader.ts";
+import { flagReader, flagsOnly, OperatorInputError } from "./flagReader.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 import type { ClassFoldSpec } from "./sweepFolds.ts";
 
 const VALUE_FLAGS = new Set(["--anchor", "--days", "--out", "--symbols"]);
+// The flags that own no token, declared so the walk can refuse an UNKNOWN
+// flag or a stray argument by name (2026-09-21): this reader read its
+// flags through accessors alone, so a typo ran as the default.
+const BOOLEAN_FLAGS = new Set<string>([]);
 
 export type FoldSpecArgs = {
   anchor: string;
@@ -50,6 +54,7 @@ export type FoldSpecArgs = {
 };
 
 export function parseFoldSpecArgs(argv: readonly string[]): FoldSpecArgs {
+  flagsOnly(argv, VALUE_FLAGS, BOOLEAN_FLAGS, "derive-fold-spec");
   const { num, str } = flagReader(argv, VALUE_FLAGS);
   const symbolsArg = str("--symbols") ?? "";
   // "roster" derives the list from the engine's own scan roster, the same

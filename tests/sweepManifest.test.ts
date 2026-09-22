@@ -1701,13 +1701,14 @@ describe("the driver writes the manifest beside the emit", () => {
       [
         "scripts/flagReader.ts",
         "this file IS the law's implementation — it declares no flags of " +
-        "its own, and its seven refusals (undeclared flag, missing or " +
+        "its own, and its eight refusals (undeclared flag, missing or " +
         "flag-shaped token, unparseable number, repeated flag, the two " +
         "DOMAIN refusals added in round 55 — non-integer and below " +
-        "minimum — and the UNKNOWN FLAG refusal the walk took over on " +
-        "2026-09-21) are pinned by executed tests below rather than by " +
+        "minimum — and the walk's two from 2026-09-21, UNKNOWN FLAG and " +
+        "STRAY ARGUMENT) are pinned by executed tests — below, and for the " +
+        "walk's two in tests/unknownFlagRefused.test.ts — rather than by " +
         "matching its own source against itself. The count is checked, so " +
-        "an eighth cannot arrive unexecuted.",
+        "a ninth cannot arrive unexecuted.",
       ],
       [
         "scripts/fmpByteBudget.ts",
@@ -1807,7 +1808,7 @@ describe("the driver writes the manifest beside the emit", () => {
     // throw form rather than being loosened to match both.
     assert.equal(
       [...sharedReader.matchAll(/throw new OperatorInputError\(/g)].length,
-      7,
+      8,
       "flagReader's refusal count changed — update the exemption's " +
         "enumeration and add an executed test for the new refusal",
     );
@@ -2446,9 +2447,16 @@ describe("the driver writes the manifest beside the emit", () => {
         ),
       (error: unknown) => {
         const failed = error as { stderr?: string; status?: number };
-        assert.match(String(failed.stderr ?? ""), /Usage: .*--emit path\.jsonl/);
-        // Exit 1, the usage code — not a crash on a file it tried to
-        // open, which is what reading args[0] as the corpus would give.
+        const stderr = String(failed.stderr ?? "");
+        // Refused BY NAME since 2026-09-21, before the usage line: this
+        // reader takes flags only, and the shared walk refuses a stray
+        // token and names the flags it does take. It used to reach the
+        // usage line here, which says --emit is required but never says
+        // which token was wrong.
+        assert.match(stderr, /stray argument "a\.jsonl" — this reader takes flags only \(--emit, --min-n\)/);
+        // Never opened: reading args[0] as the corpus is what the door
+        // would have refused as a missing manifest.
+        assert.doesNotMatch(stderr, /no manifest beside the emit/);
         assert.equal(failed.status, 1);
         return true;
       },

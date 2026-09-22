@@ -1370,6 +1370,11 @@ export async function gradeCorpus(
     // 4d: "market" grades every symbol on its own rows (singleton
     // groups, absolute sample floor); default stays the 4c class unit.
     verdictUnit?: "class" | "market";
+    // Runs once, after every refusal that needs no row and before the
+    // first row is streamed (2026-09-21) — see THE LAST ROW-FREE MOMENT
+    // below. confirm-4d writes its frozen picks here, so the freeze lands
+    // after the corpus door and before the confirm fold is opened.
+    beforeOpen?: () => void | Promise<void>;
   } = {},
 ): Promise<{
   // #364 round 24, finding 3: the data-absence rows the vocabulary held
@@ -1782,85 +1787,6 @@ export async function gradeCorpus(
     cell.g += Number(row.grossRealizedR) || 0;
     baselineDigest[shardIndex].set(key, cell);
   };
-  for (const [shardIndex, path] of paths.entries()) {
-    // THE ONE READ. The door seals the confirm fold by default (R4 act 1);
-    // this is the only call in the repository allowed to open it, and only
-    // when the read will be recorded in the LA-6 ledger below.
-    const read = await assertManifestedCorpusStreaming(path, (raw) => {
-      const row = projectArm(raw, options.rArm ?? "net", path);
-      if (held.has(row.symbol)) return;
-      if (options.symbolFilter && !options.symbolFilter.has(row.symbol)) {
-        return;
-      }
-      if (frozen) {
-        // Only the named cells: every arm's baseline once (the freeze proved
-        // them the same rows), and per market the frozen candidate from its
-        // own arm. A derived candidate is rebuilt from the baseline rows below.
-        const emitted = typeof row.variant === "string" ? row.variant : "baseline";
-        if (emitted === derivedParent) {
-          digestBaseline(shardIndex, row);
-          if (shardIndex !== 0) return;
-        } else {
-          const candidate = candidateOf(row.symbol);
-          const marketMatch = candidate !== null && candidate.arm === armOfShard[shardIndex] && candidate.variant === emitted;
-          const classMatch = classWanted.get(row.symbol)?.has(`${armOfShard[shardIndex]}|${emitted}`) ?? false;
-          if (!marketMatch && !classMatch) return;
-        }
-      }
-      // The emitted split label is the fold. Nothing here re-cuts time.
-      addRowToCube(cube, row, { includeHoldout: true });
-      if (derivedFilters.length > 0) {
-        const emitted = typeof row.variant === "string" ? row.variant : "baseline";
-        emittedVariants.add(emitted);
-        if (emitted === derivedParent) {
-          for (const filter of derivedFilters) {
-            if (frozen && !derivedWantedFor(row.symbol, filter.name)) continue;
-            const passes = derivedPasses(filter, derivedFieldOf(row, filter.field));
-            addRowToCube(cube, { ...row, accepted: row.accepted !== false && passes, variant: filter.name }, { includeHoldout: true });
-          }
-        }
-      }
-    }, {
-      // Sealed unless this read is the recorded one.
-      // A rehearsal never carries confirmFinal, so this line reads "sealed"
-      // for it by itself; the door's expression stays the one the guard pins.
-      confirm: options.confirmFinal ? "read" : "sealed",
-    });
-    sealedRows += read.sealedRows;
-  }
-  if (frozen) {
-    for (let index = 1; index < paths.length; index += 1) {
-      for (const key of baselineDigest[0].keys()) {
-        if (!baselineDigest[index].has(key)) {
-          const [symbol, split] = key.split("|");
-          throw new Error(`${paths[index]}: no baseline rows for ${symbol} on the ${split} fold, which ${paths[0]} carries; the arms do not share one baseline`);
-        }
-      }
-      for (const [key, mine] of baselineDigest[index]) {
-        const first = baselineDigest[0].get(key);
-        if (first === undefined) {
-          const [symbol, split] = key.split("|");
-          throw new Error(`${paths[index]}: baseline rows for ${symbol} on the ${split} fold, which ${paths[0]} does not carry; the arms do not share one baseline`);
-        }
-        if (first.n !== mine.n || Math.abs(first.r - mine.r) > 1e-9 || Math.abs(first.g - mine.g) > 1e-9) {
-          const [symbol, split] = key.split("|");
-          // No figure is printed: the mismatch may sit on the held-back fold.
-          throw new Error(
-            `${paths[index]}: baseline rows for ${symbol} on the ${split} fold differ from ${paths[0]}'s; ` +
-              "the arms do not share one baseline and cannot be read as one program",
-          );
-        }
-      }
-    }
-  }
-  for (const filter of derivedFilters) {
-    if (emittedVariants.has(filter.name)) {
-      throw new Error(
-        `--derive-filters: ${JSON.stringify(filter.name)} is also an emitted variant in this corpus; ` +
-          `a derived variant may not shadow a swept cell — name it differently`,
-      );
-    }
-  }
 
   // Confirm-fold discipline by mechanism (LA-6): without confirmFinal the
   // confirm fold is never computed; with it, the read is appended to a
@@ -2168,6 +2094,100 @@ export async function gradeCorpus(
       );
     }
   }
+  // THE LAST ROW-FREE MOMENT (2026-09-21). Everything above refuses
+  // without reading a row: each shard's manifest, their agreement as one
+  // measurement, the requested roster, the frozen file's binding and —
+  // under confirmFinal — the prior-read scan, which sat BELOW the stream
+  // until this date, so a refused re-read streamed the whole held-back
+  // fold into memory before refusing. A caller that must write something
+  // after the door and before the fold is opened writes it here:
+  // confirm-4d freezes its picks in this hook, so a run the door refuses
+  // freezes nothing, and a run it admits has its picks on disk before the
+  // first confirm row is read. What still refuses below needs rows — an
+  // unparseable line, emit bytes that are not the manifest's, a baseline
+  // naming no cell — and cannot run before the fold is opened without
+  // reading the corpus twice.
+  if (options.beforeOpen) await options.beforeOpen();
+  for (const [shardIndex, path] of paths.entries()) {
+    // THE ONE READ. The door seals the confirm fold by default (R4 act 1);
+    // this is the only call in the repository allowed to open it, and only
+    // when the read will be recorded in the LA-6 ledger below.
+    const read = await assertManifestedCorpusStreaming(path, (raw) => {
+      const row = projectArm(raw, options.rArm ?? "net", path);
+      if (held.has(row.symbol)) return;
+      if (options.symbolFilter && !options.symbolFilter.has(row.symbol)) {
+        return;
+      }
+      if (frozen) {
+        // Only the named cells: every arm's baseline once (the freeze proved
+        // them the same rows), and per market the frozen candidate from its
+        // own arm. A derived candidate is rebuilt from the baseline rows below.
+        const emitted = typeof row.variant === "string" ? row.variant : "baseline";
+        if (emitted === derivedParent) {
+          digestBaseline(shardIndex, row);
+          if (shardIndex !== 0) return;
+        } else {
+          const candidate = candidateOf(row.symbol);
+          const marketMatch = candidate !== null && candidate.arm === armOfShard[shardIndex] && candidate.variant === emitted;
+          const classMatch = classWanted.get(row.symbol)?.has(`${armOfShard[shardIndex]}|${emitted}`) ?? false;
+          if (!marketMatch && !classMatch) return;
+        }
+      }
+      // The emitted split label is the fold. Nothing here re-cuts time.
+      addRowToCube(cube, row, { includeHoldout: true });
+      if (derivedFilters.length > 0) {
+        const emitted = typeof row.variant === "string" ? row.variant : "baseline";
+        emittedVariants.add(emitted);
+        if (emitted === derivedParent) {
+          for (const filter of derivedFilters) {
+            if (frozen && !derivedWantedFor(row.symbol, filter.name)) continue;
+            const passes = derivedPasses(filter, derivedFieldOf(row, filter.field));
+            addRowToCube(cube, { ...row, accepted: row.accepted !== false && passes, variant: filter.name }, { includeHoldout: true });
+          }
+        }
+      }
+    }, {
+      // Sealed unless this read is the recorded one.
+      // A rehearsal never carries confirmFinal, so this line reads "sealed"
+      // for it by itself; the door's expression stays the one the guard pins.
+      confirm: options.confirmFinal ? "read" : "sealed",
+    });
+    sealedRows += read.sealedRows;
+  }
+  if (frozen) {
+    for (let index = 1; index < paths.length; index += 1) {
+      for (const key of baselineDigest[0].keys()) {
+        if (!baselineDigest[index].has(key)) {
+          const [symbol, split] = key.split("|");
+          throw new Error(`${paths[index]}: no baseline rows for ${symbol} on the ${split} fold, which ${paths[0]} carries; the arms do not share one baseline`);
+        }
+      }
+      for (const [key, mine] of baselineDigest[index]) {
+        const first = baselineDigest[0].get(key);
+        if (first === undefined) {
+          const [symbol, split] = key.split("|");
+          throw new Error(`${paths[index]}: baseline rows for ${symbol} on the ${split} fold, which ${paths[0]} does not carry; the arms do not share one baseline`);
+        }
+        if (first.n !== mine.n || Math.abs(first.r - mine.r) > 1e-9 || Math.abs(first.g - mine.g) > 1e-9) {
+          const [symbol, split] = key.split("|");
+          // No figure is printed: the mismatch may sit on the held-back fold.
+          throw new Error(
+            `${paths[index]}: baseline rows for ${symbol} on the ${split} fold differ from ${paths[0]}'s; ` +
+              "the arms do not share one baseline and cannot be read as one program",
+          );
+        }
+      }
+    }
+  }
+  for (const filter of derivedFilters) {
+    if (emittedVariants.has(filter.name)) {
+      throw new Error(
+        `--derive-filters: ${JSON.stringify(filter.name)} is also an emitted variant in this corpus; ` +
+          `a derived variant may not shadow a swept cell — name it differently`,
+      );
+    }
+  }
+
   // A folded corpus names its own partition; a legacy two-split corpus
   // maps train->fit, test->select and has no confirm fold to read.
   const derived: FoldNames = options.foldNames ??
@@ -2722,8 +2742,8 @@ async function main(): Promise<void> {
   // the shard paths and the corpus door refused it as a missing
   // manifest, the wrong diagnosis). The walk and its unknown-flag
   // refusal moved into flagReader on 2026-09-21, wording unchanged:
-  // nine siblings carried the silent form this one closed in R4 act 1,
-  // including the script that burns the confirm read.
+  // nine siblings carried the silent form this one closed in R4 act 2
+  // (#570), including the script that burns the confirm read.
   const paths = positionalArgs(args, VALUE_FLAGS, BOOLEAN_FLAGS, "grid-totalr");
   const num = (
     arg: string,

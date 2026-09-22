@@ -30,7 +30,7 @@ import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.t
 // standing-claims rule says a caveat is retired by a human who revalidated,
 // with the reason recorded — never as a side effect of re-running something.
 import { writeResearchArtifact } from "./researchArtifact.ts";
-import { soleFlagIndex } from "./flagReader.ts";
+import { flagsOnly, soleFlagIndex } from "./flagReader.ts";
 
 // This script takes no flag VALUES: `--new-era` is a presence check, so
 // nothing here can swallow the token after it. It still resolves through
@@ -38,6 +38,10 @@ import { soleFlagIndex } from "./flagReader.ts";
 // helper REFUSES a repeated flag, and a run given `--new-era` twice should
 // stop rather than pick one.
 export const VALUE_FLAGS = new Set<string>([]);
+// Its one flag, declared so the walk can refuse any OTHER by name
+// (2026-09-21). Without a walk `--new-eraa` ran as a plain re-derivation
+// and reached the write of the tracked artifact below.
+const BOOLEAN_FLAGS = new Set(["--new-era"]);
 
 const CACHE_DIR = ".calibration-cache";
 const ARTIFACT = "docs/research/market-baselines.json";
@@ -92,6 +96,7 @@ function timeframeBaseline(
 }
 
 function main() {
+  flagsOnly(process.argv.slice(2), VALUE_FLAGS, BOOLEAN_FLAGS, "derive-baselines");
   const wantNewEra = soleFlagIndex(process.argv.slice(2), "--new-era") !== -1;
   const existing: BaselineArtifact | null = existsSync(ARTIFACT)
     ? JSON.parse(readFileSync(ARTIFACT, "utf8"))

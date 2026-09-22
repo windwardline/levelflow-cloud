@@ -101,44 +101,61 @@ grow.
 ### 2026-09-21: the flag law reached the script that burns
 
 `confirm-4d --not-a-real-flag /tmp/nope.jsonl` named the corpus and never named
-the flag. Two defects in one command, both closed:
+the flag. Two defects in one command. Branch `fix/4d-unknown-flags` closes both,
+and its review found each wider than the report.
 
-- **An unknown flag was walked past in silence.** The walker consumed the token
-  after a declared value flag and dropped every other `--x`. A typo, a retired
-  dial and a sibling's flag all read as nothing at all, so the run measured the
-  default while the shell history said otherwise — in the one script whose run
-  burns the LA-6 confirm read, which cannot be taken again. `grid-totalr` had
-  refused by name since R4 act 1; the fix had reached one file. Twelve readers
-  still carried the silence, in two shapes. Nine dialed readers walked past an
+- **Unknown flags were ignored.** `grid-totalr` has refused one by name since
+  R4 act 2 (#570). Twenty-nine other argv readers did not. Nine walked past an
   undeclared flag: `confirm-4d`, `derive-4d`, `feasibility-4d`,
   `threshold-rescue`, `roster-expectancy-audit`, `tuning-folds-summary`,
-  `holdout-set`, `account-type-report` and `starvation-audit`. Three readers
-  that take no flag at all filtered every `--x` away — `data-limits`,
-  `confidence-bands`, `geometry-evidence` — which is the worse starting point,
-  because it is the line a first flag gets added on top of. All thirteen now
-  share one walk.
-- **The freeze ran before the corpus door.** The same command printed
-  "frozen: 41 picks, 11 capacity-gated" and rewrote the tracked
-  `docs/research/baseline-2026-08-10/4d-final-picks.json` — 456 insertions, 456
-  deletions, a fresh `frozenAt` — then died at the manifest door and exited 1.
-  The file had to be restored with `git checkout`. This is the failure class
-  R1b round 54 found and half-closed: that round refused a run naming NO shard,
-  and left the run naming a shard it cannot read.
+  `holdout-set`, `account-type-report`, `starvation-audit`. Three filtered every
+  `--x` away: `data-limits`, `confidence-bands`, `geometry-evidence`. Three
+  opened `--x` as a file: `ag-class-derivation`, `exclusion-suspects`,
+  `stop-provenance`. Fourteen had no walk at all: `replay-sweep`,
+  `bank-minute-bars`, `fmpRunGate`, `probe-minute-bars`, `verify-fmp-matches`,
+  `verify-cache-clock`, `verify-rebuild-depth`, `derive-fold-spec`,
+  `derive-baselines`, `sweep-analysis`, `market-dossier`,
+  `cost-sensitivity-verdict`, `register-verdict`, `two-arm-reconcile`.
+  `sweep-analysis --emit <shard> --min-nn 5` exited 0 at `--min-n 30`.
+- **The freeze ran before the corpus door.** The same command printed "frozen:
+  41 picks, 11 capacity-gated", rewrote the tracked
+  `docs/research/baseline-2026-08-10/4d-final-picks.json` (456 insertions, 456
+  deletions, a fresh `frozenAt`), then died at the manifest door with exit 1.
+  Round 54 had closed only the no-shard case. The review found the rest of
+  gradeCorpus's door below the write too: shards of different depth, a manifest
+  with no requested roster, three dials, and a second read refused as already
+  read. That last one re-stamped the picks with a `frozenAt` later than the
+  recorded read, overwriting the evidence that they were frozen first.
 
-`positionalArgs` in `scripts/flagReader.ts` is the one walk, with grid-totalr's
-wording. `confirm-4d` now runs `assertManifest` over every path before it writes
-anything, and reuses those manifests for the holdout population. Both 4d readers
-declare `--per-market-folds` as KNOWN so its own refusal, which says what the
-re-cut did to the held-back fold, still wins.
+The walk is `positionalArgs` in `scripts/flagReader.ts`, in grid-totalr's
+wording; `flagsOnly` adds a stray-argument refusal for readers that take no
+positional. Thirty readers take it. A single-dash `-x` is a flag, and a value
+flag never swallows the flag after it, so `--out --net x.jsonl` still says --out
+has no value. The eleven readers that already refused inline keep their pinned
+messages. `fmpRunGate` keeps its contract: a refusal is its `gateError` line at
+exit 0, and the job runs.
 
-`tests/unknownFlagRefused.test.ts` executes both laws over a DERIVED population:
-the silent walk is asserted extinct across `scripts/`, every adopter is run with
-an unknown flag and must name it, and every adopter is run with all of its own
-declared flags and must accept them. Each subject runs from an empty temp
-directory, so "wrote nothing" is the whole directory listing rather than a path
-someone remembered to name — the readers' default output paths are all
-repo-relative. The refusal count in `flagReader` moved 6 → 7 and the exemption
-in `tests/sweepManifest.test.ts` enumerates the seventh.
+`confirm-4d` builds its picks in memory and writes them from gradeCorpus's new
+`beforeOpen` hook, which runs after every row-free check and before the first
+row. To make that possible the prior-read scan moved above the row stream, for
+every confirm read: a refused re-read no longer streams the held-back fold
+first. What still refuses after the freeze needs rows: an unparseable line,
+emit bytes that are not the manifest's, a `--baseline` naming no cell.
+
+Found, not changed: `confirm-4d` defaults `--baseline` to `baseline`, while
+`4d-candidates.json` records the variant it was derived against
+(`confidenceThreshold=0,…`). An omitted `--baseline` grades the confirm fold
+against a different baseline than the picks were accepted over, or, where the
+corpus has no `baseline` cell, refuses after the freeze. It wants a ruling on
+whether confirm-4d should take its baseline from the candidates file.
+
+`tests/unknownFlagRefused.test.ts` derives its population from every script
+that reads `process.argv` (42; `isEntryPoint` exempt by name) and executes each
+with an unknown flag, with its own flags, and, where it takes flags only, with
+a stray argument. Subjects run from an empty temp cwd without the provider key.
+Seven confirm-4d cases assert a refused run leaves the scratch research dir and
+ledger untouched, and the first read's `frozenAt` precedes its ledger `readAt`.
+No test writes into `docs/research/confirm-reads`.
 
 ### The desk is PARKED
 
@@ -3314,8 +3331,8 @@ reviews: `docs/research/r4-act2-design-2026-09-02.md`. What changed:
   the EMITTED per-class folds; the 2026-08-11 per-market time re-cut is
   retired (under the confirm flag it relabelled a median 329 days of the
   held-back fold into select) and its flag is refused by name; the gate
-  refuses unknown flags by name. (The gate ALONE until 2026-09-21 — nine
-  sibling readers kept the silent walk; see the 2026-09-21 section above.)
+  refuses unknown flags by name. (Alone among the 4d chain and the dialed
+  walkers until 2026-09-21; see the 2026-09-21 section above.)
 - Every market's SHIPPED cell is graded absolutely on select, net and gross
   with intervals, and the pre-registered decline rule (net AND gross upper
   bounds below zero at 30 filled) is applied mechanically. Provenance of all
