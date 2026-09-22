@@ -288,7 +288,8 @@ describe("every FMP spender retries on a ladder that knows the provider, or asks
   it("finds the spenders, and names each one's ladder", () => {
     assert.ok(spenders.length >= 5, `only ${spenders.length} spenders found`);
     for (const name of spenders) {
-      const text = readFileSync(join("scripts", name), "utf8");
+      // Comments stripped: a ladder named in a doc comment is not a ladder.
+      const text = readFileSync(join("scripts", name), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
       const ladder = /\b(fetchFmpWithRetry|fetchFmpJsonWithRetry|withRetry)\(/.test(text);
       if (name in ASKS_ONCE) {
         assert.ok(!ladder, `${name} is named as asking once and retries after all`);

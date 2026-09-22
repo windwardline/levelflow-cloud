@@ -358,6 +358,7 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
       }
       if (!BANK_DATE.test(bar.date)) {
         foreign ??= bar.date;
+        tally.dropped += 1;
         continue;
       }
       if (bar.date.slice(0, 10) !== date) {
@@ -446,6 +447,11 @@ export async function runRecover(deps: RecoverDeps): Promise<number> {
     print.err(lock.refused);
     return 1;
   }
+  if (!plan.dryRun) {
+    print.err(
+      `holding the bank lock ${dir}.lock: the scheduled bank and its backup wait up to 900 s for it, then fail`,
+    );
+  }
   const onSignal = (signal: NodeJS.Signals) => {
     lock.release();
     process.exit(signal === "SIGINT" ? 130 : 143);
@@ -515,24 +521,37 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
     stop: undefined,
   };
 
-  // The first symbol is the scout, as in the bank: on a refusing provider or
-  // an open breaker the run learns it from one symbol, not from as many as
-  // there are workers, and a probe the breaker allows goes out once.
+  // The first symbol that asks a question is the scout, as in the bank: on a
+  // refusing provider or an open breaker the run learns it from one symbol,
+  // not from as many as there are workers, and a probe the breaker allows goes
+  // out once. A scout that asked and came back with nothing stands the run
+  // down, whatever the reason, because every other symbol would learn the
+  // same fact.
+  const asks = ({ store }: { store: Store }) => plan.dates.some((date) => date >= store.firstDay);
+  const scoutAt = stores.findIndex(asks);
+  const order = scoutAt < 0 ? stores : [stores[scoutAt], ...stores.filter((_, index) => index !== scoutAt)];
   const tallies: Tally[] = [];
   let next = 0;
-  if (stores.length > 0) {
-    const { symbol, store } = stores[next++];
-    tallies.push(await recoverOne(ctx, symbol, store, plan));
+  if (scoutAt >= 0) {
+    const { symbol, store } = order[next++];
+    const scout = await recoverOne(ctx, symbol, store, plan);
+    tallies.push(scout);
+    if (scout.fetched === 0 && scout.missed.length > 0 && !ctx.stop) {
+      ctx.stop = new Error(
+        `the scout ${symbol} asked ${scout.missed.length} dated question(s) and got no bars back; standing down rather than asking every symbol the same`,
+      );
+    }
   }
   const workers = Array.from({ length: plan.concurrency }, async () => {
-    while (next < stores.length && !ctx.stop) {
-      const { symbol, store } = stores[next++];
+    while (next < order.length && !ctx.stop) {
+      const { symbol, store } = order[next++];
       tallies.push(await recoverOne(ctx, symbol, store, plan));
     }
   });
   await Promise.all(workers);
-  if (next < stores.length) {
-    print.out(`Not started after the stop: ${stores.slice(next).map(({ symbol }) => symbol).join(", ")}.`);
+  const unstarted = order.slice(next).filter(asks);
+  if (unstarted.length > 0) {
+    print.out(`Not started after the stop: ${unstarted.map(({ symbol }) => symbol).join(", ")}.`);
     code = 1;
   }
 

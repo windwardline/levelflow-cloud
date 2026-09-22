@@ -495,6 +495,33 @@ describe("the retry ladder never retries a spend refusal", () => {
   });
 });
 
+describe("the first symbol that asks is the scout", () => {
+  it("stands the run down when the scout asked and got no bars, whatever the reason", async () => {
+    // A 200 with a body that is not bars, on every day: the pool would buy the
+    // same answer for every symbol to learn the same fact.
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    bank(state, "BTCUSD", ["2026-08-06 00:00:00"]);
+    const result = await recover({ provider: () => new Response(JSON.stringify({ note: "not bars" })), state });
+    assert.equal(result.code, 1);
+    assert.equal(result.urls.length, 3, "the scout's three days only");
+    assert.match(result.output, /the scout BTCUSD asked 3 dated question\(s\) and got no bars back; standing down/);
+    assert.match(result.output, /^Not started after the stop: EURUSD\.$/m);
+  });
+
+  it("scouts with the first symbol that asks a question, not the first by name", async () => {
+    const state = tempState();
+    bank(state, "BTCUSD", ["2026-09-12 00:00:00"]);
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    bank(state, "GBPUSD", ["2026-08-06 00:00:00"]);
+    const result = await recover({ provider: () => new Response(BODIES.bandwidth, { status: 429 }), state });
+    assert.equal(result.code, 1);
+    assert.deepEqual(result.urls.map((url) => url.searchParams.get("symbol")), ["EURUSD"], "one request, from a symbol that asks");
+    assert.match(result.output, /^Not started after the stop: GBPUSD\.$/m);
+    assert.match(result.output, /holding the bank lock .*\.lock: the scheduled bank and its backup wait up to 900 s/);
+  });
+});
+
 describe("the lock is the bank's own", () => {
   it("makes the bank's shell lock wait while a recovery holds it", () => {
     // bank-lock.sh derives the lock from the bank directory. Were this taken

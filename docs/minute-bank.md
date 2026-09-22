@@ -150,6 +150,8 @@ fills a hole like that one from dated requests, once, as the ad-hoc class:
 
 - writes only to the checkout's own `.minute-bank`, and holds its lock, the same
   `.minute-bank.lock` the scheduled bank and its backup take. A held lock is refused.
+  They wait up to 900 s for it and then fail loudly, so run it clear of their slots
+  (07:00-07:30, 19:20 and 20:10 local); a full roster is a few minutes.
 - asks one dated question per symbol and day, and only for days on or after the first
   one the file holds. Extending the bank backward is a backfill, which is not approved.
 - dedupes against every key in the file, not the sidecar's recent-key window.
@@ -158,8 +160,9 @@ fills a hole like that one from dated requests, once, as the ad-hoc class:
   still served the same minutes and would bank them again.
 - refuses a file whose last line is torn, and appends nothing to it.
 - charges every byte to the ad-hoc class under its 256 MiB day, retrying on the bank's
-  own ladder, which stops on a wall. The first symbol goes alone, as the bank's scout
-  does, then `--concurrency` workers (4) take the rest. The governor or a wall the
+  own ladder, which stops on a wall. The first symbol with an asked day goes alone, as
+  the bank's scout does, and if it gets no bars back the run stands down; then
+  `--concurrency` workers (4) take the rest. The governor or a wall the
   provider named stops the run, keeping the minutes already paid for, and names every
   symbol it did not start; a settled 404 costs only its day. A second run appends nothing.
 - refuses a whole symbol, after buying its days and before writing a line, when its
@@ -167,7 +170,9 @@ fills a hole like that one from dated requests, once, as the ad-hoc class:
   2% of the minutes it already holds coming back at another price, or, once the file
   holds a day's worth, more than 5% of the new minutes at times of day it has never held.
   Dedupe is string equality in an append-only store, so a clock that moved would append
-  every minute again for good. The bytes stay spent; nothing is written.
+  every minute again for good. The bytes stay spent; nothing is written. A window across
+  a US daylight-saving change shifts an equity session by an hour and trips the second
+  bound, so recover each side of the change separately.
 
 Its sidecar record is `recovered <from>..<to>`. The high-water mark, first date and
 recent keys stay the scheduled bank's.
