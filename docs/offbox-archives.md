@@ -39,32 +39,46 @@ applies after the re-exec.
 The script refuses, by name and before it reads the credential: a missing source, a
 dataset outside `^[a-z0-9-]+$`, a source under a temp root bound for the permanent
 bucket, a missing `zstd` or `rclone`, and a staging root that is the home folder or
-sits inside the source.
+sits inside the source. Before its first write it refuses a staging filesystem that
+cannot hold an archive of the source beside its restore, by upper bound, with 1 GiB
+left for the rest of the machine.
 
-Then it counts the source's files and bytes, builds `tar --format=ustar | zstd -19 -T0`
-in `~/.local/share/levelflow-cloud/staging/push.XXXXXX`, runs `zstd -t`, and requires
-the tar listing to hold as many files as the source. A new key is uploaded with
-`copyto --immutable`, and the object R2 returns must match the bytes that were sent.
-Then, on either path, the object is streamed back, extracted, and compared with
-`diff -rq` against the source. Only a clean diff prints the register row on stdout.
-Staging is removed on every exit path, signals included. It needs free space of about
-the source plus twice the archive.
+**A new key is proven before it is written.** The script builds
+`tar --format=ustar | zstd -19 -T0` in `~/.local/share/levelflow-cloud/staging/push.XXXXXX`,
+runs `zstd -t`, requires the tar listing to hold as many files as the source, extracts
+the archive there and requires `diff -rq` against the source to be empty. Only then does
+it check the space again and upload with `copyto --immutable`, and the object R2 returns
+must be byte-identical to what was sent. Under the lock the order is the guarantee: a
+proof that failed after the upload would leave an object no later run could prove or
+replace.
 
-The archive step is long and silent. Measured 2026-09-21 on the minute-bank snapshot:
+**An existing key is never rebuilt.** It is streamed back, extracted and compared with
+`diff -rq` against the source, and nothing is written. `brew upgrade --formula` moves
+`tar` and `zstd` daily, so a rebuild would stop reproducing last year's bytes and prove
+nothing about the object R2 holds. The register records that object's md5 and bytes.
+
+Only a clean diff prints the register row on stdout. Staging is removed on every exit
+path, signals included.
+
+The build is long and silent. Measured 2026-09-21 on the minute-bank snapshot:
 190,643,620 bytes to 14,194,704 in about 39 s at `zstd -19 -T0`, roughly 4.9 MB/s. At
-that rate the 3.9 GB cache takes about 13 minutes and the 7.6 GB cache about 26, every
-time either runs.
+that rate the 3.9 GB cache takes about 13 minutes and the 7.6 GB cache about 26. A
+re-proof skips it.
 
 Nothing may move or write the three sources while a push runs. A source that changes
-mid-flight fails the count or the diff — correctly, but it can leave an unproven object
-at a key in a write-once bucket, and proving it then takes a second run.
+before the upload fails the count or the local diff, and nothing is uploaded. Once an
+object is at a key, the key belongs to that tree: a run whose source no longer restores
+from it refuses, every time. **That basename is spent.** Archive a changed source under a
+new directory name; the old object stays for as long as the lock does.
 
-**An existing key is proven by restoring it, not by rebuilding it.**
-`windwardline-toolchain-update` runs `brew upgrade --formula` daily, so `tar` and `zstd`
-both move and a rebuild stops reproducing last year's bytes. The script logs the md5
-difference and passes on the restore; it refuses only when the object R2 holds does not
-restore to the source. The register records the object's md5 and bytes, never the
-rebuild's.
+If the bytes R2 returns do not match what was sent, the object is already at its key.
+Run again with the source unchanged: it takes the existing-key path and proves the object
+by restoring it. If that refuses too, the object is damaged and the basename is spent.
+
+Re-proof needs the source, so once a source is gone the script can no longer prove its
+archive. The fleet cadence then carries it: CADENCE.md in windwardline/windwardline reads
+both buckets' rules and matches every key and size against the register weekly, and
+monthly streams each object back to match its md5.
 
 `rclone hashsum` is not the proof. On a multipart object it reports metadata rclone
 wrote itself.

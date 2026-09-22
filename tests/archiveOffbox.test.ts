@@ -53,7 +53,7 @@ const BASH = "/bin/bash";
 // runs the child under `env -i`: the shebang's `/usr/bin/env bash` then has to
 // find a bash on the PATH wl-secret hands over, and finding none is exit 127.
 const TOOLS = [
-  "awk", "bash", "cat", "chmod", "cmp", "cp", "cut", "date", "dd", "diff", "dirname", "find",
+  "awk", "bash", "cat", "chmod", "cmp", "cp", "cut", "date", "dd", "df", "diff", "dirname", "find",
   "grep", "head", "ls", "mkdir", "mktemp", "rm", "shasum", "sleep", "tar", "tr", "wc", "zstd",
 ];
 
@@ -189,6 +189,7 @@ case "$sub" in
     src="\${pos[0]}"
     dst="$(onr2 "\${pos[1]}")" || { echo "stub rclone: not an R2 path" >&2; exit 98; }
     : > "$ROOT/.copy-started"
+    if [ -e "$(dirname "$src")/restore" ]; then : > "$ROOT/.restore-at-upload"; fi
     if [ -e "$ROOT/.slow-copy" ]; then sleep 3; fi
     if [ -e "$dst" ]; then
       if cmp -s "$src" "$dst"; then exit 0; fi
@@ -228,7 +229,7 @@ exec /usr/bin/env -i "\${child[@]}" "$@"
 }
 
 /** Shadow tar with a hook that fires on one mode, then hand off to the real one. */
-function tarHook(sb: Sandbox, mode: "-cf" | "-tvf", action: string) {
+function tarHook(sb: Sandbox, mode: "-cf" | "-tvf" | "-xf", action: string) {
   const real = which("tar");
   assert.ok(real);
   writeFileSync(
@@ -254,6 +255,36 @@ function zstdHook(sb: Sandbox, extra: string) {
     { mode: 0o755 },
   );
 }
+
+/**
+ * Shadow df with a queue of Available figures in KiB, one per call, the last
+ * repeating; "fail" makes that call exit 1. The filesystem name carries a
+ * space, so every run through this proves the reading is taken beside the
+ * capacity column and not by position.
+ */
+function dfStub(sb: Sandbox, available: string[]) {
+  const calls = join(sb.root, "df.calls");
+  writeFileSync(
+    join(sb.bin, "df"),
+    `#!/bin/bash
+vals=(${available.join(" ")})
+n=0
+if [ -f '${calls}' ]; then read -r n < '${calls}'; fi
+echo $((n + 1)) > '${calls}'
+i=$n
+if [ "$i" -ge "\${#vals[@]}" ]; then i=$(( \${#vals[@]} - 1 )); fi
+v="\${vals[$i]}"
+if [ "$v" = fail ]; then echo "df: stub failure" >&2; exit 1; fi
+printf 'Filesystem 1024-blocks Used Available Capacity Mounted on\nmap stub 999999999999 0 %s 1%% /stub\n' "$v"
+`,
+    { mode: 0o755 },
+  );
+}
+
+const dfCalls = (sb: Sandbox) => {
+  const calls = join(sb.root, "df.calls");
+  return existsSync(calls) ? Number(readFileSync(calls, "utf8").trim()) : 0;
+};
 
 interface Result {
   code: number | null;
@@ -367,6 +398,11 @@ describe("a permanent archive is proven by restoring it", () => {
     assert.match(uploads(sb)[0], /^copyto --immutable /);
     assert.ok(calls.findIndex((c) => c.startsWith("cat ")) > calls.findIndex((c) => c.startsWith("copyto")));
     assert.ok(!calls.some((c) => c.startsWith("hashsum")));
+    // The archive was restored here before it was sent, never after, and the
+    // restore was gone by then: the returned copy takes its space.
+    const proven = r.stderr.indexOf("restore proven locally");
+    assert.ok(proven >= 0 && proven < r.stderr.indexOf("uploaded;"), "the local restore must precede the upload");
+    assert.ok(!existsSync(join(sb.remote, ".restore-at-upload")), "the local restore must be removed before the upload");
 
     // The default staging root: named, under HOME, and empty afterwards.
     assertStagingClean(join(sb.home, ".local", "share", "levelflow-cloud", "staging"));
@@ -392,30 +428,43 @@ describe("a permanent archive is proven by restoring it", () => {
     assertNoCredential(sb, second);
   });
 
-  it("re-proves an existing object by restoring it, even when a rebuild no longer makes the same bytes", () => {
+  it("re-proves an existing object by restoring it, without rebuilding it, whatever compressor built it", () => {
+    // The object is built by a shadow compressor whose bytes this machine's
+    // zstd does not reproduce, as next year's zstd will not reproduce this
+    // year's. The re-run must pass on the restore and never build at all.
     const sb = sandbox();
+    zstdHook(sb, "--no-check");
     const first = run(sb);
     assert.equal(first.code, 0, first.stderr);
     const object = objectPath(sb);
     const remoteMd5 = md5(object);
     const remoteBytes = statSync(object).size;
 
-    // A different compressor build: same source, different archive bytes.
-    zstdHook(sb, "--no-check");
+    // Without this the case is vacuous: the object must really differ from
+    // what the zstd on PATH now would build from the same source.
+    const rebuild = join(scratchDir("archive-rebuild-"), "rebuild.tar.zst");
+    const built = spawnSync(
+      "/bin/sh",
+      ["-c", `COPYFILE_DISABLE=1 tar --format=ustar -C '${join(sb.root, "src")}' -cf - '${NAME}' | zstd -q -19 -T0 -o '${rebuild}'`],
+      { encoding: "utf8" },
+    );
+    assert.equal(built.status, 0, built.stderr);
+    assert.notEqual(md5(rebuild), remoteMd5, "the shadow compressor did not change the archive");
+
+    unlinkSync(join(sb.bin, "zstd"));
+    const marker = join(sb.root, "built");
+    tarHook(sb, "-cf", `: > '${marker}'`);
     const second = run(sb);
     assert.equal(second.code, 0, second.stderr);
     assert.match(second.stderr, /already archived/);
     assert.match(second.stderr, /restore proven/);
-    assert.match(second.stderr, /differs from this rebuild/, "the difference is logged, not swallowed");
+    assert.ok(!existsSync(marker), "an existing key must not be rebuilt");
+    assert.doesNotMatch(second.stderr, /archiving at zstd/);
 
-    // The register records what R2 holds, never what this run happened to build.
+    // The register records what R2 holds, never what a run happened to build.
     const [, bytes, digest] = rowOf(second.stdout);
     assert.equal(digest, remoteMd5);
     assert.equal(Number(bytes), remoteBytes);
-    // Without this the case is vacuous: the hook must really change the bytes.
-    const rebuilt = second.stderr.match(/archive \d+ bytes, md5 ([0-9a-f]{32})/);
-    assert.ok(rebuilt, "the run logs the archive it built");
-    assert.notEqual(rebuilt[1], remoteMd5, "the shadow compressor did not change the archive");
     assert.equal(rowOf(first.stdout)[2], remoteMd5, "the first row records the object R2 holds");
     assert.equal(uploads(sb).length, 1, "nothing may be written to prove a restore");
     assert.equal(md5(object), remoteMd5, "the object is untouched");
@@ -429,11 +478,13 @@ describe("a permanent archive is proven by restoring it", () => {
     const sb = sandbox();
     const first = run(sb);
     assert.equal(first.code, 0, first.stderr);
-    tarHook(sb, "-tvf", `printf 'edited\\n' >> '${join(sb.source, "BTCUSD-daily.json")}'`);
+    tarHook(sb, "-xf", `printf 'edited\\n' >> '${join(sb.source, "BTCUSD-daily.json")}'`);
     const second = run(sb);
     assert.equal(second.code, 1);
+    assert.match(second.stderr, /already holds an object that does not restore to this source/);
     assert.match(second.stderr, /the restored tree differs from the source/);
     assert.match(second.stderr, /BTCUSD-daily\.json/);
+    assert.match(second.stderr, /this basename's key is spent/, "the refusal names the remedy");
     assert.equal(second.stdout, "", "no register row for an unproven restore");
     assert.equal(uploads(sb).length, 1, "the re-run must not write");
     assertStagingClean(sb.staging);
@@ -449,7 +500,9 @@ describe("a permanent archive is proven by restoring it", () => {
     assert.ok(real);
     writeFileSync(
       join(sb.bin, "rm"),
-      `#!/bin/bash\nfor a in "$@"; do case "$a" in '${sb.staging}'/push.*) echo "rm: stub refuses" >&2; exit 1 ;; esac; done\nexec '${real}' "$@"\n`,
+      // The run's own directory only: the local restore inside it is removed
+      // mid-run, before the upload, and that removal must still work.
+      `#!/bin/bash\nfor a in "$@"; do case "$a" in '${sb.staging}'/push.*/*) ;; '${sb.staging}'/push.*) echo "rm: stub refuses" >&2; exit 1 ;; esac; done\nexec '${real}' "$@"\n`,
       { mode: 0o755 },
     );
     const r = run(sb);
@@ -468,8 +521,8 @@ describe("a permanent archive is proven by restoring it", () => {
     writeFileSync(objectPath(sb), "an archive this source did not produce\n");
     const r = run(sb);
     assert.equal(r.code, 1);
-    assert.match(r.stderr, /already holds a different object/);
-    assert.match(r.stderr, /refusing to overwrite a permanent archive/);
+    assert.match(r.stderr, /already holds an object that does not restore to this source/);
+    assert.match(r.stderr, /Refusing to overwrite a permanent archive/);
     assert.equal(r.stdout, "");
     assert.equal(readFileSync(objectPath(sb), "utf8"), "an archive this source did not produce\n");
     assert.equal(uploads(sb).length, 0);
@@ -481,7 +534,8 @@ describe("a permanent archive is proven by restoring it", () => {
     writeFileSync(join(sb.remote, ".corrupt-cat"), "");
     const r = run(sb);
     assert.equal(r.code, 1);
-    assert.match(r.stderr, /the object R2 returned does not match what was uploaded/);
+    assert.match(r.stderr, /the object R2 returned for .* does not match what was uploaded/);
+    assert.match(r.stderr, /cannot be replaced: run again with the source unchanged/);
     assert.equal(r.stdout, "", "no register row for an unproven archive");
     assertStagingClean(sb.staging);
     // The upload itself landed; the proof is what failed. With the reads
@@ -504,16 +558,32 @@ describe("a permanent archive is proven by restoring it", () => {
     assertStagingClean(sb.staging);
   });
 
-  it("refuses when the restored tree differs from the source (a file changed after it was archived)", () => {
-    const sb = sandbox();
-    tarHook(sb, "-tvf", `printf 'edited\\n' >> '${join(sb.source, "BTCUSD-daily.json")}'`);
-    const r = run(sb);
-    assert.equal(r.code, 1);
-    assert.match(r.stderr, /the restored tree differs from the source/);
-    assert.match(r.stderr, /BTCUSD-daily\.json/);
-    assert.equal(r.stdout, "");
-    assertStagingClean(sb.staging);
-  });
+  for (const [when, mode] of [
+    ["after tar read it", "-tvf"],
+    ["while the archive was restored here", "-xf"],
+  ] as const) {
+    it(`refuses before uploading when a file changed ${when}: nothing reaches the write-once key`, () => {
+      // The upload is irreversible under the lock, so every proof runs on the
+      // safe side of it. A diff that failed after the upload would leave an
+      // object at this key that no later run could prove or replace.
+      const sb = sandbox();
+      tarHook(sb, mode, `printf 'edited\\n' >> '${join(sb.source, "BTCUSD-daily.json")}'`);
+      const r = run(sb);
+      assert.equal(r.code, 1);
+      assert.match(r.stderr, /the archive does not restore to the source: the restored tree differs from the source/);
+      assert.match(r.stderr, /BTCUSD-daily\.json/);
+      assert.match(r.stderr, /Nothing was uploaded/);
+      assert.equal(r.stdout, "");
+      assert.equal(uploads(sb).length, 0, "nothing may be uploaded");
+      assert.ok(!existsSync(objectPath(sb)), "no object may sit at the key");
+      assertStagingClean(sb.staging);
+      // With the source still again, the next run takes the fresh path, not a spent key.
+      rmSync(join(sb.bin, "tar"));
+      const again = run(sb);
+      assert.equal(again.code, 0, again.stderr);
+      assert.doesNotMatch(again.stderr, /already archived/);
+    });
+  }
 
   it("reads a failed listing as a failure, never as an absent key", () => {
     const sb = sandbox();
@@ -524,6 +594,60 @@ describe("a permanent archive is proven by restoring it", () => {
     assert.equal(uploads(sb).length, 0);
     assertStagingClean(sb.staging);
   });
+
+  it("refuses before its first write when staging cannot hold an archive beside its restore", () => {
+    const sb = sandbox();
+    dfStub(sb, ["1024"]);
+    const r = run(sb);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /has 1048576 bytes free and an archive of this source beside its restore needs \d+/);
+    assert.equal(rcloneCalls(sb).length, 0, "not even the listing may run");
+    assert.doesNotMatch(r.stderr, /archiving at zstd/);
+    assert.equal(r.stdout, "");
+    assertStagingClean(sb.staging);
+  });
+
+  it("checks again before the upload, so space lost during the build refuses on the safe side", () => {
+    // A 7.6 GB build runs for about 26 minutes, and the machine keeps writing
+    // meanwhile. An ENOSPC while the object streams back would leave it
+    // unverified at a write-once key; this refuses before the key is touched.
+    const sb = sandbox();
+    dfStub(sb, ["999999999999", "1024"]);
+    const r = run(sb);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /the object streamed back after the upload needs/);
+    assert.match(r.stderr, /restoring it here before anything is uploaded/, "the first check passed and the build ran");
+    assert.equal(dfCalls(sb), 2);
+    assert.equal(uploads(sb).length, 0, "nothing may be uploaded");
+    assert.ok(!existsSync(objectPath(sb)));
+    assert.equal(r.stdout, "");
+    assertStagingClean(sb.staging);
+  });
+
+  it("refuses to stream an existing object back when staging cannot hold it beside its restore", () => {
+    const sb = sandbox();
+    const first = run(sb);
+    assert.equal(first.code, 0, first.stderr);
+    const before = rcloneCalls(sb).length;
+    dfStub(sb, ["1024"]);
+    const r = run(sb);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /beside its restore needs/);
+    assert.equal(rcloneCalls(sb).length, before, "nothing may be read back or written");
+    assertStagingClean(sb.staging);
+  });
+
+  for (const reading of ["fail", "garbage"]) {
+    it(`refuses when the free space cannot be read (${reading}), never reading it as room`, () => {
+      const sb = sandbox();
+      dfStub(sb, [reading]);
+      const r = run(sb);
+      assert.equal(r.code, 1);
+      assert.match(r.stderr, /cannot read the free space under/);
+      assert.equal(rcloneCalls(sb).length, 0);
+      assertStagingClean(sb.staging);
+    });
+  }
 
   it("removes staging when it is terminated mid-upload, and the re-run proves what landed", async () => {
     const sb = sandbox();
@@ -804,6 +928,152 @@ export function destructiveLines(source: string): Array<{ text: string; line: nu
   return logicalLines(source).filter(({ text }) => !/^\s*#/.test(text) && DESTRUCTIVE.test(text));
 }
 
+/**
+ * Shell words from `text`, quotes removed, up to the first unquoted control
+ * operator, redirection, subshell bracket or comment. `2>` is a redirection,
+ * so its fd digits are not a word.
+ */
+export function shellWords(text: string): string[] {
+  const words: string[] = [];
+  let word = "";
+  let started = false;
+  let quote: string | null = null;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quote) {
+      if (c === quote) quote = null;
+      else if (quote === '"' && c === "\\" && i + 1 < text.length) word += text[++i];
+      else word += c;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      quote = c;
+      started = true;
+      continue;
+    }
+    if (c === "\\" && i + 1 < text.length) {
+      word += text[++i];
+      started = true;
+      continue;
+    }
+    if (/\s/.test(c)) {
+      if (started) words.push(word);
+      word = "";
+      started = false;
+      continue;
+    }
+    if ("|&;<>()".includes(c) || (c === "#" && !started)) {
+      if (started && !(/^\d+$/.test(word) && (c === ">" || c === "<"))) words.push(word);
+      return words;
+    }
+    word += c;
+    started = true;
+  }
+  if (started) words.push(word);
+  return words;
+}
+
+// Every rclone subcommand, so the verb is found past a global flag and its
+// value (`rclone --config /dev/null copyto ...`) rather than taken as the
+// first word that is not a flag.
+const RCLONE_VERBS = new Set([
+  "about", "authorize", "backend", "bisync", "cat", "check", "checksum", "cleanup", "completion", "config",
+  "convmv", "copy", "copyto", "copyurl", "cryptcheck", "cryptdecode", "dedupe", "delete", "deletefile",
+  "gendocs", "gitannex", "hashsum", "help", "link", "listremotes", "ls", "lsd", "lsf", "lsjson", "lsl",
+  "md5sum", "mkdir", "mount", "move", "moveto", "ncdu", "nfsmount", "obscure", "purge", "rc", "rcat", "rcd",
+  "rmdir", "rmdirs", "selfupdate", "serve", "settier", "sha1sum", "size", "sync", "test", "touch", "tree",
+  "version",
+]);
+// The ones that can write an object. copy and copyto are the only two a
+// write-once file may use: the rest cannot carry --immutable or ignore it.
+const WRITE_VERBS = new Set([
+  "backend", "bisync", "copy", "copyto", "copyurl", "mount", "move", "moveto", "nfsmount", "rc", "rcat", "rcd",
+  "serve", "settier", "sync", "test", "touch",
+]);
+// Verbs whose destination is their last operand; for the rest every operand
+// is a possible target.
+const DESTINATION_LAST = new Set(["bisync", "copy", "copyto", "copyurl", "move", "moveto", "sync"]);
+const BARE_VARIABLE = /^\$(\{[A-Za-z_][A-Za-z0-9_]*\}|[A-Za-z_][A-Za-z0-9_]*)$/;
+
+interface RcloneWrite {
+  verb: string;
+  flags: string[];
+  targets: string[];
+  line: number;
+  text: string;
+}
+
+/** Every rclone write the shell would run in `source`, however it is spelled. */
+export function rcloneWrites(source: string): RcloneWrite[] {
+  const writes: RcloneWrite[] = [];
+  for (const { text, line } of logicalLines(source)) {
+    if (/^\s*#/.test(text)) continue;
+    for (const match of text.matchAll(/\brclone\b/g)) {
+      const words = shellWords(text.slice(match.index + "rclone".length));
+      const at = words.findIndex((word) => RCLONE_VERBS.has(word));
+      if (at < 0 || !WRITE_VERBS.has(words[at])) continue;
+      const operands = words.slice(at + 1).filter((word) => !word.startsWith("-"));
+      writes.push({
+        verb: words[at],
+        flags: words.filter((word) => word.startsWith("-")),
+        targets: DESTINATION_LAST.has(words[at]) ? operands.slice(-1) : operands,
+        line,
+        text,
+      });
+    }
+  }
+  return writes;
+}
+
+/** A write that can land in R2. A target the guard cannot read counts. */
+const reachesR2 = (write: RcloneWrite) =>
+  write.targets.length === 0 || write.targets.some((target) => target.startsWith("R2:") || BARE_VARIABLE.test(target));
+
+const writesOnce = (write: RcloneWrite) =>
+  (write.verb === "copy" || write.verb === "copyto") && write.flags.includes("--immutable");
+
+describe("the write detector reads where each rclone write lands", () => {
+  it("finds the verb past global flags, continuations and command substitution, and the target past redirections", () => {
+    const cases: Array<[string, string, string[], boolean]> = [
+      [
+        'rclone copyto --immutable --s3-no-check-bucket "$ARCHIVE" "R2:$BUCKET/$KEY" 2>"$STAGE/copyto.err" \\\n    || die "upload failed"',
+        "copyto", ["R2:$BUCKET/$KEY"], true,
+      ],
+      ['rclone \\\n  copyto "$A" "R2:windwardline-archives/levelflow-cloud/x"', "copyto", ["R2:windwardline-archives/levelflow-cloud/x"], false],
+      ['rclone --config /dev/null copyto --immutable "$A" "R2:$BUCKET/$KEY"', "copyto", ["R2:$BUCKET/$KEY"], true],
+      ['rclone --immutable copy "$A" "R2:$BUCKET/$DIR/"', "copy", ["R2:$BUCKET/$DIR/"], true],
+      ['X="$(rclone rcat "R2:$BUCKET/$KEY" < "$A")"', "rcat", ["R2:$BUCKET/$KEY"], false],
+      ['rclone copyurl --immutable https://example.invalid/x "R2:$BUCKET/$KEY"', "copyurl", ["R2:$BUCKET/$KEY"], false],
+      ['rclone sync --immutable "$DIR" "R2:$BUCKET/$PREFIX/"', "sync", ["R2:$BUCKET/$PREFIX/"], false],
+      ['rclone touch "R2:$BUCKET/$KEY"', "touch", ["R2:$BUCKET/$KEY"], false],
+      ['rclone copyto --immutable "$A" "$DEST"', "copyto", ["$DEST"], true],
+    ];
+    for (const [text, verb, targets, once] of cases) {
+      const found = rcloneWrites(text);
+      assert.equal(found.length, 1, text);
+      assert.equal(found[0].verb, verb, text);
+      assert.deepEqual(found[0].targets, targets, text);
+      assert.equal(reachesR2(found[0]), true, text);
+      assert.equal(writesOnce(found[0]), once, text);
+    }
+  });
+
+  it("reads a download as a local write and the reads as no write at all", () => {
+    const download = rcloneWrites('rclone copyto "R2:$BUCKET/$PREFIX/$NEWEST" "$WORK/archive.dump.zst" 2>&1 | grep -v "Config file" || true');
+    assert.equal(download.length, 1);
+    assert.equal(reachesR2(download[0]), false);
+    for (const text of [
+      'rclone lsf --files-only "R2:$BUCKET/$DIR/" 2>"$STAGE/lsf.err"',
+      'rclone cat "R2:$BUCKET/$KEY" > "$RETURNED"',
+      'rclone lsf -R --files-only "R2:$BUCKET/$PREFIX/" --include \'copy\'',
+      'command -v rclone >/dev/null || die "rclone is not installed (brew install rclone)"',
+      '# rclone copyto "$A" "R2:windwardline-archives/x"',
+    ]) {
+      assert.deepEqual(rcloneWrites(text), [], text);
+    }
+  });
+});
+
 describe("the destructive-call detector reads what the shell would run", () => {
   it("sees the verb however the call is spelled", () => {
     for (const text of [
@@ -862,14 +1132,70 @@ describe("no script under scripts/ops prunes the permanent bucket", () => {
         assert.ok(refusal >= 0, `${file} deletes and does not refuse windwardline-archives`);
         assert.ok(refusal + 1 < destructive[0].line, `${file} must refuse the permanent bucket before its first delete`);
       }
-      // Anything that writes to the permanent bucket writes once.
-      if (lines.some((line) => !/^\s*#/.test(line) && /windwardline-archives/.test(line) && !REFUSES_ARCHIVES.test(line))) {
-        for (const line of lines.filter((l) => !/^\s*#/.test(l) && /\brclone\s+copy(to)?\b/.test(l))) {
-          assert.match(line, /--immutable/, `${file}: every copy into the permanent bucket carries --immutable`);
+      // A write the guard cannot place is a write it cannot vouch for.
+      for (const write of rcloneWrites(source)) {
+        assert.ok(write.targets.length > 0, `${file}:${write.line}: cannot read where this write lands: ${write.text.trim()}`);
+        for (const target of write.targets) {
+          assert.doesNotMatch(
+            target,
+            BARE_VARIABLE,
+            `${file}:${write.line}: spell the target literally, so this guard can read where it lands: ${write.text.trim()}`,
+          );
         }
       }
     });
   }
+
+  // Every file here that writes to R2 is one of two kinds, and nothing else:
+  // it refuses the permanent bucket before its first write, or every write it
+  // makes is copy or copyto --immutable. Derived from the files, then pinned,
+  // so a writer that changes kind, or a new one, is a red test by name.
+  it("every writer to R2 either refuses windwardline-archives first or writes only once", () => {
+    const refusers: string[] = [];
+    const writeOnce: string[] = [];
+    for (const file of population) {
+      const source = readFileSync(join("scripts/ops", file), "utf8");
+      const writes = rcloneWrites(source).filter(reachesR2);
+      if (writes.length === 0) continue;
+      const refusal = source.split("\n").findIndex((line) => REFUSES_ARCHIVES.test(line));
+      if (refusal >= 0 && refusal + 1 < writes[0].line) {
+        refusers.push(file);
+        for (const write of writes) {
+          // The refusal governs $BUCKET, so a write that lands anywhere else
+          // is outside it.
+          assert.ok(
+            write.targets.every((target) => target.startsWith("R2:$BUCKET/")),
+            `${file}:${write.line}: a refusing writer must write to "R2:$BUCKET/...": ${write.text.trim()}`,
+          );
+        }
+        continue;
+      }
+      for (const write of writes) {
+        assert.ok(
+          writesOnce(write),
+          `${file}:${write.line}: writes to R2 without refusing windwardline-archives first, so it must be copy or copyto --immutable: ${write.text.trim()}`,
+        );
+      }
+      writeOnce.push(file);
+    }
+    assert.deepEqual(refusers, ["backup-postgres-offbox.sh", "push-minute-bank-offbox.sh"]);
+    assert.deepEqual(writeOnce, ["push-archive-offbox.sh"]);
+    const archiveWrites = rcloneWrites(readFileSync("scripts/ops/push-archive-offbox.sh", "utf8")).filter(reachesR2);
+    assert.deepEqual(
+      archiveWrites.map((write) => write.verb),
+      ["copyto"],
+      "the archive push writes once, and exactly once",
+    );
+  });
+
+  it("names the permanent bucket, other than to refuse it, only in a write-once file", () => {
+    const naming = population.filter((file) =>
+      logicalLines(readFileSync(join("scripts/ops", file), "utf8")).some(
+        ({ text }) => !/^\s*#/.test(text) && /windwardline-archives/.test(text) && !REFUSES_ARCHIVES.test(text),
+      ),
+    );
+    assert.deepEqual(naming, ["push-archive-offbox.sh"]);
+  });
 
   // rclone reads everything after `R2:` as bucket plus path, so an exact-match
   // refusal on the bucket name is walked past by one suffix. Both forms run.

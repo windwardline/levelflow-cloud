@@ -15,26 +15,26 @@
 # docs/offbox-archives.md is the register. Each row is the one line this script
 # prints on stdout, and it prints it only after the restore below has passed.
 #
-# WRITE-ONCE. An existing key is never replaced. The script streams the object
-# back, restores it, and requires the restored tree to equal the source: that,
-# not byte equality with a fresh build, is what says the archive is intact.
+# PROVEN, THEN WRITTEN ONCE. The bucket lock makes every object permanent, so a
+# proof that ran after the upload and failed would leave an object that can
+# never pass at a key that can never be reused. On a new key the archive is
+# built, extracted in staging and compared with the source by `diff -rq`, and
+# only a clean diff reaches the upload; the object R2 then returns must be
+# byte-identical to what was sent. An existing key is never replaced:
 # `copyto --immutable` is the second barrier and the bucket lock the third.
 #
-# A REBUILD IS NOT A REFERENCE. The archive is deterministic for one build of
-# the tools — ustar (no pax atime, no xattrs), COPYFILE_DISABLE (no AppleDouble
-# entries), a fixed zstd level — and windwardline-toolchain-update runs
-# `brew upgrade --formula` daily, so tar and zstd both move. A rebuild that no
-# longer reproduces last year's bytes says nothing about the object R2 holds,
-# and reading it as "a different object" would turn a working archive into a
-# refusal a human has to adjudicate. Matching bytes are logged; a matching
-# RESTORE is what passes. The register row records the object R2 holds.
+# AN EXISTING KEY IS NEVER REBUILT. The object is streamed back, extracted, and
+# compared with the source; that restore is the proof, and nothing is written.
+# A rebuild would prove nothing about the object: the archive is deterministic
+# for one build of the tools — ustar (no pax atime, no xattrs),
+# COPYFILE_DISABLE (no AppleDouble entries), a fixed zstd level — and
+# windwardline-toolchain-update runs `brew upgrade --formula` daily, so tar and
+# zstd both move and last year's bytes stop being reproducible. The register
+# row records the object R2 holds.
 #
-# THE PROOF IS A RESTORE, NOT AN UPLOAD. On both paths the object is streamed
-# back (R2 egress is free), decompressed and extracted into staging, where
-# `diff -rq` against the source must be empty. After an upload the returned
-# md5 must also equal what was sent, because there the bytes are known.
-# `rclone hashsum` on a multipart object reports metadata rclone wrote itself,
-# so it says nothing about the bytes R2 holds.
+# THE PROOF IS A RESTORE. `rclone hashsum` on a multipart object reports
+# metadata rclone wrote itself, so it says nothing about the bytes R2 holds;
+# the object is read back instead (R2 egress is free).
 #
 # CREDENTIALS exactly as push-minute-bank-offbox.sh: the S3 secret is R2_TOKEN's
 # SHA-256 computed here, rclone is configured only through RCLONE_CONFIG_*
@@ -52,8 +52,8 @@
 #
 # STAGING defaults to $HOME/.local/share/levelflow-cloud/staging: named, off the
 # temp roots, never the home folder itself. Each run makes its own push.XXXXXX
-# there and removes it on every exit path, signals included. It needs free space
-# of about the source plus twice the archive.
+# there and removes it on every exit path, signals included. Its free space is
+# checked before the first byte is written and again before the upload.
 #
 # Logs go to stderr. stdout carries the register row and nothing else.
 set -euo pipefail
@@ -83,6 +83,21 @@ md5_of() {
   else
     md5 -q "$1"
   fi
+}
+
+# Free bytes on the filesystem holding staging. The value is read beside the
+# capacity column, so a filesystem name with a space in it cannot shift it.
+free_bytes() {
+  df -Pk "$STAGING_REAL" | awk 'NR == 2 { for (i = NF; i > 1; i--) if ($i ~ /^[0-9]+%$/) { if ($(i - 1) ~ /^[0-9]+$/) printf "%.0f\n", $(i - 1) * 1024; exit } }'
+}
+
+# require_space <bytes> <what they are for>
+require_space() {
+  local avail
+  avail="$(free_bytes)" || die "cannot read the free space under $STAGING_ROOT"
+  [[ $avail =~ ^[0-9]+$ ]] || die "cannot read the free space under $STAGING_ROOT: df gave '$avail'"
+  (( avail >= $1 )) \
+    || die "$STAGING_ROOT has $avail bytes free and $2 needs $1, keeping $HEADROOM for the rest of the machine; refusing before a write that could not finish"
 }
 
 # Bash `[[ ]]` and no quoted argument after a bare directory test flag: the
@@ -210,33 +225,29 @@ MADE="$(cd "$STAGING_ROOT" && mktemp -d push.XXXXXX)" || die "cannot create a st
 [[ $MADE == push.?* ]] || die "mktemp returned an unexpected name: $MADE"
 STAGE="$STAGING_ROOT/$MADE"
 
-# --- count, archive, check ----------------------------------------------------
+# --- count, and the space the run needs --------------------------------------
 FILES="$(find "$SRC" -type f | wc -l | tr -d ' ')" || die "cannot count the files in $SRC"
 [[ $FILES -gt 0 ]] || die "the source holds no files: $SRC — refusing to archive nothing"
+DIRS="$(find "$SRC" -type d | wc -l | tr -d ' ')" || die "cannot count the directories in $SRC"
 SRC_BYTES="$(find "$SRC" -type f -exec wc -c {} \; | awk '{ s += $1 } END { printf "%.0f\n", s }')" \
   || die "cannot measure $SRC"
-log "source $SRC: $FILES files, $SRC_BYTES bytes"
+log "source $SRC: $FILES files in $DIRS directories, $SRC_BYTES bytes"
 
-ARCHIVE="$STAGE/$NAME.tar.zst"
-log "archiving at zstd -$LEVEL into $STAGE"
-if ! COPYFILE_DISABLE=1 tar --format=ustar -C "$PARENT" -cf - "$NAME" | zstd -q -"$LEVEL" -T0 -o "$ARCHIVE"; then
-  die "tar or zstd failed while archiving $SRC"
-fi
-zstd -q -t "$ARCHIVE" || die "the archive fails zstd -t: $ARCHIVE"
+# Upper bounds, so the check needs no archive yet. ustar spends a 512-byte
+# header and at most 511 bytes of padding per entry plus a 10240-byte end
+# block; zstd's own bound adds 1/256 and a frame. A restore takes the source's
+# bytes and at most one 4 KiB block more per entry. The peak is an archive
+# beside a restore: on a new key the local proof's, then the returned copy
+# beside the archive once the restore is gone; on an existing key the returned
+# object's. HEADROOM stays free for everything else on the machine.
+HEADROOM=1073741824
+TAR_MAX=$(( SRC_BYTES + (FILES + DIRS) * 1024 + 10240 ))
+ARCHIVE_MAX=$(( TAR_MAX + TAR_MAX / 256 + 1048576 ))
+RESTORE_MAX=$(( SRC_BYTES + (FILES + DIRS) * 4096 ))
+require_space $(( ARCHIVE_MAX + (RESTORE_MAX > ARCHIVE_MAX ? RESTORE_MAX : ARCHIVE_MAX) + HEADROOM )) \
+  "an archive of this source beside its restore"
 
-# Regular files and hard links, the two entry types `find -type f` counts.
-LISTED="$(zstd -q -dc "$ARCHIVE" | tar -tvf - | awk '{ t = substr($0, 1, 1) } t == "-" || t == "h" { n++ } END { print n + 0 }')" \
-  || die "cannot list the archive"
-[[ $LISTED == "$FILES" ]] \
-  || die "the archive lists $LISTED files and the source held $FILES when counted; it changed while tar read it, or tar skipped something"
-
-ARCHIVE_BYTES="$(wc -c < "$ARCHIVE" | tr -d ' ')"
-MD5_RE='^[0-9a-f]{32}$'
-LOCAL_MD5="$(md5_of "$ARCHIVE")" || die "cannot hash $ARCHIVE"
-[[ $LOCAL_MD5 =~ $MD5_RE ]] || die "not an md5: '$LOCAL_MD5'"
-log "archive $ARCHIVE_BYTES bytes, md5 $LOCAL_MD5, $LISTED files"
-
-# --- write once ---------------------------------------------------------------
+# --- is the key taken? ----------------------------------------------------------
 # rclone exits 3 for a prefix that does not exist yet. Every other failure is a
 # failure: an unreadable listing is not an absent key, and reading it as one is
 # how an upload would reach an object it should have compared first.
@@ -253,55 +264,80 @@ while IFS= read -r entry; do
   if [[ $entry == "$NAME.tar.zst" ]]; then EXISTS=1; fi
 done <<< "$LISTING"
 
+MD5_RE='^[0-9a-f]{32}$'
 RETURNED="$STAGE/returned.tar.zst"
+RESTORE="$STAGE/restore"
+
 fetch_back() {
   rclone cat "R2:$BUCKET/$KEY" > "$RETURNED" 2>"$STAGE/cat.err" \
     || die "cannot stream R2:$BUCKET/$KEY back: $(rclone_error "$STAGE/cat.err")"
+  REMOTE_MD5="$(md5_of "$RETURNED")" || die "cannot hash the returned object"
+  [[ $REMOTE_MD5 =~ $MD5_RE ]] || die "not an md5: '$REMOTE_MD5'"
+  REMOTE_BYTES="$(wc -c < "$RETURNED" | tr -d ' ')"
+}
+
+# restore_and_compare <archive>: extract into staging and compare with the
+# source. Sets WHY to the reason it failed, or to nothing.
+restore_and_compare() {
+  mkdir "$RESTORE" || die "cannot create $RESTORE"
+  WHY=""
+  if ! zstd -q -dc "$1" | tar -xf - -C "$RESTORE"; then
+    WHY="it did not extract"
+  elif [[ "$(ls -A "$RESTORE")" != "$NAME" ]]; then
+    WHY="the restored tree does not hold $NAME alone: $(ls -A "$RESTORE" | tr '\n' ' ')"
+  else
+    local diff_rc=0 diff_out
+    diff_out="$(diff -rq "$SRC" "$RESTORE/$NAME" 2>&1)" || diff_rc=$?
+    [[ $diff_rc == 0 && -z $diff_out ]] \
+      || WHY="the restored tree differs from the source (diff exit $diff_rc): $(printf '%s\n' "$diff_out" | head -n 5 | tr '\n' ' ')"
+  fi
 }
 
 if [[ $EXISTS == 1 ]]; then
-  log "R2:$BUCKET/$KEY exists; streaming it back to prove"
+  # --- an existing key: restore what R2 holds -----------------------------------
+  log "R2:$BUCKET/$KEY exists; streaming it back to prove it restores to the source"
   fetch_back
+  restore_and_compare "$RETURNED"
+  [[ -z $WHY ]] \
+    || die "R2:$BUCKET/$KEY already holds an object that does not restore to this source (md5 $REMOTE_MD5): $WHY. Refusing to overwrite a permanent archive: this basename's key is spent, and a changed source is archived under a new directory name"
   STATUS="already archived"
 else
-  log "uploading to R2:$BUCKET/$KEY"
+  # --- a new key: build, prove here, then write once -----------------------------
+  ARCHIVE="$STAGE/$NAME.tar.zst"
+  log "archiving at zstd -$LEVEL into $STAGE"
+  if ! COPYFILE_DISABLE=1 tar --format=ustar -C "$PARENT" -cf - "$NAME" | zstd -q -"$LEVEL" -T0 -o "$ARCHIVE"; then
+    die "tar or zstd failed while archiving $SRC"
+  fi
+  zstd -q -t "$ARCHIVE" || die "the archive fails zstd -t: $ARCHIVE"
+
+  # Regular files and hard links, the two entry types `find -type f` counts.
+  LISTED="$(zstd -q -dc "$ARCHIVE" | tar -tvf - | awk '{ t = substr($0, 1, 1) } t == "-" || t == "h" { n++ } END { print n + 0 }')" \
+    || die "cannot list the archive"
+  [[ $LISTED == "$FILES" ]] \
+    || die "the archive lists $LISTED files and the source held $FILES when counted; it changed while tar read it, or tar skipped something. Nothing was uploaded"
+
+  ARCHIVE_BYTES="$(wc -c < "$ARCHIVE" | tr -d ' ')"
+  LOCAL_MD5="$(md5_of "$ARCHIVE")" || die "cannot hash $ARCHIVE"
+  [[ $LOCAL_MD5 =~ $MD5_RE ]] || die "not an md5: '$LOCAL_MD5'"
+  log "archive $ARCHIVE_BYTES bytes, md5 $LOCAL_MD5, $LISTED files; restoring it here before anything is uploaded"
+
+  restore_and_compare "$ARCHIVE"
+  [[ -z $WHY ]] || die "the archive does not restore to the source: $WHY. Nothing was uploaded"
+  chmod -R u+w "$RESTORE" 2>/dev/null || true
+  rm -rf "$RESTORE" || true
+  [[ ! -e $RESTORE ]] || die "cannot remove the local restore $RESTORE. Nothing was uploaded"
+
+  require_space $(( ARCHIVE_BYTES + HEADROOM )) "the object streamed back after the upload"
+  log "restore proven locally; uploading to R2:$BUCKET/$KEY"
   rclone copyto --immutable --s3-no-check-bucket "$ARCHIVE" "R2:$BUCKET/$KEY" 2>"$STAGE/copyto.err" \
     || die "upload to R2:$BUCKET/$KEY failed: $(rclone_error "$STAGE/copyto.err")"
   log "uploaded; streaming the object back"
   fetch_back
-  STATUS="archived"
-fi
-
-REMOTE_MD5="$(md5_of "$RETURNED")" || die "cannot hash the returned object"
-[[ $REMOTE_MD5 =~ $MD5_RE ]] || die "not an md5: '$REMOTE_MD5'"
-REMOTE_BYTES="$(wc -c < "$RETURNED" | tr -d ' ')"
-
-if [[ $STATUS == archived ]]; then
-  # These bytes were sent from here, so anything else came back wrong.
+  # These bytes were sent from here and proven above, so anything else came
+  # back wrong, and the object cannot be replaced.
   [[ $REMOTE_MD5 == "$LOCAL_MD5" ]] \
-    || die "the object R2 returned does not match what was uploaded (md5 $REMOTE_MD5, uploaded $LOCAL_MD5) at $KEY"
-elif [[ $REMOTE_MD5 != "$LOCAL_MD5" ]]; then
-  log "NOTE the object's md5 $REMOTE_MD5 differs from this rebuild's $LOCAL_MD5; tar or zstd moved. The restore below decides, not these bytes"
-fi
-
-# --- the restore --------------------------------------------------------------
-RESTORE="$STAGE/restore"
-mkdir "$RESTORE"
-WHY=""
-if ! zstd -q -dc "$RETURNED" | tar -xf - -C "$RESTORE"; then
-  WHY="the object R2 returned did not extract"
-elif [[ "$(ls -A "$RESTORE")" != "$NAME" ]]; then
-  WHY="the restored tree does not hold $NAME alone: $(ls -A "$RESTORE" | tr '\n' ' ')"
-else
-  DIFF_RC=0
-  DIFF_OUT="$(diff -rq "$SRC" "$RESTORE/$NAME" 2>&1)" || DIFF_RC=$?
-  [[ $DIFF_RC == 0 && -z $DIFF_OUT ]] \
-    || WHY="the restored tree differs from the source (diff exit $DIFF_RC): $(printf '%s\n' "$DIFF_OUT" | head -n 5 | tr '\n' ' ')"
-fi
-if [[ -n $WHY ]]; then
-  [[ $STATUS != "already archived" ]] \
-    || die "R2:$BUCKET/$KEY already holds a different object (md5 $REMOTE_MD5, this archive $LOCAL_MD5): $WHY; refusing to overwrite a permanent archive"
-  die "$WHY"
+    || die "the object R2 returned for R2:$BUCKET/$KEY does not match what was uploaded (md5 $REMOTE_MD5, uploaded $LOCAL_MD5). It is in a write-once bucket and cannot be replaced: run again with the source unchanged, which proves the object by restoring it; if that refuses too, this basename's key is spent"
+  STATUS="archived"
 fi
 
 log "restore proven, $STATUS: R2:$BUCKET/$KEY"
