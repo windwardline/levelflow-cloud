@@ -280,7 +280,8 @@ describe("every FMP spender retries on a ladder that knows the provider, or asks
     "probe-minute-bars.ts": "one governed question per run; a failed answer is the answer it reports",
     "verify-fmp-matches.ts": "a gate: a request that fails lapses its row and the gate exits 1",
   };
-  const spenders = readdirSync("scripts")
+  const spenders = readdirSync("scripts", { recursive: true })
+    .map(String)
     .filter((name) => name.endsWith(".ts"))
     .filter((name) => readFileSync(join("scripts", name), "utf8").includes("financialmodelingprep.com"))
     .sort();

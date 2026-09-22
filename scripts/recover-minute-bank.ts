@@ -447,11 +447,9 @@ export async function runRecover(deps: RecoverDeps): Promise<number> {
     print.err(lock.refused);
     return 1;
   }
-  if (!plan.dryRun) {
-    print.err(
-      `holding the bank lock ${dir}.lock: the scheduled bank and its backup wait up to 900 s for it, then fail`,
-    );
-  }
+  print.err(
+    `holding the bank lock ${dir}.lock: the scheduled bank and its backup wait for it (900 s by default), then fail`,
+  );
   const onSignal = (signal: NodeJS.Signals) => {
     lock.release();
     process.exit(signal === "SIGINT" ? 130 : 143);
@@ -536,9 +534,10 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
     const { symbol, store } = order[next++];
     const scout = await recoverOne(ctx, symbol, store, plan);
     tallies.push(scout);
-    if (scout.fetched === 0 && scout.missed.length > 0 && !ctx.stop) {
+    if (scout.fetched === 0 && !ctx.stop) {
+      const asked = plan.dates.filter((date) => date >= store.firstDay).length;
       ctx.stop = new Error(
-        `the scout ${symbol} asked ${scout.missed.length} dated question(s) and got no bars back; standing down rather than asking every symbol the same`,
+        `the scout ${symbol} asked ${asked} dated question(s) and got no bars back; standing down rather than asking every symbol the same`,
       );
     }
   }

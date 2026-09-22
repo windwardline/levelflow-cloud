@@ -509,6 +509,19 @@ describe("the first symbol that asks is the scout", () => {
     assert.match(result.output, /^Not started after the stop: EURUSD\.$/m);
   });
 
+  it("stands the run down on an empty answer too, and exits 1", async () => {
+    // A 200 of [] throws nothing: the scout misses no day and still brings
+    // nothing back, which is the answer a narrowed dated depth would give.
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    bank(state, "BTCUSD", ["2026-08-06 00:00:00"]);
+    const result = await recover({ provider: () => new Response("[]"), state });
+    assert.equal(result.code, 1);
+    assert.equal(result.urls.length, 3, "the scout's three days only");
+    assert.match(result.output, /the scout BTCUSD asked 3 dated question\(s\) and got no bars back/);
+    assert.match(result.output, /^Not started after the stop: EURUSD\.$/m);
+  });
+
   it("scouts with the first symbol that asks a question, not the first by name", async () => {
     const state = tempState();
     bank(state, "BTCUSD", ["2026-09-12 00:00:00"]);
@@ -518,7 +531,7 @@ describe("the first symbol that asks is the scout", () => {
     assert.equal(result.code, 1);
     assert.deepEqual(result.urls.map((url) => url.searchParams.get("symbol")), ["EURUSD"], "one request, from a symbol that asks");
     assert.match(result.output, /^Not started after the stop: GBPUSD\.$/m);
-    assert.match(result.output, /holding the bank lock .*\.lock: the scheduled bank and its backup wait up to 900 s/);
+    assert.match(result.output, /holding the bank lock .*\.lock: the scheduled bank and its backup wait for it \(900 s by default\)/);
   });
 });
 
