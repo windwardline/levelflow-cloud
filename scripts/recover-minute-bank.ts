@@ -38,7 +38,7 @@ import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "
 
 import { bankableSymbols, RETRY_ATTEMPTS, RETRY_BASE_DELAY_MS, usableBar, withRetry } from "./bank-minute-bars.ts";
 import { redactProviderSecrets } from "../supabase/functions/trade-analyzer/redact.ts";
-import { flagReader, OperatorInputError, soleFlagIndex } from "./flagReader.ts";
+import { flagReader, flagsOnly, OperatorInputError, soleFlagIndex } from "./flagReader.ts";
 import { createByteBudget, SpendRefusedError, type ByteBudget } from "./fmpByteBudget.ts";
 import { createProbeGate, isCircuitRefusal, type FetchLike } from "./fmpCircuit.ts";
 import {
@@ -111,7 +111,7 @@ const EXPECTED_CLOCK_REFUSALS = new Map([
 
 // The ONE declaration of which flags own the token after them.
 const VALUE_FLAGS = new Set(["--from", "--to", "--concurrency"]);
-const SWITCHES = new Set(["--dry-run"]);
+const BOOLEAN_FLAGS = new Set(["--dry-run"]);
 
 type Print = { out: (line: string) => void; err: (line: string) => void };
 
@@ -133,15 +133,7 @@ type Plan = { from: string; to: string; dates: string[]; concurrency: number; dr
 function readPlan(argv: string[], nowMs: number): Plan {
   // Every token is a known flag or a declared flag's value. A mistyped
   // `--dry-run` must not become a run that spends.
-  for (let at = 0; at < argv.length; at += 1) {
-    if (VALUE_FLAGS.has(argv[at])) {
-      at += 1;
-      continue;
-    }
-    if (!SWITCHES.has(argv[at])) {
-      throw new OperatorInputError(`unknown argument ${argv[at]}; this script takes --from, --to, --concurrency and --dry-run`);
-    }
-  }
+  flagsOnly(argv, VALUE_FLAGS, BOOLEAN_FLAGS, "recover-minute-bank");
   const { num, str } = flagReader(argv, VALUE_FLAGS);
   const from = str("--from");
   const to = str("--to");

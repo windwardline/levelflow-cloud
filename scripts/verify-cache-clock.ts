@@ -50,7 +50,7 @@ import {
 } from "./clockWitness.ts";
 import { DENSITY_RECENT_WINDOW_DAYS } from "./sweepManifest.ts";
 import { DENSITY_RATIO_PRIMARY_FLOOR } from "./sweepStats.ts";
-import { flagReader } from "./flagReader.ts";
+import { flagReader, flagsOnly, OperatorInputError } from "./flagReader.ts";
 import {
   TREASURY_FETCH_START_MS,
   treasuryCurveFacts,
@@ -888,8 +888,13 @@ export function auditCacheClock(input: {
 // scripts/, so a new reader joins the law automatically instead of being
 // found by a review round.
 const VALUE_FLAGS = new Set(["--cache-dir"]);
+// The flags that own no token, declared so the walk can refuse an UNKNOWN
+// flag or a stray argument by name (2026-09-21): this reader read its
+// flags through accessors alone, so a typo ran as the default.
+const BOOLEAN_FLAGS = new Set<string>([]);
 
 function main(): void {
+  flagsOnly(process.argv.slice(2), VALUE_FLAGS, BOOLEAN_FLAGS, "verify-cache-clock");
   const { str } = flagReader(process.argv, VALUE_FLAGS);
   const cacheDir = str("--cache-dir") ?? ".calibration-cache";
   const roster = defaultScanSymbols
@@ -915,5 +920,12 @@ function main(): void {
 
 // Importable for tests; the CLI entry runs only when invoked directly.
 if (basename(process.argv[1] ?? "").startsWith("verify-cache-clock")) {
-  main();
+  // An operator's typo refuses in one line; a real fault keeps its stack.
+  try {
+    main();
+  } catch (error) {
+    if (!(error instanceof OperatorInputError)) throw error;
+    console.error(error.message);
+    process.exit(1);
+  }
 }

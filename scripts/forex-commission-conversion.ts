@@ -430,20 +430,22 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const { str } = flagReader(args, VALUE_FLAGS);
   const paths: string[] = [];
-  let includeHoldout = false;
   for (let index = 0; index < args.length; index += 1) {
     if (args[index].startsWith("--")) {
       if (VALUE_FLAGS.has(args[index])) {
         index += 1;
-      } else if (BOOLEAN_FLAGS.has(args[index])) {
-        includeHoldout = true;
-      } else {
+      } else if (!BOOLEAN_FLAGS.has(args[index])) {
         throw new OperatorInputError(`unknown flag ${args[index]}`);
       }
       continue;
     }
     paths.push(args[index]);
   }
+  // Read by NAME after the walk, never inferred from membership in it
+  // (2026-09-22): a flag dropped from BOOLEAN_FLAGS then leaves this literal
+  // read undeclared, which tests/unknownFlagRefused.test.ts refuses. Set by
+  // the walk, the dropped flag was refused as unknown and nothing noticed.
+  const includeHoldout = args.includes("--include-holdout");
   // WIF-4: a run over zero rows cannot report a correction, and a header
   // printed under exit 0 reads exactly like a corpus that priced nothing.
   if (paths.length === 0) {

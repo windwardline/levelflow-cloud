@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import type { ResolutionLeg } from "../supabase/functions/trade-analyzer/replay.ts";
 import { describeHeldOut, resolveHeldOut } from "./sweepFolds.ts";
+import { positionalArgs } from "./flagReader.ts";
 import {
   assertManifest,
   assertManifestedCorpusStreaming,
@@ -175,7 +176,16 @@ function fmt(value: number | null | undefined, digits = 3): string {
 }
 
 async function main(): Promise<void> {
-  const paths = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
+  // A reader that takes NO flag still refuses one by name. The filter
+  // that stood here dropped every `--x` on the floor, which is the same
+  // silence the dialed readers carried until 2026-09-21 — and the one
+  // shape a future flag would be added on top of.
+  const paths = positionalArgs(
+    process.argv.slice(2),
+    new Set(),
+    new Set(),
+    "geometry-evidence",
+  );
   if (paths.length !== 1) {
     console.error("usage: geometry-evidence.ts <emit.jsonl>");
     process.exit(1);

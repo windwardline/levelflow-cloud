@@ -4,19 +4,47 @@
 //   npx tsx scripts/confirm-4d.ts sweeps/4c/shard-{0..7}.jsonl \
 //     --baseline "confidenceThreshold=0,..." [--acknowledge-prior-reads]
 //
-// Order is the discipline: the per-market choice is assembled and WRITTEN
-// from candidates x feasibility BEFORE the confirm fold is opened, so the
-// held-back data can never influence the pick — it can only pass or fail
-// it. The confirm read runs once, per corpus hash, into the burned log.
+// Order is the discipline. Every flag and dial is read and refused
+// first. The per-market choice is then assembled from candidates x
+// feasibility, in memory, before the corpus is opened, so the held-back
+// data can never influence the pick — it can only pass or fail it. The
+// choice is WRITTEN inside gradeCorpus's `beforeOpen` hook: after the
+// whole row-free corpus door (every shard's manifest, their agreement as
+// one measurement, the requested roster, a --baseline that names a cell of
+// the grid, the prior-read refusal) and before the first confirm row is
+// read. `--targets` is checked before gradeCorpus is called: an entry on no
+// shard's roster, or a list that splits to nothing, refuses there. A run
+// refused at any of these rewrites no artifact, and a run admitted has its
+// picks on disk, with a `frozenAt` that precedes the ledger's `readAt`,
+// before the fold opens. What refuses after the freeze is found in the
+// rows: an unparseable line, emit bytes that are not the manifest's, and
+// a gate that no accepted baseline row reaches — a corpus with none,
+// targets on the roster that carry none, or a `--holdout-cycle` draw that
+// holds none. An empty draw is known before any row is read and is still
+// refused only there. gradeCorpus throws each of them before its ledger
+// append, so a throw means nothing was recorded, and the freeze is
+// withdrawn: the picks file goes back to the bytes it held before the
+// run, or away if it did not exist. The confirm read runs once, per
+// corpus hash, into the burned log.
+//
+// Unknown flags are refused by name, in the same walk the gate uses. In
+// this script an ignored dial is an ignored dial on a read that cannot be
+// taken twice.
 import { readFileSync } from "node:fs";
 import { gradeCorpus } from "./grid-totalr.ts";
 import { resolveHeldOut } from "./sweepFolds.ts";
 import { assertManifest } from "./sweepStats.ts";
-import { writeResearchArtifact } from "./researchArtifact.ts";
+import {
+  researchArtifactBytes,
+  restoreResearchArtifact,
+  writeResearchArtifact,
+} from "./researchArtifact.ts";
 import {
   describeNumericToken,
   describeToken,
   assertInDomain,
+  OperatorInputError,
+  positionalArgs,
   soleFlagIndex,
   tokenFault,
   type NumericDomain,
@@ -55,16 +83,25 @@ const VALUE_FLAGS = new Set([
   "--confirm-log-dir",
 ]);
 
+// The flags that own no token, declared so an UNKNOWN flag is refused by
+// name rather than walked past in silence (2026-09-21). The walker here
+// dropped any `--x` it did not know, so
+// `confirm-4d --not-a-real-flag <shard>` named only the corpus door's
+// refusal — in the one script whose run BURNS the LA-6 confirm read,
+// where an ignored dial reads as a read that honoured it and the read
+// cannot be taken again. `--per-market-folds` is declared KNOWN so its
+// own refusal below, which says what the re-cut did to the held-back
+// fold, wins over the generic one.
+const BOOLEAN_FLAGS = new Set([
+  "--acknowledge-prior-reads",
+  "--feasibility-disclosure-only",
+  "--holdout-cycle",
+  "--per-market-folds",
+]);
+
 async function main() {
   const argv = process.argv.slice(2);
-  const paths: string[] = [];
-  for (let index = 0; index < argv.length; index += 1) {
-    if (argv[index].startsWith("--")) {
-      if (VALUE_FLAGS.has(argv[index])) index += 1;
-      continue;
-    }
-    paths.push(argv[index]);
-  }
+  const paths = positionalArgs(argv, VALUE_FLAGS, BOOLEAN_FLAGS, "confirm-4d");
   const str = (arg: string): string | undefined => {
     if (!VALUE_FLAGS.has(arg)) {
       throw new Error(
@@ -76,7 +113,7 @@ async function main() {
     if (index === -1) return undefined;
     const token = argv[index + 1];
     if (tokenFault(token) !== null) {
-      throw new Error(
+      throw new OperatorInputError(
         `${arg} owns the token after it and got ${describeToken(token)} — a ` +
           `value, never a flag and never blank; pass ${arg} <value>`,
       );
@@ -104,7 +141,7 @@ async function main() {
     const token = argv[index + 1];
     const parsed = Number(token);
     if (tokenFault(token) !== null || !Number.isFinite(parsed)) {
-      throw new Error(
+      throw new OperatorInputError(
         `${arg} owns the token after it and cannot read ${
           describeNumericToken(token)
         } as a number — the walker already kept that token out of the ` +
@@ -135,6 +172,24 @@ async function main() {
   const targetsFlag = str("--targets");
   const prefix = str("--prefix") ??
     (holdoutCycle ? "4d-holdout" : "4d");
+  // Every dial is read HERE, with the others, and not in gradeCorpus's
+  // argument list where it used to be evaluated (2026-09-21). There it
+  // stood below the freeze, so `--permutations 0`, `--seed 7 --seed 8`, a
+  // trailing `--seed` and a repeated `--confirm-log-dir` each froze the
+  // picks and only then refused — the corpus-door defect again, reached
+  // through a typo.
+  const confirmLogDir = str("--confirm-log-dir");
+  const permutations = num("--permutations", 1_000, {
+    basis:
+      "a permutation p-value is (1 + #{at least as extreme}) / " +
+      "(permutations + 1), so zero permutations makes every p exactly 1 " +
+      "and the gate refuses every variant in silence",
+    integer: true,
+    min: 1,
+  });
+  const seed = num("--seed", 7);
+  const acknowledgePriorReads = argv.includes("--acknowledge-prior-reads");
+  const disclosureOnly = argv.includes("--feasibility-disclosure-only");
   // VALIDATE BEFORE MUTATING (#364 round 54, found by round 54's own
   // derived scan running every corpus reader with no arguments). This
   // script wrote `<prefix>-final-picks.json` — a TRACKED artifact naming
@@ -155,6 +210,70 @@ async function main() {
         "rewrite the picks artifact for a corpus it cannot read; pass the " +
         "sweep shards explicitly.",
     );
+  }
+  // …AND EVERY NAMED PATH, not just their count. Round 54 closed the
+  // zero-paths case and left the one a real operator hits: on 2026-09-21
+  // `confirm-4d --not-a-real-flag /tmp/nope.jsonl` printed "frozen: 41
+  // picks, 11 capacity-gated" and left the TRACKED 4d-final-picks.json
+  // rewritten — 456 insertions, 456 deletions, a fresh `frozenAt` — and
+  // only then died at the corpus door inside gradeCorpus, exit 1. The
+  // operator sees a non-zero exit and reasonably assumes nothing
+  // happened; the file had to be restored with git checkout.
+  //
+  // Every manifest is verified here, before the candidates are even read,
+  // and the holdout population below is resolved from them. This pass is
+  // not the whole door and does not claim to be: shard agreement, the
+  // requested roster and the prior-read refusal live in gradeCorpus, and
+  // the freeze waits for all of them in its `beforeOpen` hook.
+  const manifests = paths.map((path) => assertManifest(path));
+  // EVERY TARGET IS A MARKET OF THE ROSTER (2026-09-22). The filter was
+  // read and never checked, so over a shard of EURGBP and GBPJPY,
+  // `--targets EURGBP,GBPJYP` exited 0: it froze the picks and recorded a
+  // read with symbolFilter ["EURGBP","GBPJYP"] and symbolsRead ["EURGBP"].
+  // That read is the corpus's one, so the market the operator meant could
+  // not be read again without --acknowledge-prior-reads. The roster is
+  // every market the shards were asked for or swept, and a target outside
+  // it is refused here, before the freeze. The match is exact, as the
+  // read's own row filter is: each target is upper-cased as it is split,
+  // and every symbol the driver sweeps is upper-case (replay-sweep
+  // upper-cases --symbols, and the scan roster is upper-case), so a roster
+  // market matches, and a target no row could match is refused rather than
+  // read as nothing. So is a list that splits to nothing: as an empty
+  // filter it froze the picks and failed only when the empty cube reached
+  // the baseline check.
+  let targets: Set<string> | undefined;
+  if (targetsFlag !== undefined) {
+    const named = [
+      ...new Set(
+        targetsFlag.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
+      ),
+    ];
+    if (named.length === 0) {
+      throw new OperatorInputError(
+        `confirm-4d: --targets ${JSON.stringify(targetsFlag)} names no market ` +
+          `once split on commas — an empty filter reads nothing; name the ` +
+          `markets to read, or drop --targets`,
+      );
+    }
+    const roster = new Set(
+      manifests.flatMap((manifest) => [
+        ...(manifest.requestedSymbols ?? []),
+        ...manifest.symbols.map((entry) => entry.symbol),
+      ]),
+    );
+    const outside = named.filter((symbol) => !roster.has(symbol));
+    if (outside.length > 0) {
+      const listed = outside.length === 1
+        ? outside[0]
+        : `${outside.slice(0, -1).join(", ")} and ${outside[outside.length - 1]}`;
+      throw new OperatorInputError(
+        `confirm-4d: --targets names ${listed}, on no shard's roster of ` +
+          `${roster.size} markets (requested or swept) — a target off the ` +
+          `roster reads nothing, and the read still spends the corpus's one ` +
+          `confirm read; name markets the shards carry`,
+      );
+    }
+    targets = new Set(named);
   }
   const candidates = JSON.parse(
     readFileSync(`${dir}/${prefix}-candidates.json`, "utf8"),
@@ -198,7 +317,6 @@ async function main() {
     // the §19 governor already refuses per account at runtime, which is
     // the product's honest surface for sizing. The per-line feasibility
     // still rides the artifact for every pick.
-    const disclosureOnly = argv.includes("--feasibility-disclosure-only");
     for (const candidate of market.accepted) {
       const entry = feasibility.feasibility[symbol]?.[candidate.variant];
       const lines = entry?.feasibleLines ?? [];
@@ -228,16 +346,30 @@ async function main() {
   // the artifact market-dossier and roster-expectancy-audit read to decide
   // which markets carry a confirmed derived cell. A hand-picked fix, in
   // the same commit that corrected a hand-picked population.
-  writeResearchArtifact(`${dir}/${prefix}-final-picks.json`, {
-    analyzerVersion: candidates.analyzerVersion,
-    capacityGated,
-    finalPicks,
-    frozenAt: new Date().toISOString(),
-  });
-  console.log(
-    `frozen: ${Object.keys(finalPicks).length} picks, ` +
-      `${capacityGated.length} capacity-gated -> ${prefix}-final-picks.json`,
-  );
+  //
+  // THE FREEZE IS WRITTEN FROM INSIDE gradeCorpus (2026-09-21), in the one
+  // hook that runs after its row-free door and before its first row. The
+  // pick itself is already fixed above; only the write waits. Written here
+  // instead — above the call, as it was — every refusal inside the door
+  // came after it: two shards of different depth, a manifest with no
+  // requested roster, and, worst, a SECOND read refused as already read,
+  // which re-stamped the picks with a `frozenAt` later than the recorded
+  // read and so overwrote the only evidence that the picks were frozen
+  // before the fold was opened.
+  let frozenAt: string | null = null;
+  const freeze = () => {
+    frozenAt = new Date().toISOString();
+    writeResearchArtifact(`${dir}/${prefix}-final-picks.json`, {
+      analyzerVersion: candidates.analyzerVersion,
+      capacityGated,
+      finalPicks,
+      frozenAt,
+    });
+    console.log(
+      `frozen: ${Object.keys(finalPicks).length} picks, ` +
+        `${capacityGated.length} capacity-gated -> ${prefix}-final-picks.json`,
+    );
+  };
 
   // THE ONE READ. Confirm totals come back per market per accepted
   // variant; only the frozen picks' rows are reported.
@@ -246,31 +378,59 @@ async function main() {
     // The ONE holdout population (R4 act 2): the stratified set over the
     // REQUESTED roster, verified against the anchor's tracked pin — never
     // over the symbols that happen to have rows.
-    symbolFilter = new Set(resolveHeldOut(paths.map((path) => assertManifest(path))).held);
+    symbolFilter = new Set(resolveHeldOut(manifests).held);
   }
-  if (targetsFlag) {
-    symbolFilter = new Set(
-      targetsFlag.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
+  if (targets !== undefined) symbolFilter = targets;
+  // The picks file's bytes BEFORE this run, or null when it has none, so a
+  // read that fails after the freeze can withdraw it exactly (2026-09-22).
+  // The freeze must land before the fold opens, so a refusal that needs
+  // rows — a holed corpus, emit bytes that are not the manifest's — comes
+  // after it; before this, such a run left the picks re-frozen with a fresh
+  // `frozenAt` beside a ledger that recorded no read, and after a burn it
+  // overwrote the picks the recorded read was taken on.
+  const picksPath = `${dir}/${prefix}-final-picks.json`;
+  const priorPicks = researchArtifactBytes(picksPath);
+  let graded: Awaited<ReturnType<typeof gradeCorpus>>;
+  try {
+    graded = await gradeCorpus(paths, {
+      acknowledgePriorReads,
+      baselineVariant,
+      beforeOpen: freeze,
+      confirmFinal: true,
+      confirmLogDir,
+      includeHoldout: holdoutCycle || targetsFlag !== undefined,
+      permutations,
+      seed,
+      symbolFilter,
+      verdictUnit: "market",
+    });
+  } catch (error) {
+    // A throw from gradeCorpus means no read was recorded: every refusal
+    // in it lands before the ledger append, and nothing after the append
+    // throws (grid-totalr.ts says so where the append sits).
+    if (frozenAt !== null) {
+      restoreResearchArtifact(picksPath, priorPicks);
+      console.error(
+        `confirm-4d: the read failed after the freeze and recorded nothing, ` +
+          `so the freeze is withdrawn — ${prefix}-final-picks.json ` +
+          (priorPicks === null
+            ? "removed — there was none before this run"
+            : "restored to the bytes it held before this run"),
+      );
+    }
+    throw error;
+  }
+  const { confirmRead, heldOutSet, shipped, verdicts } = graded;
+  // The hook is the freeze's only route to disk, so a gradeCorpus that
+  // returned without calling it opened the fold over picks nobody froze.
+  // Loud, never a silent success: the confirm-read artifact below would
+  // otherwise name picks with no frozen record behind them.
+  if (frozenAt === null) {
+    throw new Error(
+      "confirm-4d: gradeCorpus returned without calling beforeOpen, so the " +
+        "confirm fold was opened over picks that were never frozen to disk",
     );
   }
-  const { confirmRead, heldOutSet, shipped, verdicts } = await gradeCorpus(paths, {
-    acknowledgePriorReads: argv.includes("--acknowledge-prior-reads"),
-    baselineVariant,
-    confirmFinal: true,
-    confirmLogDir: str("--confirm-log-dir"),
-    includeHoldout: holdoutCycle || targetsFlag !== undefined,
-    permutations: num("--permutations", 1_000, {
-    basis:
-      "a permutation p-value is (1 + #{at least as extreme}) / " +
-      "(permutations + 1), so zero permutations makes every p exactly 1 " +
-      "and the gate refuses every variant in silence",
-    integer: true,
-    min: 1,
-  }),
-    seed: num("--seed", 7),
-    symbolFilter,
-    verdictUnit: "market",
-  });
 
   const confirmReport: Record<
     string,
@@ -475,6 +635,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error);
+  // An operator's typo refuses in one line; a real fault keeps its stack.
+  console.error(error instanceof OperatorInputError ? error.message : error);
   process.exit(1);
 });

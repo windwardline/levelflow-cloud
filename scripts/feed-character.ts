@@ -88,20 +88,22 @@ export function feedCharacterReport(input: {
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const { str } = flagReader(args, VALUE_FLAGS);
-  let failOnEscape = false;
   for (let index = 0; index < args.length; index += 1) {
     if (args[index].startsWith("--")) {
       if (VALUE_FLAGS.has(args[index])) {
         index += 1;
-      } else if (BOOLEAN_FLAGS.has(args[index])) {
-        failOnEscape = true;
-      } else {
+      } else if (!BOOLEAN_FLAGS.has(args[index])) {
         throw new OperatorInputError(`unknown flag ${args[index]}`);
       }
       continue;
     }
     throw new OperatorInputError(`unexpected argument ${args[index]} — markets are named with --symbols`);
   }
+  // Read by NAME after the walk, never inferred from membership in it
+  // (2026-09-22): a flag dropped from BOOLEAN_FLAGS then leaves this literal
+  // read undeclared, which tests/unknownFlagRefused.test.ts refuses. Set by
+  // the walk, the dropped flag was refused as unknown and nothing noticed.
+  const failOnEscape = args.includes("--fail-on-escape");
   const symbolsArg = (str("--symbols") ?? "roster").trim();
   const symbols = symbolsArg.toLowerCase() === "roster"
     ? [...defaultScanSymbols]
