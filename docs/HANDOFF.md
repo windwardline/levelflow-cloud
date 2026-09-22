@@ -5284,7 +5284,9 @@ the only route to any day but today. The bank is the artifact this repo calls
 unrecoverable at any price. Postgres has `scripts/ops/verify-postgres-restore.sh`
 under the rule that structure is not recoverability; the bank has no analogue.
 Owed: a restore proof that pulls the newest archive, unpacks it, and counts bars
-and sidecars against the live store, on the weekly cadence rather than the daily. The diminished-returns register — what is closed, and what re-opens it
+and sidecars against the live store, on the weekly cadence rather than the daily.
+
+### 6b-0. The diminished-returns register — what is closed, and what re-opens it
 
 **Rounds run is NOT evidence of exhaustion.** The counter-example is in this
 repo and it is one day old: R1 — the sweep↔live divergence surface — was

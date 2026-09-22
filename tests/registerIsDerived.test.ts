@@ -61,7 +61,7 @@ describe("the 6b-1 register derives its population rather than curating it", () 
 
   it("makes every marker traceable to a register item", () => {
     const untraceable = markedLines()
-      .filter((entry) => !/§?6b-1\s*[A-H]/.test(entry.text))
+      .filter((entry) => !/§?6b-1\s*[A-Z]/.test(entry.text))
       .map((entry) => `${entry.file}:${entry.line} ${entry.text.trim().slice(0, 60)}`);
     assert.deepEqual(
       untraceable,
@@ -76,7 +76,7 @@ describe("the 6b-1 register derives its population rather than curating it", () 
   it("names only items the register actually has", () => {
     const register = readFileSync("docs/HANDOFF.md", "utf8");
     const present = new Set(
-      [...register.matchAll(/^\*\*([A-H])\. /gm)].map((match) => match[1]),
+      [...register.matchAll(/^\*\*([A-Z])\. /gm)].map((match) => match[1]),
     );
     assert.ok(present.size >= 6, "the register's item headings did not parse");
     const dangling = markedLines()
