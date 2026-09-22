@@ -275,14 +275,14 @@ async function fetchDay(ctx: Context, symbol: string, date: string): Promise<Raw
   }
 }
 
-type Outcome = { symbol: string; fetched: number; appended: number; dropped: number; missed: string[] };
+type Tally = { symbol: string; fetched: number; appended: number; dropped: number; missed: string[] };
 
-async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan): Promise<Outcome> {
-  const outcome: Outcome = { appended: 0, dropped: 0, fetched: 0, missed: [], symbol };
+async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan): Promise<Tally> {
+  const tally: Tally = { appended: 0, dropped: 0, fetched: 0, missed: [], symbol };
   const fresh: Array<{ date: string; open: number; high: number; low: number; close: number; volume: number }> = [];
   for (const date of plan.dates.filter((date) => date >= store.firstDay)) {
     if (ctx.stop) {
-      outcome.missed.push(date);
+      tally.missed.push(date);
       continue;
     }
     let raw: RawBar[];
@@ -290,16 +290,16 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
       raw = await fetchDay(ctx, symbol, date);
     } catch (error) {
       if (!retryable(error)) ctx.stop ??= error;
-      outcome.missed.push(date);
+      tally.missed.push(date);
       if (retryable(error)) {
         ctx.deps.print.err(`${symbol} ${date}: ${redactProviderSecrets(error instanceof Error ? error.message : String(error))}`);
       }
       continue;
     }
-    outcome.fetched += raw.length;
+    tally.fetched += raw.length;
     for (const bar of raw) {
       if (!usableBar(bar) || bar.date.slice(0, 10) !== date) {
-        outcome.dropped += 1;
+        tally.dropped += 1;
         continue;
       }
       if (store.keys.has(bar.date)) continue;
@@ -317,17 +317,17 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
   if (fresh.length > 0) {
     fresh.sort((a, b) => a.date.localeCompare(b.date));
     appendFileSync(bankPath(ctx.dir, symbol), `${fresh.map((bar) => JSON.stringify(bar)).join("\n")}\n`);
-    outcome.appended = fresh.length;
+    tally.appended = fresh.length;
   }
   const sidecar = store.sidecar;
   const runs = Array.isArray(sidecar.runs) ? (sidecar.runs as unknown[]) : [];
   sidecar.bars = (typeof sidecar.bars === "number" ? sidecar.bars : 0) + fresh.length;
   sidecar.runs = [
     ...runs.slice(-29),
-    { appended: fresh.length, at: new Date(ctx.deps.now()).toISOString(), fetched: outcome.fetched, note: `recovered ${plan.from}..${plan.to}` },
+    { appended: fresh.length, at: new Date(ctx.deps.now()).toISOString(), fetched: tally.fetched, note: `recovered ${plan.from}..${plan.to}` },
   ];
   writeFileSync(sidecarPath(ctx.dir, symbol), JSON.stringify(sidecar, null, 2));
-  return outcome;
+  return tally;
 }
 
 // --- the run -----------------------------------------------------------------
@@ -418,25 +418,25 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
     stop: undefined,
   };
 
-  const outcomes: Outcome[] = [];
+  const tallies: Tally[] = [];
   let next = 0;
   const workers = Array.from({ length: plan.concurrency }, async () => {
     while (next < stores.length) {
       const { symbol, store } = stores[next++];
-      outcomes.push(await recoverOne(ctx, symbol, store, plan));
+      tallies.push(await recoverOne(ctx, symbol, store, plan));
     }
   });
   await Promise.all(workers);
 
-  outcomes.sort((a, b) => a.symbol.localeCompare(b.symbol));
-  for (const outcome of outcomes) {
-    const missed = outcome.missed.length > 0 ? `\tnot recovered: ${outcome.missed.join(" ")}` : "";
-    print.out(`${outcome.symbol}\tfetched ${outcome.fetched}\tappended ${outcome.appended}\tdropped ${outcome.dropped}${missed}`);
-    if (outcome.missed.length > 0) code = 1;
+  tallies.sort((a, b) => a.symbol.localeCompare(b.symbol));
+  for (const tally of tallies) {
+    const missed = tally.missed.length > 0 ? `\tnot recovered: ${tally.missed.join(" ")}` : "";
+    print.out(`${tally.symbol}\tfetched ${tally.fetched}\tappended ${tally.appended}\tdropped ${tally.dropped}${missed}`);
+    if (tally.missed.length > 0) code = 1;
   }
-  const appended = outcomes.reduce((sum, outcome) => sum + outcome.appended, 0);
+  const appended = tallies.reduce((sum, tally) => sum + tally.appended, 0);
   print.out(
-    `Recovered ${plural(appended, "bar")} across ${plural(outcomes.length, "symbol")} for ${plan.from}..${plan.to}: ` +
+    `Recovered ${plural(appended, "bar")} across ${plural(tallies.length, "symbol")} for ${plan.from}..${plan.to}: ` +
       `${plural(ctx.requests, "request")}, ${ctx.budget.spent()} bytes to the ad-hoc class.`,
   );
   if (ctx.stop) {
