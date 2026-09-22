@@ -98,6 +98,7 @@ import {
   describeNumericToken,
   describeToken,
   assertInDomain,
+  OperatorInputError,
   positionalArgs,
   soleFlagIndex,
   tokenFault,
@@ -1696,7 +1697,11 @@ export async function gradeCorpus(
   if (!gridCells.includes(namedBaseline)) {
     const shown = gridCells.slice(0, 8).join(", ");
     const more = gridCells.length > 8 ? `, and ${gridCells.length - 8} more` : "";
-    throw new Error(
+    // The name is operator input, typed or defaulted, so a caller that
+    // prints an OperatorInputError alone refuses it in one line. confirm-4d
+    // does; grid-totalr's own entry point still prints every error with
+    // its stack.
+    throw new OperatorInputError(
       `baseline variant "${namedBaseline}" names no cell of the shards' grid ` +
         `(${gridCells.length > 0 ? `${shown}${more}` : "the manifests name no cell"}) — ` +
         `it carries no cell in this corpus, and every variant would grade ` +

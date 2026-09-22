@@ -108,7 +108,7 @@ async function main() {
     if (index === -1) return undefined;
     const token = argv[index + 1];
     if (tokenFault(token) !== null) {
-      throw new Error(
+      throw new OperatorInputError(
         `${arg} owns the token after it and got ${describeToken(token)} — a ` +
           `value, never a flag and never blank; pass ${arg} <value>`,
       );
@@ -136,7 +136,7 @@ async function main() {
     const token = argv[index + 1];
     const parsed = Number(token);
     if (tokenFault(token) !== null || !Number.isFinite(parsed)) {
-      throw new Error(
+      throw new OperatorInputError(
         `${arg} owns the token after it and cannot read ${
           describeNumericToken(token)
         } as a number — the walker already kept that token out of the ` +

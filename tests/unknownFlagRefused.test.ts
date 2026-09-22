@@ -898,6 +898,20 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
     assert.deepEqual(run.wrote, [], `${why}: the run wrote into its working directory`);
   };
 
+  /**
+   * An operator's typo is ONE line here as well: the refusal alone, never a
+   * stack. The law above holds this only for an unknown flag, and the
+   * refusals confirm-4d makes of its own inputs are typos too.
+   */
+  const assertOneLine = (run: Run, why: string) => {
+    const lines = run.stderr.trim().split("\n");
+    assert.equal(
+      lines.length,
+      1,
+      `${why}: confirm-4d refused in ${lines.length} lines; an OperatorInputError prints its message alone:\n${lines.join("\n")}`,
+    );
+  };
+
   it("a named but undescribed shard leaves no picks artifact", async () => {
     const researchDir = seededResearchDir();
     const ledgerDir = scratchDir("confirm4d-ledger-");
@@ -953,6 +967,8 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
       [["--seed", "--bogus"], /unknown flag --bogus/],
       [["--confirm-log-dir", "elsewhere"], /--confirm-log-dir was given 2 times/],
       [["--seed"], /--seed owns the token after it and cannot read a missing value/],
+      [["--permutations", "abc"], /--permutations owns the token after it and cannot read "abc" as a number/],
+      [["--baseline", ""], /--baseline owns the token after it and got an EMPTY token/],
     ];
     for (const [dial, refusal] of cases) {
       const researchDir = seededResearchDir();
@@ -970,7 +986,8 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
         ...dial,
       ];
       const run = await runReader("scripts/confirm-4d.ts", args);
-      assertRefusedWritingNothing(run, refusal, researchDir, ledgerDir, dial.join(" "));
+      assertRefusedWritingNothing(run, refusal, researchDir, ledgerDir, JSON.stringify(dial));
+      assertOneLine(run, JSON.stringify(dial));
     }
   });
 
@@ -1033,6 +1050,7 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
     const refusal = /baseline variant "basline" names no cell of the shards' grid/;
     const fresh = await confirm4d([shard("EURGBP"), "--baseline", "basline"], researchDir, ledgerDir);
     assertRefusedWritingNothing(fresh, refusal, researchDir, ledgerDir, "a misspelt baseline");
+    assertOneLine(fresh, "a misspelt baseline");
 
     // And after a burn, where the prior picks and the ledger both exist to
     // be overwritten: acknowledged, the misspelt re-read changes no byte.
@@ -1050,6 +1068,7 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
     assertExecuted("scripts/confirm-4d.ts", again);
     assert.notEqual(again.exitCode, 0, "the misspelt baseline must refuse");
     assert.match(again.stderr, refusal);
+    assertOneLine(again, "a misspelt baseline after a burn");
     assert.doesNotMatch(again.stdout, /frozen:/);
     assert.deepEqual(snapshot(researchDir), researchBefore, "the refused re-read rewrote an artifact");
     assert.deepEqual(snapshot(ledgerDir), ledgerBefore, "the refused re-read moved the ledger");
