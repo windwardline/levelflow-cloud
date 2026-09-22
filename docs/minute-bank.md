@@ -294,19 +294,27 @@ downloads the newest archive by name into a scratch directory under `$TMPDIR`, r
 
 - the listing cannot be read, the bucket is missing, a key sits outside
   `<YYYY>/<MM>/minute-bank-<YYYYMMDD>.tar.zst`, or there is no archive;
-- the archive holds anything but one directory stamped as its key is, or holds a link;
+- the newest archive's stamp is more than three days before today (UTC), which means
+  the daily push has stopped, or is later than today, which would hide that;
+- the archive holds anything but one directory stamped as its key is, or that
+  directory holds a link or a subdirectory (the bank is flat);
 - a restored `.jsonl` has no sidecar, its sidecar does not parse, or the sidecar's
   `bars` differs from the file's line count;
 - a sidecar with no data file counts any bars;
 - a restored file ends without a newline, which is a torn final line;
 - a restored file is missing from the live bank, or its bytes are not the head of the
   live file;
+- a live file the archive lacks starts more than four days before the stamp, or its
+  first line carries no date;
 - the restore holds no data file, or no bars.
 
-Every failure is named, not counted. Live symbols added since the snapshot are named
-and pass. Success prints one line on stdout: the archive, the files and bars restored,
-and the live bars. The scratch directory goes on every exit, signals included, and
-needs room for one uncompressed bank.
+Every failure is named, not counted. A live symbol the archive lacks passes, named,
+only when the bar on its first line is at most four days older than the stamp: a
+symbol's first fetch reaches about three days back, and the fourth day covers the
+provider's New York dates against a UTC stamp. Before that rule, an archive holding
+one symbol of a hundred passed. Success prints one line on stdout: the archive, the
+files and bars restored, and the live bars. The scratch directory goes on every exit,
+signals included, and needs room for one uncompressed bank.
 
 The prefix test carries the proof. The bank appends and never rewrites, so a
 snapshot's bytes stay the head of the live file for good, late fills included. The
@@ -316,12 +324,24 @@ bank runs. macOS `cmp -n` cannot make that comparison, because it reports unequa
 lengths even inside its limit, so the script pipes `head -c` of the live file into
 `cmp`.
 
-It runs on the weekly cadence beside `verify-postgres-restore.sh`, not daily, because
-it downloads and unpacks a whole archive. From a checkout it reads that checkout's
-`.minute-bank`. From any other tree, set `LEVELFLOW_CHECKOUT`; a named checkout that
-does not exist, or one with no bank, is refused before anything is listed.
+It is to be run weekly beside `verify-postgres-restore.sh` on the fleet-health
+cadence, not daily, because it downloads and unpacks a whole archive. Nothing
+schedules it yet: the `CADENCE.md` row in windwardline/windwardline is still to be
+added. From a checkout it reads that checkout's `.minute-bank`. From any other tree,
+name the checkout inside `wl-secret`'s command, because `wl-secret` execs its child
+under `env -i` and drops a `LEVELFLOW_CHECKOUT` set in the calling shell:
+
+```bash
+~/.local/bin/wl-secret cloudflare-r2-backup=R2_TOKEN -- env LEVELFLOW_CHECKOUT=<checkout> bash <tree>/scripts/ops/verify-minute-bank-restore.sh
+```
+
+A named checkout that does not exist, or one with no bank, is refused before anything
+is listed.
 `tests/minuteBankRestore.test.ts` runs the real script, tar and zstd against a stub
-`rclone` over a directory. Fifty-seven mutations of the script's guards each failed it.
+`rclone` over a directory, with every stamp and bar date relative to today. Fifty-seven
+mutations of the first version's guards each failed it, as did 32 of 35 against the
+guards added after review. The three that survive drop a `|| die` behind a walk that
+has already read the same directory, which no input can reach.
 
 ### Restoring by hand
 
