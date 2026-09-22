@@ -196,34 +196,42 @@ type Run = {
  * The environment every subject runs in, and the reason it is not the
  * suite's own. A red run of this file executes each reader AS IT IS, before
  * the guard under test exists — on 2026-09-20 six such runs fetched a full
- * FMP roster each. So the provider key is removed, `security` is shadowed by
- * the refusing stub, and a pinned-checkout variable cannot point a subject
- * at the real ledger. A reader that would spend then stops at its own key
- * check, whatever this file is proving.
+ * FMP roster each. So the provider key is removed and `security` is
+ * shadowed by the refusing stub; a reader that would spend then stops at its
+ * own key check, whatever this file is proving. LEVELFLOW_CHECKOUT names the
+ * subject's own empty working directory, so the FMP state — the byte
+ * ledger, the breaker log, the run markers, which scripts/checkoutState.ts
+ * otherwise anchors to this checkout — resolves there too, never to the
+ * real ledger, and anything written to it shows in the listing runReader
+ * returns.
  *
  * TSX_TSCONFIG_PATH is dropped too: `npm test` exports it RELATIVE, the
  * child resolves it against the temp cwd and dies inside tsx's loader
  * before the reader's first line. The subjects need no tsconfig to run.
  */
-const subjectEnv = (): NodeJS.ProcessEnv => {
+const subjectEnv = (checkout: string): NodeJS.ProcessEnv => {
   const env: NodeJS.ProcessEnv = { ...process.env, ...noKeychainEnv() };
   delete env.TSX_TSCONFIG_PATH;
   delete env.FMP_API_KEY;
-  delete env.LEVELFLOW_CHECKOUT;
+  env.LEVELFLOW_CHECKOUT = checkout;
   return env;
 };
 
 /**
  * Run a reader from an EMPTY temp cwd, returning what it did there.
  *
- * The cwd is the proof for every cwd-relative output — and every DEFAULT
- * output path of these readers is cwd-relative
- * (`docs/research/baseline-2026-08-10/…`, `.minute-bank`), so a refusal
- * that wrote anything leaves it here, and `wrote` is the whole directory
- * listing rather than a path someone remembered to name. The one
- * module-relative output, grid-totalr's repository confirm ledger, is
- * written only by a RECORDED read; no refusal here reaches one, and the
- * confirm-4d cases below that do read redirect it with --confirm-log-dir.
+ * `wrote` is that directory's whole listing rather than a path someone
+ * remembered to name, and it sees every default output but one. Most
+ * defaults resolve against the cwd (`docs/research/baseline-2026-08-10/…`,
+ * `.minute-bank`). Two are anchored to the checkout the script sits in:
+ *
+ * - the FMP state under `.fmp-state/`, resolved through
+ *   scripts/checkoutState.ts. subjectEnv points LEVELFLOW_CHECKOUT at this
+ *   same directory, so state a subject resolves lands where `wrote` sees it.
+ * - grid-totalr's repository confirm ledger, under
+ *   docs/research/confirm-reads. Only a RECORDED read writes it, and no
+ *   refusal here reaches one; the confirm-4d cases below that do read
+ *   redirect it with --confirm-log-dir.
  *
  * It is also why this file shells out to no git: `tests/scratchClone.test.ts`
  * pins the set of tests a `--no-git` scratch copy breaks, and a sixth
@@ -247,7 +255,7 @@ const runReader = async (
       {
         cwd: elsewhere,
         encoding: "utf8",
-        env: subjectEnv(),
+        env: subjectEnv(elsewhere),
         maxBuffer: 16 * 1024 * 1024,
         timeout: 120_000,
       },
@@ -415,8 +423,10 @@ describe("every argv reader refuses an unknown flag by name", { concurrency: CON
         run.wrote,
         [],
         `${reader} wrote into its working directory while refusing an ` +
-          `unknown flag — every default output path here is cwd-relative, ` +
-          `so in the repository this is a tracked file`,
+          `unknown flag — that directory stands in for the cwd its default ` +
+          `outputs resolve against and the checkout its FMP state resolves ` +
+          `in, so from the repository the same refusal writes into the ` +
+          `working tree or the live FMP state`,
       );
       if (!failsTowardRunning) {
         assert.equal(
