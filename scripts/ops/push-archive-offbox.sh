@@ -148,7 +148,14 @@ if [[ -z ${R2_TOKEN:-} ]]; then
   [[ $DELIVERED == 0 ]] || die "wl-secret ran and R2_TOKEN is still unset; refusing to re-exec again"
   WL_SECRET="${LEVELFLOW_WL_SECRET:-$HOME/.local/bin/wl-secret}"
   [[ -x $WL_SECRET ]] || die "wl-secret is not executable at $WL_SECRET; the R2 token cannot be read (set LEVELFLOW_WL_SECRET to relocate it)"
-  exec "$WL_SECRET" cloudflare-r2-backup=R2_TOKEN -- "$0" --secrets-delivered "$@"
+  # wl-secret's `env -i` keeps HOME, USER, PATH, LANG and TMPDIR and nothing
+  # else. Every setting resolved above rides across as an argument to env, or
+  # an operator's LEVELFLOW_ARCHIVE_STAGING would be replaced by the default
+  # without a word on the only path a real run takes.
+  exec "$WL_SECRET" cloudflare-r2-backup=R2_TOKEN -- /usr/bin/env \
+    LEVELFLOW_ARCHIVE_BUCKET="$BUCKET" LEVELFLOW_ARCHIVE_PREFIX="$PREFIX" \
+    LEVELFLOW_ARCHIVE_STAGING="$STAGING_ROOT" LEVELFLOW_R2_ACCOUNT="$ACCOUNT" \
+    LEVELFLOW_R2_ACCESS_KEY="$ACCESS_KEY" "$0" --secrets-delivered "$@"
 fi
 
 export RCLONE_CONFIG_R2_TYPE=s3

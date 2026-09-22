@@ -665,18 +665,46 @@ describe("the push delivers its own credential, as its two scheduled siblings do
   // launcher runs — git fetch, git archive, tar — and not only the pusher.
   // backup-minute-bank.sh and backup-postgres-offbox.sh both call wl-secret by
   // absolute path instead, so the child holding the credential is the only
-  // process that sees it. This script does the same, and the re-exec is proven
-  // by what survives it: wl-secret's `env -i` drops every LEVELFLOW_ override,
-  // so a run that started against the test bucket lands on the real default and
-  // the temp-source barrier refuses it.
-  it("re-execs through wl-secret, and the scrubbed environment is what the refusal proves", () => {
+  // process that sees it. This script does the same.
+  //
+  // wl-secret's `env -i` keeps HOME, USER, PATH, LANG and TMPDIR and nothing
+  // else, so a setting that is not carried across is replaced by its default
+  // without a word: an operator's LEVELFLOW_ARCHIVE_STAGING, named to find the
+  // space a 7.6 GB push needs, would stop applying on the only path a real run
+  // takes. The settings ride across as arguments to /usr/bin/env.
+  it("re-execs through wl-secret and carries its settings across the scrub", () => {
+    // R2_TOKEN is never set here. Only the wl-secret stub holds it, and the
+    // rclone stub refuses any secret but its SHA-256, so a row means the token
+    // arrived through the re-exec. Were the bucket dropped, the run would land
+    // on windwardline-archives and the temp-source barrier would refuse it.
     const sb = sandbox();
     const r = run(sb, { R2_TOKEN: undefined, LEVELFLOW_WL_SECRET: join(sb.bin, "wl-secret") });
-    assert.equal(r.code, 1);
-    assert.match(r.stderr, /refusing to archive a source under a temp directory into windwardline-archives/);
-    assert.doesNotMatch(r.stderr, /wl-secret is not executable/);
-    assert.equal(rcloneCalls(sb).length, 0);
+    assert.equal(r.code, 0, r.stderr);
+    rowOf(r.stdout);
+    assert.ok(existsSync(objectPath(sb)), "no object at the test bucket's key");
+    assert.ok(r.stderr.includes(`into ${sb.staging}/push.`), `the named staging root was not used:\n${r.stderr}`);
+    assertStagingClean(sb.staging);
+    assert.ok(
+      !existsSync(join(sb.home, ".local", "share", "levelflow-cloud", "staging")),
+      "the default staging root was used although one was named",
+    );
     assertNoCredential(sb, r);
+  });
+
+  it("forwards every LEVELFLOW_ setting it reads across the re-exec", () => {
+    // Derived from the script, so a setting added later is under the rule the
+    // moment it is read. LEVELFLOW_WL_SECRET is the one exception: it locates
+    // the launcher, and the second pass never looks for it.
+    const text = readFileSync(SCRIPT, "utf8");
+    const read = [...new Set([...text.matchAll(/\$\{(LEVELFLOW_[A-Z0-9_]+):-/g)].map((m) => m[1]))]
+      .filter((name) => name !== "LEVELFLOW_WL_SECRET")
+      .sort();
+    assert.ok(read.length >= 5, `only ${read.length} settings found; the reader is not reading the script`);
+    const exec = logicalLines(text).find(({ text: line }) => /^\s*exec "\$WL_SECRET" /.test(line));
+    assert.ok(exec, "no exec through wl-secret");
+    const forwarded = [...exec.text.matchAll(/\b(LEVELFLOW_[A-Z0-9_]+)="\$[A-Z_]+"/g)].map((m) => m[1]).sort();
+    assert.deepEqual(forwarded, read);
+    assert.match(exec.text, /-- \/usr\/bin\/env .* "\$0" --secrets-delivered "\$@"$/);
   });
 
   it("refuses a temp source before it asks wl-secret for anything", () => {
@@ -729,7 +757,10 @@ describe("the script's contract, read from its source", () => {
 
   it("delivers the credential itself, by absolute path, as backup-postgres-offbox.sh does", () => {
     assert.match(source(), /^\s*WL_SECRET="\$\{LEVELFLOW_WL_SECRET:-\$HOME\/\.local\/bin\/wl-secret\}"$/m);
-    assert.match(source(), /^\s*exec "\$WL_SECRET" cloudflare-r2-backup=R2_TOKEN -- "\$0" --secrets-delivered "\$@"$/m);
+    assert.ok(
+      logicalLines(source()).some(({ text }) => /^\s*exec "\$WL_SECRET" cloudflare-r2-backup=R2_TOKEN -- \/usr\/bin\/env /.test(text)),
+      "the re-exec goes through wl-secret by absolute path, then env",
+    );
     const sibling = readFileSync("scripts/ops/backup-postgres-offbox.sh", "utf8");
     assert.match(sibling, /^\s*exec "\$WL_SECRET" .*-- "\$0" --secrets-delivered "\$@"$/m);
   });

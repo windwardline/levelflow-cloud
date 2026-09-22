@@ -32,6 +32,9 @@ on this line:
 It re-execs itself through `~/.local/bin/wl-secret` once its refusals have run, so the
 token reaches the pusher and not the launcher's `git fetch`, `git archive` or `tar`.
 `backup-minute-bank.sh` and `backup-postgres-offbox.sh` have the same shape.
+`wl-secret` starts the child under `env -i`, so the script passes its own settings
+across as arguments to `/usr/bin/env`. `LEVELFLOW_ARCHIVE_STAGING`, for one, still
+applies after the re-exec.
 
 The script refuses, by name and before it reads the credential: a missing source, a
 dataset outside `^[a-z0-9-]+$`, a source under a temp root bound for the permanent
