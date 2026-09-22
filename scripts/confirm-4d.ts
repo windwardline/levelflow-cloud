@@ -14,7 +14,10 @@
 // before the first confirm row is read. A run the door refuses therefore
 // rewrites no artifact, and a run it admits has its picks on disk, with a
 // `frozenAt` that precedes the ledger's `readAt`, before the fold opens.
-// The confirm read runs once, per corpus hash, into the burned log.
+// Refusals that need rows — an unparseable line, emit bytes that are not
+// the manifest's, a --baseline naming no cell — still land after the
+// freeze: they cannot run before the fold opens without reading the corpus
+// twice. The confirm read runs once, per corpus hash, into the burned log.
 //
 // Unknown flags are refused by name, in the same walk the gate uses. In
 // this script an ignored dial is an ignored dial on a read that cannot be
