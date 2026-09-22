@@ -111,9 +111,12 @@ describe("the workspace stands down only for the Edge's daily ceiling", () => {
   // that waits for the full count times out and reads the ceiling as a dropped
   // request, and the stand-down after it never runs.
   it("the Scan poll settles once a refused chunk and every sent request have answered", () => {
-    const start = WORKSPACE.indexOf("await expect\n    .poll(\n      () =>\n        scanResponses.length === expectedChunks ||");
-    assert.ok(start > 0, "the Scan poll no longer settles on anything but the full chunk count");
-    const poll = WORKSPACE.slice(start, WORKSPACE.indexOf(".toBe(true);", start));
+    const anchor = /await expect\s*\.poll\(\s*\(\) =>\s*scanResponses\.length === expectedChunks \|\|/.exec(WORKSPACE);
+    assert.ok(anchor, "the Scan poll's full-count-or-refusal shape is gone — re-anchor this guard");
+    const start = anchor.index;
+    const end = WORKSPACE.indexOf(".toBe(true);", start);
+    assert.ok(end > start, "the Scan poll no longer ends in .toBe(true) — re-anchor this guard");
+    const poll = WORKSPACE.slice(start, end);
     assert.match(poll, /scanResponses\.some\(\(response\) => response\.status\(\) !== 200\)/);
     assert.match(poll, /scanResponses\.length === scanRequestsSent/);
     assert.match(WORKSPACE, /page\.on\("request", \(request\) => \{\s*if \(isScanRequest\(request\)\) scanRequestsSent \+= 1;/);
