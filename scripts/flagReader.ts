@@ -202,12 +202,17 @@ export function assertInDomain(
  *
  * `grid-totalr` closed this inline in R4 act 1, after a no-op
  * `--per-market-folds` passed the sealed guard for a day as if it were a
- * second shape of that reader. Nine siblings kept the silent walk, and
- * on 2026-09-21 `confirm-4d --not-a-real-flag <shard>` — the script that
+ * second shape of that reader. Twelve siblings kept the silence, and on
+ * 2026-09-21 `confirm-4d --not-a-real-flag <shard>` — the script that
  * BURNS the LA-6 confirm read — reported only the corpus door's refusal
  * and never named the flag. This is that refusal declared once, with
  * grid-totalr's wording, so the reader that burns cannot drift from the
  * gate it grades through.
+ *
+ * A reader that takes no flag passes two empty sets and refuses every
+ * `--x` by name. That is not ceremony: the three readers that did so
+ * filtered flags away with `argv.filter((a) => !a.startsWith("--"))`,
+ * which is the line a reader's FIRST flag gets added on top of.
  *
  * Boolean flags are DECLARED rather than inferred from "not a value
  * flag", which is the inversion the 4d walkers were built on and #364

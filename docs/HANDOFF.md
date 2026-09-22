@@ -108,10 +108,15 @@ the flag. Two defects in one command, both closed:
   dial and a sibling's flag all read as nothing at all, so the run measured the
   default while the shell history said otherwise — in the one script whose run
   burns the LA-6 confirm read, which cannot be taken again. `grid-totalr` had
-  refused by name since R4 act 1; the fix had reached one file. Nine readers
-  still carried the silent walk: `confirm-4d`, `derive-4d`, `feasibility-4d`,
+  refused by name since R4 act 1; the fix had reached one file. Twelve readers
+  still carried the silence, in two shapes. Nine dialed readers walked past an
+  undeclared flag: `confirm-4d`, `derive-4d`, `feasibility-4d`,
   `threshold-rescue`, `roster-expectancy-audit`, `tuning-folds-summary`,
-  `holdout-set`, `account-type-report` and `starvation-audit`.
+  `holdout-set`, `account-type-report` and `starvation-audit`. Three readers
+  that take no flag at all filtered every `--x` away — `data-limits`,
+  `confidence-bands`, `geometry-evidence` — which is the worse starting point,
+  because it is the line a first flag gets added on top of. All thirteen now
+  share one walk.
 - **The freeze ran before the corpus door.** The same command printed
   "frozen: 41 picks, 11 capacity-gated" and rewrote the tracked
   `docs/research/baseline-2026-08-10/4d-final-picks.json` — 456 insertions, 456

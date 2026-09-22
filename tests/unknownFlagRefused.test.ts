@@ -27,16 +27,36 @@ const TSX = join(process.cwd(), "node_modules", ".bin", "tsx");
 const repoRoot = process.cwd();
 
 /**
- * The silent walk, as a shape.
+ * The silent walk, in both shapes it took.
  *
- * `if (t.startsWith("--")) { if (FLAGS.has(t)) i += 1; continue; }` —
- * consume the token after a declared value flag, drop every other `--x`
- * on the floor. Nine readers carried it on 2026-09-21; grid-totalr had
- * closed it inline in R4 act 1 and the fix reached whichever file someone
- * happened to open, which is the argument for one implementation.
+ * The dialed form — `if (t.startsWith("--")) { if (FLAGS.has(t)) i += 1;
+ * continue; }` — consumes the token after a declared value flag and drops
+ * every other `--x` on the floor. Nine readers carried it on 2026-09-21;
+ * grid-totalr had closed it inline in R4 act 1 and the fix reached
+ * whichever file someone happened to open, which is the argument for one
+ * implementation.
+ *
+ * The flag-free form — `argv.filter((a) => !a.startsWith("--"))` — is the
+ * same silence in a reader that declares no flags, and it is worse as a
+ * starting point: it is the line a first flag gets added on top of. Three
+ * readers carried it (`data-limits`, `confidence-bands`,
+ * `geometry-evidence`) and take the shared walk with empty sets, so they
+ * refuse a flag by name rather than dropping it.
  */
-const SILENT_WALK =
-  /startsWith\("--"\)\)\s*\{\s*\n\s*if \(\w+\.has\([^)]*\)\) \w+ \+= 1;\s*\n\s*continue;/;
+const SILENT_WALKS = [
+  /startsWith\("--"\)\)\s*\{\s*\n\s*if \(\w+\.has\([^)]*\)\) \w+ \+= 1;\s*\n\s*continue;/,
+  /\.filter\(\([\w]+\) => ![\w]+\.startsWith\("--"\)\)/,
+];
+
+/** Source with comment lines removed, so prose about a shape is not the shape. */
+const withoutComments = (source: string) =>
+  source.split("\n")
+    .filter((line) => {
+      const trimmed = line.trim();
+      return !trimmed.startsWith("//") && !trimmed.startsWith("*") &&
+        !trimmed.startsWith("/*");
+    })
+    .join("\n");
 
 const scriptFiles = readdirSync("scripts")
   .filter((name) => name.endsWith(".ts"))
@@ -114,9 +134,16 @@ const runReader = (
 
 describe("the walk refuses an unknown flag by name", () => {
   it("the silent walk is extinct across scripts/", () => {
-    const silent = scriptFiles.filter((file) =>
-      SILENT_WALK.test(readFileSync(file, "utf8"))
-    );
+    const silent = scriptFiles.filter((file) => {
+      // Comments are stripped first, the way the sibling positional-only
+      // exemption does it. These files legitimately DISCUSS the shapes in
+      // prose — flagReader's own header quotes the filter form to say why
+      // it is worse — and quoting a defect is not committing one. The
+      // first version of this scan matched flagReader's header and called
+      // the law's own implementation a silent walker.
+      const source = withoutComments(readFileSync(file, "utf8"));
+      return SILENT_WALKS.some((shape) => shape.test(source));
+    });
     assert.deepEqual(
       silent,
       [],
@@ -141,7 +168,7 @@ describe("the walk refuses an unknown flag by name", () => {
     // shrinks the population lowers this floor in the same commit and
     // says which readers left and why.
     assert.ok(
-      adopters.length >= 9,
+      adopters.length >= 12,
       `the glob must find the readers on the shared walk, got ` +
         `${adopters.length}: ${adopters.join(", ")}`,
     );
@@ -209,14 +236,26 @@ describe("the walk refuses an unknown flag by name", () => {
       const source = readFileSync(reader, "utf8");
       const valueFlags = declaredFlags(source, "VALUE_FLAGS");
       const booleanFlags = declaredFlags(source, "BOOLEAN_FLAGS");
-      assert.ok(
-        valueFlags.length + booleanFlags.length > 0,
-        `${reader} calls the shared walk but declares no flags`,
-      );
+      if (valueFlags.length + booleanFlags.length === 0) {
+        // A reader that takes no flag has nothing to accept, and that is
+        // a real state rather than a gap: three readers call the walk
+        // with empty sets so that a `--x` is refused by name instead of
+        // filtered away. The premise is CHECKED, not trusted — a reader
+        // that grew a flag and forgot to declare it would otherwise slip
+        // through this branch silently.
+        assert.doesNotMatch(
+          withoutComments(source),
+          /positionalArgs\([\s\S]{0,200}?new Set\(\[\s*"--/,
+          `${reader} passes flags to the walk without declaring them in a ` +
+            `named Set this scan can read`,
+        );
+        return;
+      }
       // Every declared flag in ONE invocation. The walk throws on the
       // FIRST token it does not know, so passing them together still
-      // names whichever one fell out of the declaration — and it is ten
-      // spawns instead of sixty, on a gate that has to stay quick.
+      // names whichever one fell out of the declaration — and it is one
+      // spawn per reader instead of one per flag, on a gate that has to
+      // stay quick.
       //
       // Each value flag gets a plausible token, never asserted to be
       // VALID for the dial: the claim under test is that the WALK knows

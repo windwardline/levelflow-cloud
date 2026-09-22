@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { describeHeldOut, resolveHeldOut } from "./sweepFolds.ts";
 import { assertManifest } from "./sweepStats.ts";
+import { positionalArgs } from "./flagReader.ts";
 
 function iso(ms: number | null): string {
   return ms === null ? "—" : new Date(ms).toISOString().slice(0, 10);
@@ -26,7 +27,16 @@ function days(ms: number): string {
 }
 
 function main(): void {
-  const paths = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
+  // A reader that takes NO flag still refuses one by name. The filter
+  // that stood here dropped every `--x` on the floor, which is the same
+  // silence the dialed readers carried until 2026-09-21 — and the one
+  // shape a future flag would be added on top of.
+  const paths = positionalArgs(
+    process.argv.slice(2),
+    new Set(),
+    new Set(),
+    "data-limits",
+  );
   if (paths.length !== 1) {
     console.error("usage: data-limits.ts <emit.jsonl>");
     process.exit(1);
