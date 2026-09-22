@@ -121,6 +121,11 @@ missing credential, a failed upload or a mismatched hash each exit non-zero, bec
 `ops/agent-exit-status.sh` reads the launchd exit code and a silent skip would render
 as a healthy backup.
 
+Snapshots live in `~/.local/share/levelflow-cloud/minute-bank-snapshots/`, created on
+first run. Until 2026-09-21 they were written straight into the home folder, and
+fifteen sat there when the owner asked what they were. `LEVELFLOW_BACKUP_ROOT`
+overrides the root; a named root that does not exist is refused, never created.
+
 ## The two jobs cannot run at once
 
 The bank appends `<symbol>.jsonl` and then writes `<symbol>.state.json` as two
@@ -202,9 +207,21 @@ windwardline-backups/<repo>/<dataset>/<YYYY>/<MM>/<dataset>-<YYYYMMDD>.tar.zst
 ```
 
 The key carries the date, so repeated runs in one day overwrite one object instead of
-accumulating. Local retention is 14 snapshots and remote is 60; `20260823` is
-protected by name in both prunes, because it is the only naive-era corpus in existence
-and a retention count cannot protect what oldest-first deletes first.
+accumulating. Local retention is one daily plus the protected `20260823`, and remote
+is 60. `20260823` is protected by name in both prunes, because it is the only naive-era
+corpus in existence and a retention count cannot protect what oldest-first deletes
+first. The local prune runs only after the push verified the remote object and parity
+passed; a failed or skipped push skips it. The remote protection is not permanent: the
+bucket's lifecycle rule expires every object 365 days after upload, whatever its name,
+so R2's copy of `20260823` lapses about 2027-09-02, a year after it was uploaded at
+2026-09-02 15:40:42Z (HANDOFF §6b-1 item I).
+
+**Nothing has ever been restored from these archives.** The push compares the remote
+object's md5 with the local archive's, and parity compares names; neither unpacks
+anything. A bad `zstd` stream or a layout nobody has unpacked passes both every day
+and is found on the day it is needed. Postgres is proven by restoring it; the bank is
+not, and since 2026-09-21 local retention is one day rather than fourteen, so R2 is
+the only route to any earlier day. HANDOFF §6b-1 item J owes the restore proof.
 
 ## The two sides are checked against each other
 
@@ -220,10 +237,10 @@ handed straight to a backfill. An empty snapshot root fails rather than passing:
 checker that reports success over zero comparisons is the silent failure it was added
 to catch.
 
-The invariant is one-directional. Local keeps 14 and remote keeps 60, so `local ⊆
-remote` is the designed steady state — remote archives with no local snapshot are the
-depth the off-box copy exists to buy, and asserting set equality would fail every day
-from day fifteen.
+The invariant is one-directional. Local keeps one daily plus `20260823` and remote
+keeps 60, so `local ⊆ remote` is the designed steady state — remote archives with no
+local snapshot are the depth the off-box copy exists to buy, and asserting set equality
+would fail every day from the second day.
 
 The comparison takes the remote listing on stdin and touches no network, which is why
 it is exercised against real directories in `tests/minuteBankParity.test.ts` rather

@@ -10,10 +10,11 @@
 # it. Verifying an upload and verifying the ARCHIVE SET are different claims.
 #
 # THE INVARIANT IS ONE-DIRECTIONAL, and that is deliberate. Local retention is
-# 14 snapshots, remote is 60, so local ⊆ remote is the designed steady state:
-# every local snapshot must have an off-box archive, and remote archives with
-# no local snapshot are the depth this whole mechanism exists to buy. Asserting
-# set equality would fail every day from day fifteen.
+# one daily plus the protected 20260823, remote is 60, so local ⊆ remote is
+# the designed steady state: every local snapshot must have an off-box
+# archive, and remote archives with no local snapshot are the depth this whole
+# mechanism exists to buy. Asserting set equality would fail every day from
+# the second day.
 #
 # NO NETWORK, BY CONSTRUCTION. The remote listing arrives on stdin. The caller
 # owns rclone and the credential; this script owns the comparison. That split

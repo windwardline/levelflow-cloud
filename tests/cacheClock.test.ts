@@ -186,8 +186,14 @@ describe("the store guard's refusals are loud and the ops jobs know their names"
     // cache — boot it out before touching the store (#358 finding 3).
     assert.match(runbook, /launchctl bootout/);
     // The archive must live where `git clean -dfx` cannot reach it
-    // (#358 finding 7).
-    assert.match(runbook, /~\/levelflow-cache-condemned/);
+    // (#358 finding 7), and since 2026-09-21 out of the home folder itself.
+    assert.match(runbook, /~\/\.local\/share\/levelflow-cloud\/archives\/levelflow-cache-condemned/);
+    assert.doesNotMatch(runbook, /~\/levelflow-/, "the runbook writes into the home folder again");
+    // The same migration, in the one other place an operator reads a path for
+    // these archives: verify-rebuild-depth's usage line. Nothing else pins it.
+    const usage = readFileSync("scripts/verify-rebuild-depth.ts", "utf8");
+    assert.match(usage, /~\/\.local\/share\/levelflow-cloud\/archives\/levelflow-cache-v3-preDateFix/);
+    assert.doesNotMatch(usage, /~\/levelflow-cache/, "the usage line names the home folder again");
     // A rebuilt cache that silently stops updating is the same failure
     // inverted — the runbook re-arms the agent it stopped.
     assert.match(runbook, /levelflow-cache-topup/);
