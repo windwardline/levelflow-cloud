@@ -1102,7 +1102,7 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
     const why = "a misspelt target";
     assertRefusedWritingNothing(run, /--targets names GBPJYP, on no shard's roster/, researchDir, ledgerDir, why);
     // In the script that burns the read, the refusal says what re-running costs.
-    assert.match(run.stderr, /and the read still spends the corpus's one confirm read/, `${why}: the refusal lost its consequence`);
+    assert.match(run.stderr, /and a read over it would still spend the corpus's one confirm read/, `${why}: the refusal lost its consequence`);
     assert.equal(run.exitCode, 1, `${why}: the refusal must exit 1`);
     assert.doesNotMatch(run.stderr, /EURGBP/, `${why}: the refusal named a target that is on the roster`);
     assertOneLine(run, why);
@@ -1307,6 +1307,8 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
         assertExecuted("scripts/derive-4d.ts", run);
         assert.equal(run.exitCode, 1, `${why}: must exit 1:\n${run.stderr}`);
         assert.match(run.stderr, refusal);
+        // derive-4d burns nothing, so its refusal names no confirm read.
+        assert.doesNotMatch(run.stderr, /confirm read|undefined/, `${why}: a consequence that is not derive-4d's`);
         assert.equal(run.stderr.trim().split("\n").length, 1, `${why}: an operator's typo is one line:\n${run.stderr}`);
         assert.deepEqual(readdirSync(outDir), [], `${why}: candidates were written for a run that refused`);
       });

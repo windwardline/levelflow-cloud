@@ -749,7 +749,6 @@ export function resolveGradingPopulation(input: {
   manifests: readonly HoldoutManifest[];
   targetsFlag: string | undefined;
   holdoutCycle: boolean;
-  pinDir?: string;
 }): { symbolFilter: Set<string> | undefined; heldOut: string[] | undefined } {
   const { script, manifests, targetsFlag, holdoutCycle } = input;
   if (holdoutCycle && targetsFlag !== undefined) {
@@ -789,7 +788,7 @@ export function resolveGradingPopulation(input: {
     return { heldOut: undefined, symbolFilter: new Set(named) };
   }
   if (holdoutCycle) {
-    const held = resolveHeldOut(manifests, input.pinDir).held;
+    const held = resolveHeldOut(manifests).held;
     if (held.size === 0) {
       throw new OperatorInputError(
         `${script}: --holdout-cycle drew no held-out market from the shards' ` +

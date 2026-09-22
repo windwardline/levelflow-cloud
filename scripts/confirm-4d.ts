@@ -233,7 +233,7 @@ async function main() {
   // `--holdout-cycle --targets X` read X under the holdout prefix. Resolved
   // here, before the freeze, and shared with derive-4d so the two cannot drift.
   const { symbolFilter } = resolveGradingPopulation({
-    consequence: "and the read still spends the corpus's one confirm read",
+    consequence: "and a read over it would still spend the corpus's one confirm read",
     holdoutCycle,
     manifests,
     script: "confirm-4d",
