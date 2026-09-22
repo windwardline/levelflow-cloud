@@ -78,8 +78,8 @@ The later run appends that minute after its own newest bar. Measured 2026-09-21 
 The other 412 steps predate the thirty runs a sidecar remembers, so they are
 consistent with the mechanism rather than proven by it. Nothing is lost or
 duplicated, and a sort by `date` yields the true series. The files are deliberately
-not rewritten into order: the bank is unrecoverable, and a reader-side sort costs
-nothing.
+not rewritten into order: a rewrite of the one copy risks what an append never does,
+and a reader-side sort costs nothing.
 
 De-duplication holds because the key window outlasts the provider's: 8,000 keys
 against a largest single-run fetch of 4,276 bars. Late fills reach back a day at

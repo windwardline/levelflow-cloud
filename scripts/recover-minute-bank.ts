@@ -36,11 +36,11 @@
  */
 import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 
-import { bankableSymbols, usableBar } from "./bank-minute-bars.ts";
+import { bankableSymbols, RETRY_ATTEMPTS, RETRY_BASE_DELAY_MS, usableBar, withRetry } from "./bank-minute-bars.ts";
 import { redactProviderSecrets } from "../supabase/functions/trade-analyzer/redact.ts";
 import { flagReader, OperatorInputError, soleFlagIndex } from "./flagReader.ts";
 import { createByteBudget, SpendRefusedError, type ByteBudget } from "./fmpByteBudget.ts";
-import { createProbeGate, type FetchLike } from "./fmpCircuit.ts";
+import { createProbeGate, isCircuitRefusal, type FetchLike } from "./fmpCircuit.ts";
 import {
   formatStandDown,
   governedBudget,
@@ -69,8 +69,10 @@ const MAX_DATES = 31;
  */
 const UNDATED_REACH_DAYS = 7;
 const DAY_MS = 86_400_000;
-const ATTEMPTS = 5;
-const BASE_DELAY_MS = 2_000;
+/** A day holds at most this many minutes; more means the dedupe did not hold. */
+const MINUTES_PER_DAY = 1_440;
+/** The bank's own key shape. Dedupe is string equality, so any other shape would append everything. */
+const BANK_DATE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
 
 // The ONE declaration of which flags own the token after them.
 const VALUE_FLAGS = new Set(["--from", "--to", "--concurrency"]);
@@ -229,11 +231,33 @@ type Context = {
   requests: number;
 };
 
-const retryable = (error: unknown) =>
-  !(error instanceof SpendRefusedError) &&
-  !(error instanceof ProviderRefusalError && (error.kind !== null || (error.status < 500 && error.status !== 429)));
+/**
+ * A non-ok answer, carried through the bank's retry ladder. The message is the
+ * bank's own `HTTP nnn <body>`, which is what that ladder reads: a 429 or 5xx
+ * retries, any other 4xx is settled, and a wall no retry clears is final.
+ */
+class Refused extends Error {
+  constructor(readonly refusal: ProviderRefusalError) {
+    super(`HTTP ${refusal.status}${refusal.body ? ` ${refusal.body}` : ""}`);
+  }
+}
 
-/** One dated day. Its bytes are recorded before anything can refuse them. */
+/**
+ * A failure no later request in this run can clear: the governor's refusal, or
+ * a wall the provider named (bandwidth, entitlement, suspension, a rejected
+ * key). It stops the run. Anything else costs its own day and the run goes on:
+ * a settled 404 for one symbol says nothing about the next.
+ */
+const final = (error: unknown) =>
+  error instanceof SpendRefusedError ||
+  (error instanceof Refused && (error.refusal.kind !== null || isCircuitRefusal(error.message)));
+
+/**
+ * One dated day, on the bank's retry ladder. Only the request and the body are
+ * retried: the bytes are recorded once the body is read, and the answer parsed
+ * after that, so a refusal the record raises or a malformed answer is bought
+ * once and never asked again.
+ */
 async function fetchDay(ctx: Context, symbol: string, date: string): Promise<RawBar[]> {
   const { deps } = ctx;
   const url = new URL(`${BASE}/${ENDPOINT}`);
@@ -241,45 +265,47 @@ async function fetchDay(ctx: Context, symbol: string, date: string): Promise<Raw
   url.searchParams.set("from", date);
   url.searchParams.set("to", date);
   url.searchParams.set("apikey", deps.key!);
-  for (let attempt = 1; ; attempt += 1) {
-    try {
+  const text = await withRetry(
+    async () => {
       ctx.requests += 1;
       const response = await ctx.fetch(url, { headers: { accept: "application/json" } });
       if (!response.ok) {
-        throw await providerRefusal(response, {
-          atMs: deps.now(),
-          consumer: "adhoc",
-          endpointPath: ENDPOINT_PATH,
-          label: LABEL,
-          note: true,
-          state: deps.state,
-        });
+        throw new Refused(
+          await providerRefusal(response, {
+            atMs: deps.now(),
+            consumer: "adhoc",
+            endpointPath: ENDPOINT_PATH,
+            label: LABEL,
+            note: true,
+            state: deps.state,
+          }),
+        );
       }
-      const answeredAtMs = deps.now();
-      const text = await response.text();
-      try {
-        ctx.budget.record(Buffer.byteLength(text), { answeredAtMs, endpointPath: ENDPOINT_PATH });
-      } catch (error) {
-        if (!(error instanceof SpendRefusedError)) throw error;
-        // Bought either way: keep the minutes, then stop.
-        ctx.stop ??= error;
-      }
-      const payload = JSON.parse(text) as unknown;
-      if (!Array.isArray(payload)) throw new Error(`the answer was not a list of bars: ${text.slice(0, 200)}`);
-      return payload as RawBar[];
-    } catch (error) {
-      if (attempt >= ATTEMPTS || !retryable(error) || ctx.stop) throw error;
-      await deps.sleep(BASE_DELAY_MS * 2 ** (attempt - 1));
-    }
+      return response.text();
+    },
+    { attempts: RETRY_ATTEMPTS, baseDelayMs: RETRY_BASE_DELAY_MS, sleep: deps.sleep },
+  );
+  try {
+    ctx.budget.record(Buffer.byteLength(text), { answeredAtMs: deps.now(), endpointPath: ENDPOINT_PATH });
+  } catch (error) {
+    if (!(error instanceof SpendRefusedError)) throw error;
+    // Bought either way: keep the minutes, then stop.
+    ctx.stop ??= error;
   }
+  const payload = JSON.parse(text) as unknown;
+  if (!Array.isArray(payload)) throw new Error(`the answer was not a list of bars: ${text.slice(0, 200)}`);
+  return payload as RawBar[];
 }
 
-type Tally = { symbol: string; fetched: number; appended: number; dropped: number; missed: string[] };
+type Tally = { symbol: string; fetched: number; appended: number; dropped: number; missed: string[]; refused: boolean };
 
 async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan): Promise<Tally> {
-  const tally: Tally = { appended: 0, dropped: 0, fetched: 0, missed: [], symbol };
+  const tally: Tally = { appended: 0, dropped: 0, fetched: 0, missed: [], refused: false, symbol };
+  const asked = plan.dates.filter((date) => date >= store.firstDay);
+  if (asked.length === 0) return tally;
   const fresh: Array<{ date: string; open: number; high: number; low: number; close: number; volume: number }> = [];
-  for (const date of plan.dates.filter((date) => date >= store.firstDay)) {
+  let foreign: string | null = null;
+  for (const date of asked) {
     if (ctx.stop) {
       tally.missed.push(date);
       continue;
@@ -288,16 +314,22 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
     try {
       raw = await fetchDay(ctx, symbol, date);
     } catch (error) {
-      if (!retryable(error)) ctx.stop ??= error;
       tally.missed.push(date);
-      if (retryable(error)) {
-        ctx.deps.print.err(`${symbol} ${date}: ${redactProviderSecrets(error instanceof Error ? error.message : String(error))}`);
-      }
+      if (final(error)) ctx.stop ??= error;
+      else ctx.deps.print.err(`${symbol} ${date}: ${redactProviderSecrets(error instanceof Error ? error.message : String(error))}`);
       continue;
     }
     tally.fetched += raw.length;
     for (const bar of raw) {
-      if (!usableBar(bar) || bar.date.slice(0, 10) !== date) {
+      if (!usableBar(bar)) {
+        tally.dropped += 1;
+        continue;
+      }
+      if (!BANK_DATE.test(bar.date)) {
+        foreign ??= bar.date;
+        continue;
+      }
+      if (bar.date.slice(0, 10) !== date) {
         tally.dropped += 1;
         continue;
       }
@@ -312,6 +344,21 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
         volume: Number.isFinite(bar.volume) ? bar.volume! : 0,
       });
     }
+  }
+  // Dedupe is string equality on the provider's date, and the store is
+  // append-only: a key shape that drifted would append every minute again,
+  // permanently. So the whole symbol is refused before a line is written.
+  const perDay = new Map<string, number>();
+  for (const bar of fresh) perDay.set(bar.date.slice(0, 10), (perDay.get(bar.date.slice(0, 10)) ?? 0) + 1);
+  const overfull = [...perDay].find(([day, added]) => (store.perDay.get(day) ?? 0) + added > MINUTES_PER_DAY);
+  if (foreign !== null || overfull !== undefined) {
+    ctx.deps.print.err(
+      foreign !== null
+        ? `${symbol}: the provider answered with the date "${foreign}", not the bank's YYYY-MM-DD HH:MM:SS; dedupe could not hold, so nothing was appended`
+        : `${symbol}: ${overfull![0]} would hold ${(store.perDay.get(overfull![0]) ?? 0) + overfull![1]} minutes, more than a day has; dedupe did not hold, so nothing was appended`,
+    );
+    tally.refused = true;
+    return tally;
   }
   if (fresh.length > 0) {
     fresh.sort((a, b) => a.date.localeCompare(b.date));
@@ -430,8 +477,9 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
   tallies.sort((a, b) => a.symbol.localeCompare(b.symbol));
   for (const tally of tallies) {
     const missed = tally.missed.length > 0 ? `\tnot recovered: ${tally.missed.join(" ")}` : "";
-    print.out(`${tally.symbol}\tfetched ${tally.fetched}\tappended ${tally.appended}\tdropped ${tally.dropped}${missed}`);
-    if (tally.missed.length > 0) code = 1;
+    const refused = tally.refused ? "\trefused" : "";
+    print.out(`${tally.symbol}\tfetched ${tally.fetched}\tappended ${tally.appended}\tdropped ${tally.dropped}${missed}${refused}`);
+    if (tally.missed.length > 0 || tally.refused) code = 1;
   }
   const appended = tallies.reduce((sum, tally) => sum + tally.appended, 0);
   print.out(
@@ -439,8 +487,9 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
       `${plural(ctx.requests, "request")}, ${ctx.budget.spent()} bytes to the ad-hoc class.`,
   );
   if (ctx.stop) {
-    print.err(redactProviderSecrets(ctx.stop instanceof Error ? ctx.stop.message : String(ctx.stop)));
-    const token = standDownFor(ctx.stop);
+    const stop = ctx.stop instanceof Refused ? ctx.stop.refusal : ctx.stop;
+    print.err(redactProviderSecrets(stop instanceof Error ? stop.message : String(stop)));
+    const token = standDownFor(stop);
     if (token) print.err(token);
     code = 1;
   }

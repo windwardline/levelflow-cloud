@@ -127,8 +127,8 @@ function standDownRemedy(note: string): string {
   }
 }
 
-const RETRY_ATTEMPTS = 5;
-const RETRY_BASE_DELAY_MS = 2_000;
+export const RETRY_ATTEMPTS = 5;
+export const RETRY_BASE_DELAY_MS = 2_000;
 
 type RawBar = {
   date?: string;

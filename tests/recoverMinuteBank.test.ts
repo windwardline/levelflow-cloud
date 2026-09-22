@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, it } from "node:test";
 
 import { readBreaker } from "../scripts/fmpCircuit.ts";
@@ -290,6 +290,61 @@ describe("recover-minute-bank fills the hole and nothing else", () => {
   });
 });
 
+describe("recover-minute-bank refuses a symbol whose answers would not dedupe", () => {
+  // Dedupe is string equality on the provider's date, in an append-only
+  // store. A key shape that drifted would append every minute again, for good.
+  it("refuses a date in another shape, and appends nothing for that symbol", async () => {
+    const state = tempState();
+    const eur = bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    const before = readFileSync(eur.file, "utf8");
+    const provider: Provider = (_symbol, date) =>
+      new Response(JSON.stringify([...day(date), bar(`${date}T00:03:00`)]));
+    const result = await recover({ provider, state });
+    assert.equal(result.code, 1);
+    assert.match(result.output, /EURUSD: the provider answered with the date "2026-09-03T00:03:00", not the bank's/);
+    assert.match(result.output, /^EURUSD\t.*\trefused$/m);
+    assert.equal(readFileSync(eur.file, "utf8"), before);
+  });
+
+  it("refuses a day that would hold more minutes than a day has", async () => {
+    const state = tempState();
+    const minutes = Array.from({ length: 1440 }, (_, i) =>
+      `2026-09-03 ${String(Math.floor(i / 60)).padStart(2, "0")}:${String(i % 60).padStart(2, "0")}:00`);
+    const eur = bank(state, "EURUSD", ["2026-08-06 00:00:00", ...minutes]);
+    const before = readFileSync(eur.file, "utf8");
+    // The same minutes, keyed a second later: a dedupe that did not hold.
+    const provider: Provider = (_symbol, date) =>
+      new Response(JSON.stringify(date === "2026-09-03" ? minutes.map((m) => bar(m.replace(/:00$/, ":30"))) : []));
+    const result = await recover({ provider, state });
+    assert.equal(result.code, 1);
+    assert.match(result.output, /EURUSD: 2026-09-03 would hold 2880 minutes, more than a day has/);
+    assert.equal(readFileSync(eur.file, "utf8"), before);
+  });
+
+  it("leaves the sidecar of a symbol with no asked day alone", async () => {
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    const btc = bank(state, "BTCUSD", ["2026-09-12 00:00:00"]);
+    const before = readFileSync(btc.sidecar, "utf8");
+    const result = await recover({ state });
+    assert.equal(result.code, 0, result.output);
+    assert.equal(readFileSync(btc.sidecar, "utf8"), before, "a no-op must not spend one of the thirty remembered runs");
+    assert.ok(!result.urls.some((url) => url.searchParams.get("symbol") === "BTCUSD"));
+  });
+
+  it("buys a malformed answer once, never on the retry ladder", async () => {
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    const provider: Provider = (_symbol, date) =>
+      new Response(date === "2026-09-04" ? JSON.stringify({ note: "not bars" }) : JSON.stringify(day(date)));
+    const result = await recover({ provider, state });
+    assert.equal(result.code, 1);
+    assert.equal(result.urls.filter((url) => url.searchParams.get("from") === "2026-09-04").length, 1);
+    assert.match(result.output, /EURUSD 2026-09-04: the answer was not a list of bars/);
+    assert.match(result.output, /not recovered: 2026-09-04/);
+  });
+});
+
 describe("recover-minute-bank stops on a wall and keeps what it paid for", () => {
   it("stops at the class's share of the day, appending the minutes already bought", async () => {
     const state = tempState();
@@ -326,6 +381,18 @@ describe("recover-minute-bank stops on a wall and keeps what it paid for", () =>
     assert.ok(breaker.entries.some((entry) => entry.open && entry.kind === "bandwidth"));
   });
 
+  it("asks a settled 404 once, misses that day and goes on", async () => {
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    const provider: Provider = (_symbol, date) =>
+      date === "2026-09-04" ? new Response("{}", { status: 404 }) : new Response(JSON.stringify(day(date)));
+    const result = await recover({ provider, state });
+    assert.equal(result.code, 1);
+    assert.equal(result.urls.filter((url) => url.searchParams.get("from") === "2026-09-04").length, 1);
+    assert.match(result.output, /EURUSD\tfetched 6\tappended 6\tdropped 0\tnot recovered: 2026-09-04/);
+    assert.doesNotMatch(result.output, /fmpStandDown/);
+  });
+
   it("retries a transient failure, then names the day it could not recover and goes on", async () => {
     const state = tempState();
     const eur = bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
@@ -351,13 +418,16 @@ describe("the lock is the bank's own", () => {
     const held = acquireBankLock(state.canonicalBankDir);
     assert.ok("release" in held, "refused" in held ? held.refused : "");
     try {
-      const shell = spawnSync(
-        "/bin/bash",
-        ["-c", `. scripts/ops/bank-lock.sh && acquire_bank_lock "$1"`, "_", state.canonicalBankDir],
-        { encoding: "utf8", env: { ...process.env, LEVELFLOW_BANK_LOCK_TIMEOUT: "0" } },
-      );
-      assert.notEqual(shell.status, 0, `${shell.stdout}${shell.stderr}`);
+      // By absolute path, and the helper's own words before the exit status:
+      // bash that cannot find the file also exits non-zero.
+      const helper = resolve("scripts/ops/bank-lock.sh");
+      assert.ok(existsSync(helper), helper);
+      const shell = spawnSync("/bin/bash", ["-c", `. "$1" && acquire_bank_lock "$2"`, "_", helper, state.canonicalBankDir], {
+        encoding: "utf8",
+        env: { ...process.env, LEVELFLOW_BANK_LOCK_TIMEOUT: "0" },
+      });
       assert.match(`${shell.stdout}${shell.stderr}`, new RegExp(`could not acquire the bank lock .* \\(held by pid ${process.pid}\\)`));
+      assert.notEqual(shell.status, 0, `${shell.stdout}${shell.stderr}`);
     } finally {
       held.release();
     }
