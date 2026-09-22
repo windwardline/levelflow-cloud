@@ -2148,14 +2148,21 @@ export async function gradeCorpus(
   // after the door and before the fold is opened writes it here:
   // confirm-4d freezes its picks in this hook, so a run the door refuses
   // freezes nothing, and a run it admits has its picks on disk before the
-  // first confirm row is read. Every refusal below needs rows — an
-  // unparseable line, emit bytes that are not the manifest's, a column the
-  // named arm lacks, a baseline the symbol filter leaves without rows, a
-  // derived variant shadowing an emitted one, and the frozen read's
-  // identity checks — and cannot run before the fold is opened without
-  // reading the corpus twice. Each of them throws before the ledger
-  // append below, which is what lets confirm-4d withdraw its freeze on any
-  // throw: a throw from this function means no read was recorded.
+  // first confirm row is read. The refusals below are found in rows and
+  // could not run before the fold is opened without reading the corpus
+  // twice: an unparseable line, emit bytes that are not the manifest's, a
+  // column the named arm lacks, a field a derived filter reads that a
+  // baseline row lacks, a derived variant shadowing an emitted one, the
+  // frozen read's identity checks, and the cube's baseline check when no
+  // accepted baseline row reaches the gate. That last check also catches
+  // a symbol filter this door could refuse without a row and does not. The
+  // filter is never checked against the roster here, so an empty filter,
+  // or one naming only markets off the roster, arrives as an empty cube.
+  // confirm-4d refuses both shapes of --targets before it calls this; an
+  // empty --holdout-cycle draw still lands here, after the freeze. Each
+  // refusal below throws before the ledger append, which is what lets
+  // confirm-4d withdraw its freeze on any throw: a throw from this
+  // function means no read was recorded.
   if (options.beforeOpen) await options.beforeOpen();
   for (const [shardIndex, path] of paths.entries()) {
     // THE ONE READ. The door seals the confirm fold by default (R4 act 1);

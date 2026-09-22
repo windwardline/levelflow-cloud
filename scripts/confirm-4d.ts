@@ -12,15 +12,20 @@
 // whole row-free corpus door (every shard's manifest, their agreement as
 // one measurement, the requested roster, a --baseline that names a cell of
 // the grid, the prior-read refusal) and before the first confirm row is
-// read. A run the door refuses therefore rewrites no artifact, and a run it
-// admits has its picks on disk, with a `frozenAt` that precedes the
-// ledger's `readAt`, before the fold opens. Refusals that need rows — an
-// unparseable line, emit bytes that are not the manifest's, a baseline the
-// filter leaves without rows — can only land after the freeze. gradeCorpus
-// throws each of them before its ledger append, so a throw means nothing
-// was recorded, and the freeze is withdrawn: the picks file goes back to
-// the bytes it held before the run, or away if it did not exist. The
-// confirm read runs once, per corpus hash, into the burned log.
+// read. `--targets` is checked before gradeCorpus is called: an entry on no
+// shard's roster, or a list that splits to nothing, refuses there. A run
+// refused at any of these rewrites no artifact, and a run admitted has its
+// picks on disk, with a `frozenAt` that precedes the ledger's `readAt`,
+// before the fold opens. What refuses after the freeze is found in the
+// rows: an unparseable line, emit bytes that are not the manifest's, and
+// a gate that no accepted baseline row reaches — a corpus with none,
+// targets on the roster that carry none, or a `--holdout-cycle` draw that
+// holds none. An empty draw is known before any row is read and is still
+// refused only there. gradeCorpus throws each of them before its ledger
+// append, so a throw means nothing was recorded, and the freeze is
+// withdrawn: the picks file goes back to the bytes it held before the
+// run, or away if it did not exist. The confirm read runs once, per
+// corpus hash, into the burned log.
 //
 // Unknown flags are refused by name, in the same walk the gate uses. In
 // this script an ignored dial is an ignored dial on a read that cannot be
@@ -221,6 +226,55 @@ async function main() {
   // requested roster and the prior-read refusal live in gradeCorpus, and
   // the freeze waits for all of them in its `beforeOpen` hook.
   const manifests = paths.map((path) => assertManifest(path));
+  // EVERY TARGET IS A MARKET OF THE ROSTER (2026-09-22). The filter was
+  // read and never checked, so over a shard of EURGBP and GBPJPY,
+  // `--targets EURGBP,GBPJYP` exited 0: it froze the picks and recorded a
+  // read with symbolFilter ["EURGBP","GBPJYP"] and symbolsRead ["EURGBP"].
+  // That read is the corpus's one, so the market the operator meant could
+  // not be read again without --acknowledge-prior-reads. The roster is
+  // every market the shards were asked for or swept, and a target outside
+  // it is refused here, before the freeze. The match is exact, as the
+  // read's own row filter is: each target is upper-cased as it is split,
+  // and every symbol the driver sweeps is upper-case (replay-sweep
+  // upper-cases --symbols, and the scan roster is upper-case), so a roster
+  // market matches, and a target no row could match is refused rather than
+  // read as nothing. So is a list that splits to nothing: as an empty
+  // filter it froze the picks and failed only when the empty cube reached
+  // the baseline check.
+  let targets: Set<string> | undefined;
+  if (targetsFlag !== undefined) {
+    const named = [
+      ...new Set(
+        targetsFlag.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
+      ),
+    ];
+    if (named.length === 0) {
+      throw new OperatorInputError(
+        `confirm-4d: --targets ${JSON.stringify(targetsFlag)} names no market ` +
+          `once split on commas — an empty filter reads nothing; name the ` +
+          `markets to read, or drop --targets`,
+      );
+    }
+    const roster = new Set(
+      manifests.flatMap((manifest) => [
+        ...(manifest.requestedSymbols ?? []),
+        ...manifest.symbols.map((entry) => entry.symbol),
+      ]),
+    );
+    const outside = named.filter((symbol) => !roster.has(symbol));
+    if (outside.length > 0) {
+      const listed = outside.length === 1
+        ? outside[0]
+        : `${outside.slice(0, -1).join(", ")} and ${outside[outside.length - 1]}`;
+      throw new OperatorInputError(
+        `confirm-4d: --targets names ${listed}, on no shard's roster of ` +
+          `${roster.size} markets (requested or swept) — a target off the ` +
+          `roster reads nothing, and the read still spends the corpus's one ` +
+          `confirm read; name markets the shards carry`,
+      );
+    }
+    targets = new Set(named);
+  }
   const candidates = JSON.parse(
     readFileSync(`${dir}/${prefix}-candidates.json`, "utf8"),
   ) as {
@@ -326,11 +380,7 @@ async function main() {
     // over the symbols that happen to have rows.
     symbolFilter = new Set(resolveHeldOut(manifests).held);
   }
-  if (targetsFlag) {
-    symbolFilter = new Set(
-      targetsFlag.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
-    );
-  }
+  if (targets !== undefined) symbolFilter = targets;
   // The picks file's bytes BEFORE this run, or null when it has none, so a
   // read that fails after the freeze can withdraw it exactly (2026-09-22).
   // The freeze must land before the fold opens, so a refusal that needs

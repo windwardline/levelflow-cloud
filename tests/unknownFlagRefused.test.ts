@@ -951,10 +951,15 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
   });
 
   it("a shard with no requested roster leaves no picks artifact", async () => {
-    const researchDir = seededResearchDir();
-    const ledgerDir = scratchDir("confirm4d-ledger-");
-    const run = await confirm4d([shard("EURGBP", { requestedSymbols: null })], researchDir, ledgerDir);
-    assertRefusedWritingNothing(run, /carries no requestedSymbols/, researchDir, ledgerDir, "no requested roster");
+    // With --targets too: a market the shard carries is on the roster whether
+    // or not the request was recorded, so the refusal is the roster door's,
+    // never a claim that the target names no market.
+    for (const targets of [[], ["--targets", "EURGBP"]]) {
+      const researchDir = seededResearchDir();
+      const ledgerDir = scratchDir("confirm4d-ledger-");
+      const run = await confirm4d([shard("EURGBP", { requestedSymbols: null }), ...targets], researchDir, ledgerDir);
+      assertRefusedWritingNothing(run, /carries no requestedSymbols/, researchDir, ledgerDir, `no requested roster ${targets.join(" ")}`);
+    }
   });
 
   it("a refused dial leaves no picks artifact", async () => {
@@ -1072,6 +1077,61 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
     assert.doesNotMatch(again.stdout, /frozen:/);
     assert.deepEqual(snapshot(researchDir), researchBefore, "the refused re-read rewrote an artifact");
     assert.deepEqual(snapshot(ledgerDir), ledgerBefore, "the refused re-read moved the ledger");
+  });
+
+  it("a --targets entry on no shard's roster refuses by name before the freeze, and burns nothing", async () => {
+    // Review of c906f75: over a shard of EURGBP and GBPJPY, `--targets
+    // EURGBP,GBPJYP` exited 0, froze the picks and appended a recorded read
+    // with symbolFilter ["EURGBP","GBPJYP"] and symbolsRead ["EURGBP"]. The
+    // corpus's one read went to a typo, and GBPJPY, the market meant, was
+    // never read.
+    const researchDir = seededResearchDir(["EURGBP", "GBPJPY"]);
+    const ledgerDir = scratchDir("confirm4d-ledger-");
+    const ledgerBefore = snapshot(ledgerDir);
+    const run = await confirm4d([shard(["EURGBP", "GBPJPY"]), "--targets", "EURGBP,GBPJYP"], researchDir, ledgerDir);
+    const why = "a misspelt target";
+    assertRefusedWritingNothing(run, /--targets names GBPJYP, on no shard's roster/, researchDir, ledgerDir, why);
+    assert.equal(run.exitCode, 1, `${why}: the refusal must exit 1`);
+    assert.doesNotMatch(run.stderr, /EURGBP/, `${why}: the refusal named a target that is on the roster`);
+    assertOneLine(run, why);
+    assert.deepEqual(snapshot(ledgerDir), ledgerBefore, `${why}: the ledger moved`);
+  });
+
+  it("a --targets that names no market after the split refuses before the freeze", async () => {
+    // `--targets " , "` passes the blank-token guard and splits to nothing.
+    // It used to reach the read as an EMPTY filter, freeze the picks, and
+    // only then refuse, when the empty cube met the baseline check.
+    const researchDir = seededResearchDir();
+    const ledgerDir = scratchDir("confirm4d-ledger-");
+    const ledgerBefore = snapshot(ledgerDir);
+    const run = await confirm4d([shard("EURGBP"), "--targets", " , "], researchDir, ledgerDir);
+    const why = "an empty target list";
+    assertRefusedWritingNothing(run, /--targets " , " names no market/, researchDir, ledgerDir, why);
+    assert.equal(run.exitCode, 1, `${why}: the refusal must exit 1`);
+    assertOneLine(run, why);
+    assert.deepEqual(snapshot(ledgerDir), ledgerBefore, `${why}: the ledger moved`);
+  });
+
+  it("--targets reads any market of the roster, requested or swept, on any shard, in any case", async () => {
+    // The other direction: a check that refused every target would pass both
+    // cases above. The roster is the union over BOTH shards, so each shard
+    // contributes a target. USDJPY was requested and never swept: it is on
+    // the roster and reads nothing. Two targets are lower case, with spaces.
+    const researchDir = seededResearchDir(["EURGBP", "GBPJPY"]);
+    const ledgerDir = scratchDir("confirm4d-ledger-");
+    const shards = [
+      shard("EURGBP", { requestedSymbols: ["EURGBP", "USDJPY"] }),
+      shard("GBPJPY"),
+    ];
+    const run = await confirm4d([...shards, "--targets", " eurgbp , USDJPY,gbpjpy"], researchDir, ledgerDir);
+    assertExecuted("scripts/confirm-4d.ts", run);
+    assert.equal(run.exitCode, 0, `a target list on the roster must read:\n${run.stderr}`);
+    const ledgerName = readdirSync(ledgerDir).find((name) => /^confirm-log-.*\.jsonl$/.test(name));
+    assert.ok(ledgerName, "the read must be recorded in the redirected ledger");
+    const [entry] = readFileSync(join(ledgerDir, ledgerName), "utf8").trim().split("\n")
+      .map((line) => JSON.parse(line) as { symbolFilter: string[] | null; symbolsRead: string[] });
+    assert.deepEqual(entry.symbolFilter, ["EURGBP", "GBPJPY", "USDJPY"]);
+    assert.deepEqual(entry.symbolsRead, ["EURGBP", "GBPJPY"]);
   });
 
   it("a corrupt row after an acknowledged re-read's freeze restores the prior picks, byte for byte", async () => {
