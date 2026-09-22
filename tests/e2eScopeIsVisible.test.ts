@@ -16,50 +16,66 @@ import { describe, it } from "node:test";
  * "101 passed, 14 skipped" are different runs and one of them went unsaid for
  * four days. A narrowed suite reporting a clean 40-of-40 is that same
  * confusion with a smaller denominator, so the scope is announced either way.
+ *
+ * The decision itself moved into scripts/deploy-e2e-scope.sh on 2026-09-16 and
+ * is executed case by case by scripts/deploy-e2e-scope-test.sh. These pins hold
+ * the source shape those cases exercise, and the workflow wiring they cannot.
  */
 
 const DEPLOY = readFileSync(".github/workflows/deploy.yml", "utf8");
+const SCRIPT = readFileSync("scripts/deploy-e2e-scope.sh", "utf8");
 const REPORTER = readFileSync("tests/e2e/coverageReporter.ts", "utf8");
 
-describe("the deploy spends bandwidth only on pushes that could need it", () => {
+describe("the deploy spends bandwidth only on runs that could need it", () => {
   it("decides scope from the paths the push actually changed", () => {
     assert.match(DEPLOY, /id: e2e-scope/);
     assert.match(
-      DEPLOY,
+      SCRIPT,
       /grep -qE '\^\(src\/\|supabase\/functions\/\|supabase\/migrations\/\)'/,
     );
   });
 
-  it("runs EVERYTHING when the base cannot be resolved", () => {
-    // The failure to avoid is a silent narrowing, so the ambiguous case buys
-    // coverage rather than saving bytes.
+  it("feeds the script the push's own base and head", () => {
+    // A dispatch renders `github.event.before` empty, which the script reads as
+    // unresolvable. Deriving the base anywhere else would decide on a diff the
+    // push did not make.
     const step = DEPLOY.slice(
       DEPLOY.indexOf("id: e2e-scope"),
       DEPLOY.indexOf("- name: Run browser tests"),
     );
-    assert.match(step, /0000000000000000000000000000000000000000/);
-    assert.match(step, /full=true/);
-    // BOUNDED AT `exit 0`, not at the end of the step. A first draft sliced to
-    // the step's end and matched the `full=true` from the LATER app-paths
-    // branch, so flipping this fallback to `full=false` — a silent narrowing
-    // on every ambiguous push — survived the mutation.
-    const start = step.indexOf("is not resolvable");
-    const fallback = step.slice(start, step.indexOf("exit 0", start));
+    assert.match(step, /E2E_BASE: \$\{\{ github\.event\.before \}\}/);
+    assert.match(step, /E2E_HEAD: \$\{\{ github\.sha \}\}/);
+  });
+
+  it("runs EVERYTHING when the base cannot be resolved — once the Edge is unparked", () => {
+    // The failure to avoid is a silent narrowing, so the ambiguous case buys
+    // coverage rather than saving bytes. It is reachable only when
+    // DESK_PARKED is false: the parked block above it has already emitted.
+    assert.match(SCRIPT, /0000000000000000000000000000000000000000/);
+    // BOUNDED AT THE FALLBACK'S OWN EMIT, not at the end of the script. A first
+    // draft of this pin (against the old inline step) sliced to the step's end
+    // and matched the `full=true` of the LATER app-paths branch, so flipping
+    // this fallback to `full=false` survived the mutation.
+    const baseBlock = SCRIPT.indexOf("# --- base ---");
+    const start = SCRIPT.indexOf("is not resolvable", baseBlock);
+    assert.ok(baseBlock > 0 && start > baseBlock, "the fallback branch moved — re-anchor");
+    const emitAt = SCRIPT.indexOf("emit ", start);
+    const fallback = SCRIPT.slice(baseBlock, SCRIPT.indexOf("\n", emitAt));
     assert.ok(fallback.length > 20, "the fallback branch moved — re-anchor");
     assert.match(
       fallback,
-      /full=true/,
+      /emit true ran/,
       "an unresolvable base must run the full suite, not the narrow one",
     );
     assert.doesNotMatch(
       fallback,
-      /full=false/,
+      /emit false/,
       "the ambiguous case narrows the suite silently, which is the one " +
         "failure this gate must not have",
     );
   });
 
-  it("still deploys on every push — only the VERIFICATION narrows", () => {
+  it("still deploys on every run — only the VERIFICATION narrows", () => {
     // A docs merge still builds, migrates, deploys the functions and runs the
     // auth suites. Gating the release would be a different and much worse
     // change.
@@ -104,10 +120,10 @@ describe("a narrowed run says so", () => {
     //
     // The OUTPUT NAME is not the claim. This pinned `outputs.full`, a boolean,
     // which stopped being enough on 2026-09-01: the scope has three states
-    // now — ran, stood-down, and stood-down-parked — because a parked
-    // app-touching push stands the FMP projects down for a reason the
-    // docs-only sentence would state falsely. The env var carries the state
-    // directly rather than a boolean the reporter would have to re-interpret.
+    // now — ran, stood-down, and stood-down-parked — because a parked run
+    // stands the FMP projects down for a reason the docs-only sentence would
+    // state falsely. The env var carries the state directly rather than a
+    // boolean the reporter would have to re-interpret.
     assert.match(
       DEPLOY,
       /LEVELFLOW_E2E_FMP_PROJECTS: \$\{\{ steps\.e2e-scope\.outputs\.\w+ \}\}/,

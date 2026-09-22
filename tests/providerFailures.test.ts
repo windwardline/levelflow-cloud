@@ -107,7 +107,7 @@ describe("a provider failure is recorded, never swallowed", () => {
     );
     assert.match(
       analyzer,
-      /fetchMacroRateContext\(\s*fetchWithTimeout,\s*recordAnalyzerEvent,\s*\)/,
+      /fetchMacroRateContext\(\s*fetchWithTimeout,\s*permit,\s*recordAnalyzerEvent,\s*\)/,
     );
   });
 

@@ -61,10 +61,12 @@ export default class CoverageReporter implements Reporter {
     // A WHOLE PROJECT ABSENT IS THE SAME DEFECT AS A SILENT SKIP, one level up.
     //
     // The deploy runs the FMP-spending projects — `workspace`, `visual-proof`,
-    // `analyzer-abuse` — only when the push changed `src/`,
-    // `supabase/functions/` or `supabase/migrations/`, because 45% of merges
-    // change none of them and spent a full live scan matrix proving a
-    // documentation edit. That saving is only safe while the narrowing is
+    // `analyzer-abuse` — only while the desk is unparked, and then only when
+    // the push changed `src/`, `supabase/functions/` or
+    // `supabase/migrations/` (or its base cannot be resolved), because 45% of
+    // merges change none of them and spent a full live scan matrix proving a
+    // documentation edit (scripts/deploy-e2e-scope.sh). That saving is only
+    // safe while the narrowing is
     // VISIBLE: this file's whole reason for existing is that "115 passed, 0
     // skipped" and "101 passed, 14 skipped" are different runs, and a
     // narrowed suite reporting a clean 40-of-40 is that same confusion with a
@@ -80,27 +82,27 @@ export default class CoverageReporter implements Reporter {
           "constraint the desk scales into.",
       );
     } else if (fmpProjects === "stood-down-parked") {
-      // A DIFFERENT REASON, AND IT MUST READ AS ONE. This push DID touch the
-      // app — reusing the sentence above would print a claim that is false of
-      // this run, which is the failure this reporter exists to prevent rather
-      // than commit.
+      // A DIFFERENT REASON, AND IT MUST READ AS ONE. Parking is decided before
+      // the diff is read, so this run may or may not have touched the app, and
+      // may have no base at all (a dispatch). The docs-only sentence above
+      // would claim something this run never checked, which is the failure
+      // this reporter exists to prevent rather than commit.
       //
-      // THE COST IS REAL AND IS STATED HERE. While the desk is parked these
-      // three projects are the only live verification of the authenticated
-      // surfaces, so an app change now ships without them. The trade is that
-      // each of their runs costs ~190 live provider calls to prove a desk no
-      // operator can reach: PARKING_GATE turns every arrival away, so the
-      // surfaces under test are unreachable in production for as long as this
-      // holds. The moment the desk unparks, this branch stops firing and the
-      // full matrix returns on the next app-touching push.
+      // THE COST IS REAL AND IS STATED HERE. These three projects are the only
+      // live verification of the authenticated surfaces, and while
+      // DESK_PARKED is true the Edge refuses every provider request they make,
+      // so running them could only fail. Any app change in this run therefore
+      // ships without them. They return on the first run after DESK_PARKED
+      // turns false that touches the app or cannot resolve its base.
       console.log(
         "E2E SCOPE — the FMP-spending projects (workspace, visual-proof, " +
-          "analyzer-abuse) did NOT run, and this push DID touch the app: the " +
-          "desk is PARKED (src/lib/parkingGate.ts), so the authenticated " +
-          "surfaces they verify are unreachable in production and their ~190 " +
-          "live provider calls would prove a desk nobody can open. THE COST: " +
-          "this app change ships without live-desk verification. It returns " +
-          "automatically on the first app-touching push after unparking.",
+          "analyzer-abuse) did NOT run because the desk is PARKED " +
+          "(supabase/functions/_shared/deskParking.ts): the Edge refuses " +
+          "their provider requests, so they could only fail, whatever this " +
+          "run changed, push or dispatch. THE COST: any app change in this " +
+          "run ships without live-desk verification. They return on the " +
+          "first run after DESK_PARKED turns false that touches the app or " +
+          "cannot resolve its base.",
       );
     } else if (fmpProjects === "ran") {
       console.log(

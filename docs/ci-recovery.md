@@ -75,7 +75,10 @@ consequences for diagnosis:
 The preflight also makes `gh run rerun` on an old deploy safe: it skips instead of
 overwriting production with stale functions. To genuinely redeploy after an infra
 failure, re-run the **latest** run or `gh workflow run deploy.yml --ref main` — a
-dispatch runs on the tip, so preflight passes. `tests/securityHardening.test.ts` pins
+dispatch runs on the tip, so preflight passes. A dispatch has no base commit, and
+`scripts/deploy-e2e-scope.sh` reads `DESK_PARKED` before the base: while the Edge is
+parked, a dispatched deploy stands the FMP-spending E2E projects down like any parked
+push. Unparked, an unresolvable base runs the full suite. `tests/securityHardening.test.ts` pins
 `cancel-in-progress: false` here and `true` on the cheap workflows, in both directions.
 
 ## The pending-suite trap

@@ -2475,6 +2475,54 @@ screen's own parameters beyond the grain: the effect floor, the reference price
 and whether a rising family count raises the bar are open and owed with
 recommendations.
 
+## Amendment 47 — a parked desk buys no provider bytes (standing approval, 2026-09-21)
+
+**There are two parking lines, and the second one is on the server.**
+`PARKING_GATE` turns away signed-out arrivals. `DESK_PARKED`
+(`supabase/functions/_shared/deskParking.ts`) refuses every Edge request of
+class `user` before a provider byte is bought: charts, scans and outcome
+refreshes. `DESK_PARKED` implies `PARKING_GATE`. To park, raise `PARKING_GATE`
+first or both together, then run §17p's logout. To unpark, lower `DESK_PARKED`
+alone, wait for a green `deploy.yml` with the full E2E, then lower
+`PARKING_GATE` alone. Every Edge FMP spend is decided once per request and fails
+closed on a ledger outage, the user class included, although §21f makes it the
+last class refused; a visible degradation in `src/` is therefore an unpark
+blocker. So are two preconditions of unpark push 1: reading GoTrue's hosted
+sign-up setting from the dashboard, and deciding whether the owner's `?enter`
+session is exempt.
+
+**Why.** App consults the gate only when there is no session, so a live session
+walked past it, and the Edge served it: market-data checked a session and a rate
+limit, and `mayFetch` had no production caller and failed open. On 2026-09-15
+the ledger recorded 51,246,247 user-class bytes over a day of 12 deploys whose
+FMP-spending projects had stood down. The ledger keeps one row per day and
+class, so attributing that total to the signed-in public-auth project is an
+inference. A dispatched deploy has no base commit, and the scope step read the
+base before the parking state, so a parked dispatch ran the full suite. Only the
+server can refuse a session. §21d rejected a Supabase-native chokepoint because
+bypass would be "enforceable only by a CI pin on call sites"; for the Edge half
+that pin now exists. `tests/fmpBudgetByClass.test.ts` derives every fetch site
+from the provider's identifiers, and every site asserts a permit that only
+`mayFetch` mints. The Worker proxy stays parked.
+
+**What it does not do.** It does not park background work. §21i's no-coupling
+with the crons stands: news-calendar and outcome-sync run under their
+fail-closed 200 MiB/day ceiling while the desk is parked. If background must
+refuse too, the `consumerClass === "user"` condition leaves `decideFmpSpend` and
+§21i's sentence is amended with it. It exempts no account, the E2E user
+included; public-auth signs in with market-data and refresh_outcomes stubbed in
+the browser. It does not bound a request in flight: the ceiling stops the next
+request, and bytes are recorded after the response. It does not settle sign-ups,
+because the repository cannot: `signInWithOtp` passes no `shouldCreateUser`, the
+installed auth-js then asks GoTrue to create the user, `supabase/config.toml`
+has no `[auth]` section, and no code or config file names `enable_signup`.
+Parked, that costs nothing. With `DESK_PARKED` false and `PARKING_GATE` true,
+which the invariant allows, `?enter` and an open sign-up would let anyone spend
+under the 800 MiB user ceiling. Approved under the owner's standing approval of
+recommendations that survived adversarial review: a design, two refuters, two checkers, a
+revision, an implementation and a fresh-eyes review. Recorded here as law;
+governor §21i and desk §17p carry one-line cross-references.
+
 ---
 
 *On the numbering, because the gaps mislead. The headings jump from 25 to 29,

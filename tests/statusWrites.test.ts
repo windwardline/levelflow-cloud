@@ -133,9 +133,11 @@ describe("status writes are compare-and-sets, not last-writer-wins (C1)", () => 
 
 describe("partial failure is failure in the event row too (review follow-up)", () => {
   it("refresh_outcomes records an error when any status write failed", () => {
+    // Bounded at the GRADED response. The refused-spend branch above it
+    // returns its own 503 and records `blocked`, which is not this claim.
     const refresh = body(
       ANALYZER,
-      'if (actionName === "refresh_outcomes")',
+      "const learningRefresh = await refreshGlobalStrategyWeightsThrottled();\n      await recordAnalyzerEvent({",
       "return jsonResponse",
     );
     // The same law outcome-sync's event already follows one file over:

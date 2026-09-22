@@ -27,7 +27,11 @@ describe("construction soft gate", () => {
         "confirm it happened — this message is the only place the pairing is " +
         "enforced, at the one moment someone is definitely looking. The " +
         "2026-08-07 re-park ran both. Confirm the companion step before " +
-        "updating this pin.",
+        "updating this pin. AND THE EDGE LINE ORDERS IT: DESK_PARKED " +
+        "(supabase/functions/_shared/deskParking.ts) implies this flag, so an " +
+        "unpark lowers DESK_PARKED first and lowers this only after a green " +
+        "deploy.yml run of the full E2E; a park raises this first, or both " +
+        "together.",
     );
     assert.match(gate, /sessionStorage/);
     assert.match(gate, /has\("enter"\)/);

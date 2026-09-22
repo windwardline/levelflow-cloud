@@ -55,10 +55,10 @@ npx supabase db push --linked
 npx supabase functions deploy market-data trade-analyzer news-calendar outcome-sync --project-ref your-project-ref
 # Gate credentials (FMP_API_KEY, NEWS_SYNC_TOKEN + its Vault caller copy):
 # Keychain → Supabase, the one conduit — AFTER the functions deploy, because
-# it ends by proving the token against a live news-calendar (a 404 there
-# means "deploy the functions first", and it says so). Defaults to the
-# studio machine and the PRODUCTION project ref — override for any other
-# target:
+# it ends with a token-gated GET to the live news-calendar that fetches
+# nothing (a 404 there means "deploy the functions first"; a 405 means the
+# deployed function predates that verify). Defaults to the studio machine and
+# the PRODUCTION project ref — override for any other target:
 REPO=. PROJECT_REF=your-project-ref scripts/ops/sync-function-secrets.sh
 ```
 
@@ -72,9 +72,12 @@ the Vault secret `news_sync_token` (the caller half pg_cron reads),
 which all persist across deploys. `deploy.yml` deliberately does not
 hold, require, or push either credential (the 2026-08-17 rotations
 stranded exactly such unlisted CI copies — deploy runs 373/374). Rotation
-is: rotate in the Keychain, run the script, done; the script proves the
-token end-to-end with one authenticated news-calendar call, and the
-deploy-time E2E chart gate proves the FMP key. Never pass a credential
+is: rotate in the Keychain, run the script, done. The script's verify is a
+token-gated GET that news-calendar answers before any spend decision: it
+proves the gate half equals the Keychain token and that the running function
+holds the Keychain's `FMP_API_KEY`, compared by a SHA-256 prefix. It does not
+prove FMP accepts that key; only a fetch that runs does — the deploy-time E2E
+chart gate once the desk is unparked, or the minute bank's next run. Never pass a credential
 value on argv — argv is world-readable via `ps -ax`, so no OTHER user or
 process watcher can read what travels by the script's 600-mode temp
 files (the invoking user can always inspect their own processes, and the
@@ -114,8 +117,10 @@ Deployed functions:
 
 - `market-data`: authenticated FMP market-data access.
 - `trade-analyzer`: authenticated FMP-backed, multi-timeframe limit-setup generation.
-- `news-calendar`: token-protected economic-calendar ingestion.
+- `news-calendar`: token-protected economic-calendar ingestion. A token-gated GET is the zero-spend verify described above.
 - `outcome-sync`: token-protected scheduled outcome resolution across users.
+
+Each of the four decides its provider spend once per request and can refuse it with HTTP 503 and a `fmpSpendRefused` of `parked`, `ceiling` or `ledger-unavailable`, never 429. `market-data` and `trade-analyzer` spend as class `user`: they refuse while `DESK_PARKED` is true (`supabase/functions/_shared/deskParking.ts`), when the class has spent its 800 MiB day, or when the ledger cannot answer. `news-calendar` and `outcome-sync` spend as `background`: they are not parked, and they refuse on their 200 MiB day or a ledger outage. A ledger outage is logged with the ledger's own error, redacted; the client body does not carry it. The body names the refusal, the class and that class's own day (§21f); account-wide spend stays in the server log, because `fmp_usage` is readable by no client role. The rule is amendment 47.
 
 Database cron jobs:
 

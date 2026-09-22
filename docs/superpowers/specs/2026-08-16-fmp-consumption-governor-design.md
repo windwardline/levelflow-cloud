@@ -275,6 +275,8 @@ reconciler — to protect 0.8% of the plan. §17j and §17p are untouched, and
 starvation-yield of §21j Phase 1 covers the case that mattered, at a
 fraction of the cost.
 
+*Amended by amendment 47 (2026-09-21): `DESK_PARKED` is a second parking line, on the server, refusing user-class Edge spend; the no-coupling with the crons stands.*
+
 **No rate limiting.** 3,000 calls a minute against a 97-request run.
 
 **No backfill or catch-up anywhere.** A consumer that was refused resumes

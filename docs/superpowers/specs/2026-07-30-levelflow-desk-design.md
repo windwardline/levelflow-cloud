@@ -1011,6 +1011,8 @@ not a reason to destroy anyone's record. Reopening runs the runbook's
 step 3 (flip the flag back, with the e2e specs' gate expectations) and
 nothing else.
 
+*Amended by amendment 47 (2026-09-21): the gate is one of two parking lines. Park raises `PARKING_GATE` first, then this logout; reopen lowers `DESK_PARKED` alone, then `PARKING_GATE` after a green deploy with the full E2E.*
+
 The quiet-entry doormat (`/?enter`) is load-bearing again rather than a
 documented no-op, and the public-auth e2e suite's sign-in tests reach the
 screen through it. The two gate tests invert to gate-up expectations, and
