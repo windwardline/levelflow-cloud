@@ -505,7 +505,7 @@ describe("the first symbol that asks is the scout", () => {
     const result = await recover({ provider: () => new Response(JSON.stringify({ note: "not bars" })), state });
     assert.equal(result.code, 1);
     assert.equal(result.urls.length, 3, "the scout's three days only");
-    assert.match(result.output, /the scout BTCUSD asked 3 dated question\(s\) and got no bars back; standing down/);
+    assert.match(result.output, /the scout BTCUSD asked 3 dated question\(s\) and got no usable bars back \(0 fetched, 0 dropped\); standing down/);
     assert.match(result.output, /^Not started after the stop: EURUSD\.$/m);
   });
 
@@ -518,8 +518,51 @@ describe("the first symbol that asks is the scout", () => {
     const result = await recover({ provider: () => new Response("[]"), state });
     assert.equal(result.code, 1);
     assert.equal(result.urls.length, 3, "the scout's three days only");
-    assert.match(result.output, /the scout BTCUSD asked 3 dated question\(s\) and got no bars back/);
+    assert.match(result.output, /the scout BTCUSD asked 3 dated question\(s\) and got no usable bars back/);
     assert.match(result.output, /^Not started after the stop: EURUSD\.$/m);
+  });
+
+  it("stands the run down when the scout's bars all fall outside the asked days", async () => {
+    // The provider no longer honours from/to: every bar is bought and dropped.
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    bank(state, "BTCUSD", ["2026-08-06 00:00:00"]);
+    const result = await recover({ provider: () => new Response(JSON.stringify(day("2026-09-20"))), state });
+    assert.equal(result.code, 1);
+    assert.equal(result.urls.length, 3, "the scout's three days only");
+    assert.match(result.output, /got no usable bars back \(9 fetched, 9 dropped\)/);
+    assert.match(result.output, /^Not started after the stop: EURUSD\.$/m);
+  });
+
+  it("stands the run down on a date shape the endpoint serves every symbol", async () => {
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    bank(state, "BTCUSD", ["2026-08-06 00:00:00"]);
+    const provider: Provider = (_symbol, date) => new Response(JSON.stringify([bar(`${date}T00:03:00`), ...day(date)]));
+    const result = await recover({ provider, state });
+    assert.equal(result.code, 1);
+    assert.equal(result.urls.length, 3, "the scout's three days only");
+    assert.match(result.output, /the endpoint answers this way for every symbol, so the run stands down/);
+    assert.match(result.output, /^Not started after the stop: EURUSD\.$/m);
+  });
+
+  it("refuses a checkout that holds no bank file at all", async () => {
+    const state = tempState();
+    mkdirSync(state.canonicalBankDir, { recursive: true });
+    const result = await recover({ state });
+    assert.equal(result.code, 1);
+    assert.match(result.output, /no roster symbol has a bank file under .*; this checkout holds no minute bank/);
+    assert.equal(result.urls.length, 0);
+  });
+
+  it("counts refusal bodies in the bytes it reports", async () => {
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    const provider: Provider = (_symbol, date) =>
+      date === "2026-09-04" ? new Response("{}", { status: 404 }) : new Response(JSON.stringify(day(date)));
+    const result = await recover({ provider, state });
+    const body = Buffer.byteLength(JSON.stringify(day("2026-09-03")));
+    assert.match(result.output, new RegExp(`${body * 2 + 2} bytes to the ad-hoc class \\(2 of them refusal bodies\\)`));
   });
 
   it("scouts with the first symbol that asks a question, not the first by name", async () => {

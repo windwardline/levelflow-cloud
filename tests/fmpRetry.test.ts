@@ -291,7 +291,12 @@ describe("every FMP spender retries on a ladder that knows the provider, or asks
     for (const name of spenders) {
       // Comments stripped: a ladder named in a doc comment is not a ladder.
       const text = readFileSync(join("scripts", name), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
-      const ladder = /\b(fetchFmpWithRetry|fetchFmpJsonWithRetry|withRetry)\(/.test(text);
+      // The dependency, not the name: a private ladder called withRetry would
+      // satisfy a call-site pattern. bank-minute-bars.ts is the one that
+      // defines the 1-minute ladder rather than importing it.
+      const ladder =
+        /\b(fetchFmpWithRetry|fetchFmpJsonWithRetry|withRetry)\(/.test(text) &&
+        (name === "bank-minute-bars.ts" || /from "\.\/(fmpRetry|bank-minute-bars)\.ts"/.test(text));
       if (name in ASKS_ONCE) {
         assert.ok(!ladder, `${name} is named as asking once and retries after all`);
       } else {

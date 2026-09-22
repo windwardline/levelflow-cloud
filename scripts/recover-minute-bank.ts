@@ -259,6 +259,8 @@ type Context = {
   /** Set once, by the first refusal no later request can clear. */
   stop: unknown;
   requests: number;
+  /** Refusal bodies, which the governor records itself and the run's budget never sees. */
+  refusalBytes: number;
 };
 
 /**
@@ -299,16 +301,16 @@ async function fetchDay(ctx: Context, symbol: string, date: string): Promise<Raw
     async () => {
       const response = await ctx.fetch(url, { headers: { accept: "application/json" } });
       if (!response.ok) {
-        throw new Refused(
-          await providerRefusal(response, {
-            atMs: deps.now(),
-            consumer: "adhoc",
-            endpointPath: ENDPOINT_PATH,
-            label: LABEL,
-            note: true,
-            state: deps.state,
-          }),
-        );
+        const refusal = await providerRefusal(response, {
+          atMs: deps.now(),
+          consumer: "adhoc",
+          endpointPath: ENDPOINT_PATH,
+          label: LABEL,
+          note: true,
+          state: deps.state,
+        });
+        ctx.refusalBytes += refusal.bytes;
+        throw new Refused(refusal);
       }
       return response.text();
     },
@@ -405,6 +407,9 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
     // no minute it cannot place.
     ctx.deps.print.err(`${symbol}: ${refusal}, so nothing was appended (${tally.fetched} bars were bought)`);
     tally.refused = true;
+    // A date shape and a day's granularity belong to the endpoint, not the
+    // symbol: every other symbol would be bought and refused the same way.
+    if (foreign !== null || overfull !== undefined) ctx.stop ??= new Error(`${symbol}: ${refusal}; the endpoint answers this way for every symbol, so the run stands down`);
     return tally;
   }
   if (fresh.length > 0) {
@@ -479,6 +484,12 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
     } else stores.push({ store: read, symbol: fmpSymbol });
   }
   if (absent.length > 0) print.out(`No bank file, so no hole to fill: ${absent.join(", ")}.`);
+  if (stores.length === 0 && code === 0) {
+    // A roster with no bank file at all is a checkout that holds no bank:
+    // a scratch copy, or LEVELFLOW_CHECKOUT naming the wrong tree.
+    print.err(`no roster symbol has a bank file under ${dir}; this checkout holds no minute bank, so there is nothing to recover into`);
+    return 1;
+  }
   const questions = stores.reduce((sum, { store }) => sum + plan.dates.filter((date) => date >= store.firstDay).length, 0);
 
   if (plan.dryRun) {
@@ -515,6 +526,7 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
       ctx.requests += 1;
       return deps.fetch(input, init);
     }),
+    refusalBytes: 0,
     requests: 0,
     stop: undefined,
   };
@@ -534,10 +546,12 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
     const { symbol, store } = order[next++];
     const scout = await recoverOne(ctx, symbol, store, plan);
     tallies.push(scout);
-    if (scout.fetched === 0 && !ctx.stop) {
+    // No usable bars is no bars: an answer from outside the asked days means
+    // the provider stopped honouring the dates.
+    if ((scout.fetched === 0 || scout.dropped === scout.fetched) && !ctx.stop) {
       const asked = plan.dates.filter((date) => date >= store.firstDay).length;
       ctx.stop = new Error(
-        `the scout ${symbol} asked ${asked} dated question(s) and got no bars back; standing down rather than asking every symbol the same`,
+        `the scout ${symbol} asked ${asked} dated question(s) and got no usable bars back (${scout.fetched} fetched, ${scout.dropped} dropped); standing down rather than asking every symbol the same`,
       );
     }
   }
@@ -564,7 +578,8 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
   const appended = tallies.reduce((sum, tally) => sum + tally.appended, 0);
   print.out(
     `Recovered ${plural(appended, "bar")} across ${plural(tallies.length, "symbol")} for ${plan.from}..${plan.to}: ` +
-      `${plural(ctx.requests, "request")}, ${ctx.budget.spent()} bytes to the ad-hoc class.`,
+      `${plural(ctx.requests, "request")}, ${ctx.budget.spent() + ctx.refusalBytes} bytes to the ad-hoc class` +
+      (ctx.refusalBytes > 0 ? ` (${ctx.refusalBytes} of them refusal bodies).` : "."),
   );
   if (ctx.stop) {
     const stop = ctx.stop instanceof Refused ? ctx.stop.refusal : ctx.stop;

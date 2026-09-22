@@ -158,11 +158,12 @@ fills a hole like that one from dated requests, once, as the ad-hoc class:
 - appends oldest first after what is there, and never rewrites.
 - refuses a window reaching into the last seven days, where the scheduled bank is
   still served the same minutes and would bank them again.
-- refuses a file whose last line is torn, and appends nothing to it.
+- refuses a file whose last line is torn, and appends nothing to it, and refuses a
+  checkout that holds no bank file for any roster symbol.
 - charges every byte to the ad-hoc class under its 256 MiB day, retrying on the bank's
   own ladder, which stops on a wall. The first symbol with an asked day goes alone, as
-  the bank's scout does, and if it gets no bars back the run stands down; then
-  `--concurrency` workers (4) take the rest. The governor or a wall the
+  the bank's scout does, and if it gets no usable bars back (none at all, or none from
+  the asked days) the run stands down; then `--concurrency` workers (4) take the rest. The governor or a wall the
   provider named stops the run, keeping the minutes already paid for, and names every
   symbol it did not start; a settled 404 costs only its day. A second run appends nothing.
 - refuses a whole symbol, after buying its days and before writing a line, when its
@@ -170,7 +171,9 @@ fills a hole like that one from dated requests, once, as the ad-hoc class:
   2% of the minutes it already holds coming back at another price, or, once the file
   holds a day's worth, more than 5% of the new minutes at times of day it has never held.
   Dedupe is string equality in an append-only store, so a clock that moved would append
-  every minute again for good. The bytes stay spent; nothing is written. A window across
+  every minute again for good. The bytes stay spent; nothing is written. A foreign date
+  shape or an over-full day belongs to the endpoint, so either stops the whole run; the
+  price and clock bounds refuse the one symbol and the rest go on. A window across
   a US daylight-saving change shifts an equity session by an hour and trips the second
   bound, so recover each side of the change separately.
 
