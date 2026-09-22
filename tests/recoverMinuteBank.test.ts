@@ -40,10 +40,27 @@ const day = (date: string) => [bar(`${date} 00:02:00`), bar(`${date} 00:01:00`),
 
 type Bar = ReturnType<typeof bar>;
 
-function bank(state: FmpStatePaths, symbol: string, dates: string[], options: { torn?: boolean } = {}) {
+const clockOf = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`;
+/** Every minute of a 24-hour market's day. */
+const wholeDay = (date: string) => Array.from({ length: 1440 }, (_, m) => `${date} ${clockOf(m)}`);
+/** A US equity session, 09:30-15:59. */
+const sessionOf = (date: string) => Array.from({ length: 390 }, (_, i) => `${date} ${clockOf(9 * 60 + 30 + i)}`);
+const minuteOf = (key: string) => Date.parse(`${key.replace(" ", "T")}Z`) / 60_000;
+/** The key `minutes` later. */
+const later = (key: string, minutes: number) =>
+  new Date((minuteOf(key) + minutes) * 60_000).toISOString().replace("T", " ").slice(0, 19);
+/** A close that never repeats within 999 minutes, so no offset matches it by chance. */
+const varying = (key: string) => 100 + ((minuteOf(key) * 7919) % 1000) / 100;
+
+function bank(
+  state: FmpStatePaths,
+  symbol: string,
+  dates: string[],
+  options: { torn?: boolean; price?: (date: string) => number } = {},
+) {
   mkdirSync(state.canonicalBankDir, { recursive: true });
   const file = join(state.canonicalBankDir, `${encodeURIComponent(symbol)}.jsonl`);
-  const body = dates.map((date) => JSON.stringify(bar(date))).join("\n");
+  const body = dates.map((date) => JSON.stringify(bar(date, options.price?.(date) ?? 1))).join("\n");
   writeFileSync(file, options.torn ? `${body}\n{"date":"2026-09-21 23:5` : `${body}\n`);
   const sidecar = {
     bars: dates.length,
@@ -64,6 +81,12 @@ function bank(state: FmpStatePaths, symbol: string, dates: string[], options: { 
 type Provider = (symbol: string, date: string) => Response;
 
 const served: Provider = (_symbol, date) => new Response(JSON.stringify(day(date)));
+
+/** Answers `keys(date)` at `price`, with the clock moved `shift` minutes: the close of t is keyed t+shift. */
+const answering =
+  (keys: (date: string) => string[], price: (key: string) => number, shift = 0): Provider =>
+  (_symbol, date) =>
+    new Response(JSON.stringify(keys(date).map((key) => bar(key, price(later(key, -shift))))));
 
 async function recover(
   options: { argv?: string[]; provider?: Provider; state?: FmpStatePaths; key?: string | null } = {},
@@ -250,7 +273,8 @@ describe("recover-minute-bank fills the hole and nothing else", () => {
     assert.deepEqual(after.recentKeys, before.recentKeys, "the scheduled bank's dedupe window is its own");
     assert.equal(after.bars, before.bars + 8);
     assert.equal(after.bars, lines(eur.file).length);
-    assert.deepEqual(after.runs.at(-1).note, "recovered 2026-09-03..2026-09-05");
+    // It held one minute of 2026-09-03, and the answer agreed with it.
+    assert.deepEqual(after.runs.at(-1).note, "recovered 2026-09-03..2026-09-05; 0 of 1 held minutes came back revised");
     assert.equal(after.runs.at(-1).appended, 8);
   });
 
@@ -296,6 +320,154 @@ describe("recover-minute-bank fills the hole and nothing else", () => {
   });
 });
 
+describe("recover-minute-bank keeps a revised history and refuses a moved clock", () => {
+  // FMP revises minutes after the bank takes them live. Against a dated probe
+  // of 2026-09-03, ^GSPC came back revised at 164 of 389 held minutes and
+  // AAVEUSD at 114 of 1,159, and neither matched better at any other offset.
+  // A revised minute is reported and never rewritten; a moved clock is an
+  // offset at which the held minutes match the answer better than where they
+  // are keyed.
+
+  it("appends a history revised at 40% of held minutes, in a block, and reports it", async () => {
+    // ^GSPC's shape: a session market, agreement until 11:00, then a
+    // structured share of minutes revised by about 1e-5.
+    const state = tempState();
+    const revisedAt = (key: string) => {
+      const m = Number(key.slice(11, 13)) * 60 + Number(key.slice(14, 16));
+      return key.startsWith("2026-09-03") && m >= 11 * 60 && (m - 11 * 60) % 15 < 8;
+    };
+    const held = [
+      ...["2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11"].flatMap(sessionOf),
+      ...sessionOf("2026-09-03").slice(0, 360),
+    ];
+    const spx = bank(state, "^GSPC", held, { price: (key) => (revisedAt(key) ? varying(key) * (1 + 1e-5) : varying(key)) });
+    const before = readFileSync(spx.file, "utf8");
+    const result = await recover({ provider: answering(sessionOf, varying), state });
+    assert.equal(result.code, 0, result.output);
+    assert.match(
+      result.output,
+      /^\^GSPC\tfetched 1170\tappended 810\tdropped 0\t144 of 360 held minutes came back revised, median relative close difference 1\.00e-5$/m,
+    );
+    const after = readFileSync(spx.file, "utf8");
+    assert.ok(after.startsWith(before), "a revised minute is never rewritten");
+    assert.equal(lines(spx.file).length, held.length + 810, "only the missing minutes are appended");
+    assert.equal(
+      JSON.parse(readFileSync(spx.sidecar, "utf8")).runs.at(-1).note,
+      "recovered 2026-09-03..2026-09-05; 144 of 360 held minutes came back revised",
+    );
+  });
+
+  for (const [shift, span, pairs] of [
+    [1, "1 minute later", 720],
+    [60, "60 minutes later", 720],
+    [-60, "60 minutes earlier", 660],
+  ] as const) {
+    it(`refuses a clock moved ${shift > 0 ? "+" : ""}${shift} minutes on a partly held day, and goes on`, async () => {
+      // A 24-hour file holds every time of day, so only the prices can say
+      // the clock moved. One such file is its own; the run goes on.
+      const state = tempState();
+      const eur = bank(state, "EURUSD", [...wholeDay("2026-08-06"), ...wholeDay("2026-09-03").slice(0, 720)], { price: varying });
+      const gbp = bank(state, "GBPUSD", ["2026-08-06 00:00:00"]);
+      const before = readFileSync(eur.file, "utf8");
+      const moved = answering(wholeDay, varying, shift);
+      const result = await recover({ provider: (symbol, date) => (symbol === "EURUSD" ? moved(symbol, date) : served(symbol, date)), state });
+      assert.equal(result.code, 1);
+      assert.match(
+        result.output,
+        new RegExp(
+          `EURUSD: ${pairs} of ${pairs} minutes the file holds match the answer ${span}, more than the 0 of 720 that match at the same minute; ` +
+            `the keys no longer name the same minutes, so nothing was appended \\(4320 bars were bought\\)`,
+        ),
+      );
+      assert.match(result.output, /^EURUSD\tfetched 4320\tappended 0\tdropped 0\trefused$/m, "a moved clock is not reported as revisions");
+      assert.equal(readFileSync(eur.file, "utf8"), before);
+      assert.doesNotMatch(result.output, /stands down|Not started after the stop/);
+      assert.equal(lines(gbp.file).length, 1 + 9);
+    });
+  }
+
+  describe("a price that repeats, as AAVEUSD's does", () => {
+    // A walk that holds its price 70% of minutes, so neighbouring minutes
+    // agree by chance. 113 of the 1,159 held minutes of 2026-09-03 are
+    // revised, in 00:00-06:59 and 14:00-18:59, nine of them to the minute
+    // before's close, as 9 of AAVEUSD's 114 were.
+    const keys = [...wholeDay("2026-09-03"), ...wholeDay("2026-09-04"), ...wholeDay("2026-09-05")];
+    const walk = new Map<string, number>();
+    let seed = 7;
+    let price = 250;
+    for (const key of [...wholeDay("2026-08-06"), ...keys]) {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      if (seed / 2147483648 >= 0.7) price = Math.round((price + (seed % 2 === 0 ? 0.01 : -0.01)) * 100) / 100;
+      walk.set(key, price);
+    }
+    const repeats = (key: string) => walk.get(key)!;
+    const heldKeys = [...wholeDay("2026-08-06"), ...wholeDay("2026-09-03").slice(0, 1159)];
+    const revisedClose = new Map<string, number>();
+    for (const [m, key] of wholeDay("2026-09-03").slice(0, 1159).entries()) {
+      if (!((m < 7 * 60 && m % 8 === 0) || (m >= 14 * 60 && m < 19 * 60 && m % 5 === 0))) continue;
+      const previous = walk.get(later(key, -1));
+      const neighbour = revisedClose.size < 9 && m > 0 && previous !== repeats(key);
+      revisedClose.set(key, neighbour ? previous! : repeats(key) * (1 + 1e-7));
+    }
+    const heldPrice = (key: string) => revisedClose.get(key) ?? repeats(key);
+
+    it("appends it: chance agreement at a neighbouring minute does not beat offset 0", async () => {
+      const state = tempState();
+      const aave = bank(state, "AAVEUSD", heldKeys, { price: heldPrice });
+      const before = readFileSync(aave.file, "utf8");
+      const result = await recover({ provider: answering(wholeDay, repeats), state });
+      assert.equal(result.code, 0, result.output);
+      assert.equal(revisedClose.size, 113);
+      assert.match(
+        result.output,
+        /^AAVEUSD\tfetched 4320\tappended 3161\tdropped 0\t113 of 1159 held minutes came back revised, median relative close difference 1\.00e-7$/m,
+      );
+      assert.ok(readFileSync(aave.file, "utf8").startsWith(before));
+    });
+
+    it("refuses it when the same series comes back a minute late", async () => {
+      const state = tempState();
+      const aave = bank(state, "AAVEUSD", heldKeys, { price: heldPrice });
+      const before = readFileSync(aave.file, "utf8");
+      const result = await recover({ provider: answering(wholeDay, repeats, 1), state });
+      assert.equal(result.code, 1);
+      assert.match(result.output, /AAVEUSD: 1046 of 1159 minutes the file holds match the answer 1 minute later, more than the \d+ of 1159/);
+      assert.equal(readFileSync(aave.file, "utf8"), before);
+    });
+  });
+
+  it("does not judge the prices from fewer pairs than the floor", async () => {
+    // Five held minutes of a flat price, the first three revised: a shift of
+    // three minutes slides the revision off the edge and matches all five,
+    // which is a coincidence of the edge, not a clock.
+    const state = tempState();
+    const held = ["2026-08-06 00:00:00", ...wholeDay("2026-09-03").slice(0, 5)];
+    const eur = bank(state, "EURUSD", held);
+    const provider: Provider = (_symbol, date) =>
+      new Response(JSON.stringify(wholeDay(date).slice(0, 30).map((key, m) => bar(key, date === "2026-09-03" && m < 3 ? 1.00001 : 1))));
+    const result = await recover({ provider, state });
+    assert.equal(result.code, 0, result.output);
+    assert.match(result.output, /^EURUSD\tfetched 90\tappended 85\tdropped 0\t3 of 5 held minutes came back revised, median relative close difference 1\.00e-5$/m);
+    assert.equal(lines(eur.file).length, held.length + 85);
+  });
+
+  it("appends a history revised at every minute that no offset explains better", async () => {
+    // A constant 2 against a held constant 1: every held minute is revised,
+    // and every offset matches none of them, so nothing says the clock moved.
+    const state = tempState();
+    const eur = bank(state, "EURUSD", [...wholeDay("2026-08-06"), ...wholeDay("2026-09-03").slice(0, 720)]);
+    const before = readFileSync(eur.file, "utf8");
+    const result = await recover({ provider: answering(wholeDay, () => 2), state });
+    assert.equal(result.code, 0, result.output);
+    assert.match(
+      result.output,
+      /^EURUSD\tfetched 4320\tappended 3600\tdropped 0\t720 of 720 held minutes came back revised, median relative close difference 1\.00e\+0$/m,
+    );
+    assert.ok(readFileSync(eur.file, "utf8").startsWith(before));
+    assert.ok(lines(eur.file).slice(0, 1440 + 720).every((line) => line.close === 1), "the held closes stay as banked");
+  });
+});
+
 describe("recover-minute-bank refuses a symbol whose answers would not dedupe", () => {
   // Dedupe is string equality on the provider's date, in an append-only
   // store. A key shape that drifted would append every minute again, for good.
@@ -336,25 +508,6 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
     assert.equal(result.code, 0, result.output);
     assert.equal(readFileSync(btc.sidecar, "utf8"), before, "a no-op must not spend one of the thirty remembered runs");
     assert.ok(!result.urls.some((url) => url.searchParams.get("symbol") === "BTCUSD"));
-  });
-
-  it("refuses a symbol whose answer disagrees with the minutes it already holds", async () => {
-    // Same shape, other clock: the keys collide and the prices do not.
-    const state = tempState();
-    const minutes = Array.from({ length: 20 }, (_, i) => `2026-09-03 00:${String(i).padStart(2, "0")}:00`);
-    const eur = bank(state, "EURUSD", ["2026-08-06 00:00:00", ...minutes]);
-    const gbp = bank(state, "GBPUSD", ["2026-08-06 00:00:00"]);
-    const before = readFileSync(eur.file, "utf8");
-    const provider: Provider = (_symbol, date) =>
-      new Response(JSON.stringify(date === "2026-09-03" ? minutes.map((m) => bar(m, 2)) : []));
-    const result = await recover({ provider, state });
-    assert.equal(result.code, 1);
-    assert.match(result.output, /EURUSD: 20 of 20 minutes the file already holds came back at another price/);
-    assert.match(result.output, /nothing was appended \(20 bars were bought\)/);
-    assert.equal(readFileSync(eur.file, "utf8"), before);
-    // A price disagreement is the file's own, so the run goes on.
-    assert.doesNotMatch(result.output, /stands down|Not started after the stop/);
-    assert.equal(lines(gbp.file).length, 1 + 20);
   });
 
   it("refuses new minutes at times of day the file has never held", async () => {
@@ -416,28 +569,22 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
     assert.equal(lines(gbp.file).length, 1 + 1170);
   });
 
-  it("stands down on a moved clock that also re-prices a partly held day", async () => {
+  it("stands down on a moved clock that also shifts a partly held day", async () => {
     // The approved window's ends are partial days, so a session served an hour
-    // late collides with minutes the file holds at other prices AND lands at
-    // times it has never held. The clock is the cause, and it is every symbol's.
+    // late matches the minutes the file holds an hour on AND lands at times it
+    // has never held. The clock is the cause, and it is every symbol's.
     const state = tempState();
-    const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`;
-    const session: string[] = [];
-    for (const day of ["2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11"]) {
-      for (let m = 9 * 60 + 30; m < 16 * 60; m += 1) session.push(`${day} ${hhmm(m)}`);
-    }
-    for (let m = 9 * 60 + 30; m < 13 * 60; m += 1) session.push(`2026-09-03 ${hhmm(m)}`);
-    const eur = bank(state, "EURUSD", session);
-    const gbp = bank(state, "GBPUSD", session);
-    const other = bank(state, "USDJPY", session);
+    const session = [
+      ...["2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11"].flatMap(sessionOf),
+      ...sessionOf("2026-09-03").slice(0, 210),
+    ];
+    const eur = bank(state, "EURUSD", session, { price: varying });
+    const gbp = bank(state, "GBPUSD", session, { price: varying });
+    const other = bank(state, "USDJPY", session, { price: varying });
     const before = readFileSync(eur.file, "utf8");
-    const late = (date: string) => Array.from({ length: 390 }, (_, i) => bar(`${date} ${hhmm(10 * 60 + 30 + i)}`, 2));
-    const result = await recover({
-      provider: (_symbol, date) => new Response(JSON.stringify(late(date))),
-      state,
-    });
+    const result = await recover({ provider: answering((date) => sessionOf(date).map((key) => later(key, 60)), varying, 60), state });
     assert.equal(result.code, 1);
-    assert.match(result.output, /EURUSD: 150 of 150 minutes the file already holds came back at another price; the keys no longer name the same minutes; 180 of 1020 new minutes also fall at times of day the file has never held/);
+    assert.match(result.output, /EURUSD: 210 of 210 minutes the file holds match the answer 60 minutes later, more than the 0 of 150 that match at the same minute; the keys no longer name the same minutes; 180 of 1020 new minutes also fall at times of day the file has never held/);
     assert.match(result.output, /EURUSD, GBPUSD each came back .* so the run stands down/);
     assert.match(result.output, /^Not started after the stop: USDJPY\.$/m);
     assert.ok(!result.urls.some((url) => url.searchParams.get("symbol") === "USDJPY"), "two symbols pay, not the roster");
@@ -446,21 +593,15 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
     assert.ok(readFileSync(other.file, "utf8").length > 0);
   });
 
-  it("stands down when two 24-hour files disagree on price, whose clock cannot look moved", async () => {
+  it("stands down when two 24-hour files match better an hour on, whose clock cannot look moved", async () => {
     // Forex and crypto files hold every time of day, so a shifted session
-    // lands only on held times; on a partly held day it shows as prices alone.
+    // lands only on held times; on a partly held day it shows in prices alone.
     const state = tempState();
-    const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`;
-    const allDay = (date: string) => Array.from({ length: 1440 }, (_, m) => `${date} ${hhmm(m)}`);
-    const held = [...allDay("2026-08-06"), ...allDay("2026-09-03").slice(0, 720)];
-    for (const symbol of ["EURUSD", "GBPUSD", "USDJPY"]) bank(state, symbol, held);
-    const late = (date: string) => allDay(date).map((key) => bar(key, 2));
-    const result = await recover({
-      provider: (_symbol, date) => new Response(JSON.stringify(late(date))),
-      state,
-    });
+    const held = [...wholeDay("2026-08-06"), ...wholeDay("2026-09-03").slice(0, 720)];
+    for (const symbol of ["EURUSD", "GBPUSD", "USDJPY"]) bank(state, symbol, held, { price: varying });
+    const result = await recover({ provider: answering(wholeDay, varying, 60), state });
     assert.equal(result.code, 1);
-    assert.match(result.output, /EURUSD: 720 of 720 minutes the file already holds came back at another price; the keys no longer name the same minutes, so nothing/);
+    assert.match(result.output, /EURUSD: 720 of 720 minutes the file holds match the answer 60 minutes later, more than the 0 of 720 that match at the same minute; the keys no longer name the same minutes, so nothing/);
     assert.match(result.output, /EURUSD, GBPUSD each came back .* so the run stands down/);
     assert.match(result.output, /^Not started after the stop: USDJPY\.$/m);
   });
@@ -497,16 +638,36 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
       assert.deepEqual(asked(result.urls), ["EURUSD", "ZOUSX", "ZRUSD"]);
     });
 
-    it("counts a price disagreement from a symbol whose clock refusal is expected", async () => {
+    it("counts a shifted price from a symbol whose clock refusal is expected", async () => {
       const state = tempState();
-      const allDay = (date: string) => Array.from({ length: 1440 }, (_, m) => `${date} ${hhmm(m)}`);
-      const held = [...allDay("2026-08-06"), ...allDay("2026-09-03").slice(0, 720)];
-      for (const symbol of ["EURUSD", "ZOUSX", "ZRUSD"]) bank(state, symbol, held);
-      const repriced: Provider = (_symbol, date) => new Response(JSON.stringify(allDay(date).map((key) => bar(key, 2))));
-      const result = await recover({ provider: repriced, state });
+      const held = [...wholeDay("2026-08-06"), ...wholeDay("2026-09-03").slice(0, 720)];
+      for (const symbol of ["EURUSD", "ZOUSX", "ZRUSD"]) bank(state, symbol, held, { price: varying });
+      const result = await recover({ provider: answering(wholeDay, varying, 60), state });
       assert.equal(result.code, 1);
+      assert.match(result.output, /ZOUSX: 720 of 720 minutes the file holds match the answer 60 minutes later/);
       assert.match(result.output, /EURUSD, ZOUSX each came back .* so the run stands down/);
       assert.match(result.output, /^Not started after the stop: ZRUSD\.$/m);
+    });
+
+    it("settles a disputed scout on an expected symbol that came back clean", async () => {
+      // The settling step stops on what the symbol it ran came back with, not
+      // on its name: a clean answer from ZOUSX is evidence like any other, so
+      // the pool opens, and a dispute met there lets its workers in flight
+      // finish.
+      const state = tempState();
+      const held = [...wholeDay("2026-08-06"), ...wholeDay("2026-09-03").slice(0, 720)];
+      for (const symbol of ["EURUSD", "ZOUSX", "ZRUSD", "ZSUSX", "ZTUSD"]) bank(state, symbol, held, { price: varying });
+      const moved = answering(wholeDay, varying, 60);
+      const clean = answering(wholeDay, varying);
+      const result = await recover({
+        provider: (symbol, date) => (symbol === "EURUSD" || symbol === "ZRUSD" ? moved : clean)(symbol, date),
+        state,
+      });
+      assert.equal(result.code, 1);
+      assert.match(result.output, /^ZOUSX\tfetched 4320\tappended 3600\tdropped 0\t0 of 720 held minutes came back revised$/m);
+      assert.match(result.output, /EURUSD, ZRUSD each came back .* so the run stands down/);
+      assert.doesNotMatch(result.output, /Not started after the stop/);
+      assert.deepEqual(asked(result.urls), ["EURUSD", "ZOUSX", "ZRUSD", "ZSUSX", "ZTUSD"]);
     });
 
     it("lets the pool's workers in flight finish when the scout was clean", async () => {
@@ -755,6 +916,95 @@ describe("what a run refuses and reports", () => {
 });
 
 describe("the lock is the bank's own", () => {
+  it("removes the lock when its pid cannot be written, and rethrows", () => {
+    // bank-lock.sh reads an absent pid as a holder that has not named itself
+    // yet and never breaks it, so a lock left without one would stop every
+    // scheduled bank and backup until a person removed it.
+    const state = tempState();
+    mkdirSync(state.canonicalBankDir, { recursive: true });
+    const lock = `${state.canonicalBankDir}.lock`;
+    const failure = new Error("ENOSPC: no space left on device, open 'pid'");
+    const written: string[] = [];
+    assert.throws(
+      () =>
+        acquireBankLock(state.canonicalBankDir, (file) => {
+          written.push(file);
+          throw failure;
+        }),
+      (error) => error === failure,
+    );
+    assert.deepEqual(written, [join(lock, "pid")]);
+    assert.ok(!existsSync(lock), "a half-taken lock was left behind");
+    const again = acquireBankLock(state.canonicalBankDir);
+    assert.ok("release" in again, "refused" in again ? again.refused : "");
+    again.release();
+  });
+
+  it("has its signal handlers in place before it takes the lock, and a signal releases it", async () => {
+    // Without a handler a signal ends the process where it stands; with one,
+    // Node runs it only after the synchronous acquisition has finished.
+    const baseline = { SIGINT: process.listeners("SIGINT"), SIGTERM: process.listeners("SIGTERM") };
+    const added = (signal: "SIGINT" | "SIGTERM") => process.listeners(signal).filter((listener) => !baseline[signal].includes(listener));
+
+    // Refused: the handlers were registered before the attempt.
+    const held = tempState();
+    bank(held, "EURUSD", ["2026-08-06 00:00:00"]);
+    mkdirSync(`${held.canonicalBankDir}.lock`);
+    writeFileSync(join(`${held.canonicalBankDir}.lock`, "pid"), `${process.pid}\n`);
+    const atRefusal: number[] = [];
+    await runRecover({
+      argv: WINDOW,
+      fetch: () => Promise.reject(new Error("no request expected")),
+      key: "test-key",
+      now: () => AT,
+      print: {
+        err: (line) => {
+          if (/is held by pid/.test(line)) atRefusal.push(added("SIGINT").length, added("SIGTERM").length);
+        },
+        out: () => {},
+      },
+      sleep: () => Promise.resolve(),
+      state: held,
+    });
+    assert.deepEqual(atRefusal, [1, 1]);
+    assert.deepEqual([added("SIGINT").length, added("SIGTERM").length], [0, 0], "the handlers are removed after the run");
+
+    // Taken: a SIGTERM at the notice releases the lock and exits 143.
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    const lock = `${state.canonicalBankDir}.lock`;
+    const exits: Array<number | string | null | undefined> = [];
+    const seen: boolean[] = [];
+    const exit = process.exit;
+    process.exit = ((code?: number | string | null) => {
+      exits.push(code);
+    }) as typeof process.exit;
+    try {
+      await runRecover({
+        argv: WINDOW,
+        fetch: (input) => Promise.resolve(served("EURUSD", new URL(String(input)).searchParams.get("from") ?? "")),
+        key: "test-key",
+        now: () => AT,
+        print: {
+          err: (line) => {
+            if (!line.startsWith("holding the bank lock")) return;
+            const handlers = added("SIGTERM");
+            seen.push(handlers.length === 1, existsSync(lock));
+            (handlers[0] as (signal: NodeJS.Signals) => void)("SIGTERM");
+            seen.push(existsSync(lock));
+          },
+          out: () => {},
+        },
+        sleep: () => Promise.resolve(),
+        state,
+      });
+    } finally {
+      process.exit = exit;
+    }
+    assert.deepEqual(seen, [true, true, false], "one handler, the lock held, then released by the signal");
+    assert.deepEqual(exits, [143]);
+  });
+
   it("makes the bank's shell lock wait while a recovery holds it", () => {
     // bank-lock.sh derives the lock from the bank directory. Were this taken
     // anywhere else, the scheduled bank and the backup would walk past it.
