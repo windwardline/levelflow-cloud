@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { promisify } from "node:util";
@@ -16,8 +16,10 @@ import {
   seriesFacts,
   type TreasuryCurveFacts,
 } from "../scripts/sweepManifest.ts";
+import { stratifiedHoldout } from "../scripts/sweepFolds.ts";
 import type { SweepEmitRow } from "../scripts/sweepStats.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
+import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { noKeychainEnv } from "./support/noKeychain.ts";
 import { scratchDir } from "./support/scratchDir.ts";
 
@@ -596,16 +598,17 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
     return rows;
   };
 
-  /** One manifested shard, in a directory of its own. */
+  /** One manifested shard over one market or several, in a directory of its own. */
   const shard = (
-    symbol: string,
+    markets: string | readonly string[],
     overrides: { days?: number; requestedSymbols?: string[] | null } = {},
   ): string => {
+    const symbols = typeof markets === "string" ? [markets] : [...markets];
     const dir = scratchDir("confirm4d-shard-");
     const corpus = join(dir, "shard.jsonl");
-    writeFileSync(corpus, rowsFor(symbol).map((row) => JSON.stringify(row)).join("\n") + "\n");
+    writeFileSync(corpus, symbols.flatMap(rowsFor).map((row) => JSON.stringify(row)).join("\n") + "\n");
     const requested = overrides.requestedSymbols === undefined
-      ? [symbol]
+      ? symbols
       : overrides.requestedSymbols;
     writeFileSync(
       `${corpus}.manifest.json`,
@@ -633,12 +636,12 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
           generatedAt: "2026-09-21T05:00:00.000Z",
           grid: [{}, { good: true }],
           stepBars: 16,
-          symbols: [{
+          symbols: symbols.map((symbol) => ({
             calibration: {},
             providerSymbol: symbol,
             series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
             symbol,
-          }],
+          })),
           trainShare: 0.6,
           treasuryCurve: TEST_TREASURY_CURVE,
           warmupBars: 240,
@@ -857,5 +860,109 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
     assert.deepEqual(written(researchDir), [], "the refused re-read wrote an artifact");
     assert.doesNotMatch(second.stdout, /frozen:/);
     assert.deepEqual(snapshot(ledgerDir), ledgerBefore, "the refused re-read moved the ledger");
+  });
+
+  it("a --baseline naming no cell of the grid leaves no picks artifact and the ledger unchanged", async () => {
+    // The cube's baseline-exists refusal needs rows, so it stood below the
+    // freeze: `--baseline basline` froze the picks and only then refused.
+    // The manifests name every cell the sweep ran, so the door can refuse
+    // the name before the fold is opened.
+    const researchDir = seededResearchDir();
+    const ledgerDir = scratchDir("confirm4d-ledger-");
+    const refusal = /baseline variant "basline" names no cell of the shards' grid/;
+    const fresh = await confirm4d([shard("EURGBP"), "--baseline", "basline"], researchDir, ledgerDir);
+    assertRefusedWritingNothing(fresh, refusal, researchDir, ledgerDir, "a misspelt baseline");
+
+    // And after a burn, where the prior picks and the ledger both exist to
+    // be overwritten: acknowledged, the misspelt re-read changes no byte.
+    const corpus = shard("EURGBP");
+    const first = await confirm4d([corpus], researchDir, ledgerDir);
+    assertExecuted("scripts/confirm-4d.ts", first);
+    assert.equal(first.exitCode, 0, `the first read must succeed:\n${first.stderr}`);
+    const researchBefore = snapshot(researchDir);
+    const ledgerBefore = snapshot(ledgerDir);
+    const again = await confirm4d(
+      [corpus, "--baseline", "basline", "--acknowledge-prior-reads"],
+      researchDir,
+      ledgerDir,
+    );
+    assertExecuted("scripts/confirm-4d.ts", again);
+    assert.notEqual(again.exitCode, 0, "the misspelt baseline must refuse");
+    assert.match(again.stderr, refusal);
+    assert.doesNotMatch(again.stdout, /frozen:/);
+    assert.deepEqual(snapshot(researchDir), researchBefore, "the refused re-read rewrote an artifact");
+    assert.deepEqual(snapshot(ledgerDir), ledgerBefore, "the refused re-read moved the ledger");
+  });
+
+  it("a corrupt row after an acknowledged re-read's freeze restores the prior picks, byte for byte", async () => {
+    // A row the stream cannot parse is found only by reading, so its refusal
+    // lands after the freeze. Nothing was recorded, so the freeze is
+    // withdrawn: the picks file returns to the bytes it held before the run.
+    const corpus = shard("EURGBP");
+    const researchDir = seededResearchDir();
+    const ledgerDir = scratchDir("confirm4d-ledger-");
+    const first = await confirm4d([corpus], researchDir, ledgerDir);
+    assertExecuted("scripts/confirm-4d.ts", first);
+    assert.equal(first.exitCode, 0, `the first read must succeed:\n${first.stderr}`);
+    const researchBefore = snapshot(researchDir);
+    const ledgerBefore = snapshot(ledgerDir);
+
+    appendFileSync(corpus, "{not a row\n");
+    const again = await confirm4d([corpus, "--acknowledge-prior-reads"], researchDir, ledgerDir);
+    assertExecuted("scripts/confirm-4d.ts", again);
+    assert.notEqual(again.exitCode, 0, "a holed corpus must refuse");
+    assert.match(again.stderr, /line \d+ failed to parse — a holed corpus is refused/);
+    // The freeze DID happen before the fold was opened, and says so; the
+    // withdrawal is what the operator reads next.
+    assert.match(again.stdout, /frozen: 1 picks/);
+    assert.match(again.stderr, /4d-final-picks\.json restored to the bytes it held before this run/);
+    assert.deepEqual(snapshot(researchDir), researchBefore, "the picks were left re-frozen for a read nobody recorded");
+    assert.deepEqual(snapshot(ledgerDir), ledgerBefore, "the failed re-read moved the ledger");
+    assert.deepEqual(again.wrote, []);
+  });
+
+  it("a corrupt row on a first read leaves no picks artifact behind", async () => {
+    const corpus = shard("EURGBP");
+    appendFileSync(corpus, "{not a row\n");
+    const researchDir = seededResearchDir();
+    const ledgerDir = scratchDir("confirm4d-ledger-");
+    const run = await confirm4d([corpus], researchDir, ledgerDir);
+    assertExecuted("scripts/confirm-4d.ts", run);
+    assert.notEqual(run.exitCode, 0, "a holed corpus must refuse");
+    assert.match(run.stderr, /line \d+ failed to parse — a holed corpus is refused/);
+    assert.match(run.stderr, /4d-final-picks\.json removed — there was none before this run/);
+    assert.deepEqual(written(researchDir), [], "a first read that recorded nothing left picks on disk");
+    assert.deepEqual(readdirSync(ledgerDir), [], "the ledger moved on a run that recorded nothing");
+    assert.deepEqual(run.wrote, []);
+  });
+
+  it("--holdout-cycle draws its held-out set over the UNION of every shard's roster, in either order", async () => {
+    // Two forex rosters of two. A class under three members holds nothing
+    // out by stated policy, so either roster alone draws an EMPTY set; their
+    // union of four draws one market. A door that resolved the set from the
+    // first shard alone would grade nothing, in either order.
+    const first = ["EURGBP", "GBPJPY"];
+    const second = ["EURUSD", "USDJPY"];
+    assert.deepEqual([...stratifiedHoldout(first, getAssetType)], [], "premise: a two-market class holds nothing out");
+    assert.deepEqual([...stratifiedHoldout(second, getAssetType)], [], "premise: a two-market class holds nothing out");
+    const union = ["EURUSD"];
+    assert.deepEqual([...stratifiedHoldout([...first, ...second], getAssetType)], union, "premise: the union holds one out");
+
+    const shards = [shard(first), shard(second)];
+    for (const order of [shards, [...shards].reverse()]) {
+      const researchDir = seededResearchDir([...first, ...second]);
+      const ledgerDir = scratchDir("confirm4d-ledger-");
+      // The seeded inputs carry the plain prefix; --holdout-cycle would
+      // otherwise read 4d-holdout-*.
+      const run = await confirm4d([...order, "--holdout-cycle", "--prefix", "4d"], researchDir, ledgerDir);
+      const label = order === shards ? "roster order" : "reversed order";
+      assertExecuted("scripts/confirm-4d.ts", run);
+      assert.equal(run.exitCode, 0, `${label}: the holdout read must succeed:\n${run.stderr}`);
+      const ledgerName = readdirSync(ledgerDir).find((name) => /^confirm-log-.*\.jsonl$/.test(name));
+      assert.ok(ledgerName, `${label}: the read must be recorded in the redirected ledger`);
+      const [entry] = readFileSync(join(ledgerDir, ledgerName), "utf8").trim().split("\n")
+        .map((line) => JSON.parse(line) as { symbolFilter: string[] | null });
+      assert.deepEqual(entry.symbolFilter, union, `${label}: the read was filtered to another set`);
+    }
   });
 });

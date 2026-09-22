@@ -36,7 +36,11 @@
  */
 import { type FrozenCandidates, verifyFrozenCandidates } from "./freeze-candidates.ts";
 import { fileURLToPath } from "node:url";
-import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
+import {
+  type CategoryCalibration,
+  getAssetType,
+} from "../supabase/functions/trade-analyzer/calibration.ts";
+import { describeOverride } from "./replay-sweep.ts";
 import {
   addOutcome,
   ARM_COLUMNS,
@@ -1669,6 +1673,36 @@ export async function gradeCorpus(
       );
     }
   }
+  // THE BASELINE IS A CELL OF THE GRID, refused without a row (2026-09-22).
+  // The cube's own check (groupVerdicts) needs rows, so it stood below
+  // `beforeOpen`: `confirm-4d --baseline basline` froze its picks and only
+  // then refused. The manifests name every cell the sweep ran, and the
+  // driver names each row's variant with describeOverride, so a baseline
+  // that no shard's grid carries is refused here, before anything is
+  // written or read. The union spans every shard because a frozen read's
+  // arms carry different grids. The cube's check stays for what this one
+  // cannot see: a symbol filter or a holdout that leaves the baseline with
+  // no rows.
+  const namedBaseline = options.baselineVariant ?? "baseline";
+  const gridCells = [
+    ...new Set(
+      shardManifests.flatMap((shard) =>
+        (Array.isArray(shard.grid) ? shard.grid : []).map((cell) =>
+          describeOverride(cell as Partial<CategoryCalibration>)
+        )
+      ),
+    ),
+  ];
+  if (!gridCells.includes(namedBaseline)) {
+    const shown = gridCells.slice(0, 8).join(", ");
+    const more = gridCells.length > 8 ? `, and ${gridCells.length - 8} more` : "";
+    throw new Error(
+      `baseline variant "${namedBaseline}" names no cell of the shards' grid ` +
+        `(${gridCells.length > 0 ? `${shown}${more}` : "the manifests name no cell"}) — ` +
+        `it carries no cell in this corpus, and every variant would grade ` +
+        `against nothing; refused before any row is read`,
+    );
+  }
   // THE CORPUS's identity, not a shard's (#364 round 44, finding 1).
   // manifestHash covers each shard's OWN symbols array, so every shard
   // of one measurement hashes differently — keying LA-6's ledger on
@@ -2094,19 +2128,29 @@ export async function gradeCorpus(
       );
     }
   }
+  // The provenance artifact is loaded HERE, with the door, though its
+  // figures are joined far below: its refusals — a condemned artifact, an
+  // entry with no heldBack, a market named twice — need no row, and a read
+  // refused over them must not have opened the fold first.
+  const provenance = loadProvenance(options.provenancePath);
   // THE LAST ROW-FREE MOMENT (2026-09-21). Everything above refuses
   // without reading a row: each shard's manifest, their agreement as one
-  // measurement, the requested roster, the frozen file's binding and —
+  // measurement, the requested roster, a baseline that names no cell of
+  // the grid, the frozen file's binding, the provenance artifact and —
   // under confirmFinal — the prior-read scan, which sat BELOW the stream
-  // until this date, so a refused re-read streamed the whole held-back
+  // until 2026-09-21, so a refused re-read streamed the whole held-back
   // fold into memory before refusing. A caller that must write something
   // after the door and before the fold is opened writes it here:
   // confirm-4d freezes its picks in this hook, so a run the door refuses
   // freezes nothing, and a run it admits has its picks on disk before the
-  // first confirm row is read. What still refuses below needs rows — an
-  // unparseable line, emit bytes that are not the manifest's, a baseline
-  // naming no cell — and cannot run before the fold is opened without
-  // reading the corpus twice.
+  // first confirm row is read. Every refusal below needs rows — an
+  // unparseable line, emit bytes that are not the manifest's, a column the
+  // named arm lacks, a baseline the symbol filter leaves without rows, a
+  // derived variant shadowing an emitted one, and the frozen read's
+  // identity checks — and cannot run before the fold is opened without
+  // reading the corpus twice. Each of them throws before the ledger
+  // append below, which is what lets confirm-4d withdraw its freeze on any
+  // throw: a throw from this function means no read was recorded.
   if (options.beforeOpen) await options.beforeOpen();
   for (const [shardIndex, path] of paths.entries()) {
     // THE ONE READ. The door seals the confirm fold by default (R4 act 1);
@@ -2358,8 +2402,8 @@ export async function gradeCorpus(
   // provenance artifact names is read as `heldBack: false`, so its confirm
   // figure comes out `not-held-back` and no consumer may print it as
   // evidence (21 of 27 totality cells were selected inside the fold; an
-  // unknown one is treated the same way, never the other).
-  const provenance = loadProvenance(options.provenancePath);
+  // unknown one is treated the same way, never the other). The artifact
+  // itself was loaded above the stream, with the rest of the door.
   if (readingConfirm && provenance === null) {
     console.warn(
       "LA-6: no --provenance artifact given — every shipped-cell confirm figure is " +
@@ -2582,6 +2626,12 @@ export async function gradeCorpus(
     }) + "\n";
     mkdirSync(dirname(canonicalLedgerPath), { recursive: true });
     appendFileSync(canonicalLedgerPath, entry);
+    // NOTHING BELOW THIS LINE MAY THROW (2026-09-22). confirm-4d restores
+    // its frozen picks when this function throws, on the premise that a
+    // throw means no read was recorded; a throw after the append would
+    // withdraw the freeze of a read the ledger holds. What follows is an
+    // assignment, two message strings, one console.warn (the global
+    // console swallows stream errors) and the return.
     read = { artifactHash, artifactPath, calendarHash, corpusId, ledgerPath: canonicalLedgerPath, readId };
     // The tracked-ledger claim was a PROMISE in a change set whose
     // repeated law is mechanism (#364 round 46, smaller): a burn left

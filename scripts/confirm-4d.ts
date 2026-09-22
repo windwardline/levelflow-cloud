@@ -10,19 +10,22 @@
 // data can never influence the pick — it can only pass or fail it. The
 // choice is WRITTEN inside gradeCorpus's `beforeOpen` hook: after the
 // whole row-free corpus door (every shard's manifest, their agreement as
-// one measurement, the requested roster, the prior-read refusal) and
-// before the first confirm row is read. A run the door refuses therefore
-// rewrites no artifact, and a run it admits has its picks on disk, with a
-// `frozenAt` that precedes the ledger's `readAt`, before the fold opens.
-// Refusals that need rows — an unparseable line, emit bytes that are not
-// the manifest's, a --baseline naming no cell — still land after the
-// freeze: they cannot run before the fold opens without reading the corpus
-// twice. The confirm read runs once, per corpus hash, into the burned log.
+// one measurement, the requested roster, a --baseline that names a cell of
+// the grid, the prior-read refusal) and before the first confirm row is
+// read. A run the door refuses therefore rewrites no artifact, and a run it
+// admits has its picks on disk, with a `frozenAt` that precedes the
+// ledger's `readAt`, before the fold opens. Refusals that need rows — an
+// unparseable line, emit bytes that are not the manifest's, a baseline the
+// filter leaves without rows — can only land after the freeze. gradeCorpus
+// throws each of them before its ledger append, so a throw means nothing
+// was recorded, and the freeze is withdrawn: the picks file goes back to
+// the bytes it held before the run, or away if it did not exist. The
+// confirm read runs once, per corpus hash, into the burned log.
 //
 // Unknown flags are refused by name, in the same walk the gate uses. In
 // this script an ignored dial is an ignored dial on a read that cannot be
 // taken twice.
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { gradeCorpus } from "./grid-totalr.ts";
 import { resolveHeldOut } from "./sweepFolds.ts";
 import { assertManifest } from "./sweepStats.ts";
@@ -323,18 +326,47 @@ async function main() {
       targetsFlag.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
     );
   }
-  const { confirmRead, heldOutSet, shipped, verdicts } = await gradeCorpus(paths, {
-    acknowledgePriorReads,
-    baselineVariant,
-    beforeOpen: freeze,
-    confirmFinal: true,
-    confirmLogDir,
-    includeHoldout: holdoutCycle || targetsFlag !== undefined,
-    permutations,
-    seed,
-    symbolFilter,
-    verdictUnit: "market",
-  });
+  // The picks file's bytes BEFORE this run, or null when it has none, so a
+  // read that fails after the freeze can withdraw it exactly (2026-09-22).
+  // The freeze must land before the fold opens, so a refusal that needs
+  // rows — a holed corpus, emit bytes that are not the manifest's — comes
+  // after it; before this, such a run left the picks re-frozen with a fresh
+  // `frozenAt` beside a ledger that recorded no read, and after a burn it
+  // overwrote the picks the recorded read was taken on.
+  const picksPath = `${dir}/${prefix}-final-picks.json`;
+  const priorPicks = existsSync(picksPath) ? readFileSync(picksPath) : null;
+  let graded: Awaited<ReturnType<typeof gradeCorpus>>;
+  try {
+    graded = await gradeCorpus(paths, {
+      acknowledgePriorReads,
+      baselineVariant,
+      beforeOpen: freeze,
+      confirmFinal: true,
+      confirmLogDir,
+      includeHoldout: holdoutCycle || targetsFlag !== undefined,
+      permutations,
+      seed,
+      symbolFilter,
+      verdictUnit: "market",
+    });
+  } catch (error) {
+    // A throw from gradeCorpus means no read was recorded: every refusal
+    // in it lands before the ledger append, and nothing after the append
+    // throws (grid-totalr.ts says so where the append sits).
+    if (frozenAt !== null) {
+      if (priorPicks === null) rmSync(picksPath, { force: true });
+      else writeFileSync(picksPath, priorPicks);
+      console.error(
+        `confirm-4d: the read failed after the freeze and recorded nothing, ` +
+          `so the freeze is withdrawn — ${prefix}-final-picks.json ` +
+          (priorPicks === null
+            ? "removed — there was none before this run"
+            : "restored to the bytes it held before this run"),
+      );
+    }
+    throw error;
+  }
+  const { confirmRead, heldOutSet, shipped, verdicts } = graded;
   // The hook is the freeze's only route to disk, so a gradeCorpus that
   // returned without calling it opened the fold over picks nobody froze.
   // Loud, never a silent success: the confirm-read artifact below would
