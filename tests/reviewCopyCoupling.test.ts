@@ -62,11 +62,13 @@ const EMITTERS = ["index.ts", "marketLoader.ts", "sessions.ts"];
  */
 const NOT_READER_FACING: Record<string, string> = {
   "fmpBudget.ts":
-    "the FMP budget's `reason` is a diagnostic for a log line and a refusal " +
-    "the desk turns into its own sentence — it names byte totals and a " +
-    "consumer class, which are engine vocabulary. Nothing here reaches an " +
-    "operator: the chart feed's 429 carries its own copy, and the analyzer " +
-    "path records rather than refuses.",
+    "the FMP budget's `reason` names byte totals, a consumer class and " +
+    "DESK_PARKED, which are engine vocabulary, and nothing carries it to a " +
+    "reader. Every Edge path refuses spend with a 503 whose body is built here " +
+    "(fmpSpendRefusalBody); supabase-js hides a non-2xx body from `data`, and " +
+    "no src/ surface reads the error's `context`, so the reader sees the " +
+    "client's own failure copy. The analyzer records the reason as a " +
+    "`message`, never as a `reason:`.",
   "bars.ts":
     "`reason: \"shape\" | \"timestamp\" | ...` is a rejection TAG on a " +
     "telemetry union, not prose — it never reaches a sentence.",

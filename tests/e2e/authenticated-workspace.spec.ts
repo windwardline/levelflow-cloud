@@ -2,6 +2,7 @@ import {
   expect,
   type Locator,
   type Page,
+  type Request,
   type Response,
   test,
 } from "@playwright/test";
@@ -717,8 +718,21 @@ test("a receipt How this works link lands on the Guide's record section", async 
 // asserts normally and goes red. The dangerous direction here is a false
 // positive, which would skip a genuine regression, so uncertainty resolves
 // toward testing rather than toward standing down.
+//
+// The Edge's own spend refusal (supabase/functions/trade-analyzer/fmpBudget.ts)
+// answers 503 with `fmpSpendRefused`. Only "ceiling" — the user class has spent
+// its day — is the same kind of fact as the provider's exhausted allowance, and
+// only it stands a test down. "ledger-unavailable" is an outage and "parked"
+// means the deploy ran these projects against a parked Edge, which the scope
+// script exists to prevent: both stay red.
+type InvokeRefusalBody = {
+  fmpSpendRefused?: string;
+  providerQuotaExhausted?: boolean;
+  providerStatus?: string;
+};
+
 async function readInvokeRefusal(error: unknown): Promise<{
-  body: { providerQuotaExhausted?: boolean; providerStatus?: string } | null;
+  body: InvokeRefusalBody | null;
   status: number | undefined;
 }> {
   const context = (error as {
@@ -727,10 +741,15 @@ async function readInvokeRefusal(error: unknown): Promise<{
   if (!context || typeof context.json !== "function") {
     return { body: null, status: undefined };
   }
-  const body = (await context.json().catch(() => null)) as
-    | { providerQuotaExhausted?: boolean; providerStatus?: string }
-    | null;
+  const body = (await context.json().catch(() => null)) as InvokeRefusalBody | null;
   return { body, status: context.status };
+}
+
+function isDailyCeilingRefusal(
+  status: number | undefined,
+  body: InvokeRefusalBody | null,
+): boolean {
+  return status === 503 && body?.fmpSpendRefused === "ceiling";
 }
 
 test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
@@ -779,6 +798,17 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
   // provider is refusing. So the test stands down — for that one named
   // condition, surfaced explicitly, and never for a generic upstream error.
   const refusal = await readInvokeRefusal(marketDataResponse.error);
+  if (isDailyCeilingRefusal(refusal.status, refusal.body)) {
+    console.warn(
+      "[market-data] the Edge's user-class daily FMP ceiling is spent — live chart coverage NOT verified this run.",
+    );
+    test.skip(
+      true,
+      "The Edge refused provider spend: the user class has spent its daily " +
+        "FMP ceiling (fmpSpendRefused=ceiling). Not a regression — see §21 and " +
+        "supabase/functions/trade-analyzer/fmpBudget.ts.",
+    );
+  }
   if (refusal.body?.providerQuotaExhausted === true) {
     console.warn(
       "[market-data] FMP 30-day allowance exhausted — live chart coverage NOT verified this run.",
@@ -2244,15 +2274,21 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   // Matched on the ACTION, not just the URL: the Desk's own mount fires a
   // refresh_outcomes call at the same endpoint, and "a POST to trade-analyzer"
   // would collect that one too.
+  const isScanRequest = (request: Request) =>
+    request.url().includes("/functions/v1/trade-analyzer") &&
+    request.method() === "POST" &&
+    (request.postData() ?? "").includes("scan_opportunities");
   const scanResponses: Response[] = [];
+  // Requests too, because the client stops fanning out at the first failure
+  // (src/lib/scanBatching.ts: `aborted`, SCAN_REQUEST_CONCURRENCY in flight), so
+  // after a refusal fewer than expectedChunks will ever answer. The poll below
+  // needs to know when every request that WAS sent has answered.
+  let scanRequestsSent = 0;
+  page.on("request", (request) => {
+    if (isScanRequest(request)) scanRequestsSent += 1;
+  });
   page.on("response", (response) => {
-    if (
-      response.url().includes("/functions/v1/trade-analyzer") &&
-      response.request().method() === "POST" &&
-      (response.request().postData() ?? "").includes("scan_opportunities")
-    ) {
-      scanResponses.push(response);
-    }
+    if (isScanRequest(response.request())) scanResponses.push(response);
   });
   // What this click owes, derived from the same source the app derives it from
   // — the availability-filtered universe, partitioned by the same function
@@ -2293,12 +2329,43 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   //
   // Every chunk, not the first: one 429 among the rest's 200s is exactly the
   // partial scan this suite must never read as a quiet market.
+  // Settled when every chunk has answered, or when a chunk was refused and every
+  // request already sent has answered: after a refusal the client sends no more,
+  // so waiting for the full count would time out and read a spent day as a
+  // dropped request. A refusal still reaches the all-200 assertion below unless
+  // every refusal is the daily ceiling.
   await expect
-    .poll(() => scanResponses.length, {
-      message: `expected ${expectedChunks} scan chunk request(s) for one Scan click`,
-      timeout: 90_000,
-    })
-    .toBe(expectedChunks);
+    .poll(
+      () =>
+        scanResponses.length === expectedChunks ||
+        (scanResponses.some((response) => response.status() !== 200) &&
+          scanResponses.length === scanRequestsSent),
+      {
+        message: `expected ${expectedChunks} scan chunk request(s) for one Scan click`,
+        timeout: 90_000,
+      },
+    )
+    .toBe(true);
+  // One stand-down, and only one: every chunk that did not answer 200 is the
+  // Edge refusing because the user class has spent its day. A mix with any
+  // other status, a parked or ledger refusal, or a 429 falls through to the
+  // assertion below and goes red.
+  const refusedChunks = scanResponses.filter((response) => response.status() !== 200);
+  if (refusedChunks.length > 0) {
+    const refusedBodies = await Promise.all(
+      refusedChunks.map((response) =>
+        response.json().catch(() => null) as Promise<InvokeRefusalBody | null>
+      ),
+    );
+    test.skip(
+      refusedChunks.every((response, index) =>
+        isDailyCeilingRefusal(response.status(), refusedBodies[index])
+      ),
+      "The Edge refused provider spend on every failed chunk: the user class " +
+        "has spent its daily FMP ceiling (fmpSpendRefused=ceiling). Not a " +
+        "regression — see supabase/functions/trade-analyzer/fmpBudget.ts.",
+    );
+  }
   expect(
     scanResponses.map((response) => response.status()),
     "every chunk of the scan must return 200 — a 429 means the suite's " +

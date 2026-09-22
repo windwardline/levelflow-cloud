@@ -93,6 +93,29 @@ describe("the chart feed claims a budget unit", () => {
   });
 });
 
+describe("the chart feed decides its provider spend once, after every free refusal", () => {
+  it("asks mayFetch as `user` after the claim and the window, before the provider loop", () => {
+    const claimAt = SRC.indexOf("claimMarketDataRequest(user.id)");
+    const windowAt = SRC.indexOf("resolveDateWindow(body, timeframe)");
+    const decisionAt = SRC.indexOf('const spend = await mayFetch(fmpBudgetDeps(), "user");');
+    const loopAt = SRC.indexOf("for (const providerSymbol of providerSymbols)");
+    assert.ok(decisionAt > 0, "the chart feed no longer decides its spend");
+    assert.ok(
+      claimAt < decisionAt && windowAt < decisionAt && decisionAt < loopAt,
+      "the spend decision moved: it must follow the rate claim and the window " +
+        "and precede the first provider path",
+    );
+  });
+
+  it("refuses with 503 through the shared refusal body, never 429", () => {
+    const decisionAt = SRC.indexOf('const spend = await mayFetch(fmpBudgetDeps(), "user");');
+    const branch = SRC.slice(decisionAt, SRC.indexOf("const failures", decisionAt));
+    assert.match(branch, /if \(!spend\.allowed\) \{/);
+    assert.match(branch, /return jsonResponse\(req, fmpSpendRefusalBody\(spend\), 503\);/);
+    assert.doesNotMatch(branch, /,\s*429\)/);
+  });
+});
+
 describe("the requested start is clamped, not just the day count", () => {
   it("floors `from` at the timeframe's own window", () => {
     const window = SRC.slice(

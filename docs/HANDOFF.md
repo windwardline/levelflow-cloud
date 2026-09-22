@@ -77,6 +77,27 @@ moment — #649 and #650 both were, with the corrections still local. And a clai
 of the form "N of these terms do X" is a census: enumerate the conjunction from
 source before writing the count.
 
+### 2026-09-21: a parked desk buys no provider bytes (amendment 47)
+
+A signed-in session walked past `PARKING_GATE` and the Edge served it: market-data
+checked a session and a rate limit, and `mayFetch` had no production caller and failed
+open. The branch `fix/fmp-edge-spend-while-parked` closes it. It is live when its merge
+deploy is green, and that deploy is its acceptance: the log shows `DESK_PARKED` true and
+`stood-down-parked`, public-auth passes, and the user class's `fmp_usage` bytes do not
+grow.
+
+- `DESK_PARKED` refuses user-class spend before a byte is bought: charts, scans and
+  outcome refreshes, each a 503 naming `parked`, `ceiling` or `ledger-unavailable`.
+- Background is not parked. news-calendar and outcome-sync run under the 200 MiB/day
+  background ceiling, so parked spend is bounded, not zero. outcome-sync is now charged
+  to background, not user.
+- Every Edge fetch site takes a permit that only `mayFetch` mints, once per request,
+  and a ledger outage refuses. `tests/fmpBudgetByClass.test.ts` holds this at site
+  grain: 7 sites, each sending one keyed URL through one fetch, and 5 decisions in 4
+  entry files.
+- A parked deploy, pushed or dispatched, stands the FMP-spending E2E projects down.
+  public-auth runs with market-data and refresh_outcomes stubbed in the browser.
+
 ### The desk is PARKED
 
 `PARKING_GATE` is `true` (owner instruction, 2026-08-07). Signed-out visitors see the
@@ -94,14 +115,31 @@ grading numbers changed, so the version moved with them). (The
 E2E account's rows reappear on every deploy — pipeline debris, not history;
 group by user before trusting a raw `count(*)`.)
 
-**Reopening is one flag plus its tests.** Flip `PARKING_GATE` to `false`, invert the two
-gate tests in `tests/e2e/public-auth.spec.ts`, return the four sign-in tests from
-`/?enter` to `/`, and update the pin in `tests/parkingGate.test.ts`. Nothing else.
-Spec §17p records it.
+**Reopening is two pushes, and the Edge goes first (amendment 47).** `DESK_PARKED`
+(`supabase/functions/_shared/deskParking.ts`) refuses every user-class provider request
+at the Edge, and it implies `PARKING_GATE`.
+
+- **Before push 1**, three preconditions. Read GoTrue's hosted sign-up setting from the
+  dashboard: `signInWithOtp` passes no `shouldCreateUser`, and no code or config file
+  here states the setting. Decide whether the owner's `?enter` session is exempt: with
+  the Edge open and the door closed, `?enter` and an open sign-up let anyone spend under
+  the 800 MiB user ceiling. And make the refusal visible in `src/`, as §21f requires: a
+  spent ceiling or a ledger outage now answers the user class with a 503 that nothing in
+  `src/` reads.
+- **Push 1**: lower `DESK_PARKED` alone, with its pins in `tests/deskParking.test.ts`
+  and `tests/e2eParkedScope.test.ts`. `deploy.yml` deploys the functions and runs the
+  full E2E against the open Edge.
+- **Push 2**, only after that run is green: flip `PARKING_GATE` to `false`, invert the
+  two gate tests in `tests/e2e/public-auth.spec.ts`, return the four sign-in tests from
+  `/?enter` to `/`, and update the pin in `tests/parkingGate.test.ts`. Spec §17p records
+  it.
+
+Parking is the reverse: raise `PARKING_GATE` first, or both together, then §17p's logout.
 
 **The trap, learned the hard way:** the gate is consulted inside App's `!session`
 branch, so it turns away arrivals and does **not** end visits. A park without the logout
-step leaves every signed-in operator working behind a closed door.
+step leaves every signed-in operator working behind a closed door. `DESK_PARKED` now
+refuses those visits' provider spend; the logout is still what ends them.
 
 ### FMP is dark, and the loss is permanent — **ENDED EARLY 2026-08-18**
 
@@ -137,6 +175,13 @@ step leaves every signed-in operator working behind a closed door.
 > existed, blanking Supabase's Finnhub value on every deploy) is
 > removed. Rotation from now on, for both credentials: rotate in the
 > Keychain, run the script, done.
+>
+> **Since 2026-09-21 the proving call spends nothing** (amendment 47).
+> The old POST ran a full calendar, earnings and news sync. The script
+> now sends a token-gated GET that news-calendar answers before any
+> spend decision, and compares a 16-hex SHA-256 prefix of the function's
+> `FMP_API_KEY` with the Keychain value. It proves the token and the key
+> the function holds; it no longer proves that FMP accepts the key.
 >
 > **The argv law and its scope** (#363, nine rounds; reflowed after the
 > post-merge round said this paragraph read as a changelog, not a law):
@@ -232,6 +277,9 @@ Re-enable them AFTER the minute bank has had one clean run, never before:
 §21c says the bank is the only consumer whose loss is permanent and dated, so
 it takes the door first when the window drains. This is the §17p shape again —
 a park is two steps, and the second one is the one that gets forgotten.
+`DESK_PARKED` does not cover these two: background work is not parked
+(amendment 47), so once re-enabled they spend under the 200 MiB/day background
+ceiling whether or not the desk is parked.
 
 The account's trailing-30-day bandwidth allowance was exhausted on 2026-08-13 by
 the rebuild's **replay sweeps** — not by the minute bank, whose steady draw is
@@ -477,6 +525,28 @@ them later; the late run appends them after its newest bar. 664 backward steps i
 inside banked coverage. No duplicates, nothing lost. The files are deliberately not
 rewritten. `docs/minute-bank.md` "Shape" holds the measurement, and the doc and the
 writer's comment no longer promise chronological order.
+*2026-09-21:* the backup's snapshots leave the home folder. The script had
+defaulted its root to `/Users/peacock` and kept fourteen dailies there, so
+fifteen `levelflow-minute-bank-snapshot-*` directories sat beside the owner's
+files. The root is now `~/.local/share/levelflow-cloud/minute-bank-snapshots/`
+and one daily is kept beside the protected `20260823`: R2 holds 60 verified
+archives, so the local copy is the staging copy and one offline restore point.
+A skipped push now skips the prune, a named root that does not exist is
+refused rather than created, and the prune never deletes the snapshot its own
+run pushed. R2's copy of `20260823` is not permanent — see §6b-1 item I.
+
+*Migration, executed 2026-09-21 before this merged:* the fifteen directories
+left `/Users/peacock` by hand. `20260823` and that day's `20260921` moved to the
+new root; the other thirteen went to the Trash, each already held in R2 as
+`minute-bank-<stamp>.tar.zst`. Every stamp the new root holds must have its
+archive in R2, because parity enumerates the root and a stamp without one fails
+it — and a parity failure exits the job before the local prune, which relocates
+the accumulation rather than ending it. Both moved stamps were verified present
+in R2 in the same session. Until this merged, the job still defaulted to
+`/Users/peacock`, so a run after the move could leave one fresh snapshot there;
+it is that day's copy, already pushed, and removing it costs nothing. `mv -n` is
+the verb for any later move: it skips a same-name directory silently and exits
+0, so a survivor means the new root already holds that stamp.
 *2026-09-21:* the calibration-cache top-up runs `origin/main` through
 `wl-repo-script` too. Its trap was worse than the bank's: the sweep's cache is
 the RELATIVE `.calibration-cache`, so from the extracted tree it would have
@@ -1077,7 +1147,7 @@ Then the finished cache failed its own gate twice more: a 16.4-hour ragged
 edge, because `store.pinned[anchor]` froze each market at whatever moment it
 was fetched (fixed by `--repin`), and a staleness bound that judged against
 the wall clock and ignored the bar in flight (#420) |
-| **R0b** | **Back up the MINUTE BANK first, then the cache** — re-ranked 2026-08-23 after measurement. `.minute-bank/` is 182 MB, 1,687,458 bars across 100 symbols, spanning 2026-08-04 to 2026-08-23, and FMP re-serves 1-minute bars only ~3 days deep — so **roughly 84% of it is unrecoverable if lost today**. `.calibration-cache` is expensive (~14 hours, metered bytes) and reproducible in KIND but NOT IN DEPTH — see the rebuild-depth rule below, which corrects this sentence. The original ranking gated the cheap irreplaceable half behind the expensive reproducible one. A dated local snapshot was taken 2026-08-23 (`~/levelflow-minute-bank-snapshot-20260823`, verified equal on symbol and bar counts) as a STOPGAP — a point-in-time copy starts going stale immediately, so the deliverable is still a recurring mechanism, not that copy | **THE RECURRING MECHANISM LANDED 2026-09-01.** **Its off-box half FAILED under launchd at 2026-09-02T05:36Z** — `wl-secret is not on PATH`: the plist runs `/bin/zsh -lc`, a login shell that never sources `~/.zshrc`, where `~/.local/bin` joins PATH, so the lookup worked in every interactive shell and failed in the one environment the schedule runs from. Fixed the same day: the launcher is resolved by absolute path and three executed tests run the script under a launchd-shaped environment (RED before, GREEN after); CI then found the script's literal `/Users/peacock` repo root, which made the off-box branch unreachable on any other checkout, and that is derived from the script's own location now. **Verified live 2026-09-02T15:08Z** after #563 merged: kickstarted under launchd, the agent archived the snapshot, uploaded it to R2 and verified the remote MD5, exit 0. The local snapshot had still been placed; the machine was a single point of failure for one night. `scripts/ops/backup-minute-bank.sh` on a launchd agent (`com.windwardline.levelflow-minute-bank-backup`, daily 20:10, `RunAtLoad`), verified registered and firing. It counts the bank, copies through a `.partial` path, RE-COUNTS the copy and refuses a mismatch, refuses an empty bank rather than overwriting a good snapshot, and prunes to a fortnight. On APFS the copy is a clone: 219 MB in about a second, so retention costs a fraction of its nominal size. **It touches no provider**, which matters because the bank is frozen precisely when the allowance is exhausted. **The 2026-08-23 naive-era corpus is protected BY NAME** — pruning oldest-first would have deleted it first, and a retention count cannot protect the oldest thing; `tests/minuteBankBackup.test.ts` proves that by execution. Re-measured at the mechanism's first run: 100 symbols, 2,067,013 bars. The cache half stays after R0 step 3, before step 5 deletes the archive. **RAISE BEFORE STEP 5 RUNS (2026-08-24)**: that archive is the ONLY real naive-era corpus in existence, and it was used on 2026-08-24 to validate the #384 clock-witness redesign against real data rather than synthetic fixtures — old and new witnesses condemn the identical 64 stores in it, 8 on transition evidence alone. Deleting it means no future clock instrument can ever be checked against anything but fixtures. Owner call** **Corrected 2026-09-21: name-protection does not keep `20260823`.** It binds this repo's two prunes and nothing else. `windwardline-backups` carries the lifecycle rule `expire-backups-after-365-days` over every object, so R2 deletes the daily `minute-bank-20260823.tar.zst` around 2027-09-02 whatever its name. The permanent copies go to `windwardline-archives` (no expiry, write-once, an indefinite lock once the pushes verify) through `scripts/ops/push-archive-offbox.sh`, which proves each one by restoring it: this snapshot, now at `~/.local/share/levelflow-cloud/minute-bank-snapshots/levelflow-minute-bank-snapshot-20260823`, and the condemned cache this row's closing paragraph guards, now at `~/.local/share/levelflow-cloud/archives/levelflow-cache-condemned-2026-08-11`. All three pushes are pending the operator's run; `docs/offbox-archives.md` is the register. |
+| **R0b** | **Back up the MINUTE BANK first, then the cache** — re-ranked 2026-08-23 after measurement. `.minute-bank/` is 182 MB, 1,687,458 bars across 100 symbols, spanning 2026-08-04 to 2026-08-23, and FMP re-serves 1-minute bars only ~3 days deep — so **roughly 84% of it is unrecoverable if lost today**. `.calibration-cache` is expensive (~14 hours, metered bytes) and reproducible in KIND but NOT IN DEPTH — see the rebuild-depth rule below, which corrects this sentence. The original ranking gated the cheap irreplaceable half behind the expensive reproducible one. A dated local snapshot was taken 2026-08-23 (`~/levelflow-minute-bank-snapshot-20260823`, verified equal on symbol and bar counts; from 2026-09-21 it lives with the dailies in `~/.local/share/levelflow-cloud/minute-bank-snapshots/`) as a STOPGAP — a point-in-time copy starts going stale immediately, so the deliverable is still a recurring mechanism, not that copy | **THE RECURRING MECHANISM LANDED 2026-09-01.** **Its off-box half FAILED under launchd at 2026-09-02T05:36Z** — `wl-secret is not on PATH`: the plist runs `/bin/zsh -lc`, a login shell that never sources `~/.zshrc`, where `~/.local/bin` joins PATH, so the lookup worked in every interactive shell and failed in the one environment the schedule runs from. Fixed the same day: the launcher is resolved by absolute path and three executed tests run the script under a launchd-shaped environment (RED before, GREEN after); CI then found the script's literal `/Users/peacock` repo root, which made the off-box branch unreachable on any other checkout, and that is derived from the script's own location now. **Verified live 2026-09-02T15:08Z** after #563 merged: kickstarted under launchd, the agent archived the snapshot, uploaded it to R2 and verified the remote MD5, exit 0. The local snapshot had still been placed; the machine was a single point of failure for one night. `scripts/ops/backup-minute-bank.sh` on a launchd agent (`com.windwardline.levelflow-minute-bank-backup`, daily 20:10, `RunAtLoad`), verified registered and firing. It counts the bank, copies through a `.partial` path, RE-COUNTS the copy and refuses a mismatch, refuses an empty bank rather than overwriting a good snapshot, and prunes. Retention was a fortnight in the home folder until 2026-09-21; it is now one daily plus the protected corpus, in `~/.local/share/levelflow-cloud/minute-bank-snapshots/`, and the prune runs only behind a verified push and a passing parity check. On APFS the copy is a clone: 219 MB in about a second, so retention costs a fraction of its nominal size. **It touches no provider**, which matters because the bank is frozen precisely when the allowance is exhausted. **The 2026-08-23 naive-era corpus is protected BY NAME** — pruning oldest-first would have deleted it first, and a retention count cannot protect the oldest thing; `tests/minuteBankBackup.test.ts` proves that by execution. Re-measured at the mechanism's first run: 100 symbols, 2,067,013 bars. The cache half stays after R0 step 3, before step 5 deletes the archive. **RAISE BEFORE STEP 5 RUNS (2026-08-24)**: that archive is the ONLY real naive-era corpus in existence, and it was used on 2026-08-24 to validate the #384 clock-witness redesign against real data rather than synthetic fixtures — old and new witnesses condemn the identical 64 stores in it, 8 on transition evidence alone. Deleting it means no future clock instrument can ever be checked against anything but fixtures. Owner call** **Corrected 2026-09-21: name-protection does not keep `20260823`.** It binds this repo's two prunes and nothing else. `windwardline-backups` carries the lifecycle rule `expire-backups-after-365-days` over every object, so R2 deletes the daily `minute-bank-20260823.tar.zst` around 2027-09-02 whatever its name. The permanent copies go to `windwardline-archives` (no expiry, write-once, an indefinite lock once the pushes verify) through `scripts/ops/push-archive-offbox.sh`, which proves each one by restoring it: this snapshot, now at `~/.local/share/levelflow-cloud/minute-bank-snapshots/levelflow-minute-bank-snapshot-20260823`, and the condemned cache this row's closing paragraph guards, now at `~/.local/share/levelflow-cloud/archives/levelflow-cache-condemned-2026-08-11`. All three pushes are pending the operator's run; `docs/offbox-archives.md` is the register. |
 | **R0c** | **CLOSED — verified 2026-08-31.** The chunking fix landed in #379 (`chunkMs = 60`, under the endpoint's 90-day window clamp) and the store has since been refetched. Measured on the store as it stands: **3,414 rows from 2013-01-02 to 2026-08-26, 95.9% of business days, zero gaps over 14 days** — against the 853 rows / 25.4% with 275–278 day gaps this entry was opened for. No probe and no further fetch is owed | **CLOSED — the entry outlived the fix** |
 | **R0d** | **CLOSED 2026-08-30 (#475) — by re-deriving the class floor, not by adopting a per-symbol baseline.** `assertFiveMinuteDensity` refused the whole corpus when a symbol's recent-90 5-minute density fell under its class floor, and `crypto: 260` was refusing DYDXUSD at 249.6. **The census settles it** (`docs/research/five-minute-density-census-2026-08-30.json`, measured off the warm stores): forex floor 150 / ceiling 204.7 = 0.733; metals 140 / 196.5 = 0.712; crypto 260 / 288.0 = 0.903. Crypto's floor sat ABOVE the thinnest market it bound (ratio 1.042) — a floor above its own population can only refuse a healthy member. Re-derived as forex's ratio (the tightest any sibling carries) applied to crypto's own measured ceiling: 0.733 x 288.0 = 211, shipped as **210**. Anchored on the CEILING, so the disputed market is nowhere in its own threshold. **THE PRIOR ENTRY'S PREMISE WAS BACKWARDS**: it called crypto "the only class whose homogeneity is empirically false". 28 of the 31 measured crypto markets sit at exactly 288.0 and the class CV is 2.5%, making it one of the MOST homogeneous on the roster — the defect was under-sampling (two probes, both at the ceiling), not heterogeneity. That is why no per-symbol baseline, no new manifest fact and **no R2b dependency** were needed. Cost, stated: the depth floor is the only instrument that sees a clip applied symmetrically to both resolutions, and its blind band widens from a 10% clip to a 27% one — which is exactly where forex (27%) and metals (29%) have always sat, so this makes crypto consistent with the fleet rather than more permissive. Both clip fixtures in `tests/sweepStats.test.ts` (144 and 200 rows/day) still refuse. `tests/densityFloorDerivation.test.ts` pins the RELATIONSHIP rather than the constant — no floor above its class minimum, all floors inside one band, nothing in the measured population refused, and a half-clipped feed still caught. | **CLOSED — was never an owner call once the population was measured** |
 | **R0e** | **`verify-cache-clock` never received two refinements the corpus door already has** — NEW 2026-08-24, found by running R0 step 3. Three of its five REDs are instrument drift, not data: `DYDXUSD 2.17`, `ZOUSX 1.78`, `ZRUSD 2.37` on the 5min/15min ratio. The corpus door (`sweepStats.ts`) judges that ratio on the RECENT-90 intersection window and only for SLOT-DENSE markets (`DENSITY_RATIO_PRIMARY_FLOOR = 60` 15-minute-equivalent rows/day). `verify-cache-clock.ts` counts the WHOLE overlap span and self-selects nothing — it contains zero references to the slot-dense floor. The consequences are exact: ZOUSX runs 22.5 and ZRUSD 16.2 fifteen-minute rows/day, so the door never judges them at all, and both are agricultural trade-sparse series this codebase already documents as honest ("ZRUSD ~36 prints with intra-session holes"); DYDXUSD clears the door at 2.83 on the recent window and fails the verifier at 2.17 on the whole span, because its early thin era is where a 15-minute parent holding one print yields one 5-minute child — the parent-child degeneracy the source comment names. **This is the FOURTH instance tonight of one shape**: a threshold applied to a population it was not derived for. #382 (whole-span window vs recent), #384 (a resolution-dependent band), R0d (a class floor set from the densest members), and now an instrument that never got its sibling's fixes. Unlike R0d this needs NO new mechanism and NO manifest fact — both refinements exist, are documented, and are in production in the door; they simply were not propagated | **before R0 steps 4-5, and it blocks them** — step 3 must be green before the top-up agent is re-armed and before step 5 deletes the archive. Lower risk than R0d: this is making two instruments agree where one is already known-correct, not choosing a new threshold. **Check any new instrument against DYDXUSD before merging it** — the roster's thinnest crypto has now tripped three separate doors calibrated on dense members (clock witness #383/#384, the density floor R0d, this ratio) |
@@ -2049,7 +2119,8 @@ that fixed it.
   change set alongside anything else can open the public door while the Edge
   deploy, the deploy-time E2E suite and the header poll are still running or
   have failed. **Land the flag flip alone, one push AFTER a green
-  `deploy.yml`.**
+  `deploy.yml`.** Amendment 47 makes that push 2 of two: push 1 lowers
+  `DESK_PARKED` alone, and its deploy's full E2E is the green run meant here.
 - **The real-fill measurement, in both its branches.** §5 states the boundary —
   either operator-entered fill prices get captured, or Levelflow has no
   measurement of a real fill and should say so — and neither branch appears in
@@ -3403,7 +3474,8 @@ Executed so far, per `docs/cache-rebuild-r0.md`:
   (the minute-bank agent deliberately left loaded and running — it is a
   different store and the runbook says so). The condemned 3.9 GB store
   moved to `~/levelflow-cache-condemned-2026-08-11`, outside the repo,
-  with its `INVALID-READ-ME.txt` and the `cot-*.json` files.
+  with its `INVALID-READ-ME.txt` and the `cot-*.json` files. Since
+  2026-09-21 it is at `~/.local/share/levelflow-cloud/archives/levelflow-cache-condemned-2026-08-11`.
 - **Step 2 RUNNING**, `--symbols roster --days max --warm-only
   --byte-budget 30gb`, under `caffeinate` so the machine cannot idle-sleep
   through it, with the key delivered by `wl-secret` at exec and never on
@@ -3414,15 +3486,16 @@ Executed so far, per `docs/cache-rebuild-r0.md`:
   ever claimed and all it can claim — see R0c and the coverage paragraph
   below.***
 - **Is step 2 still running? Derive it, do not assume.** The log is
-  `~/levelflow-rebuild-20260823.log` (the runbook writes
-  `~/levelflow-rebuild-$(date +%Y%m%d).log`, stamped the day the run
+  `~/.local/share/levelflow-cloud/archives/levelflow-rebuild-20260823.log`, in the home folder until
+  2026-09-21 (the runbook writes
+  `~/.local/share/levelflow-cloud/archives/levelflow-rebuild-$(date +%Y%m%d).log`, stamped the day the run
   STARTED — a session resuming after midnight must look for the start
   date, not today's).
 
   ```sh
   pgrep -fl replay-sweep                       # alive?
-  tail -3 ~/levelflow-rebuild-20260823.log     # where it got to
-  grep -c '	warm	' ~/levelflow-rebuild-20260823.log   # symbols warmed, of 97
+  tail -3 ~/.local/share/levelflow-cloud/archives/levelflow-rebuild-20260823.log     # where it got to
+  grep -c '	warm	' ~/.local/share/levelflow-cloud/archives/levelflow-rebuild-20260823.log   # symbols warmed, of 97
   ```
 
   A run that is gone with fewer than 97 warm lines died or was killed.
@@ -3437,7 +3510,7 @@ Executed so far, per `docs/cache-rebuild-r0.md`:
   sweep pre-flight at this depth.
 
   ```sh
-  grep -nE 'treasury top-up failed|WOULD REFUSE|429' ~/levelflow-rebuild-20260823.log
+  grep -nE 'treasury top-up failed|WOULD REFUSE|429' ~/.local/share/levelflow-cloud/archives/levelflow-rebuild-20260823.log
   ```
 
   The density observation above is early-run evidence, not this grep.
@@ -4209,7 +4282,8 @@ key. Sequenced after item 6's `init.sql` work.
 
 ### The two cache archives, and why v2 was released (2026-08-26)
 
-`~/levelflow-cache-v3-preDateFix-20260824` is **KEPT**. Its own retention condition is
+`~/.local/share/levelflow-cloud/archives/levelflow-cache-v3-preDateFix-20260824` (in the home folder until 2026-09-21) is
+**KEPT**. Its own retention condition is
 measured and unmet: `verify-rebuild-depth --reference` against it reports **24 stores /
 10,850 rows** master did not recover.
 
@@ -4319,7 +4393,7 @@ sample of one); and it REFUSES a thin sample rather than passing it. `tests/rebu
 pins all three.
 
 **This rule exists in the repo because it previously existed only in a README inside
-`~/levelflow-cache-v3-preDateFix-20260824` — an archive that has itself been a deletion
+`~/.local/share/levelflow-cloud/archives/levelflow-cache-v3-preDateFix-20260824` — an archive that has itself been a deletion
 candidate.** A premise whose only record sits inside the thing it protects is one cleanup away
 from being lost.
 
@@ -5239,6 +5313,33 @@ is bit-identical between the arms (measured: same decision keys, zero rows
 differing field for field), so the two corpora reconcile exactly, and
 `acceptance.captureAll` in the manifest plus `assertAcceptanceMode` keeps a
 reader from mixing them.
+
+**I. The naive-era corpus has no copy that never expires — OPEN, raised
+2026-09-21.** `minute-bank-20260823.tar.zst` is spared by name from the push's
+remote prune, but `windwardline-backups` carries a 365-day lifecycle expiry
+over every object (windwardline FLEET.md, set 2026-09-03), and a lifecycle rule
+cannot exclude a name. R2 deletes it a year after its upload. It was uploaded
+2026-09-02 15:40:42Z, so it lapses about 2027-09-02 15:40Z [read from R2 with
+`rclone lsf --format tp` on 2026-09-21]. After it lapses, parity fails every day naming `20260823`,
+the backup exits 1 before its local prune, dailies accumulate again, and the
+local snapshot is the corpus's only copy. The option in flight is the
+write-once `windwardline-archives` bucket (windwardline branch
+`docs/r2-archives-bucket`, not merged at this writing). Owed before the expiry:
+a permanent copy of `20260823`, its upload date read from R2, and a ruling on
+whether the parity check should then stop requiring the protected stamp in
+`windwardline-backups`.
+
+**J. Nobody has ever restored the minute bank from R2 — OPEN, raised
+2026-09-21.** The push verifies the remote object's md5 against the local
+archive's, which proves the bytes that left are the bytes that landed. It does
+not prove bars come back out of a `tar | zstd` archive pulled from R2, and
+parity compares names, not contents. Until 2026-09-21 fourteen local dailies
+meant ordinary recovery never touched R2; local retention is now one, so R2 is
+the only route to any day but today. The bank is the artifact this repo calls
+unrecoverable at any price. Postgres has `scripts/ops/verify-postgres-restore.sh`
+under the rule that structure is not recoverability; the bank has no analogue.
+Owed: a restore proof that pulls the newest archive, unpacks it, and counts bars
+and sidecars against the live store, on the weekly cadence rather than the daily.
 
 ### 6b-0. The diminished-returns register — what is closed, and what re-opens it
 

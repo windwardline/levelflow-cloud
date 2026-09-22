@@ -107,12 +107,15 @@ project has already lost one state-of-record artifact exactly that way:
 
 ```sh
 cd ~/Projects/levelflow-cloud
-mv .calibration-cache ~/levelflow-cache-condemned-2026-08-11
+mkdir -p ~/.local/share/levelflow-cloud/archives
+mv .calibration-cache ~/.local/share/levelflow-cloud/archives/levelflow-cache-condemned-2026-08-11
 ```
 
 (The `INVALID-READ-ME.txt` marker inside travels with it. The cot-*.json
 contract files travel too — they are bespoke, unstamped, and covered by
-this archive rather than by the store guard.)
+this archive rather than by the store guard. Until 2026-09-21 this runbook
+put the archive and the rebuild log directly in the home folder; both moved
+to `~/.local/share/levelflow-cloud/archives/` that day.)
 
 ## 2. Rebuild — the ordinary warm path, with a declared ceiling
 
@@ -161,9 +164,10 @@ streams (the launchd wrapper buffers everything until exit, which for a
 run this long reads as a hang):
 
 ```sh
+mkdir -p ~/.local/share/levelflow-cloud/archives
 FMP_API_KEY="$(security find-generic-password -a peacock -s fmp-api-key -w)" \
   npx tsx scripts/replay-sweep.ts --symbols roster --days max --warm-only \
-  --byte-budget 30gb 2>&1 | tee ~/levelflow-rebuild-$(date +%Y%m%d).log
+  --byte-budget 30gb 2>&1 | tee ~/.local/share/levelflow-cloud/archives/levelflow-rebuild-$(date +%Y%m%d).log
 ```
 
 - **Budget arithmetic**: 15-minute full depth is ~3 GB across the roster
@@ -268,7 +272,7 @@ For the record, the same command pointed at the condemned archive should
 fail on every store — it predates the stamp:
 
 ```sh
-npx tsx scripts/verify-cache-clock.ts --cache-dir ~/levelflow-cache-condemned-2026-08-11
+npx tsx scripts/verify-cache-clock.ts --cache-dir ~/.local/share/levelflow-cloud/archives/levelflow-cache-condemned-2026-08-11
 ```
 
 ## 4. Re-arm the nightly top-up
@@ -350,7 +354,7 @@ its rebuild — this runbook applies again from step 0.)
 After step 3 is green and step 4 has produced one green nightly run:
 
 ```sh
-rm -rf ~/levelflow-cache-condemned-2026-08-11
+rm -rf ~/.local/share/levelflow-cloud/archives/levelflow-cache-condemned-2026-08-11
 ```
 
 ## What this rebuild cannot lose

@@ -264,7 +264,7 @@ function main(): void {
     console.error(
       "verify-rebuild-depth: --reference is required.\n" +
         "  Point it at the pre-rebuild snapshot this corpus replaces, e.g.\n" +
-        "  npx tsx scripts/verify-rebuild-depth.ts --reference ~/levelflow-cache-v3-preDateFix-20260824",
+        "  npx tsx scripts/verify-rebuild-depth.ts --reference ~/.local/share/levelflow-cloud/archives/levelflow-cache-v3-preDateFix-20260824",
     );
     process.exit(1);
   }

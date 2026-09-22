@@ -33,19 +33,22 @@ the whole of it.
 
 | endpoint | where | what for |
 |---|---|---|
-| `/quote` | `trade-analyzer/marketLoader.ts:250` | the decision bar's current-price reference |
-| `/historical-price-eod/full` | `marketLoader.ts:347`, `market-data/index.ts:544` | daily bars |
-| `/historical-chart/{timeframe}` | `marketLoader.ts:350`, `market-data/index.ts:547` | intraday bars; 15-minute is the primary analyzer lens |
-| `/treasury-rates` | `trade-analyzer/macroContext.ts:98` | the macro tilt (10-year change) |
-| `/economic-calendar` | `news-calendar/index.ts:285` | timing risk |
-| `/earnings-calendar` | `news-calendar/index.ts:347` | timing risk |
-| `/news/{category}` | `news-calendar/index.ts:433` | timing risk, never direction |
+| `/quote` | `trade-analyzer/marketLoader.ts:273` | the decision bar's current-price reference |
+| `/historical-price-eod/full` | `marketLoader.ts:391`, `market-data/index.ts:581` | daily bars |
+| `/historical-chart/{timeframe}` | `marketLoader.ts:394`, `market-data/index.ts:584` | intraday bars; 15-minute is the primary analyzer lens |
+| `/treasury-rates` | `trade-analyzer/macroContext.ts:109` | the macro tilt (10-year change) |
+| `/economic-calendar` | `news-calendar/index.ts:327` | timing risk |
+| `/earnings-calendar` | `news-calendar/index.ts:391` | timing risk |
+| `/news/{category}` | `news-calendar/index.ts:489` | timing risk, never direction |
 | `/commitment-of-traders-report` | `scripts/replay-sweep.ts:1835` | `cotPercentile`, `cotStance`, `cotSampleSize` on every corpus row; `trade-analyzer/sweep.ts` only consumes it, via `cotContext.ts` |
 | `/commodities-list`, `/index-list` | `scripts/verify-fmp-matches.ts:173` | the two authoritative enumerations, for re-probing the unmatched register |
 
 Spend is governed, not merely rate-limited: `trade-analyzer/fmpBudget.ts` and
 `scripts/fmpGovernor.ts` hold a byte ledger in two classes, background yielding
 to live users, with the bulk of each rolling 30-day window deliberately unused.
+On the Edge it binds per request: each of the seven Edge fetch sites above
+takes a permit that only `mayFetch` mints, a ledger outage refuses, and the user
+class is refused outright while `DESK_PARKED` is true (amendment 47).
 
 ## What the subscription includes and Levelflow does not use
 

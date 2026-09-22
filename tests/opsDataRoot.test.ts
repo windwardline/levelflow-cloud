@@ -26,17 +26,10 @@ const OPS = "scripts/ops";
  * entry that no longer matches anything fails below, so the list cannot
  * outlive its reason.
  */
-const DATED_EXCEPTIONS: Array<{ file: string; variable: string; value: string; dated: string; why: string }> = [
-  {
-    file: "scripts/ops/backup-minute-bank.sh",
-    variable: "DEST_ROOT",
-    value: "/Users/peacock",
-    dated: "2026-09-21",
-    why:
-      "the minute-bank snapshots still land in ~ at this branch's base (a30ade3). The snapshot-root fix " +
-      "moves DEST_ROOT to $HOME/.local/share/levelflow-cloud/minute-bank-snapshots and deletes this entry.",
-  },
-];
+// Empty since #671 moved the minute-bank snapshot root to
+// $HOME/.local/share/levelflow-cloud/minute-bank-snapshots. A new entry needs a
+// date and a reason, and a stale one fails this suite.
+const DATED_EXCEPTIONS: Array<{ file: string; variable: string; value: string; dated: string; why: string }> = [];
 
 const HOME_ROOT = /^(?:\/Users\/[^/]+|\/home\/[^/]+|\/root|\$HOME|\$\{HOME\}|~)\/?$/;
 const ASSIGNMENT = /^\s*(?:(?:export|local|readonly|declare(?:\s+-[A-Za-z]+)?)\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/;

@@ -48,6 +48,7 @@
     "scripts/**/*.ts",
     "playwright.config.ts",
     "src",
+    "supabase/functions/_shared/deskParking.ts",
     "supabase/functions/trade-analyzer/bars.ts",
     "supabase/functions/trade-analyzer/calibration.ts",
     "supabase/functions/trade-analyzer/calibrationProvenance.ts",
@@ -82,6 +83,7 @@
     "supabase/functions/trade-analyzer/venueCosts.ts",
     "supabase/functions/trade-analyzer/venues.ts",
     "supabase/functions/news-calendar/eventRows.ts",
+    "supabase/functions/news-calendar/gate.ts",
     "supabase/functions/news-calendar/newsBatching.ts",
     "supabase/functions/market-data/upstreamStatus.ts"
   ]

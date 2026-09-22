@@ -1,4 +1,63 @@
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig, devices, type Project } from "@playwright/test";
+import { DESK_PARKED } from "./supabase/functions/_shared/deskParking.ts";
+
+// A LOCAL `npm run test:e2e` WHILE THE EDGE IS PARKED runs only the two
+// public-auth projects. The other three drive live charts and scans, which the
+// Edge refuses while DESK_PARKED is true (supabase/functions/_shared/
+// deskParking.ts), so locally they could only spend a sign-in and go red.
+// deploy.yml always sets LEVELFLOW_E2E_FMP_PROJECTS from its own scope
+// decision, so CI never reaches this branch; setting the variable here lets the
+// coverage reporter say what stood down, if its process sees it.
+const localParkedStandDown =
+  DESK_PARKED && process.env.LEVELFLOW_E2E_FMP_PROJECTS === undefined;
+if (localParkedStandDown) {
+  process.env.LEVELFLOW_E2E_FMP_PROJECTS = "stood-down-parked";
+}
+const PUBLIC_AUTH_PROJECTS = new Set(["public-auth", "public-auth-built"]);
+
+const projects: Project[] = [
+  {
+    name: "public-auth",
+    testMatch: /public-auth\.spec\.ts$/,
+    use: { ...devices["Desktop Chrome"] },
+  },
+  // Q4-I1: same spec, same assertions, against the built artifact instead
+  // of dev — see the webServer comment below. Independent of every other
+  // project (no shared rate limit — its function calls are stubbed), so it
+  // runs in parallel with all of them.
+  {
+    name: "public-auth-built",
+    testMatch: /public-auth\.spec\.ts$/,
+    use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:4173" },
+  },
+  {
+    name: "workspace",
+    testMatch: /authenticated-workspace\.spec\.ts$/,
+    // Paired teardown, not an afterAll in the spec: it runs once every
+    // project depending on workspace (visual-proof, then analyzer-abuse)
+    // has finished — success or failure — so the cleanup can neither
+    // cancel those proofs nor empty the Desk before they capture it.
+    teardown: "cleanup",
+    use: { ...devices["Desktop Chrome"] },
+  },
+  {
+    name: "visual-proof",
+    testMatch: /visual-proof\.spec\.ts$/,
+    dependencies: ["workspace"],
+    use: { ...devices["Desktop Chrome"] },
+  },
+  {
+    name: "analyzer-abuse",
+    testMatch: /analyzer-abuse\.spec\.ts$/,
+    dependencies: ["visual-proof"],
+    use: { ...devices["Desktop Chrome"] },
+  },
+  {
+    name: "cleanup",
+    testMatch: /cleanup\.teardown\.ts$/,
+    use: { ...devices["Desktop Chrome"] },
+  },
+];
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -96,53 +155,13 @@ export default defineConfig({
   // concurrently with another. (The limiter's tumbling wall-clock window can
   // still span a project boundary; what makes that safe is the order, not
   // isolation — the scan-heavy abuse storm runs last, after every scan
-  // assertion that matters.) public-auth.spec.ts never signs in as this user and
-  // touches none of this, so it keeps its own project with no dependency and
-  // runs in parallel with whichever of the three is currently active,
-  // keeping total wall-clock down. Its session-navigation tests hold a session
-  // without spending any of that budget either: the token they seed is invented,
-  // so no analyzer request carrying it is ever accepted.
-  projects: [
-    {
-      name: "public-auth",
-      testMatch: /public-auth\.spec\.ts$/,
-      use: { ...devices["Desktop Chrome"] },
-    },
-    // Q4-I1: same spec, same assertions, against the built artifact instead
-    // of dev — see the webServer comment above. Independent of every other
-    // project (no shared account, no shared rate limit), so it runs in parallel
-    // with all of them.
-    {
-      name: "public-auth-built",
-      testMatch: /public-auth\.spec\.ts$/,
-      use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:4173" },
-    },
-    {
-      name: "workspace",
-      testMatch: /authenticated-workspace\.spec\.ts$/,
-      // Paired teardown, not an afterAll in the spec: it runs once every
-      // project depending on workspace (visual-proof, then analyzer-abuse)
-      // has finished — success or failure — so the cleanup can neither
-      // cancel those proofs nor empty the Desk before they capture it.
-      teardown: "cleanup",
-      use: { ...devices["Desktop Chrome"] },
-    },
-    {
-      name: "visual-proof",
-      testMatch: /visual-proof\.spec\.ts$/,
-      dependencies: ["workspace"],
-      use: { ...devices["Desktop Chrome"] },
-    },
-    {
-      name: "analyzer-abuse",
-      testMatch: /analyzer-abuse\.spec\.ts$/,
-      dependencies: ["visual-proof"],
-      use: { ...devices["Desktop Chrome"] },
-    },
-    {
-      name: "cleanup",
-      testMatch: /cleanup\.teardown\.ts$/,
-      use: { ...devices["Desktop Chrome"] },
-    },
-  ],
+  // assertion that matters.) public-auth.spec.ts signs in as this user, but its
+  // Edge function calls are stubbed in the browser (market-data and
+  // refresh_outcomes answered with empty bodies, anything else aborted and
+  // failed), so it spends neither provider bytes nor the analyzer budget. It
+  // keeps its own project with no dependency and runs in parallel with
+  // whichever of the three is currently active, keeping total wall-clock down.
+  projects: localParkedStandDown
+    ? projects.filter((project) => PUBLIC_AUTH_PROJECTS.has(project.name ?? ""))
+    : projects,
 });
