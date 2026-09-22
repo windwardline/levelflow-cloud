@@ -216,6 +216,10 @@ case "$sub" in
     if [ -e "$(dirname "$src")/restore" ]; then : > "$ROOT/.restore-at-upload"; fi
     if [ -e "$ROOT/.slow-copy" ]; then sleep 3; fi
     if [ -e "$dst" ] && [ "$ignore_existing" = 1 ]; then exit 0; fi
+    if [ -e "$ROOT/.copyto-fails" ]; then
+      if [ "$(cat "$ROOT/.copyto-fails")" = after-write ]; then mkdir -p "$(dirname "$dst")" && cp "$src" "$dst"; fi
+      echo "ERROR : upload failed (stub)" >&2; exit 7
+    fi
     mkdir -p "$(dirname "$dst")" && cp "$src" "$dst"; exit $? ;;
   *)
     echo "stub rclone: unsupported subcommand '$sub'" >&2; exit 99 ;;
@@ -645,7 +649,7 @@ describe("a permanent archive is proven by restoring it", () => {
     writeFileSync(join(sb.remote, ".cat-fails"), "");
     const r = run(sb);
     assert.equal(r.code, 1);
-    assert.match(r.stderr, /cannot stream R2:\S+ back: .*The object is at its key: run again with the source unchanged/);
+    assert.match(r.stderr, /cannot stream R2:\S+ back: .*The object may be at its key: run again with the source unchanged/);
     assert.equal(uploads(sb).length, 1);
     rmToggle(sb, ".cat-fails");
     const again = run(sb);
@@ -965,17 +969,45 @@ describe("the push refuses before it can do harm, each refusal by name", () => {
     assertStagingClean(sb.staging);
   });
 
-  it("re-proves its own object from a source with more symlinks than directories", () => {
-    // tar writes a header for every entry, a symlink included; bounds that
-    // count only files and directories would call this object another tree.
+  it("refuses a source holding a symlink, before reading the credential", () => {
+    // diff -rq follows a link, so the proof would certify its target, and a
+    // dangling one would make every comparison fail as "could not run".
     const sb = sandbox();
-    for (let i = 0; i < 12; i++) symlinkSync("BTCUSD-daily.json", join(sb.source, `link-${i}.json`));
-    const first = run(sb);
-    assert.equal(first.code, 0, first.stderr);
-    const second = run(sb);
-    assert.equal(second.code, 0, second.stderr);
-    assert.match(second.stderr, /already archived/);
-    assert.doesNotMatch(second.stderr, /spent/);
+    symlinkSync("no-such-target.json", join(sb.source, "dangling.json"));
+    const r = run(sb, { R2_TOKEN: undefined, LEVELFLOW_WL_SECRET: join(sb.root, "no-such-wl-secret") });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /neither a file nor a directory \(.*dangling\.json\)/);
+    assert.doesNotMatch(r.stderr, /wl-secret is not executable/, "refused before the credential");
+    assert.equal(rcloneCalls(sb).length, 0);
+  });
+
+  for (const mode of ["before-write", "after-write"] as const) {
+    it(`names the way out when the upload itself fails (${mode})`, () => {
+      // rclone can reject a transfer after the object landed, and under the
+      // lock it cannot delete what it rejected.
+      const sb = sandbox();
+      writeFileSync(join(sb.remote, ".copyto-fails"), mode);
+      const r = run(sb);
+      assert.equal(r.code, 1);
+      assert.match(r.stderr, /upload to R2:\S+ failed: .*The object may be at its key: run again with the source unchanged/);
+      assert.equal(r.stdout, "");
+      assertStagingClean(sb.staging);
+      rmToggle(sb, ".copyto-fails");
+      const again = run(sb);
+      assert.equal(again.code, 0, again.stderr);
+      assert.match(again.stderr, mode === "after-write" ? /already archived/ : /restore proven locally/);
+    });
+  }
+
+  it("tells a local failure on a new key from an archive that does not restore", () => {
+    const sb = sandbox();
+    tarHook(sb, "-xf", "exit 1");
+    const r = run(sb);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /could not compare the archive with the source here: it did not extract here\. Nothing was uploaded; fix the local cause/);
+    assert.doesNotMatch(r.stderr, /does not restore to the source/);
+    assert.equal(uploads(sb).length, 0);
+    assertStagingClean(sb.staging);
   });
 
   it("counts a hard link as the file it is, so a linked tree is not a false refusal", () => {

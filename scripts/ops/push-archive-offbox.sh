@@ -161,6 +161,15 @@ fi
 command -v zstd >/dev/null || die "zstd is not installed (brew install zstd)"
 command -v rclone >/dev/null || die "rclone is not installed (brew install rclone)"
 
+# REGULAR FILES AND DIRECTORIES ONLY. diff -rq follows a symlink, so it would
+# prove the link's target rather than the link, and a dangling one would make
+# every comparison "could not run" forever. The three datasets this was built
+# for hold none (measured 2026-09-22); a source that does is refused here, by
+# name, rather than half-proven.
+OTHER="$(find "$SRC" ! -type f ! -type d -print -quit)" || die "cannot scan $SRC"
+[[ -z $OTHER ]] \
+  || die "the source holds an entry that is neither a file nor a directory ($OTHER); the restore proof compares file contents and cannot prove a symlink, fifo or device, so this script refuses such a source"
+
 # --- self-delivery of the credential -----------------------------------------
 # Last of the pre-flight, so every refusal above runs BEFORE the Keychain is
 # read. wl-secret is located by ABSOLUTE PATH: ~/.local/bin joins PATH in
@@ -390,6 +399,9 @@ else
   log "archive $ARCHIVE_BYTES bytes, md5 $LOCAL_MD5, $LISTED files; restoring it here before anything is uploaded"
 
   restore_and_compare "$ARCHIVE"
+  if [[ $WHY_KIND == local ]]; then
+    die "could not compare the archive with the source here: $WHY. Nothing was uploaded; fix the local cause and run again"
+  fi
   [[ -z $WHY ]] || die "the archive does not restore to the source: $WHY. Nothing was uploaded"
   chmod -R u+w "$RESTORE" 2>/dev/null || true
   rm -rf "$RESTORE" || true
@@ -397,10 +409,11 @@ else
 
   require_space $(( ARCHIVE_BYTES + HEADROOM )) "the object streamed back after the upload"
   log "restore proven locally; uploading to R2:$BUCKET/$KEY"
+  # From here an object may be at a permanent key, whatever rclone reports.
+  FETCH_HINT=". The object may be at its key: run again with the source unchanged, which proves it by restoring it"
   rclone copyto --ignore-existing --s3-no-check-bucket "$ARCHIVE" "R2:$BUCKET/$KEY" 2>"$STAGE/copyto.err" \
-    || die "upload to R2:$BUCKET/$KEY failed: $(rclone_error "$STAGE/copyto.err")"
+    || die "upload to R2:$BUCKET/$KEY failed: $(rclone_error "$STAGE/copyto.err")$FETCH_HINT"
   log "uploaded; streaming the object back"
-  FETCH_HINT=". The object is at its key: run again with the source unchanged, which proves it by restoring it"
   fetch_back
   # These bytes were sent from here and proven above. Anything else came back
   # wrong, or an object reached the key after the listing and the upload left

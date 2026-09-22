@@ -39,7 +39,8 @@ not the launcher's `git fetch`, `git archive` or `tar`. `backup-minute-bank.sh` 
 
 Before it reads the credential it refuses, by name: a missing source, a dataset outside
 `^[a-z0-9-]+$`, a source name that cannot become a key, a bad bucket or prefix, a source
-under a temp root bound for the permanent bucket, and a missing `zstd` or `rclone`.
+under a temp root bound for the permanent bucket, a missing `zstd` or `rclone`, and a
+source holding anything but regular files and directories.
 After the credential and before any rclone call it refuses a staging root that is the
 home folder, resolves to `/` or sits inside the source; a key another run holds; and a
 source with no files. After the listing, each branch checks the space it will use
@@ -174,4 +175,5 @@ are filled.
 | `levelflow-minute-bank-snapshot-20260823` | `~/.local/share/levelflow-cloud/minute-bank-snapshots/levelflow-minute-bank-snapshot-20260823` (190,643,620 bytes, 200 files) | The naive-era minute bank. Its daily copy in `windwardline-backups` expires around 2027-09-02 |
 
 Measured 2026-09-22: no hard links, symlinks or special files in any of the three. The
-script's bounds count every entry tar writes a header for, whatever its type.
+script refuses a source holding anything but regular files and directories: `diff -rq`
+follows a symlink, so it would prove the target rather than the link.
