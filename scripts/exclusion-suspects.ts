@@ -26,6 +26,7 @@ import {
   assertManifestedCorpusStreaming,
   SEALED_FOLD,
 } from "./sweepStats.ts";
+import { positionalArgs } from "./flagReader.ts";
 
 // SYMBOLS: record the 2026-07-28 exclusion sweep | 12
 const SUSPECTS = new Set([
@@ -45,7 +46,10 @@ type S = { filled: number; rSum: number; wins: number };
 async function main(): Promise<void> {
   const acc = new Map<string, S>();
   const k = (s: string, p: string) => `${s}|${p}`;
-  const files = process.argv.slice(2);
+  // Positional shard paths and nothing else. Read whole, a `--x` was
+  // opened as a file and refused as a missing manifest — the wrong
+  // diagnosis for a typo; the shared walk names it as a flag.
+  const files = positionalArgs(process.argv.slice(2), new Set(), new Set(), "exclusion-suspects");
 // WIF-4, derived population (#364 round 54, finding 2): a run over zero
 // rows cannot report a verdict, and this reader had no door — with no
 // shard the loop never runs and the table prints its column header alone

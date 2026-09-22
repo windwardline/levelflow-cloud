@@ -20,7 +20,7 @@
  */
 
 import { MASTER_LIST_ROWS, type MasterListRow } from "../src/lib/broker/masterList.ts";
-import { flagReader, OperatorInputError } from "./flagReader.ts";
+import { flagReader, flagsOnly, OperatorInputError } from "./flagReader.ts";
 import {
   type ByteBudget,
   createByteBudget,
@@ -270,6 +270,10 @@ async function reprobeUnmatched(rows: MasterListRow[]): Promise<void> {
 // round 50, finding 2 — the scan now globs scripts/, so every reader with
 // a value-taking flag is inside the law rather than on a curated list).
 const VALUE_FLAGS = new Set(["--json"]);
+// The flags that own no token, declared so the walk can refuse an UNKNOWN
+// flag or a stray argument by name (2026-09-21): this reader read its
+// flags through accessors alone, so a typo ran as the default.
+const BOOLEAN_FLAGS = new Set<string>([]);
 
 
 async function main(): Promise<void> {
@@ -280,6 +284,7 @@ async function main(): Promise<void> {
   // writing the artifact the run existed to produce — fail-late, in the
   // change set that moved the density floors and the curve checks into
   // pre-flights for exactly this reason.
+  flagsOnly(process.argv.slice(2), VALUE_FLAGS, BOOLEAN_FLAGS, "verify-fmp-matches");
   const { str } = flagReader(process.argv, VALUE_FLAGS);
   const jsonPath = str("--json");
   // The checkout before the key: both are the operator's to name.

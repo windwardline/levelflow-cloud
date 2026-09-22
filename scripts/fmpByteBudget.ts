@@ -152,6 +152,22 @@ export async function readJsonWithBudget<T = unknown>(
   return JSON.parse(text) as T;
 }
 
+/**
+ * The argv flag each parser below reads, keyed by the parser's name
+ * (2026-09-22). A reader that calls one must declare that flag in its own
+ * walk, or the walk refuses the flag the parser honours. The flag is read
+ * HERE, so the reader's source never names it as a read and the reader's
+ * own declares-what-it-reads law cannot see it;
+ * tests/unknownFlagRefused.test.ts holds every caller to this map instead,
+ * and executes each parser to prove it reads the flag named here. The
+ * parsers keep their literals: tests/sweepManifest.test.ts pins the
+ * soleFlagIndex call by its text.
+ */
+export const ARGV_FLAG_OF_PARSER = {
+  parseByteBudgetArg: "--byte-budget",
+  parseDailyCeilingArg: "--daily-ceiling",
+} as const;
+
 export function parseByteBudgetArg(argv: readonly string[]): number {
   // Resolved through the shared step rather than indexOf (#364 round 53,
   // finding 1). This file is exempt from the VALUE_FLAGS law because the

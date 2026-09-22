@@ -33,6 +33,7 @@ import {
   SEALED_FOLD,
   tuningFolds,
 } from "./sweepStats.ts";
+import { positionalArgs } from "./flagReader.ts";
 import {
   getAssetType,
   getCategoryCalibration,
@@ -262,7 +263,16 @@ function reportGroup(label: string, group: Group, tuning: Tuning): void {
 }
 
 async function main(): Promise<void> {
-  const files = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
+  // A reader that takes NO flag still refuses one by name. The filter
+  // that stood here dropped every `--x` on the floor, which is the same
+  // silence the dialed readers carried until 2026-09-21 — and the one
+  // shape a future flag would be added on top of.
+  const files = positionalArgs(
+    process.argv.slice(2),
+    new Set(),
+    new Set(),
+    "confidence-bands",
+  );
   if (files.length === 0) {
     console.error("usage: confidence-bands.ts <emit.jsonl> [more.jsonl ...]");
     process.exit(1);

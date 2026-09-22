@@ -45,7 +45,7 @@ import {
   tuningFolds,
 } from "./sweepStats.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
-import { flagReader } from "./flagReader.ts";
+import { flagReader, flagsOnly, OperatorInputError } from "./flagReader.ts";
 
 const BASELINE =
   "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1,sizingHoursFactor=1";
@@ -294,9 +294,14 @@ export function collect(
 // occurrence only, no refusal for an undeclared flag, and no refusal for
 // a missing or flag-shaped value.
 const VALUE_FLAGS = new Set(["--net", "--gross", "--out"]);
+// The flags that own no token, declared so the walk can refuse an UNKNOWN
+// flag or a stray argument by name (2026-09-21): this reader read its
+// flags through accessors alone, so a typo ran as the default.
+const BOOLEAN_FLAGS = new Set<string>([]);
 
 function main() {
   const argv = process.argv.slice(2);
+  flagsOnly(argv, VALUE_FLAGS, BOOLEAN_FLAGS, "market-dossier");
   const { str } = flagReader(argv, VALUE_FLAGS);
   const netPaths = (str("--net") ?? "").split(",").filter(Boolean);
   const grossPaths = (str("--gross") ?? "").split(",").filter(Boolean);
@@ -480,5 +485,12 @@ function main() {
 // survived in a shipped reader. collect() is exported so the join it
 // performs can be tested against a real two-cell corpus.
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  main();
+  // An operator's typo refuses in one line; a real fault keeps its stack.
+  try {
+    main();
+  } catch (error) {
+    if (!(error instanceof OperatorInputError)) throw error;
+    console.error(error.message);
+    process.exit(1);
+  }
 }

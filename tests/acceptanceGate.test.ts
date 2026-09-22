@@ -1548,6 +1548,12 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     );
     return emitPath;
   };
+  // The default grid's second cell is { good: true }, which the driver names
+  // "good=true"; the fixture's rows call it "good". A read that names the
+  // good cell as its BASELINE renames the rows to the grid's own name, since
+  // the door refuses a baseline no grid cell carries (2026-09-22).
+  const namedAsGridCell = (row: SweepEmitRow): SweepEmitRow =>
+    row.variant === "good" ? { ...row, variant: "good=true" } : row;
 
   it("never reads confirm without the explicit flag", async () => {
     const graded = await gradeCorpus(foldedCorpus(), {
@@ -1679,16 +1685,23 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     const emitPath = foldedCorpus();
     const condemned = join(dirname(emitPath), "condemned.json");
     writeFileSync(condemned, JSON.stringify({ INVALID: "clock defect", markets: {} }));
+    // Both refusals need no row, so they come with the door: before the
+    // beforeOpen hook, where confirm-4d freezes its picks (2026-09-22).
+    let opened = 0;
+    const beforeOpen = () => {
+      opened += 1;
+    };
     await assert.rejects(
-      gradeCorpus(emitPath, { confirmFinal: true, confirmLogDir: mkdtempSync(join(tmpdir(), "gate-p-")), permutations: 50, provenancePath: condemned, seed: 4 }),
+      gradeCorpus(emitPath, { beforeOpen, confirmFinal: true, confirmLogDir: mkdtempSync(join(tmpdir(), "gate-p-")), permutations: 50, provenancePath: condemned, seed: 4 }),
       /provenance artifact is condemned/,
     );
     const mute = join(dirname(emitPath), "mute.json");
     writeFileSync(mute, JSON.stringify({ markets: { EURUSD: { derived: true, tranche: "totality" } } }));
     await assert.rejects(
-      gradeCorpus(emitPath, { confirmFinal: true, confirmLogDir: mkdtempSync(join(tmpdir(), "gate-p-")), permutations: 50, provenancePath: mute, seed: 4 }),
+      gradeCorpus(emitPath, { beforeOpen, confirmFinal: true, confirmLogDir: mkdtempSync(join(tmpdir(), "gate-p-")), permutations: 50, provenancePath: mute, seed: 4 }),
       /carries no heldBack/,
     );
+    assert.equal(opened, 0, "a provenance refusal came after the hook that opens the fold");
     // UNDETERMINABLE (`heldBack: null`, a non-derived market whose class
     // row's derivation window the instrument cannot see) reads as not held
     // back — the conservative side — and the figure is not evidence.
@@ -2566,10 +2579,13 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   });
 
   it("reads every market's shipped cell even when no variant is accepted, and records it", async () => {
-    const emitPath = foldedCorpus();
+    // The good rows carry the name the driver gives the grid's { good: true }
+    // cell: a baseline must name a cell of the grid, and the door refuses one
+    // that does not before any row is read (2026-09-22).
+    const emitPath = foldedCorpus({ transform: namedAsGridCell });
     const logPath = `${emitPath}.confirm-log.jsonl`;
     const graded = await gradeCorpus(emitPath, {
-      baselineVariant: "good",
+      baselineVariant: "good=true",
       confirmFinal: true,
       confirmLogPath: logPath,
       permutations: 100,
@@ -2583,7 +2599,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.ok(graded.read, "the read names where it was filed");
     assert.ok(graded.shipped.size > 0);
     for (const [symbol, cell] of graded.shipped) {
-      assert.equal(cell.variant, "good", `${symbol} graded at the named shipped cell`);
+      assert.equal(cell.variant, "good=true", `${symbol} graded at the named shipped cell`);
       assert.ok(cell.select.net, `${symbol} carries a select figure`);
       // No provenance was given, so nothing is held back; the fixture's
       // shipped cell reads positive, which for a cell not held back is the
@@ -3432,10 +3448,11 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       );
     };
 
-    // Zero-accept: grading against "good" leaves "baseline" failing
-    // both folds, so no confirm figure is produced.
-    const zeroAccept = foldedCorpus();
-    const zeroOut = run(zeroAccept, ["--baseline", "good"]);
+    // Zero-accept: grading against the good cell leaves "baseline" failing
+    // both folds, so no confirm figure is produced. The good rows carry the
+    // grid cell's own name, which a --baseline must name.
+    const zeroAccept = foldedCorpus({ transform: namedAsGridCell });
+    const zeroOut = run(zeroAccept, ["--baseline", "good=true"]);
     // #364 round 44, finding 3: the two false-states of confirmRead have
     // opposite next moves, so they are named apart. Nothing accepted →
     // the 4c gate produced no pick and the confirm fold is irrelevant.
