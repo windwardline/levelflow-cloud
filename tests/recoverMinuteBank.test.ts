@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { describe, it } from "node:test";
 
@@ -230,8 +230,12 @@ describe("recover-minute-bank fills the hole and nothing else", () => {
       "2026-09-05 00:02:00",
     ]);
     assert.equal(new Set(lines(eur.file).map((b) => b.date)).size, lines(eur.file).length, "no minute banked twice");
+    const appendedLine = after.slice(before.length).split("\n")[0];
+    assert.deepEqual(Object.keys(JSON.parse(appendedLine)), ["date", "open", "high", "low", "close", "volume"], "the bank's own line shape");
     // Dropped: three malformed and three from outside the asked day.
     assert.match(result.output, /EURUSD\tfetched 15\tappended 8\tdropped 6/);
+    // The sidecar's `fetched` is the bank's: usable bars only.
+    assert.equal(JSON.parse(readFileSync(eur.sidecar, "utf8")).runs.at(-1).fetched, 9);
   });
 
   it("keeps the sidecar's high-water mark, first date and recent keys, and counts what it added", async () => {
@@ -366,9 +370,14 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
         const m = 13 * 60 + 30 + i;
         return bar(`${date} ${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`);
       });
+    const other = bank(state, "GBPUSD", session);
     const result = await recover({ provider: (_symbol, date) => new Response(JSON.stringify(shifted(date))), state });
     assert.equal(result.code, 1);
     assert.match(result.output, /EURUSD: 720 of 1170 new minutes fall at times of day the file has never held/);
+    assert.match(result.output, /moves every session alike, so the run stands down: recover each side of a change separately/);
+    assert.match(result.output, /^Not started after the stop: GBPUSD\.$/m);
+    assert.ok(!result.urls.some((url) => url.searchParams.get("symbol") === "GBPUSD"), "the calendar's fact is learned once");
+    assert.ok(readFileSync(other.file, "utf8").length > 0);
     assert.equal(readFileSync(eur.file, "utf8"), before);
   });
 
@@ -553,6 +562,19 @@ describe("the first symbol that asks is the scout", () => {
     assert.equal(result.code, 1);
     assert.match(result.output, /no roster symbol has a bank file under .*; this checkout holds no minute bank/);
     assert.equal(result.urls.length, 0);
+  });
+
+  it("fails a run whose refusal bookkeeping could not be written", async () => {
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    chmodSync(state.usageDir, 0o500);
+    try {
+      const result = await recover({ provider: () => new Response("{}", { status: 404 }), state });
+      assert.equal(result.code, 1);
+      assert.match(result.output, /refusal bookkeeping write\(s\) failed this run; the ledger or the breaker is short/);
+    } finally {
+      chmodSync(state.usageDir, 0o700);
+    }
   });
 
   it("counts refusal bodies in the bytes it reports", async () => {

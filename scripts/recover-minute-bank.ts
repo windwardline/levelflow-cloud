@@ -259,8 +259,14 @@ type Context = {
   /** Set once, by the first refusal no later request can clear. */
   stop: unknown;
   requests: number;
-  /** Refusal bodies, which the governor records itself and the run's budget never sees. */
+  /**
+   * Refusal bodies. The governor records them itself; the run's own budget
+   * never sees them, so its 256 MiB bound excludes them and the closing line
+   * adds them back.
+   */
   refusalBytes: number;
+  /** Ledger or breaker writes providerRefusal could not make. */
+  bookkeepingFailed: number;
 };
 
 /**
@@ -310,6 +316,7 @@ async function fetchDay(ctx: Context, symbol: string, date: string): Promise<Raw
           state: deps.state,
         });
         ctx.refusalBytes += refusal.bytes;
+        if (refusal.bookkeepingFailed) ctx.bookkeepingFailed += 1;
         throw new Refused(refusal);
       }
       return response.text();
@@ -328,10 +335,20 @@ async function fetchDay(ctx: Context, symbol: string, date: string): Promise<Raw
   return payload as RawBar[];
 }
 
-type Tally = { symbol: string; fetched: number; appended: number; dropped: number; missed: string[]; refused: boolean };
+type Tally = {
+  symbol: string;
+  /** Bars the provider served, malformed and out-of-day ones included. */
+  fetched: number;
+  /** Bars that were usable and dated inside an asked day: the bank's own `fetched`. */
+  usable: number;
+  appended: number;
+  dropped: number;
+  missed: string[];
+  refused: boolean;
+};
 
 async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan): Promise<Tally> {
-  const tally: Tally = { appended: 0, dropped: 0, fetched: 0, missed: [], refused: false, symbol };
+  const tally: Tally = { appended: 0, dropped: 0, fetched: 0, missed: [], refused: false, symbol, usable: 0 };
   const asked = plan.dates.filter((date) => date >= store.firstDay);
   if (asked.length === 0) return tally;
   const fresh: Array<{ date: string; open: number; high: number; low: number; close: number; volume: number }> = [];
@@ -367,6 +384,7 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
         tally.dropped += 1;
         continue;
       }
+      tally.usable += 1;
       const banked = store.closes.get(bar.date);
       if (banked !== undefined) {
         overlaps += 1;
@@ -374,12 +392,13 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
       }
       if (store.keys.has(bar.date)) continue;
       store.keys.add(bar.date);
+      // The bank's key order, so the store keeps one line shape.
       fresh.push({
-        close: bar.close,
         date: bar.date,
+        open: bar.open,
         high: bar.high,
         low: bar.low,
-        open: bar.open,
+        close: bar.close,
         volume: Number.isFinite(bar.volume) ? bar.volume! : 0,
       });
     }
@@ -407,9 +426,16 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
     // no minute it cannot place.
     ctx.deps.print.err(`${symbol}: ${refusal}, so nothing was appended (${tally.fetched} bars were bought)`);
     tally.refused = true;
-    // A date shape and a day's granularity belong to the endpoint, not the
-    // symbol: every other symbol would be bought and refused the same way.
-    if (foreign !== null || overfull !== undefined) ctx.stop ??= new Error(`${symbol}: ${refusal}; the endpoint answers this way for every symbol, so the run stands down`);
+    // A date shape, a day's granularity and a session's clock belong to the
+    // endpoint or the calendar, not the symbol: every other symbol would be
+    // bought and refused the same way. Only a price disagreement is the file's.
+    if (foreign !== null || overfull !== undefined) {
+      ctx.stop ??= new Error(`${symbol}: ${refusal}; the endpoint answers this way for every symbol, so the run stands down`);
+    } else if (disagree <= Math.max(DISAGREE_FLOOR, DISAGREE_SHARE * overlaps)) {
+      ctx.stop ??= new Error(
+        `${symbol}: ${refusal}; a daylight-saving change or a provider timezone moves every session alike, so the run stands down: recover each side of a change separately`,
+      );
+    }
     return tally;
   }
   if (fresh.length > 0) {
@@ -422,7 +448,7 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
   sidecar.bars = (typeof sidecar.bars === "number" ? sidecar.bars : 0) + fresh.length;
   sidecar.runs = [
     ...runs.slice(-29),
-    { appended: fresh.length, at: new Date(ctx.deps.now()).toISOString(), fetched: tally.fetched, note: `recovered ${plan.from}..${plan.to}` },
+    { appended: fresh.length, at: new Date(ctx.deps.now()).toISOString(), fetched: tally.usable, note: `recovered ${plan.from}..${plan.to}` },
   ];
   writeFileSync(sidecarPath(ctx.dir, symbol), JSON.stringify(sidecar, null, 2));
   return tally;
@@ -526,6 +552,7 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
       ctx.requests += 1;
       return deps.fetch(input, init);
     }),
+    bookkeepingFailed: 0,
     refusalBytes: 0,
     requests: 0,
     stop: undefined,
@@ -581,6 +608,12 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
       `${plural(ctx.requests, "request")}, ${ctx.budget.spent() + ctx.refusalBytes} bytes to the ad-hoc class` +
       (ctx.refusalBytes > 0 ? ` (${ctx.refusalBytes} of them refusal bodies).` : "."),
   );
+  if (ctx.bookkeepingFailed > 0) {
+    print.err(
+      `${ctx.bookkeepingFailed} refusal bookkeeping write(s) failed this run; the ledger or the breaker is short by what they carried`,
+    );
+    code = 1;
+  }
   if (ctx.stop) {
     const stop = ctx.stop instanceof Refused ? ctx.stop.refusal : ctx.stop;
     print.err(redactProviderSecrets(stop instanceof Error ? stop.message : String(stop)));
