@@ -1,0 +1,366 @@
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, it } from "node:test";
+
+import { readBreaker } from "../scripts/fmpCircuit.ts";
+import { readDay, recordUsage } from "../scripts/fmpGovernor.ts";
+import type { FmpStatePaths } from "../scripts/fmpState.ts";
+import { acquireBankLock, runRecover } from "../scripts/recover-minute-bank.ts";
+import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
+import { BODIES, tempState } from "./fixtures/fmpTestState.ts";
+
+/**
+ * Recovering a minute-bank hole from dated requests.
+ *
+ * From 2026-09-04 to 2026-09-14 the bank could not run, and the store has a
+ * hole it was built on the belief it could never fill: an undated request
+ * returns about three days. On 2026-09-22 a governed probe asked FMP for one
+ * dated day, and it answered with every minute (EURUSD and BTCUSD, 2026-09-08,
+ * 2025-09-09 and 2021-09-08, 1,440 bars each). This fills a hole inside what
+ * the bank already holds and nothing else: it appends, it never rewrites, and
+ * it dedupes against every key in the file rather than the sidecar's
+ * recent-key window, which cannot see a partial day two weeks old.
+ *
+ * Every test here passes its own fetch and its own temporary state, so no
+ * test can reach the provider or this machine's ledger.
+ */
+
+const MIB = 1024 * 1024;
+const AT = Date.parse("2026-09-22T12:00:00Z");
+const WINDOW = ["--from", "2026-09-03", "--to", "2026-09-05"];
+
+const bar = (date: string, price = 1) => ({ close: price, date, high: price, low: price, open: price, volume: 0 });
+
+/** Three minutes a day, newest first, as FMP orders them. */
+const day = (date: string) => [bar(`${date} 00:02:00`), bar(`${date} 00:01:00`), bar(`${date} 00:00:00`)];
+
+type Bar = ReturnType<typeof bar>;
+
+function bank(state: FmpStatePaths, symbol: string, dates: string[], options: { torn?: boolean } = {}) {
+  mkdirSync(state.canonicalBankDir, { recursive: true });
+  const file = join(state.canonicalBankDir, `${encodeURIComponent(symbol)}.jsonl`);
+  const body = dates.map((date) => JSON.stringify(bar(date))).join("\n");
+  writeFileSync(file, options.torn ? `${body}\n{"date":"2026-09-21 23:5` : `${body}\n`);
+  const sidecar = {
+    bars: dates.length,
+    endpoint: "historical-chart/1min",
+    firstDate: dates[0],
+    fmpSymbol: symbol,
+    highWaterMark: dates.at(-1),
+    markets: [symbol],
+    provider: "fmp",
+    recentKeys: dates.slice(-2),
+    runs: [],
+    sourceTimezone: null,
+  };
+  writeFileSync(join(state.canonicalBankDir, `${encodeURIComponent(symbol)}.state.json`), JSON.stringify(sidecar, null, 2));
+  return { file, sidecar: join(state.canonicalBankDir, `${encodeURIComponent(symbol)}.state.json`) };
+}
+
+type Provider = (symbol: string, date: string) => Response;
+
+const served: Provider = (_symbol, date) => new Response(JSON.stringify(day(date)));
+
+async function recover(
+  options: { argv?: string[]; provider?: Provider; state?: FmpStatePaths; key?: string | null } = {},
+) {
+  const state = options.state ?? tempState();
+  const urls: URL[] = [];
+  const lines: string[] = [];
+  const provider = options.provider ?? served;
+  const code = await runRecover({
+    argv: options.argv ?? WINDOW,
+    fetch: (input) => {
+      const url = new URL(String(input));
+      urls.push(url);
+      return Promise.resolve(provider(url.searchParams.get("symbol") ?? "", url.searchParams.get("from") ?? ""));
+    },
+    key: options.key === null ? undefined : (options.key ?? "test-key"),
+    now: () => AT,
+    print: { err: (line) => lines.push(line), out: (line) => lines.push(line) },
+    sleep: () => Promise.resolve(),
+    state,
+  });
+  return { code, output: lines.join("\n"), state, urls };
+}
+
+const lines = (file: string): Bar[] =>
+  readFileSync(file, "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line) as Bar);
+
+describe("recover-minute-bank refuses before it spends", () => {
+  it("recovers roster symbols", () => {
+    for (const symbol of ["EURUSD", "BTCUSD"]) assert.ok(MASTER_LIST_ROWS.some((row) => row.fmpSymbol === symbol));
+  });
+
+  for (const [why, argv, message] of [
+    ["no window", [], /--from is required/],
+    ["no end", ["--from", "2026-09-03"], /--to is required/],
+    ["an impossible date", ["--from", "2026-09-31", "--to", "2026-10-01"], /must be a real YYYY-MM-DD date/],
+    ["a reversed window", ["--from", "2026-09-05", "--to", "2026-09-03"], /is after --to/],
+    ["a window longer than a month", ["--from", "2026-07-01", "--to", "2026-08-10"], /spans 41 dates/],
+    ["a mistyped --dry-run", [...WINDOW, "--dryrun"], /unknown argument --dryrun/],
+    ["a stray value", [...WINDOW, "2026-09-06"], /unknown argument 2026-09-06/],
+  ] as const) {
+    it(`refuses ${why}, and fetches nothing`, async () => {
+      const state = tempState();
+      bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+      const result = await recover({ argv: [...argv], state });
+      assert.equal(result.code, 1, result.output);
+      assert.match(result.output, message);
+      assert.equal(result.urls.length, 0);
+    });
+  }
+
+  it("refuses a window the scheduled bank is still served, so the two never append the same minute", async () => {
+    // The bank dedupes against its recent-key window only. A minute recovered
+    // inside the ~3 days an undated request still returns would be banked
+    // again by the next scheduled run.
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    const result = await recover({ argv: ["--from", "2026-09-14", "--to", "2026-09-16"], state });
+    assert.equal(result.code, 1, result.output);
+    assert.match(result.output, /--to 2026-09-16 is inside the last 7 days/);
+    assert.equal(result.urls.length, 0);
+  });
+
+  it("refuses a real run without a key", async () => {
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    const result = await recover({ key: null, state });
+    assert.equal(result.code, 1);
+    assert.match(result.output, /FMP_API_KEY is required/);
+    assert.equal(result.urls.length, 0);
+  });
+
+  it("refuses while the bank lock is held, and leaves the holder's lock alone", async () => {
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    const lock = `${state.canonicalBankDir}.lock`;
+    mkdirSync(lock);
+    writeFileSync(join(lock, "pid"), `${process.pid}\n`);
+    const result = await recover({ state });
+    assert.equal(result.code, 1);
+    assert.match(result.output, new RegExp(`the bank lock .*\\.lock is held by pid ${process.pid}`));
+    assert.equal(result.urls.length, 0);
+    assert.equal(readFileSync(join(lock, "pid"), "utf8"), `${process.pid}\n`);
+  });
+
+  it("stands down when the ad-hoc class has no room left today", async () => {
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    recordUsage({ atMs: AT, bytes: 256 * MIB, consumer: "adhoc", label: "earlier" }, state);
+    const result = await recover({ state });
+    assert.equal(result.code, 1);
+    assert.match(result.output, /the adhoc class has no FMP headroom left today/);
+    assert.match(result.output, /^fmpStandDown: kind=dailyCeiling source=governor$/m);
+    assert.equal(result.urls.length, 0);
+    assert.ok(!existsSync(`${state.canonicalBankDir}.lock`), "a refused run releases the lock");
+  });
+
+  it("refuses a file whose last line is torn and appends nothing to it", async () => {
+    // Appending after a torn line would bury it mid-file, where every reader
+    // that parses line by line meets it.
+    const state = tempState();
+    const torn = bank(state, "EURUSD", ["2026-08-06 00:00:00"], { torn: true });
+    bank(state, "BTCUSD", ["2026-08-06 00:00:00"]);
+    const before = readFileSync(torn.file, "utf8");
+    const result = await recover({ state });
+    assert.equal(result.code, 1);
+    assert.match(result.output, /EURUSD.*does not end in a newline/);
+    assert.equal(readFileSync(torn.file, "utf8"), before);
+    assert.ok(!result.urls.some((url) => url.searchParams.get("symbol") === "EURUSD"), "no bytes bought for it");
+    assert.ok(result.urls.some((url) => url.searchParams.get("symbol") === "BTCUSD"), "the rest still recover");
+  });
+});
+
+describe("recover-minute-bank fills the hole and nothing else", () => {
+  it("asks one dated question per symbol and day, from the first day each file holds", async () => {
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00", "2026-09-03 00:00:00", "2026-09-12 00:00:00"]);
+    // A file that started inside the window: nothing before its first day.
+    bank(state, "BTCUSD", ["2026-09-04 00:00:00", "2026-09-12 00:00:00"]);
+    const result = await recover({ state });
+    assert.equal(result.code, 0, result.output);
+    const asked = result.urls.map((url) => `${url.searchParams.get("symbol")} ${url.searchParams.get("from")}..${url.searchParams.get("to")}`);
+    assert.deepEqual(asked.sort(), [
+      "BTCUSD 2026-09-04..2026-09-04",
+      "BTCUSD 2026-09-05..2026-09-05",
+      "EURUSD 2026-09-03..2026-09-03",
+      "EURUSD 2026-09-04..2026-09-04",
+      "EURUSD 2026-09-05..2026-09-05",
+    ]);
+    for (const url of result.urls) {
+      assert.equal(url.pathname, "/stable/historical-chart/1min");
+      assert.equal(url.searchParams.get("apikey"), "test-key");
+    }
+  });
+
+  it("appends only minutes the file lacks, inside the asked day, oldest first, after what was there", async () => {
+    const state = tempState();
+    const eur = bank(state, "EURUSD", ["2026-08-06 00:00:00", "2026-09-03 00:00:00", "2026-09-12 00:00:00"]);
+    const before = readFileSync(eur.file, "utf8");
+    const provider: Provider = (_symbol, date) =>
+      new Response(
+        JSON.stringify([
+          ...day(date),
+          // A minute of the day before, which a from=to answer should not
+          // carry. It is the provider's to fix, not this store's to keep.
+          bar("2026-09-02 23:59:00"),
+          // Malformed: dropped, never repaired.
+          { date: `${date} 00:03:00`, high: 1, low: 1, open: 1 },
+        ]),
+      );
+    const result = await recover({ provider, state });
+    assert.equal(result.code, 0, result.output);
+    const after = readFileSync(eur.file, "utf8");
+    assert.ok(after.startsWith(before), "the file was rewritten, not appended to");
+    const added = after.slice(before.length).split("\n").filter(Boolean).map((line) => (JSON.parse(line) as Bar).date);
+    assert.deepEqual(added, [
+      "2026-09-03 00:01:00",
+      "2026-09-03 00:02:00",
+      "2026-09-04 00:00:00",
+      "2026-09-04 00:01:00",
+      "2026-09-04 00:02:00",
+      "2026-09-05 00:00:00",
+      "2026-09-05 00:01:00",
+      "2026-09-05 00:02:00",
+    ]);
+    assert.equal(new Set(lines(eur.file).map((b) => b.date)).size, lines(eur.file).length, "no minute banked twice");
+    // Dropped: three malformed and three from outside the asked day.
+    assert.match(result.output, /EURUSD\tfetched 15\tappended 8\tdropped 6/);
+  });
+
+  it("keeps the sidecar's high-water mark, first date and recent keys, and counts what it added", async () => {
+    const state = tempState();
+    const eur = bank(state, "EURUSD", ["2026-08-06 00:00:00", "2026-09-03 00:00:00", "2026-09-12 00:00:00"]);
+    const before = JSON.parse(readFileSync(eur.sidecar, "utf8"));
+    const result = await recover({ state });
+    assert.equal(result.code, 0, result.output);
+    const after = JSON.parse(readFileSync(eur.sidecar, "utf8"));
+    assert.equal(after.highWaterMark, before.highWaterMark);
+    assert.equal(after.firstDate, before.firstDate);
+    assert.deepEqual(after.recentKeys, before.recentKeys, "the scheduled bank's dedupe window is its own");
+    assert.equal(after.bars, before.bars + 8);
+    assert.equal(after.bars, lines(eur.file).length);
+    assert.deepEqual(after.runs.at(-1).note, "recovered 2026-09-03..2026-09-05");
+    assert.equal(after.runs.at(-1).appended, 8);
+  });
+
+  it("charges every byte to the ad-hoc class and releases the lock", async () => {
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    const result = await recover({ state });
+    assert.equal(result.code, 0, result.output);
+    const spent = readDay(AT, state);
+    assert.ok(spent.ok);
+    const body = Buffer.byteLength(JSON.stringify(day("2026-09-03")));
+    assert.equal(spent.day.adhoc, body * 3);
+    assert.equal(spent.day.bank, 0);
+    assert.ok(!existsSync(`${state.canonicalBankDir}.lock`));
+    assert.match(result.output, /Recovered 9 bars across 1 symbol for 2026-09-03\.\.2026-09-05: 3 requests/);
+  });
+
+  it("appends nothing on a second run", async () => {
+    const state = tempState();
+    const eur = bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    const first = await recover({ state });
+    assert.equal(first.code, 0, first.output);
+    const between = readFileSync(eur.file, "utf8");
+    const second = await recover({ state });
+    assert.equal(second.code, 0, second.output);
+    assert.equal(readFileSync(eur.file, "utf8"), between);
+    assert.match(second.output, /EURUSD\tfetched 9\tappended 0/);
+  });
+
+  it("measures the hole with --dry-run, spending nothing and needing no key", async () => {
+    const state = tempState();
+    const eur = bank(state, "EURUSD", ["2026-08-06 00:00:00", "2026-09-03 00:00:00", "2026-09-03 00:01:00"]);
+    const before = readFileSync(eur.file, "utf8");
+    const result = await recover({ argv: [...WINDOW, "--dry-run"], key: null, state });
+    assert.equal(result.code, 0, result.output);
+    assert.equal(result.urls.length, 0);
+    assert.match(result.output, /^EURUSD\t2026-09-03 2\t2026-09-04 0\t2026-09-05 0$/m);
+    assert.match(result.output, /would ask 3 dated questions for 1 symbol/);
+    assert.equal(readFileSync(eur.file, "utf8"), before);
+    const spent = readDay(AT, state);
+    assert.ok(spent.ok);
+    assert.equal(spent.day.adhoc, 0);
+  });
+});
+
+describe("recover-minute-bank stops on a wall and keeps what it paid for", () => {
+  it("stops at the class's share of the day, appending the minutes already bought", async () => {
+    const state = tempState();
+    const eur = bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    const body = Buffer.byteLength(JSON.stringify(day("2026-09-03")));
+    // Room for less than one answer: the first crosses the class's share.
+    recordUsage({ atMs: AT, bytes: 256 * MIB - Math.floor(body / 2), consumer: "adhoc", label: "earlier" }, state);
+    const result = await recover({ state });
+    assert.equal(result.code, 1);
+    assert.match(result.output, /crossed its share of the UTC day/);
+    assert.match(result.output, /^fmpStandDown: kind=dailyCeiling source=governor$/m);
+    assert.equal(result.urls.length, 1, "no request after the crossing");
+    assert.deepEqual(lines(eur.file).slice(1).map((b) => b.date), [
+      "2026-09-03 00:00:00",
+      "2026-09-03 00:01:00",
+      "2026-09-03 00:02:00",
+    ]);
+  });
+
+  it("stops on a bandwidth wall at the first answer, records it on the breaker, and names it", async () => {
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    bank(state, "BTCUSD", ["2026-08-06 00:00:00"]);
+    const result = await recover({
+      argv: [...WINDOW, "--concurrency", "1"],
+      provider: () => new Response(BODIES.bandwidth, { status: 429 }),
+      state,
+    });
+    assert.equal(result.code, 1);
+    assert.equal(result.urls.length, 1, "a wall no retry clears is not retried, nor asked again");
+    assert.match(result.output, /^fmpStandDown: kind=bandwidth source=provider$/m);
+    const breaker = readBreaker(AT, state);
+    assert.ok(breaker.ok);
+    assert.ok(breaker.entries.some((entry) => entry.open && entry.kind === "bandwidth"));
+  });
+
+  it("retries a transient failure, then names the day it could not recover and goes on", async () => {
+    const state = tempState();
+    const eur = bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    const provider: Provider = (_symbol, date) =>
+      date === "2026-09-04" ? new Response("upstream", { status: 502 }) : new Response(JSON.stringify(day(date)));
+    const result = await recover({ provider, state });
+    assert.equal(result.code, 1);
+    assert.equal(result.urls.filter((url) => url.searchParams.get("from") === "2026-09-04").length, 5);
+    assert.match(result.output, /EURUSD\tfetched 6\tappended 6\tdropped 0\tnot recovered: 2026-09-04/);
+    assert.deepEqual(
+      [...new Set(lines(eur.file).slice(1).map((b) => b.date.slice(0, 10)))],
+      ["2026-09-03", "2026-09-05"],
+    );
+  });
+});
+
+describe("the lock is the bank's own", () => {
+  it("makes the bank's shell lock wait while a recovery holds it", () => {
+    // bank-lock.sh derives the lock from the bank directory. Were this taken
+    // anywhere else, the scheduled bank and the backup would walk past it.
+    const state = tempState();
+    mkdirSync(state.canonicalBankDir, { recursive: true });
+    const held = acquireBankLock(state.canonicalBankDir);
+    assert.ok("release" in held, "refused" in held ? held.refused : "");
+    try {
+      const shell = spawnSync(
+        "/bin/bash",
+        ["-c", `. scripts/ops/bank-lock.sh && acquire_bank_lock "$1"`, "_", state.canonicalBankDir],
+        { encoding: "utf8", env: { ...process.env, LEVELFLOW_BANK_LOCK_TIMEOUT: "0" } },
+      );
+      assert.notEqual(shell.status, 0, `${shell.stdout}${shell.stderr}`);
+      assert.match(`${shell.stdout}${shell.stderr}`, new RegExp(`could not acquire the bank lock .* \\(held by pid ${process.pid}\\)`));
+    } finally {
+      held.release();
+    }
+    assert.deepEqual(readdirSync(join(state.canonicalBankDir, "..")).filter((name) => name.endsWith(".lock")), []);
+  });
+});

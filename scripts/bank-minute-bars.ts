@@ -2,13 +2,11 @@
  * 1-minute bar bank — append-only, starting 2026-08-06.
  *
  * FMP serves 1-minute bars for 99 of 99 probed symbols, and an undated request
- * returns about three days (probe, 2026-08-06). Whether a dated request reaches
- * deeper has not been measured; `scripts/probe-minute-bars.ts --symbol --from
- * --to` asks one such question. Until it is answered the depth is treated as
- * unrecoverable, so 15-minute resolution is a real ceiling today and the only
- * way to lift it is to accumulate forward: every day not banked is treated as a
- * day never recovered.
- * This is the one piece of work whose value depends purely on when it starts.
+ * returns about three days (probe, 2026-08-06). This bank was built on that
+ * being the whole depth. It is not: on 2026-09-22 a dated request returned all
+ * 1,440 minutes for EURUSD and BTCUSD on 2026-09-08, 2025-09-09 and 2021-09-08,
+ * and the rest of the roster is unmeasured. The bank still accumulates forward
+ * on its schedule; `scripts/recover-minute-bank.ts` fills a hole by date.
  *
  * What it is for: 15-minute bars cannot order intrabar events. That single
  * limitation is why a measured ~60% gain at sub-1.0 stop caps was declined in
@@ -25,11 +23,9 @@
  * does not move at all.
  *
  * That convention is wrong and will be corrected. This bank must not inherit
- * the error, and it must not have to be refetched once the correction lands:
- * an undated request returns about three days, and until a dated one is shown
- * to reach deeper a refetch is treated as impossible. So the store holds the
- * provider's own date string, unparsed. Re-normalising later is then a re-read
- * of local disk rather than a fetch that may no longer be possible.
+ * the error, and it must not have to be refetched once the correction lands.
+ * So the store holds the provider's own date string, unparsed. Re-normalising
+ * later is then a re-read of local disk rather than a fetch of every banked day.
  *
  * ## Shape
  *

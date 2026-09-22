@@ -11,14 +11,16 @@ was declined in round 25: at a 0.5 cap, 26% of setups end in neither a target no
 stop, so the expectancy figure describes the harness rather than the market.
 
 Minute bars resolve the order. FMP served them for 99 of 99 probed symbols, and an
-undated request returns about **three days** (probe, 2026-08-06). Whether a dated
-request reaches deeper has not been measured; `scripts/probe-minute-bars.ts --symbol
---from --to` asks one such question through the governor. Until it is answered, the
-depth is treated as unrecoverable: the bank accumulates forward, one day at a time.
+undated request returns about **three days** (probe, 2026-08-06). The bank was built
+on the belief that nothing deeper was served, so every day not banked was a day never
+recovered.
 
-That makes this the one piece of work whose value depends purely on its start date.
-Every day not banked is a day never recovered. The analysis that consumes it comes
-much later, and does not need to be designed first.
+**A dated request reaches much deeper.** On 2026-09-22, `scripts/probe-minute-bars.ts`
+asked for one day at a time through the governor, and FMP returned all 1,440 minutes
+each time for EURUSD and BTCUSD, on 2026-09-08, 2025-09-09 and 2021-09-08. That is two
+symbols and three dates; the rest of the roster is unmeasured. The bank still runs
+forward on its schedule, and a hole inside what it holds is filled by date
+(`scripts/recover-minute-bank.ts`, below).
 
 ## Raw provider strings are stored verbatim
 
@@ -37,11 +39,9 @@ winter 2026-01-30 first=09:30 last=15:45 bars=26
 ```
 
 That convention is wrong and will be corrected. The bank must not inherit it, and it
-must not need a refetch after the correction lands: an undated request returns about
-three days, and until a dated one is shown to reach deeper a refetch is treated as
-impossible. So the store holds the provider's own date string, unparsed and
-unconverted. Re-normalising later becomes a re-read of local disk instead of a fetch
-that may no longer be possible.
+must not need a refetch after the correction lands. So the store holds the provider's
+own date string, unparsed and unconverted. Re-normalising later becomes a re-read of
+local disk instead of a fetch of every banked day.
 
 The sidecar carries a `sourceTimezone` field, null until the convention is
 established by measurement rather than assumption.
@@ -97,8 +97,7 @@ indistinguishable from a real one.
 FMP_API_KEY=$(security find-generic-password -s fmp-api-key -a peacock -w) npx tsx scripts/bank-minute-bars.ts
 ```
 
-It must run at least once every three days. Until a dated request is shown to reach
-deeper, a longer gap is treated as one that cannot be closed.
+It must run at least once every three days. A longer gap is filled by date, below.
 
 The bank is never refused at a door (§21c). It does not consult the shared FMP
 breaker or ask the ledger for room: its first symbol is its probe, so an outage costs
@@ -136,6 +135,33 @@ change set, because an installed slot moved earlier than the tracked one would l
 clean overnight run skip a genuine scheduled start.
 
 First run, 2026-08-06: 338,971 bars across 100 symbols, 42 MB.
+
+## Filling a hole
+
+The bank could not run from 2026-09-04 to 2026-09-14. `scripts/recover-minute-bank.ts`
+fills a hole like that one from dated requests, once, as the ad-hoc class:
+
+```bash
+~/.local/bin/wl-secret fmp-api-key=FMP_API_KEY -- npx tsx scripts/recover-minute-bank.ts --from 2026-09-03 --to 2026-09-11 --dry-run
+~/.local/bin/wl-secret fmp-api-key=FMP_API_KEY -- npx tsx scripts/recover-minute-bank.ts --from 2026-09-03 --to 2026-09-11
+```
+
+`--dry-run` prints what each file holds for each day and fetches nothing. The run:
+
+- writes only to the checkout's own `.minute-bank`, and holds its lock, the same
+  `.minute-bank.lock` the scheduled bank and its backup take. A held lock is refused.
+- asks one dated question per symbol and day, and only for days on or after the first
+  one the file holds. Extending the bank backward is a backfill, which is not approved.
+- dedupes against every key in the file, not the sidecar's recent-key window.
+- appends oldest first after what is there, and never rewrites.
+- refuses a window reaching into the last seven days, where the scheduled bank is
+  still served the same minutes and would bank them again.
+- refuses a file whose last line is torn, and appends nothing to it.
+- charges every byte to the ad-hoc class under its 256 MiB day, and stops at a wall,
+  keeping the minutes it already paid for. A second run appends nothing.
+
+Its sidecar record is `recovered <from>..<to>`. The high-water mark, first date and
+recent keys stay the scheduled bank's.
 
 ## Backup
 
