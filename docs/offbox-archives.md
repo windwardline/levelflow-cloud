@@ -160,15 +160,20 @@ the date the script's restore passed, or a later monthly stream-back matched the
 
 | Archive | Archive bytes | MD5 | Files | Source bytes | Last proven (UTC) |
 | --- | ---: | --- | ---: | ---: | --- |
-| `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-condemned-2026-08-11.tar.zst` | pending | pending | pending | pending | pending |
-| `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-v3-preDateFix-20260824.tar.zst` | pending | pending | pending | pending | pending |
-| `windwardline-archives/levelflow-cloud/minute-bank/levelflow-minute-bank-snapshot-20260823.tar.zst` | pending | pending | pending | pending | pending |
+| `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-condemned-2026-08-11.tar.zst` | 531361803 | 1c67c6747c2b2076333af605c028b895 | 313 | 4159601762 | 2026-09-22 |
+| `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-v3-preDateFix-20260824.tar.zst` | 1025065828 | 5c2da51d92d26bed3e7a2986e2b07636 | 311 | 8213923007 | 2026-09-22 |
+| `windwardline-archives/levelflow-cloud/minute-bank/levelflow-minute-bank-snapshot-20260823.tar.zst` | 14194704 | d777df47dc62d26c09e21e8d84d88493 | 200 | 190643620 | 2026-09-22 |
 
-Bucket lock on `windwardline-archives`: pending, to be added after the three rows above
-are filled. Last, not first: until the three first pushes are proven, a hand delete is
-the only way back from a mistake.
+Bucket lock on `windwardline-archives`: rule `lock-archives-indefinitely`, prefix `""`,
+condition `Indefinite`, set 2026-09-22 after the three rows above were filled and a
+listing matched every key and size to them. Last, not first: until the first pushes
+were proven, a hand delete was the only way back from a mistake.
 
 ### Sources
+
+The two cache sources went to the Trash on 2026-09-22, after the lock; emptying it is the
+owner's call. The snapshot stays where it is: `backup-minute-bank.sh` counts it in
+parity and spares it by name.
 
 | Archive | Source on this machine | Why it is kept |
 | --- | --- | --- |
