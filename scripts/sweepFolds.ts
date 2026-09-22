@@ -20,6 +20,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import type { SweepManifest } from "./sweepManifest.ts";
+import { OperatorInputError } from "./flagReader.ts";
 
 export type FoldName = "confirm" | "fit" | "select";
 
@@ -722,4 +723,79 @@ export function assertEmbargoCoversReview(
         `fold's bars; lengthen FOLD_EMBARGO_MS or drop the window from the grid`,
     );
   }
+}
+
+/**
+ * The market filter a 4d grading reads: `--targets` or `--holdout-cycle`,
+ * resolved and checked the same way in derive-4d and confirm-4d, before either
+ * writes anything (2026-09-22).
+ *
+ * The two flags name two different populations. Each script used to take
+ * `--targets` over the holdout draw without a word, so `--holdout-cycle
+ * --targets X` read X under the holdout prefix; in confirm-4d that is the
+ * corpus's one read. Both together are refused.
+ *
+ * A target off every shard's roster (requested or swept) reads nothing, and a
+ * list that splits to nothing is an empty filter; both are refused. The match
+ * is exact, as the read's own row filter is: each target is upper-cased as it
+ * is split, and every symbol the driver sweeps is upper-case. A holdout draw
+ * that holds no market is known before any row is read, so it refuses here
+ * too, where it used to refuse only after confirm-4d had frozen its picks.
+ */
+export function resolveGradingPopulation(input: {
+  script: string;
+  /** What the script's read spends, added to the off-roster refusal where it spends something. */
+  consequence?: string;
+  manifests: readonly HoldoutManifest[];
+  targetsFlag: string | undefined;
+  holdoutCycle: boolean;
+}): { symbolFilter: Set<string> | undefined; heldOut: string[] | undefined } {
+  const { script, manifests, targetsFlag, holdoutCycle } = input;
+  if (holdoutCycle && targetsFlag !== undefined) {
+    throw new OperatorInputError(
+      `${script}: --holdout-cycle and --targets name two different populations ` +
+        `(the stratified held-out draw, and the markets listed) — pass one`,
+    );
+  }
+  if (targetsFlag !== undefined) {
+    const named = [
+      ...new Set(targetsFlag.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean)),
+    ];
+    if (named.length === 0) {
+      throw new OperatorInputError(
+        `${script}: --targets ${JSON.stringify(targetsFlag)} names no market ` +
+          `once split on commas — an empty filter reads nothing; name the ` +
+          `markets to read, or drop --targets`,
+      );
+    }
+    const roster = new Set(
+      manifests.flatMap((manifest) => [
+        ...(manifest.requestedSymbols ?? []),
+        ...(manifest.symbols ?? []).map((entry) => entry.symbol),
+      ]),
+    );
+    const outside = named.filter((symbol) => !roster.has(symbol));
+    if (outside.length > 0) {
+      const listed = outside.length === 1
+        ? outside[0]
+        : `${outside.slice(0, -1).join(", ")} and ${outside[outside.length - 1]}`;
+      throw new OperatorInputError(
+        `${script}: --targets names ${listed}, on no shard's roster of ` +
+          `${roster.size} markets (requested or swept) — a target off the ` +
+          `roster reads nothing${input.consequence ? `, ${input.consequence}` : ""}; name markets the shards carry`,
+      );
+    }
+    return { heldOut: undefined, symbolFilter: new Set(named) };
+  }
+  if (holdoutCycle) {
+    const held = resolveHeldOut(manifests).held;
+    if (held.size === 0) {
+      throw new OperatorInputError(
+        `${script}: --holdout-cycle drew no held-out market from the shards' ` +
+          `roster — there is nothing for a holdout read to grade`,
+      );
+    }
+    return { heldOut: [...held].sort(), symbolFilter: new Set(held) };
+  }
+  return { heldOut: undefined, symbolFilter: undefined };
 }

@@ -14,12 +14,13 @@
 // the walk the gate and confirm-4d share.
 import { gradeCorpus, type VariantVerdict } from "./grid-totalr.ts";
 import { assertManifest } from "./sweepStats.ts";
-import { resolveHeldOut } from "./sweepFolds.ts";
+import { resolveGradingPopulation } from "./sweepFolds.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
 import {
   describeNumericToken,
   describeToken,
   assertInDomain,
+  OperatorInputError,
   positionalArgs,
   soleFlagIndex,
   tokenFault,
@@ -97,7 +98,7 @@ async function main() {
     if (index === -1) return undefined;
     const token = argv[index + 1];
     if (tokenFault(token) !== null) {
-      throw new Error(
+      throw new OperatorInputError(
         `${arg} owns the token after it and got ${describeToken(token)} — a ` +
           `value, never a flag and never blank; pass ${arg} <value>`,
       );
@@ -125,7 +126,7 @@ async function main() {
     const token = argv[index + 1];
     const parsed = Number(token);
     if (tokenFault(token) !== null || !Number.isFinite(parsed)) {
-      throw new Error(
+      throw new OperatorInputError(
         `${arg} owns the token after it and cannot read ${
           describeNumericToken(token)
         } as a number — the walker already kept that token out of the ` +
@@ -143,7 +144,7 @@ async function main() {
   // per-class folds are the only fold source; the market grain is
   // `verdictUnit: "market"` below, which this script has always passed.
   if (argv.includes("--per-market-folds")) {
-    throw new Error(
+    throw new OperatorInputError(
       "--per-market-folds was retired on 2026-09-02: it re-cut each market's " +
         "span at 50/75% from row instants and, under --confirm-final, " +
         "relabelled a median 329 days of the held-back fold into select. " +
@@ -153,35 +154,28 @@ async function main() {
     );
   }
   if (paths.length === 0) {
-    throw new Error("derive-4d: no corpus shards given");
+    throw new OperatorInputError("derive-4d: no corpus shards given");
   }
 
-  // The holdout cycle (owner word, 2026-08-11): grade ONLY the markets
-  // the read-time stratification held out of every tuning aggregate —
-  // recomputed here with the same determinism, then passed as the
-  // surgical filter so nothing else enters the cube.
+  // The holdout cycle (owner word, 2026-08-11) grades ONLY the markets the
+  // read-time stratification held out of every tuning aggregate; totality
+  // mode grades an explicit target list, holdout members included (their rows
+  // are the whole point). The two are never taken together, and a target off
+  // every shard's roster refuses by name (resolveGradingPopulation, shared
+  // with confirm-4d): `--targets EURGBP,GBPJYP` used to write candidates for
+  // EURGBP alone and say nothing, leaving GBPJPY none for confirm-4d to pick.
   const holdoutCycle = argv.includes("--holdout-cycle");
-  let symbolFilter: Set<string> | undefined;
-  if (holdoutCycle) {
-    // The ONE holdout population (R4 act 2): the stratified set over the
-    // REQUESTED roster, verified against the anchor's tracked pin — never
-    // over the symbols that happen to have rows.
-    symbolFilter = new Set(resolveHeldOut(paths.map((path) => assertManifest(path))).held);
-    console.log(
-      `holdout cycle: ${symbolFilter.size} held-out markets -> ${
-        [...symbolFilter].sort().join(",")
-      }`,
-    );
-  }
-
-  // Totality mode: explicit target list + per-market re-cut folds; the
-  // targets ride the surgical filter and holdout members are included
-  // (their rows are the whole point).
   const targetsFlag = str("--targets");
-  if (targetsFlag) {
-    symbolFilter = new Set(
-      targetsFlag.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
-    );
+  const { heldOut, symbolFilter } = resolveGradingPopulation({
+    holdoutCycle,
+    manifests: paths.map((path) => assertManifest(path)),
+    script: "derive-4d",
+    targetsFlag,
+  });
+  if (heldOut !== undefined) {
+    console.log(`holdout cycle: ${heldOut.length} held-out markets -> ${heldOut.join(",")}`);
+  }
+  if (targetsFlag !== undefined && symbolFilter !== undefined) {
     console.log(`targets: ${symbolFilter.size} markets`);
   }
   const { heldOutSet, manifest, verdicts } = await gradeCorpus(paths, {
@@ -286,6 +280,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error);
+  // An operator's typo refuses in one line; a real fault keeps its stack.
+  console.error(error instanceof OperatorInputError ? error.message : error);
   process.exit(1);
 });
