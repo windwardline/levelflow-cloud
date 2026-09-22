@@ -3298,6 +3298,21 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       `${CONSTANT} is declared on one line and read on one, by repositoryLedgerDirOf; ` +
         "any other read bypasses the injected directory, so this test refuses to execute",
     );
+    // And gradeCorpus must take its directory FROM the resolver. Two reads of the
+    // constant prove nothing if gradeCorpus defaults the option itself — to a
+    // literal or anything else — while the exported resolver sits unused.
+    const resolved = code
+      .split("\n")
+      .map((line) => line.replace(/(^|[^:])\/\/.*$/, "$1").trim())
+      .filter((line) => /\brepositoryLedgerDir\s*=/.test(line) || /options\.repositoryLedgerDir\s*\?\?/.test(line));
+    assert.deepEqual(
+      resolved,
+      [
+        "return options.repositoryLedgerDir ?? DEFAULT_CONFIRM_LOG_DIR;",
+        "const repositoryLedgerDir = repositoryLedgerDirOf(options);",
+      ],
+      "gradeCorpus must obtain the repository directory through repositoryLedgerDirOf, and nothing else may default the option",
+    );
 
     const repository = scratchDir("gate-unredirected-");
     const warnings: string[] = [];
@@ -3583,18 +3598,29 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.match(refused.stderr, /unknown flag --repository-ledger-dir/);
 
     const SOURCE = /\.(ts|tsx|mts|cts|mjs|cjs|js|jsx|sh)$/;
-    const PRUNED = new Set([".git", "node_modules", "dist"]);
-    const population = readdirSync(REPO_ROOT, { withFileTypes: true })
-      .filter((entry) => !PRUNED.has(entry.name))
-      .flatMap((entry) => {
-        if (entry.isFile()) return SOURCE.test(entry.name) ? [entry.name] : [];
-        if (!entry.isDirectory()) return [];
-        return (readdirSync(join(REPO_ROOT, entry.name), { recursive: true }) as string[])
-          .filter((name) => SOURCE.test(name))
-          .map((name) => join(entry.name, name));
-      })
+    // Pruned at EVERY depth, never only the first. Dot-directories hold tool
+    // state, data and whole copies of this repository (.claude/worktrees/, which
+    // .gitignore names), and node_modules, dist and sweeps are installs, builds
+    // and corpus emits. Walking them made this test count a copy of grid-totalr.ts
+    // as a carrier on the machine that runs the done-gate, and list gigabytes of
+    // data doing it. Filesystem, not git: the no-git scratch clone runs this suite.
+    const PRUNED = new Set(["node_modules", "dist", "sweeps"]);
+    const walk = (dir: string): string[] =>
+      readdirSync(join(REPO_ROOT, dir), { withFileTypes: true }).flatMap((entry) => {
+        const rel = dir ? join(dir, entry.name) : entry.name;
+        if (entry.isDirectory()) {
+          return entry.name.startsWith(".") || PRUNED.has(entry.name) ? [] : walk(rel);
+        }
+        return entry.isFile() && SOURCE.test(entry.name) ? [rel] : [];
+      });
+    const population = walk("")
       .filter((file) => !file.startsWith(`tests${sep}`))
       .sort();
+    // The prune verifies itself: no path in the population sits under one.
+    const leaked = population.filter((file) =>
+      file.split(sep).slice(0, -1).some((segment) => segment.startsWith(".") || PRUNED.has(segment))
+    );
+    assert.deepEqual(leaked, [], "the walk descended into a pruned tree");
     // The population must reach the burner, and past scripts/ — a walk that
     // silently stopped at one subtree would pass every assertion below.
     assert.ok(population.includes(join("scripts", "confirm-4d.ts")), "the derived population must reach the burner");
