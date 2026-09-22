@@ -667,10 +667,37 @@ export async function runRecover(deps: RecoverDeps): Promise<number> {
   }
 }
 
+/**
+ * Why neither clock bound could judge this symbol in this window, or null.
+ * The price bound pairs on held minutes inside the window, SHIFT_MIN_PAIRS of
+ * them at least, and a window of wholly missing days has none. The novel bound
+ * sees a shifted session only as new minutes at times of day the file has
+ * never held, so a file that already holds nearly every time of day — the
+ * 24-hour markets, and futures with an hour's break — leaves it too little to
+ * see: even every unheld time of every asked day cannot clear its bound. A
+ * moved clock in such a window would be appended for good, so the symbol is
+ * refused from the file alone, before a byte is bought (2026-09-22). A file of
+ * under a day's minutes is judged by neither bound whatever the window, as the
+ * runbook states, and is left as it was.
+ */
+function unjudgeable(store: Store, plan: Plan): string | null {
+  const days = plan.dates.filter((date) => date >= store.firstDay).length;
+  if (days === 0 || store.closes.size >= SHIFT_MIN_PAIRS) return null;
+  const held = [...store.perDay.values()].reduce((sum, count) => sum + count, 0);
+  if (held < MINUTES_PER_DAY) return null;
+  const unheld = MINUTES_PER_DAY - store.times.size;
+  if (unheld * days > Math.max(NOVEL_FLOOR, NOVEL_SHARE * MINUTES_PER_DAY * days)) return null;
+  return (
+    `its window holds ${plural(store.closes.size, "minute")}, below the ${SHIFT_MIN_PAIRS} the price bound pairs on, ` +
+    `and its file ${store.times.size} of ${MINUTES_PER_DAY} times of day, too many for the clock bound to see a shifted session; ` +
+    `include a partly held day in the window`
+  );
+}
+
 async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Promise<number> {
   const { print, state } = deps;
   let code = 0;
-  const stores: Array<{ symbol: string; store: Store }> = [];
+  const readable: Array<{ symbol: string; store: Store }> = [];
   const absent: string[] = [];
   for (const { fmpSymbol } of bankableSymbols()) {
     const read = readStore(dir, fmpSymbol, plan);
@@ -678,10 +705,10 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
     else if ("problem" in read) {
       print.err(read.problem);
       code = 1;
-    } else stores.push({ store: read, symbol: fmpSymbol });
+    } else readable.push({ store: read, symbol: fmpSymbol });
   }
   if (absent.length > 0) print.out(`No bank file, so no hole to fill: ${absent.join(", ")}.`);
-  if (stores.length === 0) {
+  if (readable.length === 0) {
     // A roster with no bank file at all is a checkout that holds no bank:
     // a scratch copy, or LEVELFLOW_CHECKOUT naming the wrong tree.
     print.err(
@@ -689,6 +716,17 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
         ? `no roster symbol has a bank file under ${dir}; this checkout holds no minute bank, so there is nothing to recover into`
         : `no bank file under ${dir} could be read whole, so there is nothing to recover into`,
     );
+    return 1;
+  }
+  const stores = readable.filter(({ symbol, store }) => {
+    const why = unjudgeable(store, plan);
+    if (why === null) return true;
+    print.err(`${symbol}: not asked — ${why}`);
+    code = 1;
+    return false;
+  });
+  if (stores.length === 0) {
+    print.err(`no symbol's clock can be judged in ${plan.from}..${plan.to}; include a partly held day in the window`);
     return 1;
   }
   const questions = stores.reduce((sum, { store }) => sum + plan.dates.filter((date) => date >= store.firstDay).length, 0);
