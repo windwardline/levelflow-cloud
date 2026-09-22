@@ -105,7 +105,7 @@ require_space() {
   avail="$(free_bytes)" || die "cannot read the free space under $STAGING_ROOT"
   [[ $avail =~ ^[0-9]+$ ]] || die "cannot read the free space under $STAGING_ROOT: df gave '$avail'"
   (( avail >= $1 )) \
-    || die "$STAGING_ROOT has $avail bytes free and $2 needs $1, keeping $HEADROOM for the rest of the machine; refusing before a write that could not finish. The figure assumes the archive does not compress. Name staging on a filesystem with room through LEVELFLOW_ARCHIVE_STAGING, which survives the re-exec"
+    || die "$STAGING_ROOT has $avail bytes free and $2 needs $1, keeping $HEADROOM for the rest of the machine; refusing before a write that could not finish. Name staging on a filesystem with room through LEVELFLOW_ARCHIVE_STAGING, which survives the re-exec"
 }
 
 # Bash `[[ ]]` and no quoted argument after a bare directory test flag: the
@@ -258,15 +258,16 @@ log "source $SRC: $FILES files in $DIRS directories, $SRC_BYTES bytes"
 # Upper bounds, so a check needs no archive yet. ustar spends a 512-byte
 # header and at most 511 bytes of padding per entry plus a 10240-byte end
 # block; zstd's own bound adds 1/256 and a frame. A restore takes the source's
-# bytes and at most one 4 KiB block more per entry. Each branch below checks
+# bytes and at most one 4 KiB block more per entry. An entry is anything tar
+# writes a header for: a symlink or a fifo costs a header as a file does. Each branch below checks
 # its own peak before it writes: a new key an archive beside its restore, then
 # the returned copy beside the archive once the restore is gone; an existing
 # key the object it lists beside the restore. HEADROOM stays free for
 # everything else on the machine.
 HEADROOM=1073741824
-TAR_MAX=$(( SRC_BYTES + (FILES + DIRS) * 1024 + 10240 ))
+TAR_MAX=$(( SRC_BYTES + ENTRIES * 1024 + 10240 ))
 ARCHIVE_MAX=$(( TAR_MAX + TAR_MAX / 256 + 1048576 ))
-RESTORE_MAX=$(( SRC_BYTES + (FILES + DIRS) * 4096 ))
+RESTORE_MAX=$(( SRC_BYTES + ENTRIES * 4096 ))
 
 # --- is the key taken? ----------------------------------------------------------
 # On R2 a prefix that holds nothing lists empty and exits 0; exit 3 means the
@@ -301,8 +302,8 @@ RESTORE="$STAGE/restore"
 fetch_back() {
   rclone cat "R2:$BUCKET/$KEY" > "$RETURNED" 2>"$STAGE/cat.err" \
     || die "cannot stream R2:$BUCKET/$KEY back: $(rclone_error "$STAGE/cat.err")${FETCH_HINT:-}"
-  REMOTE_MD5="$(md5_of "$RETURNED")" || die "cannot hash the returned object"
-  [[ $REMOTE_MD5 =~ $MD5_RE ]] || die "not an md5: '$REMOTE_MD5'"
+  REMOTE_MD5="$(md5_of "$RETURNED")" || die "cannot hash the returned object${FETCH_HINT:-}"
+  [[ $REMOTE_MD5 =~ $MD5_RE ]] || die "not an md5: '$REMOTE_MD5'${FETCH_HINT:-}"
   REMOTE_BYTES="$(wc -c < "$RETURNED" | tr -d ' ')"
 }
 
@@ -369,7 +370,7 @@ if [[ $EXISTS == 1 ]]; then
 else
   # --- a new key: build, prove here, then write once -----------------------------
   require_space $(( ARCHIVE_MAX + (RESTORE_MAX > ARCHIVE_MAX ? RESTORE_MAX : ARCHIVE_MAX) + HEADROOM )) \
-    "an archive of this source beside its restore"
+    "an archive of this source beside its restore, bounded as if it did not compress,"
   ARCHIVE="$STAGE/$NAME.tar.zst"
   log "archiving at zstd -$LEVEL into $STAGE"
   if ! COPYFILE_DISABLE=1 tar --format=ustar -C "$PARENT" -cf - "$NAME" | zstd -q -"$LEVEL" -T0 -o "$ARCHIVE"; then

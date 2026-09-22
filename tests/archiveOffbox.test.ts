@@ -661,7 +661,7 @@ describe("a permanent archive is proven by restoring it", () => {
     dfStub(fresh, [room]);
     const refused = run(fresh);
     assert.equal(refused.code, 1);
-    assert.match(refused.stderr, /an archive of this source beside its restore needs/);
+    assert.match(refused.stderr, /an archive of this source beside its restore, bounded as if it did not compress, needs/);
 
     const sb = sandbox();
     assert.equal(run(sb).code, 0);
@@ -784,7 +784,7 @@ describe("a permanent archive is proven by restoring it", () => {
     dfStub(sb, ["1024"]);
     const r = run(sb);
     assert.equal(r.code, 1);
-    assert.match(r.stderr, /has 1048576 bytes free and an archive of this source beside its restore needs \d+/);
+    assert.match(r.stderr, /has 1048576 bytes free and an archive of this source beside its restore, bounded as if it did not compress, needs \d+/);
     assert.match(r.stderr, /through LEVELFLOW_ARCHIVE_STAGING, which survives the re-exec/, "the refusal names its remedy");
     // A listing is a free read; what the check guards is the build and the write.
     assert.deepEqual(rcloneCalls(sb).map((call) => call.split(" ")[0]), ["lsf"], "only the listing may run");
@@ -963,6 +963,19 @@ describe("the push refuses before it can do harm, each refusal by name", () => {
     assert.match(r.stderr, /the source holds no files/);
     assert.equal(uploads(sb).length, 0);
     assertStagingClean(sb.staging);
+  });
+
+  it("re-proves its own object from a source with more symlinks than directories", () => {
+    // tar writes a header for every entry, a symlink included; bounds that
+    // count only files and directories would call this object another tree.
+    const sb = sandbox();
+    for (let i = 0; i < 12; i++) symlinkSync("BTCUSD-daily.json", join(sb.source, `link-${i}.json`));
+    const first = run(sb);
+    assert.equal(first.code, 0, first.stderr);
+    const second = run(sb);
+    assert.equal(second.code, 0, second.stderr);
+    assert.match(second.stderr, /already archived/);
+    assert.doesNotMatch(second.stderr, /spent/);
   });
 
   it("counts a hard link as the file it is, so a linked tree is not a false refusal", () => {

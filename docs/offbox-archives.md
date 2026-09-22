@@ -173,4 +173,5 @@ are filled.
 | `levelflow-cache-v3-preDateFix-20260824` | `~/.local/share/levelflow-cloud/archives/levelflow-cache-v3-preDateFix-20260824` (8,213,923,007 bytes, 311 files) | `verify-rebuild-depth --reference` against it reports 24 stores / 10,850 rows master did not recover |
 | `levelflow-minute-bank-snapshot-20260823` | `~/.local/share/levelflow-cloud/minute-bank-snapshots/levelflow-minute-bank-snapshot-20260823` (190,643,620 bytes, 200 files) | The naive-era minute bank. Its daily copy in `windwardline-backups` expires around 2027-09-02 |
 
-Measured 2026-09-22: no hard links, symlinks or special files in any of the three.
+Measured 2026-09-22: no hard links, symlinks or special files in any of the three. The
+script's bounds count every entry tar writes a header for, whatever its type.
