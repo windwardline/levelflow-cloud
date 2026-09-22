@@ -274,7 +274,7 @@ describe("recover-minute-bank fills the hole and nothing else", () => {
     assert.equal(after.bars, before.bars + 8);
     assert.equal(after.bars, lines(eur.file).length);
     // It held one minute of 2026-09-03, and the answer agreed with it.
-    assert.deepEqual(after.runs.at(-1).note, "recovered 2026-09-03..2026-09-05; 0 of 1 held minutes came back revised");
+    assert.deepEqual(after.runs.at(-1).note, "recovered 2026-09-03..2026-09-05; 0 of 1 held minutes came back revised; shift test unjudged (1 same-key pair)");
     assert.equal(after.runs.at(-1).appended, 8);
   });
 
@@ -474,7 +474,7 @@ describe("recover-minute-bank keeps a revised history and refuses a moved clock"
       date === "2026-09-03" ? new Response("{}", { status: 404 }) : answered(symbol, date);
     const result = await recover({ provider, state });
     assert.doesNotMatch(result.output, /match the answer/);
-    assert.match(result.output, /^EURUSD\tfetched 2880\tappended 2880\tdropped 0\tnot recovered: 2026-09-03$/m);
+    assert.match(result.output, /^EURUSD\tfetched 2880\tappended 2880\tdropped 0\tshift test unjudged: 0 same-key pairs, below the 60 it needs\tnot recovered: 2026-09-03$/m);
     assert.equal(lines(eur.file).length, held.length + 2880);
   });
 
@@ -489,7 +489,7 @@ describe("recover-minute-bank keeps a revised history and refuses a moved clock"
       new Response(JSON.stringify(wholeDay(date).slice(0, 30).map((key, m) => bar(key, date === "2026-09-03" && m < 3 ? 1.00001 : 1))));
     const result = await recover({ provider, state });
     assert.equal(result.code, 0, result.output);
-    assert.match(result.output, /^EURUSD\tfetched 90\tappended 85\tdropped 0\t3 of 5 held minutes came back revised, median relative close difference 1\.00e-5$/m);
+    assert.match(result.output, /^EURUSD\tfetched 90\tappended 85\tdropped 0\t3 of 5 held minutes came back revised, median relative close difference 1\.00e-5\tshift test unjudged: 5 same-key pairs, below the 60 it needs$/m);
     assert.equal(lines(eur.file).length, held.length + 85);
   });
 
@@ -648,6 +648,69 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
     assert.match(result.output, /^Not started after the stop: USDJPY\.$/m);
   });
 
+  describe("a window neither clock bound can judge", () => {
+    // A window of wholly missing days gives the price bound no held minute to
+    // pair on, and a file holding nearly every time of day gives the clock
+    // bound nothing to see: a moved clock there would be appended for good.
+    const aDay = (date: string, keep: (minute: number) => boolean) =>
+      Array.from({ length: 1440 }, (_, m) => m).filter(keep).map((m) => `${date} ${clockOf(m)}`);
+    const everyMinute = () => true;
+    const futuresBreak = (m: number) => m < 21 * 60 || m >= 22 * 60; // an hour's daily break
+    const session = (m: number) => m >= 9 * 60 + 30 && m < 16 * 60;
+    const held = (keep: (minute: number) => boolean) => ["2026-08-06", "2026-08-07"].flatMap((day) => aDay(day, keep));
+
+    for (const [shape, keep] of [["a 24-hour file", everyMinute], ["a futures file with an hour's break", futuresBreak]] as const) {
+      it(`refuses ${shape} before asking a byte, and goes on`, async () => {
+        const state = tempState();
+        const eur = bank(state, "EURUSD", held(keep));
+        const gbp = bank(state, "GBPUSD", held(session));
+        const before = readFileSync(eur.file, "utf8");
+        const result = await recover({ state });
+        assert.equal(result.code, 1, "a refused symbol leaves its hole open");
+        assert.match(
+          result.output,
+          /EURUSD: not asked — its window holds 0 minutes, below the 60 the price bound pairs on, and its file \d+ of 1440 times of day/,
+        );
+        assert.ok(!result.urls.some((url) => url.searchParams.get("symbol") === "EURUSD"), "not a byte for EURUSD");
+        assert.equal(readFileSync(eur.file, "utf8"), before);
+        // The session file's clock bound can see a shift, so it is asked, and
+        // the refused symbol never becomes the scout.
+        assert.doesNotMatch(result.output, /stands down|scout/);
+        assert.ok(lines(gbp.file).length > held(session).length, "the judgeable symbol was recovered");
+      });
+    }
+
+    it("says so in a dry run, where it costs nothing", async () => {
+      const state = tempState();
+      bank(state, "EURUSD", held(everyMinute));
+      const result = await recover({ argv: [...WINDOW, "--dry-run"], state });
+      assert.match(result.output, /EURUSD: not asked — /);
+      assert.match(result.output, /no symbol's clock can be judged in 2026-09-03\.\.2026-09-05/);
+      assert.equal(result.urls.length, 0);
+    });
+
+    it("asks a 24-hour file whose window holds a partly held day", async () => {
+      const state = tempState();
+      const eur = bank(state, "EURUSD", [...held(everyMinute), ...aDay("2026-09-03", (m) => m < 120)]);
+      const result = await recover({ state });
+      assert.equal(result.code, 0, result.output);
+      assert.doesNotMatch(result.output, /not asked/);
+      assert.ok(lines(eur.file).length > 2 * 1440 + 120);
+    });
+
+    it("leaves a file of under a day's minutes as the runbook states: asked, and marked unjudged", async () => {
+      const state = tempState();
+      const eur = bank(state, "EURUSD", aDay("2026-08-06", (m) => m < 1400));
+      const result = await recover({ state });
+      assert.doesNotMatch(result.output, /not asked/);
+      assert.match(result.output, /^EURUSD\tfetched \d+\tappended \d+\tdropped 0\tshift test unjudged: 0 same-key pairs/m);
+      assert.ok(lines(eur.file).length > 1400);
+      // Stdout is not kept; the sidecar's run record is.
+      const runs = (JSON.parse(readFileSync(eur.sidecar, "utf8")) as { runs: Array<{ note: string }> }).runs;
+      assert.match(runs.at(-1)!.note, /; shift test unjudged \(0 same-key pairs\)$/);
+    });
+  });
+
   describe("where the second dispute is met", () => {
     const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`;
     const session: string[] = [];
@@ -795,7 +858,7 @@ describe("recover-minute-bank stops on a wall and keeps what it paid for", () =>
     const result = await recover({ provider, state });
     assert.equal(result.code, 1);
     assert.equal(result.urls.filter((url) => url.searchParams.get("from") === "2026-09-04").length, 1);
-    assert.match(result.output, /EURUSD\tfetched 6\tappended 6\tdropped 0\tnot recovered: 2026-09-04/);
+    assert.match(result.output, /EURUSD\tfetched 6\tappended 6\tdropped 0\tshift test unjudged: 0 same-key pairs, below the 60 it needs\tnot recovered: 2026-09-04/);
     assert.doesNotMatch(result.output, /fmpStandDown/);
   });
 
@@ -807,7 +870,7 @@ describe("recover-minute-bank stops on a wall and keeps what it paid for", () =>
     const result = await recover({ provider, state });
     assert.equal(result.code, 1);
     assert.equal(result.urls.filter((url) => url.searchParams.get("from") === "2026-09-04").length, 5);
-    assert.match(result.output, /EURUSD\tfetched 6\tappended 6\tdropped 0\tnot recovered: 2026-09-04/);
+    assert.match(result.output, /EURUSD\tfetched 6\tappended 6\tdropped 0\tshift test unjudged: 0 same-key pairs, below the 60 it needs\tnot recovered: 2026-09-04/);
     assert.deepEqual(
       [...new Set(lines(eur.file).slice(1).map((b) => b.date.slice(0, 10)))],
       ["2026-09-03", "2026-09-05"],

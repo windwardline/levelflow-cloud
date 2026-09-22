@@ -170,7 +170,9 @@ fills a hole like that one from dated requests, once, as the ad-hoc class:
   answers cannot be placed: a date in another shape, a day over 1,440 minutes, held
   minutes that match the answer more often at some offset within a day than where they
   are keyed (both sides are judged over 60 pairs or more, so a day whose fetch failed
-  judges nothing; a move between New York and UTC is 240 or 300 minutes), or, once the file holds a day's worth, more than 5% of the new
+  judges nothing, and neither does a window of wholly missing days; a move between New
+  York and UTC is 240 or 300 minutes), or, once the file holds a day's worth, more than
+  5% of the new
   minutes at times of day it has never held. Other prices alone refuse nothing: FMP
   revises minutes after the bank takes them live, and a dated probe of 2026-09-03 found
   164 of ^GSPC's 389 held minutes and 114 of AAVEUSD's 1,159 revised, with agreement
@@ -187,6 +189,15 @@ fills a hole like that one from dated requests, once, as the ad-hoc class:
   Recovered lines take the bank's own key order. A window across a US daylight-saving
   change shifts an equity session by an hour and trips the clock bound, so recover each
   side of the change separately.
+
+A symbol neither bound can judge in the window is refused before a byte is bought:
+fewer than 60 held minutes inside the window leaves the price bound nothing to pair
+on, and a file that already holds nearly every time of day (every 24-hour market, and
+futures with an hour's daily break) leaves the clock bound nothing to see. Its line
+reads `not asked`, and the remedy is a window holding 60 held minutes, which any
+partly held day provides. A file
+of under a day's minutes is judged by neither bound whatever the window; it is asked,
+and its tally line says `shift test unjudged`.
 
 ZOUSX is expected to refuse on the clock bound, and its share of a hole stays open. Its
 file had held 1,618 minutes at 561 distinct times of day by 2026-09-03, and its trades
@@ -365,6 +376,9 @@ downloads the newest archive by name into a scratch directory under `$TMPDIR`, r
   `<YYYY>/<MM>/minute-bank-<YYYYMMDD>.tar.zst`, or there is no archive;
 - the newest archive's stamp is more than three days before today (UTC), which means
   the daily push has stopped, or is later than today, which would hide that;
+- a member's name is absolute or carries a `..` segment, or a member is a link — read
+  from the tar's own listing before anything is extracted, since GNU and BSD tar each
+  sanitise some of this and not the same way;
 - the archive holds anything but one directory stamped as its key is, or that
   directory holds a link or a subdirectory (the bank is flat);
 - a restored `.jsonl` has no sidecar, its sidecar does not parse, or the sidecar's

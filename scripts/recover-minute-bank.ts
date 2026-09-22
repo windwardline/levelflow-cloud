@@ -470,6 +470,12 @@ type Tally = {
   expected: boolean;
   /** Held minutes that came back at another close, when they were not a moved clock. */
   revision: { revised: number; overlaps: number; median: number | null } | null;
+  /**
+   * The same-key pairs an answer had, when fewer than the shift test needs:
+   * the price bound did not judge this symbol's clock at all. Printed, because
+   * a tally line that says nothing reads the same as one judged clean.
+   */
+  shiftUnjudged: number | null;
 };
 
 async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan): Promise<Tally> {
@@ -481,6 +487,7 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
     missed: [],
     refused: false,
     revision: null,
+    shiftUnjudged: null,
     symbol,
     usable: 0,
   };
@@ -548,6 +555,7 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
   if (prices.overlaps > 0 && shift === null) {
     tally.revision = { median: prices.medianRevision, overlaps: prices.overlaps, revised: prices.revised };
   }
+  if (answer.size > 0 && prices.overlaps < SHIFT_MIN_PAIRS) tally.shiftUnjudged = prices.overlaps;
   let refusal: { kind: "foreign" | "overfull" | "shifted" | "novel"; message: string } | null = null;
   if (foreign !== null) {
     refusal = { kind: "foreign", message: `the provider answered with the date "${foreign}", not the bank's YYYY-MM-DD HH:MM:SS; dedupe could not hold` };
@@ -605,7 +613,8 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
       fetched: tally.usable,
       note:
         `recovered ${plan.from}..${plan.to}` +
-        (tally.revision ? `; ${tally.revision.revised} of ${tally.revision.overlaps} held minutes came back revised` : ""),
+        (tally.revision ? `; ${tally.revision.revised} of ${tally.revision.overlaps} held minutes came back revised` : "") +
+        (tally.shiftUnjudged === null ? "" : `; shift test unjudged (${plural(tally.shiftUnjudged, "same-key pair")})`),
     },
   ];
   writeFileSync(sidecarPath(ctx.dir, symbol), JSON.stringify(sidecar, null, 2));
@@ -659,10 +668,41 @@ export async function runRecover(deps: RecoverDeps): Promise<number> {
   }
 }
 
+/**
+ * Why neither clock bound could judge this symbol in this window, or null.
+ * The price bound pairs on held minutes inside the window, SHIFT_MIN_PAIRS of
+ * them at least, and a window of wholly missing days has none. The novel bound
+ * sees a shifted session only as new minutes at times of day the file has
+ * never held, so a file that already holds nearly every time of day — the
+ * 24-hour markets, and futures with an hour's break — leaves it too little to
+ * see. A shift makes at most `unheld` minutes of an answered day novel, and a
+ * day that comes back whole puts the bound at NOVEL_SHARE of 1,440, 72; so a
+ * file with 72 or fewer unheld times of day is blind to a shift ASSUMING the
+ * answer fills its days. A thin answer lowers the bound, and the bound after
+ * the ask could then see what this refuses — the refusal is the conservative
+ * side of that assumption, because the other side appends a moved clock for
+ * good (2026-09-22). Refused from the file alone, before a byte is bought. A
+ * file of under a day's minutes is judged by neither bound whatever the
+ * window, as the runbook states, and is left as it was.
+ */
+function unjudgeable(store: Store, plan: Plan): string | null {
+  const days = plan.dates.filter((date) => date >= store.firstDay).length;
+  if (days === 0 || store.closes.size >= SHIFT_MIN_PAIRS) return null;
+  const held = [...store.perDay.values()].reduce((sum, count) => sum + count, 0);
+  if (held < MINUTES_PER_DAY) return null;
+  const unheld = MINUTES_PER_DAY - store.times.size;
+  if (unheld > NOVEL_SHARE * MINUTES_PER_DAY) return null;
+  return (
+    `its window holds ${plural(store.closes.size, "minute")}, below the ${SHIFT_MIN_PAIRS} the price bound pairs on, ` +
+    `and its file ${store.times.size} of ${MINUTES_PER_DAY} times of day, too many for the clock bound to see a shifted session; ` +
+    `widen the window until it holds ${SHIFT_MIN_PAIRS} held minutes (a partly held day does)`
+  );
+}
+
 async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Promise<number> {
   const { print, state } = deps;
   let code = 0;
-  const stores: Array<{ symbol: string; store: Store }> = [];
+  const readable: Array<{ symbol: string; store: Store }> = [];
   const absent: string[] = [];
   for (const { fmpSymbol } of bankableSymbols()) {
     const read = readStore(dir, fmpSymbol, plan);
@@ -670,10 +710,10 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
     else if ("problem" in read) {
       print.err(read.problem);
       code = 1;
-    } else stores.push({ store: read, symbol: fmpSymbol });
+    } else readable.push({ store: read, symbol: fmpSymbol });
   }
   if (absent.length > 0) print.out(`No bank file, so no hole to fill: ${absent.join(", ")}.`);
-  if (stores.length === 0) {
+  if (readable.length === 0) {
     // A roster with no bank file at all is a checkout that holds no bank:
     // a scratch copy, or LEVELFLOW_CHECKOUT naming the wrong tree.
     print.err(
@@ -681,6 +721,17 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
         ? `no roster symbol has a bank file under ${dir}; this checkout holds no minute bank, so there is nothing to recover into`
         : `no bank file under ${dir} could be read whole, so there is nothing to recover into`,
     );
+    return 1;
+  }
+  const stores = readable.filter(({ symbol, store }) => {
+    const why = unjudgeable(store, plan);
+    if (why === null) return true;
+    print.err(`${symbol}: not asked — ${why}`);
+    code = 1;
+    return false;
+  });
+  if (stores.length === 0) {
+    print.err(`no symbol's clock can be judged in ${plan.from}..${plan.to}; include a partly held day in the window`);
     return 1;
   }
   const questions = stores.reduce((sum, { store }) => sum + plan.dates.filter((date) => date >= store.firstDay).length, 0);
@@ -784,7 +835,11 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
         ? ""
         : `\t${revision.revised} of ${revision.overlaps} held minutes came back revised` +
           (revision.median === null ? "" : `, median relative close difference ${revision.median.toExponential(2)}`);
-    print.out(`${tally.symbol}\tfetched ${tally.fetched}\tappended ${tally.appended}\tdropped ${tally.dropped}${revised}${missed}${refused}`);
+    const unjudged =
+      tally.shiftUnjudged === null
+        ? ""
+        : `\tshift test unjudged: ${plural(tally.shiftUnjudged, "same-key pair")}, below the ${SHIFT_MIN_PAIRS} it needs`;
+    print.out(`${tally.symbol}\tfetched ${tally.fetched}\tappended ${tally.appended}\tdropped ${tally.dropped}${revised}${unjudged}${missed}${refused}`);
     if (tally.missed.length > 0 || tally.refused) code = 1;
   }
   const appended = tallies.reduce((sum, tally) => sum + tally.appended, 0);

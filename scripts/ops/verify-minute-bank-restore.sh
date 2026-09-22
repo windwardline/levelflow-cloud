@@ -209,6 +209,30 @@ log "downloaded $(wc -c <"$WORK/archive.tar.zst" | tr -d ' ') bytes"
 
 zstd -q -t "$WORK/archive.tar.zst" 2>"$WORK/zstd.err" \
   || die "$NEWEST fails zstd's integrity test: $(head -3 "$WORK/zstd.err")"
+# The members are read BEFORE anything is written. An absolute name or a ".."
+# segment would land outside the scratch directory, where cleanup never looks,
+# and a link member can carry a later member's write wherever it points; GNU
+# and BSD tar each sanitise some of this by default and not the same way, so
+# neither is trusted. The two listings run in the same member order, one line
+# per member (a newline inside a name prints as \n, measured on bsdtar 3.5.3),
+# and each line of the long one opens with the member's type.
+zstd -q --decompress --stdout "$WORK/archive.tar.zst" | tar -tf - >"$WORK/members" 2>"$WORK/tar.err" \
+  || die "$NEWEST did not extract: it does not list as a tar: $(head -3 "$WORK/tar.err")"
+zstd -q --decompress --stdout "$WORK/archive.tar.zst" | tar -tvf - >"$WORK/members.long" 2>"$WORK/tar.err" \
+  || die "$NEWEST did not extract: it does not list as a tar: $(head -3 "$WORK/tar.err")"
+ESCAPES="$({ grep -E '^/|(^|/)\.\.(/|$)' "$WORK/members" || true; } | head -5 | tr '\n' ' ')"
+[[ -z $ESCAPES ]] || die "$NEWEST names members outside its own directory (an absolute path or a .. segment): $ESCAPES"
+# Both listings print one line per member on the tars measured, so this count
+# cannot differ today; it is kept because this check trusts no tar, and a
+# pairing that ran short would leave members unchecked in silence.
+[[ $(wc -l <"$WORK/members") -eq $(wc -l <"$WORK/members.long") ]] \
+  || die "$NEWEST lists a different number of members in its two listings; its member types cannot be checked"
+LINKS=""
+while IFS= read -r long && IFS= read -r name <&3; do
+  case "${long:0:1}" in -|d) ;; *) LINKS="$LINKS$name " ;; esac
+done <"$WORK/members.long" 3<"$WORK/members"
+[[ -z $LINKS ]] || die "$NEWEST holds entries that are neither files nor directories: $LINKS"
+
 mkdir "$WORK/restore"
 zstd -q --decompress --stdout "$WORK/archive.tar.zst" | tar -xf - -C "$WORK/restore" 2>"$WORK/tar.err" \
   || die "$NEWEST did not extract: $(head -3 "$WORK/tar.err")"
