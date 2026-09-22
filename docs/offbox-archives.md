@@ -13,11 +13,13 @@ A daily expires. Name-protection keeps `minute-bank-20260823` out of this repo's
 and does nothing else: R2 deletes it from `windwardline-backups` around 2027-09-02.
 Anything that must outlive a year belongs in `windwardline-archives`.
 
-No script deletes from the permanent bucket. The two pruning scripts refuse any bucket
-whose first path segment is `windwardline-archives` — rclone reads everything after
-`R2:` as bucket plus path, so an exact-name refusal is walked past by one suffix — and
-`tests/archiveOffbox.test.ts` reads every file in `scripts/ops/`, joining line
-continuations, and fails any destructive rclone call that could reach it.
+No script deletes from the permanent bucket. The two pruning scripts strip `BUCKET`'s
+leading slashes, as rclone does, then refuse any bucket whose first path segment is
+`windwardline-archives`: rclone reads everything after `R2:` as bucket plus path, so an
+exact-name refusal is walked past by one suffix. `tests/archiveOffbox.test.ts` reads
+every file in `scripts/ops/` as the shell would and fails closed on any rclone call it
+cannot place. It pins which files may write to R2: the two pruners, which refuse this
+bucket first, and the archive push, which writes once.
 
 ## Push
 
@@ -29,63 +31,76 @@ on this line:
   scripts/ops/push-archive-offbox.sh <source-dir> <dataset>
 ```
 
-It re-execs itself through `~/.local/bin/wl-secret` once its refusals have run, so the
-token reaches the pusher and not the launcher's `git fetch`, `git archive` or `tar`.
-`backup-minute-bank.sh` and `backup-postgres-offbox.sh` have the same shape.
-`wl-secret` starts the child under `env -i`, so the script passes its own settings
-across as arguments to `/usr/bin/env`. `LEVELFLOW_ARCHIVE_STAGING`, for one, still
-applies after the re-exec.
+It re-execs itself through `~/.local/bin/wl-secret`, so the token reaches the pusher and
+not the launcher's `git fetch`, `git archive` or `tar`. `backup-minute-bank.sh` and
+`backup-postgres-offbox.sh` have the same shape. `wl-secret` starts the child under
+`env -i`, so the script passes its own settings across as arguments to `/usr/bin/env`.
+`LEVELFLOW_ARCHIVE_STAGING`, for one, still applies after the re-exec.
 
-The script refuses, by name and before it reads the credential: a missing source, a
-dataset outside `^[a-z0-9-]+$`, a source under a temp root bound for the permanent
-bucket, a missing `zstd` or `rclone`, and a staging root that is the home folder or
-sits inside the source. Before its first write it refuses a staging filesystem that
-cannot hold an archive of the source beside its restore, by upper bound, with 1 GiB
-left for the rest of the machine.
+Before it reads the credential it refuses, by name: a missing source, a dataset outside
+`^[a-z0-9-]+$`, a source name that cannot become a key, a bad bucket or prefix, a source
+under a temp root bound for the permanent bucket, and a missing `zstd` or `rclone`.
+After the credential and before any rclone call it refuses a staging root that is the
+home folder, resolves to `/` or sits inside the source; a key another run holds; a
+source with no files; and a staging filesystem that cannot hold an archive of the source
+beside its restore. That bound assumes the archive does not compress and leaves 1 GiB
+for the rest of the machine: 9.43 GB for the condemned cache, 17.57 GB for the
+v3-preDateFix cache, 1.46 GB for the snapshot, measured 2026-09-22.
+`LEVELFLOW_ARCHIVE_STAGING` names staging on another filesystem.
 
 **A new key is proven before it is written.** The script builds
 `tar --format=ustar | zstd -19 -T0` in `~/.local/share/levelflow-cloud/staging/push.XXXXXX`,
 runs `zstd -t`, requires the tar listing to hold as many files as the source, extracts
 the archive there and requires `diff -rq` against the source to be empty. Only then does
-it check the space again and upload with `copyto --immutable`, and the object R2 returns
-must be byte-identical to what was sent. Under the lock the order is the guarantee: a
-proof that failed after the upload would leave an object no later run could prove or
-replace.
+it check the space again and upload. The object R2 returns must be byte-identical to
+what was sent. Under the lock the order is the guarantee: a proof that failed after the
+upload would leave an object no later run could prove or replace.
 
-**An existing key is never rebuilt.** It is streamed back, extracted and compared with
-`diff -rq` against the source, and nothing is written. `brew upgrade --formula` moves
-`tar` and `zstd` daily, so a rebuild would stop reproducing last year's bytes and prove
-nothing about the object R2 holds. The register records that object's md5 and bytes.
+**Nothing replaces an object.** A run holds `lock.<bucket>%<key>` in the staging root,
+so two runs on this machine cannot race to one key; one a killed run left is named, not
+broken. The upload is `copyto --ignore-existing`, which leaves an existing key alone,
+and the md5 check then refuses. Not `--immutable`: rclone checks that flag only when it
+walks a directory, and `copyto` of one file replaced a different object and exited 0
+(v1.75.1, local and S3 backends, 2026-09-22). The bucket lock is the last barrier.
 
-Only a clean diff prints the register row on stdout. Staging is removed on every exit
-path, signals included.
+**An existing key is never rebuilt.** zstd moves with the daily `brew upgrade
+--formula` and tar (`/usr/bin/tar`) with macOS, so a rebuild would stop reproducing
+last year's bytes and prove nothing about the object. The script checks the object's
+listed size against the largest archive the source could make and against the free
+space, streams it back, and requires the returned length to match the listing. Then it
+tests it with `zstd -t`, lists it as a tar, extracts it and compares it with `diff -rq`.
+The register records that object's md5 and bytes.
+
+A verdict against the object needs the object to fail on its own: damaged bytes, a tar
+that does not list, more bytes than the source could make, or a restored tree that
+differs from the source. Then the refusal says **the basename is spent**. Archive a
+changed source under a new directory name; the old object stays as long as the lock
+does. A short transfer, an extraction that fails here, or a `diff` that cannot run
+decides nothing about the object: fix the local cause and run again.
+
+If the bytes R2 returns after an upload do not match what was sent, the object is
+already at its key, or another object reached the key after the listing and the upload
+left it alone. Run again with the source unchanged: it takes the existing-key path and
+proves the object by restoring it.
+
+Nothing may move or write the three sources while a push runs. A change the count or the
+local diff sees stops the run before the upload. The archive is the tree the diff read.
+
+Only a clean diff prints the register row on stdout. Staging and the key lock are removed
+on every exit path this run can see, signals included.
 
 The build is long and silent. Measured 2026-09-21 on the minute-bank snapshot:
 190,643,620 bytes to 14,194,704 in about 39 s at `zstd -19 -T0`, roughly 4.9 MB/s. At
-that rate the 3.9 GB cache takes about 13 minutes and the 7.6 GB cache about 26. A
-re-proof skips it.
-
-Nothing may move or write the three sources while a push runs. A source that changes
-before the upload fails the count or the local diff, and nothing is uploaded. Once an
-object is at a key, the key belongs to that tree: a run whose source no longer restores
-from it refuses, every time. **That basename is spent.** Archive a changed source under a
-new directory name; the old object stays for as long as the lock does.
-
-If the bytes R2 returns do not match what was sent, the object is already at its key.
-Run again with the source unchanged: it takes the existing-key path and proves the object
-by restoring it. If that refuses too, the object is damaged and the basename is spent.
-
-Re-proof needs the source, so once a source is gone the script can no longer prove its
-archive. The fleet cadence then carries it: CADENCE.md in windwardline/windwardline reads
-both buckets' rules and matches every key and size against the register weekly, and
-monthly streams each object back to match its md5.
+that rate the condemned cache (4,159,601,762 bytes) takes about 14 minutes and the
+v3-preDateFix cache (8,213,923,007 bytes) about 28. A re-proof skips it.
 
 `rclone hashsum` is not the proof. On a multipart object it reports metadata rclone
 wrote itself.
 
-The whole write-once branch turns on `rclone lsf` exiting 3 for a prefix that does not
-exist, which is verified against rclone's local backend and not against R2. Before the
-first push into a new dataset prefix, read it once and record the code:
+On R2 a prefix that holds nothing lists empty and exits 0; exit 3 means the bucket
+itself was not found, and the script refuses it by name (both measured against
+`windwardline-archives` on 2026-09-22). Before the first push into a new dataset prefix,
+read it once:
 
 ```
 ~/.local/bin/wl-secret cloudflare-r2-backup=R2_TOKEN -- /bin/bash -c '
@@ -98,35 +113,45 @@ first push into a new dataset prefix, read it once and record the code:
 ' _ levelflow-cloud/calibration-cache
 ```
 
-Expect 3. Any other non-zero code is a script change, not an operator retry: the push
-would die at "an unreadable listing is not an absent key" and nothing would land.
+Expect no output and exit 0. Exit 3 is the bucket or the credential's scope; any other
+code is an unreadable listing, and the push refuses it.
 
 ## Restore
 
 With the source still present, run the push again: it finds its own object, streams it
 back and proves the restore, and changes nothing. Without the source, restore by hand
-and check the md5 against the register before extracting:
+from the register's Archive column, and check the md5 against the register before
+extracting:
 
 ```
 ~/.local/bin/wl-secret cloudflare-r2-backup=R2_TOKEN -- /bin/bash -c '
+  set -euo pipefail
   export RCLONE_CONFIG_R2_TYPE=s3 RCLONE_CONFIG_R2_PROVIDER=Cloudflare
   export RCLONE_CONFIG_R2_ENDPOINT=https://c8da9a44c29c435205b2ec133ee05f20.r2.cloudflarestorage.com
   export RCLONE_CONFIG_R2_ACCESS_KEY_ID=fafbbe863abb74c59933f028095a04ce
   RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="$(printf %s "$R2_TOKEN" | shasum -a 256 | cut -d " " -f 1)"
   export RCLONE_CONFIG_R2_SECRET_ACCESS_KEY
-  rclone cat "R2:windwardline-archives/$1" > "$2/archive.tar.zst"
+  rclone cat "R2:$1" > "$2/archive.tar.zst"
   md5 -q "$2/archive.tar.zst"
-' _ <key> <empty-dest-dir>
+' _ <archive-column> <empty-dest-dir>
 
 zstd -dc <empty-dest-dir>/archive.tar.zst | tar -xf - -C <empty-dest-dir>
 ```
 
+Re-proof needs the source, so once a source is gone the script can no longer prove its
+archive. The fleet cadence then carries it: step 5 of CADENCE.md in
+windwardline/windwardline reads both buckets' rules and matches every key and size
+against the register weekly, and its monthly section streams each object back to match
+its md5 (windwardline/windwardline#117, merged before this runbook's first push). No
+source leaves this machine before its row is filled and the lock is on.
+
 ## Register
 
 Each row is the line `push-archive-offbox.sh` prints on success, pasted over its
-pending row. The last column is the date the restore last passed.
+pending row. Source bytes sums every file, a hard link once per name. Last proven is
+the date the script's restore passed, or a later monthly stream-back matched the md5.
 
-| Archive | Archive bytes | MD5 | Files | Source bytes | Restore proven (UTC) |
+| Archive | Archive bytes | MD5 | Files | Source bytes | Last proven (UTC) |
 | --- | ---: | --- | ---: | ---: | --- |
 | `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-condemned-2026-08-11.tar.zst` | pending | pending | pending | pending | pending |
 | `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-v3-preDateFix-20260824.tar.zst` | pending | pending | pending | pending | pending |
@@ -139,9 +164,8 @@ are filled.
 
 | Archive | Source on this machine | Why it is kept |
 | --- | --- | --- |
-| `levelflow-cache-condemned-2026-08-11` | `~/.local/share/levelflow-cloud/archives/levelflow-cache-condemned-2026-08-11` (3.9 GB, 313 files) | The only real naive-era cache. It validated the clock-witness redesign against real data on 2026-08-24. Deleting it is an owner call (`docs/HANDOFF.md`, R0b row) |
-| `levelflow-cache-v3-preDateFix-20260824` | `~/.local/share/levelflow-cloud/archives/levelflow-cache-v3-preDateFix-20260824` (7.6 GB, 311 files) | `verify-rebuild-depth --reference` against it reports 24 stores / 10,850 rows master did not recover |
-| `levelflow-minute-bank-snapshot-20260823` | `~/.local/share/levelflow-cloud/minute-bank-snapshots/levelflow-minute-bank-snapshot-20260823` (200 files, 190,643,620 bytes) | The naive-era minute bank. Its daily copy in `windwardline-backups` expires around 2027-09-02 |
+| `levelflow-cache-condemned-2026-08-11` | `~/.local/share/levelflow-cloud/archives/levelflow-cache-condemned-2026-08-11` (4,159,601,762 bytes, 313 files) | The only real naive-era cache. It validated the clock-witness redesign against real data on 2026-08-24. Deleting it is an owner call (`docs/HANDOFF.md`, R0b row) |
+| `levelflow-cache-v3-preDateFix-20260824` | `~/.local/share/levelflow-cloud/archives/levelflow-cache-v3-preDateFix-20260824` (8,213,923,007 bytes, 311 files) | `verify-rebuild-depth --reference` against it reports 24 stores / 10,850 rows master did not recover |
+| `levelflow-minute-bank-snapshot-20260823` | `~/.local/share/levelflow-cloud/minute-bank-snapshots/levelflow-minute-bank-snapshot-20260823` (190,643,620 bytes, 200 files) | The naive-era minute bank. Its daily copy in `windwardline-backups` expires around 2027-09-02 |
 
-Paths measured 2026-09-21. The snapshot moved out of `~` that day; `ls -d` both its old
-and new path before a push rather than trusting this row.
+Measured 2026-09-22: no hard links, symlinks or special files in any of the three.

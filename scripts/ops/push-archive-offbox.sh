@@ -20,17 +20,25 @@
 # never pass at a key that can never be reused. On a new key the archive is
 # built, extracted in staging and compared with the source by `diff -rq`, and
 # only a clean diff reaches the upload; the object R2 then returns must be
-# byte-identical to what was sent. An existing key is never replaced:
-# `copyto --immutable` is the second barrier and the bucket lock the third.
+# byte-identical to what was sent.
+#
+# NOTHING REPLACES AN OBJECT. A run holds a lock on its key, so two runs on
+# this machine cannot race to one key. The upload is `copyto --ignore-existing`,
+# which leaves a key that exists alone; the md5 check after it then refuses. NOT
+# `--immutable`: rclone checks that flag only when it walks a directory, and
+# `copyto` of one file replaced a different object and exited 0 (v1.75.1, local
+# and S3 backends, 2026-09-22). The bucket lock is the last barrier.
 #
 # AN EXISTING KEY IS NEVER REBUILT. The object is streamed back, extracted, and
 # compared with the source; that restore is the proof, and nothing is written.
 # A rebuild would prove nothing about the object: the archive is deterministic
 # for one build of the tools — ustar (no pax atime, no xattrs),
-# COPYFILE_DISABLE (no AppleDouble entries), a fixed zstd level — and
-# windwardline-toolchain-update runs `brew upgrade --formula` daily, so tar and
-# zstd both move and last year's bytes stop being reproducible. The register
-# row records the object R2 holds.
+# COPYFILE_DISABLE (no AppleDouble entries), a fixed zstd level — and zstd moves
+# with the daily `brew upgrade --formula`, tar (/usr/bin/tar) with macOS, so last
+# year's bytes stop being reproducible. The register row records the object R2
+# holds. A failure there is the object's only when the object itself fails:
+# damaged bytes, or a tree that differs from the source. A failure to extract
+# or compare here decides nothing about it.
 #
 # THE PROOF IS A RESTORE. `rclone hashsum` on a multipart object reports
 # metadata rclone wrote itself, so it says nothing about the bytes R2 holds;
@@ -97,7 +105,7 @@ require_space() {
   avail="$(free_bytes)" || die "cannot read the free space under $STAGING_ROOT"
   [[ $avail =~ ^[0-9]+$ ]] || die "cannot read the free space under $STAGING_ROOT: df gave '$avail'"
   (( avail >= $1 )) \
-    || die "$STAGING_ROOT has $avail bytes free and $2 needs $1, keeping $HEADROOM for the rest of the machine; refusing before a write that could not finish"
+    || die "$STAGING_ROOT has $avail bytes free and $2 needs $1, keeping $HEADROOM for the rest of the machine; refusing before a write that could not finish. The figure assumes the archive does not compress. Name staging on a filesystem with room through LEVELFLOW_ARCHIVE_STAGING, which survives the re-exec"
 }
 
 # Bash `[[ ]]` and no quoted argument after a bare directory test flag: the
@@ -198,7 +206,13 @@ case "$STAGING_REAL/" in
 esac
 
 STAGE=""
+KEY_LOCK=""
+KEY_LOCK_HELD=0
 cleanup() {
+  if [[ $KEY_LOCK_HELD == 1 ]]; then
+    rmdir "$KEY_LOCK" 2>/dev/null || true
+    KEY_LOCK_HELD=0
+  fi
   [[ -n $STAGE && -d $STAGE ]] || return 0
   case $STAGE in "$STAGING_ROOT"/push.?*) ;; *) log "FAIL refusing to remove unexpected staging path $STAGE"; exit 1 ;; esac
   chmod -R u+w "$STAGE" 2>/dev/null || true
@@ -225,6 +239,13 @@ MADE="$(cd "$STAGING_ROOT" && mktemp -d push.XXXXXX)" || die "cannot create a st
 [[ $MADE == push.?* ]] || die "mktemp returned an unexpected name: $MADE"
 STAGE="$STAGING_ROOT/$MADE"
 
+# One run per key. `mkdir` is atomic; the lock is released on every exit path
+# this run can see, and one a killed run left is named rather than broken.
+KEY_LOCK="$STAGING_ROOT/lock.$(printf %s "$BUCKET/$KEY" | tr '/' '%')"
+mkdir "$KEY_LOCK" 2>/dev/null \
+  || die "another push holds R2:$BUCKET/$KEY ($KEY_LOCK); if none is running, a killed run left it: remove it by hand"
+KEY_LOCK_HELD=1
+
 # --- count, and the space the run needs --------------------------------------
 FILES="$(find "$SRC" -type f | wc -l | tr -d ' ')" || die "cannot count the files in $SRC"
 [[ $FILES -gt 0 ]] || die "the source holds no files: $SRC — refusing to archive nothing"
@@ -248,21 +269,30 @@ require_space $(( ARCHIVE_MAX + (RESTORE_MAX > ARCHIVE_MAX ? RESTORE_MAX : ARCHI
   "an archive of this source beside its restore"
 
 # --- is the key taken? ----------------------------------------------------------
-# rclone exits 3 for a prefix that does not exist yet. Every other failure is a
+# On R2 a prefix that holds nothing lists empty and exits 0; exit 3 means the
+# bucket itself was not found (measured 2026-09-22). Every other failure is a
 # failure: an unreadable listing is not an absent key, and reading it as one is
 # how an upload would reach an object it should have compared first.
 DIR="$PREFIX/$DATASET"
 LIST_RC=0
-LISTING="$(rclone lsf --files-only "R2:$BUCKET/$DIR/" 2>"$STAGE/lsf.err")" || LIST_RC=$?
+LISTING="$(rclone lsf --files-only --format sp "R2:$BUCKET/$DIR/" 2>"$STAGE/lsf.err")" || LIST_RC=$?
 case $LIST_RC in
   0) ;;
-  3) LISTING="" ;;
+  3) die "R2:$BUCKET was not found (rclone exit 3): $(rclone_error "$STAGE/lsf.err") — an absent prefix lists empty with exit 0, so this is the bucket; check LEVELFLOW_ARCHIVE_BUCKET and the credential's scope" ;;
   *) die "cannot list R2:$BUCKET/$DIR/ (rclone exit $LIST_RC): $(rclone_error "$STAGE/lsf.err") — an unreadable listing is not an absent key" ;;
 esac
 EXISTS=0
+OBJECT_BYTES=""
 while IFS= read -r entry; do
-  if [[ $entry == "$NAME.tar.zst" ]]; then EXISTS=1; fi
+  [[ -n $entry ]] || continue
+  if [[ ${entry#*;} == "$NAME.tar.zst" ]]; then
+    EXISTS=1
+    OBJECT_BYTES="${entry%%;*}"
+  fi
 done <<< "$LISTING"
+if [[ $EXISTS == 1 ]]; then
+  [[ $OBJECT_BYTES =~ ^[0-9]+$ ]] || die "the listing gave no size for R2:$BUCKET/$KEY: '$OBJECT_BYTES'"
+fi
 
 MD5_RE='^[0-9a-f]{32}$'
 RETURNED="$STAGE/returned.tar.zst"
@@ -277,29 +307,53 @@ fetch_back() {
 }
 
 # restore_and_compare <archive>: extract into staging and compare with the
-# source. Sets WHY to the reason it failed, or to nothing.
+# source. Sets WHY to the reason it failed, or to nothing, and WHY_KIND to
+# "local" when the failure is here (an extraction or a comparison that could
+# not run) or "mismatch" when the tree it restored is not the source.
 restore_and_compare() {
   mkdir "$RESTORE" || die "cannot create $RESTORE"
   WHY=""
+  WHY_KIND=""
   if ! zstd -q -dc "$1" | tar -xf - -C "$RESTORE"; then
-    WHY="it did not extract"
+    WHY="it did not extract here"
+    WHY_KIND="local"
   elif [[ "$(ls -A "$RESTORE")" != "$NAME" ]]; then
     WHY="the restored tree does not hold $NAME alone: $(ls -A "$RESTORE" | tr '\n' ' ')"
+    WHY_KIND="mismatch"
   else
     local diff_rc=0 diff_out
     diff_out="$(diff -rq "$SRC" "$RESTORE/$NAME" 2>&1)" || diff_rc=$?
-    [[ $diff_rc == 0 && -z $diff_out ]] \
-      || WHY="the restored tree differs from the source (diff exit $diff_rc): $(printf '%s\n' "$diff_out" | head -n 5 | tr '\n' ' ')"
+    if [[ $diff_rc == 1 ]]; then
+      WHY="the restored tree differs from the source: $(printf '%s\n' "$diff_out" | head -n 5 | tr '\n' ' ')"
+      WHY_KIND="mismatch"
+    elif [[ $diff_rc != 0 || -n $diff_out ]]; then
+      WHY="diff could not compare the trees (exit $diff_rc): $(printf '%s\n' "$diff_out" | head -n 5 | tr '\n' ' ')"
+      WHY_KIND="local"
+    fi
   fi
 }
 
+SPENT="Refusing to overwrite a permanent archive: this basename's key is spent, and a changed source is archived under a new directory name"
+
 if [[ $EXISTS == 1 ]]; then
   # --- an existing key: restore what R2 holds -----------------------------------
-  log "R2:$BUCKET/$KEY exists; streaming it back to prove it restores to the source"
+  (( OBJECT_BYTES <= ARCHIVE_MAX )) \
+    || die "R2:$BUCKET/$KEY is $OBJECT_BYTES bytes, more than any archive of this source can be ($ARCHIVE_MAX): it holds another tree. $SPENT"
+  require_space $(( OBJECT_BYTES + RESTORE_MAX + HEADROOM )) "the existing object beside its restore"
+  log "R2:$BUCKET/$KEY exists ($OBJECT_BYTES bytes); streaming it back to prove it restores to the source"
   fetch_back
+  [[ $REMOTE_BYTES == "$OBJECT_BYTES" ]] \
+    || die "R2:$BUCKET/$KEY streamed back $REMOTE_BYTES bytes and lists $OBJECT_BYTES; the transfer failed, nothing was decided about the object, run again"
+  zstd -q -t "$RETURNED" 2>/dev/null \
+    || die "R2:$BUCKET/$KEY is damaged: its $REMOTE_BYTES bytes (md5 $REMOTE_MD5) fail zstd -t. $SPENT"
+  zstd -q -dc "$RETURNED" | tar -tf - >/dev/null 2>&1 \
+    || die "R2:$BUCKET/$KEY does not list as a tar (md5 $REMOTE_MD5). $SPENT"
   restore_and_compare "$RETURNED"
+  if [[ $WHY_KIND == local ]]; then
+    die "could not compare R2:$BUCKET/$KEY with the source here: $WHY. The object passed zstd -t and lists as a tar; nothing was decided about it. Fix the local cause and run again"
+  fi
   [[ -z $WHY ]] \
-    || die "R2:$BUCKET/$KEY already holds an object that does not restore to this source (md5 $REMOTE_MD5): $WHY. Refusing to overwrite a permanent archive: this basename's key is spent, and a changed source is archived under a new directory name"
+    || die "R2:$BUCKET/$KEY holds an object that does not restore to this source (md5 $REMOTE_MD5): $WHY. $SPENT"
   STATUS="already archived"
 else
   # --- a new key: build, prove here, then write once -----------------------------
@@ -329,12 +383,13 @@ else
 
   require_space $(( ARCHIVE_BYTES + HEADROOM )) "the object streamed back after the upload"
   log "restore proven locally; uploading to R2:$BUCKET/$KEY"
-  rclone copyto --immutable --s3-no-check-bucket "$ARCHIVE" "R2:$BUCKET/$KEY" 2>"$STAGE/copyto.err" \
+  rclone copyto --ignore-existing --s3-no-check-bucket "$ARCHIVE" "R2:$BUCKET/$KEY" 2>"$STAGE/copyto.err" \
     || die "upload to R2:$BUCKET/$KEY failed: $(rclone_error "$STAGE/copyto.err")"
   log "uploaded; streaming the object back"
   fetch_back
-  # These bytes were sent from here and proven above, so anything else came
-  # back wrong, and the object cannot be replaced.
+  # These bytes were sent from here and proven above. Anything else came back
+  # wrong, or an object reached the key after the listing and the upload left
+  # it alone; either way the object cannot be replaced.
   [[ $REMOTE_MD5 == "$LOCAL_MD5" ]] \
     || die "the object R2 returned for R2:$BUCKET/$KEY does not match what was uploaded (md5 $REMOTE_MD5, uploaded $LOCAL_MD5). It is in a write-once bucket and cannot be replaced: run again with the source unchanged, which proves the object by restoring it; if that refuses too, this basename's key is spent"
   STATUS="archived"
@@ -342,8 +397,8 @@ fi
 
 log "restore proven, $STATUS: R2:$BUCKET/$KEY"
 # Staging goes before the row, not after: on the trap it would run once stdout
-# was already written, and a removal that failed would exit 1 under a row the
-# runbook had appended to the register with `>>`.
+# was already written, and a removal that failed would exit 1 after printing
+# the row that means proven.
 cleanup
 printf '| %s | %s | %s | %s | %s | %s |\n' \
   "$BUCKET/$KEY" "$REMOTE_BYTES" "$REMOTE_MD5" "$FILES" "$SRC_BYTES" "$(date -u +%F)"

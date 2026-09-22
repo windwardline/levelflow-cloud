@@ -54,7 +54,7 @@ const BASH = "/bin/bash";
 // find a bash on the PATH wl-secret hands over, and finding none is exit 127.
 const TOOLS = [
   "awk", "bash", "cat", "chmod", "cmp", "cp", "cut", "date", "dd", "df", "diff", "dirname", "find",
-  "grep", "head", "ls", "mkdir", "mktemp", "rm", "shasum", "sleep", "tar", "tr", "wc", "zstd",
+  "grep", "head", "ls", "mkdir", "mktemp", "rm", "rmdir", "shasum", "sleep", "tar", "tr", "wc", "zstd",
 ];
 
 function which(tool: string): string | undefined {
@@ -122,6 +122,8 @@ function sandbox(): Sandbox {
   const home = join(root, "home");
   const bin = join(root, "bin");
   for (const dir of [remote, home, bin]) mkdirSync(dir);
+  // The bucket exists and the prefix does not, as on R2 before a first push.
+  mkdirSync(join(remote, TEST_BUCKET));
   const sb: Sandbox = {
     root,
     source,
@@ -145,6 +147,14 @@ function sandbox(): Sandbox {
  * SHA-256 of the token as the secret, which is how the credential derivation
  * is proven without the credential. Behaviour toggles are files, because
  * wl-secret scrubs the environment.
+ *
+ * It behaves as the real rclone v1.75.1 does against R2, measured 2026-09-22,
+ * never as the script might hope: a prefix holding nothing lists empty with
+ * exit 0 and a missing bucket exits 3; `copyto` replaces a different object
+ * whatever `--immutable` says, because rclone checks that flag only when it
+ * walks a directory, and leaves an existing key alone under `--ignore-existing`.
+ * A stub that refused on `--immutable` passed this suite over a barrier the
+ * real tool does not have.
  */
 function rcloneStub(sb: Sandbox): string {
   return `#!/bin/bash
@@ -157,26 +167,39 @@ if [ "\${RCLONE_CONFIG_R2_SECRET_ACCESS_KEY:-}" != '${SECRET}' ]; then
   echo "stub rclone: the S3 secret is not the SHA-256 of R2_TOKEN" >&2; exit 97
 fi
 sub="$1"; shift
-immutable=0
+ignore_existing=0
+format=""
 pos=()
-for a in "$@"; do
-  case "$a" in
-    --immutable) immutable=1 ;;
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --ignore-existing) ignore_existing=1 ;;
+    --format) shift; format="$1" ;;
     --*) ;;
-    *) pos+=("$a") ;;
+    *) pos+=("$1") ;;
   esac
+  shift
 done
 onr2() { case "$1" in R2:*) printf '%s/%s' "$ROOT" "\${1#R2:}" ;; *) return 1 ;; esac; }
+bucket_of() { local p="\${1#R2:}"; printf '%s/%s' "$ROOT" "\${p%%/*}"; }
 case "$sub" in
   lsf)
     if [ -e "$ROOT/.lsf-fails" ]; then echo "ERROR : error listing: temporary failure (stub)" >&2; exit 5; fi
     d="$(onr2 "\${pos[0]}")" || { echo "stub rclone: not an R2 path" >&2; exit 98; }
-    if [ ! -e "$d" ]; then echo "ERROR : error listing: directory not found" >&2; exit 3; fi
-    for f in "$d"/*; do [ -f "$f" ] && printf '%s\\n' "\${f##*/}"; done
+    if [ ! -d "$(bucket_of "\${pos[0]}")" ]; then echo "ERROR : error listing: directory not found" >&2; exit 3; fi
+    if [ -d "$d" ]; then
+      for f in "$d"/*; do
+        [ -f "$f" ] || continue
+        if [ "$format" = sp ]; then printf '%s;%s\\n' "$(wc -c < "$f" | tr -d ' ')" "\${f##*/}"; else printf '%s\\n' "\${f##*/}"; fi
+      done
+    fi
+    if [ -e "$ROOT/.plant-after-lsf" ]; then
+      mkdir -p "$d" && printf 'planted after the listing\\n' > "$d/$(cat "$ROOT/.plant-after-lsf")"
+    fi
     exit 0 ;;
   cat)
     f="$(onr2 "\${pos[0]}")" || { echo "stub rclone: not an R2 path" >&2; exit 98; }
     if [ ! -f "$f" ]; then echo "ERROR : error listing: directory not found" >&2; exit 3; fi
+    if [ -e "$ROOT/.short-cat" ]; then head -c 10 "$f"; exit 0; fi
     if [ -e "$ROOT/.corrupt-cat" ]; then
       t="$ROOT/.corrupt.tmp"
       cp "$f" "$t"
@@ -191,10 +214,7 @@ case "$sub" in
     : > "$ROOT/.copy-started"
     if [ -e "$(dirname "$src")/restore" ]; then : > "$ROOT/.restore-at-upload"; fi
     if [ -e "$ROOT/.slow-copy" ]; then sleep 3; fi
-    if [ -e "$dst" ]; then
-      if cmp -s "$src" "$dst"; then exit 0; fi
-      if [ "$immutable" = 1 ]; then echo "ERROR : Source and destination exist but do not match: immutable file modified" >&2; exit 1; fi
-    fi
+    if [ -e "$dst" ] && [ "$ignore_existing" = 1 ]; then exit 0; fi
     mkdir -p "$(dirname "$dst")" && cp "$src" "$dst"; exit $? ;;
   *)
     echo "stub rclone: unsupported subcommand '$sub'" >&2; exit 99 ;;
@@ -395,7 +415,7 @@ describe("a permanent archive is proven by restoring it", () => {
     // One upload, then a read of that key; never rclone's own hashsum.
     const calls = rcloneCalls(sb);
     assert.equal(uploads(sb).length, 1);
-    assert.match(uploads(sb)[0], /^copyto --immutable /);
+    assert.match(uploads(sb)[0], /^copyto --ignore-existing /);
     assert.ok(calls.findIndex((c) => c.startsWith("cat ")) > calls.findIndex((c) => c.startsWith("copyto")));
     assert.ok(!calls.some((c) => c.startsWith("hashsum")));
     // The archive was restored here before it was sent, never after, and the
@@ -419,8 +439,7 @@ describe("a permanent archive is proven by restoring it", () => {
     assert.equal(second.code, 0, second.stderr);
     assert.match(second.stderr, /already archived/);
     assert.match(second.stderr, /restore proven/);
-    // The archive is deterministic for an unchanged source; that is what lets
-    // the second run's bytes match the first run's object.
+    // Both rows record the one object R2 holds; the second run built nothing.
     assert.equal(rowOf(second.stdout)[2], rowOf(first.stdout)[2]);
     assert.equal(uploads(sb).length, 1, "the second run must not upload");
     assert.equal(statSync(objectPath(sb)).mtimeMs, before.mtimeMs);
@@ -481,7 +500,7 @@ describe("a permanent archive is proven by restoring it", () => {
     tarHook(sb, "-xf", `printf 'edited\\n' >> '${join(sb.source, "BTCUSD-daily.json")}'`);
     const second = run(sb);
     assert.equal(second.code, 1);
-    assert.match(second.stderr, /already holds an object that does not restore to this source/);
+    assert.match(second.stderr, /holds an object that does not restore to this source/);
     assert.match(second.stderr, /the restored tree differs from the source/);
     assert.match(second.stderr, /BTCUSD-daily\.json/);
     assert.match(second.stderr, /this basename's key is spent/, "the refusal names the remedy");
@@ -521,11 +540,110 @@ describe("a permanent archive is proven by restoring it", () => {
     writeFileSync(objectPath(sb), "an archive this source did not produce\n");
     const r = run(sb);
     assert.equal(r.code, 1);
-    assert.match(r.stderr, /already holds an object that does not restore to this source/);
+    assert.match(r.stderr, /is damaged: its 39 bytes .* fail zstd -t/);
     assert.match(r.stderr, /Refusing to overwrite a permanent archive/);
     assert.equal(r.stdout, "");
     assert.equal(readFileSync(objectPath(sb), "utf8"), "an archive this source did not produce\n");
     assert.equal(uploads(sb).length, 0);
+    assertStagingClean(sb.staging);
+  });
+
+  it("leaves an object that reaches the key after the listing alone, and refuses", () => {
+    // Between the listing and the upload lies a build of up to half an hour.
+    // Whatever lands at the key meanwhile, the upload must not replace it.
+    const sb = sandbox();
+    writeFileSync(join(sb.remote, ".plant-after-lsf"), `${NAME}.tar.zst`);
+    const r = run(sb);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /does not match what was uploaded/);
+    assert.equal(readFileSync(objectPath(sb), "utf8"), "planted after the listing\n", "the upload replaced the object");
+    assert.equal(uploads(sb).length, 1);
+    assert.equal(r.stdout, "");
+    assertStagingClean(sb.staging);
+  });
+
+  it("refuses a run whose key another run holds, and leaves that run's lock", () => {
+    const sb = sandbox();
+    const lock = `lock.${`${TEST_BUCKET}/${KEY}`.replaceAll("/", "%")}`;
+    mkdirSync(join(sb.staging, lock), { recursive: true });
+    const r = run(sb);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /another push holds R2:test-archives\/levelflow-cloud\/calibration-cache\//);
+    assert.equal(rcloneCalls(sb).length, 0);
+    assert.deepEqual(readdirSync(sb.staging), [lock], "another run's lock is not this run's to remove");
+  });
+
+  it("reads a missing bucket as a missing bucket, never as an absent key", () => {
+    const sb = sandbox();
+    const r = run(sb, { LEVELFLOW_ARCHIVE_BUCKET: "no-such-bucket" });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /R2:no-such-bucket was not found \(rclone exit 3\)/);
+    assert.equal(uploads(sb).length, 0);
+    assertStagingClean(sb.staging);
+  });
+
+  it("refuses, unread, an object larger than any archive of this source could be", () => {
+    const sb = sandbox();
+    mkdirSync(join(sb.remote, TEST_BUCKET, "levelflow-cloud", DATASET), { recursive: true });
+    writeFileSync(objectPath(sb), Buffer.alloc(2 * 1024 * 1024, 1));
+    const r = run(sb);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /more than any archive of this source can be/);
+    assert.match(r.stderr, /key is spent/);
+    assert.ok(!rcloneCalls(sb).some((call) => call.startsWith("cat ")), "nothing may be streamed back");
+    assertStagingClean(sb.staging);
+  });
+
+  it("sizes an existing key's space check from the object it will stream back", () => {
+    const sb = sandbox();
+    assert.equal(run(sb).code, 0);
+    const before = rcloneCalls(sb).length;
+    dfStub(sb, ["999999999999", "1024"]);
+    const r = run(sb);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /the existing object beside its restore needs/);
+    assert.equal(dfCalls(sb), 2);
+    assert.ok(!rcloneCalls(sb).slice(before).some((call) => call.startsWith("cat ")), "nothing may be streamed back");
+    assertStagingClean(sb.staging);
+  });
+
+  it("decides nothing about an object it cannot extract here", () => {
+    // A full disk or a permission fault is this machine's. The spent-key
+    // verdict is for an object that fails on its own bytes.
+    const sb = sandbox();
+    assert.equal(run(sb).code, 0);
+    tarHook(sb, "-xf", "exit 1");
+    const r = run(sb);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /could not compare R2:\S+ with the source here: it did not extract here/);
+    assert.match(r.stderr, /nothing was decided about it/);
+    assert.doesNotMatch(r.stderr, /spent/);
+    assert.equal(r.stdout, "");
+    assertStagingClean(sb.staging);
+  });
+
+  it("decides nothing about an object diff could not compare", () => {
+    // diff exits 1 for a difference and 2 for trouble; only the first is the
+    // object's.
+    const sb = sandbox();
+    assert.equal(run(sb).code, 0);
+    writeFileSync(join(sb.bin, "diff"), '#!/bin/bash\necho "diff: stub trouble" >&2\nexit 2\n', { mode: 0o755 });
+    const r = run(sb);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /diff could not compare the trees \(exit 2\)/);
+    assert.match(r.stderr, /nothing was decided about it/);
+    assert.doesNotMatch(r.stderr, /spent/);
+    assertStagingClean(sb.staging);
+  });
+
+  it("decides nothing about an object whose transfer comes back short", () => {
+    const sb = sandbox();
+    assert.equal(run(sb).code, 0);
+    writeFileSync(join(sb.remote, ".short-cat"), "");
+    const r = run(sb);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /streamed back 10 bytes and lists \d+; the transfer failed, nothing was decided about the object/);
+    assert.doesNotMatch(r.stderr, /spent/);
     assertStagingClean(sb.staging);
   });
 
@@ -601,6 +719,7 @@ describe("a permanent archive is proven by restoring it", () => {
     const r = run(sb);
     assert.equal(r.code, 1);
     assert.match(r.stderr, /has 1048576 bytes free and an archive of this source beside its restore needs \d+/);
+    assert.match(r.stderr, /through LEVELFLOW_ARCHIVE_STAGING, which survives the re-exec/, "the refusal names its remedy");
     assert.equal(rcloneCalls(sb).length, 0, "not even the listing may run");
     assert.doesNotMatch(r.stderr, /archiving at zstd/);
     assert.equal(r.stdout, "");
@@ -896,23 +1015,30 @@ describe("the script's contract, read from its source", () => {
 });
 
 /**
- * Any rclone call that can delete or replace what it names.
+ * The two detectors below read scripts/ops as the shell would, and fail closed:
+ * an rclone word they cannot place is a red test, never a line skipped.
  *
- * Anchored on the verb, not on the word after `rclone`: a global flag, a
- * `--config`, or a line continuation sits between the two, and a detector that
- * demands them adjacent reports a file clean while the shell runs the purge.
+ * A call is found by its verb, not by the word after `rclone`: a global flag, a
+ * `--config` and its value, or a line continuation sits between the two, and a
+ * detector that demands them adjacent reports a file clean while the shell runs
+ * the purge. Quoted text is not code, except inside `$( )` or backticks, so a
+ * log line that mentions rclone is not a call and a command substitution is.
  */
-const DESTRUCTIVE = /\brclone\b[^\n]*?\s(delete|deletefile|purge|rmdir|rmdirs|cleanup|sync|bisync|move|moveto|dedupe)\b/;
-const REFUSES_ARCHIVES = /^\s*\[\[ \$\{BUCKET%%\/\*\} != windwardline-archives \]\] \|\| die /;
+const REFUSES_ARCHIVES = /^\[\[ \$\{BUCKET%%\/\*\} != windwardline-archives \]\] \|\| die /;
+const STRIPS_SLASHES = /^BUCKET="\$\{BUCKET#"\$\{BUCKET%%\[!\/\]\*\}"\}"$/;
 
-/** Physical lines joined across `\` continuations, numbered from the first. */
+/**
+ * Physical lines joined across `\` continuations, numbered from the first. A
+ * backslash that ends a comment continues nothing, as in bash.
+ */
 export function logicalLines(source: string): Array<{ text: string; line: number }> {
   const joined: Array<{ text: string; line: number }> = [];
   let held = "";
   let start = 0;
   source.split("\n").forEach((text, index) => {
     if (held === "") start = index + 1;
-    if (text.endsWith("\\")) {
+    const continues = text.endsWith("\\") && codeOnly(text).endsWith("\\");
+    if (continues) {
       held += `${text.slice(0, -1)} `;
       return;
     }
@@ -923,9 +1049,65 @@ export function logicalLines(source: string): Array<{ text: string; line: number
   return joined;
 }
 
-/** Every line of `source` the shell would run that can delete or replace. */
-export function destructiveLines(source: string): Array<{ text: string; line: number }> {
-  return logicalLines(source).filter(({ text }) => !/^\s*#/.test(text) && DESTRUCTIVE.test(text));
+/**
+ * The part of `line` the shell reads as code: a comment dropped, and quoted
+ * text blanked, except inside a `$( )` or backticks nested in double quotes,
+ * which is code again. Index-aligned with `line` up to any comment.
+ */
+export function codeOnly(line: string): string {
+  let out = "";
+  const stack: Array<"dq" | "sub" | "tick"> = [];
+  let single = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    const top = stack.at(-1);
+    if (single) {
+      if (c === "'") single = false;
+      out += c === "'" ? c : " ";
+      continue;
+    }
+    if (top === "dq") {
+      if (c === "\\" && i + 1 < line.length) {
+        out += "  ";
+        i++;
+      } else if (c === '"') {
+        stack.pop();
+        out += c;
+      } else if (c === "$" && line[i + 1] === "(") {
+        stack.push("sub");
+        out += "$(";
+        i++;
+      } else if (c === "`") {
+        stack.push("tick");
+        out += c;
+      } else out += " ";
+      continue;
+    }
+    if (c === "\\" && i + 1 < line.length) {
+      out += c + line[i + 1];
+      i++;
+    } else if (c === "'") {
+      single = true;
+      out += c;
+    } else if (c === '"') {
+      stack.push("dq");
+      out += c;
+    } else if (c === "$" && line[i + 1] === "(") {
+      stack.push("sub");
+      out += "$(";
+      i++;
+    } else if (c === ")" && top === "sub") {
+      stack.pop();
+      out += c;
+    } else if (c === "`") {
+      if (top === "tick") stack.pop();
+      else stack.push("tick");
+      out += c;
+    } else if (c === "#" && (i === 0 || /[\s;&|(]/.test(line[i - 1]))) {
+      break;
+    } else out += c;
+  }
+  return out;
 }
 
 /**
@@ -973,216 +1155,271 @@ export function shellWords(text: string): string[] {
   return words;
 }
 
-// Every rclone subcommand, so the verb is found past a global flag and its
-// value (`rclone --config /dev/null copyto ...`) rather than taken as the
-// first word that is not a flag.
+// Every rclone subcommand in v1.75.1, so the verb is found past a global flag
+// and its value rather than taken as the first word that is not a flag.
 const RCLONE_VERBS = new Set([
-  "about", "authorize", "backend", "bisync", "cat", "check", "checksum", "cleanup", "completion", "config",
-  "convmv", "copy", "copyto", "copyurl", "cryptcheck", "cryptdecode", "dedupe", "delete", "deletefile",
-  "gendocs", "gitannex", "hashsum", "help", "link", "listremotes", "ls", "lsd", "lsf", "lsjson", "lsl",
-  "md5sum", "mkdir", "mount", "move", "moveto", "ncdu", "nfsmount", "obscure", "purge", "rc", "rcat", "rcd",
-  "rmdir", "rmdirs", "selfupdate", "serve", "settier", "sha1sum", "size", "sync", "test", "touch", "tree",
-  "version",
+  "about", "archive", "authorize", "backend", "bisync", "cat", "check", "checksum", "cleanup", "completion",
+  "config", "convmv", "copy", "copyto", "copyurl", "cryptcheck", "cryptdecode", "dedupe", "delete",
+  "deletefile", "gendocs", "gitannex", "gui", "hashsum", "help", "link", "listremotes", "ls", "lsd", "lsf",
+  "lsjson", "lsl", "md5sum", "mkdir", "mount", "move", "moveto", "ncdu", "nfsmount", "obscure", "purge", "rc",
+  "rcat", "rcd", "rmdir", "rmdirs", "selfupdate", "serve", "settier", "sha1sum", "size", "sync", "test",
+  "touch", "tree", "version",
 ]);
-// The ones that can write an object. copy and copyto are the only two a
-// write-once file may use: the rest cannot carry --immutable or ignore it.
+// Anything that can remove or rename what it names, and anything that hands
+// the remote to another program that can.
+const DESTRUCTIVE_VERBS = new Set([
+  "backend", "bisync", "cleanup", "convmv", "dedupe", "delete", "deletefile", "gui", "mount", "move", "moveto",
+  "nfsmount", "purge", "rc", "rcd", "rmdir", "rmdirs", "serve", "sync",
+]);
+// Anything that can write an object. copyto with --ignore-existing is the only
+// write a write-once file may make.
 const WRITE_VERBS = new Set([
-  "backend", "bisync", "copy", "copyto", "copyurl", "mount", "move", "moveto", "nfsmount", "rc", "rcat", "rcd",
-  "serve", "settier", "sync", "test", "touch",
+  "archive", "backend", "bisync", "convmv", "copy", "copyto", "copyurl", "gui", "mount", "move", "moveto",
+  "nfsmount", "rc", "rcat", "rcd", "serve", "settier", "sync", "test", "touch",
 ]);
 // Verbs whose destination is their last operand; for the rest every operand
 // is a possible target.
-const DESTINATION_LAST = new Set(["bisync", "copy", "copyto", "copyurl", "move", "moveto", "sync"]);
-const BARE_VARIABLE = /^\$(\{[A-Za-z_][A-Za-z0-9_]*\}|[A-Za-z_][A-Za-z0-9_]*)$/;
+const DESTINATION_LAST = new Set(["archive", "bisync", "copy", "copyto", "copyurl", "move", "moveto", "sync"]);
 
-interface RcloneWrite {
-  verb: string;
+interface RcloneCall {
+  /** Null when no subcommand follows: a wrapper, an alias, `"$SUB"`. */
+  verb: string | null;
   flags: string[];
   targets: string[];
   line: number;
   text: string;
 }
 
-/** Every rclone write the shell would run in `source`, however it is spelled. */
-export function rcloneWrites(source: string): RcloneWrite[] {
-  const writes: RcloneWrite[] = [];
+/** Every rclone call the shell would run in `source`. `command -v rclone` is a lookup, not a call. */
+export function rcloneInvocations(source: string): RcloneCall[] {
+  const calls: RcloneCall[] = [];
   for (const { text, line } of logicalLines(source)) {
-    if (/^\s*#/.test(text)) continue;
-    for (const match of text.matchAll(/\brclone\b/g)) {
+    const code = codeOnly(text);
+    for (const match of code.matchAll(/(?<![\w$.-])rclone(?![\w.-])/g)) {
+      if (/(^|[\s;&|(])command\s+-v$/.test(code.slice(0, match.index).trimEnd())) continue;
       const words = shellWords(text.slice(match.index + "rclone".length));
       const at = words.findIndex((word) => RCLONE_VERBS.has(word));
-      if (at < 0 || !WRITE_VERBS.has(words[at])) continue;
-      const operands = words.slice(at + 1).filter((word) => !word.startsWith("-"));
-      writes.push({
-        verb: words[at],
+      const verb = at < 0 ? null : words[at];
+      const operands = at < 0 ? [] : words.slice(at + 1).filter((word) => !word.startsWith("-"));
+      calls.push({
         flags: words.filter((word) => word.startsWith("-")),
-        targets: DESTINATION_LAST.has(words[at]) ? operands.slice(-1) : operands,
         line,
+        targets: verb !== null && DESTINATION_LAST.has(verb) ? operands.slice(-1) : operands,
         text,
+        verb,
       });
     }
   }
-  return writes;
+  return calls;
 }
 
-/** A write that can land in R2. A target the guard cannot read counts. */
-const reachesR2 = (write: RcloneWrite) =>
-  write.targets.length === 0 || write.targets.some((target) => target.startsWith("R2:") || BARE_VARIABLE.test(target));
+/** Every line of `source` the shell would run that can delete or replace. */
+export function destructiveLines(source: string): Array<{ text: string; line: number }> {
+  return rcloneInvocations(source)
+    .filter((call) => call.verb !== null && DESTRUCTIVE_VERBS.has(call.verb))
+    .map(({ line, text }) => ({ line, text }));
+}
 
-const writesOnce = (write: RcloneWrite) =>
-  (write.verb === "copy" || write.verb === "copyto") && write.flags.includes("--immutable");
+const writes = (source: string) => rcloneInvocations(source).filter((call) => call.verb !== null && WRITE_VERBS.has(call.verb));
 
-describe("the write detector reads where each rclone write lands", () => {
-  it("finds the verb past global flags, continuations and command substitution, and the target past redirections", () => {
-    const cases: Array<[string, string, string[], boolean]> = [
-      [
-        'rclone copyto --immutable --s3-no-check-bucket "$ARCHIVE" "R2:$BUCKET/$KEY" 2>"$STAGE/copyto.err" \\\n    || die "upload failed"',
-        "copyto", ["R2:$BUCKET/$KEY"], true,
-      ],
-      ['rclone \\\n  copyto "$A" "R2:windwardline-archives/levelflow-cloud/x"', "copyto", ["R2:windwardline-archives/levelflow-cloud/x"], false],
-      ['rclone --config /dev/null copyto --immutable "$A" "R2:$BUCKET/$KEY"', "copyto", ["R2:$BUCKET/$KEY"], true],
-      ['rclone --immutable copy "$A" "R2:$BUCKET/$DIR/"', "copy", ["R2:$BUCKET/$DIR/"], true],
-      ['X="$(rclone rcat "R2:$BUCKET/$KEY" < "$A")"', "rcat", ["R2:$BUCKET/$KEY"], false],
-      ['rclone copyurl --immutable https://example.invalid/x "R2:$BUCKET/$KEY"', "copyurl", ["R2:$BUCKET/$KEY"], false],
-      ['rclone sync --immutable "$DIR" "R2:$BUCKET/$PREFIX/"', "sync", ["R2:$BUCKET/$PREFIX/"], false],
-      ['rclone touch "R2:$BUCKET/$KEY"', "touch", ["R2:$BUCKET/$KEY"], false],
-      ['rclone copyto --immutable "$A" "$DEST"', "copyto", ["$DEST"], true],
-    ];
-    for (const [text, verb, targets, once] of cases) {
-      const found = rcloneWrites(text);
-      assert.equal(found.length, 1, text);
-      assert.equal(found[0].verb, verb, text);
-      assert.deepEqual(found[0].targets, targets, text);
-      assert.equal(reachesR2(found[0]), true, text);
-      assert.equal(writesOnce(found[0]), once, text);
+// A target is spelled so the guard can read where it lands: the refusal's own
+// bucket, or a local path. `$WORK` is verify-postgres-restore.sh's mktemp
+// directory, named here because it is the one variable a local target starts
+// with; a target starting with any other variable is refused.
+const SPELLED = (target: string) =>
+  /^R2:\$BUCKET\//.test(target) ||
+  /^\$(\{WORK\}|WORK)\//.test(target) ||
+  (!target.startsWith("$") && !/^[^/]*:/.test(target));
+
+const reachesR2 = (call: RcloneCall) => call.targets.some((target) => target.startsWith("R2:"));
+
+const writesOnce = (call: RcloneCall) => call.verb === "copyto" && call.flags.includes("--ignore-existing");
+
+// Naming rclone for later use hides every call made through the name.
+const INDIRECTION = /(^|[\s;&|(])(alias\s+rclone=|function\s+rclone\b|rclone\s*\(\)|[A-Za-z_]\w*=["']?rclone["']?(\s|;|$))/;
+
+/** The refusal of the permanent bucket, and what makes it govern the writes after it. */
+function refusalIn(source: string): { line: number; problems: string[] } | null {
+  const lines = source.split("\n");
+  const at = lines.findIndex((line) => REFUSES_ARCHIVES.test(line));
+  if (at < 0) return null;
+  const problems: string[] = [];
+  if (!STRIPS_SLASHES.test(lines[at - 1] ?? "")) {
+    problems.push("the line before the refusal must strip BUCKET's leading slashes, as rclone does");
+  }
+  for (const { text, line } of logicalLines(lines.slice(at + 1).join("\n"))) {
+    if (/(^|[\s;&|(])((export|local|readonly|declare(\s+-\w+)*)\s+)?BUCKET\+?=|\bread\b[^;|&]*\bBUCKET\b|printf\s+-v\s+BUCKET\b/.test(codeOnly(text))) {
+      problems.push(`BUCKET is set again at line ${at + 1 + line}, after the refusal`);
     }
-  });
+  }
+  return { line: at + 1, problems };
+}
 
-  it("reads a download as a local write and the reads as no write at all", () => {
-    const download = rcloneWrites('rclone copyto "R2:$BUCKET/$PREFIX/$NEWEST" "$WORK/archive.dump.zst" 2>&1 | grep -v "Config file" || true');
-    assert.equal(download.length, 1);
-    assert.equal(reachesR2(download[0]), false);
-    for (const text of [
-      'rclone lsf --files-only "R2:$BUCKET/$DIR/" 2>"$STAGE/lsf.err"',
-      'rclone cat "R2:$BUCKET/$KEY" > "$RETURNED"',
-      'rclone lsf -R --files-only "R2:$BUCKET/$PREFIX/" --include \'copy\'',
-      'command -v rclone >/dev/null || die "rclone is not installed (brew install rclone)"',
-      '# rclone copyto "$A" "R2:windwardline-archives/x"',
-    ]) {
-      assert.deepEqual(rcloneWrites(text), [], text);
-    }
-  });
-});
-
-describe("the destructive-call detector reads what the shell would run", () => {
-  it("sees the verb however the call is spelled", () => {
+describe("the call detector reads what the shell would run", () => {
+  it("sees a destructive verb however the call is spelled", () => {
     for (const text of [
       'rclone purge "R2:$BUCKET/$PREFIX"',
       'rclone -q purge "R2:windwardline-archives/levelflow-cloud"',
       'rclone --config /dev/null delete "R2:$BUCKET/$KEY"',
       'rclone \\\n  purge "R2:windwardline-archives/levelflow-cloud"',
       '  rclone deletefile "R2:$BUCKET/$KEY" || true',
+      'X="$(rclone purge "R2:$BUCKET/y")"',
+      '/opt/homebrew/bin/rclone rmdirs "R2:$BUCKET/y"',
+      'rclone convmv "R2:$BUCKET/x" --name-transform upper',
+      'xargs rclone deletefile < list',
     ]) {
       assert.equal(destructiveLines(text).length, 1, text);
     }
   });
 
-  it("leaves the reads and the write-once copy alone", () => {
+  it("leaves the reads, the write-once copy and quoted text alone", () => {
     for (const text of [
-      'rclone lsf --files-only "R2:$BUCKET/$DIR/" 2>"$STAGE/lsf.err"',
+      'rclone lsf --files-only --format sp "R2:$BUCKET/$DIR/" 2>"$STAGE/lsf.err"',
       'rclone cat "R2:$BUCKET/$KEY" > "$RETURNED"',
-      'rclone copyto --immutable --s3-no-check-bucket "$ARCHIVE" "R2:$BUCKET/$KEY"',
+      'rclone copyto --ignore-existing --s3-no-check-bucket "$ARCHIVE" "R2:$BUCKET/$KEY"',
       '# rclone purge "R2:windwardline-archives/levelflow-cloud"',
+      'die "refusing: rclone purge is not for this bucket"',
+      "echo 'rclone purge R2:x'",
+      'rclone lsf "R2:$BUCKET/" # rclone purge "R2:$BUCKET/"',
     ]) {
       assert.deepEqual(destructiveLines(text), [], text);
     }
   });
+
+  it("does not continue a comment that ends in a backslash", () => {
+    for (const text of ['# a note \\\nrclone purge "R2:$BUCKET/x"', 'true # a note \\\nrclone purge "R2:$BUCKET/x"']) {
+      assert.deepEqual(destructiveLines(text).map((call) => call.line), [2], text);
+    }
+  });
+
+  it("fails closed on an rclone it cannot place, and passes a lookup", () => {
+    for (const text of ["RCLONE=rclone", 'run() { rclone "$@"; }', 'rclone "$SUB" "R2:$BUCKET/x"']) {
+      assert.ok(rcloneInvocations(text).some((call) => call.verb === null), text);
+    }
+    assert.deepEqual(rcloneInvocations('command -v rclone >/dev/null || die "rclone is not installed (brew install rclone)"'), []);
+    for (const text of ["RCLONE=rclone", "alias rclone=echo", "rclone() { :; }", 'R="rclone"']) {
+      assert.match(text, INDIRECTION, text);
+    }
+  });
+
+  it("judges whether the refusal governs what comes after it", () => {
+    const refusal = '[[ ${BUCKET%%/*} != windwardline-archives ]] || die "refusing"';
+    const strip = 'BUCKET="${BUCKET#"${BUCKET%%[!/]*}"}"';
+    const sound = refusalIn([strip, refusal, 'rclone deletefile "R2:$BUCKET/x"'].join("\n"));
+    assert.deepEqual(sound, { line: 2, problems: [] });
+    const unstripped = refusalIn([refusal, 'rclone deletefile "R2:$BUCKET/x"'].join("\n"));
+    assert.match(unstripped!.problems.join(), /strip BUCKET's leading slashes/);
+    for (const later of ['BUCKET="$OTHER"', "export BUCKET=windwardline-archives", "read -r BUCKET < f", "printf -v BUCKET %s x"]) {
+      const moved = refusalIn([strip, refusal, later, 'rclone deletefile "R2:$BUCKET/x"'].join("\n"));
+      assert.match(moved!.problems.join(), /BUCKET is set again at line 3, after the refusal/, later);
+    }
+    assert.equal(refusalIn('  [[ ${BUCKET%%/*} != windwardline-archives ]] || die "x"'), null, "an indented refusal may sit in a branch");
+  });
+
+  it("reads each write's target, and which writes are write-once", () => {
+    const cases: Array<[string, string, string[], boolean]> = [
+      ['rclone copyto --ignore-existing --s3-no-check-bucket "$ARCHIVE" "R2:$BUCKET/$KEY" 2>"$E" \\\n || die "x"', "copyto", ["R2:$BUCKET/$KEY"], true],
+      ['rclone copyto --immutable "$A" "R2:$BUCKET/$KEY"', "copyto", ["R2:$BUCKET/$KEY"], false],
+      ['rclone \\\n  copyto "$A" "R2:windwardline-archives/x"', "copyto", ["R2:windwardline-archives/x"], false],
+      ['rclone --config /dev/null copyto --ignore-existing "$A" "R2:$BUCKET/$KEY"', "copyto", ["R2:$BUCKET/$KEY"], true],
+      ['rclone copy --immutable "$A" "R2:$BUCKET/$DIR/"', "copy", ["R2:$BUCKET/$DIR/"], false],
+      ['X="$(rclone rcat "R2:$BUCKET/$KEY" < "$A")"', "rcat", ["R2:$BUCKET/$KEY"], false],
+      ['rclone archive create "$DIR" "R2:$BUCKET/a.zip"', "archive", ["R2:$BUCKET/a.zip"], false],
+    ];
+    for (const [text, verb, targets, once] of cases) {
+      const found = writes(text);
+      assert.equal(found.length, 1, text);
+      assert.equal(found[0].verb, verb, text);
+      assert.deepEqual(found[0].targets, targets, text);
+      assert.equal(reachesR2(found[0]), true, text);
+      assert.equal(writesOnce(found[0]), once, text);
+    }
+    const download = writes('rclone copyto "R2:$BUCKET/$PREFIX/$NEWEST" "$WORK/archive.dump.zst" 2>&1 | grep -v "Config file" || true');
+    assert.equal(download.length, 1);
+    assert.equal(reachesR2(download[0]), false);
+    assert.ok(download[0].targets.every(SPELLED));
+    for (const target of ["$DEST", "$REMOTE/$KEY", "${WORKDIR}/x", "r2:bucket/x", "B2:bucket/x", "R2:windwardline-archives/x"]) {
+      assert.equal(SPELLED(target), false, target);
+    }
+    for (const target of ["R2:$BUCKET/$KEY", "$WORK/archive.dump.zst", "/tmp/x", "local/x"]) {
+      assert.equal(SPELLED(target), true, target);
+    }
+  });
 });
 
-describe("no script under scripts/ops prunes the permanent bucket", () => {
-  // DERIVED, not listed: every file in scripts/ops is read, so a new pruner
-  // is under this rule the moment it exists.
+describe("no script under scripts/ops can delete or replace a permanent archive", () => {
+  // DERIVED, not listed: every file in scripts/ops is read, so a new script
+  // is under these rules the moment it exists.
   const population = readdirSync("scripts/ops").sort();
+  const read = (file: string) => readFileSync(join("scripts/ops", file), "utf8");
 
   it("reads a population that includes the archive push and both pruners", () => {
     for (const expected of ["push-archive-offbox.sh", "push-minute-bank-offbox.sh", "backup-postgres-offbox.sh"]) {
       assert.ok(population.includes(expected), `${expected} must be in the population`);
     }
-    const pruners = population.filter(
-      (file) => destructiveLines(readFileSync(join("scripts/ops", file), "utf8")).length > 0,
-    );
+    const pruners = population.filter((file) => destructiveLines(read(file)).length > 0);
     assert.deepEqual(pruners, ["backup-postgres-offbox.sh", "push-minute-bank-offbox.sh"]);
   });
 
   for (const file of population) {
-    it(`${file}: no destructive rclone call can reach windwardline-archives`, () => {
-      const source = readFileSync(join("scripts/ops", file), "utf8");
-      const lines = source.split("\n");
+    it(`${file}: every rclone call is placed, spelled and bounded`, () => {
+      const source = read(file);
+      for (const call of rcloneInvocations(source)) {
+        assert.notEqual(call.verb, null, `${file}:${call.line}: an rclone the guard cannot place: ${call.text.trim()}`);
+      }
+      for (const { text, line } of logicalLines(source)) {
+        assert.doesNotMatch(codeOnly(text), INDIRECTION, `${file}:${line}: rclone renamed or wrapped: ${text.trim()}`);
+      }
+      for (const call of writes(source)) {
+        for (const target of call.targets) {
+          assert.ok(SPELLED(target), `${file}:${call.line}: spell the target literally, so this guard can read where it lands: ${call.text.trim()}`);
+        }
+      }
       const destructive = destructiveLines(source);
       for (const { text } of destructive) {
         // Named or reached through a variable, the permanent bucket is out of
         // bounds for a delete in ANY file here, pruner or not.
         assert.doesNotMatch(text, /windwardline-archives/, `${file} names the permanent bucket in a destructive call`);
-        // The target must be the bucket variable the refusal governs, or the
-        // refusal proves nothing about where the delete lands.
         assert.match(text, /"R2:\$BUCKET\//, `${file}: a destructive call must target "R2:$BUCKET/...": ${text.trim()}`);
       }
       if (destructive.length > 0) {
-        const refusal = lines.findIndex((line) => REFUSES_ARCHIVES.test(line));
-        assert.ok(refusal >= 0, `${file} deletes and does not refuse windwardline-archives`);
-        assert.ok(refusal + 1 < destructive[0].line, `${file} must refuse the permanent bucket before its first delete`);
-      }
-      // A write the guard cannot place is a write it cannot vouch for.
-      for (const write of rcloneWrites(source)) {
-        assert.ok(write.targets.length > 0, `${file}:${write.line}: cannot read where this write lands: ${write.text.trim()}`);
-        for (const target of write.targets) {
-          assert.doesNotMatch(
-            target,
-            BARE_VARIABLE,
-            `${file}:${write.line}: spell the target literally, so this guard can read where it lands: ${write.text.trim()}`,
-          );
-        }
+        const refusal = refusalIn(source);
+        assert.ok(refusal, `${file} deletes and does not refuse windwardline-archives`);
+        assert.deepEqual(refusal.problems, [], `${file}: the refusal does not govern the deletes`);
+        assert.ok(refusal.line < destructive[0].line, `${file} must refuse the permanent bucket before its first delete`);
       }
     });
   }
 
   // Every file here that writes to R2 is one of two kinds, and nothing else:
   // it refuses the permanent bucket before its first write, or every write it
-  // makes is copy or copyto --immutable. Derived from the files, then pinned,
-  // so a writer that changes kind, or a new one, is a red test by name.
+  // makes is copyto --ignore-existing. Derived from the files, then pinned, so
+  // a writer that changes kind, or a new one, is a red test by name.
   it("every writer to R2 either refuses windwardline-archives first or writes only once", () => {
     const refusers: string[] = [];
     const writeOnce: string[] = [];
     for (const file of population) {
-      const source = readFileSync(join("scripts/ops", file), "utf8");
-      const writes = rcloneWrites(source).filter(reachesR2);
-      if (writes.length === 0) continue;
-      const refusal = source.split("\n").findIndex((line) => REFUSES_ARCHIVES.test(line));
-      if (refusal >= 0 && refusal + 1 < writes[0].line) {
+      const source = read(file);
+      const toR2 = writes(source).filter(reachesR2);
+      if (toR2.length === 0) continue;
+      const refusal = refusalIn(source);
+      if (refusal && refusal.line < toR2[0].line) {
+        assert.deepEqual(refusal.problems, [], `${file}: the refusal does not govern the writes`);
         refusers.push(file);
-        for (const write of writes) {
-          // The refusal governs $BUCKET, so a write that lands anywhere else
-          // is outside it.
-          assert.ok(
-            write.targets.every((target) => target.startsWith("R2:$BUCKET/")),
-            `${file}:${write.line}: a refusing writer must write to "R2:$BUCKET/...": ${write.text.trim()}`,
-          );
-        }
         continue;
       }
-      for (const write of writes) {
+      for (const call of toR2) {
         assert.ok(
-          writesOnce(write),
-          `${file}:${write.line}: writes to R2 without refusing windwardline-archives first, so it must be copy or copyto --immutable: ${write.text.trim()}`,
+          writesOnce(call),
+          `${file}:${call.line}: writes to R2 without refusing windwardline-archives first, so it must be copyto --ignore-existing: ${call.text.trim()}`,
         );
       }
       writeOnce.push(file);
     }
     assert.deepEqual(refusers, ["backup-postgres-offbox.sh", "push-minute-bank-offbox.sh"]);
     assert.deepEqual(writeOnce, ["push-archive-offbox.sh"]);
-    const archiveWrites = rcloneWrites(readFileSync("scripts/ops/push-archive-offbox.sh", "utf8")).filter(reachesR2);
     assert.deepEqual(
-      archiveWrites.map((write) => write.verb),
+      writes(read("push-archive-offbox.sh")).filter(reachesR2).map((call) => call.verb),
       ["copyto"],
       "the archive push writes once, and exactly once",
     );
@@ -1190,7 +1427,7 @@ describe("no script under scripts/ops prunes the permanent bucket", () => {
 
   it("names the permanent bucket, other than to refuse it, only in a write-once file", () => {
     const naming = population.filter((file) =>
-      logicalLines(readFileSync(join("scripts/ops", file), "utf8")).some(
+      logicalLines(read(file)).some(
         ({ text }) => !/^\s*#/.test(text) && /windwardline-archives/.test(text) && !REFUSES_ARCHIVES.test(text),
       ),
     );
@@ -1199,7 +1436,14 @@ describe("no script under scripts/ops prunes the permanent bucket", () => {
 
   // rclone reads everything after `R2:` as bucket plus path, so an exact-match
   // refusal on the bucket name is walked past by one suffix. Both forms run.
-  const SUFFIXED = ["windwardline-archives", "windwardline-archives/levelflow-cloud"];
+  // rclone strips leading slashes too, so a refusal of the first segment
+  // alone is walked past by one.
+  const SUFFIXED = [
+    "windwardline-archives",
+    "windwardline-archives/levelflow-cloud",
+    "/windwardline-archives",
+    "//windwardline-archives/levelflow-cloud",
+  ];
 
   for (const bucket of SUFFIXED) {
     it(`the minute-bank push refuses ${bucket} before anything else`, () => {
