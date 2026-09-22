@@ -70,10 +70,42 @@ const scriptFiles = (readdirSync("scripts", { recursive: true }) as string[])
   .sort();
 const sourceOf = (file: string) => readFileSync(file, "utf8");
 
+/**
+ * Every spelling of an argv read (2026-09-22). `process.argv` alone let a
+ * reader leave the law by writing `process["argv"]`, `const { argv } =
+ * process` or `import { argv } from "node:process"`, and the population
+ * floors sit one below the count, so a single reader leaving passed in
+ * silence. The process module under another name is resolved in readsArgv.
+ */
+const ARGV_SPELLINGS: readonly RegExp[] = [
+  /\bprocess\s*\??\.\s*argv\b/,
+  /\bprocess\s*\??\.?\s*\[\s*(["'`])argv\1\s*\]/,
+  /\{[^{}]*\bargv\b[^{}]*\}\s*=\s*(?:globalThis\s*\.\s*)?process\b/,
+  /\bimport\s*\{[^}]*\bargv\b[^}]*\}\s*from\s*(["'])(?:node:)?process\1/,
+];
+
+/** Whether a source reads argv in any spelling above, comments excluded. */
+const readsArgv = (source: string): boolean => {
+  const code = withoutComments(source);
+  if (ARGV_SPELLINGS.some((spelling) => spelling.test(code))) return true;
+  // `import proc from "node:process"` or `import * as proc from …`: the same
+  // reads, through the alias.
+  for (
+    const [, alias] of code.matchAll(
+      /\bimport\s+(?:\*\s+as\s+)?(\w+)\s+from\s*["'](?:node:)?process["']/g,
+    )
+  ) {
+    const through = new RegExp(
+      `\\b${alias}\\s*\\??\\.\\s*argv\\b|\\b${alias}\\s*\\[\\s*["'\`]argv["'\`]\\s*\\]|` +
+        `\\{[^{}]*\\bargv\\b[^{}]*\\}\\s*=\\s*${alias}\\b`,
+    );
+    if (through.test(code)) return true;
+  }
+  return false;
+};
+
 /** Every script that reads what an operator typed. */
-const ARGV_READERS = scriptFiles.filter((file) =>
-  /\bprocess\.argv\b/.test(withoutComments(sourceOf(file)))
-);
+const ARGV_READERS = scriptFiles.filter((file) => readsArgv(sourceOf(file)));
 
 /**
  * Argv readers that take no operator argument at all, by name, with the
@@ -295,6 +327,34 @@ describe("every argv reader refuses an unknown flag by name", { concurrency: CON
     // three may not leave the walk at all.
     for (const reader of ["scripts/confirm-4d.ts", "scripts/derive-4d.ts", "scripts/grid-totalr.ts"]) {
       assert.ok(ADOPTERS.includes(reader), `${reader} must take the shared walk`);
+    }
+  });
+
+  it("an argv spelling other than process.argv keeps a reader in the population", () => {
+    const reads = [
+      'const args = process.argv.slice(2);',
+      'if (process?.argv[1]) main();',
+      'const args = process["argv"].slice(2);',
+      "const args = process['argv'].slice(2);",
+      'const { argv } = process;',
+      'const { argv: raw, env } = globalThis.process;',
+      'import { argv } from "node:process";',
+      "import { argv, env } from 'process';",
+      'import proc from "node:process";\nconst args = proc.argv.slice(2);',
+      'import * as proc from "node:process";\nconst { argv } = proc;',
+    ];
+    for (const source of reads) {
+      assert.equal(readsArgv(source), true, `not seen as an argv read: ${source}`);
+    }
+    const notReads = [
+      '// process.argv is read by the entry point',
+      ' * const { argv } = process;',
+      'function run(argv: string[]) { return argv.length; }',
+      'import { env } from "node:process";',
+      'import proc from "node:process";\nconst home = proc.env.HOME;',
+    ];
+    for (const source of notReads) {
+      assert.equal(readsArgv(source), false, `seen as an argv read: ${source}`);
     }
   });
 
