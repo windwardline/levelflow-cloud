@@ -41,11 +41,12 @@ Before it reads the credential it refuses, by name: a missing source, a dataset 
 `^[a-z0-9-]+$`, a source name that cannot become a key, a bad bucket or prefix, a source
 under a temp root bound for the permanent bucket, and a missing `zstd` or `rclone`.
 After the credential and before any rclone call it refuses a staging root that is the
-home folder, resolves to `/` or sits inside the source; a key another run holds; a
-source with no files; and a staging filesystem that cannot hold an archive of the source
-beside its restore. That bound assumes the archive does not compress and leaves 1 GiB
-for the rest of the machine: 9.43 GB for the condemned cache, 17.57 GB for the
-v3-preDateFix cache, 1.46 GB for the snapshot, measured 2026-09-22.
+home folder, resolves to `/` or sits inside the source; a key another run holds; and a
+source with no files. After the listing, each branch checks the space it will use
+before it writes. A new key needs an archive of the source beside its restore, bounded
+as if the archive did not compress, with 1 GiB left for the rest of the machine: 9.43 GB
+for the condemned cache, 17.57 GB for the v3-preDateFix cache, 1.46 GB for the snapshot,
+measured 2026-09-22. A re-proof needs only the object it lists beside the restore.
 `LEVELFLOW_ARCHIVE_STAGING` names staging on another filesystem.
 
 **A new key is proven before it is written.** The script builds
@@ -147,8 +148,8 @@ source leaves this machine before its row is filled and the lock is on.
 
 ## Register
 
-Each row is the line `push-archive-offbox.sh` prints on success, pasted over its
-pending row. Source bytes sums every file, a hard link once per name. Last proven is
+Each row is the line `push-archive-offbox.sh` prints on success, backticks included,
+pasted over its pending row. Source bytes sums every file, a hard link once per name. Last proven is
 the date the script's restore passed, or a later monthly stream-back matched the md5.
 
 | Archive | Archive bytes | MD5 | Files | Source bytes | Last proven (UTC) |

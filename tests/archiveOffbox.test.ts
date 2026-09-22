@@ -349,7 +349,7 @@ function assertNoCredential(sb: Sandbox, r: Result) {
 }
 
 const ROW = new RegExp(
-  `^\\| ${TEST_BUCKET}/${KEY.replaceAll(".", "\\.")} \\| (\\d+) \\| ([0-9a-f]{32}) \\| (\\d+) \\| (\\d+) \\| (\\d{4}-\\d{2}-\\d{2}) \\|$`,
+  `^\\| \`${TEST_BUCKET}/${KEY.replaceAll(".", "\\.")}\` \\| (\\d+) \\| ([0-9a-f]{32}) \\| (\\d+) \\| (\\d+) \\| (\\d{4}-\\d{2}-\\d{2}) \\|$`,
 );
 
 /** The register row, which must be the whole of stdout; anything else fails. */
@@ -594,16 +594,23 @@ describe("a permanent archive is proven by restoring it", () => {
     assertStagingClean(sb.staging);
   });
 
-  it("sizes an existing key's space check from the object it will stream back", () => {
+  it("sizes a re-proof from the object it streams back, never from a rebuild it will not make", () => {
+    // 1 GiB of headroom plus 1 MiB: room for this object beside its restore,
+    // not for the incompressible bound a new push of the same source claims.
+    const room = String(1024 * 1024 + 1024);
+    const fresh = sandbox();
+    dfStub(fresh, [room]);
+    const refused = run(fresh);
+    assert.equal(refused.code, 1);
+    assert.match(refused.stderr, /an archive of this source beside its restore needs/);
+
     const sb = sandbox();
     assert.equal(run(sb).code, 0);
-    const before = rcloneCalls(sb).length;
-    dfStub(sb, ["999999999999", "1024"]);
-    const r = run(sb);
-    assert.equal(r.code, 1);
-    assert.match(r.stderr, /the existing object beside its restore needs/);
-    assert.equal(dfCalls(sb), 2);
-    assert.ok(!rcloneCalls(sb).slice(before).some((call) => call.startsWith("cat ")), "nothing may be streamed back");
+    dfStub(sb, [room]);
+    const reproof = run(sb);
+    assert.equal(reproof.code, 0, reproof.stderr);
+    assert.match(reproof.stderr, /already archived/);
+    assert.equal(dfCalls(sb), 1, "a re-proof checks once, for what it will hold");
     assertStagingClean(sb.staging);
   });
 
@@ -720,7 +727,8 @@ describe("a permanent archive is proven by restoring it", () => {
     assert.equal(r.code, 1);
     assert.match(r.stderr, /has 1048576 bytes free and an archive of this source beside its restore needs \d+/);
     assert.match(r.stderr, /through LEVELFLOW_ARCHIVE_STAGING, which survives the re-exec/, "the refusal names its remedy");
-    assert.equal(rcloneCalls(sb).length, 0, "not even the listing may run");
+    // A listing is a free read; what the check guards is the build and the write.
+    assert.equal(uploads(sb).length, 0, "nothing may be uploaded");
     assert.doesNotMatch(r.stderr, /archiving at zstd/);
     assert.equal(r.stdout, "");
     assertStagingClean(sb.staging);
@@ -751,8 +759,12 @@ describe("a permanent archive is proven by restoring it", () => {
     dfStub(sb, ["1024"]);
     const r = run(sb);
     assert.equal(r.code, 1);
-    assert.match(r.stderr, /beside its restore needs/);
-    assert.equal(rcloneCalls(sb).length, before, "nothing may be read back or written");
+    assert.match(r.stderr, /the existing object beside its restore needs/);
+    assert.deepEqual(
+      rcloneCalls(sb).slice(before).map((call) => call.split(" ")[0]),
+      ["lsf"],
+      "only the listing may run: nothing read back, nothing written",
+    );
     assertStagingClean(sb.staging);
   });
 
@@ -763,7 +775,7 @@ describe("a permanent archive is proven by restoring it", () => {
       const r = run(sb);
       assert.equal(r.code, 1);
       assert.match(r.stderr, /cannot read the free space under/);
-      assert.equal(rcloneCalls(sb).length, 0);
+      assert.deepEqual(rcloneCalls(sb).map((call) => call.split(" ")[0]), ["lsf"], "only the listing may run");
       assertStagingClean(sb.staging);
     });
   }

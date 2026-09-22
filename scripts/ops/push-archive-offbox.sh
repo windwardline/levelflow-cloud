@@ -254,19 +254,18 @@ SRC_BYTES="$(find "$SRC" -type f -exec wc -c {} \; | awk '{ s += $1 } END { prin
   || die "cannot measure $SRC"
 log "source $SRC: $FILES files in $DIRS directories, $SRC_BYTES bytes"
 
-# Upper bounds, so the check needs no archive yet. ustar spends a 512-byte
+# Upper bounds, so a check needs no archive yet. ustar spends a 512-byte
 # header and at most 511 bytes of padding per entry plus a 10240-byte end
 # block; zstd's own bound adds 1/256 and a frame. A restore takes the source's
-# bytes and at most one 4 KiB block more per entry. The peak is an archive
-# beside a restore: on a new key the local proof's, then the returned copy
-# beside the archive once the restore is gone; on an existing key the returned
-# object's. HEADROOM stays free for everything else on the machine.
+# bytes and at most one 4 KiB block more per entry. Each branch below checks
+# its own peak before it writes: a new key an archive beside its restore, then
+# the returned copy beside the archive once the restore is gone; an existing
+# key the object it lists beside the restore. HEADROOM stays free for
+# everything else on the machine.
 HEADROOM=1073741824
 TAR_MAX=$(( SRC_BYTES + (FILES + DIRS) * 1024 + 10240 ))
 ARCHIVE_MAX=$(( TAR_MAX + TAR_MAX / 256 + 1048576 ))
 RESTORE_MAX=$(( SRC_BYTES + (FILES + DIRS) * 4096 ))
-require_space $(( ARCHIVE_MAX + (RESTORE_MAX > ARCHIVE_MAX ? RESTORE_MAX : ARCHIVE_MAX) + HEADROOM )) \
-  "an archive of this source beside its restore"
 
 # --- is the key taken? ----------------------------------------------------------
 # On R2 a prefix that holds nothing lists empty and exits 0; exit 3 means the
@@ -357,6 +356,8 @@ if [[ $EXISTS == 1 ]]; then
   STATUS="already archived"
 else
   # --- a new key: build, prove here, then write once -----------------------------
+  require_space $(( ARCHIVE_MAX + (RESTORE_MAX > ARCHIVE_MAX ? RESTORE_MAX : ARCHIVE_MAX) + HEADROOM )) \
+    "an archive of this source beside its restore"
   ARCHIVE="$STAGE/$NAME.tar.zst"
   log "archiving at zstd -$LEVEL into $STAGE"
   if ! COPYFILE_DISABLE=1 tar --format=ustar -C "$PARENT" -cf - "$NAME" | zstd -q -"$LEVEL" -T0 -o "$ARCHIVE"; then
@@ -400,5 +401,5 @@ log "restore proven, $STATUS: R2:$BUCKET/$KEY"
 # was already written, and a removal that failed would exit 1 after printing
 # the row that means proven.
 cleanup
-printf '| %s | %s | %s | %s | %s | %s |\n' \
+printf '| `%s` | %s | %s | %s | %s | %s |\n' \
   "$BUCKET/$KEY" "$REMOTE_BYTES" "$REMOTE_MD5" "$FILES" "$SRC_BYTES" "$(date -u +%F)"
