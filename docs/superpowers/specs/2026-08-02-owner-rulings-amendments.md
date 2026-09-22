@@ -2523,6 +2523,75 @@ recommendations that survived adversarial review: a design, two refuters, two ch
 revision, an implementation and a fresh-eyes review. Recorded here as law;
 governor §21i and desk §17p carry one-line cross-references.
 
+## Amendment 48 — the bar rises at the confirm read, and a filter is a family (standing approval, 2026-09-22)
+
+**The two rules headed "The rule as refuted" in
+`docs/research/designs/amendment-46-parameters-2026-09-21.md` are law as written,
+with the corrections below.** They answer what amendment 46 left open: whether a
+rising family count raises the bar, and whether conditioning filters register. The
+record's line citations were read before #657 and #672 moved those files; re-derive
+each before building on it.
+
+**In brief, and the record governs the detail.** Each market holds a two-sided cap of
+0.05 over its post-2026-08-26 calendar. Each freeze whose read names a market spends
+0.8 (JUDGED) of what the market has left, split among the candidates it opens there,
+at most one per registration and only where the registration's hashed readiness floor
+is met. A registration with no candidate on the market draws nothing and keeps its
+claim. No recorded draw, multiplier or verdict ever moves. A candidate confirms on
+daily totals of net realized R, a day being the cube's UTC decision day, at the
+Student-t quantile 1 − draw/2: (a) its mean clears zero, and (b) where it filters or
+replaces a shipped cell's trades, so does the paired daily difference against that
+cell. Where (a) cannot be read, because the cell under it is not held back from the
+read's spans, the candidate cannot confirm on that market; (b) alone never confirms.
+A conditioning filter claiming dates after its symbol's frontier is a family, with
+the same legs at the screen and at confirm, on the net and arming-bound arms, and on
+gross for leg (b) under a JUDGED cost profile. A population exclusion is never a
+family, never ships and is never charged.
+
+**What it changes in amendment 46.** It reads "one capped total alpha" as one cap per
+market calendar, because the ledger burns calendars per symbol and D4's absolute term
+is the cross-market brake. It also changes two rules. A registration is charged only
+when a freeze opens its candidate, where 46 charges every registered family.
+Conditioning filters and calibration programs register against the cap, where 46
+covers entry families. The record sent all three to the owner, holding that a
+standing approval could not change 46. That holding is withdrawn: 46 was itself
+recorded under the standing approval (`docs/research/owner-rulings-2026-09-14.md`,
+Status), and a later recommendation that survives refutation may amend it the same
+way. The owner has ruled on none of the three and may reverse any; a draw fixed before
+a reversal stands.
+
+**It settles the screen's effect floor, and not the reference price.** An entry
+family's screen passes when the lower bound of its day-clustered 95% interval, at
+tMultiplier95(clusters − 1), sits above the market's round-trip cost in R, whatever
+the count; a filter's legs clear zero. The reference price stays open, stated and
+hashed by each registration.
+
+**Why.** Money ships at confirm, so multiplicity is paid there. A draw that is never
+read cannot produce a false confirm, so charging one protects nothing: at three
+registrations with one unread, the other two draw 0.0133 each instead of 0.02, and
+forex waits 22.7 years instead of 19.2 on the round late-2030s base
+**[verified: arithmetic; base unverified]**. One cap split in equal shares across
+126 to 235 cells would put forex confirmation 52 to 57 years out on the same base.
+Daily sums measure money, where a per-fill figure rises when good trades grow rarer;
+on EURUSD, GBPUSD and USDJPY's fit-fold rows an unpaired interval ran 6.2 to 7.8
+times the nested standard error **[verified: fit fold]**. Uncharged, a filter reopens
+46's leak where hypotheses cost least: it needs no sweep but ships through the same
+calendar. The hour window cleared round 1's per-fill legs in its discovery pool while
+its dropped rows in held-out fit markets netted +107.1 R.
+
+**What it does not do.** It builds nothing. The registry, a general t inverse, the
+paired daily test, a multi-candidate freeze, provenance against each read's own
+spans, the frontier door, span records for every fold and an overlap refusal with no
+override are designed and refuted, not written. Until they are, the acknowledgement
+flag still lets an overlap through. Nothing registers until the registry is built,
+and no entry family is screened until the random-entry screen is built. It does not
+charge act 3, reopen `maxCostShare` 0.15, or reopen a shipped cell. Slow labels such
+as COT take no verdict until 30 of their blocks accrue. Approved under the owner's
+standing approval of recommendations that survived adversarial review: a proposal,
+two refuters and a checker per question (2026-09-16), two fresh refuters and a
+checker on the revised text (2026-09-21), and one refute round on this amendment's
+own text (2026-09-22), whose corrections it carries.
+
 ---
 
 *On the numbering, because the gaps mislead. The headings jump from 25 to 29,
