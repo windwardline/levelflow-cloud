@@ -687,6 +687,12 @@ describe("minute bank — the run, end to end against a stubbed provider", () =>
     assert.equal(readdirSync(result.dir).filter((name) => name.endsWith(".jsonl")).length, 1);
     // And the bank still never makes a scratch tree read as the machine's.
     assert.equal(existsSync(join(state.usageDir, "ledger.json")), false);
+    // The first run made .fmp-state/usage/ and wrote no sentinel, so the next
+    // run from this tree is still a run from a tree with no ledger.
+    assert.ok(existsSync(state.usageDir));
+    const again = await run({ argv: ["--limit", "1"], state });
+    assert.equal(again.code, 0, again.output);
+    assert.ok(again.output.includes("bank proceeds (§21c): no FMP ledger at "), again.output);
   });
 
   it("says nothing about the ledger in a tree that has one", async () => {
