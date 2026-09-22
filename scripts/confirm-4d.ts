@@ -25,11 +25,15 @@
 // Unknown flags are refused by name, in the same walk the gate uses. In
 // this script an ignored dial is an ignored dial on a read that cannot be
 // taken twice.
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { gradeCorpus } from "./grid-totalr.ts";
 import { resolveHeldOut } from "./sweepFolds.ts";
 import { assertManifest } from "./sweepStats.ts";
-import { writeResearchArtifact } from "./researchArtifact.ts";
+import {
+  researchArtifactBytes,
+  restoreResearchArtifact,
+  writeResearchArtifact,
+} from "./researchArtifact.ts";
 import {
   describeNumericToken,
   describeToken,
@@ -335,7 +339,7 @@ async function main() {
   // `frozenAt` beside a ledger that recorded no read, and after a burn it
   // overwrote the picks the recorded read was taken on.
   const picksPath = `${dir}/${prefix}-final-picks.json`;
-  const priorPicks = existsSync(picksPath) ? readFileSync(picksPath) : null;
+  const priorPicks = researchArtifactBytes(picksPath);
   let graded: Awaited<ReturnType<typeof gradeCorpus>>;
   try {
     graded = await gradeCorpus(paths, {
@@ -355,8 +359,7 @@ async function main() {
     // in it lands before the ledger append, and nothing after the append
     // throws (grid-totalr.ts says so where the append sits).
     if (frozenAt !== null) {
-      if (priorPicks === null) rmSync(picksPath, { force: true });
-      else writeFileSync(picksPath, priorPicks);
+      restoreResearchArtifact(picksPath, priorPicks);
       console.error(
         `confirm-4d: the read failed after the freeze and recorded nothing, ` +
           `so the freeze is withdrawn — ${prefix}-final-picks.json ` +
