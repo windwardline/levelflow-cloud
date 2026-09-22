@@ -1685,16 +1685,23 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     const emitPath = foldedCorpus();
     const condemned = join(dirname(emitPath), "condemned.json");
     writeFileSync(condemned, JSON.stringify({ INVALID: "clock defect", markets: {} }));
+    // Both refusals need no row, so they come with the door: before the
+    // beforeOpen hook, where confirm-4d freezes its picks (2026-09-22).
+    let opened = 0;
+    const beforeOpen = () => {
+      opened += 1;
+    };
     await assert.rejects(
-      gradeCorpus(emitPath, { confirmFinal: true, confirmLogDir: mkdtempSync(join(tmpdir(), "gate-p-")), permutations: 50, provenancePath: condemned, seed: 4 }),
+      gradeCorpus(emitPath, { beforeOpen, confirmFinal: true, confirmLogDir: mkdtempSync(join(tmpdir(), "gate-p-")), permutations: 50, provenancePath: condemned, seed: 4 }),
       /provenance artifact is condemned/,
     );
     const mute = join(dirname(emitPath), "mute.json");
     writeFileSync(mute, JSON.stringify({ markets: { EURUSD: { derived: true, tranche: "totality" } } }));
     await assert.rejects(
-      gradeCorpus(emitPath, { confirmFinal: true, confirmLogDir: mkdtempSync(join(tmpdir(), "gate-p-")), permutations: 50, provenancePath: mute, seed: 4 }),
+      gradeCorpus(emitPath, { beforeOpen, confirmFinal: true, confirmLogDir: mkdtempSync(join(tmpdir(), "gate-p-")), permutations: 50, provenancePath: mute, seed: 4 }),
       /carries no heldBack/,
     );
+    assert.equal(opened, 0, "a provenance refusal came after the hook that opens the fold");
     // UNDETERMINABLE (`heldBack: null`, a non-derived market whose class
     // row's derivation window the instrument cannot see) reads as not held
     // back — the conservative side — and the figure is not evidence.
