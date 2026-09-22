@@ -102,8 +102,8 @@ describe("recover-minute-bank refuses before it spends", () => {
     ["an impossible date", ["--from", "2026-09-31", "--to", "2026-10-01"], /must be a real YYYY-MM-DD date/],
     ["a reversed window", ["--from", "2026-09-05", "--to", "2026-09-03"], /is after --to/],
     ["a window longer than a month", ["--from", "2026-07-01", "--to", "2026-08-10"], /spans 41 dates/],
-    ["a mistyped --dry-run", [...WINDOW, "--dryrun"], /unknown argument --dryrun/],
-    ["a stray value", [...WINDOW, "2026-09-06"], /unknown argument 2026-09-06/],
+    ["a mistyped --dry-run", [...WINDOW, "--dryrun"], /recover-minute-bank: unknown flag --dryrun/],
+    ["a stray value", [...WINDOW, "2026-09-06"], /recover-minute-bank: stray argument "2026-09-06"/],
   ] as const) {
     it(`refuses ${why}, and fetches nothing`, async () => {
       const state = tempState();
