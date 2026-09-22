@@ -133,8 +133,11 @@ REPO-RELATIVE, from the repository root, as act 3 did. The string is recorded
 verbatim in a ledger line that can never be amended, and a relative path is the
 one form that reads the same in every clone: act 3's own `ledgerPath` is an
 absolute path into a worktree that no longer exists. (`ledgerPath` stays absolute
-whatever `--read-out` is, because it is built from `DEFAULT_CONFIRM_LOG_DIR`; the
-guard compares it by basename for that reason.) `--read-out` resolves against
+whatever `--read-out` is, because it is built from the resolved repository ledger
+directory. That is `DEFAULT_CONFIRM_LOG_DIR` on every CLI run; the one case where
+it is not is the in-process `repositoryLedgerDir` seam described below, which
+tests pass a scratch directory and no flag reaches. The guard compares
+`ledgerPath` by basename for that reason.) `--read-out` resolves against
 the process's working directory and `grid-totalr` creates missing directories, so
 from anywhere but the root it writes a lookalike `…/docs/research/confirm-reads/`
 tree the guard cannot see. The guard places a ledger line by basename and
@@ -162,8 +165,11 @@ ledgers, broken ones included, land there. Until 2026-09-21 two tests
 wrote fixtures here and removed them, and one of them raced
 `tests/confirmFoldSealed.test.ts`'s snapshot of `docs/` and failed the
 suite. The option has no CLI flag. `tests/acceptanceGate.test.ts` pins
-that, pins the default to this directory from any working directory, and
-fails if this directory's listing changes while it runs.
+that, and pins the default to this directory from any working directory.
+The two files that drive a confirm-final read, that one and
+`tests/armingBoundGraders.test.ts`, each declare the census in
+`tests/support/repositoryLedger.ts`, which fails if this directory's
+listing changes while the file runs.
 
 
 ## The read since R4 act 2 (2026-09-02)

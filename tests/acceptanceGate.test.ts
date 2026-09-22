@@ -17,11 +17,10 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
-  statSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, sep } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
@@ -47,31 +46,17 @@ import {
   repositoryLedgerDirOf,
 } from "../scripts/grid-totalr.ts";
 import type { SweepEmitRow } from "../scripts/sweepStats.ts";
+import {
+  declareRepositoryLedgerCensus,
+  REPOSITORY_LEDGER_DIR,
+} from "./support/repositoryLedger.ts";
 import { scratchDir } from "./support/scratchDir.ts";
 
-// The repository's own LA-6 ledger directory, derived the way the binary
-// derives it: from this module's location, never from process.cwd().
+// Derived the way the binary derives it: from this module's location, never
+// from process.cwd(). The ledger census that proves no test here touches
+// REPOSITORY_LEDGER_DIR lives in tests/support/repositoryLedger.ts, so every
+// file that drives gradeCorpus declares the same one.
 const REPO_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const REPOSITORY_LEDGER_DIR = join(REPO_ROOT, "docs/research/confirm-reads");
-
-// No test in this file may write, append or remove anything there. The
-// directory's own mtime leads the listing because it moves on every create
-// and every remove, so a fixture written and deleted inside one test still
-// changes it; each entry's size and mtime catch an append. The listing is
-// taken as the file loads and compared by the LAST test in the file, so a
-// writer fails here on every run rather than racing a guard in another file
-// (tests/confirmFoldSealed.test.ts snapshots all of docs/ at collection and
-// again in after(); a fixture alive at one snapshot and not the other failed
-// the suite with `fail 0` on 2026-09-21).
-const repositoryLedgerListing = (): string =>
-  [
-    `(directory) ${statSync(REPOSITORY_LEDGER_DIR).mtimeMs}`,
-    ...readdirSync(REPOSITORY_LEDGER_DIR).sort().map((name) => {
-      const stat = statSync(join(REPOSITORY_LEDGER_DIR, name));
-      return `${name} ${stat.size} ${stat.mtimeMs}`;
-    }),
-  ].join("\n");
-const REPOSITORY_LEDGER_AT_START = repositoryLedgerListing();
 
 // 3b + 3f + 3g (the map): grid-totalr was the only place variants meet, and
 // it read a PRINTED table — total R as expectancy-over-filled x
@@ -3003,7 +2988,13 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // and remove it afterwards, and node:test runs files in parallel:
   // tests/confirmFoldSealed.test.ts snapshots docs/ at collection and in
   // after(), so an entry alive at one snapshot and not the other failed
-  // the suite with `fail 0`. gradeCorpus's repositoryLedgerDir replaces
+  // the suite with `fail 0`. To see it again, revert the injection below
+  // and reproduce the timing by hand: write any file into
+  // docs/research/confirm-reads, start tests/confirmFoldSealed.test.ts,
+  // and delete the file once it prints its first result. That run prints
+  // `tests 39, pass 39, fail 0`, exits 1, and names the guard — `a reader
+  // wrote into docs/ during the guard` — with no test file modified.
+  // gradeCorpus's repositoryLedgerDir replaces
   // the repository directory for the search and the default write
   // together. It is not the round-46 bypass: that was a CLI flag an
   // operator could pass, and this option has no CLI path (pinned below,
@@ -3271,18 +3262,42 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // through repositoryLedgerDirOf, this read would append a fixture line to
   // the tracked record. So the source is checked before anything executes,
   // and the test stops there when it fails.
+  //
+  // The barrier names the two lines that may READ the constant rather than
+  // counting the times it appears: a count made a trailing comment that
+  // merely names it — `foo(); // see DEFAULT_CONFIRM_LOG_DIR` — fail a test
+  // about reads. So a line's comment tail is dropped before it is judged,
+  // with `://` left alone so a URL is not mistaken for one.
   it("an unredirected read files in the resolved repository directory and names its git add — executed", async () => {
-    const code = readFileSync("scripts/grid-totalr.ts", "utf8")
+    const source = readFileSync("scripts/grid-totalr.ts", "utf8");
+    const code = source
       .split("\n")
       .filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line))
       .join("\n");
-    assert.equal(
-      (code.match(/DEFAULT_CONFIRM_LOG_DIR/g) ?? []).length,
-      2,
-      "DEFAULT_CONFIRM_LOG_DIR is declared once and read once, by repositoryLedgerDirOf; " +
+    const CONSTANT = "DEFAULT_CONFIRM_LOG_DIR";
+    // The one shape the tail-stripper would eat: a quoted "//" ahead of the
+    // constant on the same line. None exists, and this fails if one appears
+    // rather than letting a real read hide behind it.
+    for (const line of source.split("\n").filter((l) => l.includes(CONSTANT))) {
+      assert.doesNotMatch(
+        line,
+        /["'`][^"'`]*\/\/[^"'`]*["'`]/,
+        `a quoted // on a line naming ${CONSTANT} would hide a read from this barrier: ${line}`,
+      );
+    }
+    const reads = code
+      .split("\n")
+      .map((line) => line.replace(/(^|[^:])\/\/.*$/, "$1").trim())
+      .filter((line) => line.includes(CONSTANT));
+    assert.deepEqual(
+      reads,
+      [
+        "const DEFAULT_CONFIRM_LOG_DIR = join(",
+        "return options.repositoryLedgerDir ?? DEFAULT_CONFIRM_LOG_DIR;",
+      ],
+      `${CONSTANT} is declared on one line and read on one, by repositoryLedgerDirOf; ` +
         "any other read bypasses the injected directory, so this test refuses to execute",
     );
-    assert.match(code, /return options\.repositoryLedgerDir \?\? DEFAULT_CONFIRM_LOG_DIR;/);
 
     const repository = scratchDir("gate-unredirected-");
     const warnings: string[] = [];
@@ -3539,11 +3554,17 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // repositoryLedgerDir is an IN-PROCESS test seam and nothing else. A CLI
   // path to it would be round 46's bypass again: an operator flag that
   // takes the repository's ledger out of the scan. So the flag is refused
-  // by the binary, and the option's name appears nowhere in scripts/ but
-  // gradeCorpus's own resolution — never in main(), never in confirm-4d or
-  // derive-4d, whose walkers would otherwise carry it in. The population is
-  // every file under scripts/, derived, not listed.
-  it("no CLI reaches the repository ledger seam: the flag refuses, and no script passes the option", () => {
+  // by the binary, and the option's name appears nowhere but gradeCorpus's
+  // own resolution — never in main(), never in confirm-4d or derive-4d,
+  // whose walkers would otherwise carry it in.
+  //
+  // The population is every source file in the repository outside tests/,
+  // derived, not listed: scoping it to scripts/ would let a caller of
+  // gradeCorpus placed at the root, in src/ or in supabase/ pass the option
+  // and evade the pin. Only three names are pruned — git's own store, the
+  // vendored tree and the build output — and none of them is source this
+  // repository writes.
+  it("no CLI reaches the repository ledger seam: the flag refuses, and nothing outside tests/ passes the option", () => {
     const refused = spawnSync(
       join(REPO_ROOT, "node_modules/.bin/tsx"),
       [
@@ -3561,17 +3582,33 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.notEqual(refused.status, 0, "the binary must refuse the flag, not honour it");
     assert.match(refused.stderr, /unknown flag --repository-ledger-dir/);
 
-    const scripts = (readdirSync(join(REPO_ROOT, "scripts"), { recursive: true }) as string[])
-      .filter((name) => /\.(ts|mts|mjs|js|sh)$/.test(name))
-      .map((name) => join("scripts", name));
-    assert.ok(scripts.includes(join("scripts", "confirm-4d.ts")), "the derived population must reach the burner");
+    const SOURCE = /\.(ts|tsx|mts|cts|mjs|cjs|js|jsx|sh)$/;
+    const PRUNED = new Set([".git", "node_modules", "dist"]);
+    const population = readdirSync(REPO_ROOT, { withFileTypes: true })
+      .filter((entry) => !PRUNED.has(entry.name))
+      .flatMap((entry) => {
+        if (entry.isFile()) return SOURCE.test(entry.name) ? [entry.name] : [];
+        if (!entry.isDirectory()) return [];
+        return (readdirSync(join(REPO_ROOT, entry.name), { recursive: true }) as string[])
+          .filter((name) => SOURCE.test(name))
+          .map((name) => join(entry.name, name));
+      })
+      .filter((file) => !file.startsWith(`tests${sep}`))
+      .sort();
+    // The population must reach the burner, and past scripts/ — a walk that
+    // silently stopped at one subtree would pass every assertion below.
+    assert.ok(population.includes(join("scripts", "confirm-4d.ts")), "the derived population must reach the burner");
+    const spanned = new Set(population.map((file) => file.split(sep)[0]));
+    for (const root of ["scripts", "src", "supabase"]) {
+      assert.ok(spanned.has(root), `the derived population must reach ${root}/; spanned ${[...spanned].sort()}`);
+    }
     // Code only: a comment naming the seam passes nothing.
     const codeOf = (file: string) =>
       readFileSync(join(REPO_ROOT, file), "utf8")
         .split("\n")
         .filter((line) => !/^\s*(\/\/|\*|\/\*|#)/.test(line))
         .join("\n");
-    const carriers = scripts.filter((file) => codeOf(file).includes("repositoryLedgerDir"));
+    const carriers = population.filter((file) => codeOf(file).includes("repositoryLedgerDir"));
     assert.deepEqual(carriers, [join("scripts", "grid-totalr.ts")], "only grid-totalr.ts may name the seam");
     const source = codeOf("scripts/grid-totalr.ts");
     const main = source.slice(source.indexOf("async function main("));
@@ -4754,15 +4791,5 @@ describe("a disposition the gate drew must survive to the people reading it", ()
 });
 
 // Declared LAST so it runs after every other test in this file (node:test runs
-// a file's top-level tests in declaration order). See repositoryLedgerListing.
-describe("this file never touches the repository's confirm ledger", () => {
-  it("docs/research/confirm-reads lists the same at the end of the file as at its start", () => {
-    assert.equal(
-      repositoryLedgerListing(),
-      REPOSITORY_LEDGER_AT_START,
-      `something wrote into ${REPOSITORY_LEDGER_DIR} while this file ran. A test ` +
-        `drives the ledger through gradeCorpus's repositoryLedgerDir (a scratch ` +
-        `directory), never the tracked record.`,
-    );
-  });
-});
+// a file's top-level tests in declaration order).
+declareRepositoryLedgerCensus();
