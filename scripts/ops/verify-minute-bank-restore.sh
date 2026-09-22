@@ -52,9 +52,9 @@
 # head of anything and is not compared: macOS `head -c 0` exits 1.
 #
 # WHY IT IS NOT THE DAILY JOB. It downloads and unpacks a whole archive, like
-# verify-postgres-restore.sh, and is to be run weekly beside it on the
-# fleet-health cadence. Nothing schedules it yet: its CADENCE.md row in
-# windwardline/windwardline is still to be added. From a checkout:
+# verify-postgres-restore.sh, and runs weekly beside it on the fleet-health
+# cadence (CADENCE.md in windwardline/windwardline, from windwardline#118).
+# First proof 2026-09-22: 100 data files, 3,516,278 bars. From a checkout:
 #
 #   ~/.local/bin/wl-secret cloudflare-r2-backup=R2_TOKEN -- bash scripts/ops/verify-minute-bank-restore.sh
 #

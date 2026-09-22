@@ -316,9 +316,9 @@ The push compares the remote object's md5 with the local archive's, and parity
 compares names; neither unpacks anything. A bad `zstd` stream or a layout nobody has
 unpacked passes both every day and is found on the day it is needed. Since 2026-09-21
 local retention is one day rather than fourteen, so R2 is the only route to any
-earlier day. The restore proof below unpacks one. Its first run against the bucket is
-the operator's, and until that run is recorded here nothing has been restored from
-these archives.
+earlier day. The restore proof below unpacks one. First proof 2026-09-22:
+`minute-bank-20260922`, the newest of 22, restored 100 data files and 3,516,278 bars,
+equal to live.
 
 ## The two sides are checked against each other
 
@@ -385,10 +385,9 @@ bank runs. macOS `cmp -n` cannot make that comparison, because it reports unequa
 lengths even inside its limit, so the script pipes `head -c` of the live file into
 `cmp`.
 
-It is to be run weekly beside `verify-postgres-restore.sh` on the fleet-health
-cadence, not daily, because it downloads and unpacks a whole archive. Nothing
-schedules it yet: the `CADENCE.md` row in windwardline/windwardline is still to be
-added. From a checkout it reads that checkout's `.minute-bank`. From any other tree,
+It runs weekly beside `verify-postgres-restore.sh` on the fleet-health cadence
+(`CADENCE.md` in windwardline/windwardline, from windwardline#118), not daily, because
+it downloads and unpacks a whole archive. From a checkout it reads that checkout's `.minute-bank`. From any other tree,
 name the checkout inside `wl-secret`'s command, because `wl-secret` execs its child
 under `env -i` and drops a `LEVELFLOW_CHECKOUT` set in the calling shell:
 
