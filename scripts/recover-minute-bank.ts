@@ -88,14 +88,26 @@ const NOVEL_SHARE = 0.05;
 const NOVEL_FLOOR = 10;
 /**
  * One symbol refused on either bound is its own: a revised history, or a thin
- * contract whose short file has not seen its session (ZOUSX, replayed against
- * the bank on 2026-09-22: 59 of 508 ordinary minutes at never-held times, the
- * only trip in 100 symbols). A second is the endpoint's or the calendar's, and
- * the run stands down. The bounds count together because a 24-hour market's
- * file holds every time of day: for forex and crypto, the scout among them, a
- * moved clock shows only as prices that disagree on a partly held day.
+ * contract whose short file has not seen its session. A second is the
+ * endpoint's or the calendar's, and the run stands down. The bounds count
+ * together because a 24-hour market's file holds every time of day: for forex
+ * and crypto, the scout among them, a moved clock shows only as prices that
+ * disagree on a partly held day.
  */
 const DISPUTED_STOP = 2;
+
+/**
+ * Files measured to trip the clock bound on ordinary days, so their refusal is
+ * no evidence about the endpoint. Each still refuses itself and fails the run,
+ * because its hole stays open; it does not count toward DISPUTED_STOP, which
+ * would otherwise start every run with a slot spoken for.
+ */
+const EXPECTED_CLOCK_REFUSALS = new Map([
+  [
+    "ZOUSX",
+    "561 distinct times of day in 1,618 held minutes by 2026-09-03; replayed against the bank's own 2026-09-12..09-20, 59 of 508 minutes fell at never-held times, scattered across the day, the only trip in 100 symbols",
+  ],
+]);
 
 // The ONE declaration of which flags own the token after them.
 const VALUE_FLAGS = new Set(["--from", "--to", "--concurrency"]);
@@ -443,8 +455,11 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
     // A date shape and a day's granularity belong to the endpoint: every other
     // symbol would be bought and refused the same way. The price and clock
     // bounds stand the run down on their second symbol (DISPUTED_STOP).
+    const expected = refusal.kind === "novel" ? EXPECTED_CLOCK_REFUSALS.get(symbol) : undefined;
     if (refusal.kind === "foreign" || refusal.kind === "overfull") {
       ctx.stop ??= new Error(`${symbol}: ${refusal.message}; the endpoint answers this way for every symbol, so the run stands down`);
+    } else if (expected !== undefined) {
+      ctx.deps.print.err(`${symbol}: an expected clock refusal (${expected}); it does not count toward a stand-down, and its hole stays open`);
     } else {
       ctx.disputed.push(symbol);
       if (ctx.disputed.length >= DISPUTED_STOP) {
@@ -611,7 +626,7 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
   while (ctx.disputed.length > 0 && !ctx.stop && next < order.length) {
     const item = order[next++];
     tallies.push(await recoverOne(ctx, item.symbol, item.store, plan));
-    if (asks(item)) break;
+    if (asks(item) && !EXPECTED_CLOCK_REFUSALS.has(item.symbol)) break;
   }
   const workers = Array.from({ length: plan.concurrency }, async () => {
     while (next < order.length && !ctx.stop) {

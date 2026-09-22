@@ -465,6 +465,64 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
     assert.match(result.output, /^Not started after the stop: USDJPY\.$/m);
   });
 
+  describe("where the second dispute is met", () => {
+    const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`;
+    const session: string[] = [];
+    for (const day of ["2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11"]) {
+      for (let m = 9 * 60 + 30; m < 16 * 60; m += 1) session.push(`${day} ${hhmm(m)}`);
+    }
+    const shifted: Provider = (_symbol, date) =>
+      new Response(JSON.stringify(Array.from({ length: 390 }, (_, i) => bar(`${date} ${hhmm(13 * 60 + 30 + i)}`))));
+    const asked = (urls: URL[]) => [...new Set(urls.map((url) => url.searchParams.get("symbol")))];
+
+    it("does not count an expected clock refusal toward the stand-down", async () => {
+      const state = tempState();
+      bank(state, "EURUSD", session);
+      bank(state, "ZOUSX", session);
+      const zr = bank(state, "ZRUSD", ["2026-08-06 00:00:00"]);
+      const result = await recover({ provider: shifted, state });
+      assert.equal(result.code, 1, "ZOUSX's hole stays open");
+      assert.match(result.output, /ZOUSX: an expected clock refusal \(561 distinct times of day/);
+      assert.doesNotMatch(result.output, /stands down|Not started after the stop/);
+      assert.equal(lines(zr.file).length, 1 + 1170);
+    });
+
+    it("settles a disputed scout past an expected refusal, alone", async () => {
+      const state = tempState();
+      for (const symbol of ["EURUSD", "ZOUSX", "ZRUSD", "ZSUSX", "ZTUSD"]) bank(state, symbol, session);
+      const result = await recover({ provider: shifted, state });
+      assert.equal(result.code, 1);
+      assert.match(result.output, /EURUSD, ZRUSD each came back .* so the run stands down/);
+      assert.match(result.output, /^Not started after the stop: ZSUSX, ZTUSD\.$/m);
+      assert.deepEqual(asked(result.urls), ["EURUSD", "ZOUSX", "ZRUSD"]);
+    });
+
+    it("counts a price disagreement from a symbol whose clock refusal is expected", async () => {
+      const state = tempState();
+      const allDay = (date: string) => Array.from({ length: 1440 }, (_, m) => `${date} ${hhmm(m)}`);
+      const held = [...allDay("2026-08-06"), ...allDay("2026-09-03").slice(0, 720)];
+      for (const symbol of ["EURUSD", "ZOUSX", "ZRUSD"]) bank(state, symbol, held);
+      const repriced: Provider = (_symbol, date) => new Response(JSON.stringify(allDay(date).map((key) => bar(key, 2))));
+      const result = await recover({ provider: repriced, state });
+      assert.equal(result.code, 1);
+      assert.match(result.output, /EURUSD, ZOUSX each came back .* so the run stands down/);
+      assert.match(result.output, /^Not started after the stop: ZRUSD\.$/m);
+    });
+
+    it("lets the pool's workers in flight finish when the scout was clean", async () => {
+      // The bound the runbook states: a dispute first met inside the pool costs
+      // up to --concurrency symbols, and no more start.
+      const state = tempState();
+      bank(state, "AUDCAD", ["2026-08-06 00:00:00"]);
+      for (const symbol of ["AUDCHF", "AUDJPY", "AUDNZD", "AUDUSD", "EURUSD"]) bank(state, symbol, session);
+      const result = await recover({ provider: shifted, state });
+      assert.equal(result.code, 1);
+      assert.match(result.output, /so the run stands down/);
+      assert.match(result.output, /^Not started after the stop: EURUSD\.$/m);
+      assert.deepEqual(asked(result.urls), ["AUDCAD", "AUDCHF", "AUDJPY", "AUDNZD", "AUDUSD"]);
+    });
+  });
+
   it("does not judge the clock from less than a day of history", async () => {
     // A file that has not yet held a day's minutes has not seen its session,
     // so new times of day are expected, not evidence.
