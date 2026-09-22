@@ -408,7 +408,8 @@ is listed.
 `tests/minuteBankRestore.test.ts` runs the real script, tar and zstd against a stub
 `rclone` over a directory, with every stamp and bar date relative to today. Fifty-seven
 mutations of the first version's guards each failed it, as did 32 of 35 against the
-guards added after review. The three that survive drop a `|| die` behind a walk that
+guards added after review and both run against the portable fixture and the widened
+listing: 91 of 94. The three that survive drop a `|| die` behind a walk that
 has already read the same directory, which no input can reach.
 
 ### Restoring by hand
