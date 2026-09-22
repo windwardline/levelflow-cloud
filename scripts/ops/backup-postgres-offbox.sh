@@ -71,6 +71,19 @@ STAMP="$(date -u +%Y%m%d)"
 log() { echo "$(date -u +%FT%TZ) pg-offbox: $*"; }
 die() { log "FAIL $*"; exit 1; }
 
+# NEVER the permanent bucket. This script prunes, and windwardline-archives is
+# write-once (docs/offbox-archives.md). The bucket is overridable for tests, so
+# the refusal is by name, not by trust in whoever set the variable.
+#
+# On the FIRST PATH SEGMENT, because rclone reads everything after `R2:` as a
+# bucket plus a path: an exact-match refusal is walked past by one suffix, and
+# `windwardline-archives/levelflow-cloud` then addresses the permanent bucket.
+# Leading slashes go first, in place, because rclone strips them too:
+# `/windwardline-archives` would otherwise pass the check below with an empty
+# first segment and still address the permanent bucket.
+BUCKET="${BUCKET#"${BUCKET%%[!/]*}"}"
+[[ ${BUCKET%%/*} != windwardline-archives ]] || die "refusing to run against windwardline-archives: this script prunes, and that bucket is write-once"
+
 # --- self-delivery of secrets ------------------------------------------------
 # The launchd plist invokes this script directly, exactly like its minute-bank
 # sibling, and the secrets arrive here rather than in the plist. Two recorded

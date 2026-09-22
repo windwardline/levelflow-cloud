@@ -246,10 +246,15 @@ accumulating. Local retention is one daily plus the protected `20260823`, and re
 is 60. `20260823` is protected by name in both prunes, because it is the only naive-era
 corpus in existence and a retention count cannot protect what oldest-first deletes
 first. The local prune runs only after the push verified the remote object and parity
-passed; a failed or skipped push skips it. The remote protection is not permanent: the
-bucket's lifecycle rule expires every object 365 days after upload, whatever its name,
-so R2's copy of `20260823` lapses about 2027-09-02, a year after it was uploaded at
-2026-09-02 15:40:42Z (HANDOFF §6b-1 item I).
+passed; a failed or skipped push skips it. Name-protection binds this repo's prunes and
+nothing else: `windwardline-backups` carries the lifecycle rule
+`expire-backups-after-365-days` over every object, so R2 deletes the daily
+`minute-bank-20260823.tar.zst` about 2027-09-02, a year after its upload at
+2026-09-02 15:40:42Z, whatever its name. The copy that outlives it is
+`windwardline-archives/levelflow-cloud/minute-bank/levelflow-minute-bank-snapshot-20260823.tar.zst`,
+written once by `push-archive-offbox.sh` and never pruned (HANDOFF §6b-1 item I). Until
+the operator's push fills its row in `docs/offbox-archives.md`, the local snapshot and
+the expiring daily are the only copies.
 
 The push compares the remote object's md5 with the local archive's, and parity
 compares names; neither unpacks anything. A bad `zstd` stream or a layout nobody has
