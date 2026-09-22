@@ -54,6 +54,7 @@ import {
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
 import { redactProviderSecrets } from "../supabase/functions/trade-analyzer/redact.ts";
 import { flagReader, OperatorInputError } from "./flagReader.ts";
+import { SpendRefusedError } from "./fmpByteBudget.ts";
 import {
   classifyRefusal,
   closeCircuit,
@@ -391,8 +392,16 @@ async function readSidecar(
  * The status is read up to a word boundary, not to the end of the message.
  * Since the body joined the message (#493) an end anchor matched nothing, so
  * a suspension and a rejected key both read as "no status" and were retried.
+ *
+ * A spend refusal is never retried, by its base class: its message carries no
+ * status, and the ladder read it as the network. The bank takes no door, but
+ * the hole filler sharing this ladder does, and its probe gate refuses inside
+ * the retried unit (fmpByteBudget.ts states the rule for every ladder).
  */
 export function isRetryable(error: unknown): boolean {
+  if (error instanceof SpendRefusedError) {
+    return false;
+  }
   const status = /^HTTP (\d{3})\b/.exec(
     error instanceof Error ? error.message : "",
   )?.[1];

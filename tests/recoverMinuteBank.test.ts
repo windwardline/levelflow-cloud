@@ -7,6 +7,8 @@ import { describe, it } from "node:test";
 import { readBreaker } from "../scripts/fmpCircuit.ts";
 import { readDay, recordUsage } from "../scripts/fmpGovernor.ts";
 import type { FmpStatePaths } from "../scripts/fmpState.ts";
+import { isRetryable, withRetry } from "../scripts/bank-minute-bars.ts";
+import { LedgerUnreadableError, ProbeLostError } from "../scripts/fmpByteBudget.ts";
 import { acquireBankLock, runRecover } from "../scripts/recover-minute-bank.ts";
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
 import { BODIES, tempState } from "./fixtures/fmpTestState.ts";
@@ -332,6 +334,56 @@ describe("recover-minute-bank refuses a symbol whose answers would not dedupe", 
     assert.ok(!result.urls.some((url) => url.searchParams.get("symbol") === "BTCUSD"));
   });
 
+  it("refuses a symbol whose answer disagrees with the minutes it already holds", async () => {
+    // Same shape, other clock: the keys collide and the prices do not.
+    const state = tempState();
+    const minutes = Array.from({ length: 20 }, (_, i) => `2026-09-03 00:${String(i).padStart(2, "0")}:00`);
+    const eur = bank(state, "EURUSD", ["2026-08-06 00:00:00", ...minutes]);
+    const before = readFileSync(eur.file, "utf8");
+    const provider: Provider = (_symbol, date) =>
+      new Response(JSON.stringify(date === "2026-09-03" ? minutes.map((m) => bar(m, 2)) : []));
+    const result = await recover({ provider, state });
+    assert.equal(result.code, 1);
+    assert.match(result.output, /EURUSD: 20 of 20 minutes the file already holds came back at another price/);
+    assert.match(result.output, /nothing was appended \(20 bars were bought\)/);
+    assert.equal(readFileSync(eur.file, "utf8"), before);
+  });
+
+  it("refuses new minutes at times of day the file has never held", async () => {
+    // A session banked at 09:30-15:59 for days, answered at 13:30-19:59: the
+    // clock moved, and none of it collides to say so.
+    const state = tempState();
+    const session: string[] = [];
+    for (const day of ["2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11"]) {
+      for (let m = 9 * 60 + 30; m < 16 * 60; m += 1) {
+        session.push(`${day} ${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`);
+      }
+    }
+    const eur = bank(state, "EURUSD", session);
+    const before = readFileSync(eur.file, "utf8");
+    const shifted = (date: string) =>
+      Array.from({ length: 390 }, (_, i) => {
+        const m = 13 * 60 + 30 + i;
+        return bar(`${date} ${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`);
+      });
+    const result = await recover({ provider: (_symbol, date) => new Response(JSON.stringify(shifted(date))), state });
+    assert.equal(result.code, 1);
+    assert.match(result.output, /EURUSD: 720 of 1170 new minutes fall at times of day the file has never held/);
+    assert.equal(readFileSync(eur.file, "utf8"), before);
+  });
+
+  it("does not judge the clock from less than a day of history", async () => {
+    // A file that has not yet held a day's minutes has not seen its session,
+    // so new times of day are expected, not evidence.
+    const state = tempState();
+    const eur = bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    const thirty = (date: string) =>
+      Array.from({ length: 30 }, (_, i) => bar(`${date} 00:${String(i).padStart(2, "0")}:00`));
+    const result = await recover({ provider: (_symbol, date) => new Response(JSON.stringify(thirty(date))), state });
+    assert.equal(result.code, 0, result.output);
+    assert.equal(lines(eur.file).length, 1 + 90);
+  });
+
   it("buys a malformed answer once, never on the retry ladder", async () => {
     const state = tempState();
     bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
@@ -406,6 +458,40 @@ describe("recover-minute-bank stops on a wall and keeps what it paid for", () =>
       [...new Set(lines(eur.file).slice(1).map((b) => b.date.slice(0, 10)))],
       ["2026-09-03", "2026-09-05"],
     );
+  });
+});
+
+describe("the retry ladder never retries a spend refusal", () => {
+  // The probe gate refuses inside the retried unit. Its refusals carry no
+  // HTTP status, and a ladder that reads "no status" as the network retried
+  // them five times before anything could stop the run.
+  it("reads every spend refusal as final, by its base class", async () => {
+    for (const error of [new ProbeLostError("bandwidth", "another consumer claimed the probe"), new LedgerUnreadableError("unreadable")]) {
+      assert.equal(isRetryable(error), false, error.name);
+      let attempts = 0;
+      await assert.rejects(
+        withRetry(
+          () => {
+            attempts += 1;
+            return Promise.reject(error);
+          },
+          { attempts: 5, baseDelayMs: 1, sleep: () => Promise.resolve() },
+        ),
+        error,
+      );
+      assert.equal(attempts, 1, error.name);
+    }
+    assert.equal(isRetryable(new Error("fetch failed")), true, "the network is still retried");
+  });
+
+  it("names every symbol a stop left unstarted", async () => {
+    const state = tempState();
+    bank(state, "EURUSD", ["2026-08-06 00:00:00"]);
+    bank(state, "BTCUSD", ["2026-08-06 00:00:00"]);
+    const result = await recover({ provider: () => new Response(BODIES.bandwidth, { status: 429 }), state });
+    assert.equal(result.code, 1);
+    assert.equal(result.urls.length, 1, "the scout alone meets the wall");
+    assert.match(result.output, /^Not started after the stop: EURUSD\.$/m);
   });
 });
 

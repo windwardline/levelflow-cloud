@@ -157,8 +157,17 @@ fills a hole like that one from dated requests, once, as the ad-hoc class:
 - refuses a window reaching into the last seven days, where the scheduled bank is
   still served the same minutes and would bank them again.
 - refuses a file whose last line is torn, and appends nothing to it.
-- charges every byte to the ad-hoc class under its 256 MiB day, and stops at a wall,
-  keeping the minutes it already paid for. A second run appends nothing.
+- charges every byte to the ad-hoc class under its 256 MiB day, retrying on the bank's
+  own ladder, which stops on a wall. The first symbol goes alone, as the bank's scout
+  does, then `--concurrency` workers (4) take the rest. The governor or a wall the
+  provider named stops the run, keeping the minutes already paid for, and names every
+  symbol it did not start; a settled 404 costs only its day. A second run appends nothing.
+- refuses a whole symbol, after buying its days and before writing a line, when its
+  answers cannot be placed: a date in another shape, a day over 1,440 minutes, more than
+  2% of the minutes it already holds coming back at another price, or, once the file
+  holds a day's worth, more than 5% of the new minutes at times of day it has never held.
+  Dedupe is string equality in an append-only store, so a clock that moved would append
+  every minute again for good. The bytes stay spent; nothing is written.
 
 Its sidecar record is `recovered <from>..<to>`. The high-water mark, first date and
 recent keys stay the scheduled bank's.

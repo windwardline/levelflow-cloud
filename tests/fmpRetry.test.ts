@@ -270,6 +270,36 @@ describe("every FMP fetch in the repo shares the one policy", () => {
   });
 });
 
+describe("every FMP spender retries on a ladder that knows the provider, or asks once", () => {
+  // Two ladders exist: this module's, for the sweep, and bank-minute-bars.ts's
+  // withRetry, for the 1-minute endpoint, which stops on a wall this module
+  // cannot see in a status. A spender that hand-rolls a third is invisible to
+  // the derivation above, which finds only callers of this module. So the
+  // population here is every script that names the provider.
+  const ASKS_ONCE: Record<string, string> = {
+    "probe-minute-bars.ts": "one governed question per run; a failed answer is the answer it reports",
+    "verify-fmp-matches.ts": "a gate: a request that fails lapses its row and the gate exits 1",
+  };
+  const spenders = readdirSync("scripts")
+    .filter((name) => name.endsWith(".ts"))
+    .filter((name) => readFileSync(join("scripts", name), "utf8").includes("financialmodelingprep.com"))
+    .sort();
+
+  it("finds the spenders, and names each one's ladder", () => {
+    assert.ok(spenders.length >= 5, `only ${spenders.length} spenders found`);
+    for (const name of spenders) {
+      const text = readFileSync(join("scripts", name), "utf8");
+      const ladder = /\b(fetchFmpWithRetry|fetchFmpJsonWithRetry|withRetry)\(/.test(text);
+      if (name in ASKS_ONCE) {
+        assert.ok(!ladder, `${name} is named as asking once and retries after all`);
+      } else {
+        assert.ok(ladder, `${name} fetches FMP on no shared ladder: retry through fmpRetry.ts or bank-minute-bars.ts's withRetry, or name it in ASKS_ONCE with its reason`);
+      }
+    }
+    for (const name of Object.keys(ASKS_ONCE)) assert.ok(spenders.includes(name), `${name} is exempt but no longer a spender`);
+  });
+});
+
 describe("the bulk driver's ladder is sized for a bulk job", () => {
   it("spans minutes, not the module default's forty seconds", () => {
     // Four consecutive v4 rebuilds died on transport failures that outlasted

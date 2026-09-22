@@ -9,7 +9,7 @@
  * 2026-09-14 suspension left (09-04 to 09-10 missing, 09-03 and 09-11 partial) can
  * be filled, and this is the one tool that fills it.
  *
- *   FMP_API_KEY=... npx tsx scripts/recover-minute-bank.ts --from 2026-09-03 --to 2026-09-11 [--dry-run]
+ *   FMP_API_KEY=... npx tsx scripts/recover-minute-bank.ts --from 2026-09-03 --to 2026-09-11 [--dry-run] [--concurrency 4]
  *
  * It fills a hole and does nothing else:
  *
@@ -73,6 +73,19 @@ const DAY_MS = 86_400_000;
 const MINUTES_PER_DAY = 1_440;
 /** The bank's own key shape. Dedupe is string equality, so any other shape would append everything. */
 const BANK_DATE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+/**
+ * Two bounds on a clock that moved while keeping its shape. Where an answer
+ * lands on minutes the file already holds, the prices must agree; the bank
+ * keeps a first copy and the provider revises a few, so more than 2% (and
+ * more than 5) disagreeing means the keys no longer name the same minutes.
+ * Where it lands on minutes the file lacks, their times of day must be ones
+ * the file has held; a file of a day's minutes or more has seen its session,
+ * so more than 5% (and more than 10) never seen means the session moved.
+ */
+const DISAGREE_SHARE = 0.02;
+const DISAGREE_FLOOR = 5;
+const NOVEL_SHARE = 0.05;
+const NOVEL_FLOOR = 10;
 
 // The ONE declaration of which flags own the token after them.
 const VALUE_FLAGS = new Set(["--from", "--to", "--concurrency"]);
@@ -182,10 +195,19 @@ export function acquireBankLock(bank: string): { release: () => void } | { refus
 const bankPath = (dir: string, symbol: string) => `${dir}/${encodeURIComponent(symbol)}.jsonl`;
 const sidecarPath = (dir: string, symbol: string) => `${dir}/${encodeURIComponent(symbol)}.state.json`;
 
-type Store = { keys: Set<string>; perDay: Map<string, number>; firstDay: string; sidecar: Record<string, unknown> };
+type Store = {
+  keys: Set<string>;
+  perDay: Map<string, number>;
+  /** Close by key, for the keys inside the asked window only. */
+  closes: Map<string, number>;
+  /** Every time of day the file holds, `HH:MM:SS`. */
+  times: Set<string>;
+  firstDay: string;
+  sidecar: Record<string, unknown>;
+};
 
 /** The file's every key, or why it cannot be appended to. */
-function readStore(dir: string, symbol: string): Store | { problem: string } | null {
+function readStore(dir: string, symbol: string, window: { from: string; to: string }): Store | { problem: string } | null {
   let text: string;
   try {
     text = readFileSync(bankPath(dir, symbol), "utf8");
@@ -198,17 +220,25 @@ function readStore(dir: string, symbol: string): Store | { problem: string } | n
   }
   const keys = new Set<string>();
   const perDay = new Map<string, number>();
+  const closes = new Map<string, number>();
+  const times = new Set<string>();
   for (const [index, line] of text.split("\n").entries()) {
     if (line === "") continue;
-    let date: unknown;
+    let row: { date?: unknown; close?: unknown };
     try {
-      date = (JSON.parse(line) as { date?: unknown }).date;
+      row = JSON.parse(line) as { date?: unknown; close?: unknown };
     } catch {
       return { problem: `${symbol}: line ${index + 1} of ${bankPath(dir, symbol)} is not JSON` };
     }
+    const date = row.date;
     if (typeof date !== "string") return { problem: `${symbol}: line ${index + 1} has no date` };
-    if (!keys.has(date)) perDay.set(date.slice(0, 10), (perDay.get(date.slice(0, 10)) ?? 0) + 1);
+    const day = date.slice(0, 10);
+    if (!keys.has(date)) perDay.set(day, (perDay.get(day) ?? 0) + 1);
     keys.add(date);
+    times.add(date.slice(11));
+    if (day >= window.from && day <= window.to && typeof row.close === "number" && !closes.has(date)) {
+      closes.set(date, row.close);
+    }
   }
   let sidecar: Record<string, unknown>;
   try {
@@ -218,7 +248,7 @@ function readStore(dir: string, symbol: string): Store | { problem: string } | n
   }
   const first = typeof sidecar.firstDate === "string" ? sidecar.firstDate : [...keys].sort()[0];
   if (first === undefined) return { problem: `${symbol}: the file holds no bars, so there is no hole inside it to fill` };
-  return { firstDay: first.slice(0, 10), keys, perDay, sidecar };
+  return { closes, firstDay: first.slice(0, 10), keys, perDay, sidecar, times };
 }
 
 type Context = {
@@ -267,7 +297,6 @@ async function fetchDay(ctx: Context, symbol: string, date: string): Promise<Raw
   url.searchParams.set("apikey", deps.key!);
   const text = await withRetry(
     async () => {
-      ctx.requests += 1;
       const response = await ctx.fetch(url, { headers: { accept: "application/json" } });
       if (!response.ok) {
         throw new Refused(
@@ -305,6 +334,8 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
   if (asked.length === 0) return tally;
   const fresh: Array<{ date: string; open: number; high: number; low: number; close: number; volume: number }> = [];
   let foreign: string | null = null;
+  let overlaps = 0;
+  let disagree = 0;
   for (const date of asked) {
     if (ctx.stop) {
       tally.missed.push(date);
@@ -333,6 +364,11 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
         tally.dropped += 1;
         continue;
       }
+      const banked = store.closes.get(bar.date);
+      if (banked !== undefined) {
+        overlaps += 1;
+        if (Math.abs(banked - bar.close) > 1e-9 * Math.max(1, Math.abs(banked))) disagree += 1;
+      }
       if (store.keys.has(bar.date)) continue;
       store.keys.add(bar.date);
       fresh.push({
@@ -351,12 +387,22 @@ async function recoverOne(ctx: Context, symbol: string, store: Store, plan: Plan
   const perDay = new Map<string, number>();
   for (const bar of fresh) perDay.set(bar.date.slice(0, 10), (perDay.get(bar.date.slice(0, 10)) ?? 0) + 1);
   const overfull = [...perDay].find(([day, added]) => (store.perDay.get(day) ?? 0) + added > MINUTES_PER_DAY);
-  if (foreign !== null || overfull !== undefined) {
-    ctx.deps.print.err(
-      foreign !== null
-        ? `${symbol}: the provider answered with the date "${foreign}", not the bank's YYYY-MM-DD HH:MM:SS; dedupe could not hold, so nothing was appended`
-        : `${symbol}: ${overfull![0]} would hold ${(store.perDay.get(overfull![0]) ?? 0) + overfull![1]} minutes, more than a day has; dedupe did not hold, so nothing was appended`,
-    );
+  const heldMinutes = [...store.perDay.values()].reduce((sum, count) => sum + count, 0);
+  const novel = heldMinutes >= MINUTES_PER_DAY ? fresh.filter((bar) => !store.times.has(bar.date.slice(11))).length : 0;
+  let refusal: string | null = null;
+  if (foreign !== null) {
+    refusal = `the provider answered with the date "${foreign}", not the bank's YYYY-MM-DD HH:MM:SS; dedupe could not hold`;
+  } else if (overfull !== undefined) {
+    refusal = `${overfull[0]} would hold ${(store.perDay.get(overfull[0]) ?? 0) + overfull[1]} minutes, more than a day has; dedupe did not hold`;
+  } else if (disagree > Math.max(DISAGREE_FLOOR, DISAGREE_SHARE * overlaps)) {
+    refusal = `${disagree} of ${overlaps} minutes the file already holds came back at another price; the keys no longer name the same minutes`;
+  } else if (novel > Math.max(NOVEL_FLOOR, NOVEL_SHARE * fresh.length)) {
+    refusal = `${novel} of ${fresh.length} new minutes fall at times of day the file has never held; the session's clock moved`;
+  }
+  if (refusal !== null) {
+    // Every asked day was bought and none is kept: an append-only store takes
+    // no minute it cannot place.
+    ctx.deps.print.err(`${symbol}: ${refusal}, so nothing was appended (${tally.fetched} bars were bought)`);
     tally.refused = true;
     return tally;
   }
@@ -421,7 +467,7 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
   const stores: Array<{ symbol: string; store: Store }> = [];
   const absent: string[] = [];
   for (const { fmpSymbol } of bankableSymbols()) {
-    const read = readStore(dir, fmpSymbol);
+    const read = readStore(dir, fmpSymbol, plan);
     if (read === null) absent.push(fmpSymbol);
     else if ("problem" in read) {
       print.err(read.problem);
@@ -459,20 +505,36 @@ async function recoverUnderLock(deps: RecoverDeps, plan: Plan, dir: string): Pro
     budget: governedBudget(createByteBudget(RUN_BYTE_BUDGET), { consumer: "adhoc", label: LABEL, now: deps.now, state }),
     deps,
     dir,
-    fetch: createProbeGate(decision, { consumer: "adhoc", now: deps.now }, state).wrapFetch(deps.fetch),
+    // Counted where a request leaves: a probe-gate refusal inside the wrapper
+    // is not a request.
+    fetch: createProbeGate(decision, { consumer: "adhoc", now: deps.now }, state).wrapFetch((input, init) => {
+      ctx.requests += 1;
+      return deps.fetch(input, init);
+    }),
     requests: 0,
     stop: undefined,
   };
 
+  // The first symbol is the scout, as in the bank: on a refusing provider or
+  // an open breaker the run learns it from one symbol, not from as many as
+  // there are workers, and a probe the breaker allows goes out once.
   const tallies: Tally[] = [];
   let next = 0;
+  if (stores.length > 0) {
+    const { symbol, store } = stores[next++];
+    tallies.push(await recoverOne(ctx, symbol, store, plan));
+  }
   const workers = Array.from({ length: plan.concurrency }, async () => {
-    while (next < stores.length) {
+    while (next < stores.length && !ctx.stop) {
       const { symbol, store } = stores[next++];
       tallies.push(await recoverOne(ctx, symbol, store, plan));
     }
   });
   await Promise.all(workers);
+  if (next < stores.length) {
+    print.out(`Not started after the stop: ${stores.slice(next).map(({ symbol }) => symbol).join(", ")}.`);
+    code = 1;
+  }
 
   tallies.sort((a, b) => a.symbol.localeCompare(b.symbol));
   for (const tally of tallies) {
