@@ -38,7 +38,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { flagReader, flagsOnly } from "./flagReader.ts";
+import { flagReader, flagsOnly, OperatorInputError } from "./flagReader.ts";
 import { isEntryPoint } from "./isEntryPoint.ts";
 
 type Row = Record<string, unknown>;
@@ -322,5 +322,12 @@ function main(): void {
 }
 
 if (isEntryPoint(import.meta.url)) {
-  main();
+  // An operator's typo refuses in one line; a real fault keeps its stack.
+  try {
+    main();
+  } catch (error) {
+    if (!(error instanceof OperatorInputError)) throw error;
+    console.error(error.message);
+    process.exit(1);
+  }
 }

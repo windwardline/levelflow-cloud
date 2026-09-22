@@ -60,7 +60,7 @@ import {
   SEALED_FOLD,
   tuningFolds,
 } from "./sweepStats.ts";
-import { flagReader, flagsOnly } from "./flagReader.ts";
+import { flagReader, flagsOnly, OperatorInputError } from "./flagReader.ts";
 import {
   type LedgeredReadArtifact,
   readLedgeredArtifact,
@@ -530,6 +530,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error);
+  // An operator's typo refuses in one line; a real fault keeps its stack.
+  console.error(error instanceof OperatorInputError ? error.message : error);
   process.exit(1);
 });

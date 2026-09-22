@@ -849,15 +849,24 @@ async function main(): Promise<number> {
     print.err(error.message);
     return 1;
   }
-  return runBank({
-    argv: process.argv.slice(2),
-    fetch,
-    key: process.env.FMP_API_KEY,
-    now: Date.now,
-    print,
-    sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
-    state,
-  });
+  // An operator's typo — an unknown flag, a stray argument, a bad value —
+  // refuses in one line, as the unnamed checkout above does; a real fault
+  // keeps its stack.
+  try {
+    return await runBank({
+      argv: process.argv.slice(2),
+      fetch,
+      key: process.env.FMP_API_KEY,
+      now: Date.now,
+      print,
+      sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
+      state,
+    });
+  } catch (error) {
+    if (!(error instanceof OperatorInputError)) throw error;
+    print.err(error.message);
+    return 1;
+  }
 }
 
 if (isEntryPoint(import.meta.url)) {

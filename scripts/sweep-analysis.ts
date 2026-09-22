@@ -42,6 +42,7 @@ import {
   describeToken,
   assertInDomain,
   flagsOnly,
+  OperatorInputError,
   soleFlagIndex,
   tokenFault,
   type NumericDomain,
@@ -575,4 +576,11 @@ async function main(): Promise<void> {
   );
 }
 
-await main();
+// An operator's typo refuses in one line; a real fault keeps its stack.
+try {
+  await main();
+} catch (error) {
+  if (!(error instanceof OperatorInputError)) throw error;
+  console.error(error.message);
+  process.exit(1);
+}

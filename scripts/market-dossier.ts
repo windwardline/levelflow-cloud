@@ -45,7 +45,7 @@ import {
   tuningFolds,
 } from "./sweepStats.ts";
 import { writeResearchArtifact } from "./researchArtifact.ts";
-import { flagReader, flagsOnly } from "./flagReader.ts";
+import { flagReader, flagsOnly, OperatorInputError } from "./flagReader.ts";
 
 const BASELINE =
   "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1,sizingHoursFactor=1";
@@ -485,5 +485,12 @@ function main() {
 // survived in a shipped reader. collect() is exported so the join it
 // performs can be tested against a real two-cell corpus.
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  main();
+  // An operator's typo refuses in one line; a real fault keeps its stack.
+  try {
+    main();
+  } catch (error) {
+    if (!(error instanceof OperatorInputError)) throw error;
+    console.error(error.message);
+    process.exit(1);
+  }
 }

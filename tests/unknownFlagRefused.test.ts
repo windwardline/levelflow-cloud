@@ -141,6 +141,30 @@ const FAILS_TOWARD_RUNNING = new Map<string, string>([
   ],
 ]);
 
+/**
+ * Readers whose unknown-flag refusal still prints the OperatorInputError with
+ * its stack, by name. The one-line law below binds every other reader. Nine
+ * entry points were brought under it on 2026-09-22; executing the law then
+ * found these thirteen as well, outside that change's scope, and they are
+ * named rather than skipped. Each premise is CHECKED: a reader that starts
+ * refusing in one line fails until its entry is dropped.
+ */
+const STACK_ON_REFUSAL = new Set([
+  "scripts/account-type-report.ts",
+  "scripts/ag-class-derivation.ts",
+  "scripts/confidence-bands.ts",
+  "scripts/data-limits.ts",
+  "scripts/derive-4d.ts",
+  "scripts/exclusion-suspects.ts",
+  "scripts/feasibility-4d.ts",
+  "scripts/geometry-evidence.ts",
+  "scripts/grid-totalr.ts",
+  "scripts/roster-expectancy-audit.ts",
+  "scripts/starvation-audit.ts",
+  "scripts/stop-provenance.ts",
+  "scripts/threshold-rescue.ts",
+]);
+
 /** Readers on the shared walk, which carry its wording as well as its refusal. */
 const ADOPTERS = EXECUTED.filter((file) =>
   /\b(?:positionalArgs|flagsOnly)\(/.test(withoutComments(sourceOf(file)))
@@ -315,7 +339,7 @@ describe("every argv reader refuses an unknown flag by name", { concurrency: CON
     assert.ok(EXECUTED.length >= 40, `executed: ${EXECUTED.length}`);
     assert.ok(ADOPTERS.length >= 29, `adopters: ${ADOPTERS.length}`);
     assert.ok(FLAGS_ONLY.length >= 13, `flags-only: ${FLAGS_ONLY.length}`);
-    for (const exempt of [...NOT_OPERATOR_INPUT.keys(), ...FAILS_TOWARD_RUNNING.keys()]) {
+    for (const exempt of [...NOT_OPERATOR_INPUT.keys(), ...FAILS_TOWARD_RUNNING.keys(), ...STACK_ON_REFUSAL]) {
       assert.ok(
         ARGV_READERS.includes(exempt),
         `${exempt} is exempted but no longer reads argv — drop the exemption`,
@@ -433,6 +457,22 @@ describe("every argv reader refuses an unknown flag by name", { concurrency: CON
           run.stdout.trim(),
           "",
           `${reader} reported work it then refused to do`,
+        );
+      }
+      // An operator's typo is ONE line, the refusal alone: a stack under it
+      // dresses the typo up as a crash (2026-09-22).
+      const refusal = (failsTowardRunning ? run.stdout : run.stderr).trim().split("\n");
+      if (STACK_ON_REFUSAL.has(reader)) {
+        assert.ok(
+          refusal.length > 1,
+          `${reader} now refuses an unknown flag in one line — drop it from STACK_ON_REFUSAL`,
+        );
+      } else {
+        assert.equal(
+          refusal.length,
+          1,
+          `${reader} refused an unknown flag in ${refusal.length} lines; an ` +
+            `OperatorInputError prints its message alone:\n${refusal.join("\n")}`,
         );
       }
     });

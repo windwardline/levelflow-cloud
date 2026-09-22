@@ -14,7 +14,7 @@
 // tampered or re-ruled artifact.
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { flagReader, flagsOnly } from "./flagReader.ts";
+import { flagReader, flagsOnly, OperatorInputError } from "./flagReader.ts";
 import {
   type LedgeredReadArtifact,
   readLedgeredArtifact,
@@ -464,4 +464,13 @@ function main(): void {
   console.log(`wrote ${outPath}`);
 }
 
-if (isEntryPoint(import.meta.url)) main();
+if (isEntryPoint(import.meta.url)) {
+  // An operator's typo refuses in one line; a real fault keeps its stack.
+  try {
+    main();
+  } catch (error) {
+    if (!(error instanceof OperatorInputError)) throw error;
+    console.error(error.message);
+    process.exit(1);
+  }
+}

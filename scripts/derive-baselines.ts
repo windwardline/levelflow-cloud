@@ -30,7 +30,7 @@ import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.t
 // standing-claims rule says a caveat is retired by a human who revalidated,
 // with the reason recorded — never as a side effect of re-running something.
 import { writeResearchArtifact } from "./researchArtifact.ts";
-import { flagsOnly, soleFlagIndex } from "./flagReader.ts";
+import { flagsOnly, OperatorInputError, soleFlagIndex } from "./flagReader.ts";
 
 // This script takes no flag VALUES: `--new-era` is a presence check, so
 // nothing here can swallow the token after it. It still resolves through
@@ -203,4 +203,11 @@ function main() {
   }
 }
 
-main();
+// An operator's typo refuses in one line; a real fault keeps its stack.
+try {
+  main();
+} catch (error) {
+  if (!(error instanceof OperatorInputError)) throw error;
+  console.error(error.message);
+  process.exit(1);
+}

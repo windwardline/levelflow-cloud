@@ -50,7 +50,7 @@ import {
 } from "./clockWitness.ts";
 import { DENSITY_RECENT_WINDOW_DAYS } from "./sweepManifest.ts";
 import { DENSITY_RATIO_PRIMARY_FLOOR } from "./sweepStats.ts";
-import { flagReader, flagsOnly } from "./flagReader.ts";
+import { flagReader, flagsOnly, OperatorInputError } from "./flagReader.ts";
 import {
   TREASURY_FETCH_START_MS,
   treasuryCurveFacts,
@@ -920,5 +920,12 @@ function main(): void {
 
 // Importable for tests; the CLI entry runs only when invoked directly.
 if (basename(process.argv[1] ?? "").startsWith("verify-cache-clock")) {
-  main();
+  // An operator's typo refuses in one line; a real fault keeps its stack.
+  try {
+    main();
+  } catch (error) {
+    if (!(error instanceof OperatorInputError)) throw error;
+    console.error(error.message);
+    process.exit(1);
+  }
 }
