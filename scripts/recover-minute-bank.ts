@@ -85,19 +85,22 @@ const BANK_DATE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
  * refused 5 of the first real run's 7 symbols. So a revised minute is
  * reported and kept as banked, and a moved clock is an offset k within
  * SHIFT_REACH_MINUTES at which more held minutes t match the answer's t+k than
- * match its t. An offset is judged over SHIFT_MIN_PAIRS pairs or more: on
- * simulated revised walks that hold their price up to 90% of minutes, an
- * unfloored scan refused up to 82% of short overlaps, and 60 was the smallest
- * floor of 10, 20, 30, 45, 60 and 90 to refuse 2% or fewer. A flatter price
+ * match its t. The reach is a day either side, because a provider that moves
+ * between New York and UTC shifts every minute by 240 or 300, and a reach of
+ * two hours appended exactly that as a revised history. A shift of more than
+ * a day, keyed on the asked date, is still out of reach. An offset is judged
+ * over SHIFT_MIN_PAIRS pairs or more: on simulated revised walks that hold
+ * their price up to 90% of minutes, an unfloored scan refused up to 91% of
+ * short overlaps, and 60 was the smallest floor of 10, 20, 30, 45, 60 and 90
+ * to refuse 3% or fewer, at a reach of a day as at two hours. A flatter price
  * can still be refused, most often when the revisions open what the file
- * holds, and that leaves its hole open. The reach covers a daylight-saving
- * hour, not a whole timezone.
+ * holds, and that leaves its hole open.
  *
  * Where it lands on minutes the file lacks, their times of day must be ones
  * the file has held; a file of a day's minutes or more has seen its session,
  * so more than 5% (and more than 10) never seen means the session moved.
  */
-const SHIFT_REACH_MINUTES = 120;
+const SHIFT_REACH_MINUTES = 1440;
 const SHIFT_MIN_PAIRS = 60;
 const NOVEL_SHARE = 0.05;
 const NOVEL_FLOOR = 10;

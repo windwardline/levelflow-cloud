@@ -168,24 +168,25 @@ fills a hole like that one from dated requests, once, as the ad-hoc class:
   symbol it did not start; a settled 404 costs only its day. A second run appends nothing.
 - refuses a whole symbol, after buying its days and before writing a line, when its
   answers cannot be placed: a date in another shape, a day over 1,440 minutes, held
-  minutes that match the answer more often at some offset within two hours than where
-  they are keyed (an offset is judged over 60 pairs or more), or, once the file holds a
-  day's worth, more than 5% of the new minutes at times of day it has never held. Other
-  prices alone refuse nothing: FMP revises minutes after the bank takes them live, and a
-  dated probe of 2026-09-03 found 164 of ^GSPC's 389 held minutes and 114 of AAVEUSD's
-  1,159 revised, with agreement highest at offset 0. A revised minute stays as banked;
-  the tally line and the sidecar note count them. Dedupe is string equality in an
-  append-only store, so a clock that moved would append every minute again for good.
-  The bytes stay spent; nothing is written. A foreign date shape or an over-full day
-  belongs to the endpoint and stops the run at once. The offset and clock bounds stop it
-  at their second symbol: one file can be its own, and a 24-hour market's file holds
-  every time of day, so a shifted session shows there only in its prices. A disputed
-  scout is settled by the next symbol that asks and does not come back an expected
-  refusal, alone, before the pool opens; inside the pool the workers already in flight
-  finish, so a dispute first met there costs up to `--concurrency` symbols. A failed
-  ledger write on a refusal fails the run. Recovered lines take the bank's own key
-  order. A window across a US daylight-saving change shifts an equity session by an
-  hour and trips the clock bound, so recover each side of the change separately.
+  minutes that match the answer more often at some offset within a day than where they
+  are keyed (an offset is judged over 60 pairs or more; a move between New York and UTC
+  is 240 or 300 minutes), or, once the file holds a day's worth, more than 5% of the new
+  minutes at times of day it has never held. Other prices alone refuse nothing: FMP
+  revises minutes after the bank takes them live, and a dated probe of 2026-09-03 found
+  164 of ^GSPC's 389 held minutes and 114 of AAVEUSD's 1,159 revised, with agreement
+  highest at offset 0. A revised minute stays as banked; the tally line and the sidecar
+  note count them. Dedupe is string equality in an append-only store, so a clock that
+  moved would append every minute again for good. The bytes stay spent; nothing is
+  written. A foreign date shape or an over-full day belongs to the endpoint and stops
+  the run at once. The offset and clock bounds stop it at their second symbol: one file
+  can be its own, and a 24-hour market's file holds every time of day, so a shifted
+  session shows there only in its prices. A disputed scout is settled by the next symbol
+  that asks and does not come back an expected refusal, alone, before the pool opens;
+  inside the pool the workers already in flight finish, so a dispute first met there
+  costs up to `--concurrency` symbols. A failed ledger write on a refusal fails the run.
+  Recovered lines take the bank's own key order. A window across a US daylight-saving
+  change shifts an equity session by an hour and trips the clock bound, so recover each
+  side of the change separately.
 
 ZOUSX is expected to refuse on the clock bound, and its share of a hole stays open. Its
 file had held 1,618 minutes at 561 distinct times of day by 2026-09-03, and its trades

@@ -49,8 +49,8 @@ const minuteOf = (key: string) => Date.parse(`${key.replace(" ", "T")}Z`) / 60_0
 /** The key `minutes` later. */
 const later = (key: string, minutes: number) =>
   new Date((minuteOf(key) + minutes) * 60_000).toISOString().replace("T", " ").slice(0, 19);
-/** A close that never repeats within 999 minutes, so no offset matches it by chance. */
-const varying = (key: string) => 100 + ((minuteOf(key) * 7919) % 1000) / 100;
+/** A close that repeats only every 10,007 minutes, so no offset within a day matches it by chance. */
+const varying = (key: string) => 100 + ((minuteOf(key) * 7919) % 10_007) / 100;
 
 function bank(
   state: FmpStatePaths,
@@ -357,10 +357,15 @@ describe("recover-minute-bank keeps a revised history and refuses a moved clock"
     );
   });
 
+  // New York against UTC is 240 or 300 minutes; the reach is a day either side.
   for (const [shift, span, pairs] of [
     [1, "1 minute later", 720],
     [60, "60 minutes later", 720],
     [-60, "60 minutes earlier", 660],
+    [240, "240 minutes later", 720],
+    [300, "300 minutes later", 720],
+    [-300, "300 minutes earlier", 420],
+    [600, "600 minutes later", 720],
   ] as const) {
     it(`refuses a clock moved ${shift > 0 ? "+" : ""}${shift} minutes on a partly held day, and goes on`, async () => {
       // A 24-hour file holds every time of day, so only the prices can say
@@ -385,6 +390,26 @@ describe("recover-minute-bank keeps a revised history and refuses a moved clock"
       assert.equal(lines(gbp.file).length, 1 + 9);
     });
   }
+
+  it("appends a 24-hour history revised at 40% of held minutes, with a day of offsets scanned", async () => {
+    // The shape of the ^GSPC case on a file that holds every time of day, so
+    // every offset out to a day finds pairs on the answer's other days.
+    const state = tempState();
+    const revisedAt = (key: string) => {
+      const m = Number(key.slice(11, 13)) * 60 + Number(key.slice(14, 16));
+      return key.startsWith("2026-09-03") && m >= 4 * 60 && (m - 4 * 60) % 15 < 9;
+    };
+    const held = [...wholeDay("2026-08-06"), ...wholeDay("2026-09-03").slice(0, 720)];
+    const eur = bank(state, "EURUSD", held, { price: (key) => (revisedAt(key) ? varying(key) * (1 + 1e-5) : varying(key)) });
+    const before = readFileSync(eur.file, "utf8");
+    const result = await recover({ provider: answering(wholeDay, varying), state });
+    assert.equal(result.code, 0, result.output);
+    assert.match(
+      result.output,
+      /^EURUSD\tfetched 4320\tappended 3600\tdropped 0\t288 of 720 held minutes came back revised, median relative close difference 1\.00e-5$/m,
+    );
+    assert.ok(readFileSync(eur.file, "utf8").startsWith(before));
+  });
 
   describe("a price that repeats, as AAVEUSD's does", () => {
     // A walk that holds its price 70% of minutes, so neighbouring minutes
