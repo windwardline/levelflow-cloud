@@ -710,7 +710,9 @@ and one daily is kept beside the protected `20260823`: R2 holds 60 verified
 archives, so the local copy is the staging copy and one offline restore point.
 A skipped push now skips the prune, a named root that does not exist is
 refused rather than created, and the prune never deletes the snapshot its own
-run pushed. R2's copy of `20260823` is not permanent — see §6b-1 item I.
+run pushed. R2's DAILY copy of `20260823` is not permanent; the permanent copy is in
+`windwardline-archives` since 2026-09-22 (#677), and parity still requires the daily —
+see §6b-1 item I.
 
 *Migration, executed 2026-09-21 before this merged:* the fifteen directories
 left `/Users/peacock` by hand. `20260823` and that day's `20260921` moved to the

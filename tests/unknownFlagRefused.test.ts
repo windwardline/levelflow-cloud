@@ -1339,11 +1339,21 @@ describe("confirm-4d freezes no pick for a run that refuses", { concurrency: CON
       // Either two-market roster alone holds nothing out; their union holds
       // out EURUSD. The log line is the only output that tells a holdout
       // derivation from a full one.
+      const first = ["EURGBP", "GBPJPY"];
+      const second = ["EURUSD", "USDJPY"];
+      assert.deepEqual([...stratifiedHoldout([...first, ...second], getAssetType)], ["EURUSD"], "premise: the union holds one out");
       const outDir = scratchDir("derive4d-out-");
-      const run = await derive4d([shard(["EURGBP", "GBPJPY"]), shard(["EURUSD", "USDJPY"]), "--holdout-cycle"], outDir);
+      const run = await derive4d([shard(first), shard(second), "--holdout-cycle"], outDir);
       assertExecuted("scripts/derive-4d.ts", run);
       assert.equal(run.exitCode, 0, `a holdout draw that holds a market must grade:\n${run.stderr}`);
       assert.match(run.stdout, /^holdout cycle: 1 held-out markets -> EURUSD$/m);
+      // The population itself, not only its announcement: the candidates file
+      // grades the held-out market and nothing else.
+      const written = JSON.parse(readFileSync(join(outDir, "4d-candidates.json"), "utf8")) as {
+        markets: Record<string, { heldOut: boolean }>;
+      };
+      assert.deepEqual(Object.keys(written.markets), ["EURUSD"]);
+      assert.equal(written.markets.EURUSD!.heldOut, true);
     });
 
     it("reads a target list on the roster", async () => {
