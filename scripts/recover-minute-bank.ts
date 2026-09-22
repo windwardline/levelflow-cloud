@@ -97,13 +97,12 @@ function readPlan(argv: string[], nowMs: number): Plan {
   // Every token is a known flag or a declared flag's value. A mistyped
   // `--dry-run` must not become a run that spends.
   for (let at = 0; at < argv.length; at += 1) {
-    const token = argv[at];
-    if (VALUE_FLAGS.has(token)) {
+    if (VALUE_FLAGS.has(argv[at])) {
       at += 1;
       continue;
     }
-    if (!SWITCHES.has(token)) {
-      throw new OperatorInputError(`unknown argument ${token}; this script takes --from, --to, --concurrency and --dry-run`);
+    if (!SWITCHES.has(argv[at])) {
+      throw new OperatorInputError(`unknown argument ${argv[at]}; this script takes --from, --to, --concurrency and --dry-run`);
     }
   }
   const { num, str } = flagReader(argv, VALUE_FLAGS);
