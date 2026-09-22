@@ -122,6 +122,18 @@ const DEFAULT_CONFIRM_LOG_DIR = join(
   "docs/research/confirm-reads",
 );
 
+/**
+ * The repository ledger directory a read searches and, unredirected, files
+ * in. The only reader of DEFAULT_CONFIRM_LOG_DIR, so every site in the
+ * confirm path — the default ledger path, the unprefixed glob, the refusal
+ * that names the directory, and the recorded-vs-unrecorded comparison —
+ * resolves one value. `confirmLogDir` is deliberately not consulted: a
+ * redirect moves the write, never the search (#364 round 46, finding 3).
+ */
+export function repositoryLedgerDirOf(options: GateOptions): string {
+  return options.repositoryLedgerDir ?? DEFAULT_CONFIRM_LOG_DIR;
+}
+
 const DAY_MS = 86_400_000;
 
 // A cube cell is the shared stats vocabulary plus the day-block ledger the
@@ -531,6 +543,17 @@ type GateOptions = {
   // test can exercise the real derivation without writing into the
   // repository's own record (#364 round 45, finding 1).
   confirmLogDir?: string;
+  // The REPOSITORY's ledger directory: searched for prior reads on every
+  // confirm read, and where an unredirected read is filed. Defaults to
+  // DEFAULT_CONFIRM_LOG_DIR through repositoryLedgerDirOf, the one place
+  // that constant is read. An in-process test seam and nothing else
+  // (2026-09-21): tests that wrote fixture ledgers into the tracked
+  // directory raced tests/confirmFoldSealed.test.ts's docs/ snapshot and
+  // failed the suite. No CLI flag carries it — main() and confirm-4d
+  // never pass it, and tests/acceptanceGate.test.ts pins both — because a
+  // flag here would be round 46's bypass again. confirmLogDir moves only
+  // the write; it never changes which repository directory is searched.
+  repositoryLedgerDir?: string;
   foldNames?: FoldNames;
   permutations?: number;
   seed?: number;
@@ -1883,7 +1906,13 @@ export async function gradeCorpus(
   // ledger. A prefix the ledger writes and the glob requires is what
   // makes "every .jsonl in this directory" safe.
   const ledgerName = `confirm-log-${corpusId}.jsonl`;
-  const defaultLedgerPath = join(DEFAULT_CONFIRM_LOG_DIR, ledgerName);
+  // One resolved repository directory for every site below (2026-09-21):
+  // the default path, the unprefixed glob, the refusal that names the
+  // directory, and the recorded-vs-unrecorded comparison. An injected
+  // directory is then internally consistent — it cannot search one place
+  // and file in another.
+  const repositoryLedgerDir = repositoryLedgerDirOf(options);
+  const defaultLedgerPath = join(repositoryLedgerDir, ledgerName);
   const canonicalLedgerPath = options.confirmLogPath ??
     (options.confirmLogDir
       ? join(options.confirmLogDir, ledgerName)
@@ -1955,7 +1984,7 @@ export async function gradeCorpus(
       // sweeps directory; THIS directory is repository-controlled and
       // holds only ledgers, so an unprefixed glob here carries none of
       // the corpus-emit hazard the prefix was added for.
-      ...jsonlIn(DEFAULT_CONFIRM_LOG_DIR, ""),
+      ...jsonlIn(repositoryLedgerDir, ""),
       ...(options.confirmLogPath ? [] : [
         ...[...new Set(paths.map((path) => dirname(path)))].sort().flatMap((
           dir,
@@ -2016,7 +2045,7 @@ export async function gradeCorpus(
                 `checked on every read, so this blocks every corpus, not ` +
                 `just this one. Repair the line from git history, or — if ` +
                 `the file is not a ledger — move it out of ` +
-                `${DEFAULT_CONFIRM_LOG_DIR}, which is globbed whole.`,
+                `${repositoryLedgerDir}, which is globbed whole.`,
             );
           }
           if (
@@ -2658,7 +2687,10 @@ async function main(): Promise<void> {
   // round 45, finding 1). It exists so the executed tests can drive the
   // real binary without appending to the repository's confirm record;
   // an operator has no reason to pass it, and passing it is exactly as
-  // visible in the shell history as the read it files elsewhere.
+  // visible in the shell history as the read it files elsewhere. The
+  // repository directory itself has no flag: gradeCorpus's
+  // repositoryLedgerDir is an in-process test seam, and this function
+  // never passes it.
   const VALUE_FLAGS = new Set([
     "--baseline",
   "--derive-filters",

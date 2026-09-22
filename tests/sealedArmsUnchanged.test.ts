@@ -266,20 +266,15 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
     // Every .jsonl here, as production globs it (grid-totalr.ts, jsonlIn(dir, "")):
     // the retired unprefixed ledger form is still honoured in this directory.
     //
-    // Production refuses a malformed line in ANY ledger here, but
-    // tests/acceptanceGate.test.ts writes fixture ledgers of exactly those shapes
-    // into this directory while node:test runs files in parallel
-    // (tests/emptyCorpusRefusals.test.ts documents the same collision). The split
-    // that follows is by NAME, which is what makes it race-free:
-    //  - STRICT: the ledger of every pinned sealed read (a fixture cannot share one;
-    //    acceptanceGate asserts its corpus id collides with no recorded read), and
-    //    any .jsonl whose name is in neither ledger form — a misnamed condemnation
-    //    note, say — because production reads it as a ledger and refuses.
-    //  - TOLERANT: an unpinned name in a ledger form, `confirm-log-<id>.jsonl` or the
-    //    retired bare 64-hex `<identity>.jsonl`, which is all a fixture is ever named.
-    //    Scanned only for records of the sealed reads, and skipped if it vanishes.
+    // Every one is held to production's three refusal shapes, whatever its name:
+    // production refuses a malformed line in ANY ledger here, and one such line
+    // blocks every confirm read for every corpus. Until 2026-09-21 an unpinned
+    // ledger-named file was tolerated, and skipped if it vanished, because
+    // tests/acceptanceGate.test.ts wrote fixture ledgers into this directory while
+    // node:test ran files in parallel. It now drives them through an injected
+    // scratch directory and checks this one is untouched across its run, so a
+    // file here is never a concurrent fixture and nothing is exempt.
     const ledgers = readdirSync(LEDGER_DIR).filter((name) => name.endsWith(".jsonl")).sort();
-    const pinnedLedgers = Object.values(SEALED_READS_BY_FILE).map((read) => read.ledger);
     // Each sealed artifact parsed once; its bytes are pinned by the test above.
     const artifacts = Object.fromEntries(
       Object.keys(SEALED_READS_BY_FILE).map((name) => [
@@ -297,39 +292,14 @@ describe("the act-3 freeze and everything it was built from stay sealed with the
       const recorded = artifacts[name].ledgerPath;
       assert.equal(recorded?.split("/").pop(), read.ledger, `${name} names a different ledger (${recorded})`);
     }
-    const isLedgerName = (name: string) => /^confirm-log-.+\.jsonl$/.test(name) || /^[0-9a-f]{64}\.jsonl$/.test(name);
-    const strict = ledgers.filter((name) => pinnedLedgers.includes(name) || !isLedgerName(name));
-    const tolerant = ledgers.filter((name) => !strict.includes(name));
     type LedgerLine = {
       artifactPath?: string; artifactHash?: string; frozenHash?: string | null; corpusHash?: string; readId?: string;
       shardHashes?: string[]; calendarHash?: string; symbolsRead?: string[];
       confirmSpans?: Record<string, { startMs?: number; endMs?: number }>;
     };
     const entries: LedgerLine[] = [];
-    const readOrSkip = (name: string): string | null => {
-      try {
-        return readFileSync(`${LEDGER_DIR}/${name}`, "utf8");
-      } catch (error) {
-        // A concurrent fixture deleted between the listing and the read.
-        if ((error as { code?: string }).code === "ENOENT") return null;
-        throw error;
-      }
-    };
-    for (const name of tolerant) {
-      for (const line of (readOrSkip(name) ?? "").split("\n").filter(Boolean)) {
-        try {
-          const value = JSON.parse(line) as unknown;
-          if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-            entries.push(value as LedgerLine);
-          }
-        } catch {
-          // A fixture mid-write; it cannot be a record of the sealed read.
-        }
-      }
-    }
-    for (const name of strict) {
-      const text = pinnedLedgers.includes(name) ? readFileSync(`${LEDGER_DIR}/${name}`, "utf8") : readOrSkip(name);
-      (text ?? "").split("\n").filter(Boolean).forEach((line, index) => {
+    for (const name of ledgers) {
+      readFileSync(`${LEDGER_DIR}/${name}`, "utf8").split("\n").filter(Boolean).forEach((line, index) => {
         // Production refuses three shapes (grid-totalr.ts, the prior-read scan):
         // not JSON, not a plain object, and no corpusHash string. Each one blocks
         // every confirm read for every corpus, so each fails here by name.
