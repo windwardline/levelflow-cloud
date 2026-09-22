@@ -168,10 +168,17 @@ exit 0, and the job runs.
 row. To make that possible the prior-read scan moved above the row stream, for
 every confirm read: a refused re-read no longer streams the held-back fold
 first. A `--baseline` that names no cell of the shards' grid refuses there too,
-as do the provenance artifact's own refusals. What refuses after the freeze
-needs rows: an unparseable line, emit bytes that are not the manifest's. Each
-throws before the ledger append, so confirm-4d withdraws the freeze: the picks
-file goes back to its prior bytes, or away if the run created it.
+as do the provenance artifact's own refusals. `--targets` is checked against
+the shards' roster (requested or swept) before gradeCorpus is called: a
+misspelt entry, or a list that splits to nothing, refuses by name. Until then
+`--targets EURGBP,GBPJYP` over EURGBP and GBPJPY exited 0 and recorded the
+corpus's one read with GBPJPY unread. What refuses after the freeze is found
+in the rows: an unparseable line, emit bytes that are not the manifest's, and
+a gate no accepted baseline row reaches. Targets on the roster that carry no
+rows reach that last one, and so does an empty `--holdout-cycle` draw, which
+the door could refuse without a row and does not. Each throws before the
+ledger append, so confirm-4d withdraws the freeze: the picks file goes back to
+its prior bytes, or away if the run created it.
 
 Found, not changed: `confirm-4d` defaults `--baseline` to `baseline`, while
 `4d-candidates.json` records the variant it was derived against
@@ -180,15 +187,22 @@ against a different baseline than the picks were accepted over, or, where the
 corpus has no `baseline` cell, refuses at the door. It wants a ruling on
 whether confirm-4d should take its baseline from the candidates file.
 
+Found, not changed: `derive-4d --targets` still splits unchecked. Over EURGBP
+and GBPJPY, `--targets EURGBP,GBPJYP` exits 0, prints `targets: 2 markets` and
+writes candidates for EURGBP alone. It burns nothing, but GBPJPY then has no
+candidate for confirm-4d to pick. The same roster check belongs there.
+
 `tests/unknownFlagRefused.test.ts` derives its population from every script
 that reads argv, in any spelling (42; `isEntryPoint` exempt by name), and
 executes each with an unknown flag, with its own flags, and, where it takes
 flags only, with a stray argument. Subjects run from an empty temp cwd, which
 is also their `LEVELFLOW_CHECKOUT`, without the provider key. The refusal must
 be one line; thirteen readers still print a stack under it and are named in
-`STACK_ON_REFUSAL` until fixed. Eleven confirm-4d cases cover the door, the
-withdrawn freeze and a `--holdout-cycle` read over two rosters. No test writes
-into `docs/research/confirm-reads`.
+`STACK_ON_REFUSAL` until fixed. Fourteen confirm-4d cases cover the door,
+`--targets` against the roster, the withdrawn freeze and a `--holdout-cycle`
+read over two rosters. confirm-4d's own typo refusals are held to one line too:
+a bad dial value, a misspelt `--baseline`, a target off the roster. No test
+writes into `docs/research/confirm-reads`.
 
 ### The desk is PARKED
 
