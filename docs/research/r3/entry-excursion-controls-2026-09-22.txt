@@ -12,8 +12,8 @@ holdout: stratified-per-class-20pct — 20 markets excluded from every class poo
 CONTROLS
 control look-ahead   HOLDS — passes in 51 of 51 markets with a verdict (8 NO VERDICT); narrowest margin +0.5677 ATR above the floor (DOGEUSD)
 control coin-flip    HOLDS — passes in 0 of 51 markets with a verdict (8 NO VERDICT)
-control shipped      HOLDS — passes in 0 of 51 markets with a verdict (8 NO VERDICT); the interval covers zero in 41 of 51 (about 95% expected at no effect)
-control censoring    HOLDS — 2000 of 2000 sampled fit rows reproduce maxFavorableMove and maxAdverseMove exactly (5-minute 2000; 2000 drawn, and a drawn row of an unpinned market is not re-resolved)
+control shipped      HOLDS — passes in 0 of 51 markets with a verdict (8 NO VERDICT); the interval covers zero in 41 of 51 — markets share legs, so how many independent tests these are is unknown
+control censoring    HOLDS — 2000 of 2000 attempted fit rows reproduce maxFavorableMove and maxAdverseMove exactly (5-minute 2000; 2000 drawn, 2000 in screened markets; not attempted: 0 on another tier, 0 with no exit leg, 0 whose fill bar the series lacks, 0 with no excursion to compare)
 controls established: yes
 
 SHIPPED DECISIONS BY MARKET
@@ -77,6 +77,7 @@ ZOUSX     agriculture    485       485       460           0        19        6 
 ZRUSD     agriculture    317       317       297           0        14        6         0         0           0
 ZSUSX     agriculture    707       707       675           0        26        6         0         0           0
 ZTUSD     futures        60        60        42           0        18        0         0         0           0
+not screened: 0 not pinned, 0 the witness cannot place — named on stderr
 
 PER MARKET (candidate − null, ATR)
 family      market    class        decisions   days      mean      lo95      hi95        t  floorATR  floorR  verdict

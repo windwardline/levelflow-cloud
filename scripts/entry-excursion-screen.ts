@@ -59,13 +59,14 @@
  * WHAT IT READS. The fit fold only: the door withholds confirm, and select is
  * this reader's own filter. It writes nothing; stdout is the record.
  *
- * Exit codes: 0 no control failed and every read row anchored; 3 a control
- * FAILED where it was judged; 4 a market was not pinned or a row did not
- * anchor; 2 nothing to screen. NO VERDICT is printed, not an exit code, as
- * every reader here prints it.
+ * Exit codes: 0 no control failed, every market was screened and every read
+ * row anchored; 3 a control FAILED where it was judged; 4 a market was not
+ * pinned, the witness could not place it, or a row did not anchor; 2 nothing
+ * to screen. NO VERDICT is printed, not an exit code, as every reader here
+ * prints it.
  *
  *   npx tsx scripts/entry-excursion-screen.ts --corpus <capture-all.jsonl> \
- *     --window-hours 8 [--cache-dir .calibration-cache] [--witness <table>]
+ *     --window-hours 8 --cache-dir .calibration-cache [--witness <table>]
  */
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
@@ -74,7 +75,6 @@ import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.t
 import { averageTrueRange } from "../supabase/functions/trade-analyzer/indicators.ts";
 import { getSetupExpiryTime } from "../supabase/functions/trade-analyzer/replay.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
-import { DEFAULT_CACHE_DIR } from "./calibrationCache.ts";
 import { type MonthMap, monthMapOf, readWitnessMonths, type WitnessMonths } from "./feedMonths.ts";
 import { MAP_TIER } from "./feedYears.ts";
 import { flagReader, flagsOnly, OperatorInputError } from "./flagReader.ts";
@@ -175,7 +175,16 @@ export function parseScreenArgs(argv: readonly string[]): ScreenArgs {
       `${SCRIPT}: --window-hours must be a positive number of wall-clock hours and got ${windowHours}`,
     );
   }
-  const cacheDir = str("--cache-dir") ?? DEFAULT_CACHE_DIR;
+  // No default. The relative `.calibration-cache` resolves against whatever
+  // directory the run starts in, and a pinned job starts in one deleted on
+  // exit: the cache is named, and a missing one is refused, never created.
+  const cacheDir = str("--cache-dir");
+  if (cacheDir === undefined) {
+    throw new OperatorInputError(
+      `${SCRIPT}: --cache-dir is required — name the pinned cache the corpus was swept from ` +
+        `(e.g. .calibration-cache); there is no default`,
+    );
+  }
   return { cacheDir, corpus, windowHours, witness: str("--witness") };
 }
 
@@ -548,9 +557,18 @@ type MarketResult = {
   symbol: string;
 };
 
+/**
+ * The censoring sample, with the rows it could not re-resolve kept apart from
+ * the rows it re-resolved and got wrong: a row with no series to read, no exit
+ * leg, no fill bar in the series or no excursion to compare is NOT ATTEMPTED,
+ * which says nothing about the resolver. Only an attempted mismatch fails the
+ * control.
+ */
 type Censoring = {
+  attempted: number;
   examples: string[];
   matched: number;
+  notAttempted: { noExcursion: number; noExitLeg: number; noFillBar: number; tier: number };
   sampled: number;
   tiers: Map<number, number>;
 };
@@ -710,7 +728,14 @@ export async function runScreen(argv: readonly string[]): Promise<number> {
     else sample.set(symbol, [decision]);
   }
 
-  const censoring: Censoring = { examples: [], matched: 0, sampled: 0, tiers: new Map() };
+  const censoring: Censoring = {
+    attempted: 0,
+    examples: [],
+    matched: 0,
+    notAttempted: { noExcursion: 0, noExitLeg: 0, noFillBar: 0, tier: 0 },
+    sampled: 0,
+    tiers: new Map(),
+  };
   const results: MarketResult[] = [];
   const unpinned: Array<{ symbol: string; why: string }> = [];
 
@@ -849,18 +874,36 @@ export async function runScreen(argv: readonly string[]): Promise<number> {
       censoring.sampled += 1;
       censoring.tiers.set(decision.tier, (censoring.tiers.get(decision.tier) ?? 0) + 1);
       const series = decision.tier === STREAM_MS ? five : decision.tier === DECISION_BAR_MS ? fifteen : null;
-      const got = series === null || decision.exitMs === null || decision.filledMs === null
-        ? null
-        : censoredExcursion({ bars: series, entry: decision.entry, exitMs: decision.exitMs, filledMs: decision.filledMs, side: decision.side });
-      const matches = got !== null && decision.favourable !== null && decision.adverse !== null &&
-        got.favourable === roundPrice(decision.favourable) && got.adverse === roundPrice(decision.adverse);
-      if (matches) {
+      if (series === null) {
+        censoring.notAttempted.tier += 1;
+        continue;
+      }
+      if (decision.exitMs === null || decision.filledMs === null) {
+        censoring.notAttempted.noExitLeg += 1;
+        continue;
+      }
+      if (decision.favourable === null || decision.adverse === null) {
+        censoring.notAttempted.noExcursion += 1;
+        continue;
+      }
+      const got = censoredExcursion({
+        bars: series,
+        entry: decision.entry,
+        exitMs: decision.exitMs,
+        filledMs: decision.filledMs,
+        side: decision.side,
+      });
+      if (got === null) {
+        censoring.notAttempted.noFillBar += 1;
+        continue;
+      }
+      censoring.attempted += 1;
+      if (got.favourable === roundPrice(decision.favourable) && got.adverse === roundPrice(decision.adverse)) {
         censoring.matched += 1;
       } else if (censoring.examples.length < 5) {
         censoring.examples.push(
           `${symbol} ${new Date(decision.time).toISOString()} tier ${decision.tier / 60_000}min: row ` +
-            `fav ${decision.favourable} adv ${decision.adverse}, re-applied ` +
-            (got === null ? "no fill bar or exit in the series" : `fav ${got.favourable} adv ${got.adverse}`),
+            `fav ${decision.favourable} adv ${decision.adverse}, re-applied fav ${got.favourable} adv ${got.adverse}`,
         );
       }
     }
@@ -896,9 +939,9 @@ export async function runScreen(argv: readonly string[]): Promise<number> {
   const states = new Map<Family, ControlState>(
     FAMILIES.map((family) => [family, judgeFamilyControl(family, tabled.filter((row) => row.family === family).map((row) => row.verdict))]),
   );
-  const censoringState: ControlState = censoring.sampled === 0
+  const censoringState: ControlState = censoring.attempted === 0
     ? "NO VERDICT"
-    : censoring.matched === censoring.sampled
+    : censoring.matched === censoring.attempted
     ? "HOLDS"
     : "FAILS";
   const unanchored = results.reduce((sum, result) => sum + result.counts.unanchored, 0);
@@ -955,15 +998,19 @@ export async function runScreen(argv: readonly string[]): Promise<number> {
     }
     if (family === "shipped") {
       const covers = judged.filter((row) => row.bound.lower! <= 0 && row.bound.upper! >= 0).length;
-      detail += `; the interval covers zero in ${covers} of ${judged.length} (about 95% expected at no effect)`;
+      detail += `; the interval covers zero in ${covers} of ${judged.length} — markets share legs, so how ` +
+        `many independent tests these are is unknown`;
     }
     out.push(`control ${family.padEnd(12)} ${state} — ${detail}`);
   }
   const tiers = [...censoring.tiers].sort((a, b) => a[0] - b[0]).map(([tier, count]) => `${tier / 60_000}-minute ${count}`).join(", ");
+  const skipped = censoring.notAttempted;
   out.push(
-    `control ${"censoring".padEnd(12)} ${censoringState} — ${censoring.matched} of ${censoring.sampled} sampled ` +
+    `control ${"censoring".padEnd(12)} ${censoringState} — ${censoring.matched} of ${censoring.attempted} attempted ` +
       `${fitName} rows reproduce maxFavorableMove and maxAdverseMove exactly (${tiers || "no rows"}; ` +
-      `${drawnSample} drawn, and a drawn row of an unpinned market is not re-resolved)`,
+      `${drawnSample} drawn, ${censoring.sampled} in screened markets; not attempted: ` +
+      `${skipped.tier} on another tier, ${skipped.noExitLeg} with no exit leg, ${skipped.noFillBar} whose fill bar ` +
+      `the series lacks, ${skipped.noExcursion} with no excursion to compare)`,
   );
   for (const example of censoring.examples) out.push(`  mismatch: ${example}`);
   const allStates = [...states.values(), censoringState];
@@ -995,7 +1042,9 @@ export async function runScreen(argv: readonly string[]): Promise<number> {
       ].join(" "),
     );
   }
-  for (const entry of unplaceable) out.push(`${entry.symbol.padEnd(9)} NOT SCREENED — ${entry.why}`);
+  out.push(
+    `not screened: ${unpinned.length} not pinned, ${unplaceable.length} the witness cannot place — named on stderr`,
+  );
 
   out.push("", "PER MARKET (candidate − null, ATR)");
   out.push(
@@ -1041,6 +1090,13 @@ export async function runScreen(argv: readonly string[]): Promise<number> {
     );
     for (const entry of unpinned) console.error(`  ${entry.symbol}: ${entry.why} is not pinned`);
   }
+  if (unplaceable.length > 0) {
+    console.error(
+      `\n${unplaceable.length} of ${markets.length} markets have no month map the witness will vouch for and were ` +
+        `NOT screened; the tables describe the markets that were, which is not the corpus:`,
+    );
+    for (const entry of unplaceable) console.error(`  ${entry.symbol}: ${entry.why}`);
+  }
   if (unanchored > 0) {
     console.error(
       `\n${unanchored} shipped rows did not anchor: the cache's decision bar or ATR differs from the row's, so ` +
@@ -1048,7 +1104,7 @@ export async function runScreen(argv: readonly string[]): Promise<number> {
     );
   }
   if ([...states.values(), censoringState].includes("FAILS")) return 3;
-  if (unpinned.length > 0 || unanchored > 0) return 4;
+  if (unpinned.length > 0 || unplaceable.length > 0 || unanchored > 0) return 4;
   return 0;
 }
 

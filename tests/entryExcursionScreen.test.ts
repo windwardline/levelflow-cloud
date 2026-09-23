@@ -22,7 +22,7 @@ import { buildSweepManifest, seriesFacts } from "../scripts/sweepManifest.ts";
 import { tMultiplier95 } from "../scripts/sweepStats.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { averageTrueRange } from "../supabase/functions/trade-analyzer/indicators.ts";
-import { evaluateSetupOutcome } from "../supabase/functions/trade-analyzer/replay.ts";
+import { evaluateSetupOutcome, getSetupExpiryTime } from "../supabase/functions/trade-analyzer/replay.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 import { noKeychainEnv } from "./support/noKeychain.ts";
 import { writePinnedStore } from "./support/pinnedStore.ts";
@@ -414,14 +414,35 @@ function splitOf(time: number): string {
   return time < SELECT_START ? "fit" : time < CONFIRM_START ? "select" : "confirm";
 }
 
-/** Every decision the fixture's "engine" makes, resolved by the production resolver. */
-function marketRows(symbol: string, symbolIndex: number, five: Bar[], fifteen: Bar[]): Row[] {
+/**
+ * The side an engine that could see the future would call: the sign of the
+ * last close inside the screen's own window against the decision close.
+ */
+function lookAheadSide(symbol: string, five: Bar[], decision: Bar): "buy" | "sell" {
+  const expiry = getSetupExpiryTime(symbol, decision.time, REVIEW_HOURS);
+  const window = five.filter((entry) => entry.time >= decision.time + MIN15 && entry.time + MIN5 <= expiry);
+  return (window.at(-1)?.close ?? decision.close) >= decision.close ? "buy" : "sell";
+}
+
+/**
+ * Every decision the fixture's "engine" makes, resolved by the production
+ * resolver. The shipped side knows nothing about the future unless the
+ * fixture asks for an engine that does.
+ */
+function marketRows(
+  symbol: string,
+  symbolIndex: number,
+  five: Bar[],
+  fifteen: Bar[],
+  shippedSide: "blind" | "look-ahead" = "blind",
+): Row[] {
   const rows: Row[] = [];
   for (let index = 14; index < fifteen.length; index += 16) {
     const decision = fifteen[index];
     const time = decision.time;
-    // A side that knows nothing about the future: the shipped entry's null.
-    const side = ((index * 7_919 + symbolIndex * 104_729) >> 3) % 2 === 0 ? "buy" : "sell";
+    const side = shippedSide === "look-ahead"
+      ? lookAheadSide(symbol, five, decision)
+      : ((index * 7_919 + symbolIndex * 104_729) >> 3) % 2 === 0 ? "buy" : "sell";
     const atr = averageTrueRange(fifteen.slice(0, index + 1), 14);
     const latestClose = decision.close;
     const entryPrice = side === "buy" ? latestClose - 0.25 * atr : latestClose + 0.25 * atr;
@@ -521,7 +542,7 @@ function outOfFitRows(symbol: string): Row[] {
 
 type Fixture = { cache: string; corpus: string; dir: string; fitDecisions: Map<string, number>; fitDays: Map<string, number>; witness: string };
 
-function buildFixture(): Fixture {
+function buildFixture(shippedSide: "blind" | "look-ahead" = "blind"): Fixture {
   const dir = scratchDir("entry-screen-");
   const cache = join(dir, "cache");
   mkdirSync(cache);
@@ -532,7 +553,8 @@ function buildFixture(): Fixture {
     const { five, fifteen } = marketBars(101 + symbolIndex, price, volatility);
     writePinnedStore(cache, `${symbol}-5min-${DEPTH}`, ANCHOR, five);
     writePinnedStore(cache, `${symbol}-15min-${DEPTH}`, ANCHOR, fifteen);
-    const market = marketRows(symbol, symbolIndex, five, fifteen).filter((row) => (row.time as number) <= SELECT_START - EMBARGO);
+    const market = marketRows(symbol, symbolIndex, five, fifteen, shippedSide)
+      .filter((row) => (row.time as number) <= SELECT_START - EMBARGO);
     rows.push(...market, ...outOfFitRows(symbol));
     const shipped = market.filter((row) => row.variant === "baseline" && row.accepted === true);
     fitDecisions.set(symbol, shipped.length);
@@ -695,7 +717,7 @@ describe("the screen, executed on a hand-built corpus and cache", { concurrency:
 
   it("reproduces the corpus's censored excursions on its row sample", async () => {
     const stdout = (await once()).stdout;
-    const censoring = /^control censoring +HOLDS — (\d+) of (\d+) sampled/m.exec(stdout);
+    const censoring = /^control censoring +HOLDS — (\d+) of (\d+) attempted/m.exec(stdout);
     assert.ok(censoring, stdout);
     assert.equal(censoring[1], censoring[2]);
     assert.ok(Number(censoring[2]) >= 100, `sampled ${censoring[2]}`);
@@ -772,5 +794,121 @@ describe("the screen, executed on a hand-built corpus and cache", { concurrency:
     assert.match(got.stderr, /GBPUSD/);
     assert.match(got.stderr, /not pinned/);
     assert.deepEqual(readdirSync(bare).sort(), readdirSync(fixture.cache).filter((file) => file.startsWith("EURUSD")).sort());
+    assert.match(got.stdout, /^not screened: 1 not pinned, 0 the witness cannot place/m);
+  });
+
+  /**
+   * A copy of the fixture's corpus with each row passed through `edit`, the
+   * manifest beside it unchanged. The fixture manifest records no emit digest,
+   * so the door verifies the manifest and reads the edited rows.
+   */
+  const editedCorpus = (name: string, edit: (row: Row) => Row): string => {
+    const dir = join(fixture.dir, name);
+    mkdirSync(dir);
+    const corpus = join(dir, "capture-all.jsonl");
+    const lines = readFileSync(fixture.corpus, "utf8").trim().split("\n").map((line) => JSON.stringify(edit(JSON.parse(line) as Row)));
+    writeFileSync(corpus, lines.join("\n") + "\n");
+    copyFileSync(`${fixture.corpus}.manifest.json`, `${corpus}.manifest.json`);
+    return corpus;
+  };
+  const isShippedFit = (row: Row) => row.split === "fit" && row.variant === "baseline" && row.accepted === true;
+
+  it("exits 3 and says so when the censoring control fails on an attempted row", async () => {
+    let tampered = false;
+    const corpus = editedCorpus("censoring-fails", (row) => {
+      if (tampered || !isShippedFit(row) || row.filledAtMs === null || row.symbol !== "GBPUSD") return row;
+      tampered = true;
+      return { ...row, maxFavorableMove: (row.maxFavorableMove as number) + 0.001 };
+    });
+    assert.ok(tampered, "the fixture holds no filled GBPUSD row to tamper");
+    const got = await runScreen(["--corpus", corpus, "--cache-dir", fixture.cache, "--witness", fixture.witness, "--window-hours", "8"], cwd);
+    assert.equal(got.code, 3, `stdout:\n${got.stdout}\nstderr:\n${got.stderr}`);
+    assert.equal(controlState(got.stdout, "censoring"), "FAILS", got.stdout);
+    const counts = /^control censoring +FAILS — (\d+) of (\d+) attempted/m.exec(got.stdout);
+    assert.ok(counts, got.stdout);
+    assert.equal(Number(counts[1]), Number(counts[2]) - 1, "exactly the one tampered row mismatches");
+    assert.match(got.stdout, /^ {2}mismatch: GBPUSD /m);
+    assert.match(got.stdout, /^controls established: NO — a control FAILED; the instrument is not trusted$/m);
+    for (const family of ["look-ahead", "coin-flip", "shipped"]) {
+      assert.equal(controlState(got.stdout, family), "HOLDS", `${family} moved with a censoring field`);
+    }
+  });
+
+  it("exits 3 and says so when a family control fails: an engine that sees the future passes", async () => {
+    const seeing = buildFixture("look-ahead");
+    const got = await runScreen(
+      ["--corpus", seeing.corpus, "--cache-dir", seeing.cache, "--witness", seeing.witness, "--window-hours", "8"],
+      cwd,
+    );
+    assert.equal(got.code, 3, `stdout:\n${got.stdout}\nstderr:\n${got.stderr}`);
+    assert.equal(controlState(got.stdout, "shipped"), "FAILS", got.stdout);
+    assert.equal(controlState(got.stdout, "look-ahead"), "HOLDS", got.stdout);
+    assert.equal(controlState(got.stdout, "coin-flip"), "HOLDS", got.stdout);
+    assert.equal(controlState(got.stdout, "censoring"), "HOLDS", got.stdout);
+    assert.match(got.stdout, /^controls established: NO — a control FAILED; the instrument is not trusted$/m);
+    for (const { symbol } of SYMBOLS) {
+      const shipped = tableLines(got.stdout).find((line) => line.family === "shipped" && line.market === symbol)!;
+      assert.equal(shipped.verdict, "PASS", `${symbol}: the seeing engine did not pass`);
+    }
+  });
+
+  it("keeps the rows it could not re-resolve apart from mismatches, and still holds", async () => {
+    const edits = new Map<string, (row: Row) => Row>([
+      ["tier", (row) => ({ ...row, resolutionIntervalMs: 60_000 })],
+      ["noExitLeg", (row) => ({ ...row, legs: (row.legs as Array<{ leg: string }>).filter((leg) => leg.leg !== "exit") })],
+      ["noFillBar", (row) => ({ ...row, filledAtMs: (row.filledAtMs as number) + 60_000 })],
+      ["noExcursion", (row) => ({ ...row, maxAdverseMove: null })],
+    ]);
+    const pending = [...edits.keys()];
+    const corpus = editedCorpus("not-attempted", (row) => {
+      if (pending.length === 0 || !isShippedFit(row) || row.filledAtMs === null) return row;
+      return edits.get(pending.shift()!)!(row);
+    });
+    assert.deepEqual(pending, [], "the fixture ran out of filled rows to edit");
+    const got = await runScreen(["--corpus", corpus, "--cache-dir", fixture.cache, "--witness", fixture.witness, "--window-hours", "8"], cwd);
+    assert.equal(got.code, 0, `stdout:\n${got.stdout}\nstderr:\n${got.stderr}`);
+    const line = /^control censoring +HOLDS — (\d+) of (\d+) attempted .*; (\d+) drawn, (\d+) in screened markets; not attempted: (\d+) on another tier, (\d+) with no exit leg, (\d+) whose fill bar the series lacks, (\d+) with no excursion to compare\)$/m
+      .exec(got.stdout);
+    assert.ok(line, got.stdout);
+    const [, matched, attempted, , sampled, tier, noExit, noFill, noExcursion] = line.map(Number);
+    assert.equal(matched, attempted);
+    assert.deepEqual([tier, noExit, noFill, noExcursion], [1, 1, 1, 1]);
+    assert.equal(attempted, sampled - 4, "a row not attempted was counted as attempted");
+  });
+
+  it("exits 2 with nothing to screen and prints no table", async () => {
+    const corpus = editedCorpus("nothing", (row) => (isShippedFit(row) ? { ...row, accepted: false } : row));
+    const got = await runScreen(["--corpus", corpus, "--cache-dir", fixture.cache, "--witness", fixture.witness, "--window-hours", "8"], cwd);
+    assert.equal(got.code, 2, `stdout:\n${got.stdout}\nstderr:\n${got.stderr}`);
+    assert.match(got.stderr, /holds no shipped fit decision .* nothing to screen/);
+    assert.equal(got.stdout.trim(), "");
+  });
+
+  it("refuses a run with no --cache-dir, or one naming a directory that does not exist, and creates nothing", async () => {
+    const empty = scratchDir("entry-screen-nocache-");
+    const unnamed = await runScreen(["--corpus", fixture.corpus, "--witness", fixture.witness, "--window-hours", "8"], empty);
+    assert.notEqual(unnamed.code, 0);
+    assert.match(unnamed.stderr, /--cache-dir is required/);
+    assert.deepEqual(readdirSync(empty), [], "a run with no --cache-dir wrote into its working directory");
+    const absent = join(empty, "no-such-cache");
+    const missing = await runScreen(
+      ["--corpus", fixture.corpus, "--cache-dir", absent, "--witness", fixture.witness, "--window-hours", "8"],
+      empty,
+    );
+    assert.notEqual(missing.code, 0);
+    assert.match(missing.stderr, /--cache-dir .*no-such-cache does not exist — this reader creates nothing/);
+    assert.deepEqual(readdirSync(empty), [], "a refused --cache-dir was created");
+  });
+
+  it("exits 4 when the witness cannot place a market, and names it on stderr", async () => {
+    const witness = join(fixture.dir, "feed-character-no-gbp.txt");
+    writeFileSync(witness, "EURUSD 5min contained\n");
+    const got = await runScreen(["--corpus", fixture.corpus, "--cache-dir", fixture.cache, "--witness", witness, "--window-hours", "8"], cwd);
+    assert.equal(got.code, 4, `stdout:\n${got.stdout}\nstderr:\n${got.stderr}`);
+    assert.match(got.stdout, /^not screened: 0 not pinned, 1 the witness cannot place — named on stderr$/m);
+    assert.match(got.stderr, /1 of 2 markets have no month map the witness will vouch for and were NOT screened/);
+    assert.match(got.stderr, /^ {2}GBPUSD: /m);
+    assert.equal(tableLines(got.stdout).filter((line) => line.market === "GBPUSD").length, 0);
+    assert.equal(controlState(got.stdout, "censoring"), "HOLDS", got.stdout);
   });
 });

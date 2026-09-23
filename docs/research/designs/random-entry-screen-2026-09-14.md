@@ -3,14 +3,16 @@
 > registers a family before any fold is read, and the registry that needs (amendment 48)
 > does not exist. On the fit fold of the 2026-09-14 corpus (built at analyzer
 > `2026.09.13.forex-commission-usd-quote`) at W = 8h, run by engine code at
-> `2026.09.23.stop-exit-slippage` (`r3/entry-excursion-controls-2026-09-22.txt`), all
-> four controls held. `2026.09.23.expiry-exit-slippage` changed only the expiry exit's
-> print, which the screen never reads, so the record was not re-run. The look-ahead
+> `2026.09.23.expiry-exit-slippage` (`r3/entry-excursion-controls-2026-09-22.txt`), all
+> four controls held. The first run, at `2026.09.23.stop-exit-slippage`, printed the same
+> figures; the record was regenerated only to change three lines of wording. The look-ahead
 > family passed in 51 of 51 markets with a verdict, the coin flip and the shipped entry in
 > none, and 2,000 of 2,000 sampled rows reproduced the resolver's censored excursions. The
-> shipped entry's interval excludes zero in 10 of the 51, eight of them above zero, where
-> about 2.5 are expected at no effect; none clears its cost floor. The reader's header
-> states the choices this design left open.
+> shipped entry's interval excludes zero in 10 of the 51, eight of them above zero, and
+> none clears its cost floor. The markets share legs (three of the eight are JPY crosses,
+> and five of the six JPY crosses read above zero), so how many independent tests the 51
+> are is unknown and no chance rate is quoted. The
+> reader's header states the choices this design left open.
 >
 > **Status (recorded 2026-09-16): designed, refuted, not built.** The draft below was
 > refuted on 2026-09-14; the section headed REFUTED carries the verdicts and the
