@@ -121,6 +121,15 @@ export type ReplayFillOptions = {
   // omits it: there the stream reaches back past creation and createdAt
   // is exact.
   streamStartsAtMs?: number;
+  // A stop that did NOT gap is a market order too: every stop-kind exit
+  // (stop_loss, breakeven_stop, tp1_lock, ambiguous, and FR-3's same-bar
+  // arming exit) prints its level this much AGAINST the position. A gapped
+  // stop takes gapExitSlippage on its gap print instead, never both. Until
+  // 2026.09.23.stop-exit-slippage a clean stop printed exactly at its level,
+  // so the slippage the admission gate charges reached realized R only on
+  // gapped opens. Limit prints (entry, TP1, target) and the expiry close
+  // print carry none.
+  stopExitSlippage?: number;
   // FR-4: a manual TP1 partial fills this much worse than its level.
   tp1FillHaircut?: number;
   // LA-13: a limit "touch" is not a fill — demand this much penetration
@@ -228,11 +237,16 @@ export function fillOptionsFromRiskModel(
 // legs instead: planned risk is the unit (position size was computed on
 // it), actual prints are the numerator, and 2d charges exactly one
 // round trip of cost in R space — full-size entry plus either two
-// half-size exits (ladder) or one full exit, two cost units either way,
-// matching estimateExecutionQuality's estimatedRoundTripCost = spread +
-// 2 x slippage at perLegCost = spread/2 + slippage. The resolver prices
-// ambiguity at the stop side, so 2e's explicit -1 emerges from the same
-// arithmetic as every other outcome.
+// half-size exits (ladder) or one full exit, two cost units either way.
+// Both callers pass perLegCost = commission / 2 (roundTripCost / 2), the
+// one cost no print can carry: the spread rides in the bid/ask triggers
+// and fills, and slippage rides in every stop-kind exit print — the
+// level ∓ stopExitSlippage on a clean stop, the gap print ∓
+// gapExitSlippage on a gapped one (2026.09.23.stop-exit-slippage; before
+// it, only the gapped print). Limit prints carry no slippage. The
+// resolver prices ambiguity at the stop side, so 2e's explicit -1, less
+// the stop's slippage, emerges from the same arithmetic as every other
+// outcome.
 export function realizedRFromLegs(input: {
   legs: ResolutionLeg[];
   perLegCost: number;
@@ -371,6 +385,7 @@ export function evaluateSetupOutcome(
   const barIntervalMs = options?.barIntervalMs ?? 15 * 60 * 1000;
   const halfSpread = options?.halfSpread ?? 0;
   const gapExitSlippage = options?.gapExitSlippage ?? 0;
+  const stopExitSlippage = options?.stopExitSlippage ?? 0;
   const touchFillPenetration = options?.touchFillPenetration ?? 0;
   const tp1FillHaircut = options?.tp1FillHaircut ?? 0;
   const entryLatencyBars = options?.entryLatencyBars ?? 0;
@@ -523,13 +538,16 @@ export function evaluateSetupOutcome(
   // Gap-aware execution prints, on the executable side of the book: a
   // stop that gaps prints at the open's BID (buy side) — open ∓ half a
   // spread — with FR-7's reopen slippage on top when it truly gapped; a
-  // limit that gaps prints at the open's bid/ask, never better than its
-  // own level.
+  // stop that did not gap prints its level with the modelled slippage
+  // against the position; a limit that gaps prints at the open's bid/ask,
+  // never better than its own level.
+  const cleanStopPrint = (level: number) =>
+    isBuy ? level - stopExitSlippage : level + stopExitSlippage;
   const adverseExitPrice = (level: number, bar: ReplayBar) => {
     const gapPrint = isBuy ? bar.open - halfSpread : bar.open + halfSpread;
     const gapped = isBuy ? gapPrint < level : gapPrint > level;
     if (!gapped) {
-      return level;
+      return cleanStopPrint(level);
     }
     return isBuy ? gapPrint - gapExitSlippage : gapPrint + gapExitSlippage;
   };
@@ -725,6 +743,9 @@ export function evaluateSetupOutcome(
       // this bar CLOSED back through the armed level, the runner exits on
       // this bar — the close, not the low, because the bar's extremes
       // predate the TP1 crossing (2c's own principle, applied forward).
+      // The exit is a stop that did not gap (the bar's open predates the
+      // crossing too), so it prints the armed level with the modelled
+      // slippage against the position, like every other clean stop.
       if (options?.sameBarProtectionArming && protection !== "hold") {
         const armedStop = protection === "trail_tp1" ? takeProfit1 : entry;
         const closedThrough = isBuy
@@ -734,7 +755,7 @@ export function evaluateSetupOutcome(
           legs.push({
             kind: protection === "trail_tp1" ? "tp1_lock" : "breakeven_stop",
             leg: "exit",
-            price: roundPrice(armedStop),
+            price: roundPrice(cleanStopPrint(armedStop)),
             time: bar.time,
           });
           return {

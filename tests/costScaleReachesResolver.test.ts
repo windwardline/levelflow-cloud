@@ -92,12 +92,12 @@ const BASE = {
  * unconditionally, because a leaked variable here would silently re-grade
  * every test that runs after this file.
  */
-function runAtScale(scale: string | null) {
+function runAtScale(scale: string | null, overrides: Partial<typeof BASE> = {}) {
   const prior = process.env.LEVELFLOW_MODELED_COST_SCALE;
   if (scale === null) delete process.env.LEVELFLOW_MODELED_COST_SCALE;
   else process.env.LEVELFLOW_MODELED_COST_SCALE = scale;
   try {
-    return simulateSymbol({ ...BASE });
+    return simulateSymbol({ ...BASE, ...overrides });
   } finally {
     if (prior === undefined) delete process.env.LEVELFLOW_MODELED_COST_SCALE;
     else process.env.LEVELFLOW_MODELED_COST_SCALE = prior;
@@ -140,6 +140,60 @@ describe("the scale moves the MONEY, not only the gate", () => {
         "not reaching the resolver, which is defect 1c exactly as it was on " +
         "2026-08-11: the payoff gate moved and the money did not",
     );
+  });
+
+  it("every clean stop-kind print slips by the modelled slippage at scale 1, and by nothing at scale 0 (2026-09-23)", () => {
+    // End to end through the sweep, so the charge is proven to reach the
+    // resolver on the path the corpus is written by, and to scale with the
+    // modelled half rather than standing apart from it. A print that sits
+    // neither at its level nor at level ∓ s is a gapped exit and is not
+    // counted either way.
+    //
+    // Its own fixture: in BASE every bar opens where the triangle's last
+    // point closed, 0.4 away from the previous bar, so every stop it reaches
+    // is a GAP and none of them could show the clean-stop charge. Opening each
+    // bar at the previous close makes the crossing happen inside the bar.
+    const continuous = {
+      primaryBars: triangleBars(600).map((bar, index, all) => ({
+        ...bar,
+        open: index === 0 ? bar.open : all[index - 1].close,
+      })),
+    };
+    const TOLERANCE = 1.5e-8;
+    const census = (result: ReturnType<typeof simulateSymbol>) => {
+      let atLevel = 0;
+      let slipped = 0;
+      let favourable = 0;
+      for (const row of filled(result)) {
+        const exit = row.legs.find((leg) => leg.leg === "exit");
+        const levels = exit?.kind === "stop_loss"
+          ? [row.stopLoss]
+          : exit?.kind === "breakeven_stop"
+          ? [row.entryPrice]
+          : exit?.kind === "tp1_lock"
+          ? [row.takeProfit1]
+          : exit?.kind === "ambiguous"
+          ? [row.stopLoss, row.entryPrice, row.takeProfit1]
+          : [];
+        if (!exit) continue;
+        const against = row.side === "buy" ? -1 : 1;
+        const near = (price: number) => Math.abs(exit.price - Number(price.toFixed(8))) <= TOLERANCE;
+        if (levels.some((level) => near(level))) atLevel += 1;
+        if (levels.some((level) => near(level + against * row.estimatedSlippage))) slipped += 1;
+        if (levels.some((level) => near(level - against * row.estimatedSlippage))) favourable += 1;
+      }
+      return { atLevel, favourable, slipped };
+    };
+    const atFull = census(runAtScale("1", continuous));
+    const atZero = census(runAtScale("0", continuous));
+    assert.ok(
+      atFull.slipped >= 5,
+      `only ${atFull.slipped} stop-kind exits printed at level ∓ slippage at scale 1 — the fixture cannot discriminate`,
+    );
+    assert.equal(atFull.atLevel, 0, "a clean stop printed exactly at its level at scale 1 — the modelled slippage is not reaching the print");
+    assert.equal(atFull.favourable, 0, "a stop print slipped in the position's favour");
+    assert.ok(atZero.atLevel >= 5, `only ${atZero.atLevel} clean stop prints at scale 0`);
+    assert.equal(atZero.slipped, 0, "the gross arm (scale 0) slipped a stop print — the scale does not reach stopExitSlippage");
   });
 
   it("the gross arm is the CHEAPER one, never merely a looser gate", () => {
@@ -193,6 +247,7 @@ describe("what the scale multiplies, and what it must never touch", () => {
       gapExitSlippage: 0,
       halfSpread: 0,
       roundTripCost: 0.00007,
+      stopExitSlippage: 0,
     });
   });
 
@@ -201,12 +256,14 @@ describe("what the scale multiplies, and what it must never touch", () => {
       gapExitSlippage: quality.estimatedSlippage,
       halfSpread: quality.estimatedSpread / 2,
       roundTripCost: quality.estimatedCommission,
+      stopExitSlippage: quality.estimatedSlippage,
     });
   });
 
   it("interpolates rather than switching", () => {
     const half = resolverCostOptions(quality, 0.5);
     assert.equal(half.gapExitSlippage, 0.00002);
+    assert.equal(half.stopExitSlippage, 0.00002);
     assert.equal(half.halfSpread, 0.00003);
     assert.equal(half.roundTripCost, 0.00007);
   });
@@ -232,10 +289,32 @@ describe("the live bridge is scale-free by construction", () => {
       });
       assert.equal(options.halfSpread, 0.00005);
       assert.equal(options.gapExitSlippage, 0.00004);
+      assert.equal(options.stopExitSlippage, 0.00004);
       assert.equal(options.roundTripCost, 0.00006);
     } finally {
       if (prior === undefined) delete process.env.LEVELFLOW_MODELED_COST_SCALE;
       else process.env.LEVELFLOW_MODELED_COST_SCALE = prior;
+    }
+  });
+});
+
+describe("the live bridge carries every cost the sweep's mapping produces", () => {
+  it("field for field, at the live scale", () => {
+    // One physics, both paths (stop-exit slippage, 2026-09-23). The sweep
+    // spreads `resolverCostOptions(quality, scale)` into the resolver; the live
+    // bridge must hand the resolver the same fields at scale 1. Derived from
+    // the mapping's own keys, so a field added there and dropped here fails.
+    const quality = {
+      estimatedCommission: 0.00006,
+      estimatedSlippage: 0.00004,
+      estimatedSpread: 0.0001,
+    };
+    const sweep = resolverCostOptions(quality, 1);
+    const live = fillOptionsFromRiskModel({ executionQuality: quality }) as
+      Record<string, unknown>;
+    assert.ok(Object.keys(sweep).includes("stopExitSlippage"));
+    for (const [key, value] of Object.entries(sweep)) {
+      assert.equal(live[key], value, `the live bridge dropped or changed ${key}`);
     }
   });
 });

@@ -814,28 +814,176 @@ describe("engine v2 — the venue's fills (round-8 FR-1/3/4/6/7/8, LA-2/13)", ()
     assert.equal(exit?.price, 96.95);
   });
 
-  it("FR-7: a gapped exit can carry reopen slippage on top of the bid print", () => {
+  it("FR-7: a gapped exit carries reopen slippage on top of the bid print, and only that", () => {
     const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
     const bars = [
       buildBar(15, 100.4, 99.9, 100.2),
       buildBar(30, 97.4, 96.8, 97.1, 97),
     ];
+    // Both slippage options set, as the live mapping sets them: a gapped stop
+    // prints gapPrint − gapExitSlippage and never takes the clean-stop charge
+    // on top of it.
     const result = evaluateSetupOutcome(setup, bars, farNow, {
       gapExitSlippage: 0.05,
       halfSpread: 0.05,
+      stopExitSlippage: 0.05,
     });
     const exit = result.state === "resolved"
       ? result.legs.find((leg) => leg.leg === "exit")
       : null;
     assert.equal(exit?.price, 96.9);
-    const clean = evaluateSetupOutcome(setup, [
-      bars[0],
-      buildBar(30, 100.5, 97.9, 100.2, 100.1),
-    ], farNow, { gapExitSlippage: 0.05 });
+    // Stop-exit slippage (2026-09-23): a stop that did NOT gap is a market order
+    // too. It prints its level minus the modelled slippage, against the
+    // position. Until this version it printed exactly at 98, so the slippage
+    // the admission gate charges never reached realized R off a gapped open.
+    const cleanBars = [bars[0], buildBar(30, 100.5, 97.9, 100.2, 100.1)];
+    const clean = evaluateSetupOutcome(setup, cleanBars, farNow, {
+      gapExitSlippage: 0.05,
+      stopExitSlippage: 0.05,
+    });
     const cleanExit = clean.state === "resolved"
       ? clean.legs.find((leg) => leg.leg === "exit")
       : null;
-    assert.equal(cleanExit?.price, 98);
+    assert.equal(cleanExit?.kind, "stop_loss");
+    assert.equal(cleanExit?.price, 97.95);
+    assert.equal(
+      clean.state === "resolved" ? clean.feedback.realizedR : null,
+      -1.025,
+    );
+    // The two options stay separate: FR-7's gap slippage alone never reaches
+    // a clean stop.
+    const gapOnly = evaluateSetupOutcome(setup, cleanBars, farNow, {
+      gapExitSlippage: 0.05,
+    });
+    const gapOnlyExit = gapOnly.state === "resolved"
+      ? gapOnly.legs.find((leg) => leg.leg === "exit")
+      : null;
+    assert.equal(gapOnlyExit?.price, 98);
+  });
+
+  it("stop-exit slippage: a clean SHORT stop prints its level plus the slippage", () => {
+    const setup = buildSetup({ entry: 100, side: "sell", stop: 102, target: 95 });
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 100.4, 99.7, 99.9),
+      buildBar(30, 102.1, 99.5, 101.9, 100),
+    ], farNow, { stopExitSlippage: 0.05 });
+    assert.equal(result.state === "resolved" ? result.outcome : null, "stop_loss");
+    const exit = result.state === "resolved"
+      ? result.legs.find((leg) => leg.leg === "exit")
+      : null;
+    assert.equal(exit?.kind, "stop_loss");
+    assert.equal(exit?.price, 102.05);
+    assert.equal(
+      result.state === "resolved" ? result.feedback.realizedR : null,
+      -1.025,
+    );
+  });
+
+  it("stop-exit slippage: a gapped SHORT stop keeps gapPrint + gapExitSlippage", () => {
+    const setup = buildSetup({ entry: 100, side: "sell", stop: 102, target: 95 });
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 100.4, 99.7, 99.9),
+      buildBar(30, 103, 102.4, 102.8, 102.6),
+    ], farNow, { gapExitSlippage: 0.05, halfSpread: 0.05, stopExitSlippage: 0.05 });
+    const exit = result.state === "resolved"
+      ? result.legs.find((leg) => leg.leg === "exit")
+      : null;
+    assert.equal(exit?.kind, "stop_loss");
+    assert.equal(exit?.price, 102.7);
+  });
+
+  it("stop-exit slippage: breakeven_stop after TP1 prints entry minus the slippage", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105, tp1: 101 });
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 100.4, 99.8, 100.2, 100.2),
+      buildBar(30, 101.6, 100.4, 101.5, 100.5),
+      buildBar(45, 101.2, 99.8, 100.1, 101),
+    ], farNow, { stopExitSlippage: 0.05 });
+    assert.equal(result.state, "resolved");
+    if (result.state !== "resolved") return;
+    assert.equal(result.outcome, "tp1_partial");
+    assert.equal(result.legs.find((leg) => leg.leg === "tp1")?.price, 101);
+    const exit = result.legs.find((leg) => leg.leg === "exit");
+    assert.equal(exit?.kind, "breakeven_stop");
+    assert.equal(exit?.price, 99.95);
+    // Half the position rides the slipped print: ½ × 1R banked − ½ × 0.025R.
+    assert.equal(result.feedback.realizedR, 0.2375);
+    // The runner handed back the slippage too: ½ × (0.8R best − (−0.025R) taken).
+    assert.equal(result.feedback.forgoneRunnerR, 0.4125);
+  });
+
+  it("stop-exit slippage: the FR-3 same-bar tp1_lock prints the armed level minus the slippage", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105, tp1: 101 });
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 100.4, 99.8, 100.2, 100.2),
+      buildBar(30, 101.6, 100.4, 100.9, 100.5),
+    ], farNow, {
+      runnerProtection: "trail_tp1",
+      sameBarProtectionArming: true,
+      stopExitSlippage: 0.05,
+    });
+    assert.equal(result.state, "resolved");
+    if (result.state !== "resolved") return;
+    assert.equal(result.feedback.sameBarArming, true);
+    const exit = result.legs.find((leg) => leg.leg === "exit");
+    assert.equal(exit?.kind, "tp1_lock");
+    assert.equal(exit?.price, 100.95);
+    assert.equal(result.feedback.realizedR, 0.4875);
+    // The breakeven mode's same-bar exit takes the same rule at its own level.
+    const breakeven = evaluateSetupOutcome(setup, [
+      buildBar(15, 100.4, 99.8, 100.2, 100.2),
+      buildBar(30, 101.4, 99.95, 99.9, 100.1),
+    ], farNow, { sameBarProtectionArming: true, stopExitSlippage: 0.05 });
+    const breakevenExit = breakeven.state === "resolved"
+      ? breakeven.legs.find((leg) => leg.leg === "exit")
+      : null;
+    assert.equal(breakevenExit?.kind, "breakeven_stop");
+    assert.equal(breakevenExit?.price, 99.95);
+  });
+
+  it("stop-exit slippage: an ambiguous bar prints the stop side minus the slippage", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 100.4, 99.9, 100.2),
+      buildBar(30, 105.5, 97.5, 101, 100.2),
+    ], farNow, { stopExitSlippage: 0.05 });
+    assert.equal(result.state === "resolved" ? result.outcome : null, "ambiguous");
+    const exit = result.state === "resolved"
+      ? result.legs.find((leg) => leg.leg === "exit")
+      : null;
+    assert.equal(exit?.kind, "ambiguous");
+    assert.equal(exit?.price, 97.95);
+    assert.equal(
+      result.state === "resolved" ? result.feedback.realizedR : null,
+      -1.025,
+    );
+  });
+
+  it("stop-exit slippage: limit and expiry prints do not slip", () => {
+    // take_profit, tp1 and entry are limits; expiry is the FR-1 close print.
+    // None of them is a stop, so the whole resolution is bit-identical with
+    // and without the option.
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105, tp1: 101 });
+    const target = [
+      buildBar(15, 100.4, 99.8, 100.2, 100.2),
+      buildBar(30, 105.4, 100.2, 104.8, 100.3),
+    ];
+    const expiry = [
+      buildBar(15, 100.4, 99.8, 100.2, 100.2),
+      buildBar(30, 100.8, 99.9, 100.6),
+    ];
+    for (const [name, bars, outcome] of [
+      ["take_profit", target, "take_profit"],
+      ["expiry", expiry, "expired_in_profit"],
+    ] as const) {
+      const without = evaluateSetupOutcome(setup, [...bars], farNow, { halfSpread: 0.01 });
+      const withSlip = evaluateSetupOutcome(setup, [...bars], farNow, {
+        halfSpread: 0.01,
+        stopExitSlippage: 0.05,
+      });
+      assert.equal(withSlip.state === "resolved" ? withSlip.outcome : null, outcome, name);
+      assert.deepEqual(withSlip, without, `${name}: a non-stop print moved`);
+    }
   });
 
   it("LA-2: a bar straddling expiry cannot resolve anything", () => {
@@ -1026,9 +1174,35 @@ describe("fillOptionsFromRiskModel — live outcome-sync adopts the venue's fill
     });
     assert.equal(options.halfSpread, 0.00005);
     assert.equal(options.gapExitSlippage, 0.00004);
+    assert.equal(options.stopExitSlippage, 0.00004);
     assert.equal(options.roundTripCost, 0.00006);
     assert.equal(options.barIntervalMs, 15 * 60 * 1000);
     assert.equal(options.sameBarProtectionArming, true);
+  });
+
+  it("slips every non-gapped stop print by the stored slippage — the sweep's charge, live (2026-09-23)", () => {
+    // outcome-sync and the analyzer's own resolver grade through this bridge,
+    // so a stop that printed at its level here while the sweep slipped it
+    // would be two physics under one version.
+    const farNow = createdAt + 365 * 24 * 60 * 60 * 1000;
+    const options = fillOptionsFromRiskModel({
+      executionQuality: {
+        estimatedCommission: 0,
+        estimatedSlippage: 0.05,
+        estimatedSpread: 0,
+      },
+    });
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 100.4, 99.9, 100.2),
+      buildBar(30, 100.5, 97.9, 100.2, 100.1),
+    ], farNow, options);
+    assert.equal(result.state, "resolved");
+    if (result.state !== "resolved") return;
+    const exit = result.legs.find((leg) => leg.leg === "exit");
+    assert.equal(exit?.kind, "stop_loss");
+    assert.equal(exit?.price, 97.95);
+    assert.equal(result.feedback.netRealizedR, -1.025);
   });
 
   it("a row without stored quality resolves v1-style — no invented numbers", () => {

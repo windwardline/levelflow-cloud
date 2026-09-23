@@ -138,7 +138,20 @@ import { isKnownSymbol } from "./symbols.ts";
 // moves with it (measured before shipping, in the record); every corpus
 // emitted before this version carries the approximation on those markets and
 // the readers re-price them per row. (Prior: 2026.09.13.forex-commission-usd-quote.)
-export const ANALYZER_VERSION = "2026.09.14.forex-commission-cross-rate";
+//
+// 2026.09.23.stop-exit-slippage: every stop-kind exit that did not gap —
+// stop_loss, breakeven_stop, tp1_lock, ambiguous and FR-3's same-bar arming
+// exit — prints its level with the modelled slippage against the position
+// (`stopExitSlippage`, replay.ts), on the sweep and the live bridge alike. The
+// slippage the admission gate charges used to reach realized R only on gapped
+// opens (FR-7), about 0.005-0.007 R per forex fill of optimism. Entry, TP1,
+// target and expiry prints do not move; outcome labels do not move; realized R
+// on every clean stop-kind exit falls by its exit fraction times
+// slippage / riskDistance. Corpora emitted before this version carry the
+// unslipped prints; `scripts/banked-fraction.ts --stop-exit-slippage` prices
+// them at this physics without a re-simulate.
+// (Prior: 2026.09.14.forex-commission-cross-rate.)
+export const ANALYZER_VERSION = "2026.09.23.stop-exit-slippage";
 
 export type AssetType =
   | "agriculture"

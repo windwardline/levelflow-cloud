@@ -520,10 +520,11 @@ export type ResolverCostOptions = {
   gapExitSlippage: number;
   halfSpread: number;
   roundTripCost: number;
+  stopExitSlippage: number;
 };
 
 /**
- * The resolver's cost triple — ONE definition, because there were two.
+ * The resolver's cost options — ONE definition, because there were two.
  *
  * `sweep.ts` and `fillOptionsFromRiskModel` each built this mapping by hand,
  * and that duplication is how defect 1c got written twice over. Both copies
@@ -561,6 +562,13 @@ export function resolverCostOptions(
     gapExitSlippage: quality.estimatedSlippage * scale,
     halfSpread: quality.estimatedSpread * scale / 2,
     roundTripCost: quality.estimatedCommission,
+    // 2026.09.23.stop-exit-slippage: the same modelled slippage on every stop
+    // that did NOT gap. Until it, the slippage the gate charges
+    // (`estimatedRoundTripCost` above) reached realized R only through
+    // gapExitSlippage, on gapped opens — about 0.005-0.007 R per forex fill
+    // of optimism. Scaled like the rest of the modelled half, so the gross
+    // arm (scale 0) prints its stops at their level.
+    stopExitSlippage: quality.estimatedSlippage * scale,
   };
 }
 
