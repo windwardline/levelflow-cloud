@@ -876,6 +876,16 @@ describe("the screen, executed on a hand-built corpus and cache", { concurrency:
     assert.equal(attempted, sampled - 4, "a row not attempted was counted as attempted");
   });
 
+  it("exits 4 when the censoring control drew rows and could attempt none of them", async () => {
+    const corpus = editedCorpus("none-attempted", (row) =>
+      isShippedFit(row) && row.filledAtMs !== null ? { ...row, resolutionIntervalMs: 60_000 } : row
+    );
+    const got = await runScreen(["--corpus", corpus, "--cache-dir", fixture.cache, "--witness", fixture.witness, "--window-hours", "8"], cwd);
+    assert.equal(got.code, 4, `stdout:\n${got.stdout}\nstderr:\n${got.stderr}`);
+    assert.equal(controlState(got.stdout, "censoring"), "NO VERDICT", got.stdout);
+    assert.match(got.stderr, /the censoring control drew \d+ rows and could attempt none of them/);
+  });
+
   it("exits 2 with nothing to screen and prints no table", async () => {
     const corpus = editedCorpus("nothing", (row) => (isShippedFit(row) ? { ...row, accepted: false } : row));
     const got = await runScreen(["--corpus", corpus, "--cache-dir", fixture.cache, "--witness", fixture.witness, "--window-hours", "8"], cwd);
@@ -908,6 +918,7 @@ describe("the screen, executed on a hand-built corpus and cache", { concurrency:
     assert.match(got.stdout, /^not screened: 0 not pinned, 1 the witness cannot place — named on stderr$/m);
     assert.match(got.stderr, /1 of 2 markets have no month map the witness will vouch for and were NOT screened/);
     assert.match(got.stderr, /^ {2}GBPUSD: /m);
+    assert.match(got.stdout, /^ {2}cannot place: GBPUSD$/m, "the record does not name the market it could not screen");
     assert.equal(tableLines(got.stdout).filter((line) => line.market === "GBPUSD").length, 0);
     assert.equal(controlState(got.stdout, "censoring"), "HOLDS", got.stdout);
   });

@@ -61,9 +61,10 @@
  *
  * Exit codes: 0 no control failed, every market was screened and every read
  * row anchored; 3 a control FAILED where it was judged; 4 a market was not
- * pinned, the witness could not place it, or a row did not anchor; 2 nothing
- * to screen. NO VERDICT is printed, not an exit code, as every reader here
- * prints it.
+ * pinned, the witness could not place it, a row did not anchor, or the
+ * censoring control drew rows and could attempt none of them (the instrument
+ * went unchecked); 2 nothing to screen. NO VERDICT is otherwise printed, not
+ * an exit code, as every reader here prints it.
  *
  *   npx tsx scripts/entry-excursion-screen.ts --corpus <capture-all.jsonl> \
  *     --window-hours 8 --cache-dir .calibration-cache [--witness <table>]
@@ -945,6 +946,9 @@ export async function runScreen(argv: readonly string[]): Promise<number> {
     ? "HOLDS"
     : "FAILS";
   const unanchored = results.reduce((sum, result) => sum + result.counts.unanchored, 0);
+  // A sample drawn and none of it attempted checked nothing: that is a reader
+  // that could not examine, like an unpinned market, not a verdict of no effect.
+  const censoringUnchecked = censoring.sampled > 0 && censoring.attempted === 0;
 
   const out: string[] = [];
   out.push(
@@ -1045,6 +1049,9 @@ export async function runScreen(argv: readonly string[]): Promise<number> {
   out.push(
     `not screened: ${unpinned.length} not pinned, ${unplaceable.length} the witness cannot place — named on stderr`,
   );
+  // The names ride in the record too: stdout is the record.
+  for (const entry of unpinned) out.push(`  not pinned: ${entry.symbol}`);
+  for (const entry of unplaceable) out.push(`  cannot place: ${entry.symbol}`);
 
   out.push("", "PER MARKET (candidate − null, ATR)");
   out.push(
@@ -1103,8 +1110,14 @@ export async function runScreen(argv: readonly string[]): Promise<number> {
         `the cache is not the one the corpus read. They are excluded from every figure above.`,
     );
   }
+  if (censoringUnchecked) {
+    console.error(
+      `\nthe censoring control drew ${censoring.sampled} rows and could attempt none of them; ` +
+        `the instrument went unchecked on this read.`,
+    );
+  }
   if ([...states.values(), censoringState].includes("FAILS")) return 3;
-  if (unpinned.length > 0 || unplaceable.length > 0 || unanchored > 0) return 4;
+  if (unpinned.length > 0 || unplaceable.length > 0 || unanchored > 0 || censoringUnchecked) return 4;
   return 0;
 }
 
