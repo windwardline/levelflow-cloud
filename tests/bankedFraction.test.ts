@@ -15,14 +15,16 @@ import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import {
   bankedFraction,
   CLEAN_STOP_SLIPPAGE_SINCE,
-  cleanStopCharge,
+  EXPIRY_SLIPPAGE_SINCE,
+  exitSlippageCharge,
   formatBankedFraction,
   FRACTIONS,
   GRAINS,
   parseFolds,
   rFromLegs,
   SEALED_FOLD,
-  stopPrintSlippage,
+  slippageClassOf,
+  stopPrintSlippage as stopPrintSlippageOf,
 } from "../scripts/banked-fraction.ts";
 import { noKeychainEnv } from "./support/noKeychain.ts";
 
@@ -410,18 +412,19 @@ describe("the control, and what it keeps apart", () => {
  *   R_adj(f) = R(f) − (1−f)·0.7: R_adj(0) 1.1, R_adj(½) 1.75, R_adj(1) 2.4; best f (adj) 1, Δ_adj +0.65.
  *   Same-bar: lock exits 1 of 2 (P), take_profit exits 0 of 1.
  */
+function slipRows(): Row[] {
+  let index = 0;
+  return [
+    row({ exit: 100.4, index: index++, outcome: "tp1_partial", sameBar: true, slippage: 0.2, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
+    row({ exit: 100.3, index: index++, outcome: "tp1_partial", slippage: 0.2, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
+    row({ exit: 101.6, index: index++, outcome: "take_profit", slippage: 0.2, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
+    row({ exit: 100.5, index: index++, kind: "expiry", outcome: "expired_in_profit", slippage: 0.1, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
+    row({ exit: 100.0, index: index++, kind: "breakeven_stop", outcome: "tp1_partial", slippage: 0.3, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
+    row({ exit: 99, index: index++, kind: "ambiguous", outcome: "ambiguous", slippage: 0.1, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
+  ];
+}
+
 describe("slippage-priced and same-bar", () => {
-  function slipRows(): Row[] {
-    let index = 0;
-    return [
-      row({ exit: 100.4, index: index++, outcome: "tp1_partial", sameBar: true, slippage: 0.2, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
-      row({ exit: 100.3, index: index++, outcome: "tp1_partial", slippage: 0.2, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
-      row({ exit: 101.6, index: index++, outcome: "take_profit", slippage: 0.2, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
-      row({ exit: 100.5, index: index++, kind: "expiry", outcome: "expired_in_profit", slippage: 0.1, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
-      row({ exit: 100.0, index: index++, kind: "breakeven_stop", outcome: "tp1_partial", slippage: 0.3, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
-      row({ exit: 99, index: index++, kind: "ambiguous", outcome: "ambiguous", slippage: 0.1, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
-    ];
-  }
 
   it("charges the sweep's own slippage on the runner fraction of every stop print at its level and every expiry, never on a limit print or a gapped stop", async () => {
     const summary = await read([writeCorpus(slipRows())], { folds: ["fit"] });
@@ -448,6 +451,9 @@ describe("slippage-priced and same-bar", () => {
     // estimatedSlippage 1 over riskDistance 4: sR = 0.25 exactly in binary, so deepEqual can read it.
     const levels = { entryPrice: 100, stopLoss: 99, takeProfit1: 100.4 };
     const legs = (kind: string | undefined, exit: number) => [{ leg: "entry", price: 100 }, { leg: "tp1", price: 100.4 }, { kind, leg: "exit", price: exit }];
+    // A corpus emitted before any clean exit slipped: the hybrid's founding case.
+    const stopPrintSlippage = (input: Omit<Parameters<typeof stopPrintSlippageOf>[0], "slippageClass">) =>
+      stopPrintSlippageOf({ ...input, slippageClass: "gapped-only" });
     assert.deepEqual(stopPrintSlippage({ estimatedSlippage: 1, legs: legs("tp1_lock", 100.4), levels, riskDistance: 4 }), { charged: true, kind: "tp1_lock", sR: 0.25 });
     assert.deepEqual(stopPrintSlippage({ estimatedSlippage: 0.02, legs: legs("tp1_lock", 100.39), levels, riskDistance: 0.1 }), { charged: false, kind: "tp1_lock", sR: 0 });
     assert.deepEqual(stopPrintSlippage({ estimatedSlippage: 0.02, legs: legs("take_profit", 101.6), levels, riskDistance: 0.1 }), { charged: false, kind: "take_profit", sR: 0 });
@@ -463,6 +469,15 @@ describe("slippage-priced and same-bar", () => {
     assert.throws(() => stopPrintSlippage({ estimatedSlippage: 0.02, legs: legs(undefined, 100.4), levels, riskDistance: 0.1 }), /names no kind/);
     assert.throws(() => stopPrintSlippage({ estimatedSlippage: 0.02, legs: legs("", 100.4), levels, riskDistance: 0.1 }), /names no kind/);
     assert.throws(() => stopPrintSlippage({ estimatedSlippage: 0.02, legs: legs("tp1_lock", 100.4), levels: { ...levels, takeProfit1: null }, riskDistance: 0.1 }), /no level on the row/);
+    // The class decides what is still unslipped. A clean-stop corpus already
+    // carries every stop's slippage in its print, so only the expiry is charged;
+    // a corpus that slips every market exit is charged nothing.
+    const at = (slippageClass: "clean-stops" | "every-market-exit", kind: string, exit: number) =>
+      stopPrintSlippageOf({ estimatedSlippage: 1, legs: legs(kind, exit), levels, riskDistance: 4, slippageClass });
+    assert.deepEqual(at("clean-stops", "tp1_lock", 100.4), { charged: false, kind: "tp1_lock", sR: 0 });
+    assert.deepEqual(at("clean-stops", "expiry", 100.7), { charged: true, kind: "expiry", sR: 0.25 });
+    assert.deepEqual(at("every-market-exit", "expiry", 100.7), { charged: false, kind: "expiry", sR: 0 });
+    assert.deepEqual(at("every-market-exit", "stop_loss", 99), { charged: false, kind: "stop_loss", sR: 0 });
   });
 
   it("refuses a tp1 row that cannot be placed on the slippage-priced table: no estimatedSlippage, or legs without times", async () => {
@@ -597,14 +612,78 @@ describe("the market grain — per market, never per class (amendment 33)", () =
 
 
 /**
- * --stop-exit-slippage: the resolver's clean-stop charge, priced from the legs.
+ * The corpus's slippage class — which market-order exits its resolver already
+ * printed with the modelled slippage — decided from the engine version, stated
+ * on every read, and governing both slippage models (review of #689, finding 1).
+ */
+describe("the slippage class of a corpus, stated", () => {
+  it("places every engine version or refuses it", () => {
+    assert.equal(slippageClassOf("2026.09.14.forex-commission-cross-rate"), "gapped-only");
+    assert.equal(slippageClassOf("2026.09.05.test"), "gapped-only");
+    assert.equal(slippageClassOf(CLEAN_STOP_SLIPPAGE_SINCE), "clean-stops");
+    assert.equal(slippageClassOf(EXPIRY_SLIPPAGE_SINCE), "every-market-exit");
+    assert.equal(slippageClassOf("2026.10.01.later"), "every-market-exit");
+    // Both changes shipped on one day: a same-day name the reader does not know cannot be placed by its date.
+    assert.throws(() => slippageClassOf("2026.09.23.something-else"), /cannot place/);
+    assert.throws(() => slippageClassOf("unversioned"), /carries no date/);
+  });
+
+  it("a pre-change corpus reads as before, and says which class it is", async () => {
+    const summary = await read([writeCorpus(slipRows())], { folds: ["fit"] });
+    assert.equal(summary.slippageClass, "gapped-only");
+    const cell = summary.cells.get("forex|fit")!;
+    assert.equal(cell.stopPrintRows, 4);
+    near(cell.slippageTotal, 0.7);
+    const text = formatBankedFraction(summary);
+    assert.match(text, /engine slippage class: gapped-only/);
+    assert.match(text, /slippage rides only in gapped prints \(FR-7\)/);
+  });
+
+  it("a corpus whose stops already slip charges only the expiry, and says why", async () => {
+    const summary = await read([writeCorpus(slipRows(), "shard", { analyzerVersion: CLEAN_STOP_SLIPPAGE_SINCE })], { folds: ["fit"] });
+    assert.equal(summary.slippageClass, "clean-stops");
+    const cell = summary.cells.get("forex|fit")!;
+    // Of slipRows' four charged prints only the expiry (slippage .1) is still unslipped.
+    assert.equal(cell.stopPrintRows, 1);
+    near(cell.slippageTotal, 0.1);
+    near(cell.byFractionAdjusted.get(0)!.total, cell.byFraction.get(0)!.total - 0.1);
+    const text = formatBankedFraction(summary);
+    assert.match(text, /engine slippage class: clean-stops/);
+    assert.match(text, /no stop print is charged/);
+  });
+
+  it("a corpus that slips every market exit charges nothing, and says it is by design, not gapping", async () => {
+    const summary = await read([writeCorpus(slipRows(), "shard", { analyzerVersion: EXPIRY_SLIPPAGE_SINCE })], { folds: ["fit"] });
+    assert.equal(summary.slippageClass, "every-market-exit");
+    const cell = summary.cells.get("forex|fit")!;
+    assert.equal(cell.stopPrintRows, 0);
+    assert.equal(cell.slippageTotal, 0);
+    for (const fraction of FRACTIONS) {
+      assert.equal(cell.byFractionAdjusted.get(fraction)!.total, cell.byFraction.get(fraction)!.total);
+    }
+    const text = formatBankedFraction(summary);
+    assert.match(text, /engine slippage class: every-market-exit/);
+    assert.match(text, /R_adj\(f\) = R\(f\)/);
+    assert.match(text, /by design, not because any row gapped/);
+    assert.doesNotMatch(text, /slippage rides only in gapped prints/);
+  });
+
+  it("refuses a corpus whose class it cannot place, before it reads a row", async () => {
+    await assert.rejects(read([writeCorpus(slipRows(), "shard", { analyzerVersion: "unversioned" })], { folds: ["fit"] }), /carries no date/);
+    await assert.rejects(read([writeCorpus(slipRows(), "shard", { analyzerVersion: "2026.09.23.something-else" })], { folds: ["fit"] }), /cannot place/);
+  });
+});
+
+/**
+ * --exit-slippage: the current resolver's market-exit charges, priced from the legs.
  *
- * From the engine version CLEAN_STOP_SLIPPAGE_SINCE names, every stop-kind
- * exit that did not gap prints its level ∓ estimatedSlippage × scale against
- * the position (replay.ts `stopExitSlippage`). The corpora of record predate
- * it; this pass prices what the change does to them without a re-simulate. A
- * row's charge is its exit fraction (1 without a tp1 leg, ½ with one) times the
- * slippage over risk. Hand-computed, forex fit, riskDistance 1 on every row:
+ * From CLEAN_STOP_SLIPPAGE_SINCE every stop-kind exit that did not gap prints
+ * its level ∓ estimatedSlippage × scale against the position, and from
+ * EXPIRY_SLIPPAGE_SINCE the review-end close does too. The corpora of record
+ * predate both; this pass prices what the two changes do to them without a
+ * re-simulate. A row's charge is its exit fraction (1 without a tp1 leg, ½
+ * with one) times the slippage over risk. Hand-computed, forex fit,
+ * riskDistance 1 on every row:
  *
  *   A  stop_loss buy at 99, s .02                 clean   charge .02    R −1
  *   B  stop_loss buy at 98.9 (gapped), s .02      gapped  charge 0      R −1.1
@@ -612,14 +691,17 @@ describe("the market grain — per market, never per class (amendment 33)", () =
  *   D  breakeven_stop at entry 100, s .04         clean   charge .02    R  .2
  *   E  ambiguous at 99, no tp1, s .02             clean   charge .02    R −1
  *   F  take_profit 101.6, s .02                   limit   charge 0      R 1.0
- *   G  expiry 100.5, s .1                         close   charge 0      R  .45
+ *   G  expiry 100.5 after tp1, s .1               expiry  charge .05    R  .45
  *   H  stop_loss SELL at 101, s .02               clean   charge .02    R −1
+ *   J  expiry 100.01, no tp1, s .02               expiry  charge .02    R  .01 → −.01 (label flips)
+ *   K  expiry SELL 100.3, no tp1, s .05           expiry  charge .05    R −.3
  *
- *   forex: 8 filled, 6 stop-kind, 5 clean, 1 gapped; charge .09; R −2.05 → −2.14.
+ *   forex: 10 filled; 6 stop-kind, 5 clean, 1 gapped, stop charge .09;
+ *   3 expiries, expiry charge .12, 1 label flip; R −2.34 → −2.55.
  *   metals (XAUUSD): stop_loss at 99, s .05: charge .05; R −1 → −1.05.
  */
-describe("--stop-exit-slippage — every clean stop-kind print, priced at the resolver's new physics", () => {
-  function stopRows(): Row[] {
+describe("--exit-slippage — every market-order exit, priced at the current resolver's physics", () => {
+  function exitRows(): Row[] {
     let index = 0;
     return [
       row({ exit: 99, index: index++, outcome: "stop_loss", slippage: 0.02, split: "fit", symbol: "EURUSD" }),
@@ -628,15 +710,17 @@ describe("--stop-exit-slippage — every clean stop-kind print, priced at the re
       row({ exit: 100, index: index++, kind: "breakeven_stop", outcome: "tp1_partial", slippage: 0.04, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
       row({ exit: 99, index: index++, outcome: "ambiguous", slippage: 0.02, split: "fit", symbol: "EURUSD" }),
       row({ exit: 101.6, index: index++, outcome: "take_profit", slippage: 0.02, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
-      row({ exit: 100.5, index: index++, kind: "expiry", outcome: "expired_in_profit", slippage: 0.1, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
+      row({ exit: 100.5, index: index++, kind: "expiry", outcome: "tp1_partial", slippage: 0.1, split: "fit", symbol: "EURUSD", tp1: 100.4 }),
       row({ exit: 101, index: index++, outcome: "stop_loss", side: "sell", slippage: 0.02, split: "fit", stopLoss: 101, symbol: "EURUSD" }),
+      row({ exit: 100.01, index: index++, kind: "expiry", outcome: "expired_in_profit", slippage: 0.02, split: "fit", symbol: "EURUSD" }),
+      row({ exit: 100.3, index: index++, kind: "expiry", outcome: "expired_at_loss", side: "sell", slippage: 0.05, split: "fit", symbol: "EURUSD" }),
       row({ exit: 99, index: index++, outcome: "stop_loss", slippage: 0.05, split: "fit", symbol: "XAUUSD" }),
       // A confirm row that WOULD be charged: the fold stays sealed under the flag.
       row({ exit: 99, index: index++, outcome: "stop_loss", slippage: 0.5, split: SEALED_FOLD, symbol: "EURUSD" }),
     ];
   }
 
-  it("cleanStopCharge prices one row: exit fraction × slippage × scale / risk, against the position, and only at the level", () => {
+  it("exitSlippageCharge prices one row: exit fraction × slippage × scale / risk, against the position, by class", () => {
     // Slippage .5 over risk 2 is exact in binary, so deepEqual can read it.
     const levels = { entryPrice: 100, stopLoss: 99, takeProfit1: 100.5 };
     const legs = (kind: string | undefined, exit: number, tp1 = false) => [
@@ -644,96 +728,125 @@ describe("--stop-exit-slippage — every clean stop-kind print, priced at the re
       ...(tp1 ? [{ leg: "tp1", price: 100.5 }] : []),
       { kind, leg: "exit", price: exit },
     ];
-    const charge = (kind: string | undefined, exit: number, options: { scale?: number; side?: "buy" | "sell"; slippage?: number; tp1?: boolean; levels?: typeof levels } = {}) =>
-      cleanStopCharge({
+    const charge = (
+      kind: string | undefined,
+      exit: number,
+      options: { scale?: number; side?: "buy" | "sell"; slippage?: number; tp1?: boolean; levels?: typeof levels; slippageClass?: "gapped-only" | "clean-stops" } = {},
+    ) =>
+      exitSlippageCharge({
         estimatedSlippage: options.slippage ?? 0.5,
         legs: legs(kind, exit, options.tp1),
         levels: options.levels ?? levels,
         riskDistance: 2,
         scale: options.scale ?? 1,
         side: options.side ?? "buy",
+        slippageClass: options.slippageClass ?? "gapped-only",
       });
-    assert.deepEqual(charge("stop_loss", 99), { chargeR: 0.25, clean: true, kind: "stop_loss" });
-    assert.deepEqual(charge("stop_loss", 101, { levels: { ...levels, stopLoss: 101 }, side: "sell" }), { chargeR: 0.25, clean: true, kind: "stop_loss" });
-    assert.deepEqual(charge("stop_loss", 99, { tp1: true }), { chargeR: 0.125, clean: true, kind: "stop_loss" });
-    assert.deepEqual(charge("breakeven_stop", 100, { tp1: true }), { chargeR: 0.125, clean: true, kind: "breakeven_stop" });
-    assert.deepEqual(charge("tp1_lock", 100.5, { tp1: true }), { chargeR: 0.125, clean: true, kind: "tp1_lock" });
-    assert.deepEqual(charge("ambiguous", 99), { chargeR: 0.25, clean: true, kind: "ambiguous" });
+    assert.deepEqual(charge("stop_loss", 99), { charged: true, chargeR: 0.25, kind: "stop_loss" });
+    assert.deepEqual(charge("stop_loss", 101, { levels: { ...levels, stopLoss: 101 }, side: "sell" }), { charged: true, chargeR: 0.25, kind: "stop_loss" });
+    assert.deepEqual(charge("stop_loss", 99, { tp1: true }), { charged: true, chargeR: 0.125, kind: "stop_loss" });
+    assert.deepEqual(charge("breakeven_stop", 100, { tp1: true }), { charged: true, chargeR: 0.125, kind: "breakeven_stop" });
+    assert.deepEqual(charge("tp1_lock", 100.5, { tp1: true }), { charged: true, chargeR: 0.125, kind: "tp1_lock" });
+    assert.deepEqual(charge("ambiguous", 99), { charged: true, chargeR: 0.25, kind: "ambiguous" });
     // A gapped stop already carries FR-7's gap slippage: counted, never charged.
-    assert.deepEqual(charge("stop_loss", 98.9), { chargeR: 0, clean: false, kind: "stop_loss" });
+    assert.deepEqual(charge("stop_loss", 98.9), { charged: false, chargeR: 0, kind: "stop_loss" });
+    // The expiry close is a market order: charged wherever it printed, at its exit fraction.
+    assert.deepEqual(charge("expiry", 100.25), { charged: true, chargeR: 0.25, kind: "expiry" });
+    assert.deepEqual(charge("expiry", 100.25, { tp1: true }), { charged: true, chargeR: 0.125, kind: "expiry" });
+    assert.deepEqual(charge("expiry", 99.75, { side: "sell" }), { charged: true, chargeR: 0.25, kind: "expiry" });
     // The scale the corpus ran at governs, as it governs the resolver.
-    assert.deepEqual(charge("stop_loss", 99, { scale: 0.5 }), { chargeR: 0.125, clean: true, kind: "stop_loss" });
-    assert.deepEqual(charge("stop_loss", 99, { scale: 0 }), { chargeR: 0, clean: true, kind: "stop_loss" });
-    // Limit and close prints do not move.
+    assert.deepEqual(charge("stop_loss", 99, { scale: 0.5 }), { charged: true, chargeR: 0.125, kind: "stop_loss" });
+    assert.deepEqual(charge("expiry", 100.25, { scale: 0 }), { charged: true, chargeR: 0, kind: "expiry" });
+    // A clean-stop corpus already slipped its stops: only the expiry is priced.
+    assert.equal(charge("stop_loss", 99, { slippageClass: "clean-stops" }), null);
+    assert.deepEqual(charge("expiry", 100.25, { slippageClass: "clean-stops" }), { charged: true, chargeR: 0.25, kind: "expiry" });
+    // Limit prints do not move.
     assert.equal(charge("take_profit", 105), null);
-    assert.equal(charge("expiry", 100.3), null);
     assert.throws(() => charge(undefined, 99), /names no kind/);
     assert.throws(() => charge("stop_loss", 99, { levels: { ...levels, stopLoss: null as unknown as number } }), /no level on the row/);
     assert.throws(() => charge("stop_loss", 99, { slippage: Number.NaN }), /no finite estimatedSlippage/);
+    assert.throws(() => charge("expiry", 100.25, { slippage: Number.NaN }), /no finite estimatedSlippage/);
   });
 
-  it("prices every clean stop-kind row, tp1 or not, per class and pooled, hand-computed; confirm stays sealed", async () => {
-    const summary = await read([writeCorpus(stopRows())], { folds: ["fit"], stopExitSlippage: true });
+  it("prices every clean stop and every expiry, per class and pooled, hand-computed; confirm stays sealed", async () => {
+    const summary = await read([writeCorpus(exitRows())], { exitSlippage: true, folds: ["fit"] });
     assert.equal(summary.rows.sealed, 1);
-    assert.deepEqual(summary.stopExitSlippage, { scale: 1 });
-    const forex = summary.cells.get("forex|fit")!.stopExit!;
+    assert.deepEqual(summary.exitSlippage, { scale: 1 });
+    const cell = summary.cells.get("forex|fit")!;
+    const forex = cell.exitSlippage!;
     assert.deepEqual(
-      [forex.stopKindRows, forex.clean, forex.gapped, forex.cleanByKind],
-      [6, 5, 1, { ambiguous: 1, breakeven_stop: 1, stop_loss: 2, tp1_lock: 1 }],
+      [forex.stopKindRows, forex.cleanStops, forex.gappedStops, forex.cleanByKind, forex.expiryRows, forex.expiryLabelFlips],
+      [6, 5, 1, { ambiguous: 1, breakeven_stop: 1, stop_loss: 2, tp1_lock: 1 }, 3, 1],
     );
-    near(forex.chargeTotal, 0.09);
-    near(summary.cells.get("forex|fit")!.shippedTotal, -2.05);
-    near(summary.cells.get("forex|fit")!.shippedTotal - forex.chargeTotal, -2.14);
-    near(summary.cells.get("metals|fit")!.stopExit!.chargeTotal, 0.05);
-    near(summary.cells.get("pooled|fit")!.stopExit!.chargeTotal, 0.14);
-    assert.equal(summary.cells.get("pooled|fit")!.stopExit!.clean, 6);
+    near(forex.stopCharge, 0.09);
+    near(forex.expiryCharge, 0.12);
+    near(cell.shippedTotal, -2.34);
+    near(cell.shippedTotal - forex.stopCharge - forex.expiryCharge, -2.55);
+    near(summary.cells.get("metals|fit")!.exitSlippage!.stopCharge, 0.05);
+    const pooled = summary.cells.get("pooled|fit")!.exitSlippage!;
+    near(pooled.stopCharge + pooled.expiryCharge, 0.26);
+    assert.deepEqual([pooled.cleanStops, pooled.expiryRows], [6, 3]);
     const text = formatBankedFraction(summary);
-    assert.match(text, /--- fit · stop-exit slippage/);
+    assert.match(text, /--- fit · exit slippage/);
     // Counts only: the money columns are pinned on the summary above, where no
     // one-decimal rounding of a .x5 total can decide the assertion.
-    assert.match(text, /\| forex \| 8 \| 6 \| 5 \| 1 \| 2 \| 1 \| 1 \| 1 \|/);
-    assert.match(text, /\| metals \| 1 \| 1 \| 1 \| 0 \| 1 \| 0 \| 0 \| 0 \|/);
+    const money = "-?\\d+\\.\\d";
+    assert.match(text, new RegExp(`\\| forex \\| 10 \\| 6 \\| 5 \\| 1 \\| 2 \\| 1 \\| 1 \\| 1 \\| ${money} \\| 3 \\| ${money} \\| 1 \\|`));
+    assert.match(text, new RegExp(`\\| metals \\| 1 \\| 1 \\| 1 \\| 0 \\| 1 \\| 0 \\| 0 \\| 0 \\| ${money} \\| 0 \\| ${money} \\| 0 \\|`));
   });
 
   it("charges at the corpus's own modelled-cost scale", async () => {
-    const half = await read([writeCorpus(stopRows(), "shard", { modeledCostScale: 0.5 })], { folds: ["fit"], stopExitSlippage: true });
-    assert.deepEqual(half.stopExitSlippage, { scale: 0.5 });
-    near(half.cells.get("forex|fit")!.stopExit!.chargeTotal, 0.045);
-    const zero = await read([writeCorpus(stopRows(), "shard", { modeledCostScale: 0 })], { folds: ["fit"], stopExitSlippage: true });
-    near(zero.cells.get("forex|fit")!.stopExit!.chargeTotal, 0);
-    assert.equal(zero.cells.get("forex|fit")!.stopExit!.clean, 5);
+    const half = await read([writeCorpus(exitRows(), "shard", { modeledCostScale: 0.5 })], { exitSlippage: true, folds: ["fit"] });
+    assert.deepEqual(half.exitSlippage, { scale: 0.5 });
+    const forex = half.cells.get("forex|fit")!.exitSlippage!;
+    near(forex.stopCharge + forex.expiryCharge, 0.105);
+    const zero = await read([writeCorpus(exitRows(), "shard", { modeledCostScale: 0 })], { exitSlippage: true, folds: ["fit"] });
+    const none = zero.cells.get("forex|fit")!.exitSlippage!;
+    near(none.stopCharge + none.expiryCharge, 0);
+    assert.deepEqual([none.cleanStops, none.expiryRows, none.expiryLabelFlips], [5, 3, 0]);
   });
 
-  it("refuses what it cannot price: a corpus already slipped, an undatable engine, no scale, no slippage, no kind", async () => {
+  it("on a corpus whose stops already slip it prices the expiry alone, and says so", async () => {
+    const summary = await read([writeCorpus(exitRows(), "shard", { analyzerVersion: CLEAN_STOP_SLIPPAGE_SINCE })], { exitSlippage: true, folds: ["fit"] });
+    const forex = summary.cells.get("forex|fit")!.exitSlippage!;
+    assert.deepEqual([forex.stopKindRows, forex.cleanStops, forex.expiryRows], [0, 0, 3]);
+    near(forex.stopCharge, 0);
+    near(forex.expiryCharge, 0.12);
+    const text = formatBankedFraction(summary);
+    assert.match(text, /stop prints already carry their slippage in this corpus/);
+    assert.match(text, /\| forex \| 10 \| — \| — \| — \| — \| — \| — \| — \| — \| 3 \|/);
+  });
+
+  it("refuses what it cannot price: a corpus that slips every market exit, an unplaceable engine, no scale, no slippage, no kind", async () => {
     await assert.rejects(
-      read([writeCorpus(stopRows(), "shard", { analyzerVersion: CLEAN_STOP_SLIPPAGE_SINCE })], { folds: ["fit"], stopExitSlippage: true }),
-      /already slips every clean stop/,
+      read([writeCorpus(exitRows(), "shard", { analyzerVersion: EXPIRY_SLIPPAGE_SINCE })], { exitSlippage: true, folds: ["fit"] }),
+      /already slips every market-order exit/,
     );
     await assert.rejects(
-      read([writeCorpus(stopRows(), "shard", { analyzerVersion: "unversioned" })], { folds: ["fit"], stopExitSlippage: true }),
+      read([writeCorpus(exitRows(), "shard", { analyzerVersion: "unversioned" })], { exitSlippage: true, folds: ["fit"] }),
       /carries no date/,
     );
     await assert.rejects(
-      read([writeCorpus(stopRows(), "shard", { modeledCostScale: undefined })], { folds: ["fit"], stopExitSlippage: true }),
+      read([writeCorpus(exitRows(), "shard", { modeledCostScale: undefined })], { exitSlippage: true, folds: ["fit"] }),
       /states no modeledCostScale/,
     );
-    const noSlip = stopRows().slice(0, 1).map((entry) => ({ ...entry, estimatedSlippage: undefined }));
-    await assert.rejects(read([writeCorpus(noSlip)], { folds: ["fit"], stopExitSlippage: true }), /EURUSD stop_loss row — .*no finite estimatedSlippage/);
+    const noSlip = exitRows().slice(0, 1).map((entry) => ({ ...entry, estimatedSlippage: undefined }));
+    await assert.rejects(read([writeCorpus(noSlip)], { exitSlippage: true, folds: ["fit"] }), /EURUSD stop_loss row — .*no finite estimatedSlippage/);
     // A row without a tp1 leg whose exit names no kind: the default tables price it (one exit, full size), the pass cannot.
-    const noKind = stopRows().slice(0, 1).map((entry) => ({ ...entry, legs: (entry.legs as Row[]).map((leg) => (leg.leg === "exit" ? { ...leg, kind: undefined } : leg)) }));
+    const noKind = exitRows().slice(0, 1).map((entry) => ({ ...entry, legs: (entry.legs as Row[]).map((leg) => (leg.leg === "exit" ? { ...leg, kind: undefined } : leg)) }));
     await read([writeCorpus(noKind)], { folds: ["fit"] });
-    await assert.rejects(read([writeCorpus(noKind)], { folds: ["fit"], stopExitSlippage: true }), /names no kind/);
+    await assert.rejects(read([writeCorpus(noKind)], { exitSlippage: true, folds: ["fit"] }), /names no kind/);
   });
 
   it("is off by default: no charge, no section, the default tables unchanged", async () => {
-    const path = writeCorpus(stopRows());
+    const path = writeCorpus(exitRows());
     const plain = await read([path], { folds: ["fit"] });
-    assert.equal(plain.stopExitSlippage, null);
-    assert.equal(plain.cells.get("forex|fit")!.stopExit, undefined);
+    assert.equal(plain.exitSlippage, null);
+    assert.equal(plain.cells.get("forex|fit")!.exitSlippage, undefined);
     const text = formatBankedFraction(plain);
-    assert.doesNotMatch(text, /stop-exit slippage/);
+    assert.doesNotMatch(text, /exit slippage/);
     // The flag only ADDS: every default line survives, in order.
-    const flagged = formatBankedFraction(await read([path], { folds: ["fit"], stopExitSlippage: true })).split("\n");
+    const flagged = formatBankedFraction(await read([path], { exitSlippage: true, folds: ["fit"] })).split("\n");
     let at = 0;
     for (const line of text.split("\n")) {
       at = flagged.indexOf(line, at);
@@ -742,12 +855,15 @@ describe("--stop-exit-slippage — every clean stop-kind print, priced at the re
     }
   });
 
-  it("the CLI takes the flag and prints the section", () => {
-    const out = execFileSync(TSX, [READER, writeCorpus(stopRows()), "--folds", "fit", "--stop-exit-slippage"], {
-      encoding: "utf8",
-      env: { ...process.env, ...noKeychainEnv() },
-    });
-    assert.match(out, /--- fit · stop-exit slippage/);
-    assert.match(out, /\| \*\*pooled\*\* \| 9 \| 7 \| 6 \| 1 \|/);
+  it("the CLI takes --exit-slippage, and refuses the retired --stop-exit-slippage by name", () => {
+    const env = { ...process.env, ...noKeychainEnv() };
+    const path = writeCorpus(exitRows());
+    const out = execFileSync(TSX, [READER, path, "--folds", "fit", "--exit-slippage"], { encoding: "utf8", env });
+    assert.match(out, /--- fit · exit slippage/);
+    assert.match(out, /\| \*\*pooled\*\* \| 11 \| 7 \| 6 \| 1 \|/);
+    assert.throws(
+      () => execFileSync(TSX, [READER, path, "--folds", "fit", "--stop-exit-slippage"], { encoding: "utf8", env, stdio: ["ignore", "pipe", "pipe"] }),
+      /unknown flag --stop-exit-slippage/,
+    );
   });
 });

@@ -127,9 +127,12 @@ export type ReplayFillOptions = {
   // stop takes gapExitSlippage on its gap print instead, never both. Until
   // 2026.09.23.stop-exit-slippage a clean stop printed exactly at its level,
   // so the slippage the admission gate charges reached realized R only on
-  // gapped opens. Limit prints (entry, TP1, target) and the expiry close
-  // print carry none.
+  // gapped opens. Limit prints (entry, TP1, target) carry none.
   stopExitSlippage?: number;
+  // FR-1's review-end close is a market order as well, so it prints the
+  // last close ∓ half a spread ∓ this, against the position. Until
+  // 2026.09.23.expiry-exit-slippage it printed without it.
+  expiryExitSlippage?: number;
   // FR-4: a manual TP1 partial fills this much worse than its level.
   tp1FillHaircut?: number;
   // LA-13: a limit "touch" is not a fill — demand this much penetration
@@ -240,13 +243,14 @@ export function fillOptionsFromRiskModel(
 // half-size exits (ladder) or one full exit, two cost units either way.
 // Both callers pass perLegCost = commission / 2 (roundTripCost / 2), the
 // one cost no print can carry: the spread rides in the bid/ask triggers
-// and fills, and slippage rides in every stop-kind exit print — the
+// and fills, and slippage rides in every market-order exit print — the
 // level ∓ stopExitSlippage on a clean stop, the gap print ∓
 // gapExitSlippage on a gapped one (2026.09.23.stop-exit-slippage; before
-// it, only the gapped print). Limit prints carry no slippage. The
-// resolver prices ambiguity at the stop side, so 2e's explicit -1, less
-// the stop's slippage, emerges from the same arithmetic as every other
-// outcome.
+// it, only the gapped print), and the review-end close ∓
+// expiryExitSlippage (2026.09.23.expiry-exit-slippage). Limit prints
+// carry no slippage. The resolver prices ambiguity at the stop side, so
+// 2e's explicit -1, less the stop's slippage, emerges from the same
+// arithmetic as every other outcome.
 export function realizedRFromLegs(input: {
   legs: ResolutionLeg[];
   perLegCost: number;
@@ -386,6 +390,7 @@ export function evaluateSetupOutcome(
   const halfSpread = options?.halfSpread ?? 0;
   const gapExitSlippage = options?.gapExitSlippage ?? 0;
   const stopExitSlippage = options?.stopExitSlippage ?? 0;
+  const expiryExitSlippage = options?.expiryExitSlippage ?? 0;
   const touchFillPenetration = options?.touchFillPenetration ?? 0;
   const tp1FillHaircut = options?.tp1FillHaircut ?? 0;
   const entryLatencyBars = options?.entryLatencyBars ?? 0;
@@ -784,11 +789,15 @@ export function evaluateSetupOutcome(
     // Realized from the ACTUAL fill print — a gap-improved entry earns its
     // improvement — against the planned risk unit. FR-1: closing at review
     // end is a market order that crosses the book once, so the exit prints
-    // at the BID side of the last close, not at mid. D2 (R1a): the shared
+    // at the BID side of the last close, not at mid — and, being a market
+    // order, with the modelled slippage against the position, as a clean
+    // stop does (2026.09.23.expiry-exit-slippage). D2 (R1a): the shared
     // accountant reads the legs, so a TP1-banked runner scores the LADDER
     // (half at TP1, half here) where this branch used to apply full-size
     // arithmetic to a half-sized position.
-    const expiryPrint = isBuy ? lastClose - halfSpread : lastClose + halfSpread;
+    const expiryPrint = isBuy
+      ? lastClose - halfSpread - expiryExitSlippage
+      : lastClose + halfSpread + expiryExitSlippage;
     legs.push({
       kind: "expiry",
       leg: "exit",

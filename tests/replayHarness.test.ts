@@ -959,10 +959,11 @@ describe("engine v2 — the venue's fills (round-8 FR-1/3/4/6/7/8, LA-2/13)", ()
     );
   });
 
-  it("stop-exit slippage: limit and expiry prints do not slip", () => {
-    // take_profit, tp1 and entry are limits; expiry is the FR-1 close print.
-    // None of them is a stop, so the whole resolution is bit-identical with
-    // and without the option.
+  it("stop-exit slippage moves no limit print and no expiry print", () => {
+    // take_profit, tp1 and entry are limits; expiry is the FR-1 close print,
+    // which takes its own option (expiryExitSlippage, below). None of them is
+    // a stop, so the whole resolution is bit-identical with and without
+    // stopExitSlippage.
     const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105, tp1: 101 });
     const target = [
       buildBar(15, 100.4, 99.8, 100.2, 100.2),
@@ -983,6 +984,81 @@ describe("engine v2 — the venue's fills (round-8 FR-1/3/4/6/7/8, LA-2/13)", ()
       });
       assert.equal(withSlip.state === "resolved" ? withSlip.outcome : null, outcome, name);
       assert.deepEqual(withSlip, without, `${name}: a non-stop print moved`);
+    }
+  });
+
+  it("expiry-exit slippage (2026-09-23): the review-end close is a market order and prints the slippage against the position", () => {
+    // FR-1 already calls the expiry close "a market order that crosses the
+    // book once". A market order slips like a clean stop does, so the print is
+    // lastClose ∓ halfSpread ∓ the modelled slippage.
+    const long = evaluateSetupOutcome(
+      buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 }),
+      [buildBar(15, 100.4, 99.9, 100.2), buildBar(30, 100.4, 99.9, 100.2)],
+      farNow,
+      { expiryExitSlippage: 0.05, halfSpread: 0.05 },
+    );
+    assert.equal(long.state, "resolved");
+    if (long.state !== "resolved") return;
+    const longExit = long.legs.find((leg) => leg.leg === "exit");
+    assert.equal(longExit?.kind, "expiry");
+    assert.equal(longExit?.price, 100.1);
+    assert.equal(long.feedback.realizedR, 0.05);
+    assert.equal(long.outcome, "expired_in_profit");
+    const short = evaluateSetupOutcome(
+      buildSetup({ entry: 100, side: "sell", stop: 102, target: 95 }),
+      [buildBar(15, 100.4, 99.7, 99.9, 99.9), buildBar(30, 100.3, 99.6, 99.8)],
+      farNow,
+      { expiryExitSlippage: 0.05, halfSpread: 0.05 },
+    );
+    assert.equal(short.state, "resolved");
+    if (short.state !== "resolved") return;
+    const shortExit = short.legs.find((leg) => leg.leg === "exit");
+    assert.equal(shortExit?.kind, "expiry");
+    assert.equal(shortExit?.price, 99.9);
+    assert.equal(short.feedback.realizedR, 0.05);
+  });
+
+  it("expiry-exit slippage: the runner half of a banked ladder carries it, and gives it back", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105, tp1: 101 });
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 100.4, 99.8, 100.2, 100.2),
+      buildBar(30, 101.6, 100.4, 101.5, 100.5),
+      buildBar(45, 101.8, 100.9, 101.2, 101.5),
+    ], farNow, { expiryExitSlippage: 0.05 });
+    assert.equal(result.state, "resolved");
+    if (result.state !== "resolved") return;
+    assert.equal(result.outcome, "tp1_partial");
+    assert.equal(result.legs.find((leg) => leg.leg === "tp1")?.price, 101);
+    const exit = result.legs.find((leg) => leg.leg === "exit");
+    assert.equal(exit?.kind, "expiry");
+    assert.equal(exit?.price, 101.15);
+    // ½ × 1R banked + ½ × 0.575R on the slipped close.
+    assert.equal(result.feedback.realizedR, 0.5375);
+    // ½ × (0.9R best − 0.575R taken).
+    assert.equal(result.feedback.forgoneRunnerR, 0.1625);
+  });
+
+  it("expiry-exit slippage: FR-8's label reads the slipped close, so a hair in profit becomes a loss", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const bars = [buildBar(15, 100.4, 99.9, 100.2), buildBar(30, 100.3, 99.9, 100.04)];
+    const clean = evaluateSetupOutcome(setup, bars, farNow);
+    assert.equal(clean.state === "resolved" ? clean.outcome : null, "expired_in_profit");
+    const slipped = evaluateSetupOutcome(setup, bars, farNow, { expiryExitSlippage: 0.05 });
+    assert.equal(slipped.state === "resolved" ? slipped.outcome : null, "expired_at_loss");
+    assert.equal(slipped.state === "resolved" ? slipped.feedback.realizedR : null, -0.005);
+  });
+
+  it("expiry-exit slippage moves no stop, limit or entry print", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105, tp1: 101 });
+    for (const [name, bars] of [
+      ["clean stop", [buildBar(15, 100.4, 99.9, 100.2), buildBar(30, 100.5, 97.9, 100.2, 100.1)]],
+      ["gapped stop", [buildBar(15, 100.4, 99.9, 100.2), buildBar(30, 97.4, 96.8, 97.1, 97)]],
+      ["take_profit", [buildBar(15, 100.4, 99.8, 100.2, 100.2), buildBar(30, 105.4, 100.2, 104.8, 100.3)]],
+    ] as const) {
+      const options = { gapExitSlippage: 0.05, halfSpread: 0.01, stopExitSlippage: 0.05 };
+      const without = evaluateSetupOutcome(setup, [...bars], farNow, options);
+      const withSlip = evaluateSetupOutcome(setup, [...bars], farNow, { ...options, expiryExitSlippage: 0.05 });
+      assert.deepEqual(withSlip, without, `${name}: a non-expiry print moved`);
     }
   });
 
@@ -1175,6 +1251,7 @@ describe("fillOptionsFromRiskModel — live outcome-sync adopts the venue's fill
     assert.equal(options.halfSpread, 0.00005);
     assert.equal(options.gapExitSlippage, 0.00004);
     assert.equal(options.stopExitSlippage, 0.00004);
+    assert.equal(options.expiryExitSlippage, 0.00004);
     assert.equal(options.roundTripCost, 0.00006);
     assert.equal(options.barIntervalMs, 15 * 60 * 1000);
     assert.equal(options.sameBarProtectionArming, true);
@@ -1203,6 +1280,29 @@ describe("fillOptionsFromRiskModel — live outcome-sync adopts the venue's fill
     assert.equal(exit?.kind, "stop_loss");
     assert.equal(exit?.price, 97.95);
     assert.equal(result.feedback.netRealizedR, -1.025);
+  });
+
+  it("slips the review-end close by the stored slippage — the sweep's charge, live (2026-09-23)", () => {
+    const farNow = createdAt + 365 * 24 * 60 * 60 * 1000;
+    const options = fillOptionsFromRiskModel({
+      executionQuality: {
+        estimatedCommission: 0,
+        estimatedSlippage: 0.05,
+        estimatedSpread: 0,
+      },
+    });
+    const result = evaluateSetupOutcome(
+      buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 }),
+      [buildBar(15, 100.4, 99.9, 100.2), buildBar(30, 100.4, 99.9, 100.2)],
+      farNow,
+      options,
+    );
+    assert.equal(result.state, "resolved");
+    if (result.state !== "resolved") return;
+    const exit = result.legs.find((leg) => leg.leg === "exit");
+    assert.equal(exit?.kind, "expiry");
+    assert.equal(exit?.price, 100.15);
+    assert.equal(result.feedback.netRealizedR, 0.075);
   });
 
   it("a row without stored quality resolves v1-style — no invented numbers", () => {
