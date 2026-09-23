@@ -1,0 +1,31 @@
+import { readFileSync } from "node:fs";
+const files = process.argv.slice(2);
+let total = 0; const bad = {};
+const flag = (k, where) => { (bad[k] ??= []).push(where); };
+for (const f of files) {
+  const g = JSON.parse(readFileSync(f, "utf8"));
+  let n = 0, nulls = 0;
+  for (const [sym, m] of Object.entries(g.markets)) {
+    for (const [v, c] of Object.entries(m.variants)) {
+      n++; total++;
+      const w = `${f.split("/").pop()} ${sym} ${v}`;
+      if (typeof c.noVerdict !== "boolean") flag("noVerdictType", w);
+      if (c.accepted && c.noVerdict) flag("acceptedAndNoVerdict", w);
+      if (c.noVerdict) { if (!c.reason.startsWith("NO VERDICT — ")) flag("vocabNV", w); }
+      else if (!(c.reason === "accept" || c.reason === "fails" || c.reason.startsWith("LOSES MONEY — ") || c.reason.startsWith("NO PROFIT SHOWN — "))) flag("vocabJudged", w);
+      if ((c.reason === "accept") !== c.accepted) flag("acceptReason", w);
+      const tn = c.selectTotalDelta === null, en = c.selectExpectancyDelta === null;
+      if (tn !== en) flag("deltaPair", w);
+      if (tn) nulls++;
+      if (c.selectExpectancy === null && !tn) flag("variantEmptyNonNull", w);
+      if (g.verdictUnit === "market" && (m.shipped.select?.net ?? null) === null && !tn) flag("baseEmptyNonNull", w);
+      if (tn && !c.noVerdict) flag("nullButJudged", w);
+      if (tn && c.selectExpectancy !== null && !(g.verdictUnit === "market" && (m.shipped.select?.net ?? null) === null)) flag("nullUnexplained", w);
+      if (c.select !== undefined && ((c.select?.net ?? null) === null) !== (c.selectExpectancy === null)) flag("selectNetVsExpectancy", w);
+    }
+  }
+  console.log(f.split("/").slice(-2).join("/"), g.verdictUnit, "cells", n, "nullDeltas", nulls);
+}
+console.log("total cells", total);
+for (const [k, v] of Object.entries(bad)) console.log("VIOLATION", k, v.length, v.slice(0, 3));
+if (Object.keys(bad).length === 0) console.log("no violations");

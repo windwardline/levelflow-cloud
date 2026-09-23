@@ -1,0 +1,854 @@
+--- a/scripts/grid-totalr.ts
++++ b/scripts/grid-totalr.ts
+@@ -294,7 +294,8 @@
+   // p and the iid sigma both mismodel paired, serially-dependent data.
+   permutationP: number;
+   breachDayShare: number | null;
+-  selectExpectancyDelta: number;
++  /** NULL when either side of the select fold has no filled outcome — see `selectTotalDelta`. */
++  selectExpectancyDelta: number | null;
+   /**
+    * D4: the variant's OWN select-fold expectancy, its standard error, and the
+    * 95% lower bound acceptance is decided on.
+@@ -317,8 +318,14 @@
+   // sizing-factor cell carries its own license.
+   selectExpiryShare: number | null;
+   selectFilled: number;
+-  selectSigma: number;
+-  selectTotalDelta: number;
++  selectSigma: number | null;
++  /**
++   * NULL when either side of the select fold has no filled outcome, the rule
++   * `confirmTotalDelta` has carried since #364 round 43. `totalOf` reads an
++   * absent cell as 0, so a variant with no select fills against a losing
++   * baseline published 0 − (−X) = +X as a measured improvement.
++   */
++  selectTotalDelta: number | null;
+   sharedDays: number;
+   // Days whose delta is NONZERO — the support of the paired statistic
+   // (#364 round 39, finding 1): a zero delta contributes nothing under
+@@ -971,8 +978,16 @@
+           );
+         }
+       }
+-      const selectTotalDelta = totalOf(aggregate.variant.select) -
+-        totalOf(aggregate.base.select);
++      // The select fold's twin of `fitEvidenceAbsent` below, applied to the
++      // PUBLISHED figures rather than the disposition: the ladder already
++      // refuses an empty select fold (underpowered, or an absent baseline),
++      // but the two deltas were still written as numbers read through
++      // absent-as-zero.
++      const selectEvidenceAbsent = aggregate.variant.select.filled === 0 ||
++        aggregate.base.select.filled === 0;
++      const selectTotalDelta = selectEvidenceAbsent
++        ? null
++        : totalOf(aggregate.variant.select) - totalOf(aggregate.base.select);
+       const fitTotalDelta = totalOf(aggregate.variant.fit) -
+         totalOf(aggregate.base.fit);
+       // A DELTA NEEDS EVIDENCE ON BOTH SIDES — the guard `confirmTotalDelta`
+@@ -1002,10 +1017,16 @@
+         totalVarianceOf(aggregate.variant.select) +
+           totalVarianceOf(aggregate.base.select),
+       );
+-      const selectSigma = sigma > 0 ? selectTotalDelta / sigma : 0;
+-      const baseExpectancy = expectancy(aggregate.base.select) ?? 0;
+-      const variantExpectancy = expectancy(aggregate.variant.select) ?? 0;
+-      const selectExpectancyDelta = variantExpectancy - baseExpectancy;
++      const selectSigma = selectTotalDelta === null
++        ? null
++        : sigma > 0 ? selectTotalDelta / sigma : 0;
++      // `expectancy` is null exactly when `filled` is 0, so this is null on
++      // exactly the cells `selectTotalDelta` is.
++      const baseExpectancy = expectancy(aggregate.base.select);
++      const variantExpectancy = expectancy(aggregate.variant.select);
++      const selectExpectancyDelta = baseExpectancy === null || variantExpectancy === null
++        ? null
++        : variantExpectancy - baseExpectancy;
+       // D4: the variant's OWN select-fold expectancy, kept rather than
+       // discarded into the delta. It was computed here all along and thrown
+       // away one line later, which is exactly how a gate ends up with four
+@@ -1074,7 +1095,11 @@
+       const permutationP = permutationPValue(
+         baselineBlocks,
+         variantBlocks,
+-        selectTotalDelta,
++        // The raw block-total difference, not the published delta. The
++        // permutation runs for EVERY variant because the group's variants
++        // share one RNG stream, and it returns 1 on its own when a side has
++        // no blocks. Descriptive only (LA-5), and written to no artifact.
++        totalOf(aggregate.variant.select) - totalOf(aggregate.base.select),
+         permutations,
+         random,
+       );
+@@ -1115,9 +1140,9 @@
+       // fold on it (review finding, 2026-09-14).
+       const beatsBaseline = !underpowered && !fitEvidenceAbsent &&
+         fitTotalDelta > 0 &&
+-        selectTotalDelta > 0 &&
++        selectTotalDelta !== null && selectTotalDelta > 0 &&
+         effectivePairs >= MIN_EFFECTIVE_PAIRS && pairedP <= 0.05 &&
+-        selectExpectancyDelta >= 0;
++        selectExpectancyDelta !== null && selectExpectancyDelta >= 0;
+       // D4: beating the baseline is necessary and was never sufficient.
+       const accepted = beatsBaseline && earnsMoney;
+       const selectStats = aggregate.variant.select;
+@@ -2189,7 +2214,7 @@
+   // Sums taken in two orders differ in the last bits (the class grading
+   // merged members in stream order; the read merges them sorted): the
+   // identity checks use the digest's tolerance, never bit equality.
+-  const near = (a: number, b: number | null) => b !== null && Math.abs(a - b) <= 1e-9;
++  const near = (a: number | null, b: number | null) => a !== null && b !== null && Math.abs(a - b) <= 1e-9;
+   const classReads: Record<string, ClassCandidateRead[]> = {};
+   const candidateReads = new Map<string, ClassPoolRead>();
+   if (frozen) {
+@@ -3095,11 +3120,15 @@
+         : "";
+       console.log(
+         `${variant.padEnd(28)}${verdict.fitTotalDelta.toFixed(1).padStart(10)}${
+-          verdict.selectTotalDelta.toFixed(1).padStart(9)
++          (verdict.selectTotalDelta === null
++            ? "—"
++            : verdict.selectTotalDelta.toFixed(1)).padStart(9)
+         }${verdict.pairedP.toFixed(3).padStart(9)}${
+           `${verdict.effectivePairs}/${verdict.sharedDays}`.padStart(10)
+         }${
+-          verdict.selectExpectancyDelta.toFixed(3).padStart(9)
++          (verdict.selectExpectancyDelta === null
++            ? "—"
++            : verdict.selectExpectancyDelta.toFixed(3)).padStart(9)
+         }${
+           (verdict.selectExpectancy === null
+             ? "—"
+--- a/scripts/freeze-candidates.ts
++++ b/scripts/freeze-candidates.ts
+@@ -122,8 +122,17 @@
+ export type FrozenMarket = {
+   acceptedCount: number;
+   candidate: FrozenCandidate | null;
+-  /** Variants graded against this market across every arm — the multiplicity the read must state. */
++  /**
++   * Variants the gate JUDGED for this market across every arm — the
++   * multiplicity the read must state. A variant the gate declined to judge
++   * (`noVerdict`) cannot be accepted, so it cannot contribute a false accept
++   * and does not belong in the count. Under the LEGACY basis (a freeze written
++   * before 2026-09-16, re-derived only to verify it) this counted every variant
++   * graded, which overstates it.
++   */
+   cellsTested: number;
++  /** Every variant the arms graded for this market, judged or not. Absent from a legacy freeze. */
++  cellsGraded?: number;
+   declineCandidate: boolean;
+   heldOut: boolean;
+   /** RETIREMENT_RULE applied to a decline candidate over the removal arms; null for every other market. */
+@@ -176,6 +185,13 @@
+   expectedFalseAcceptsClasses?: number;
+   /** 0.05 × the cells tested across all markets: how many accepts the gate's own p would hand out by chance. */
+   expectedFalseAccepts: number;
++  /**
++   * "judged": `cellsTested`, `classCellsTested` and both expected-false-accept
++   * figures count judged cells only. ABSENT: the legacy basis, which counted
++   * every graded cell — `docs/research/r4/frozen-candidates.json` is one, and
++   * its 122.85 is overstated (2026-09-16).
++   */
++  multiplicityBasis?: "judged";
+   frozenAt: string;
+   frozenHash: string;
+   heldOut: string[];
+@@ -291,8 +307,31 @@
+ 
+ export async function freezeCandidates(
+   arms: ReadonlyArray<{ arm: string; path: string }>,
+-  options: { baseDir?: string; classArms?: ClassArmSpec[]; now?: Date; removalArms?: string[] } = {},
++  options: {
++    baseDir?: string;
++    classArms?: ClassArmSpec[];
++    /**
++     * "legacy-graded" re-derives a freeze written before 2026-09-16 exactly as
++     * it was written, to VERIFY it; nothing writes a new freeze on it. The CLI
++     * has no flag for it.
++     */
++    multiplicity?: "judged" | "legacy-graded";
++    now?: Date;
++    removalArms?: string[];
++  } = {},
+ ): Promise<FrozenCandidates> {
++  const judgedBasis = (options.multiplicity ?? "judged") === "judged";
++  /** One cell's contribution to the multiplicity, refusing a cell whose disposition is unknown. */
++  const judged = (where: string, verdict: GradingVariant): boolean => {
++    if (typeof verdict.noVerdict !== "boolean") {
++      refuse(
++        `${where} carries no noVerdict — graded before the gate wrote its disposition (2026-09-14), so the freeze ` +
++          "cannot tell a judged cell from one the gate declined to judge; regrade the arm before freezing it",
++      );
++    }
++    if (verdict.noVerdict && verdict.accepted) refuse(`${where} is accepted AND noVerdict; the gate never writes both`);
++    return !verdict.noVerdict;
++  };
+   if (arms.length === 0) refuse("no arm named; pass --arm <name>=<grading.json> at least once");
+   const removalArms = [...(options.removalArms ?? [])].sort();
+   for (const arm of removalArms) {
+@@ -331,7 +370,8 @@
+     let declineCandidate: boolean | null = null;
+     let heldOut: boolean | null = null;
+     let shippedSelect: string | null = null;
+-    let cellsTested = 0;
++    let cellsGraded = 0;
++    let cellsJudged = 0;
+     let shippedSelectFilled = 0;
+     const removalCells: Array<{ arm: string; variant: string; select: { gross: FigureLike; net: FigureLike } | undefined }> = [];
+     for (const { arm, artifact } of loaded) {
+@@ -345,7 +385,10 @@
+       else if (shippedSelect !== selectKey) {
+         refuse(`${symbol}: arm ${arm}'s shipped-cell select figures differ from another arm's; the arms' baselines are not the same rows and cannot be frozen together`);
+       }
+-      cellsTested += Object.keys(entry.variants ?? {}).length;
++      for (const [variant, verdict] of Object.entries(entry.variants ?? {})) {
++        cellsGraded += 1;
++        if (judgedBasis && judged(`${symbol}: arm ${arm}'s cell ${variant}`, verdict)) cellsJudged += 1;
++      }
+       shippedSelectFilled = entry.shipped.select?.net?.n ?? 0;
+       if (removalArms.includes(arm)) {
+         for (const [variant, verdict] of Object.entries(entry.variants ?? {})) {
+@@ -375,7 +418,8 @@
+     markets[symbol] = {
+       acceptedCount: accepted.length,
+       candidate: chooseCandidate(accepted),
+-      cellsTested,
++      cellsTested: judgedBasis ? cellsJudged : cellsGraded,
++      ...(judgedBasis ? { cellsGraded } : {}),
+       declineCandidate: declineCandidate ?? false,
+       heldOut: heldOut ?? false,
+       retirement: declineCandidate === true && removalArms.length > 0 ? retirementOf(shippedSelectFilled, removalCells) : null,
+@@ -424,7 +468,9 @@
+         for (const [cls, members] of membersByClass) {
+           const sample = artifact.markets[members[0]];
+           const block = Object.entries(sample.variants ?? {}).filter(([name]) => prefix === null || name.startsWith(prefix));
+-          classCellsTested += block.length;
++          classCellsTested += judgedBasis
++            ? block.filter(([variant, verdict]) => judged(`class arm ${arm}: ${cls} ${variant}`, verdict)).length
++            : block.length;
+           const classEntry = classes[cls] ?? (classes[cls] = {});
+           for (const [variant, verdict] of block) {
+             const current = classEntry[axis] ?? null;
+@@ -473,6 +519,7 @@
+     heldOut: [...first.heldOut].sort(),
+     holdoutRule: first.holdoutRule,
+     markets,
++    ...(judgedBasis ? { multiplicityBasis: "judged" as const } : {}),
+     removalArms,
+     retirementRule: RETIREMENT_RULE,
+     retirementRuleHash: RETIREMENT_RULE_HASH,
+@@ -540,7 +587,8 @@
+       `${candidates} candidate${candidates === 1 ? "" : "s"}, ${declines} decline candidate${declines === 1 ? "" : "s"}` +
+       (removalArms.length > 0 ? ` (${retired} retired by ${removalArms.join("+")}), ` : ", ") +
+       (frozen.classes ? `${Object.values(frozen.classes).reduce((n, byAxis) => n + Object.values(byAxis).filter((c) => c !== null).length, 0)} class candidates over ${frozen.classAxes!.length} axes (${frozen.classCellsTested} class cells, ${frozen.expectedFalseAcceptsClasses} expected by chance), ` : "") +
+-      `${frozen.expectedFalseAccepts} expected false accepts at p 0.05 ` +
++      `${frozen.expectedFalseAccepts} expected false accepts at p 0.05 over ${Object.values(frozen.markets).reduce((n, market) => n + market.cellsTested, 0)} judged cells ` +
++      `of ${Object.values(frozen.markets).reduce((n, market) => n + (market.cellsGraded ?? 0), 0)} graded ` +
+       `-> ${out} (frozenHash ${frozen.frozenHash.slice(0, 12)})`,
+   );
+ }
+--- a/scripts/derive-4d.ts
++++ b/scripts/derive-4d.ts
+@@ -199,14 +199,24 @@
+     const rows: Array<[string, VariantVerdict]> = [...byVariant.entries()];
+     const accepted = rows
+       .filter(([, verdict]) => verdict.accepted)
+-      .map(([variant, verdict]) => ({
+-        selectExpectancyDelta: verdict.selectExpectancyDelta,
+-        pairedP: verdict.pairedP,
+-        selectFilled: verdict.selectFilled,
+-        selectExpiryShare: verdict.selectExpiryShare,
+-        variant,
+-        worstDayR: verdict.worstDayR,
+-      }))
++      .map(([variant, verdict]) => {
++        // An accept needs a select fold on both sides — the gate states that
++        // as a conjunct — so a null delta here means the gate was bypassed,
++        // and ranking it would sort on NaN without a word.
++        if (verdict.selectExpectancyDelta === null) {
++          throw new Error(
++            `${symbol} ${variant}: accepted without a select expectancy delta — the gate's conjunction was bypassed`,
++          );
++        }
++        return {
++          selectExpectancyDelta: verdict.selectExpectancyDelta,
++          pairedP: verdict.pairedP,
++          selectFilled: verdict.selectFilled,
++          selectExpiryShare: verdict.selectExpiryShare,
++          variant,
++          worstDayR: verdict.worstDayR,
++        };
++      })
+       .sort((a, b) => b.selectExpectancyDelta - a.selectExpectancyDelta);
+     const starved = rows.length > 0 &&
+       rows.every(([, verdict]) => (verdict.fitFilled ?? 0) < 30);
+--- a/tests/acceptanceGate.test.ts
++++ b/tests/acceptanceGate.test.ts
+@@ -203,7 +203,7 @@
+     });
+     const verdict = verdicts.get("forex")!.get("tp1=0.9")!;
+     assert.equal(verdict.accepted, true);
+-    assert.ok(verdict.selectSigma > 1, `select sigma ${verdict.selectSigma}`);
++    assert.ok(verdict.selectSigma !== null && verdict.selectSigma > 1, `select sigma ${verdict.selectSigma}`);
+     assert.ok(
+       verdict.permutationP < 0.05,
+       `permutation p ${verdict.permutationP}`,
+@@ -773,8 +773,8 @@
+       permutations: 100,
+       seed: 9,
+     }).get("forex")!.get("volume")!;
+-    assert.ok(verdict.selectTotalDelta > 0);
+-    assert.ok(verdict.selectExpectancyDelta < 0);
++    assert.ok(verdict.selectTotalDelta !== null && verdict.selectTotalDelta > 0);
++    assert.ok(verdict.selectExpectancyDelta !== null && verdict.selectExpectancyDelta < 0);
+     assert.equal(verdict.accepted, false);
+   });
+ 
+@@ -1339,7 +1339,8 @@
+     });
+     const classMap = verdicts.get("forex")!;
+     assert.equal(classMap.has("confidenceThreshold=0"), false);
+-    assert.ok(classMap.get("confidenceThreshold=0,hold")!.selectTotalDelta > 0);
++    const holdDelta = classMap.get("confidenceThreshold=0,hold")!.selectTotalDelta;
++    assert.ok(holdDelta !== null && holdDelta > 0);
+   });
+ });
+ 
+@@ -1398,7 +1399,8 @@
+     assert.ok(classMap.get("steady")!.pairedP <= 0.05);
+     assert.equal(classMap.get("fluke")!.accepted, false);
+     assert.ok(classMap.get("fluke")!.pairedP > 0.05);
+-    assert.ok(classMap.get("fluke")!.selectTotalDelta > 0);
++    const flukeDelta = classMap.get("fluke")!.selectTotalDelta;
++    assert.ok(flukeDelta !== null && flukeDelta > 0);
+   });
+ 
+   it("controls the family — a null variant beside a strong one is not carried in (max-T)", () => {
+@@ -1800,7 +1802,7 @@
+       assert.equal(floor.select.net!.n, kept.length);
+       const mean = kept.reduce((sum, row) => sum + row.realizedR, 0) / kept.length;
+       assert.ok(Math.abs(floor.select.net!.expectancy - mean) < 1e-9);
+-      assert.ok(Math.abs(floor.selectTotalDelta - (kept.length * 0.3 - (40 * (0.3 - 0.6) / 2))) < 1e-9);
++      assert.ok(floor.selectTotalDelta !== null && Math.abs(floor.selectTotalDelta - (kept.length * 0.3 - (40 * (0.3 - 0.6) / 2))) < 1e-9);
+       // The cost-share field is derived from two row columns.
+       const cheap = graded.verdicts.get("EURUSD")!.get("cheap")!;
+       assert.equal(cheap.select.net!.n, 20);
+@@ -1955,7 +1957,7 @@
+       emitPath: string,
+       cells: Record<string, { variant: string; accepted: boolean }>,
+       options: { derived?: Record<string, unknown>; emitSha256?: Record<string, string> | null },
+-      figuresOf: (symbol: string, variant: string) => { fitTotalDelta: number; pairedP: number | null; selectTotalDelta: number },
++      figuresOf: (symbol: string, variant: string) => { fitTotalDelta: number; pairedP: number | null; selectTotalDelta: number | null },
+     ) => ({
+       analyzerVersion: "test", anchor: "2026-08-11", calendarHash: "c".repeat(64), derivedAt: "2026-09-03T00:00:00.000Z", foldSource: "emitted",
+       ...(options.derived ? { derived: options.derived } : {}),
+@@ -1964,7 +1966,7 @@
+       markets: Object.fromEntries(Object.entries(cells).map(([symbol, cell]) => [symbol, {
+         heldOut: false,
+         shipped: { declineCandidate: false, select: { gross: null, net: { expectancy: 0.1, lower: 0.05, n: 16, upper: 0.15 } }, variant: "baseline" },
+-        variants: { [cell.variant]: { accepted: cell.accepted, ...figuresOf(symbol, cell.variant), reason: cell.accepted ? "accepted" : "fails", selectExpectancyDelta: 0.3 } },
++        variants: { [cell.variant]: { accepted: cell.accepted, noVerdict: false, ...figuresOf(symbol, cell.variant), reason: cell.accepted ? "accepted" : "fails", selectExpectancyDelta: 0.3 } },
+       }])),
+     });
+     const freeze = async (dir: string, arms: Array<{ arm: string; grading: unknown }>) => {
+@@ -2192,7 +2194,7 @@
+     const classGradingFor = async (emitPath: string, variant: string, heldOut: string[]) => {
+       const sealed = await gradeCorpus(emitPath, { permutations: 20, seed: 4, verdictUnit: "class" });
+       const verdict = sealed.verdicts.get("forex")!.get(variant)!;
+-      const block = { [variant]: { accepted: verdict.accepted, fitTotalDelta: verdict.fitTotalDelta, pairedP: verdict.pairedP, reason: verdict.reason, selectExpectancyDelta: verdict.selectExpectancyDelta, selectTotalDelta: verdict.selectTotalDelta } };
++      const block = { [variant]: { accepted: verdict.accepted, noVerdict: verdict.noVerdict, fitTotalDelta: verdict.fitTotalDelta, pairedP: verdict.pairedP, reason: verdict.reason, selectExpectancyDelta: verdict.selectExpectancyDelta, selectTotalDelta: verdict.selectTotalDelta } };
+       const pooled = [...sealed.shipped.keys()].filter((symbol) => !heldOut.includes(symbol));
+       return {
+         analyzerVersion: "test", anchor: "2026-08-11", calendarHash: "c".repeat(64), derivedAt: "2026-09-03T00:00:00.000Z", foldSource: "emitted",
+@@ -2351,7 +2353,7 @@
+       const classGrading = {
+         analyzerVersion: "test", anchor: "2026-08-11", calendarHash: "c".repeat(64), derived: derivedSpec, derivedAt: "2026-09-03T00:00:00.000Z", foldSource: "emitted",
+         emitSha256: { [manifestHashOf(corpus)]: sha256Of(corpus) }, heldOut, holdoutRule: "stratified-per-class-20pct", rules: {}, shardHashes: [manifestHashOf(corpus)], shards: [corpus], verdictUnit: "class",
+-        markets: Object.fromEntries(pooled.map((symbol) => [symbol, { heldOut: false, shipped: { declineCandidate: false, select: { gross: null, net: { expectancy: 0.1, lower: 0.05, n: 16, upper: 0.15 } }, variant: "baseline" }, variants: { floor: { accepted: true, fitTotalDelta: verdict.fitTotalDelta, pairedP: verdict.pairedP, reason: verdict.reason, selectExpectancyDelta: verdict.selectExpectancyDelta, selectTotalDelta: verdict.selectTotalDelta } } }])),
++        markets: Object.fromEntries(pooled.map((symbol) => [symbol, { heldOut: false, shipped: { declineCandidate: false, select: { gross: null, net: { expectancy: 0.1, lower: 0.05, n: 16, upper: 0.15 } }, variant: "baseline" }, variants: { floor: { accepted: true, noVerdict: false, fitTotalDelta: verdict.fitTotalDelta, pairedP: verdict.pairedP, reason: verdict.reason, selectExpectancyDelta: verdict.selectExpectancyDelta, selectTotalDelta: verdict.selectTotalDelta } } }])),
+       };
+       const marketGrading = { ...(await gradingFor(corpus, { EURUSD: { variant: "good", accepted: false } }, { derived: derivedSpec })), heldOut };
+       const gradingPath = join(dir, "F.json"); writeFileSync(gradingPath, JSON.stringify(marketGrading));
+@@ -4313,10 +4315,14 @@
+     // construction this suite exists to condemn. Nor do the floors merely
+     // choose which reason is printed: `underpowered` is itself a conjunct of
+     // `beatsBaseline`.
+-    assert.ok(
+-      atClass.selectTotalDelta > 0,
+-      `the fixture must flatter the variant: ${atClass.selectTotalDelta}`,
+-    );
++    // NON-VACUITY, restated once the delta is null: the baseline R the variant
++    // forwent is exactly what absent-as-zero used to print as the variant's
++    // improvement, 0 − (−20) = +20.
++    assert.equal(atClass.selectFilled, 0);
++    assert.equal(atClass.droppedR, -20, `the fixture must carry the flattering shape: ${atClass.droppedR}`);
++    assert.equal(atClass.selectTotalDelta, null, "an empty select fold publishes no total delta");
++    assert.equal(atClass.selectExpectancyDelta, null, "an empty select fold publishes no expectancy delta");
++    assert.equal(atClass.selectSigma, null);
+     assert.equal(atClass.accepted, false, `class grain: ${atClass.reason}`);
+     assert.equal(atClass.noVerdict, true, `class grain: ${atClass.reason}`);
+     // The REASON, not just the disposition: at the class grain `minFilled`
+@@ -4328,7 +4334,9 @@
+       `the class grain reaches the SELECTIVE floor: ${atClass.reason}`,
+     );
+     const atMarket = marketVerdicts(cube, opts).get("EURUSD")!.get("thin")!;
+-    assert.ok(atMarket.selectTotalDelta > 0);
++    assert.equal(atMarket.droppedR, -20);
++    assert.equal(atMarket.selectTotalDelta, null);
++    assert.equal(atMarket.selectExpectancyDelta, null);
+     assert.equal(atMarket.accepted, false, `market grain: ${atMarket.reason}`);
+     assert.equal(atMarket.noVerdict, true, `market grain: ${atMarket.reason}`);
+     // Both branches of the UNDERPOWERED reason open with "(0 filled", so the
+@@ -4341,6 +4349,44 @@
+     );
+   });
+ 
++  it("publishes no select delta when the BASELINE side of the select fold is empty", () => {
++    // The mirror of the test above. The variant trades both folds; the
++    // baseline trades fit only. Absent-as-zero published the variant's own
++    // select total as its improvement over a baseline that never traded.
++    const rows: SweepEmitRow[] = [];
++    for (let day = 0; day < 40; day += 1) {
++      rows.push(trainRow("baseline", day, 0.3));
++      rows.push(trainRow("both", day, 0.4));
++      rows.push(outcomeRow("both", day, day % 2 === 0 ? 0.9 : -0.1));
++    }
++    const verdict = classVerdicts(readGridCube(rows), { foldNames: { fit: "train", select: "test" }, permutations: 50, seed: 9 })
++      .get("forex")!.get("both")!;
++    // NON-VACUITY: every select day is variant-only, so compositionR is the
++    // variant's whole select total — the figure the delta used to print.
++    assert.ok(verdict.compositionR !== null && Math.abs(verdict.compositionR - 16) < 1e-9, `composition ${verdict.compositionR}`);
++    assert.equal(verdict.selectTotalDelta, null);
++    assert.equal(verdict.selectExpectancyDelta, null);
++    assert.equal(verdict.accepted, false);
++    assert.equal(verdict.noVerdict, true);
++  });
++
++  it("treats ONE select fill as evidence: the guard is emptiness, not thinness", () => {
++    // The floors own thinness. This guard owns absence, and a single fill is
++    // not absent — the delta is a real, if useless, number.
++    const rows: SweepEmitRow[] = [];
++    for (let day = 0; day < 40; day += 1) {
++      rows.push(trainRow("baseline", day, 0.3));
++      rows.push(trainRow("one", day, 0.3));
++      rows.push(outcomeRow("baseline", day, -0.5));
++    }
++    rows.push(outcomeRow("one", 0, 0.7));
++    const verdict = classVerdicts(readGridCube(rows), { foldNames: { fit: "train", select: "test" }, permutations: 50, seed: 9 })
++      .get("forex")!.get("one")!;
++    assert.equal(verdict.selectFilled, 1);
++    assert.ok(verdict.selectTotalDelta !== null && Math.abs(verdict.selectTotalDelta - (0.7 + 20)) < 1e-9, `delta ${verdict.selectTotalDelta}`);
++    assert.ok(verdict.selectExpectancyDelta !== null && Math.abs(verdict.selectExpectancyDelta - 1.2) < 1e-9, `delta ${verdict.selectExpectancyDelta}`);
++  });
++
+   it("NEVER reports accepted and noVerdict together, across every shape that reaches the ladder", () => {
+     // THE INVARIANT THE FIT BUG BROKE, stated once so no future leg can break
+     // it again. Every no-verdict leg must be mutually exclusive with
+@@ -4560,6 +4606,9 @@
+     rows.push(outcomeRow("volatile", day, day % 2 === 0 ? 1.5 : -1.4));
+     // NO VERDICT: no fit-fold rows at all, the #647 case.
+     rows.push(outcomeRow("noFitFold", day, 0.9));
++    // NO SELECT FOLD against a losing baseline (select R −40): absent-as-zero
++    // published +40 and +1.000 here.
++    rows.push(trainRow("fitOnly", day, 0.9));
+     // A second market where EVERY variant is no verdict, so `derive-4d` has
+     // both sides to tell apart: GBPUSD is unjudged, EURUSD is not.
+     rows.push(trainRow2("baseline", day, day % 2 === 0 ? 0.4 : -0.2));
+@@ -4645,6 +4694,24 @@
+     );
+   });
+ 
++  it("writes null, not a flattering number, for select deltas over an empty select fold", () => {
++    const { artifact } = graded();
++    const fitOnly = artifact.markets.EURUSD.variants.fitOnly as unknown as Record<string, unknown>;
++    assert.ok(fitOnly, "the fixture must grade the fit-only variant");
++    for (const key of ["selectTotalDelta", "selectExpectancyDelta"]) {
++      assert.ok(Object.hasOwn(fitOnly, key), `${key} must be written as null, not dropped`);
++      assert.equal(fitOnly[key], null, `${key} over zero select fills must be null, got ${String(fitOnly[key])}`);
++    }
++  });
++
++  it("prints a dash in both select-delta columns over an empty select fold", () => {
++    const { stdout } = graded();
++    const line = stdout.split("\n").find((l) => l.startsWith("fitOnly "));
++    assert.ok(line, "the fit-only variant must appear in the printed table");
++    // variant, ΔR fit, ΔR sel, pairedP, pairs, ΔE sel — in that order.
++    assert.match(line, /^fitOnly\s+-?\d+\.\d\s+—\s+\d\.\d{3}\s+\d+\/\d+\s+—\s/, `both select deltas must print as absent: ${line}`);
++  });
++
+   it("prints the reason a judged refusal was given, never the bare word over it", () => {
+     const { stdout } = graded();
+     const line = stdout.split("\n").find((l) => l.includes("volatile"));
+--- a/tests/freezeCandidates.test.ts
++++ b/tests/freezeCandidates.test.ts
+@@ -29,6 +29,7 @@
+ 
+ type Variant = {
+   accepted: boolean;
++  noVerdict?: boolean;
+   fitTotalDelta: number | null;
+   pairedP: number | null;
+   reason: string;
+@@ -37,9 +38,10 @@
+   selectTotalDelta: number | null;
+ };
+ 
+-function variant(accepted: boolean, fitTotalDelta: number, pairedP = 0.01): Variant & { select: { gross: null; net: { expectancy: number; lower: number; n: number; upper: number } } } {
++function variant(accepted: boolean, fitTotalDelta: number, pairedP = 0.01, noVerdict = false): Variant & { select: { gross: null; net: { expectancy: number; lower: number; n: number; upper: number } } } {
+   return {
+     accepted,
++    noVerdict,
+     fitTotalDelta,
+     pairedP,
+     reason: accepted ? "accepted" : "fails",
+@@ -100,6 +102,7 @@
+     assert.deepEqual(frozen.markets.AAA, {
+       acceptedCount: 2,
+       candidate: { arm: "W", fitTotalDelta: 25, pairedP: 0.01, selectExpectancyDelta: 0.005, selectTotalDelta: 12.5, variant: "y=3" },
++      cellsGraded: 3,
+       cellsTested: 3,
+       declineCandidate: false,
+       heldOut: false,
+@@ -189,6 +192,74 @@
+   });
+ });
+ 
++describe("the freeze's multiplicity counts the cells the gate judged, never the cells it declined to judge", () => {
++  // A cell the gate declined to judge (`noVerdict`) cannot be accepted, so it
++  // cannot contribute a false accept. The tracked act-3 freeze counted every
++  // graded cell and published 122.85 where 85.75 is the figure (2026-09-16).
++  it("excludes a no-verdict cell from cellsTested and from the expected false accepts", async () => {
++    const dir = mkdtempSync(join(tmpdir(), "freeze-"));
++    const arm = write(dir, "s.json", grading({}, {
++      AAA: { heldOut: false, shipped: { declineCandidate: false, select: SHIPPED_SELECT, variant: "baseline" }, variants: { "x=1": variant(true, 10), "x=2": variant(false, 40, 1, true), "x=3": variant(false, 5, 1, true) } },
++      BBB: { heldOut: false, shipped: { declineCandidate: false, select: SHIPPED_SELECT, variant: "baseline" }, variants: { "x=1": variant(false, 5) } },
++    }));
++    const frozen = await freezeCandidates([{ arm: "S", path: arm }]);
++    assert.equal(frozen.multiplicityBasis, "judged");
++    assert.equal(frozen.markets.AAA.cellsGraded, 3);
++    assert.equal(frozen.markets.AAA.cellsTested, 1, "two of AAA's three cells were never judged");
++    assert.equal(frozen.markets.BBB.cellsTested, 1, "a judged refusal is a tested cell");
++    assert.equal(frozen.expectedFalseAccepts, 0.1);
++  });
++
++  it("refuses a cell whose disposition it cannot read, at both grains", async () => {
++    const dir = mkdtempSync(join(tmpdir(), "freeze-"));
++    const legacy = grading();
++    delete (legacy.markets as Record<string, { variants: Record<string, Record<string, unknown>> }>).AAA.variants["x=2"].noVerdict;
++    await assert.rejects(freezeCandidates([{ arm: "S", path: write(dir, "legacy.json", legacy) }]), /x=2 carries no noVerdict/);
++    const marketS = write(dir, "s.json", grading({ shardHashes: ["1".repeat(64)] }));
++    const { noVerdict: _dropped, ...undisposed } = variant(true, 5);
++    void _dropped;
++    const classS = write(dir, "s-class.json", grading({ shardHashes: ["1".repeat(64)], verdictUnit: "class" }, {
++      AAA: { heldOut: false, shipped: { declineCandidate: false, select: SHIPPED_SELECT, variant: "baseline" }, variants: { "w=1": undisposed } },
++    }));
++    await assert.rejects(
++      freezeCandidates([{ arm: "S", path: marketS }], { classArms: [{ arm: "S", axis: "window", path: classS, prefix: null }] }),
++      /w=1 carries no noVerdict/,
++    );
++  });
++
++  it("refuses a cell marked accepted and noVerdict together", async () => {
++    const dir = mkdtempSync(join(tmpdir(), "freeze-"));
++    const both = grading({}, {
++      AAA: { heldOut: false, shipped: { declineCandidate: false, select: SHIPPED_SELECT, variant: "baseline" }, variants: { "x=1": variant(true, 10, 0.01, true) } },
++    });
++    await assert.rejects(freezeCandidates([{ arm: "S", path: write(dir, "both.json", both) }]), /accepted AND noVerdict/);
++  });
++
++  it("counts judged class cells inside the axis prefix only", async () => {
++    const dir = mkdtempSync(join(tmpdir(), "freeze-"));
++    const marketF = write(dir, "f.json", grading({ shardHashes: ["2".repeat(64)] }));
++    const classF = write(dir, "f-class.json", grading({ shardHashes: ["2".repeat(64)], verdictUnit: "class" }, {
++      AAA: { heldOut: false, shipped: { declineCandidate: false, select: SHIPPED_SELECT, variant: "baseline" }, variants: { "payoffFloor=1.5": variant(true, 3), "payoffFloor=1.6": variant(false, 2, 1, true), "costShareMax=0.15": variant(false, 9, 1, true) } },
++    }));
++    const frozen = await freezeCandidates([{ arm: "F", path: marketF }], { classArms: [{ arm: "F", axis: "payoffFloor", path: classF, prefix: "payoffFloor=" }] });
++    assert.equal(frozen.classCellsTested, 1, "one judged payoffFloor cell; the costShare cell is outside the prefix");
++    assert.equal(frozen.expectedFalseAcceptsClasses, 0.05);
++  });
++
++  it("re-derives a legacy freeze on the basis it was written with, and marks nothing it did not carry", async () => {
++    const dir = mkdtempSync(join(tmpdir(), "freeze-"));
++    const legacy = grading();
++    for (const market of Object.values(legacy.markets as Record<string, { variants: Record<string, Record<string, unknown>> }>)) {
++      for (const cell of Object.values(market.variants)) delete cell.noVerdict;
++    }
++    const frozen = await freezeCandidates([{ arm: "S", path: write(dir, "legacy.json", legacy) }], { multiplicity: "legacy-graded" });
++    assert.equal(frozen.markets.AAA.cellsTested, 2);
++    assert.equal("cellsGraded" in frozen.markets.AAA, false);
++    assert.equal("multiplicityBasis" in frozen, false);
++    assert.equal(frozen.expectedFalseAccepts, 0.2);
++  });
++});
++
+ describe("the freeze refuses a grading it cannot reconcile or retire on", () => {
+   it("refuses two arms bound to one corpus, a shipped cell without select figures, and a removal-arm cell without them", async () => {
+     const dir = mkdtempSync(join(tmpdir(), "freeze-"));
+--- a/tests/absoluteExpectancyGate.test.ts
++++ b/tests/absoluteExpectancyGate.test.ts
+@@ -86,10 +86,10 @@
+     // refusal below would be passing for the wrong reason.
+     const v = verdict();
+     assert.ok(v.fitTotalDelta > 0, `fit delta ${v.fitTotalDelta}`);
+-    assert.ok(v.selectTotalDelta > 0, `select delta ${v.selectTotalDelta}`);
++    assert.ok(v.selectTotalDelta !== null && v.selectTotalDelta > 0, `select delta ${v.selectTotalDelta}`);
+     assert.ok(v.pairedP <= 0.05, `paired p ${v.pairedP}`);
+     assert.ok(
+-      v.selectExpectancyDelta >= 0,
++      v.selectExpectancyDelta !== null && v.selectExpectancyDelta >= 0,
+       `expectancy delta ${v.selectExpectancyDelta}`,
+     );
+     assert.equal(v.underpowered, false);
+--- a/tests/gateDispositionIntegrity.test.ts
++++ b/tests/gateDispositionIntegrity.test.ts
+@@ -67,7 +67,7 @@
+   it("builds the tie it means to test, so this is not a near-miss", () => {
+     const verdict = verdictFor(rows, "selectOnly");
+     assert.equal(verdict.fitTotalDelta, 0, `fit delta ${verdict.fitTotalDelta}, expected exactly 0`);
+-    assert.ok(verdict.selectTotalDelta > 0, `select delta ${verdict.selectTotalDelta} must be positive`);
++    assert.ok(verdict.selectTotalDelta !== null && verdict.selectTotalDelta > 0, `select delta ${verdict.selectTotalDelta} must be positive`);
+   });
+ 
+   it("REFUSES a variant that did nothing on the fit fold, however good the select fold looks", () => {
+@@ -102,7 +102,7 @@
+       0,
+       `lower bound ${verdict.selectExpectancyLower}, expected exactly 0 — zero dispersion should collapse the interval`,
+     );
+-    assert.ok(verdict.selectTotalDelta > 0, `select delta ${verdict.selectTotalDelta} must be positive`);
++    assert.ok(verdict.selectTotalDelta !== null && verdict.selectTotalDelta > 0, `select delta ${verdict.selectTotalDelta} must be positive`);
+     assert.ok(verdict.fitTotalDelta > 0, `fit delta ${verdict.fitTotalDelta} must be positive`);
+   });
+ 
+--- /dev/null
++++ b/tests/sealedReadInputs.test.ts
+@@ -0,0 +1,97 @@
++import assert from "node:assert/strict";
++import { readdirSync, readFileSync } from "node:fs";
++import { describe, it } from "node:test";
++import {
++  type ClassArmSpec,
++  FREEZE_RULE_HASH,
++  type FrozenCandidates,
++  freezeCandidates,
++  verifyFrozenCandidates,
++} from "../scripts/freeze-candidates.ts";
++import { readLedgeredArtifact, sha256File } from "../scripts/ledgeredRead.ts";
++
++/**
++ * The act-3 confirm read is burned once and cannot be re-run. It names its
++ * freeze by path and hash, and the freeze names seven gradings by path and
++ * bytes. Until 2026-09-16 nothing re-checked either link after the read, so
++ * regrading an arm in place — the correction the empty-fold record first
++ * proposed — would have left the burned read pointing at files that no longer
++ * say what it consumed, with every test green.
++ */
++const FROZEN = "docs/research/r4/frozen-candidates.json";
++const READ = "docs/research/confirm-reads/ledgered-read-act3.json";
++const CONFIRM_READS = "docs/research/confirm-reads";
++/** Arm F's corpus: the read's door takes any one of its shards. */
++const F_MANIFEST = "021821537f28e5d2777543989baa0631a38840d592fad74c4bdb2429fb627c59";
++
++const tracked = (): FrozenCandidates => JSON.parse(readFileSync(FROZEN, "utf8")) as FrozenCandidates;
++const read = () => readLedgeredArtifact(READ, { manifestHash: F_MANIFEST });
++
++/**
++ * The class gradings the freeze read. It recorded arm and prefix per axis but
++ * no path; the path is the market arm's grading with -class, the only link the
++ * freeze kept.
++ */
++function classArmsOf(frozen: FrozenCandidates): ClassArmSpec[] {
++  const pathOf = new Map(frozen.arms.map((arm) => [arm.arm, arm.artifactPath]));
++  return (frozen.classAxes ?? []).flatMap(({ arms, axis }) =>
++    arms.map(({ arm, prefix }) => ({ arm, axis, path: pathOf.get(arm)!.replace(/\.json$/, "-class.json"), prefix })),
++  );
++}
++
++describe("the sealed act-3 read's inputs are still the files it consumed", () => {
++  it("names the tracked freeze by its hash, in the read and in the ledger line", () => {
++    const frozen = verifyFrozenCandidates(FROZEN);
++    const opened = read();
++    assert.ok(opened.frozen, "the act-3 read was driven by a freeze and must say so");
++    assert.equal(opened.frozen.path, FROZEN);
++    assert.equal(opened.frozen.ruleHash, FREEZE_RULE_HASH);
++    assert.equal(opened.frozen.frozenHash, frozen.frozenHash, "the burned read names a different freeze than the one on disk");
++    const entries = readdirSync(CONFIRM_READS)
++      .filter((name) => name.startsWith("confirm-log-") && name.endsWith(".jsonl"))
++      .flatMap((name) => readFileSync(`${CONFIRM_READS}/${name}`, "utf8").trim().split("\n"))
++      .map((line) => JSON.parse(line) as { artifactHash?: string; frozenHash?: string; readId?: string })
++      .filter((entry) => entry.readId === opened.readId);
++    assert.equal(entries.length, 1, `the read ${opened.readId} must appear in the ledger exactly once`);
++    assert.equal(entries[0].frozenHash, frozen.frozenHash);
++    assert.equal(entries[0].artifactHash, opened.artifactHash);
++  });
++
++  it("binds every market arm's grading by its bytes", async () => {
++    const frozen = tracked();
++    assert.deepEqual(read().frozen!.arms.map((arm) => arm.arm), frozen.arms.map((arm) => arm.arm));
++    for (const arm of frozen.arms) {
++      assert.equal(
++        await sha256File(arm.artifactPath),
++        arm.artifactSha256,
++        `${arm.artifactPath} is not the grading the freeze bound for arm ${arm.arm} — a regrade writes a copy beside it, never over it`,
++      );
++    }
++  });
++
++  it("re-derives the freeze from the tracked gradings, the class arms included", async () => {
++    // The class gradings are bound by what they decided, not by hash, so the
++    // freeze is rebuilt from them and must hash identically.
++    const frozen = tracked();
++    const classArms = classArmsOf(frozen);
++    assert.ok(classArms.length > 0, "the act-3 freeze carried class axes; a rebuild without them proves nothing about them");
++    const again = await freezeCandidates(
++      frozen.arms.map((arm) => ({ arm: arm.arm, path: arm.artifactPath })),
++      { classArms, multiplicity: "legacy-graded", now: new Date(frozen.frozenAt), removalArms: frozen.removalArms },
++    );
++    assert.equal(again.frozenHash, frozen.frozenHash, "the tracked gradings no longer produce the freeze the read consumed");
++  });
++
++  it("every grading the freeze consumed predates the gate's disposition field", () => {
++    // A current-gate re-run in place adds `noVerdict` and moves no decision, so
++    // the rebuild above cannot see it on a class grading. This can.
++    const frozen = tracked();
++    const paths = [...new Set([...frozen.arms.map((arm) => arm.artifactPath), ...classArmsOf(frozen).map((spec) => spec.path)])];
++    assert.equal(paths.length, 12, "seven market arms and five class gradings fed the act-3 freeze");
++    for (const path of paths) {
++      const grading = JSON.parse(readFileSync(path, "utf8")) as { markets: Record<string, { variants: Record<string, object> }> };
++      const carrying = Object.values(grading.markets).flatMap((market) => Object.values(market.variants)).filter((cell) => "noVerdict" in cell);
++      assert.equal(carrying.length, 0, `${path} carries noVerdict — it was regraded in place over an input of a burned read`);
++    }
++  });
++});
+--- /dev/null
++++ b/tests/emptyFoldRegrade.test.ts
+@@ -0,0 +1,129 @@
++import assert from "node:assert/strict";
++import { readdirSync, readFileSync } from "node:fs";
++import { basename } from "node:path";
++import { isDeepStrictEqual } from "node:util";
++import { describe, it } from "node:test";
++import { type FrozenCandidates, freezeCandidates } from "../scripts/freeze-candidates.ts";
++import { withdrawalArtifact } from "../scripts/register-verdict.ts";
++
++/**
++ * The regrade owed by the empty-fold record (2026-09-14), written BESIDE the
++ * originals. Seven of the originals are bound by bytes to a burned confirm
++ * read and five more are inputs to its freeze (tests/sealedReadInputs.test.ts),
++ * so none is overwritten. This file pins what the regrade was allowed to move
++ * — dispositions, wording, and select deltas over an empty select fold — and
++ * that it moved nothing else.
++ */
++const R4 = "docs/research/r4";
++const REGRADE = "docs/research/r4/regrade-2026-09-16";
++
++type Cell = Record<string, unknown> & { accepted: boolean; noVerdict?: boolean; reason: string; selectExpectancy: number | null };
++type Grading = Record<string, unknown> & {
++  markets: Record<string, Record<string, unknown> & { shipped: { select?: { net: unknown } }; variants: Record<string, Cell> }>;
++  verdictUnit: string;
++};
++const load = (path: string) => JSON.parse(readFileSync(path, "utf8")) as Grading;
++
++/** The population, derived: every tracked grading under r4 written before the gate recorded its disposition. */
++function originals(): string[] {
++  return readdirSync(R4)
++    .filter((name) => /grading[^/]*\.json$/.test(name))
++    .filter((name) => Object.values(load(`${R4}/${name}`).markets).every((market) => Object.values(market.variants).every((cell) => !("noVerdict" in cell))))
++    .sort();
++}
++
++describe("the empty-fold regrade sits beside the originals and moved no figure", () => {
++  it("gives every pre-disposition grading a regraded copy and a stdout record, and holds nothing else", () => {
++    const names = originals();
++    assert.ok(names.length > 0, "no pre-disposition grading found — the population is empty, so nothing below examines anything");
++    const expected = names.flatMap((name) => [name, name.replace(/\.json$/, ".stdout.txt")]).sort();
++    assert.deepEqual(readdirSync(REGRADE).sort(), expected);
++  });
++
++  it("changes no accepted flag and no figure, only dispositions, wording, and select deltas over an empty fold", () => {
++    for (const name of originals()) {
++      const before = load(`${R4}/${name}`);
++      const after = load(`${REGRADE}/${name}`);
++      // Top level: a fresh timestamp, shard paths relative to where the run
++      // stood, and the fields a pre-#571 grading never wrote.
++      const addedTop = ["derived", "emitSha256"].filter((key) => !(key in before));
++      for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
++        if (key === "markets" || key === "derivedAt" || addedTop.includes(key)) continue;
++        if (key === "shards") {
++          assert.deepEqual((after.shards as string[]).map((path) => basename(path)), (before.shards as string[]).map((path) => basename(path)), `${name}: shards`);
++          continue;
++        }
++        assert.ok(isDeepStrictEqual(after[key], before[key]), `${name}: top-level ${key} moved`);
++      }
++      assert.deepEqual(Object.keys(after.markets).sort(), Object.keys(before.markets).sort(), `${name}: market population`);
++      for (const [symbol, market] of Object.entries(before.markets)) {
++        const next = after.markets[symbol];
++        for (const key of Object.keys(market)) {
++          if (key !== "variants") assert.ok(isDeepStrictEqual(next[key], market[key]), `${name} ${symbol}: ${key} moved`);
++        }
++        assert.deepEqual(Object.keys(next.variants).sort(), Object.keys(market.variants).sort(), `${name} ${symbol}: variants`);
++        for (const [variant, cell] of Object.entries(market.variants)) {
++          const regraded = next.variants[variant];
++          const where = `${name} ${symbol} ${variant}`;
++          assert.equal(typeof regraded.noVerdict, "boolean", `${where}: no disposition written`);
++          assert.ok(!(regraded.accepted && regraded.noVerdict), `${where}: accepted and noVerdict together`);
++          const emptySelect = regraded.selectExpectancy === null;
++          for (const key of new Set([...Object.keys(cell), ...Object.keys(regraded)])) {
++            if (key === "noVerdict" || key === "reason") continue;
++            if (!(key in cell) && (key === "select" || key === "derived")) continue;
++            if (key === "selectTotalDelta" || key === "selectExpectancyDelta") {
++              // Null exactly where the variant's select fold is empty, and the
++              // figure unchanged everywhere else — both directions.
++              if (emptySelect) assert.equal(regraded[key], null, `${where}: ${key} over an empty select fold must be null`);
++              else assert.equal(regraded[key], cell[key], `${where}: ${key} moved on a populated fold`);
++              continue;
++            }
++            assert.ok(isDeepStrictEqual(regraded[key], cell[key]), `${where}: ${key} moved`);
++          }
++        }
++      }
++    }
++  });
++
++  it("re-derives the register from the regraded removal arms exactly as from the originals", () => {
++    const options = {
++      manifestHash: "021821537f28e5d2777543989baa0631a38840d592fad74c4bdb2429fb627c59",
++      priorPath: "docs/research/baseline-2026-08-10/4d-cost-sensitivity.json",
++      readPath: "docs/research/confirm-reads/ledgered-read-act3.json",
++    };
++    const tracked = JSON.parse(readFileSync(`${R4}/withdrawal-verdict-2026-09-03.json`, "utf8")) as Record<string, unknown>;
++    const regraded = withdrawalArtifact({ ...options, armsDir: REGRADE });
++    for (const key of Object.keys(tracked)) {
++      assert.ok(isDeepStrictEqual(regraded[key], tracked[key]), `the register's ${key} moves when read from the regraded arms`);
++    }
++  });
++
++  it("freezes the candidates the sealed read opened, and states the multiplicity the old freeze overstated", async () => {
++    const frozen = JSON.parse(readFileSync(`${R4}/frozen-candidates.json`, "utf8")) as FrozenCandidates;
++    const copyOf = (path: string) => `${REGRADE}/${basename(path)}`;
++    const classArms = (frozen.classAxes ?? []).flatMap(({ arms, axis }) => arms.map(({ arm, prefix }) => ({
++      arm, axis, path: copyOf(frozen.arms.find((entry) => entry.arm === arm)!.artifactPath.replace(/\.json$/, "-class.json")), prefix,
++    })));
++    const again = await freezeCandidates(
++      frozen.arms.map((arm) => ({ arm: arm.arm, path: copyOf(arm.artifactPath) })),
++      { classArms, now: new Date(frozen.frozenAt), removalArms: frozen.removalArms },
++    );
++    for (const [symbol, market] of Object.entries(frozen.markets)) {
++      for (const key of ["acceptedCount", "candidate", "declineCandidate", "heldOut", "retirement"] as const) {
++        assert.ok(isDeepStrictEqual(again.markets[symbol][key], market[key]), `${symbol}: ${key} moves under the regrade`);
++      }
++    }
++    assert.deepEqual(again.classes, frozen.classes);
++    // Why the freeze is NOT re-written: the regraded arms hash differently, so
++    // a new freeze carries a new frozenHash the burned read never consumed.
++    assert.notEqual(again.frozenHash, frozen.frozenHash);
++    // The corrected multiplicity, recorded in empty-fold-verdicts-2026-09-14.md.
++    const graded = Object.values(again.markets).reduce((sum, market) => sum + (market.cellsGraded ?? 0), 0);
++    const judged = Object.values(again.markets).reduce((sum, market) => sum + market.cellsTested, 0);
++    assert.equal(graded, Object.values(frozen.markets).reduce((sum, market) => sum + market.cellsTested, 0), "the old freeze's cellsTested counted every graded cell");
++    assert.equal(judged, 1715);
++    assert.equal(again.expectedFalseAccepts, 85.75);
++    assert.equal(again.classCellsTested, 126);
++    assert.equal(again.expectedFalseAcceptsClasses, 6.3);
++  });
++});
