@@ -19,8 +19,11 @@
 > the defect and must be rebuilt (Phase 0) before anything is re-measured.
 
 
-Model version: `2026.09.14.forex-commission-cross-rate` (**not yet deployed**
-— the desk is parked, so this version has never served a request. R2's D1:
+Model version: `2026.09.23.stop-exit-slippage` (**not yet deployed**
+— the desk is parked, so this version has never served a request. Every
+stop-kind exit that did not gap now prints its level with the modelled
+slippage against the position, on the sweep and the live bridge alike; before
+it, `2026.09.14.forex-commission-cross-rate`. R2's D1:
 global learning derived `confidence_adjustment` from a WIN RATE against a
 neutral point of 0.5, which is break-even only when a win and a loss are the
 same size. On the ladder they are not — a `tp1_partial` banks the partial and
@@ -299,10 +302,18 @@ fills, in one version:
   (half a spread EARLIER than mid showed), the targets need the bid up
   at their level (half a spread LATER). Gap prints land on the
   executable side of the open, with reopen slippage on top where the bar
-  truly gapped (FR-7); the expiry close crosses the book once. In the
-  sweep the leg accountant now charges commission only — spread and
-  slippage live in the prints, and charging them again would double-bill
-  the trip.
+  truly gapped (FR-7); a stop that did not gap prints its level with the
+  same modelled slippage against the position (`stopExitSlippage`, since
+  `2026.09.23.stop-exit-slippage` — before it a clean stop printed exactly
+  at its level, and the slippage the gate charges never reached realized R
+  off a gapped open); the expiry close crosses the book once. Limit prints
+  (entry, TP1, target) and the expiry print carry no slippage. Priced on
+  R3's corpus of record without a re-simulate
+  (`docs/research/r3/stop-slippage-2026-09-23.txt`): forex select
+  +1,603.8 → +1,059.9 R over 78,932 fills (0.0069 R per fill), pooled select
+  −5,680.1 → −6,942.9 R. The leg accountant charges commission only, on
+  both paths: spread and stop slippage live in the prints, and charging
+  them again would double-bill the trip.
 - **Resolution runs on the 5min series where it exists** (FR-5) — 3x
   finer event ordering shrinks the ambiguous bucket honestly. A bar
   whose span straddles expiry resolves nothing (LA-2). The expired
@@ -343,7 +354,7 @@ fills, in one version:
 - **Named boundary — CLOSED 2026-08-11 (#314):** live outcome-sync now
   replays each row's own stored decision-time costs (risk_model carries
   the full executionQuality, so no migration was ever needed): bid/ask
-  triggers, gap slippage, net expired labels, same-bar arming — the
+  triggers, gap and clean-stop slippage, net expired labels, same-bar arming — the
   measured semantics and the live semantics are one engine. A row
   without stored quality resolves v1-style, stated, never invented.
 
@@ -415,7 +426,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.09.14.forex-commission-cross-rate'
+   where o.analyzer_version = '2026.09.23.stop-exit-slippage'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;
