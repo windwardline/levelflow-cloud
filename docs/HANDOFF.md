@@ -62,7 +62,7 @@ Agreement is highest at offset zero: the bank's close matches a neighbouring min
    - #680: CLOSED 2026-09-22 (same branch) — the restore proof reads the archive's member listing before it extracts and refuses an absolute name, a `..` segment or a link member.
    - #678: all seven CLOSED 2026-09-22 (branch `fix/4d-population-and-withdrawal`). `confirm-4d` and `derive-4d` resolve their population through one function, `resolveGradingPopulation` in `sweepFolds.ts`, before either writes: `--targets` beside `--holdout-cycle` refuses, a target off the roster refuses in both, and an empty holdout draw refuses at the door. A failed withdrawal is reported beside the refusal and names the file to fix by hand. `positionalArgs` prints `none`. The population floors sit at the measured counts. `derive-4d` refuses a typo in one line and has left `STACK_ON_REFUSAL`.
 2. **Amendment 48** is parked, and the redesign is this repo's to do. The adopted sections disagree with each other (filters carry no readiness floor; the cluster and df rules differ), calibration programs have no rule, and the settled effect floor conflicts with the random-entry screen's ATR unit.
-3. The regrade build and the FMP records change set, both designed (session artifacts `regrade-design-revised-2026-09-16.md`, `fmp-plan-2026-09-16.md`).
+3. The regrade build and the FMP records change set, both designed ([`regrade-design-revised-2026-09-16.md`](/docs/research/designs/regrade-design-revised-2026-09-16.md), [`fmp-plan-2026-09-16.md`](/docs/research/designs/fmp-plan-2026-09-16.md)).
 
 **Owner only.**
 - Revoke the Gemini CLI's Google OAuth grant (myaccount.google.com → Security → Third-party access).
@@ -95,7 +95,7 @@ Agreement is highest at offset zero: the bank's close matches a neighbouring min
 4. **The 4d flag law** (`fix/4d-unknown-flags`, worktree `/Users/peacock/Projects/.lf-4dflags-wt`): one unknown-flag refusal in `scripts/flagReader.ts` for confirm-4d, derive-4d and grid-totalr, and confirm-4d validates every corpus before any write. Implementation, review and a repair pass ran on 2026-09-21; the branch was rebased onto `cead1fb`. Open its PR once the repair's own gates pass on the branch head.
 5. **Item J:** `scripts/ops/verify-minute-bank-restore.sh`, weekly, the Postgres shape.
 6. **Amendment 48:** record amendment 46's parameters as law under the standing approval — design record `amendment-46-parameters-2026-09-21.md` in the session artifacts — stating the per-market reading of "one capped total alpha" as the reading taken.
-7. The regrade build and the FMP records change set, both designed (session artifacts `regrade-design-revised-2026-09-16.md`, `fmp-plan-2026-09-16.md`).
+7. The regrade build and the FMP records change set, both designed ([`regrade-design-revised-2026-09-16.md`](/docs/research/designs/regrade-design-revised-2026-09-16.md), [`fmp-plan-2026-09-16.md`](/docs/research/designs/fmp-plan-2026-09-16.md)).
 
 **Owner only.** Revoke the Gemini CLI's Google OAuth grant (myaccount.google.com → Security → Third-party access). Empty the Trash. Read the FMP dashboard (ceiling, boost billing, trailing-30) and refresh the expired population attestation. Say whether `--daily-ceiling` must carry a dated approval label.
 

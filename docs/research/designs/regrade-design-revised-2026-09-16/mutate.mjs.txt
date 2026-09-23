@@ -1,0 +1,82 @@
+// Mutation harness for the patched clone. Each mutation: back up, apply (verified changed),
+// run named test files, record pass/fail, restore, verify restored bytes.
+import { execFileSync, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
+
+const ROOT = "/private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/b1442397-ed29-4675-9d0a-b41558343ee3/scratchpad/regrade-patched";
+const S = "/private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/b1442397-ed29-4675-9d0a-b41558343ee3/scratchpad";
+const sha = (p) => createHash("sha256").update(readFileSync(p)).digest("hex");
+const RG = "docs/research/r4/regrade-2026-09-16";
+
+const GATE_TESTS = { files: ["tests/acceptanceGate.test.ts"], pattern: "a fold with no evidence|a disposition the gate drew" };
+const FREEZE_TESTS = { files: ["tests/freezeCandidates.test.ts", "tests/sealedReadInputs.test.ts", "tests/emptyFoldRegrade.test.ts"] };
+const DATA_TESTS = { files: ["tests/sealedReadInputs.test.ts", "tests/emptyFoldRegrade.test.ts", "tests/withdrawalRule.test.ts", "tests/calibrationState.test.ts"] };
+
+const textMut = (file, a, b) => ({ files: [file], apply: () => {
+  const p = `${ROOT}/${file}`; const s = readFileSync(p, "utf8");
+  const n = s.split(a).length - 1; if (n !== 1) throw new Error(`anchor count ${n} in ${file}: ${a.slice(0, 60)}`);
+  writeFileSync(p, s.replace(a, b));
+} });
+const jsonMut = (file, fn) => ({ files: [file], apply: () => {
+  const p = `${ROOT}/${file}`; const j = JSON.parse(readFileSync(p, "utf8")); fn(j); writeFileSync(p, JSON.stringify(j, null, 2) + "\n");
+} });
+const copyMut = (file, from) => ({ files: [file], apply: () => copyFileSync(from, `${ROOT}/${file}`) });
+
+const G = "scripts/grid-totalr.ts";
+const F = "scripts/freeze-candidates.ts";
+const mutations = [
+  ["G1 guard both-sides only (|| -> &&)", textMut(G, "aggregate.variant.select.filled === 0 ||\n        aggregate.base.select.filled === 0;", "aggregate.variant.select.filled === 0 &&\n        aggregate.base.select.filled === 0;"), GATE_TESTS],
+  ["G2 drop the baseline side of the guard", textMut(G, "aggregate.variant.select.filled === 0 ||\n        aggregate.base.select.filled === 0;", "aggregate.variant.select.filled === 0;"), GATE_TESTS],
+  ["G3 drop the variant side of the guard", textMut(G, "aggregate.variant.select.filled === 0 ||\n        aggregate.base.select.filled === 0;", "aggregate.base.select.filled === 0;"), GATE_TESTS],
+  ["G4 thinness instead of emptiness (=== 0 -> <= 1)", textMut(G, "aggregate.variant.select.filled === 0 ||\n        aggregate.base.select.filled === 0;", "aggregate.variant.select.filled <= 1 ||\n        aggregate.base.select.filled === 0;"), GATE_TESTS],
+  ["G5 expectancy delta back to absent-as-zero", textMut(G, "      const selectExpectancyDelta = baseExpectancy === null || variantExpectancy === null\n        ? null\n        : variantExpectancy - baseExpectancy;", "      const selectExpectancyDelta = (variantExpectancy ?? 0) - (baseExpectancy ?? 0);"), GATE_TESTS],
+  ["G6 printer prints 0.0 for an absent total delta", textMut(G, "          (verdict.selectTotalDelta === null\n            ? \"—\"", "          (verdict.selectTotalDelta === null\n            ? \"0.0\""), GATE_TESTS],
+  ["G7 artifact drops the null key", textMut(G, "          selectTotalDelta: verdict.selectTotalDelta,\n          select: verdict.select,", "          ...(verdict.selectTotalDelta === null ? {} : { selectTotalDelta: verdict.selectTotalDelta }),\n          select: verdict.select,"), GATE_TESTS],
+  ["G8 sigma 0 over an absent delta", textMut(G, "      const selectSigma = selectTotalDelta === null\n        ? null", "      const selectSigma = selectTotalDelta === null\n        ? 0"), GATE_TESTS],
+  ["F1 cellsTested counts graded cells", textMut(F, "      cellsTested: judgedBasis ? cellsJudged : cellsGraded,", "      cellsTested: cellsGraded,"), FREEZE_TESTS],
+  ["F2 no refusal on an unknown disposition", textMut(F, "    if (typeof verdict.noVerdict !== \"boolean\") {", "    if (false) {"), FREEZE_TESTS],
+  ["F3 no refusal on accepted AND noVerdict", textMut(F, "    if (verdict.noVerdict && verdict.accepted) refuse(", "    if (false) refuse("), FREEZE_TESTS],
+  ["F4 class cells counted without the judged filter", textMut(F, "          classCellsTested += judgedBasis\n", "          classCellsTested += false\n"), FREEZE_TESTS],
+  ["F5 legacy freeze gains cellsGraded", textMut(F, "      ...(judgedBasis ? { cellsGraded } : {}),", "      cellsGraded,"), FREEZE_TESTS],
+  ["F6 legacy freeze gains multiplicityBasis", textMut(F, "    ...(judgedBasis ? { multiplicityBasis: \"judged\" as const } : {}),", "    multiplicityBasis: \"judged\" as const,"), FREEZE_TESTS],
+  ["D1 regrade a freeze-bound market arm IN PLACE", copyMut("docs/research/r4/stop-cap-grading.json", `${ROOT}/${RG}/stop-cap-grading.json`), DATA_TESTS],
+  ["D2 regrade a freeze-input class grading IN PLACE", copyMut("docs/research/r4/review-window-grading-class.json", `${ROOT}/${RG}/review-window-grading-class.json`), DATA_TESTS],
+  ["D3 regrade the act-2 grading IN PLACE", copyMut("docs/research/r4/per-market-grading-classfolds.json", `${ROOT}/${RG}/per-market-grading-classfolds.json`), DATA_TESTS],
+  ["D4 re-record arm S's artifactSha256 only", jsonMut("docs/research/r4/frozen-candidates.json", (j) => { j.arms[0].artifactSha256 = sha(`${ROOT}/${RG}/stop-cap-grading.json`); }), DATA_TESTS],
+  ["D6 one figure moved in a regraded copy", jsonMut(`${RG}/admission-derived-grading.json`, (j) => { j.markets.EURAUD.variants["costShareMax=0.15"].pairedP += 0.001; }), DATA_TESTS],
+  ["D7 an accept flipped in a regraded copy", jsonMut(`${RG}/review-window-96-grading.json`, (j) => { const [m, x] = Object.entries(j.markets).find(([, x]) => Object.values(x.variants).some((c) => c.accepted)); for (const c of Object.values(x.variants)) if (c.accepted) c.accepted = false; void m; }), DATA_TESTS],
+  ["D8 flattering select delta left on an empty fold", copyMut(`${RG}/admission-derived-grading.json`, `${S}/regrade-design/out/main/admission-derived-grading.json`), DATA_TESTS],
+  ["D9 a retiring removal cell stops retiring in a copy", jsonMut(`${RG}/stop-cap-grading.json`, (j) => { j.markets.BTCUSD.variants["maxStopAtrMultiplier=2.5,stopStructureSource=intraday"].select.net.upper = -0.5; }), { files: ["tests/emptyFoldRegrade.test.ts"], pattern: "re-derives the register" }],
+];
+
+// D5 needs frozenHash recomputed through the module, so it runs a helper.
+mutations.splice(18, 0, ["D5 re-record artifactSha256 AND recompute frozenHash", { files: ["docs/research/r4/frozen-candidates.json"], apply: () => {
+  execFileSync("npx", ["--no-install", "tsx", "out/rehash-freeze.ts"], { cwd: ROOT, stdio: "pipe" });
+} }, DATA_TESTS]);
+
+const only = process.argv.slice(2);
+for (const [name, mut, tests] of mutations) {
+  if (only.length > 0 && !only.some((prefix) => name.startsWith(prefix))) continue;
+  const before = mut.files.map((f) => [f, sha(`${ROOT}/${f}`), readFileSync(`${ROOT}/${f}`)]);
+  let verdict;
+  try {
+    mut.apply();
+    const changed = mut.files.some((f, i) => sha(`${ROOT}/${f}`) !== before[i][1]);
+    if (!changed) { verdict = "NOT APPLIED (file unchanged)"; }
+    else {
+      const args = ["--no-install", "tsx", "--tsconfig", "tsconfig.tests.json", "--test", ...(tests.pattern ? [`--test-name-pattern=${tests.pattern}`] : []), ...tests.files];
+      const r = spawnSync("npx", args, { cwd: ROOT, encoding: "utf8", timeout: 600_000 });
+      const out = `${r.stdout}\n${r.stderr}`;
+      const pass = /ℹ pass (\d+)/.exec(out)?.[1];
+      const fail = /ℹ fail (\d+)/.exec(out)?.[1];
+      const failing = [...out.matchAll(/^\s*✖ (.+?) \(\d/gm)].map((m) => m[1]).filter((t, i, all) => all.indexOf(t) === i && !/failing tests/.test(t));
+      verdict = pass === undefined || fail === undefined ? `NO VERDICT (exit ${r.status})` : Number(fail) > 0 ? `KILLED (${fail} failing: ${failing.slice(0, 4).join(" | ")})` : `MISSED (${pass} pass)`;
+    }
+  } catch (error) {
+    verdict = `HARNESS ERROR ${error.message.slice(0, 120)}`;
+  } finally {
+    for (const [f, h, bytes] of before) { writeFileSync(`${ROOT}/${f}`, bytes); if (sha(`${ROOT}/${f}`) !== h) throw new Error(`RESTORE FAILED ${f}`); }
+  }
+  console.log(`${name}: ${verdict}`);
+}
