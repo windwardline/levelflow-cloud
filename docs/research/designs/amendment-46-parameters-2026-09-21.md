@@ -295,10 +295,15 @@ Build: about 400-550 lines plus tests [unverified].
 > refuted" with each other, with amendments 33, 36, 39 and 43–46, and with the code at
 > main 9b8d96f. The text above stays as it was; where the two differ, this section is
 > the draft and the text above is its history. Its drafter refuted it against those
-> sources before committing it; it has not yet taken an independent refute round,
-> which this record's own rule requires before anything here is recorded as law.
-> **No registration opens until the owner rules on the cap's scope (Q2) and on when a
-> registration is charged (Q3).**
+> sources before committing it. **Its first independent refute round (2026-09-23) left
+> seven majors standing**
+> ([`amendment-48-refute-round-2026-09-23.md`](/docs/research/designs/amendment-48-refute-round-2026-09-23.md)):
+> L is a free parameter the seal cannot see, a family registration hashes no trade, the span
+> rule changes 46's premise without the owner, the frontier is per symbol while the price
+> path is not, two routes open a confirm fold with no record, the interim sweep ban has no
+> mechanism, and the section's extent is undefined. A fifth pass is owed before any of this
+> is recorded as law. **No registration opens until the owner rules on the cap's scope (Q2),
+> on when a registration is charged (Q3), and on the span rule (Q5).**
 
 ### Authority
 
