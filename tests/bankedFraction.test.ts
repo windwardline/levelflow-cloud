@@ -27,6 +27,8 @@ import {
   rFromLegs,
   SEALED_FOLD,
   slippageClassOf,
+  STATEMENT_PREFIXES,
+  statementLines,
   stopPrintSlippage as stopPrintSlippageOf,
 } from "../scripts/banked-fraction.ts";
 import { noKeychainEnv } from "./support/noKeychain.ts";
@@ -718,6 +720,13 @@ describe("the slippage class of a corpus, stated", () => {
     assert.match(priced, /--exit-slippage/);
     assert.doesNotMatch(priced, /at the full modelled slippage/);
     assert.doesNotMatch(priced, /the current resolver's market-exit rule applied/);
+    // Round 2 (review of #695, finding 1): S_row is unscaled, so the slippage term matches the
+    // resolver's only at scale 1; on this 0.5 corpus the resolver charges half, and the line says so.
+    assert.match(
+      priced,
+      /its slippage term follows the current resolver's market-exit rule at modeledCostScale 1 only \(at scale c the resolver charges c × S_row, so the term's slope across fractions is c times this\)/,
+    );
+    assert.doesNotMatch(priced, /its slope across fractions follows the current resolver's market-exit rule,/);
     const unstated = formatBankedFraction(await read([writeCorpus(rows, "shard", { modeledCostScale: undefined })], { folds: ["fit"] }));
     assert.match(unstated.split("\n").find((line) => line.startsWith("slippage-priced:"))!, /states no modeledCostScale/);
     // The clean-stops statement is scoped the same way; the every-market-exit one charges nothing and says so.
@@ -929,15 +938,28 @@ describe("--exit-slippage — every market-order exit, priced at the current res
 });
 
 /**
- * A recorded command the reader no longer accepts is a transcript of a retired
- * reader, and its record must say what supersedes it (review of #692, finding
- * 3). Derived from the research tree's transcripts, not listed: every line
- * beginning `$ tsx scripts/banked-fraction.ts` is checked against the flags the
- * CLI declares today. Read from the filesystem, not git, so this file does not
- * join the git-dependent set `tests/scratchClone.test.ts` pins.
+ * Recorded transcripts of this reader stay honest about what they printed.
+ *
+ * Two defect classes, one guard each, both derived from the transcripts rather
+ * than listed. A recorded command the reader no longer accepts is a transcript
+ * of a retired reader (review of #692, finding 3); a printed statement the
+ * reader would no longer print is a transcript whose prose went stale while its
+ * figures did not (review of #695, finding 2 — exit-slippage-2026-09-23.txt had
+ * to be re-run by hand). Either must open with a marker: `SUPERSEDED by
+ * <record>` naming a record that exists, or a dated `STATEMENT NOTE
+ * (YYYY-MM-DD):` saying what the current reader prints instead.
+ *
+ * THE POPULATION IS CURATED AT TWO EDGES, deliberately. It is every `.txt` and
+ * `.md` file under `docs/research` on the filesystem — not every tracked file in
+ * the repository, and not `.log` or other extensions. Asking git which files are
+ * tracked would join this file to the git-dependent set `tests/scratchClone.test.ts`
+ * pins (six files today), so a `--no-git` copy would fail here reading as missing
+ * data. The cost: a transcript saved outside `docs/research`, or under another
+ * extension, is not examined; and on a working tree an untracked `.txt` under
+ * `docs/research` is examined though CI never sees it.
  */
-describe("recorded banked-fraction commands", () => {
-  it("every transcript whose command the reader now refuses opens with a superseded-by line naming a record that exists", () => {
+describe("recorded banked-fraction transcripts", () => {
+  function researchTranscripts(): Array<{ file: string; lines: string[] }> {
     const files: string[] = [];
     const walk = (dir: string) => {
       for (const name of readdirSync(dir)) {
@@ -947,17 +969,94 @@ describe("recorded banked-fraction commands", () => {
       }
     };
     walk(join("docs", "research"));
+    return files.map((file) => ({ file, lines: readFileSync(file, "utf8").split("\n") }));
+  }
+
+  /** The opening marker, or null. A SUPERSEDED marker must name a record that exists. */
+  function markerOf(file: string, first: string): string | null {
+    const superseded = /^SUPERSEDED by (docs\/research\/\S+?\.txt)\b/.exec(first);
+    if (superseded) {
+      assert.ok(existsSync(superseded[1]), `${file} is superseded by ${superseded[1]}, which does not exist`);
+      return first;
+    }
+    return /^STATEMENT NOTE \(\d{4}-\d{2}-\d{2}\): \S/.test(first) ? first : null;
+  }
+
+  /** Every statement line the current reader could print for the parameters a transcript states. */
+  function printable(lines: string[]): Set<string> {
+    const scales = new Set<number | null>([null]);
+    const exitScales = new Set<number | null>([null]);
+    for (const line of lines) {
+      const scale = /this corpus's resolver ran at modeledCostScale ([^;\s]+);/.exec(line);
+      if (scale) scales.add(Number(scale[1]));
+      const exit = /estimatedSlippage × modeledCostScale (\S+) against the position/.exec(line);
+      if (exit) exitScales.add(Number(exit[1]));
+    }
+    const out = new Set<string>();
+    for (const slippageClass of ["gapped-only", "clean-stops", "every-market-exit"] as const) {
+      for (const modeledCostScale of scales) {
+        for (const exitScale of exitScales) {
+          for (const line of statementLines({ exitScale, modeledCostScale, slippageClass })) out.add(line);
+        }
+      }
+    }
+    return out;
+  }
+
+  const isStatement = (line: string) => STATEMENT_PREFIXES.some((prefix) => line.startsWith(prefix));
+
+  it("every transcript whose command the reader now refuses opens with a superseded-by line naming a record that exists", () => {
     let commands = 0;
-    for (const file of files) {
-      const lines = readFileSync(file, "utf8").split("\n");
+    for (const { file, lines } of researchTranscripts()) {
       const recorded = lines.filter((line) => line.startsWith("$ tsx scripts/banked-fraction.ts "));
       commands += recorded.length;
       const retired = recorded.flatMap((line) => line.split(/\s+/).filter((token) => token.startsWith("--") && !DECLARED_FLAGS.has(token)));
       if (retired.length === 0) continue;
-      const marker = /^SUPERSEDED by (docs\/research\/\S+?\.txt)\b/.exec(lines[0]);
-      assert.ok(marker, `${file} records ${retired.join(", ")}, which the reader now refuses, and does not open with "SUPERSEDED by <record>"`);
-      assert.ok(existsSync(marker[1]), `${file} is superseded by ${marker[1]}, which does not exist`);
+      assert.ok(
+        /^SUPERSEDED by /.test(lines[0]) && markerOf(file, lines[0]),
+        `${file} records ${retired.join(", ")}, which the reader now refuses, and does not open with "SUPERSEDED by <record>"`,
+      );
     }
     assert.ok(commands > 0, "no recorded banked-fraction command was found — a scan that examined nothing proves nothing");
+  });
+
+  it("every transcript whose printed statements the reader would no longer print opens with a dated marker", () => {
+    let statements = 0;
+    let stale = 0;
+    for (const { file, lines } of researchTranscripts()) {
+      const printed = lines.filter(isStatement);
+      if (printed.length === 0) continue;
+      statements += printed.length;
+      const current = printable(lines);
+      const outdated = printed.filter((line) => !current.has(line));
+      if (outdated.length === 0) continue;
+      stale += 1;
+      assert.ok(
+        markerOf(file, lines[0]),
+        `${file} prints a statement the current reader would not print, and does not open with "STATEMENT NOTE (YYYY-MM-DD): …" or "SUPERSEDED by <record>": ${outdated[0].slice(0, 120)}…`,
+      );
+    }
+    assert.ok(statements > 0, "no recorded statement line was found — a scan that examined nothing proves nothing");
+    assert.ok(stale > 0, "no transcript is stale — the tree carries pre-#692 transcripts, so the comparison is not reading them");
+  });
+
+  it("a transcript the current reader prints needs no marker: its statements are all printable", async () => {
+    // The guard's other direction: parsing a fresh transcript's parameters must reproduce its own lines, on
+    // every class, at a stated scale, and under --exit-slippage, or the guard would demand markers of honest records.
+    for (const analyzerVersion of ["2026.09.05.test", CLEAN_STOP_SLIPPAGE_SINCE, EXPIRY_SLIPPAGE_SINCE]) {
+      for (const exitSlippage of analyzerVersion === EXPIRY_SLIPPAGE_SINCE ? [false] : [false, true]) {
+        const text = formatBankedFraction(
+          await read([writeCorpus(slipRows(), "shard", { analyzerVersion, modeledCostScale: 0.5 })], { exitSlippage, folds: ["fit"] }),
+        ).split("\n");
+        const printed = text.filter(isStatement);
+        assert.ok(printed.length >= 3, `${analyzerVersion}: the reader printed ${printed.length} statements`);
+        // The prefix list is held to the reader: every statement it prints is one the guard can see.
+        const emitted = statementLines({ exitScale: exitSlippage ? 0.5 : null, modeledCostScale: 0.5, slippageClass: slippageClassOf(analyzerVersion) });
+        assert.deepEqual(emitted.filter((line) => !isStatement(line)), [], "a statement the reader prints carries a prefix STATEMENT_PREFIXES does not list");
+        assert.deepEqual(emitted.filter((line) => !text.includes(line)), [], "formatBankedFraction printed statements other than statementLines'");
+        const current = printable(text);
+        assert.deepEqual(printed.filter((line) => !current.has(line)), [], `${analyzerVersion} exit=${exitSlippage}`);
+      }
+    }
   });
 });

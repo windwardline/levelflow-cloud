@@ -1,3 +1,4 @@
+STATEMENT NOTE (2026-09-23): the slippage-priced statement below predates #692 and #695; the figures stand. For this corpus (class gapped-only, modeledCostScale 1) the current reader prints the same table as a hybrid charged on tp1 rows only at the unscaled modelled slippage, whose slippage term follows the resolver's rule at modeledCostScale 1 only and whose levels do not, and it adds an 'engine slippage class: gapped-only' line above it.
 corpus ce146c6b8b63 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26 · variant baseline
 folds read: fit, select · confirm: SEALED, not read (2769596 rows withheld at the door)
 rows 6660138: 308111 priced · 680939 not accepted · 0 in other folds · 2753607 other variants · 64320 unfilled · 324 data-absent · 83241 held out · 0 in other years

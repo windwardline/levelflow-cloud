@@ -1,3 +1,4 @@
+STATEMENT NOTE (2026-09-23): the slippage-priced statement below was printed before #695's round 2; the figures stand. The current reader scopes its slope clause: the hybrid's slippage term follows the resolver's rule at modeledCostScale 1 only, and at scale c the resolver charges c × S_row.
 $ tsx scripts/banked-fraction.ts docs/research/r3/capture-all-classfolds.jsonl --folds fit,select --exit-slippage
 corpus 021821537f28 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26 · variant baseline
 folds read: fit, select · confirm: SEALED, not read (2141527 rows withheld at the door)

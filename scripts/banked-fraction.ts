@@ -119,12 +119,14 @@ export const LEVEL_TOLERANCE = 1.5e-8;
  * fraction below ½ moves money from the tp1 limit print onto that leg, so the
  * slippage-priced table charges the sweep's own estimatedSlippage, in R, on
  * the runner fraction of every such row — a hybrid model, named as such, and
- * the table prints it so. Its SLOPE across fractions follows the current
- * resolver's market-exit rule; its LEVELS do not, for two reasons stated on
- * every read: it charges tp1 rows only (a row without a tp1 leg prices the
- * same at every fraction, though the resolver slips its stop and expiry prints
- * at full size), and S_row is the unscaled estimatedSlippage, never the
- * corpus's modeledCostScale. `--exit-slippage` prices the levels. The tp1
+ * the table prints it so. Its slippage term follows the current resolver's
+ * market-exit rule at modeledCostScale 1 only: S_row is the unscaled
+ * estimatedSlippage, so on a corpus run at scale c the resolver charges
+ * c × S_row and the term's slope across fractions is c times the table's.
+ * Its LEVELS do not follow at any scale: it charges tp1 rows only (a row
+ * without a tp1 leg prices the same at every fraction, though the resolver
+ * slips its stop and expiry prints at full size). Both are stated on every
+ * read, with the corpus's scale. `--exit-slippage` prices the levels. The tp1
  * limit leg stays unslipped (FR-4's haircut is defaulted off).
  * Round 1, 2026-09-06: forex select's slope +1,100.2 → +785.2 R under it.
  *
@@ -894,25 +896,14 @@ export function formatBankedFraction(summary: FractionSummary): string {
       ? `held-out markets INCLUDED in every pool (--include-holdout): ${summary.holdout.markets.join(", ")} — a whole-roster measurement, not a verdict's`
       : describeHeldOut(summary.holdout, { labels: false, pools: true }),
   );
-  lines.push(`engine slippage class: ${summary.slippageClass} — ${SLIPPAGE_CLASS_TEXT[summary.slippageClass]}`);
+  const [classLine, ...physics] = statementLines({
+    exitScale: summary.exitSlippage?.scale ?? null,
+    modeledCostScale: summary.modeledCostScale,
+    slippageClass: summary.slippageClass,
+  });
+  lines.push(classLine);
   lines.push("");
-  lines.push(
-    "allocation only: the exit path is the emitted one at every fraction (the runner's protection re-arms on the TP1 touch, not on the size banked); " +
-      `costs are the emitted commission; spread rides in the leg prices; ${SLIPPAGE_RIDES[summary.slippageClass]}. Rows without a tp1 leg price the same at every fraction.`,
-  );
-  lines.push(
-    `${SLIPPAGE_PRICED[summary.slippageClass](summary.modeledCostScale)} ` +
-      "same-bar = exits resolved on the TP1 touch bar itself (FR-3), which the corpus arms with zero latency and cannot price.",
-  );
-  if (summary.exitSlippage) {
-    lines.push(
-      `exit slippage: every market-order exit this corpus left unslipped is re-printed with estimatedSlippage × modeledCostScale ${summary.exitSlippage.scale} against the position, at its exit fraction (1 without a tp1 leg, ½ with one) — ` +
-        `a stop-kind exit that did not gap (stop_loss, breakeven_stop, tp1_lock, ambiguous; FR-3's same-bar exit included) at its level ∓ s (${CLEAN_STOP_SLIPPAGE_SINCE}), the review-end close at its print ∓ s (${EXPIRY_SLIPPAGE_SINCE}) — ` +
-        "priced from the legs without a re-simulate, exact to the emitted realizedR's four decimals. A stop printed off its level gapped and already carries FR-7's slippage (counted, not charged); " +
-        "take_profit, tp1 and entry prints do not move. 'in profit → at loss' counts expiries without a tp1 leg that FR-8 relabels once the close slips. R and E are the shipped ladder at ½." +
-        (summary.slippageClass === "clean-stops" ? " The stop prints already carry their slippage in this corpus: not priced (—); the expiry alone is." : ""),
-    );
-  }
+  lines.push(...physics);
   for (const fold of summary.folds) {
     lines.push("");
     lines.push(`=== ${fold.toUpperCase()} ===`);
@@ -1005,6 +996,40 @@ const SLIPPAGE_RIDES: Record<SlippageClass, string> = {
   "clean-stops": "slippage rides in every stop-kind print, gapped (FR-7) or clean, and not in the expiry print",
   "every-market-exit": "slippage rides in every stop-kind print and in the expiry print",
 };
+/**
+ * The prefixes of every prose statement this reader has printed above its
+ * tables, current or retired. `stop-exit slippage:` is retired (#689's
+ * `--stop-exit-slippage`, gone since #692): the current reader never prints
+ * it, so a transcript carrying it is stale by construction.
+ */
+export const STATEMENT_PREFIXES = ["engine slippage class:", "allocation only:", "slippage-priced:", "exit slippage:", "stop-exit slippage:"] as const;
+
+/**
+ * The prose statements printed above the tables, in order: the class line,
+ * the allocation line, the slippage-priced line and, under --exit-slippage,
+ * the exit-slippage line. One function so the reader and the test that holds
+ * recorded transcripts to it print from the same text.
+ */
+export function statementLines(input: { exitScale: number | null; modeledCostScale: number | null; slippageClass: SlippageClass }): string[] {
+  const lines = [
+    `engine slippage class: ${input.slippageClass} — ${SLIPPAGE_CLASS_TEXT[input.slippageClass]}`,
+    "allocation only: the exit path is the emitted one at every fraction (the runner's protection re-arms on the TP1 touch, not on the size banked); " +
+    `costs are the emitted commission; spread rides in the leg prices; ${SLIPPAGE_RIDES[input.slippageClass]}. Rows without a tp1 leg price the same at every fraction.`,
+    `${SLIPPAGE_PRICED[input.slippageClass](input.modeledCostScale)} ` +
+    "same-bar = exits resolved on the TP1 touch bar itself (FR-3), which the corpus arms with zero latency and cannot price.",
+  ];
+  if (input.exitScale !== null) {
+    lines.push(
+      `exit slippage: every market-order exit this corpus left unslipped is re-printed with estimatedSlippage × modeledCostScale ${input.exitScale} against the position, at its exit fraction (1 without a tp1 leg, ½ with one) — ` +
+        `a stop-kind exit that did not gap (stop_loss, breakeven_stop, tp1_lock, ambiguous; FR-3's same-bar exit included) at its level ∓ s (${CLEAN_STOP_SLIPPAGE_SINCE}), the review-end close at its print ∓ s (${EXPIRY_SLIPPAGE_SINCE}) — ` +
+        "priced from the legs without a re-simulate, exact to the emitted realizedR's four decimals. A stop printed off its level gapped and already carries FR-7's slippage (counted, not charged); " +
+        "take_profit, tp1 and entry prints do not move. 'in profit → at loss' counts expiries without a tp1 leg that FR-8 relabels once the close slips. R and E are the shipped ladder at ½." +
+        (input.slippageClass === "clean-stops" ? " The stop prints already carry their slippage in this corpus: not priced (—); the expiry alone is." : ""),
+    );
+  }
+  return lines;
+}
+
 /** The corpus's scale as the hybrid statement names it: stated, or stated as absent. */
 function scaleClause(scale: number | null): string {
   return scale === null
@@ -1021,7 +1046,8 @@ const SLIPPAGE_PRICED: Record<SlippageClass, (scale: number | null) => string> =
   "gapped-only": (scale) =>
     "slippage-priced: R_adj(f) = R(f) − (1−f)·S_row on tp1 rows only, where the exit is a stop print sitting at its level or an expiry print, " +
     `S_row = estimatedSlippage/riskDistance at the unscaled modelled slippage (${scaleClause(scale)}; S_row does not apply it) — a hybrid model: ` +
-    "its slope across fractions follows the current resolver's market-exit rule, its levels do not, because rows without a tp1 leg are never charged " +
+    "its slippage term follows the current resolver's market-exit rule at modeledCostScale 1 only (at scale c the resolver charges c × S_row, so the term's slope across fractions is c times this); " +
+    "its levels do not, because rows without a tp1 leg are never charged " +
     "(they price the same at every fraction) though the resolver slips their stop and expiry prints; --exit-slippage prices the levels. The tp1 limit leg stays unslipped.",
   "clean-stops": (scale) =>
     "slippage-priced: R_adj(f) = R(f) − (1−f)·S_row on tp1 rows only, where the exit is an expiry print, " +
