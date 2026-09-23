@@ -74,10 +74,11 @@ const NAMES_WITHOUT_HOLDING = new Map<string, { reason: string; standing: boolea
 const namesCapability = (text: string): string[] =>
   CAPABILITY.filter(([, pattern]) => pattern.test(text)).map(([name]) => name);
 
-// A key ending in "/" exempts a directory; any other key exempts that one file,
-// so AGENTS.md does not also exempt an AGENTS.md.bak.
-const exemptionOf = (path: string) =>
-  [...NAMES_WITHOUT_HOLDING.keys()].find((key) => (key.endsWith("/") ? path.startsWith(key) : path === key));
+// A key ending in "/" covers a directory; any other key covers that one file,
+// so AGENTS.md does not also cover an AGENTS.md.bak. Every use of the map goes
+// through this one rule.
+const covers = (key: string, path: string) => (key.endsWith("/") ? path.startsWith(key) : path === key);
+const exemptionOf = (path: string) => [...NAMES_WITHOUT_HOLDING.keys()].find((key) => covers(key, path));
 
 /** Each file that names the capability outside its home and every exemption, with what it names. */
 const outsideOf = (naming: ReadonlyArray<{ names: string[]; path: string }>): string[] =>
@@ -173,6 +174,8 @@ describe("only scripts/ops holds the off-box capability", () => {
     assert.equal(exemptionOf("AGENTS.md"), "AGENTS.md");
     assert.equal(exemptionOf("AGENTS.md.bak"), undefined);
     assert.equal(exemptionOf("testsuite/x.sh"), undefined);
+    assert.equal(covers("AGENTS.md", "AGENTS.md.bak"), false, "a file key reaches past its own name");
+    assert.equal(covers(".fleet-standard/", ".fleet-standard/FLEET.md"), true);
   });
 
   it("names a nested repository without reading it, and still names the violation beside it — executed", () => {
@@ -231,12 +234,12 @@ describe("only scripts/ops holds the off-box capability", () => {
     for (const [prefix, { standing }] of NAMES_WITHOUT_HOLDING) {
       if (standing) {
         assert.ok(
-          census.naming.some(({ path }) => path.startsWith(prefix)),
+          census.naming.some(({ path }) => covers(prefix, path)),
           `${prefix} no longer names the capability — drop its exemption`,
         );
       } else {
         assert.deepEqual(
-          [...census.tracked].filter((path) => path.startsWith(prefix)),
+          [...census.tracked].filter((path) => covers(prefix, path)),
           [],
           `${prefix} is exempt because this repository never tracks it, and it now does`,
         );

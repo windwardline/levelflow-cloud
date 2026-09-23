@@ -52,7 +52,7 @@ coverage question closed, and the desk went dark on purpose.
 
 **FMP.** UTC 2026-09-22 closed at 293.9 MB: bank 115.3, top-up 43.0, ad-hoc 135.6 (the recovery 134.0, the probe 1.6). The scheduled classes spent 158.3 MB against 412.6 MB on 09-21; #669's run gate held at every natural slot, 23:20Z included.
 
-**State of record corrected here.** Bars are not immutable (FMP revises some; `barStore.ts` already let the fresher row win); the cache-rebuild runbook's raw `curl` probe is the governed `probe-minute-bars.ts`; no FMP key rotation is owed for the thirteen 2026-08-07 rows; neither minute-bank vintage is clean (`docs/minute-bank.md`: the recovered 09-07 22:00 to 09-08 16:00 block sits a median +3.26 pips off EUR/GBP/USD parity over 1,080 minutes, first copies +0.30 to +0.58 either side and about +4 at their 90th percentile); the ambiguous-fills question is answered on record (fit 615 fills, 0.3%, −449.7 R; select 294, 0.2%, −243.7 R; `docs/research/r3/payoff-decomposition-capture-all-classfolds.txt`).
+**State of record corrected here.** Bars are not immutable (FMP revises some; `barStore.ts` already let the fresher row win); the cache-rebuild runbook's raw `curl` probe is the governed `probe-minute-bars.ts`; no FMP key rotation is owed for the thirteen 2026-08-07 rows (the console-log premise stays open); neither minute-bank vintage is clean (`docs/minute-bank.md`: the recovered 09-07 22:00 to 09-08 16:00 block sits a median +3.26 pips off EUR/GBP/USD parity over 1,080 minutes, first copies +0.30 to +0.58 either side and about +4 at their 90th percentile); the ambiguous-fills question is answered on record (fit 615 fills, 0.3%, −449.7 R; select 294, 0.2%, −243.7 R; `docs/research/r3/payoff-decomposition-capture-all-classfolds.txt`).
 
 **The sequence, in order.** The profit route first, then what it needs, then what moves no R.
 1. **Amendment 48, fifth pass.** Close the seven listed majors with their stated fixes, one refute round with a checker per refuter, verify the checkers, then put Q1–Q5 to the owner. No family registers, and so none can confirm or ship, until this is law.
@@ -81,7 +81,7 @@ coverage question closed, and the desk went dark on purpose.
 7. **Amendment 48 Q1–Q5**, once the fifth pass is refuted: whether the standing approval may amend law headed owner ruling; cap per market or program-wide (program-wide puts forex at 54–59 years); charged at registration or at the freeze; whether filters, calibration programs and amendment-36 removals claim the cap; whether the frontier-anchored span is an honest way to buy a confirm read, priced with the calendar a registration-time start gives up.
 8. **Settings:** a deny rule for the FMP MCP connector, and removal of the two allowlisted raw-`curl` FMP probes in `settings.local.json`; editing the minute-bank watcher task to hand-run through `wl-repo-script` with `LEVELFLOW_CHECKOUT`.
 9. **Parity ruling on `20260823`**, due before 2027-09-02: may `check-minute-bank-parity.sh` accept the `windwardline-archives` key in place of the expiring daily?
-10. **Standing:** §21c's premise in light of E3; which vintage research reads (neither is clean); `confirm-4d`'s `--baseline` default; refresh the FMP population attestation (expired 2026-09-15); read the FMP dashboard and say whether `--daily-ceiling` needs a dated label; FMP key rotation is optional, not owed; empty the Trash; revoke the Gemini CLI's Google OAuth grant.
+10. **Standing:** §21c's premise in light of E3; which vintage research reads (neither is clean); `confirm-4d`'s `--baseline` default; refresh the FMP population attestation (expired 2026-09-15); read the FMP dashboard and say whether `--daily-ceiling` needs a dated label; the FMP key rotation is not owed for the thirteen 2026-08-07 rows but stays open, because Edge console logs since 2026-08-18 would carry the current key and are unmeasured (FMP plan E4); empty the Trash; revoke the Gemini CLI's Google OAuth grant.
 
 ### 2026-09-22: archives locked, the minute-bank hole filled, and FMP found revising a quarter of what the bank holds — and what the next session picks up
 
@@ -2716,9 +2716,10 @@ measured the same hour, and what was done about each:
    watchdog also inserts into the table (a constant message; no exposure).
    Function console logs still receive raw error objects at several sites;
    past log lines age out by retention — which is one more reason the answer
-   is rotation. **Owner item: rotate the FMP key** *(superseded: optional, not
-   owed — the thirteen rows carry the key rotated out 2026-08-17; FMP plan E4,
-   `docs/fmp-entitlements.md`)* — the dashboard step is
+   is rotation. **Owner item: rotate the FMP key** *(narrowed 2026-09-23: not owed
+   for the thirteen rows, which carry the key rotated out 2026-08-17; the console
+   logs since 2026-08-18 would carry the current key and are unmeasured, so the
+   item stays open pending FMP plan E4)* — the dashboard step is
    yours; Keychain `fmp-api-key`, the Supabase function secret and the MCP
    connector are the driver's, in the policy's order (the new value in the
    Keychain before the provider invalidates the old). A credential in a table
@@ -3022,8 +3023,8 @@ program is amendment 46 (it is not). Do not put any of them to the owner again;
 the operative text is
 [`2026-08-02-owner-rulings-amendments.md`](/docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md),
 not the 2026-09-14 rulings record, which says so itself. Still unconditionally the owner's: the
-FMP key rotation (the escalation itself closed 2026-09-14; optional, not owed —
-FMP plan E4) and the two E8 tab captures.
+FMP key rotation (the escalation itself closed 2026-09-14; not owed for the
+thirteen rows, open for the unmeasured console logs — FMP plan E4) and the two E8 tab captures.
 
 **THE FOREX COMMISSION IS CONVERTED IN THE WRONG CURRENCY — found 2026-09-13.**
 [`forex-commission-conversion-2026-09-13.md`](/docs/research/forex-commission-conversion-2026-09-13.md),

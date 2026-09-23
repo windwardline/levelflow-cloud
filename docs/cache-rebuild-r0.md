@@ -38,6 +38,10 @@ per symbol, and was never carried by the defect. Leave it running.
     npx tsx scripts/probe-minute-bars.ts --symbol EURUSD --from YYYY-MM-DD --to YYYY-MM-DD
   ```
 
+  It asks the 1-minute endpoint, not EOD, so its answer is about that
+  entitlement. A rate-limit or account refusal opens the breaker's account
+  entry, which stands down every consumer, the minute bank included, until
+  the breaker clears: that is the governor working, not the probe failing.
   (Until 2026-09-23 this step was a raw `curl` with the key in a 600-mode
   config file. It kept the key off argv, and it spent outside every
   ledger.)
