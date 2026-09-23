@@ -31,6 +31,7 @@ import {
 } from "../scripts/ledgeredRead.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 import { writePinnedStore } from "./support/pinnedStore.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 /**
  * THE CONFIRM FOLD IS SEALED — proven by execution, reader by reader.
@@ -372,7 +373,7 @@ function writeCorpus(
     generatedAt: "2026-09-02T20:00:00.000Z",
     grid: [{}, { runnerProtection: "hold" }],
     // Stated as every corpus since M5 states it: banked-fraction's
-    // --stop-exit-slippage prices at this scale and refuses a manifest without one.
+    // --exit-slippage prices at this scale and refuses a manifest without one.
     modeledCostScale: 1,
     // The roster the sweep was ASKED for — every symbol here survived, so it
     // equals `symbols`. The held-out helper (R4 act 2, deliverable 4) draws
@@ -571,9 +572,12 @@ function fixture(shape: Shape, label: string): Fixture {
  *
  * Ten fit days cannot reach the screen's 30 day clusters, so its families are
  * NO VERDICT here; the censoring sample and every row's anchor are judged.
+ *
+ * Made through scratchDir, so the helper removes it at exit; it is not kept
+ * under SEALED_GUARD_KEEP=1, and a hand run rebuilds it from this function.
  */
 function screenCache(): string {
-  const dir = mkdtempSync(join(tmpdir(), "sealed-screen-cache-"));
+  const dir = scratchDir("sealed-screen-cache-");
   const MIN5 = 5 * 60_000;
   const MIN15 = 15 * 60_000;
   const start = FIT_START - DAY;
@@ -684,11 +688,11 @@ const EXTRA_RUNS: Array<{ args: string[]; cwd?: "fixture"; label: string; reader
     label: "banked-fraction --include-holdout",
     reader: "banked-fraction",
   },
-  // The stop-exit pass prices every stop-kind row, tp1 or not: a wider
-  // population than the default tables, so its own proof that the fold stays shut.
+  // The exit-slippage pass prices every stop-kind and expiry row, tp1 or not:
+  // a wider population than the default tables, so its own proof that the fold stays shut.
   {
-    args: ["F", "--stop-exit-slippage"],
-    label: "banked-fraction --stop-exit-slippage",
+    args: ["F", "--exit-slippage"],
+    label: "banked-fraction --exit-slippage",
     reader: "banked-fraction",
   },
   {
@@ -730,30 +734,64 @@ function codeOf(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 }
 
-// Scripts the door scan finds that read no corpus at all, each with its reason
-// (the same file carries the same reason in tests/sweepStats.test.ts's door
-// census). An exemption rather than a variable name: fmpState stayed out of the
-// population only because its loop variable was not called `line`, so the next
-// rename would have pulled it in for a reason nobody could see. Checked below:
-// an exemption the scan no longer finds is stale, and an exempt file that
-// reaches the door or names an outcome column is a reader after all.
-const NOT_A_FOLD_READER: Record<string, string> = {
-  "recover-minute-bank":
-    "reads the minute bank's own JSONL, one provider bar per line, to dedupe " +
-    "the minutes it appends; it opens no corpus, has no manifest for the door " +
-    "to judge, and names no outcome column",
-  fmpState:
-    "reads the FMP governor's own state logs under .fmp-state/ — byte records " +
-    "and breaker events this machine appended; it opens no corpus, has no " +
-    "manifest for the door to judge, and names no outcome column",
+// The outcome-bearing columns, DERIVED from the one function that writes them
+// into the fixture: whatever withOutcome sets on a row is what differs between
+// A, B and C, so it is exactly what a reader must never see on the fold. A list
+// typed out here would be a second definition of the fold's outcomes, and the
+// first reader of a column it forgot (armingBoundRealizedR, grossOutcome) would
+// walk past it.
+const OUTCOME_COLUMNS: readonly string[] = Object.keys(
+  withOutcome({}, "take_profit", { entry: 1, stop: 0.9, target: 1.2, time: 0, tp1: 1.05 }),
+).sort();
+const namesOutcome = (code: string): string[] =>
+  OUTCOME_COLUMNS.filter((column) => new RegExp(`\\b${column}\\b`).test(code));
+
+// Scripts the censuses find that read no corpus at all, each with its reason
+// and the outcome columns it names, if any (the two the door scan finds carry
+// the same reason in tests/sweepStats.test.ts's door census). An exemption rather than a
+// variable name: fmpState stayed out of the population only because its loop
+// variable was not called `line`, so the next rename would have pulled it in
+// for a reason nobody could see. Checked below: an exemption neither census
+// finds is stale, an exempt file that reaches the door is a reader after all,
+// and so is one that names an outcome column its entry does not.
+const NOT_A_FOLD_READER: Record<string, { names: string[]; reason: string }> = {
+  "recover-minute-bank": {
+    names: [],
+    reason: "reads the minute bank's own JSONL, one provider bar per line, to dedupe " +
+      "the minutes it appends; it opens no corpus, has no manifest for the door " +
+      "to judge, and names no outcome column",
+  },
+  fmpState: {
+    names: [],
+    reason: "reads the FMP governor's own state logs under .fmp-state/ — byte records " +
+      "and breaker events this machine appended; it opens no corpus, has no " +
+      "manifest for the door to judge, and names no outcome column",
+  },
+  "register-verdict": {
+    names: ["legs"],
+    reason: "names `legs` only in its prose about amendment 36's window and cap " +
+      "legs; its one input is the ledgered read, through readLedgeredArtifact, " +
+      "and it opens no corpus",
+  },
 };
 
-function scanned(): string[] {
-  return readdirSync(join(REPO, "scripts"))
+/** Every script under scripts/, at any depth, by its path from there without `.ts`. */
+function scripts(): string[] {
+  return (readdirSync(join(REPO, "scripts"), { recursive: true }) as string[])
     .filter((name) => name.endsWith(".ts") && name !== DEFINES_THE_DOOR)
-    .filter((name) => DOOR.test(codeOf(readFileSync(join(REPO, "scripts", name), "utf8"))))
     .map((name) => name.replace(/\.ts$/, ""))
     .sort();
+}
+
+const codeOfScript = (name: string) => codeOf(readFileSync(join(REPO, "scripts", `${name}.ts`), "utf8"));
+
+function scanned(): string[] {
+  return scripts().filter((name) => DOOR.test(codeOfScript(name)));
+}
+
+/** Every script whose code names an outcome column: what it READS, whatever door it took. */
+function namingOutcomes(): string[] {
+  return scripts().filter((name) => namesOutcome(codeOfScript(name)).length > 0);
 }
 
 function population(): string[] {
@@ -919,13 +957,40 @@ describe("the confirm fold is sealed: no reader's output moves with it", () => {
     assert.ok(readers.length >= 16, `population ${readers.length} — the door scan found too few readers`);
   });
 
-  it("exempts only what the scan finds, and only what reads no corpus", () => {
-    const found = scanned();
-    for (const name of Object.keys(NOT_A_FOLD_READER)) {
-      assert.ok(found.includes(name), `${name} is exempted but the door scan no longer finds it`);
-      const source = codeOf(readFileSync(join(REPO, "scripts", `${name}.ts`), "utf8"));
+  it("exempts only what a census finds, and only what reads no corpus", () => {
+    const found = new Set([...scanned(), ...namingOutcomes()]);
+    for (const [name, { names }] of Object.entries(NOT_A_FOLD_READER)) {
+      assert.ok(found.has(name), `${name} is exempted but neither the door scan nor the outcome census finds it`);
+      const source = codeOfScript(name);
       assert.doesNotMatch(source, /assertManifest|sweepStats|createInterface\(|readLinesSync\(/, `${name} reaches the corpus door`);
-      assert.doesNotMatch(source, /\b(outcome|realizedR|grossRealizedR|tp1Hit|exitAtMs|filledAtMs)\b/, `${name} names an outcome column`);
+      assert.deepEqual(namesOutcome(source), names, `${name} names an outcome column its exemption does not`);
+    }
+  });
+
+  // What a script READS, not how it opens the file (2026-09-22). The door scan
+  // keys on four ways to open a corpus; a reader that splits the file on /\n/
+  // and parses each `row` matched none of them and could sum realizedR over the
+  // sealed fold with both censuses green. So every script that names an outcome
+  // column must be one the door scan finds — and so one this guard executes —
+  // or be exempted by name with its reason.
+  it("every script that names an outcome column is a door reader or exempted by name", () => {
+    for (const column of ["outcome", "realizedR", "grossRealizedR", "tp1Hit", "exitAtMs", "filledAtMs", "armingBoundRealizedR"]) {
+      assert.ok(OUTCOME_COLUMNS.includes(column), `the derived outcome columns lost ${column}`);
+    }
+    const doors = new Set(scanned());
+    const outside = namingOutcomes()
+      .filter((name) => !doors.has(name) && !(name in NOT_A_FOLD_READER))
+      .map((name) => `${name} names ${namesOutcome(codeOfScript(name)).join(", ")}`);
+    assert.deepEqual(
+      outside,
+      [],
+      "these read outcome columns outside the corpus door, so nothing withholds the " +
+        "sealed fold from them and this guard never runs them: open the corpus " +
+        "through the door, or name the file in NOT_A_FOLD_READER with its reason",
+    );
+    // Non-vacuity: the census must reach the readers it exists to compare.
+    for (const reader of ["grid-totalr", "arming-bound-cells", "banked-fraction"]) {
+      assert.ok(namingOutcomes().includes(reader), `the outcome census no longer finds ${reader}`);
     }
   });
 
@@ -1010,7 +1075,6 @@ describe("the confirm fold is sealed: no reader's output moves with it", () => {
       return;
     }
     for (const entry of all) rmSync(entry.dir, { force: true, recursive: true });
-    if (screenCacheBuilt) rmSync(screenCacheBuilt, { force: true, recursive: true });
   };
   process.on("exit", cleanup);
   // A killed run (SIGTERM from a harness timeout, Ctrl-C) skips "exit"

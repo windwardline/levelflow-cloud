@@ -13,6 +13,8 @@ import {
   fetchFmpWithRetry,
   type FmpRetryEvent,
 } from "../scripts/fmpRetry.ts";
+import { runProbe } from "../scripts/probe-minute-bars.ts";
+import { tempState } from "./fixtures/fmpTestState.ts";
 
 type FakeResponse = { ok: boolean; status: number };
 
@@ -309,7 +311,72 @@ describe("every FMP spender retries on a ladder that knows the provider, or asks
     }
     for (const path of ASKS_ONCE.keys()) assert.ok(spenders.includes(path), `${path} is exempt but no longer a spender`);
   });
+
+  // The census above sees a SHARED ladder by its import. A loop written in
+  // place — ask, see a 503, ask again — imports nothing and passed it as
+  // "asks once". So each premise is held where it can be: the probe is
+  // executed, and the gate, whose one request site sits inside a module that
+  // runs at import, is read.
+  it("the probe asks once: a 503 is its answer, not a reason to ask again — executed", async () => {
+    const answers = [
+      new Response("Service Unavailable", { status: 503 }),
+      new Response(JSON.stringify([{ close: 1, date: "2026-09-10 09:30:00" }]), { status: 200 }),
+    ];
+    const asked: string[] = [];
+    const said: string[] = [];
+    const code = await runProbe({
+      argv: ["--symbol", "EURUSD", "--from", "2026-09-10", "--to", "2026-09-10"],
+      fetch: (input) => {
+        asked.push(String(input));
+        return Promise.resolve(answers.shift() ?? new Response("no third answer", { status: 599 }));
+      },
+      key: "test-key",
+      now: () => Date.parse("2026-09-16T12:00:00Z"),
+      print: { err: (line) => said.push(line), out: (line) => said.push(line) },
+      state: tempState(),
+    });
+    // Premise: the request reached the stub, so a count of one is the probe's.
+    assert.ok(asked.length > 0, `the probe asked nothing: ${said.join("\n")}`);
+    assert.equal(asked.length, 1, `the probe asked ${asked.length} times after a 503`);
+    assert.equal(code, 1, "a 503 is the probe's answer, reported red");
+  });
+
+  it("the gate has one request site, and nothing around it asks twice", () => {
+    const code = readFileSync(join("scripts", "verify-fmp-matches.ts"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/[^\n]*/g, "");
+    // Every call that can reach the provider: the probe-gated fetch, and the
+    // global fetch called rather than handed to the gate.
+    const sites = [...code.matchAll(/\bproviderFetch\s*\(|(?<![\w.])fetch\s*\(/g)].map((match) => match[0]);
+    assert.deepEqual(sites, ["providerFetch("], "verify-fmp-matches asks the provider from more than one place");
+    const body = blockAfter(code, code.indexOf("async function fetchJson("), "{");
+    assert.match(body, /\bproviderFetch\s*\(/, "the one request site moved out of fetchJson");
+    assert.doesNotMatch(body, /\b(?:for|while|do)\b|\bfetchJson\s*\(/, "fetchJson asks again inside itself");
+    // A catch that calls fetchJson again is a retry by another name.
+    for (const match of code.matchAll(/\bcatch\s*(?:\([^)]*\))?\s*\{|\.catch\s*\(/g)) {
+      const opener = match[0].endsWith("{") ? "{" : "(";
+      assert.doesNotMatch(
+        blockAfter(code, (match.index ?? 0) + match[0].length - 1, opener),
+        /\bfetchJson\s*\(/,
+        "a failed request is asked again from its catch",
+      );
+    }
+  });
 });
+
+/** The balanced block `opener` opens first at or after `from`. */
+function blockAfter(code: string, from: number, opener: "(" | "{"): string {
+  assert.ok(from >= 0, "the block's anchor was not found");
+  const start = code.indexOf(opener, from);
+  assert.ok(start >= 0, "no block after the anchor");
+  const closer = opener === "{" ? "}" : ")";
+  let depth = 0;
+  for (let at = start; at < code.length; at += 1) {
+    if (code[at] === opener) depth += 1;
+    else if (code[at] === closer && (depth -= 1) === 0) return code.slice(start, at + 1);
+  }
+  throw new Error("an unbalanced block");
+}
 
 describe("the bulk driver's ladder is sized for a bulk job", () => {
   it("spans minutes, not the module default's forty seconds", () => {

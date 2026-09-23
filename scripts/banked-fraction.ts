@@ -10,13 +10,14 @@
  *
  * What it is: the ALLOCATION question alone. The exit path is the emitted
  * one at every fraction — the runner's protection re-arms on the TP1 touch,
- * not on the size banked — and costs are the emitted commission (spread and
- * slippage ride in the leg prices — spread does; slippage, in a corpus emitted
- * before CLEAN_STOP_SLIPPAGE_SINCE, only in gapped prints, FR-7, so a fraction
- * below ½ moves money onto a stop print that resolver never slipped and the
- * slope is an upper bound by up to S/2 — round 1, 2026-09-06). A row without a
- * tp1 leg ran full size to
- * one exit and prices the same at every fraction.
+ * not on the size banked — and costs are the emitted commission (spread
+ * rides in the leg prices; slippage rides in whichever market-order exits the
+ * corpus's engine slipped, its SLIPPAGE CLASS (`slippageClassOf`), which every
+ * read states. On a `gapped-only` corpus — every corpus of record — slippage is
+ * only in gapped prints, FR-7, so a fraction below ½ moves money onto a stop
+ * print that resolver never slipped and the slope is an upper bound by up to
+ * S/2 — round 1, 2026-09-06). A row without a tp1 leg ran full size to one
+ * exit and prices the same at every fraction.
  *
  * Its control runs on every row it prices: at ½ the arithmetic must reproduce
  * the emitted `realizedR` to its four decimals, or the whole corpus is
@@ -26,17 +27,20 @@
  * done with a figure here: nothing that manufactures a ratio.
  *
  *   tsx scripts/banked-fraction.ts <emit.jsonl> [more shards...]
- *     [--folds fit,select] [--variant baseline] [--include-holdout] [--grain class|market] [--stop-exit-slippage]
+ *     [--folds fit,select] [--variant baseline] [--include-holdout] [--grain class|market] [--exit-slippage]
  *     [--years all|contained|escaping [--witness docs/research/r3/feed-character.txt]]
  *
  * `--years` stratifies by feed character (scripts/feedYears.ts): the year map
  * comes from the manifest's `feedCharacter` or from the tracked witness table;
  * rows outside the named bucket are counted, never priced. Default `all`.
  *
- * `--stop-exit-slippage` adds one table per fold: the shipped ladder's R with
- * every clean stop-kind print re-priced at the resolver's physics from
- * CLEAN_STOP_SLIPPAGE_SINCE (see `cleanStopCharge`), tp1 rows or not. It reads
- * only corpora emitted before that version, which carry the unslipped prints.
+ * `--exit-slippage` adds one table per fold: the shipped ladder's R with every
+ * market-order exit the corpus's engine left unslipped re-priced at the
+ * current resolver's physics (see `exitSlippageCharge`) — clean stops from
+ * CLEAN_STOP_SLIPPAGE_SINCE, the review-end close from EXPIRY_SLIPPAGE_SINCE —
+ * tp1 rows or not. It replaces `--stop-exit-slippage` (stops only, retired
+ * 2026-09-23 so an old command fails by name rather than answer with a
+ * different number), and it refuses a corpus that already slips both.
  */
 import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
@@ -82,7 +86,7 @@ const VALUE_FLAGS = new Set(["--folds", "--grain", "--variant", "--years", "--wi
  */
 export const GRAINS = ["class", "market"] as const;
 export type Grain = (typeof GRAINS)[number];
-const BOOLEAN_FLAGS = new Set(["--include-holdout", "--stop-exit-slippage"]);
+const BOOLEAN_FLAGS = new Set(["--include-holdout", "--exit-slippage"]);
 
 const IDENTITY_TERMS = [
   "acceptance",
@@ -106,16 +110,21 @@ export const STOP_PRINT_KINDS = new Set(["tp1_lock", "breakeven_stop", "stop_los
 export const LEVEL_TOLERANCE = 1.5e-8;
 
 /**
- * The slippage a stop print carries in a corpus emitted before
- * CLEAN_STOP_SLIPPAGE_SINCE: none. There a non-gapped stop exit is printed
- * exactly at its level (FR-7 charges gapExitSlippage only on a gapped open),
- * and an expiry is a market print at the bar's close. A
+ * The slippage a stop print carries in a `gapped-only` corpus: none. There a
+ * non-gapped stop exit is printed exactly at its level (FR-7 charges
+ * gapExitSlippage only on a gapped open), and an expiry is a market print at
+ * the bar's close with none either. A
  * fraction below ½ moves money from the tp1 limit print onto that leg, so the
  * slippage-priced table charges the sweep's own estimatedSlippage, in R, on
  * the runner fraction of every such row — a hybrid model, named as such:
  * neither the resolver's gap-only rule nor the gate's every-side rule, and
  * the tp1 limit leg stays unslipped (FR-4's haircut is defaulted off).
  * Round 1, 2026-09-06: forex select's slope +1,100.2 → +785.2 R under it.
+ *
+ * The class decides what is still unslipped (review of #689, finding 1): on a
+ * `clean-stops` corpus every stop already carries its slippage in the print,
+ * so only the expiry is charged; on an `every-market-exit` corpus nothing is,
+ * and R_adj(f) = R(f) by construction — the slippage already rides at (1−f).
  *
  * Rows without a tp1 leg move nothing between fractions and are never
  * charged. A tp1 row whose exit leg names no kind, or a stop print whose
@@ -126,6 +135,7 @@ export function stopPrintSlippage(input: {
   legs: Leg[];
   levels: { entryPrice: number | null; stopLoss: number | null; takeProfit1: number | null };
   riskDistance: number;
+  slippageClass: SlippageClass;
 }): { charged: boolean; kind: string | null; sR: number } {
   const exit = input.legs.find((leg) => leg.leg === "exit");
   const tp1 = input.legs.find((leg) => leg.leg === "tp1");
@@ -134,8 +144,12 @@ export function stopPrintSlippage(input: {
     throw new Error("a tp1 row's exit leg names no kind — the reader cannot tell a limit print from a stop print");
   }
   const sR = input.estimatedSlippage / input.riskDistance;
-  if (exit.kind === "expiry") return { charged: true, kind: exit.kind, sR };
+  if (exit.kind === "expiry") {
+    const unslipped = input.slippageClass !== "every-market-exit";
+    return { charged: unslipped, kind: exit.kind, sR: unslipped ? sR : 0 };
+  }
   if (!STOP_PRINT_KINDS.has(exit.kind)) return { charged: false, kind: exit.kind, sR: 0 };
+  if (input.slippageClass !== "gapped-only") return { charged: false, kind: exit.kind, sR: 0 };
   const atLevel = levelOfStopPrint(exit.kind, exit.price, input.levels) !== null;
   return { charged: atLevel, kind: exit.kind, sR: atLevel ? sR : 0 };
 }
@@ -164,51 +178,76 @@ function levelOfStopPrint(kind: string, price: number, levels: StopLevels): numb
   return finiteLevels.find((level) => Math.abs(price - Number(level.toFixed(8))) <= LEVEL_TOLERANCE) ?? null;
 }
 
-/**
- * The engine version from which the resolver slips every clean stop-kind
- * print (replay.ts `stopExitSlippage`). A corpus at or after it already
- * carries the charge in its prints, so `--stop-exit-slippage` refuses it
- * rather than charge twice.
- */
+/** The engine version from which the resolver slips every clean stop-kind print (replay.ts `stopExitSlippage`). */
 export const CLEAN_STOP_SLIPPAGE_SINCE = "2026.09.23.stop-exit-slippage";
+/** The engine version from which the resolver slips the review-end close too (replay.ts `expiryExitSlippage`). */
+export const EXPIRY_SLIPPAGE_SINCE = "2026.09.23.expiry-exit-slippage";
 
-/** Whether a corpus's engine already slips clean stops, by the date its version carries; refuses a version that carries none. */
-export function corpusSlipsCleanStops(analyzerVersion: string): boolean {
+/**
+ * Which market-order exits a corpus's resolver already printed with the
+ * modelled slippage:
+ *   gapped-only        before CLEAN_STOP_SLIPPAGE_SINCE — FR-7's gapped stops alone;
+ *   clean-stops        CLEAN_STOP_SLIPPAGE_SINCE — every stop-kind exit, not the expiry close;
+ *   every-market-exit  from EXPIRY_SLIPPAGE_SINCE — every stop-kind exit and the expiry close.
+ */
+export type SlippageClass = "gapped-only" | "clean-stops" | "every-market-exit";
+
+/**
+ * A corpus's slippage class, from its engine version. Both changes shipped on
+ * one day, so a date alone cannot tell them apart: that day's versions are
+ * placed by name, and a same-day name the reader does not know is refused, as
+ * is a version that carries no date. Never guessed.
+ */
+export function slippageClassOf(analyzerVersion: string): SlippageClass {
   const day = (version: string) => /^(\d{4}\.\d{2}\.\d{2})\./.exec(version)?.[1] ?? null;
   const corpusDay = day(analyzerVersion);
   if (corpusDay === null) {
-    throw new Error(`the corpus's engine version "${analyzerVersion}" carries no date — the reader cannot tell whether its clean stops already slip`);
+    throw new Error(`the corpus's engine version "${analyzerVersion}" carries no date — the reader cannot tell which exits it already slipped`);
   }
-  return corpusDay >= (day(CLEAN_STOP_SLIPPAGE_SINCE) as string);
+  const cleanDay = day(CLEAN_STOP_SLIPPAGE_SINCE) as string;
+  const expiryDay = day(EXPIRY_SLIPPAGE_SINCE) as string;
+  if (corpusDay < cleanDay) return "gapped-only";
+  if (analyzerVersion === CLEAN_STOP_SLIPPAGE_SINCE) return "clean-stops";
+  if (analyzerVersion === EXPIRY_SLIPPAGE_SINCE) return "every-market-exit";
+  if (corpusDay > expiryDay) return "every-market-exit";
+  if (corpusDay > cleanDay && corpusDay < expiryDay) return "clean-stops";
+  throw new Error(
+    `the corpus's engine version "${analyzerVersion}" shares its date with ${CLEAN_STOP_SLIPPAGE_SINCE} or ${EXPIRY_SLIPPAGE_SINCE} and is neither — the reader cannot place which exits it already slipped`,
+  );
 }
 
 /**
- * What CLEAN_STOP_SLIPPAGE_SINCE does to one row emitted before it, from the
- * legs, without a re-simulate.
+ * What the current resolver does to one row its corpus's engine left
+ * unslipped, from the legs, without a re-simulate.
  *
- * The resolver now prints every stop-kind exit that did not gap — stop_loss,
+ * The resolver now prints every market-order exit with the modelled slippage
+ * against the position: a stop-kind exit that did not gap — stop_loss,
  * breakeven_stop, tp1_lock, ambiguous, FR-3's same-bar exit among them — at
- * its level ∓ estimatedSlippage × scale, against the position. Nothing else
- * about the resolution moves: the trigger, the outcome, the exit time, every
- * limit print and the expiry print are what the corpus emitted. So the row's
- * realized R falls by exactly its exit fraction (1 without a tp1 leg, ½ with
- * one) times the price moved, over the planned risk. The new print is rounded
- * as the resolver rounds it (toFixed(8)), so the charge is exact up to the
- * emitted realizedR's own four decimals.
+ * its level ∓ estimatedSlippage × scale (CLEAN_STOP_SLIPPAGE_SINCE), and the
+ * review-end close at its emitted print ∓ the same (EXPIRY_SLIPPAGE_SINCE).
+ * Nothing else about the resolution moves: the trigger, the exit time and
+ * every limit print are what the corpus emitted. So the row's realized R
+ * falls by exactly its exit fraction (1 without a tp1 leg, ½ with one) times
+ * the price moved, over the planned risk. The new print is rounded as the
+ * resolver rounds it (toFixed(8)); a stop's is exact from its level, an
+ * expiry's from its already-rounded print, within 1e-8 in price.
  *
- * Null for an exit that is not a stop kind: its print does not move. A stop
+ * By class: a `gapped-only` row prices both; a `clean-stops` row prices the
+ * expiry alone (its stops already slipped) and returns null for a stop;
+ * an `every-market-exit` row prices nothing. Null for a limit print. A stop
  * printed off its level gapped and already carries FR-7's gap slippage:
  * counted, charged nothing. Every hole refuses — an exit without a kind, a
- * stop kind without its level, a stop kind without a finite slippage.
+ * stop kind without its level, a priced exit without a finite slippage.
  */
-export function cleanStopCharge(input: {
+export function exitSlippageCharge(input: {
   estimatedSlippage: number;
   legs: Leg[];
   levels: StopLevels;
   riskDistance: number;
   scale: number;
   side: "buy" | "sell";
-}): { chargeR: number; clean: boolean; kind: string } | null {
+  slippageClass: SlippageClass;
+}): { charged: boolean; chargeR: number; kind: string } | null {
   const exit = input.legs.find((leg) => leg.leg === "exit");
   if (!exit) {
     throw new Error("a filled row carries no exit leg");
@@ -216,18 +255,21 @@ export function cleanStopCharge(input: {
   if (typeof exit.kind !== "string" || exit.kind.length === 0) {
     throw new Error("a filled row's exit leg names no kind — the reader cannot tell a stop print from a limit print");
   }
-  if (!STOP_PRINT_KINDS.has(exit.kind)) return null;
+  const isExpiry = exit.kind === "expiry";
+  if (!isExpiry && !STOP_PRINT_KINDS.has(exit.kind)) return null;
+  if (input.slippageClass === "every-market-exit") return null;
+  if (!isExpiry && input.slippageClass !== "gapped-only") return null;
   if (!Number.isFinite(input.estimatedSlippage) || input.estimatedSlippage < 0) {
     throw new Error(`a ${exit.kind} row carries no finite estimatedSlippage — the charge cannot be priced from what the row does not state`);
   }
-  const level = levelOfStopPrint(exit.kind, exit.price, input.levels);
-  if (level === null) return { chargeR: 0, clean: false, kind: exit.kind };
+  const level = isExpiry ? exit.price : levelOfStopPrint(exit.kind, exit.price, input.levels);
+  if (level === null) return { charged: false, chargeR: 0, kind: exit.kind };
   const against = input.side === "buy" ? -1 : 1;
   const slipped = Number((level + against * input.estimatedSlippage * input.scale).toFixed(8));
   const exitFraction = input.legs.some((leg) => leg.leg === "tp1") ? 1 - SHIPPED_FRACTION : 1;
   const chargeR = (exitFraction * against * (slipped - exit.price)) / input.riskDistance;
   // At scale 0 the product is −0 on a buy; a charge of nothing is 0.
-  return { chargeR: chargeR === 0 ? 0 : chargeR, clean: true, kind: exit.kind };
+  return { charged: true, chargeR: chargeR === 0 ? 0 : chargeR, kind: exit.kind };
 }
 
 /**
@@ -285,19 +327,23 @@ export type FractionCell = {
   slippageTotal: number;
   /** tp1 rows whose exit is a stop print at its level or an expiry print. */
   stopPrintRows: number;
-  /** Set under --stop-exit-slippage only: every stop-kind row, charged where it printed at its level. */
-  stopExit?: StopExitCell;
+  /** Set under --exit-slippage only: every market-order exit the corpus's engine left unslipped, charged. */
+  exitSlippage?: ExitSlippageCell;
   tp1Rows: number;
 };
 
-/** One cell of the --stop-exit-slippage table. */
-export type StopExitCell = {
-  /** Σ exit fraction × slippage × scale / risk over the clean rows, in R — what the new physics takes from `shippedTotal`. */
-  chargeTotal: number;
-  clean: number;
-  /** Clean (charged) rows by exit kind. */
+/** One cell of the --exit-slippage table. Charges are Σ exit fraction × slippage × scale / risk, in R — what the current physics takes from `shippedTotal`. */
+export type ExitSlippageCell = {
+  /** Clean (charged) stop-kind rows by exit kind. */
   cleanByKind: Record<string, number>;
-  gapped: number;
+  cleanStops: number;
+  expiryCharge: number;
+  /** Expiry rows without a tp1 leg that the charge moves from expired_in_profit to expired_at_loss (FR-8 reads net R). */
+  expiryLabelFlips: number;
+  expiryRows: number;
+  gappedStops: number;
+  stopCharge: number;
+  /** Stop-kind rows priced — zero on a clean-stops corpus, whose stops already slipped. */
   stopKindRows: number;
 };
 
@@ -318,7 +364,7 @@ type RawCell = {
   shippedTotal: number;
   slippageTotal: number;
   stopPrintRows: number;
-  stopExit?: StopExitCell;
+  exitSlippage?: ExitSlippageCell;
   tp1Rows: number;
 };
 
@@ -353,8 +399,10 @@ export type FractionSummary = {
   years: YearsFilter;
   yearMapSource: YearMap["source"] | null;
   witnessTablePath?: string;
-  /** The --stop-exit-slippage pass, when asked for: the modelled-cost scale its charge is priced at. */
-  stopExitSlippage: { scale: number } | null;
+  /** The --exit-slippage pass, when asked for: the modelled-cost scale its charge is priced at. */
+  exitSlippage: { scale: number } | null;
+  /** Which market-order exits the corpus's engine already slipped — decided from its version, stated on every read. */
+  slippageClass: SlippageClass;
   rows: {
     controlChecked: number;
     otherYears: number;
@@ -370,9 +418,11 @@ export type FractionSummary = {
   variant: string;
 };
 
-function rawCell(assetType: string, fold: string, stopExit: boolean): RawCell {
+function rawCell(assetType: string, fold: string, exitSlippage: boolean): RawCell {
   return {
-    ...(stopExit && { stopExit: { chargeTotal: 0, clean: 0, cleanByKind: {}, gapped: 0, stopKindRows: 0 } }),
+    ...(exitSlippage && {
+      exitSlippage: { cleanByKind: {}, cleanStops: 0, expiryCharge: 0, expiryLabelFlips: 0, expiryRows: 0, gappedStops: 0, stopCharge: 0, stopKindRows: 0 },
+    }),
     assetType,
     bankedHalf: 0,
     byFraction: FRACTIONS.map(() => 0),
@@ -458,7 +508,7 @@ function derive(raw: RawCell): FractionCell {
     shippedTotal: raw.shippedTotal,
     slippageTotal: raw.slippageTotal,
     stopPrintRows: raw.stopPrintRows,
-    ...(raw.stopExit && { stopExit: { ...raw.stopExit, cleanByKind: { ...raw.stopExit.cleanByKind } } }),
+    ...(raw.exitSlippage && { exitSlippage: { ...raw.exitSlippage, cleanByKind: { ...raw.exitSlippage.cleanByKind } } }),
     tp1Rows: raw.tp1Rows,
   };
 }
@@ -469,8 +519,8 @@ export async function bankedFraction(input: {
   holdoutPinDir?: string;
   includeHoldout?: boolean;
   paths: string[];
-  /** Price every clean stop-kind print at CLEAN_STOP_SLIPPAGE_SINCE's physics (the --stop-exit-slippage table). */
-  stopExitSlippage?: boolean;
+  /** Price every market-order exit the corpus left unslipped at the current resolver's physics (the --exit-slippage table). */
+  exitSlippage?: boolean;
   variant: string;
   witnessTablePath?: string;
   years?: YearsFilter;
@@ -510,22 +560,31 @@ export async function bankedFraction(input: {
       }
     }
   }
-  // The stop-exit pass reads only a corpus whose clean stops printed at their
-  // level, and charges at the scale its resolver ran at — stated, never assumed.
-  let stopExitScale: number | null = null;
-  if (input.stopExitSlippage) {
+  // Every slippage model here depends on which exits the corpus's engine
+  // already slipped, so the class is decided before a row is read, on every
+  // path. The identity check above holds every shard to one engine version.
+  let slippageClass: SlippageClass;
+  try {
+    slippageClass = slippageClassOf(manifests[0].analyzerVersion);
+  } catch (error) {
+    throw new Error(`${input.paths[0]}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  // The exit-slippage pass prices only what the corpus left unslipped, and
+  // charges at the scale its resolver ran at — stated, never assumed.
+  let exitScale: number | null = null;
+  if (input.exitSlippage) {
     for (const [index, manifest] of manifests.entries()) {
-      if (corpusSlipsCleanStops(manifest.analyzerVersion)) {
+      if (slippageClass === "every-market-exit") {
         throw new Error(
-          `${input.paths[index]}: engine ${manifest.analyzerVersion} already slips every clean stop print (from ${CLEAN_STOP_SLIPPAGE_SINCE}) — charging it again would bill the slippage twice`,
+          `${input.paths[index]}: engine ${manifest.analyzerVersion} already slips every market-order exit (from ${EXPIRY_SLIPPAGE_SINCE}) — charging it again would bill the slippage twice`,
         );
       }
       const scale = manifest.modeledCostScale;
       if (typeof scale !== "number" || !Number.isFinite(scale) || scale < 0) {
-        throw new Error(`${input.paths[index]}: the manifest states no modeledCostScale — the stop-exit charge is the slippage at the scale the resolver ran at, and this corpus does not say what that was`);
+        throw new Error(`${input.paths[index]}: the manifest states no modeledCostScale — the exit charge is the slippage at the scale the resolver ran at, and this corpus does not say what that was`);
       }
       // The identity check above already holds every shard to one scale.
-      stopExitScale = scale;
+      exitScale = scale;
     }
   }
   const holdout = resolveHeldOut(manifests, input.holdoutPinDir);
@@ -556,7 +615,8 @@ export async function bankedFraction(input: {
     folds: [...input.folds],
     holdout,
     includeHoldout: Boolean(input.includeHoldout),
-    stopExitSlippage: stopExitScale === null ? null : { scale: stopExitScale },
+    exitSlippage: exitScale === null ? null : { scale: exitScale },
+    slippageClass,
     years,
     yearMapSource: yearMap ? yearMap.source : null,
     ...(input.witnessTablePath && { witnessTablePath: input.witnessTablePath }),
@@ -655,6 +715,7 @@ export async function bankedFraction(input: {
             legs,
             levels: { entryPrice: finite(row.entryPrice), stopLoss: finite(row.stopLoss), takeProfit1: finite(row.takeProfit1) },
             riskDistance,
+            slippageClass,
           });
         } catch (error) {
           throw new Error(`${path}: ${symbol} ${String(row.outcome)} row — ${error instanceof Error ? error.message : String(error)}`);
@@ -666,16 +727,17 @@ export async function bankedFraction(input: {
         }
         sameBar = exitTime === tp1Time;
       }
-      let stopCharge: ReturnType<typeof cleanStopCharge> = null;
-      if (stopExitScale !== null) {
+      let exitCharge: ReturnType<typeof exitSlippageCharge> = null;
+      if (exitScale !== null) {
         try {
-          stopCharge = cleanStopCharge({
+          exitCharge = exitSlippageCharge({
             estimatedSlippage: finite(row.estimatedSlippage) ?? Number.NaN,
             legs,
             levels: { entryPrice: finite(row.entryPrice), stopLoss: finite(row.stopLoss), takeProfit1: finite(row.takeProfit1) },
             riskDistance,
-            scale: stopExitScale,
+            scale: exitScale,
             side,
+            slippageClass,
           });
         } catch (error) {
           throw new Error(`${path}: ${symbol} ${String(row.outcome)} row — ${error instanceof Error ? error.message : String(error)}`);
@@ -686,7 +748,7 @@ export async function bankedFraction(input: {
       for (const key of keys) {
         let cell = raw.get(key);
         if (!cell) {
-          cell = rawCell(key.startsWith("pooled|") ? "pooled" : assetType, split, stopExitScale !== null);
+          cell = rawCell(key.startsWith("pooled|") ? "pooled" : assetType, split, exitScale !== null);
           if (key === `${symbol}|${split}`) {
             cell.symbol = symbol;
             cell.heldOut = holdout.markets.includes(symbol);
@@ -695,14 +757,24 @@ export async function bankedFraction(input: {
         }
         cell.filled += 1;
         cell.shippedTotal += realized;
-        if (cell.stopExit && stopCharge) {
-          cell.stopExit.stopKindRows += 1;
-          if (stopCharge.clean) {
-            cell.stopExit.clean += 1;
-            cell.stopExit.cleanByKind[stopCharge.kind] = (cell.stopExit.cleanByKind[stopCharge.kind] ?? 0) + 1;
-            cell.stopExit.chargeTotal += stopCharge.chargeR;
+        if (cell.exitSlippage && exitCharge) {
+          const pass = cell.exitSlippage;
+          if (exitCharge.kind === "expiry") {
+            pass.expiryRows += 1;
+            pass.expiryCharge += exitCharge.chargeR;
+            // FR-8 labels an expiry without a tp1 leg by the sign of its net R.
+            if (!tp1 && row.outcome === "expired_in_profit" && Number((realized - exitCharge.chargeR).toFixed(4)) <= 0) {
+              pass.expiryLabelFlips += 1;
+            }
           } else {
-            cell.stopExit.gapped += 1;
+            pass.stopKindRows += 1;
+            if (exitCharge.charged) {
+              pass.cleanStops += 1;
+              pass.cleanByKind[exitCharge.kind] = (pass.cleanByKind[exitCharge.kind] ?? 0) + 1;
+              pass.stopCharge += exitCharge.chargeR;
+            } else {
+              pass.gappedStops += 1;
+            }
           }
         }
         priced.forEach((value, index) => {
@@ -799,22 +871,23 @@ export function formatBankedFraction(summary: FractionSummary): string {
       ? `held-out markets INCLUDED in every pool (--include-holdout): ${summary.holdout.markets.join(", ")} — a whole-roster measurement, not a verdict's`
       : describeHeldOut(summary.holdout, { labels: false, pools: true }),
   );
+  lines.push(`engine slippage class: ${summary.slippageClass} — ${SLIPPAGE_CLASS_TEXT[summary.slippageClass]}`);
   lines.push("");
   lines.push(
     "allocation only: the exit path is the emitted one at every fraction (the runner's protection re-arms on the TP1 touch, not on the size banked); " +
-      "costs are the emitted commission; spread rides in the leg prices; slippage rides only in gapped prints (FR-7) in a corpus emitted before " +
-      `${CLEAN_STOP_SLIPPAGE_SINCE}, and in every stop-kind print from it. Rows without a tp1 leg price the same at every fraction.`,
+      `costs are the emitted commission; spread rides in the leg prices; ${SLIPPAGE_RIDES[summary.slippageClass]}. Rows without a tp1 leg price the same at every fraction.`,
   );
   lines.push(
-    "slippage-priced: R_adj(f) = R(f) − (1−f)·S_row on every tp1 row whose exit is a stop print sitting at its level or an expiry print, S_row = estimatedSlippage/riskDistance — " +
-      "a hybrid model, neither the resolver's gap-only rule nor the gate's every-side rule; the tp1 limit leg stays unslipped. " +
+    `${SLIPPAGE_PRICED[summary.slippageClass]} ` +
       "same-bar = exits resolved on the TP1 touch bar itself (FR-3), which the corpus arms with zero latency and cannot price.",
   );
-  if (summary.stopExitSlippage) {
+  if (summary.exitSlippage) {
     lines.push(
-      `stop-exit slippage: every stop-kind exit (stop_loss, breakeven_stop, tp1_lock, ambiguous; FR-3's same-bar exit included) printed AT its level is re-printed at level ∓ estimatedSlippage × modeledCostScale ${summary.stopExitSlippage.scale}, against the position, ` +
-        `at its exit fraction (1 without a tp1 leg, ½ with one) — the resolver's physics from ${CLEAN_STOP_SLIPPAGE_SINCE}, priced from the legs without a re-simulate, exact to the emitted realizedR's four decimals. ` +
-        "A stop printed off its level gapped and already carries FR-7's slippage (counted, not charged); take_profit, tp1, entry and expiry prints do not move. R and E are the shipped ladder at ½.",
+      `exit slippage: every market-order exit this corpus left unslipped is re-printed with estimatedSlippage × modeledCostScale ${summary.exitSlippage.scale} against the position, at its exit fraction (1 without a tp1 leg, ½ with one) — ` +
+        `a stop-kind exit that did not gap (stop_loss, breakeven_stop, tp1_lock, ambiguous; FR-3's same-bar exit included) at its level ∓ s (${CLEAN_STOP_SLIPPAGE_SINCE}), the review-end close at its print ∓ s (${EXPIRY_SLIPPAGE_SINCE}) — ` +
+        "priced from the legs without a re-simulate, exact to the emitted realizedR's four decimals. A stop printed off its level gapped and already carries FR-7's slippage (counted, not charged); " +
+        "take_profit, tp1 and entry prints do not move. 'in profit → at loss' counts expiries without a tp1 leg that FR-8 relabels once the close slips. R and E are the shipped ladder at ½." +
+        (summary.slippageClass === "clean-stops" ? " The stop prints already carry their slippage in this corpus: not priced (—); the expiry alone is." : ""),
     );
   }
   for (const fold of summary.folds) {
@@ -845,25 +918,25 @@ export function formatBankedFraction(summary: FractionSummary): string {
         `| ${key.startsWith("pooled|") ? "**pooled**" : cell.assetType} | ${cell.tp1Rows} | ${cell.stopPrintRows} | ${fmt(cell.slippageTotal)} | ${FRACTIONS.map((fraction) => fmt(cell.byFractionAdjusted.get(fraction)!.total)).join(" | ")} | ${cell.bestFractionAdjusted} | ${fmt(bestAdjusted.deltaVsShipped)} | ${share(cell.sameBar.lockSameBar, cell.sameBar.lockRows)} | ${share(cell.sameBar.takeProfitSameBar, cell.sameBar.takeProfitRows)} |`,
       );
     }
-    if (summary.stopExitSlippage) {
+    if (summary.exitSlippage) {
       lines.push("");
-      lines.push(`--- ${fold} · stop-exit slippage (clean stop-kind prints at level ∓ slippage; ${CLEAN_STOP_SLIPPAGE_SINCE}) ---`);
-      lines.push(STOP_EXIT_HEADER);
-      lines.push(STOP_EXIT_RULE);
+      lines.push(`--- ${fold} · exit slippage (market-order exits at the current resolver's physics; class ${summary.slippageClass}) ---`);
+      lines.push(EXIT_SLIPPAGE_HEADER);
+      lines.push(EXIT_SLIPPAGE_RULE);
       for (const [key, cell] of summary.cells) {
         if (cell.fold !== fold || cell.symbol !== undefined) continue;
-        lines.push(stopExitLine(key.startsWith("pooled|") ? "**pooled**" : cell.assetType, cell));
+        lines.push(exitSlippageLine(key.startsWith("pooled|") ? "**pooled**" : cell.assetType, cell, summary.slippageClass));
       }
       if (summary.grain === "market") {
         lines.push("");
-        lines.push(`--- ${fold} · stop-exit slippage per market ---`);
-        lines.push(STOP_EXIT_HEADER.replace("| class |", "| class | market | held out |"));
-        lines.push(STOP_EXIT_RULE.replace("| --- |", "| --- | --- | --- |"));
+        lines.push(`--- ${fold} · exit slippage per market ---`);
+        lines.push(EXIT_SLIPPAGE_HEADER.replace("| class |", "| class | market | held out |"));
+        lines.push(EXIT_SLIPPAGE_RULE.replace("| --- |", "| --- | --- | --- |"));
         const markets = [...summary.cells.values()]
           .filter((cell) => cell.fold === fold && cell.symbol !== undefined)
           .sort((a, b) => a.assetType.localeCompare(b.assetType) || a.symbol!.localeCompare(b.symbol!));
         for (const cell of markets) {
-          lines.push(stopExitLine(`${cell.assetType} | ${cell.symbol} | ${cell.heldOut ? "yes" : "no"}`, cell));
+          lines.push(exitSlippageLine(`${cell.assetType} | ${cell.symbol} | ${cell.heldOut ? "yes" : "no"}`, cell, summary.slippageClass));
         }
       }
     }
@@ -898,16 +971,41 @@ export function formatBankedFraction(summary: FractionSummary): string {
   return lines.join("\n");
 }
 
-const STOP_EXIT_KINDS = ["stop_loss", "breakeven_stop", "tp1_lock", "ambiguous"] as const;
-const STOP_EXIT_HEADER =
-  `| class | filled | stop-kind exits | clean | gapped | ${STOP_EXIT_KINDS.join(" | ")} | charge R | R as emitted | R, clean stops slipped | E as emitted | E, clean stops slipped | charge R/fill |`;
-const STOP_EXIT_RULE = `| --- | ${Array.from({ length: 14 }, () => "---:").join(" | ")} |`;
+/** What each slippage class means, in one clause each, for the header and the two model lines. */
+const SLIPPAGE_CLASS_TEXT: Record<SlippageClass, string> = {
+  "gapped-only": `the engine that wrote this corpus slipped only gapped stop prints (FR-7); every clean stop and every expiry close printed without slippage (before ${CLEAN_STOP_SLIPPAGE_SINCE})`,
+  "clean-stops": `the engine that wrote this corpus slipped every stop-kind print, gapped or clean, and not the expiry close (${CLEAN_STOP_SLIPPAGE_SINCE})`,
+  "every-market-exit": `the engine that wrote this corpus slipped every market-order exit — every stop-kind print and the expiry close (from ${EXPIRY_SLIPPAGE_SINCE})`,
+};
+const SLIPPAGE_RIDES: Record<SlippageClass, string> = {
+  "gapped-only": "slippage rides only in gapped prints (FR-7)",
+  "clean-stops": "slippage rides in every stop-kind print, gapped (FR-7) or clean, and not in the expiry print",
+  "every-market-exit": "slippage rides in every stop-kind print and in the expiry print",
+};
+const SLIPPAGE_PRICED: Record<SlippageClass, string> = {
+  "gapped-only": "slippage-priced: R_adj(f) = R(f) − (1−f)·S_row on every tp1 row whose exit is a stop print sitting at its level or an expiry print, S_row = estimatedSlippage/riskDistance — " +
+    "the current resolver's market-exit rule applied to this corpus's unslipped prints at each fraction, at the full modelled slippage; the tp1 limit leg stays unslipped.",
+  "clean-stops": "slippage-priced: R_adj(f) = R(f) − (1−f)·S_row on every tp1 row whose exit is an expiry print, S_row = estimatedSlippage/riskDistance — " +
+    "this corpus's stops already print with their slippage, so R(f) carries it at (1−f) and no stop print is charged; 'stop prints' and S count expiry prints only, by design.",
+  "every-market-exit": "slippage-priced: R_adj(f) = R(f) on every row — this corpus prints every market-order exit with its slippage, so R(f) already carries it at (1−f); " +
+    "'stop prints' and S are 0 by design, not because any row gapped. The same-bar columns do not depend on slippage.",
+};
 
-function stopExitLine(label: string, cell: FractionCell): string {
-  const stop = cell.stopExit!;
-  const corrected = cell.shippedTotal - stop.chargeTotal;
+const STOP_EXIT_KINDS = ["stop_loss", "breakeven_stop", "tp1_lock", "ambiguous"] as const;
+const EXIT_SLIPPAGE_HEADER =
+  `| class | filled | stop-kind exits | clean | gapped | ${STOP_EXIT_KINDS.join(" | ")} | stop charge R | expiry exits | expiry charge R | in profit → at loss | R as emitted | R, market exits slipped | E as emitted | E, market exits slipped | charge R/fill |`;
+const EXIT_SLIPPAGE_RULE = `| --- | ${Array.from({ length: 17 }, () => "---:").join(" | ")} |`;
+
+function exitSlippageLine(label: string, cell: FractionCell, slippageClass: SlippageClass): string {
+  const pass = cell.exitSlippage!;
+  const charge = pass.stopCharge + pass.expiryCharge;
+  const corrected = cell.shippedTotal - charge;
   const perFill = (value: number) => (cell.filled > 0 ? fmt(value / cell.filled, 4) : "—");
-  return `| ${label} | ${cell.filled} | ${stop.stopKindRows} | ${stop.clean} | ${stop.gapped} | ${STOP_EXIT_KINDS.map((kind) => stop.cleanByKind[kind] ?? 0).join(" | ")} | ${fmt(-stop.chargeTotal)} | ${fmt(cell.shippedTotal)} | ${fmt(corrected)} | ${perFill(cell.shippedTotal)} | ${perFill(corrected)} | ${perFill(-stop.chargeTotal)} |`;
+  // A clean-stops corpus's stops already slipped: their columns are not a zero, they are not priced.
+  const stops = slippageClass === "clean-stops"
+    ? Array.from({ length: 8 }, () => "—").join(" | ")
+    : `${pass.stopKindRows} | ${pass.cleanStops} | ${pass.gappedStops} | ${STOP_EXIT_KINDS.map((kind) => pass.cleanByKind[kind] ?? 0).join(" | ")} | ${fmt(-pass.stopCharge)}`;
+  return `| ${label} | ${cell.filled} | ${stops} | ${pass.expiryRows} | ${fmt(-pass.expiryCharge)} | ${pass.expiryLabelFlips} | ${fmt(cell.shippedTotal)} | ${fmt(corrected)} | ${perFill(cell.shippedTotal)} | ${perFill(corrected)} | ${perFill(-charge)} |`;
 }
 
 function share(part: number, whole: number): string {
@@ -934,7 +1032,7 @@ async function main(): Promise<void> {
   // read undeclared, which tests/unknownFlagRefused.test.ts refuses. Set by
   // the walk, the dropped flag was refused as unknown and nothing noticed.
   const includeHoldout = args.includes("--include-holdout");
-  const stopExitSlippage = args.includes("--stop-exit-slippage");
+  const exitSlippage = args.includes("--exit-slippage");
   const folds = parseFolds(str("--folds") ?? "fit,select");
   const variant = (str("--variant") ?? "baseline").trim();
   if (!variant) {
@@ -948,7 +1046,7 @@ async function main(): Promise<void> {
   if (!(GRAINS as readonly string[]).includes(grainArg)) {
     throw new OperatorInputError(`--grain must be one of ${GRAINS.join(", ")} — got "${grainArg}"`);
   }
-  const summary = await bankedFraction({ folds, grain: grainArg as Grain, includeHoldout, paths, stopExitSlippage, variant, witnessTablePath: str("--witness") ?? undefined, years: yearsArg });
+  const summary = await bankedFraction({ folds, grain: grainArg as Grain, includeHoldout, exitSlippage, paths, variant, witnessTablePath: str("--witness") ?? undefined, years: yearsArg });
   console.log(formatBankedFraction(summary));
 }
 

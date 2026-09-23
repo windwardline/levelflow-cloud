@@ -220,7 +220,8 @@ const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
   // slippage are about 57 % of the modelled forex round trip, and the modelled
   // spread does not merely gate — `resolverCostOptions` hands it to the
   // resolver as `halfSpread`, which sets the entry fill print, both trigger
-  // tests and the gap and expiry prints. So these two numbers move realized R,
+  // tests and the gap and expiry prints, and the modelled slippage prices every
+  // market-order exit. So these two numbers move realized R,
   // not only admission at `maxCostShare`.
   //
   // The derivation input that WOULD settle them exists and has never been
@@ -517,6 +518,7 @@ export const GROSS_COST_SCALE = 0;
 
 /** What the resolver charges, from one execution-quality reading. */
 export type ResolverCostOptions = {
+  expiryExitSlippage: number;
   gapExitSlippage: number;
   halfSpread: number;
   roundTripCost: number;
@@ -559,6 +561,9 @@ export function resolverCostOptions(
   scale: number,
 ): ResolverCostOptions {
   return {
+    // 2026.09.23.expiry-exit-slippage: FR-1's review-end close is a market
+    // order too, so it takes the same modelled slippage as a clean stop.
+    expiryExitSlippage: quality.estimatedSlippage * scale,
     gapExitSlippage: quality.estimatedSlippage * scale,
     halfSpread: quality.estimatedSpread * scale / 2,
     roundTripCost: quality.estimatedCommission,

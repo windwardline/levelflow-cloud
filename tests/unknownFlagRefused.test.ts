@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { appendFileSync, chmodSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, it } from "node:test";
 import { promisify } from "node:util";
 import {
@@ -74,20 +74,58 @@ const sourceOf = (file: string) => readFileSync(file, "utf8");
  * Every spelling of an argv read (2026-09-22). `process.argv` alone let a
  * reader leave the law by writing `process["argv"]`, `const { argv } =
  * process` or `import { argv } from "node:process"`, and the population
- * floors sit one below the count, so a single reader leaving passed in
- * silence. The process module under another name is resolved in readsArgv.
+ * floors sat one below the count, so a single reader leaving passed in
+ * silence. The process module under another name, and node:util's
+ * parseArgs, which reads process.argv when it is given no `args`, are
+ * resolved in argvReads.
  */
 const ARGV_SPELLINGS: readonly RegExp[] = [
   /\bprocess\s*\??\.\s*argv\b/,
   /\bprocess\s*\??\.?\s*\[\s*(["'`])argv\1\s*\]/,
   /\{[^{}]*\bargv\b[^{}]*\}\s*=\s*(?:globalThis\s*\.\s*)?process\b/,
   /\bimport\s*\{[^}]*\bargv\b[^}]*\}\s*from\s*(["'])(?:node:)?process\1/,
+  /\bReflect\s*\.\s*get\s*\(\s*(?:globalThis\s*\.\s*)?process\s*,\s*(["'`])argv\1\s*\)/,
 ];
 
-/** Whether a source reads argv in any spelling above, comments excluded. */
-const readsArgv = (source: string): boolean => {
+const allOf = (pattern: RegExp) => new RegExp(pattern.source, `${pattern.flags.replace("g", "")}g`);
+
+/** The local names node:util's parseArgs is bound to, and the util namespaces it is reached through. */
+const parseArgsBindings = (code: string): { direct: string[]; namespaces: string[] } => {
+  const direct: string[] = [];
+  const namespaces: string[] = [];
+  const UTIL = String.raw`\s*from\s*["'](?:node:)?util["']`;
+  for (const [, names] of code.matchAll(new RegExp(String.raw`\bimport\s*(?:\w+\s*,\s*)?\{([^}]*)\}${UTIL}`, "g"))) {
+    for (const [, local] of names.matchAll(/\bparseArgs\b(?:\s+as\s+(\w+))?/g)) direct.push(local ?? "parseArgs");
+  }
+  for (const [, name] of code.matchAll(new RegExp(String.raw`\bimport\s+(?:\*\s+as\s+)?(\w+)\s*(?:,\s*\{[^}]*\})?${UTIL}`, "g"))) {
+    namespaces.push(name);
+  }
+  for (const namespace of namespaces) {
+    for (
+      const [, names] of code.matchAll(new RegExp(String.raw`\{([^{}]*)\}\s*=\s*${namespace}\b`, "g"))
+    ) {
+      for (const [, local] of names.matchAll(/\bparseArgs\b(?:\s*:\s*(\w+))?/g)) direct.push(local ?? "parseArgs");
+    }
+  }
+  return { direct, namespaces };
+};
+
+/**
+ * Every argv read in a source, comments excluded, as the text that reads it
+ * and the subscript right after it (`process.argv[1]`). A parseArgs bound
+ * from node:util counts from its import: given no `args`, it parses
+ * process.argv whole, and nothing at the call says so.
+ */
+const argvReads = (source: string): string[] => {
   const code = withoutComments(source);
-  if (ARGV_SPELLINGS.some((spelling) => spelling.test(code))) return true;
+  const reads: string[] = [];
+  const collect = (pattern: RegExp) => {
+    for (const match of code.matchAll(allOf(pattern))) {
+      const after = code.slice((match.index ?? 0) + match[0].length).match(/^\s*\[\s*\d+\s*\]/);
+      reads.push(match[0].replace(/\s+/g, "") + (after ? after[0].replace(/\s+/g, "") : ""));
+    }
+  };
+  ARGV_SPELLINGS.forEach(collect);
   // `import proc from "node:process"` or `import * as proc from …`: the same
   // reads, through the alias.
   for (
@@ -95,17 +133,47 @@ const readsArgv = (source: string): boolean => {
       /\bimport\s+(?:\*\s+as\s+)?(\w+)\s+from\s*["'](?:node:)?process["']/g,
     )
   ) {
-    const through = new RegExp(
-      `\\b${alias}\\s*\\??\\.\\s*argv\\b|\\b${alias}\\s*\\[\\s*["'\`]argv["'\`]\\s*\\]|` +
-        `\\{[^{}]*\\bargv\\b[^{}]*\\}\\s*=\\s*${alias}\\b`,
+    collect(
+      new RegExp(
+        `\\b${alias}\\s*\\??\\.\\s*argv\\b|\\b${alias}\\s*\\[\\s*["'\`]argv["'\`]\\s*\\]|` +
+          `\\{[^{}]*\\bargv\\b[^{}]*\\}\\s*=\\s*${alias}\\b`,
+      ),
     );
-    if (through.test(code)) return true;
   }
-  return false;
+  const { direct, namespaces } = parseArgsBindings(code);
+  if (direct.length > 0) reads.push(...direct.map((name) => `parseArgs as ${name}`));
+  for (const namespace of namespaces) {
+    collect(new RegExp(`\\b${namespace}\\s*\\??\\.\\s*parseArgs\\b|\\b${namespace}\\s*\\[\\s*["'\`]parseArgs["'\`]\\s*\\]`));
+  }
+  return reads;
 };
+
+/** Whether a source reads argv in any spelling above, comments excluded. */
+const readsArgv = (source: string): boolean => argvReads(source).length > 0;
 
 /** Every script that reads what an operator typed. */
 const ARGV_READERS = scriptFiles.filter((file) => readsArgv(sourceOf(file)));
+
+/**
+ * The capability, by its name rather than by a spelling (2026-09-22). A
+ * script whose code names `argv` at all either reads it in a spelling above
+ * or takes it as a parameter its caller fills, and the second kind is named
+ * here with a premise that is checked: it never names the process object, so
+ * the argv it sees is one a reader handed it. A spelling nobody listed — a
+ * `const p = process; p.argv`, or a parseArgs taken from `await
+ * import("node:util")` — names the capability and so lands here, red, by name.
+ * What no static read can see is a property name computed at run time; the
+ * recorded population below refuses an existing reader that moves to one.
+ */
+const ARGV_AS_PARAMETER = new Map<string, string>([
+  ["scripts/flagReader.ts", "the shared walk: every reader passes it process.argv.slice(2)"],
+  ["scripts/fmpByteBudget.ts", "the byte-budget flag parsers: replay-sweep passes them its argv"],
+]);
+// parseArgs too: node:util reached by a dynamic import, or a require, binds
+// it where no spelling above looks, and it reads process.argv by default.
+const namesArgv = (source: string) => /\bargv\b|\bparseArgs\b/.test(withoutComments(source));
+const namesProcess = (source: string) =>
+  /\bprocess\b|["'](?:node:)?process["']/.test(withoutComments(source));
 
 /**
  * Argv readers that take no operator argument at all, by name, with the
@@ -147,7 +215,10 @@ const FAILS_TOWARD_RUNNING = new Map<string, string>([
  * entry points were brought under it on 2026-09-22; executing the law then
  * found thirteen more, outside that change's scope, and they are named here
  * rather than skipped (derive-4d has since left). Each premise is CHECKED: a reader that starts
- * refusing in one line fails until its entry is dropped.
+ * refusing in one line fails until its entry is dropped. The set is also
+ * pinned to STACK_ON_REFUSAL_RECORDED below, so it shrinks by editing both
+ * and cannot grow by one line: a new reader that prints a stack is fixed,
+ * not listed.
  */
 const STACK_ON_REFUSAL = new Set([
   "scripts/account-type-report.ts",
@@ -163,6 +234,134 @@ const STACK_ON_REFUSAL = new Set([
   "scripts/stop-provenance.ts",
   "scripts/threshold-rescue.ts",
 ]);
+
+/** The twelve of 2026-09-22. Only ever edited to remove a reader that left. */
+const STACK_ON_REFUSAL_RECORDED = [
+  "scripts/account-type-report.ts",
+  "scripts/ag-class-derivation.ts",
+  "scripts/confidence-bands.ts",
+  "scripts/data-limits.ts",
+  "scripts/exclusion-suspects.ts",
+  "scripts/feasibility-4d.ts",
+  "scripts/geometry-evidence.ts",
+  "scripts/grid-totalr.ts",
+  "scripts/roster-expectancy-audit.ts",
+  "scripts/starvation-audit.ts",
+  "scripts/stop-provenance.ts",
+  "scripts/threshold-rescue.ts",
+];
+
+/**
+ * The populations as measured on 2026-09-22, which the derivations must
+ * CONTAIN; the entry excursion screen joined all three the same day (#694). A floor at the count let a reader leave while another arrived, and
+ * named nobody when one left; a recorded path names the one that left. The
+ * derivations may grow past these. A reader that legitimately leaves — deleted,
+ * or no longer reading argv — leaves its line here in the same commit.
+ */
+const ARGV_READERS_RECORDED = [
+  "scripts/account-type-report.ts",
+  "scripts/ag-class-derivation.ts",
+  "scripts/arming-bound-cells.ts",
+  "scripts/bank-minute-bars.ts",
+  "scripts/banked-fraction.ts",
+  "scripts/confidence-bands.ts",
+  "scripts/confirm-4d.ts",
+  "scripts/contained-years.ts",
+  "scripts/cost-sensitivity-verdict.ts",
+  "scripts/data-limits.ts",
+  "scripts/derive-4d.ts",
+  "scripts/derive-baselines.ts",
+  "scripts/derive-fold-spec.ts",
+  "scripts/e4-collapse.ts",
+  "scripts/entry-excursion-screen.ts",
+  "scripts/exclusion-suspects.ts",
+  "scripts/feasibility-4d.ts",
+  "scripts/feed-character.ts",
+  "scripts/fmpRunGate.ts",
+  "scripts/forex-commission-admission.ts",
+  "scripts/forex-commission-conversion.ts",
+  "scripts/freeze-candidates.ts",
+  "scripts/geometry-evidence.ts",
+  "scripts/grid-totalr.ts",
+  "scripts/holdout-set.ts",
+  "scripts/isEntryPoint.ts",
+  "scripts/market-dossier.ts",
+  "scripts/payoff-decomposition.ts",
+  "scripts/probe-minute-bars.ts",
+  "scripts/q4-daily-structure-stop.ts",
+  "scripts/recover-minute-bank.ts",
+  "scripts/register-verdict.ts",
+  "scripts/replay-sweep.ts",
+  "scripts/roster-expectancy-audit.ts",
+  "scripts/shipped-cell-provenance.ts",
+  "scripts/starvation-audit.ts",
+  "scripts/stop-provenance.ts",
+  "scripts/sweep-analysis.ts",
+  "scripts/threshold-rescue.ts",
+  "scripts/tuning-folds-summary.ts",
+  "scripts/two-arm-reconcile.ts",
+  "scripts/verify-cache-clock.ts",
+  "scripts/verify-fmp-matches.ts",
+  "scripts/verify-rebuild-depth.ts",
+];
+
+const ADOPTERS_RECORDED = [
+  "scripts/account-type-report.ts",
+  "scripts/ag-class-derivation.ts",
+  "scripts/bank-minute-bars.ts",
+  "scripts/confidence-bands.ts",
+  "scripts/confirm-4d.ts",
+  "scripts/cost-sensitivity-verdict.ts",
+  "scripts/data-limits.ts",
+  "scripts/derive-4d.ts",
+  "scripts/derive-baselines.ts",
+  "scripts/derive-fold-spec.ts",
+  "scripts/entry-excursion-screen.ts",
+  "scripts/exclusion-suspects.ts",
+  "scripts/feasibility-4d.ts",
+  "scripts/fmpRunGate.ts",
+  "scripts/geometry-evidence.ts",
+  "scripts/grid-totalr.ts",
+  "scripts/holdout-set.ts",
+  "scripts/market-dossier.ts",
+  "scripts/probe-minute-bars.ts",
+  "scripts/recover-minute-bank.ts",
+  "scripts/register-verdict.ts",
+  "scripts/replay-sweep.ts",
+  "scripts/roster-expectancy-audit.ts",
+  "scripts/starvation-audit.ts",
+  "scripts/stop-provenance.ts",
+  "scripts/sweep-analysis.ts",
+  "scripts/threshold-rescue.ts",
+  "scripts/tuning-folds-summary.ts",
+  "scripts/two-arm-reconcile.ts",
+  "scripts/verify-cache-clock.ts",
+  "scripts/verify-fmp-matches.ts",
+  "scripts/verify-rebuild-depth.ts",
+];
+
+const FLAGS_ONLY_RECORDED = [
+  "scripts/bank-minute-bars.ts",
+  "scripts/cost-sensitivity-verdict.ts",
+  "scripts/derive-baselines.ts",
+  "scripts/derive-fold-spec.ts",
+  "scripts/entry-excursion-screen.ts",
+  "scripts/fmpRunGate.ts",
+  "scripts/market-dossier.ts",
+  "scripts/probe-minute-bars.ts",
+  "scripts/recover-minute-bank.ts",
+  "scripts/register-verdict.ts",
+  "scripts/replay-sweep.ts",
+  "scripts/sweep-analysis.ts",
+  "scripts/two-arm-reconcile.ts",
+  "scripts/verify-cache-clock.ts",
+  "scripts/verify-fmp-matches.ts",
+  "scripts/verify-rebuild-depth.ts",
+];
+
+/** A recorded path the derivation no longer finds, by name. */
+const departed = (recorded: readonly string[], derived: readonly string[]) =>
+  recorded.filter((path) => !derived.includes(path));
 
 /** Readers on the shared walk, which carry its wording as well as its refusal. */
 const ADOPTERS = EXECUTED.filter((file) =>
@@ -191,21 +390,59 @@ const declaredFlags = (source: string): { boolean: string[]; value: string[] } =
     if (declared[1].includes("BOOLEAN")) boolean.push(...flags);
     else if (declared[1].includes("VALUE")) value.push(...flags);
   }
+  // parseArgs declares by option: a `string` option owns the token after it,
+  // a `boolean` one owns none.
+  for (const [flag, type] of parseArgsOptions(source)) (type === "string" ? value : boolean).push(flag);
   return { boolean, value };
+};
+
+/**
+ * The options a parseArgs reader declares, as flags with their type: every
+ * `name: { … type: "string" | "boolean" … }` in a script that binds
+ * node:util's parseArgs. Keyed on the option's own shape, so an options
+ * object built apart from the call is read as well as one written inline.
+ *
+ * Residue, stated: the scan is the whole file, not the options object that
+ * reaches the call, so a typed literal elsewhere declares a flag the parser
+ * does not know. That is the one direction that could read green, and the
+ * executed acceptance run below closes it: it passes every declared flag, and
+ * a strict parser refuses the stray one as an "Unknown option", which that run
+ * refuses as it does an unknown flag. An option whose type is not a literal is
+ * not declared at all, and a read of it is then red as undeclared.
+ */
+const parseArgsOptions = (source: string): Array<[string, "boolean" | "string"]> => {
+  const code = withoutComments(source);
+  const { direct, namespaces } = parseArgsBindings(code);
+  if (direct.length + namespaces.length === 0) return [];
+  return [
+    ...code.matchAll(/(["']?)([A-Za-z][\w-]*)\1\s*:\s*\{[^{}]*?\btype\s*:\s*(["'])(string|boolean)\3[^{}]*\}/g),
+  ].map((m) => [`--${m[2]}`, m[4] as "boolean" | "string"]);
 };
 
 /**
  * The flags a reader READS: every string literal that is a flag and nothing
  * else — `argv.includes("--x")`, `str("--x")`, `soleFlagIndex(argv, "--x")`.
  * A flag named inside a longer message is not a whole literal, so the
- * operator-facing prose that mentions flags does not count.
+ * operator-facing prose that mentions flags does not count. A parseArgs
+ * reader reads its options by key off `values` (`values.out`,
+ * `values["dry-run"]`), and each key read that way is a flag read.
+ *
+ * Residue, stated: in a parseArgs reader every `values.<member>` counts,
+ * whatever `values` is bound to, so `values.length` or a local array's
+ * `values.map` reads as a flag. Each such read is red as undeclared, never
+ * green: the over-read fails closed.
  */
-const readFlags = (source: string): string[] =>
-  [
-    ...new Set(
-      [...withoutComments(source).matchAll(/(["'`])(--[a-z][\w-]*)\1/g)].map((m) => m[2]),
-    ),
-  ].sort();
+const readFlags = (source: string): string[] => {
+  const code = withoutComments(source);
+  const literal = [...code.matchAll(/(["'`])(--[a-z][\w-]*)\1/g)].map((m) => m[2]);
+  const { direct, namespaces } = parseArgsBindings(code);
+  const byKey = direct.length + namespaces.length === 0 ? [] : [
+    ...parseArgsOptions(source).map(([flag]) => flag),
+    ...[...code.matchAll(/\bvalues\s*\??\.\s*([A-Za-z_]\w*)|\bvalues\s*\[\s*(["'`])([\w-]+)\2\s*\]/g)]
+      .map((m) => `--${m[1] ?? m[3]}`),
+  ];
+  return [...new Set([...literal, ...byKey])].sort();
+};
 
 type Run = {
   exitCode: number | null;
@@ -274,7 +511,9 @@ const runReader = async (
   try {
     const { stderr, stdout } = await execFileAsync(
       TSX,
-      [join(repoRoot, reader), ...args],
+      // resolve, not join: a synthetic reader outside the repo is named by
+      // its absolute path.
+      [resolve(repoRoot, reader), ...args],
       {
         cwd: elsewhere,
         encoding: "utf8",
@@ -329,32 +568,68 @@ const CONCURRENCY = 4;
 
 describe("every argv reader refuses an unknown flag by name", { concurrency: CONCURRENCY }, () => {
   it("the population is derived, its exemptions hold, and the named readers are in it", () => {
-    // Floors AT the counts measured on 2026-09-22 (44 argv readers, 43
-    // executed, 32 on the shared walk, 16 of them flags-only — the entry
-    // excursion screen joined all four that day). A glob that
-    // silently matched nothing would otherwise pass every law below
-    // vacuously, and a floor one below the count — as these were until
-    // 2026-09-22 — let one reader leave unnoticed. A refactor that
-    // legitimately shrinks a population lowers its floor in the same commit
-    // and says which readers left and why; one that grows it may raise it.
-    assert.ok(ARGV_READERS.length >= 44, `argv readers: ${ARGV_READERS.length}`);
-    assert.ok(EXECUTED.length >= 43, `executed: ${EXECUTED.length}`);
-    assert.ok(ADOPTERS.length >= 32, `adopters: ${ADOPTERS.length}`);
-    assert.ok(FLAGS_ONLY.length >= 16, `flags-only: ${FLAGS_ONLY.length}`);
+    // Each derivation must CONTAIN the paths it found on 2026-09-22, and a
+    // recorded path it no longer finds fails by name. A glob that silently
+    // matched nothing fails here too, rather than passing every law below
+    // vacuously.
+    const executedRecorded = ARGV_READERS_RECORDED.filter((file) => !NOT_OPERATOR_INPUT.has(file));
+    for (
+      const [name, recorded, derived] of [
+        ["argv readers", ARGV_READERS_RECORDED, ARGV_READERS],
+        ["executed readers", executedRecorded, EXECUTED],
+        ["readers on the shared walk", ADOPTERS_RECORDED, ADOPTERS],
+        ["flags-only readers", FLAGS_ONLY_RECORDED, FLAGS_ONLY],
+      ] as const
+    ) {
+      assert.deepEqual(
+        departed(recorded, derived),
+        [],
+        `these left the ${name} the derivation finds — a reader that moved to ` +
+          `a spelling nobody reads is outside every law in this file. If one ` +
+          `left legitimately, drop its recorded line in the same commit and say why`,
+      );
+    }
     for (const exempt of [...NOT_OPERATOR_INPUT.keys(), ...FAILS_TOWARD_RUNNING.keys(), ...STACK_ON_REFUSAL]) {
       assert.ok(
         ARGV_READERS.includes(exempt),
         `${exempt} is exempted but no longer reads argv — drop the exemption`,
       );
     }
-    // The exemption's premise: argv[1] and nothing else.
-    const entry = withoutComments(sourceOf("scripts/isEntryPoint.ts"));
+    // STACK_ON_REFUSAL only shrinks. Growing it would let a new reader print a
+    // stack under an operator's typo by adding one line beside the twelve.
     assert.deepEqual(
-      [...entry.matchAll(/\bprocess\.argv\b(\[\d+\])?/g)].map((m) => m[0]),
-      ["process.argv[1]"],
-      "scripts/isEntryPoint.ts reads another argv index — it now takes " +
-        "operator input and belongs under the law",
+      [...STACK_ON_REFUSAL].sort(),
+      [...STACK_ON_REFUSAL_RECORDED].sort(),
+      "STACK_ON_REFUSAL changed. A reader that now refuses in one line leaves " +
+        "both lists; a new reader that prints a stack is fixed, never listed",
     );
+    // Each exemption's premise, over every key and every spelling of a read:
+    // argv[1] and nothing else, and no flag named anywhere in the file.
+    for (const [file, why] of NOT_OPERATOR_INPUT) {
+      const reads = argvReads(sourceOf(file));
+      assert.ok(reads.length > 0, `${file}: no argv read found, so the premise "${why}" checks nothing`);
+      assert.deepEqual(
+        reads.filter((read) => !/\[1\]$/.test(read)),
+        [],
+        `${file} reads argv beyond [1] — it now takes operator input and ` +
+          `belongs under the law`,
+      );
+      assert.deepEqual(readFlags(sourceOf(file)), [], `${file} names a flag, so an operator can type one at it`);
+    }
+    // The capability by its name: a script that names argv reads it in a
+    // spelling above, or takes it as a parameter and never names the process.
+    const namingArgv = scriptFiles.filter((file) => namesArgv(sourceOf(file)));
+    assert.deepEqual(
+      namingArgv.filter((file) => !ARGV_READERS.includes(file) && !ARGV_AS_PARAMETER.has(file)),
+      [],
+      "these name argv or parseArgs in a spelling no reader law sees: add the spelling to " +
+        "ARGV_SPELLINGS, or name the file in ARGV_AS_PARAMETER with its reason",
+    );
+    for (const [file, why] of ARGV_AS_PARAMETER) {
+      assert.ok(namingArgv.includes(file), `${file} no longer names argv — drop it from ARGV_AS_PARAMETER`);
+      assert.ok(!ARGV_READERS.includes(file), `${file} reads argv itself, so "${why}" no longer holds`);
+      assert.ok(!namesProcess(sourceOf(file)), `${file} names the process object, so the argv it sees may be its own`);
+    }
     // Pinned by NAME as well as derived: the script that burns the confirm
     // read, its sibling derivation, and the gate both grade through. A
     // reader leaving the shared walk stays in EXECUTED either way; these
@@ -376,6 +651,13 @@ describe("every argv reader refuses an unknown flag by name", { concurrency: CON
       "import { argv, env } from 'process';",
       'import proc from "node:process";\nconst args = proc.argv.slice(2);',
       'import * as proc from "node:process";\nconst { argv } = proc;',
+      'const args = Reflect.get(process, "argv").slice(2);',
+      // node:util's parseArgs reads process.argv itself when given no args.
+      'import { parseArgs } from "node:util";\nconst { values } = parseArgs({ options: {} });',
+      "import { inspect, parseArgs as parse } from 'util';\nparse({ options: {} });",
+      'import * as util from "node:util";\nconst { values } = util.parseArgs({ options: {} });',
+      'import * as util from "util";\nconst { parseArgs } = util;\nparseArgs({ options: {} });',
+      'import util from "node:util";\nutil["parseArgs"]({ options: {} });',
     ];
     for (const source of reads) {
       assert.equal(readsArgv(source), true, `not seen as an argv read: ${source}`);
@@ -386,9 +668,67 @@ describe("every argv reader refuses an unknown flag by name", { concurrency: CON
       'function run(argv: string[]) { return argv.length; }',
       'import { env } from "node:process";',
       'import proc from "node:process";\nconst home = proc.env.HOME;',
+      // A local function that happens to share the name is not node:util's.
+      'function parseArgs(argv: string[]) { return argv; }\nparseArgs(["a"]);',
+      'import { inspect } from "node:util";\ninspect({});',
+      'import * as util from "node:util";\nutil.inspect({});',
     ];
     for (const source of notReads) {
       assert.equal(readsArgv(source), false, `seen as an argv read: ${source}`);
+    }
+    // parseArgs declares its flags by option and reads them by key.
+    const parsed =
+      'import { parseArgs } from "node:util";\n' +
+      'const options = { out: { type: "string" }, "dry-run": { type: "boolean", short: "n" } } as const;\n' +
+      'const { values } = parseArgs({ options });\n' +
+      'console.log(values.out, values["dry-run"], values.seed);\n';
+    assert.deepEqual(declaredFlags(parsed), { boolean: ["--dry-run"], value: ["--out"] });
+    assert.deepEqual(readFlags(parsed), ["--dry-run", "--out", "--seed"]);
+    // The same option shape outside a parseArgs reader declares nothing.
+    assert.deepEqual(declaredFlags('const options = { out: { type: "string" } };'), { boolean: [], value: [] });
+    // A spelling none of the above reads still names the capability, which
+    // the population test holds against ARGV_AS_PARAMETER.
+    for (
+      const source of [
+        "const p = process;\nconst args = p.argv.slice(2);",
+        'const { parseArgs } = await import("node:util");\nparseArgs({ options: {} });',
+      ]
+    ) {
+      assert.equal(readsArgv(source), false, `premise: no spelling reads ${source}`);
+      assert.equal(namesArgv(source), true, `the capability census cannot see ${source}`);
+    }
+    // The premise check reads the subscript each spelling carries.
+    assert.deepEqual(argvReads("if (process.argv[1]) main();"), ["process.argv[1]"]);
+    assert.deepEqual(
+      argvReads('const { argv } = process;\nconst self = process.argv[1];\nconst rest = process["argv"].slice(2);'),
+      ["process.argv[1]", 'process["argv"]', "{argv}=process"],
+    );
+  });
+
+  it("a parseArgs reader is in the population, and the law refuses it strict or not — executed", async () => {
+    // What each parseArgs reader does with a flag it does not know, executed
+    // through the same assertions every real reader answers to. strict:false
+    // accepts it in silence, the 2026-09-21 fault; the strict default names
+    // it as an "option", under a stack. Neither passes.
+    for (const [strict, why] of [
+      ["false", /accepted a flag it does not know/],
+      ["true", /must refuse the token AS an unknown flag/],
+    ] as const) {
+      const source =
+        'import { parseArgs } from "node:util";\n' +
+        `const { values, positionals } = parseArgs({ allowPositionals: true, options: { out: { type: "string" } }, strict: ${strict} });\n` +
+        "if (values.out !== undefined) console.error(`out ${String(values.out)}`);\n" +
+        "if (positionals.length === 0) { console.error(\"no corpus\"); process.exit(1); }\n";
+      assert.equal(readsArgv(source), true, `strict:${strict}: a parseArgs reader must be in the population`);
+      assert.deepEqual(declaredFlags(source), { boolean: [], value: ["--out"] });
+      const reader = join(scratchDir("parse-args-reader-"), "reader.ts");
+      writeFileSync(reader, source);
+      const run = await runReader(reader, ["--not-a-real-flag", missingCorpus()]);
+      assertExecuted(reader, run);
+      if (strict === "false") {
+        assert.equal(run.exitCode, 0, "premise: strict:false accepts an unknown flag and runs");
+      }
+      assert.throws(() => assertRefusesUnknownFlag(reader, run), why, `strict:${strict}: the law let a parseArgs reader through`);
     }
   });
 
@@ -416,68 +756,73 @@ describe("every argv reader refuses an unknown flag by name", { concurrency: CON
       // exact shape of the 2026-09-21 run.
       const run = await runReader(reader, ["--not-a-real-flag", missingCorpus()]);
       assertExecuted(reader, run);
-      const failsTowardRunning = FAILS_TOWARD_RUNNING.has(reader);
-      if (failsTowardRunning) {
-        assert.equal(run.exitCode, 0, `${reader} must keep its fail-toward-running contract`);
-        assert.match(run.stdout, /reason=gateError: /, `${reader} must report the refusal as a gateError`);
-      } else {
-        assert.notEqual(
-          run.exitCode,
-          0,
-          `${reader} accepted a flag it does not know — an ignored dial reads ` +
-            `as a run that honoured it`,
-        );
-      }
-      // Named AS a flag. A reader that opened "--not-a-real-flag" as a file
-      // names the token too — and sends the operator to the wrong fault.
-      const said = run.stderr + run.stdout;
+      assertRefusesUnknownFlag(reader, run);
+    });
+  }
+
+  /** The unknown-flag law, as one reader answers it. */
+  function assertRefusesUnknownFlag(reader: string, run: Run): void {
+    const failsTowardRunning = FAILS_TOWARD_RUNNING.has(reader);
+    if (failsTowardRunning) {
+      assert.equal(run.exitCode, 0, `${reader} must keep its fail-toward-running contract`);
+      assert.match(run.stdout, /reason=gateError: /, `${reader} must report the refusal as a gateError`);
+    } else {
+      assert.notEqual(
+        run.exitCode,
+        0,
+        `${reader} accepted a flag it does not know — an ignored dial reads ` +
+          `as a run that honoured it`,
+      );
+    }
+    // Named AS a flag. A reader that opened "--not-a-real-flag" as a file
+    // names the token too — and sends the operator to the wrong fault.
+    const said = run.stderr + run.stdout;
+    assert.match(
+      said,
+      /unknown ?flag(?:\(s\))?:? --not-a-real-flag/i,
+      `${reader} must refuse the token AS an unknown flag, so the ` +
+        `operator learns which token was wrong rather than which file broke`,
+    );
+    if (ADOPTERS.includes(reader)) {
       assert.match(
         said,
-        /unknown ?flag(?:\(s\))?:? --not-a-real-flag/i,
-        `${reader} must refuse the token AS an unknown flag, so the ` +
-          `operator learns which token was wrong rather than which file broke`,
+        /refused rather than ignored/,
+        `${reader} is on the shared walk, whose refusal says WHY an ` +
+          `unknown flag is fatal`,
       );
-      if (ADOPTERS.includes(reader)) {
-        assert.match(
-          said,
-          /refused rather than ignored/,
-          `${reader} is on the shared walk, whose refusal says WHY an ` +
-            `unknown flag is fatal`,
-        );
-      }
-      assert.deepEqual(
-        run.wrote,
-        [],
-        `${reader} wrote into its working directory while refusing an ` +
-          `unknown flag — that directory stands in for the cwd its default ` +
-          `outputs resolve against and the checkout its FMP state resolves ` +
-          `in, so from the repository the same refusal writes into the ` +
-          `working tree or the live FMP state`,
+    }
+    assert.deepEqual(
+      run.wrote,
+      [],
+      `${reader} wrote into its working directory while refusing an ` +
+        `unknown flag — that directory stands in for the cwd its default ` +
+        `outputs resolve against and the checkout its FMP state resolves ` +
+        `in, so from the repository the same refusal writes into the ` +
+        `working tree or the live FMP state`,
+    );
+    if (!failsTowardRunning) {
+      assert.equal(
+        run.stdout.trim(),
+        "",
+        `${reader} reported work it then refused to do`,
       );
-      if (!failsTowardRunning) {
-        assert.equal(
-          run.stdout.trim(),
-          "",
-          `${reader} reported work it then refused to do`,
-        );
-      }
-      // An operator's typo is ONE line, the refusal alone: a stack under it
-      // dresses the typo up as a crash (2026-09-22).
-      const refusal = (failsTowardRunning ? run.stdout : run.stderr).trim().split("\n");
-      if (STACK_ON_REFUSAL.has(reader)) {
-        assert.ok(
-          refusal.length > 1,
-          `${reader} now refuses an unknown flag in one line — drop it from STACK_ON_REFUSAL`,
-        );
-      } else {
-        assert.equal(
-          refusal.length,
-          1,
-          `${reader} refused an unknown flag in ${refusal.length} lines; an ` +
-            `OperatorInputError prints its message alone:\n${refusal.join("\n")}`,
-        );
-      }
-    });
+    }
+    // An operator's typo is ONE line, the refusal alone: a stack under it
+    // dresses the typo up as a crash (2026-09-22).
+    const refusal = (failsTowardRunning ? run.stdout : run.stderr).trim().split("\n");
+    if (STACK_ON_REFUSAL.has(reader)) {
+      assert.ok(
+        refusal.length > 1,
+        `${reader} now refuses an unknown flag in one line — drop it from STACK_ON_REFUSAL`,
+      );
+    } else {
+      assert.equal(
+        refusal.length,
+        1,
+        `${reader} refused an unknown flag in ${refusal.length} lines; an ` +
+          `OperatorInputError prints its message alone:\n${refusal.join("\n")}`,
+      );
+    }
   }
 
   // The other direction, and the one a mutation that simply deletes the
@@ -527,7 +872,13 @@ describe("every argv reader refuses an unknown flag by name", { concurrency: CON
         (error: unknown) => error instanceof Error && error.message.startsWith(`${flag} was given 2 times`),
       );
     }
-    let callers = 0;
+    // The (parser, caller) pairs of 2026-09-22, which the derivation must
+    // contain: a caller that stops being found is named, not counted.
+    const recorded = [
+      "parseByteBudgetArg scripts/replay-sweep.ts",
+      "parseDailyCeilingArg scripts/replay-sweep.ts",
+    ];
+    const found: string[] = [];
     for (const [parser, flag] of Object.entries(ARGV_FLAG_OF_PARSER)) {
       const calls = new RegExp(`\\b${parser}\\s*\\(`);
       const readers = scriptFiles.filter((file) =>
@@ -537,7 +888,7 @@ describe("every argv reader refuses an unknown flag by name", { concurrency: CON
       // the loop below vacuously.
       assert.ok(readers.includes("scripts/replay-sweep.ts"), `no caller of ${parser} found`);
       for (const reader of readers) {
-        callers += 1;
+        found.push(`${parser} ${reader}`);
         assert.ok(
           declaredFlags(sourceOf(reader)).value.includes(flag),
           `${reader} calls ${parser}, which reads ${flag} from argv, and does ` +
@@ -546,7 +897,7 @@ describe("every argv reader refuses an unknown flag by name", { concurrency: CON
         );
       }
     }
-    assert.ok(callers >= 2, `callers: ${callers}`);
+    assert.deepEqual(departed(recorded, found), [], "these callers are no longer found");
   });
 
   for (const reader of EXECUTED) {
@@ -561,26 +912,56 @@ describe("every argv reader refuses an unknown flag by name", { concurrency: CON
         t.diagnostic(`${reader} declares no flag`);
         return;
       }
-      // Every declared flag in ONE invocation. The walk throws on the FIRST
-      // token it does not know, so passing them together still names
-      // whichever one fell out of the declaration. Each value flag gets a
-      // plausible token, never asserted to be VALID for the dial: the claim
-      // under test is that the WALK knows the flag. A domain refusal below
-      // it is a different guard with its own tests.
-      const every = [
-        ...declared.boolean,
-        ...declared.value.flatMap((flag) => [flag, "1"]),
-      ];
-      const run = await runReader(reader, every);
-      assertExecuted(reader, run);
-      assert.doesNotMatch(
-        run.stderr + run.stdout,
-        /unknown ?flag/i,
-        `${reader} refuses a flag it declares itself, out of ` +
-          `${every.join(" ")} — a guard that refuses everything is not a guard`,
-      );
+      await assertAcceptsEveryDeclared(reader);
     });
   }
+
+  /** The acceptance law, as one reader answers it. */
+  async function assertAcceptsEveryDeclared(reader: string): Promise<void> {
+    const declared = declaredFlags(sourceOf(reader));
+    // Every declared flag in ONE invocation. The walk throws on the FIRST
+    // token it does not know, so passing them together still names
+    // whichever one fell out of the declaration. Each value flag gets a
+    // plausible token, never asserted to be VALID for the dial: the claim
+    // under test is that the WALK knows the flag. A domain refusal below
+    // it is a different guard with its own tests.
+    const every = [
+      ...declared.boolean,
+      ...declared.value.flatMap((flag) => [flag, "1"]),
+    ];
+    const run = await runReader(reader, every);
+    assertExecuted(reader, run);
+    // node:util's parseArgs names a flag it does not know an "option".
+    assert.doesNotMatch(
+      run.stderr + run.stdout,
+      /unknown ?(?:flag|option)/i,
+      `${reader} refuses a flag it declares itself, out of ` +
+        `${every.join(" ")} — a guard that refuses everything is not a guard`,
+    );
+  }
+
+  it("a flag declared outside the parser's options is refused when executed, never read green", async () => {
+    // declaredFlags scans the whole file of a parseArgs reader, so a typed
+    // literal the parser never sees still counts as declared. Executed, the
+    // strict parser refuses that flag as an "Unknown option", and the
+    // acceptance law must refuse the reader for it. The control proves the
+    // law accepts the same reader without the stray literal.
+    const reader = (stray: boolean) => {
+      const file = join(scratchDir("parse-args-declared-"), "reader.ts");
+      writeFileSync(
+        file,
+        'import { parseArgs } from "node:util";\n' +
+          (stray ? 'const LEGACY = { ghost: { type: "string" } };\nvoid LEGACY;\n' : "") +
+          'const { values } = parseArgs({ options: { out: { type: "string" } } });\n' +
+          "void values.out;\n",
+      );
+      return file;
+    };
+    const straying = reader(true);
+    assert.deepEqual(declaredFlags(sourceOf(straying)).value.sort(), ["--ghost", "--out"], "premise: the stray literal reads as declared");
+    await assert.rejects(assertAcceptsEveryDeclared(straying), /refuses a flag it declares itself/);
+    await assertAcceptsEveryDeclared(reader(false));
+  });
 
   for (const reader of FLAGS_ONLY) {
     it(`${reader} refuses a stray argument by name — executed`, async () => {

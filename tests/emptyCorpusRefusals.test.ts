@@ -295,16 +295,49 @@ describe("every corpus reader refuses a run that names no corpus", () => {
       `${DEFINES_THE_DOOR} is exempted as the door's definition — if it ` +
         `stops exporting one, it is a reader like any other`,
     );
-    // One below the current count, the same rule the sibling flag-law floor
-    // states in words (tests/sweepManifest.test.ts). scripts/e4-collapse.ts
-    // took this population from 17 to 18 and the floor stayed at 16, leaving
-    // the tighter of the two pins carrying two files of slack — a refactor
-    // could have dropped two readers out of the law with this still green.
-    assert.ok(
-      readers.length >= 17,
-      `the glob must find the corpus readers, got ${readers.length} — if a ` +
-        `refactor legitimately shrank the population, lower this floor in the ` +
-        `same commit and say which files left and why`,
+    // The readers as measured on 2026-09-22, which the derivation must
+    // CONTAIN. A floor (17, against 27 found) let ten readers leave the law
+    // with this still green, and named none of them; a recorded path names
+    // the one that left. The derivation may grow past it. The entry
+    // excursion screen joined the same day (#694): it opens the door for the
+    // shipped fit decisions and the censoring sample, so a run naming no
+    // corpus must refuse by naming it.
+    const recorded = [
+      "scripts/account-type-report.ts",
+      "scripts/ag-class-derivation.ts",
+      "scripts/arming-bound-cells.ts",
+      "scripts/banked-fraction.ts",
+      "scripts/confidence-bands.ts",
+      "scripts/confirm-4d.ts",
+      "scripts/contained-years.ts",
+      "scripts/cost-sensitivity-verdict.ts",
+      "scripts/data-limits.ts",
+      "scripts/derive-4d.ts",
+      "scripts/e4-collapse.ts",
+      "scripts/entry-excursion-screen.ts",
+      "scripts/exclusion-suspects.ts",
+      "scripts/feasibility-4d.ts",
+      "scripts/forex-commission-admission.ts",
+      "scripts/forex-commission-conversion.ts",
+      "scripts/geometry-evidence.ts",
+      "scripts/grid-totalr.ts",
+      "scripts/holdout-set.ts",
+      "scripts/market-dossier.ts",
+      "scripts/payoff-decomposition.ts",
+      "scripts/roster-expectancy-audit.ts",
+      "scripts/stop-provenance.ts",
+      "scripts/sweep-analysis.ts",
+      "scripts/sweepStats.ts",
+      "scripts/threshold-rescue.ts",
+      "scripts/tuning-folds-summary.ts",
+      "scripts/two-arm-reconcile.ts",
+    ];
+    assert.deepEqual(
+      recorded.filter((file) => !readers.includes(file)),
+      [],
+      "these corpus readers are no longer found by the door scan, so the " +
+        "empty-corpus law stopped executing them. If one left legitimately, " +
+        "drop its recorded line in the same commit and say why",
     );
   });
 

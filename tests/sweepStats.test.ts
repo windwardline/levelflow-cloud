@@ -2,12 +2,10 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
   appendFileSync,
-  mkdtempSync,
   readdirSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
@@ -39,6 +37,7 @@ import {
   VOCABULARY_ROW_KEYS,
   vocabularyRow,
 } from "../scripts/sweepStats.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 // Item 3, first commit (the map's govern-all finding): seven emit-readers
 // shared ZERO code — five private add/expectancy implementations, one of
@@ -377,7 +376,7 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
   // headline, and print the all-marked market with E "—" and its
   // dataAbs volume — with no verdict fabricated from a null.
   it("survives a market whose rows are all data-absence rows — executed", () => {
-    const dir = mkdtempSync(join(tmpdir(), "acct-report-"));
+    const dir = scratchDir("acct-report-");
     const emitPath = join(dir, "run.jsonl");
     const rows = [
       { outcome: "take_profit", realizedR: 1.5, symbol: "EURUSD" },
@@ -766,7 +765,7 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
     // — the shape the door exists to catch — can be built at all.
     acceptance?: unknown,
   ) => {
-    const dir = mkdtempSync(join(tmpdir(), "sweepstats-"));
+    const dir = scratchDir("sweepstats-");
     const emitPath = join(dir, "run.jsonl");
     const rows = [
       { outcome: "take_profit", realizedR: 1.5, symbol: "EURUSD" },
@@ -887,7 +886,7 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
   });
 
   it("refuses a corpus with no manifest at all", () => {
-    const dir = mkdtempSync(join(tmpdir(), "sweepstats-"));
+    const dir = scratchDir("sweepstats-");
     const emitPath = join(dir, "bare.jsonl");
     writeFileSync(emitPath, JSON.stringify(row("take_profit", 1)) + "\n");
     assert.throws(() => assertManifestedCorpus(emitPath), /manifest/);
@@ -907,7 +906,7 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
 // rather than read it.
 describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
   const writeWithManifest = (manifest: Record<string, unknown>) => {
-    const dir = mkdtempSync(join(tmpdir(), "sweepstats-clock-"));
+    const dir = scratchDir("sweepstats-clock-");
     const emitPath = join(dir, "run.jsonl");
     writeFileSync(emitPath, JSON.stringify(row("take_profit", 1)) + "\n");
     const { generatedAt: _generatedAt, ...hashedPayload } = manifest;
@@ -1165,7 +1164,7 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
       ...treasuryCurve,
       warmupBars: 240,
     };
-    const dir = mkdtempSync(join(tmpdir(), "sweepstats-r1b-"));
+    const dir = scratchDir("sweepstats-r1b-");
     const emitPath = join(dir, "run.jsonl");
     writeFileSync(emitPath, JSON.stringify(row("take_profit", 1)) + "\n");
     const { generatedAt: _generatedAt, ...hashedPayload } = manifest;
@@ -2099,7 +2098,7 @@ describe("assertManifestedCorpus — the emit digest", () => {
     { estimatedRoundTripCost: 0.0001, outcome: "stop_loss", realizedR: -1, riskDistance: 0.01, symbol: "EURUSD" },
   ];
   const write = (withDigest: boolean, recorded?: Partial<{ bytes: number; rows: number }>) => {
-    const dir = mkdtempSync(join(tmpdir(), "sweepstats-digest-"));
+    const dir = scratchDir("sweepstats-digest-");
     const emitPath = join(dir, "run.jsonl");
     const text = rows.map((entry) => JSON.stringify(entry)).join("\n") + "\n";
     writeFileSync(emitPath, text);

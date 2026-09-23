@@ -1,8 +1,11 @@
 > **Status (2026-09-22): built as a controls-only reader.** `scripts/entry-excursion-screen.ts`
 > implements the smallest defensible design below and screens no family: amendment 46
 > registers a family before any fold is read, and the registry that needs (amendment 48)
-> does not exist. On the fit fold of the 2026-09-14 corpus at W = 8h
-> (`r3/entry-excursion-controls-2026-09-22.txt`) all four controls held. The look-ahead
+> does not exist. On the fit fold of the 2026-09-14 corpus (built at analyzer
+> `2026.09.13.forex-commission-usd-quote`) at W = 8h, run by engine code at
+> `2026.09.23.stop-exit-slippage` (`r3/entry-excursion-controls-2026-09-22.txt`), all
+> four controls held. `2026.09.23.expiry-exit-slippage` changed only the expiry exit's
+> print, which the screen never reads, so the record was not re-run. The look-ahead
 > family passed in 51 of 51 markets with a verdict, the coin flip and the shipped entry in
 > none, and 2,000 of 2,000 sampled rows reproduced the resolver's censored excursions. The
 > shipped entry's interval excludes zero in 10 of the 51, eight of them above zero, where
