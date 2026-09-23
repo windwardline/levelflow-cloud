@@ -1,17 +1,33 @@
-> **Status (recorded 2026-09-22): law as amendment 48, under the standing approval,
-> after one refute round on the amendment's own text.** The two sections headed "The
-> rule as refuted" are law as written, with amendment 48's corrections. The body below
-> says a standing approval cannot settle its three owner questions; that holding is
-> withdrawn, because amendment 46 was itself recorded under the same approval
-> (`docs/research/owner-rulings-2026-09-14.md`, Status). All three were taken as
-> recommended. Only the per-market cap is a reading of 46: charging a registration only
-> when a freeze opens its candidate changes 46's charge, and registering filters and
-> calibration programs extends it. The owner has ruled on none of them and may reverse
-> any; draws fixed before a reversal stand. Line citations into `scripts/grid-totalr.ts`
-> and `docs/research/confirm-reads/README.md` were read before #657 and #672 moved
-> those files; re-derive each before building on it. The round journals cited as
-> `design:` and `scratchpad` stay outside the repository, in
-> `~/Library/Application Support/WindwardLineToolchain/levelflow/session-artifacts-2026-09-16/`.
+> **PARKED — not law (2026-09-23).** Nothing in this file is law, and it lives only on
+> branch `docs/amendment-48`. On 2026-09-22 amendment 48 enacted the two sections
+> headed "The rule as refuted" as written. It was parked the same day, before it
+> reached main, when a check round found four majors:
+>
+> 1. **The adopted sections disagree.** A filter's registration hashes no readiness
+>    floor, so the family rule ("opens only where it meets its floor") and the filter
+>    rule ("every line whose fit screen passed opens") cannot both hold. The filter
+>    rule's clusters, degrees of freedom and floor also differ from the family rule's,
+>    although it says it takes them by reference.
+> 2. **Calibration programs have no rule.** The amendment registers them against the
+>    cap; neither adopted section says how.
+> 3. **The settled effect floor is in the wrong unit.** It is "the market's round-trip
+>    cost in R". The random-entry screen it gates measures in ATR units, and a family
+>    with no stop has no R.
+> 4. **The adopted sections never took a refute round of their own.** The 2026-09-22
+>    round refuted a compressed text against them.
+>
+> The findings are distilled in `amendment-48-check-round-2026-09-22.md`, beside this
+> file. The status block that stood here on 2026-09-22 called this file law under the
+> standing approval, withdrew the body's holding that a standing approval cannot settle
+> the three owner questions, and said the owner may reverse any reading. All three
+> claims are withdrawn; the owner questions are open. Two facts from that block still
+> hold. Line citations into `scripts/grid-totalr.ts`, `docs/research/confirm-reads/README.md`
+> and `docs/HANDOFF.md` predate #657, #668, #669, #671, #672 and #675, which shifted
+> lines in those files; re-derive each before building on it. The round journals stay
+> outside the repository, in
+> `~/Library/Application Support/WindwardLineToolchain/levelflow/session-artifacts-2026-09-16/`;
+> the scratch files cited as `cf3/…` and `check/paired.py` were reaped with the session
+> scratchpad, and their [verified] tags survive only as the round-2 journal quotes them.
 
 # Amendment 46's open parameters — two recommendations and three owner readings (2026-09-21)
 

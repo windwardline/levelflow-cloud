@@ -2525,6 +2525,15 @@ governor §21i and desk §17p carry one-line cross-references.
 
 ## Amendment 48 — the bar rises at the confirm read, and a filter is a family (standing approval, 2026-09-22)
 
+**PARKED — not law (2026-09-23).** Nothing in this section binds. It was parked on
+2026-09-22, before it reached main, when a check round found four majors: the two
+sections it adopts disagree (a filter carries no readiness floor, and the filter's
+cluster, degrees-of-freedom and floor rules differ from the family's); calibration
+programs have no rule; the settled effect floor is in R where the random-entry screen
+measures in ATR; and the adopted sections never took a refute round of their own.
+The findings are distilled in
+`docs/research/designs/amendment-48-check-round-2026-09-22.md`.
+
 **The two rules headed "The rule as refuted" in
 `docs/research/designs/amendment-46-parameters-2026-09-21.md` are law as written,
 with the corrections below.** They answer what amendment 46 left open: whether a
