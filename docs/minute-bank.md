@@ -218,7 +218,8 @@ the scheduled bank's.
 both sit off parity. Measured 2026-09-23 on the EUR/GBP/USD triangle
 (EURUSD − EURGBP × GBPUSD, closes on shared minutes;
 [record](/docs/research/minute-bank-parity-2026-09-23.md)): one recovered block,
-2026-09-07 22:00 to 09-08 16:00, sits a median +3.26 pips off (1,080 minutes); the
+2026-09-07 22:00 to 09-08 16:00 in provider stamps (New York; 09-08 02:00Z to 20:00Z),
+sits a median +3.26 pips off (1,080 minutes); the
 recovered day after it sits +0.30, and first-copy windows +0.39 and +0.58, but those
 reach about +4 pips at their 90th percentile. One triangle cannot say which leg moved;
 a reader that needs parity measures it rather than trusting either vintage.

@@ -91,8 +91,10 @@ Five consumers share one key across three runtimes. Bytes per 30 days:
 > **~167 MB for a full 97-market scan**, and settled bars almost never need
 > buying twice — the account re-bought the same four years of daily history
 > every time. (Not immutable: FMP revises some after the fact, measured
-> 2026-09-22. A revision inside the store's re-asked window, its newest stored
-> date to today, supersedes the stored copy; an older one is never asked for.) Cost
+> 2026-09-22. Once the store spans a window it re-asks its newest stored date to
+> today, where a revision supersedes the stored copy, and an older settled bar is
+> not asked for; a request reaching past the store's oldest date re-buys the
+> whole window, and its revisions land then.) Cost
 > scaled with USAGE. `market_bars` (#495, #496) makes it scale with TIME:
 > ~415 bars per market, **~6 MB per full scan, a 96% reduction**, shared by
 > the analyzer, the chart feed, outcome-sync and the deploy-time E2E.

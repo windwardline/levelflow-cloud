@@ -4,6 +4,12 @@
 files hold, in pips (× 1e4), from the minute bank's own files. The bank keeps the
 first copy of each minute, so each key's first line is read. Zero bytes; read-only.
 
+**Every time below is a raw provider stamp, not UTC.** The bank stores FMP's intraday
+strings verbatim, and FMP returns them in `America/New_York` (`docs/minute-bank.md`,
+"Raw provider strings are stored verbatim"): EDT, UTC−4, in September. The off block,
+2026-09-07 22:00 to 09-08 16:00 in provider stamps, is **2026-09-08 02:00Z to 20:00Z**.
+A reader exclusion built from these bounds converts them first.
+
 **Which windows hold which vintage.** The bank's 2026-09-04 → 09-14 suspension left
 09-04..09-10 missing and 09-03 and 09-11 partial; #676/#681 recovered them from FMP's
 dated history on 2026-09-22. So 09-07 and 09-08 are recovered minutes, and 09-01..09-02
@@ -18,7 +24,7 @@ first copy 09-01..09-03                n= 2880 median=+0.39 p10=+0.15 p90=+3.94 
 first copy 09-15..09-17                n= 2870 median=+0.58 p10=+0.09 p90=+4.10 pips
 ```
 
-**Reading.** One recovered block, 2026-09-07 22:00 to 09-08 16:00, sits a median +3.26
+**Reading.** One recovered block, 2026-09-07 22:00 to 09-08 16:00 New York (09-08 02:00Z to 20:00Z), sits a median +3.26
 pips off parity; the recovered day after it sits +0.30, and the first-copy windows +0.39
 and +0.58. The first copies also reach about +4 pips at their 90th percentile, so large
 residuals are not a property of the recovered history alone. **Neither vintage is clean.**

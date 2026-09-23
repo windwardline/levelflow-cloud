@@ -52,7 +52,7 @@ coverage question closed, and the desk went dark on purpose.
 
 **FMP.** UTC 2026-09-22 closed at 293.9 MB: bank 115.3, top-up 43.0, ad-hoc 135.6 (the recovery 134.0, the probe 1.6). The scheduled classes spent 158.3 MB against 412.6 MB on 09-21; #669's run gate held at every natural slot, 23:20Z included.
 
-**State of record corrected here.** Bars are not immutable (FMP revises some; the store supersedes only what it re-asks, from its newest stored date forward); the cache-rebuild runbook's raw `curl` probe is the governed `probe-minute-bars.ts`; no FMP key rotation is owed for the thirteen 2026-08-07 rows (the console-log premise stays open); neither minute-bank vintage is clean ([record](/docs/research/minute-bank-parity-2026-09-23.md): one recovered block, 09-07 22:00 to 09-08 16:00, sits a median +3.26 pips off EUR/GBP/USD parity over 1,080 minutes; the recovered day after it +0.30; first-copy windows +0.39 and +0.58, reaching about +4 at their 90th percentile); the ambiguous-fills question is answered on record (fit 615 fills, 0.3%, −449.7 R; select 294, 0.2%, −243.7 R; `docs/research/r3/payoff-decomposition-capture-all-classfolds.txt`).
+**State of record corrected here.** Bars are not immutable (FMP revises some; the store supersedes only what it re-asks: its newest stored date forward, or the whole window when a request reaches past its oldest date); the cache-rebuild runbook's raw `curl` probe is the governed `probe-minute-bars.ts`; no FMP key rotation is owed for the thirteen 2026-08-07 rows (the console-log premise stays open); neither minute-bank vintage is clean ([record](/docs/research/minute-bank-parity-2026-09-23.md): one recovered block, 09-07 22:00 to 09-08 16:00 in New York provider stamps (09-08 02:00Z to 20:00Z), sits a median +3.26 pips off EUR/GBP/USD parity over 1,080 minutes; the recovered day after it +0.30; first-copy windows +0.39 and +0.58, reaching about +4 at their 90th percentile); the ambiguous-fills question is answered on record (fit 615 fills, 0.3%, −449.7 R; select 294, 0.2%, −243.7 R; `docs/research/r3/payoff-decomposition-capture-all-classfolds.txt`).
 
 **The sequence, in order.** The profit route first, then what it needs, then what moves no R.
 1. **Amendment 48, fifth pass.** Close the seven listed majors with their stated fixes, one refute round with a checker per refuter, verify the checkers, then put Q1–Q5 to the owner. No family registers, and so none can confirm or ship, until this is law.
@@ -444,9 +444,10 @@ re-bought the entire window from FMP — 11,470 bars per market across the five
 decision frames, ~1.72 MB, **~167 MB for a full 97-market scan** — and settled
 bars almost never need buying twice, so the account re-bought the same four
 years of daily history every time. (Not immutable: FMP revises some after the
-fact, measured 2026-09-22. A revision inside the re-asked window, the newest
-stored date to today, supersedes the stored copy; an older one is never asked
-for, so the store keeps its first copy of every settled bar behind that.) `market_bars` holds RAW provider rows and `fetchFmpBars` buys only
+fact, measured 2026-09-22. Once the store spans a window it re-asks its newest
+stored date to today, where a revision supersedes the stored copy, and an older
+settled bar is not asked for; a request reaching past the store's oldest date
+re-buys the whole window, and its revisions land then.) `market_bars` holds RAW provider rows and `fetchFmpBars` buys only
 the date window the store lacks: **~6 MB per full scan, a 96% reduction**,
 shared by the analyzer, the chart feed, outcome-sync and the deploy-time E2E.
 Cost now scales with TIME instead of USAGE, which is the property production
