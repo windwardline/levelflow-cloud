@@ -81,8 +81,9 @@ maintainers, pre-1.0 packages, empty or unverifiable metadata, a major bump, or,
 distinctly, an unrecognised update type. Major bumps receive `deferred-major` before
 being held.
 
-Dependabot groups npm production dependencies, npm development dependencies, and
-GitHub Actions updates. `fetch-metadata` reports the highest semver change for the
+Dependabot keeps one npm version group (`npm-dependencies`, minor and patch; majors
+open as their own PRs), one npm security group (`npm-security`), and one GitHub
+Actions group, the house form FLEET.md requires. `fetch-metadata` reports the highest semver change for the
 entire grouped PR, so one held member holds the group; arming and holding operate on
 the grouped PR, not an individual dependency. The lane mints a GitHub App token from
 the `FLEET_AUTOMERGE_APP_ID` and `FLEET_AUTOMERGE_PRIVATE_KEY` **Dependabot** secrets

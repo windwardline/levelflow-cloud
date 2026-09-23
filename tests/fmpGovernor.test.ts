@@ -803,6 +803,23 @@ describe("the stand-down token is derived from what refused", () => {
     assert.doesNotThrow(() => rethrowIfFinal(new TypeError("fetch failed")));
   });
 
+  it("starts the verifier's budget and fetch unset, so nothing reaches the provider ungoverned", () => {
+    // They used to default to an unledgered budget and the raw fetch, replaced
+    // in main(); any path to the provider before that would have spent outside
+    // the ledger and the probe gate.
+    const source = withoutComments(readFileSync("scripts/verify-fmp-matches.ts", "utf8"));
+    assert.match(source, /^let budget: ByteBudget \| undefined;$/m);
+    assert.match(source, /^let providerFetch: FetchLike \| undefined;$/m);
+    assert.doesNotMatch(source, /^let (budget|providerFetch)\b[^;]*=/m, "a module-scope default is back");
+    // Every use goes through the refusing accessor: outside it, the two
+    // declarations and main()'s two assignments, the bare names never appear.
+    const rest = source
+      .replace(/function governed\(\)[\s\S]*?\n\}/, "")
+      .replace(/^let (budget|providerFetch)\b.*$/gm, "")
+      .replace(/^\s*(budget|providerFetch) = .*$/gm, "");
+    assert.doesNotMatch(rest, /(?<![.\w])(budget|providerFetch)(?!\w)/, "a use bypasses the refusing accessor");
+  });
+
   it("starts every verifier catch by rethrowing a final refusal", () => {
     const source = readFileSync("scripts/verify-fmp-matches.ts", "utf8");
     const catches = [...source.matchAll(/\bcatch \((\w+)\) \{/g)];

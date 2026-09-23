@@ -47,10 +47,20 @@ const LABEL = "verify-fmp-matches";
 // The machine's state, and the ad-hoc class's budget and probe-gated fetch,
 // all set in main(). The state is resolved there rather than as this module
 // loads, so a checkout that names nothing is refused in one line by main's
-// handler instead of killing module evaluation with a stack.
+// handler instead of killing module evaluation with a stack. The budget and
+// the fetch start UNSET, not as an unledgered budget and the raw fetch: a
+// path that reached the provider before main governed them would have spent
+// outside the ledger and the probe gate, so it refuses instead (2026-09-22).
 let state: FmpStatePaths;
-let budget: ByteBudget = createByteBudget(CLASS_DAILY_CEILING_BYTES.adhoc);
-let providerFetch: FetchLike = fetch;
+let budget: ByteBudget | undefined;
+let providerFetch: FetchLike | undefined;
+
+function governed(): { budget: ByteBudget; providerFetch: FetchLike } {
+  if (budget === undefined || providerFetch === undefined) {
+    throw new Error(`${LABEL}: no governed budget or probe-gated fetch — main() sets both before any request`);
+  }
+  return { budget, providerFetch };
+}
 
 /** A year of daily bars is the floor the calibration work assumes. */
 const MIN_DAILY_BARS = 250;
@@ -74,7 +84,7 @@ type Probe = {
 };
 
 async function fetchJson(url: URL): Promise<unknown> {
-  const response = await providerFetch(url, { headers: { accept: "application/json" } });
+  const response = await governed().providerFetch(url, { headers: { accept: "application/json" } });
   if (!response.ok) {
     // The provider's own words reach the classifier, not just the status:
     // a bare `HTTP 429` cannot be told from the per-minute rate limit, and
@@ -88,7 +98,7 @@ async function fetchJson(url: URL): Promise<unknown> {
       state,
     });
   }
-  return readJsonWithBudget(response, budget, url.pathname);
+  return readJsonWithBudget(response, governed().budget, url.pathname);
 }
 
 type EodBar = { date?: string; close?: number };
