@@ -19,7 +19,8 @@ import {
  * for a full 97-market scan. Settled bars almost never need buying twice, and
  * FMP bills bytes over a trailing 30 days, so the account bought the same four
  * years of daily history on every scan. They are not immutable: FMP revises
- * some, and a revision supersedes the stored copy (tested below).
+ * some. A revision inside the window the store re-asks supersedes the stored
+ * copy (tested below); one to an older settled bar is never asked for.
  *
  * The in-memory `candleCache` cannot fix it: a module-level Map inside an
  * ephemeral Edge instance, cold on every cold start, shared with nothing.

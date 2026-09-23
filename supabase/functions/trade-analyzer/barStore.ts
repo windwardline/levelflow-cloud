@@ -7,8 +7,10 @@
  * the account bought the same four years of daily history on every scan, and
  * FMP bills bytes over a trailing 30 days. They are not immutable: FMP revises
  * some after the fact (a quarter of the minute bank's held 1-minute bars, by
- * about 1e-4 relative, measured 2026-09-22), and the store lets the fresher
- * row win (below).
+ * about 1e-4 relative, measured 2026-09-22). A revision inside the window the
+ * store re-asks (its newest stored date to today, `fetchPlan`) supersedes the
+ * stored copy; one to an older bar is never asked for, so the store keeps its
+ * first copy of every settled bar behind that.
  *
  * The existing in-memory `candleCache` cannot fix that. It is a module-level
  * Map inside an ephemeral Edge instance: cold on every cold start, never
