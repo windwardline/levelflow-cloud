@@ -61,7 +61,7 @@ come from the family-count item; the third is shared by both items.
 
 *Recommendation:* One cap per market calendar, 0.05 two-sided. It matches how the ledger burns spans per symbol (confirm-reads/README.md:139-147) and the gate's per-market FWER, where D4's absolute term is the cross-market brake (grid-totalr.ts:2867-2870). Leg (a) carries that brake to confirm. The header hash pins the answer, so the ruling must come before the first registration.
 
-*Cost of the alternative:* One cap over 126 cells (the funded families, COT as one) to 235 (all six families, COT split) gives z 3.54-3.70, 2.45-2.63x the n and power 0.23-0.18 at the base n. It puts forex confirmation 52-58 y out on the round late-2030s base [verified: arithmetic].
+*Cost of the alternative:* One cap over 126 cells (the funded families, COT as one) to 235 (all six families, COT split) gives z 3.54-3.70, 2.45-2.63x the n and power 0.23-0.18 at the base n. It puts forex confirmation 52-57 y out on the round late-2030s base [verified: arithmetic] *(corrected 2026-09-23 from 52-58: 0.05/235 gives 57.48 y, which the round-2 checker printed as 57.5 and this line rounded again)*.
 
 **Is a registration 'charged' against the cap (amendments.md:2451-2454) when it never reaches a read: refused at the screen or the gate, or below its readiness floor? Plan E5 asks the owner to confirm that it is (fmp-plan-2026-09-16.md:383).**
 
@@ -286,3 +286,399 @@ Unchanged:
 - Zero provider bytes.
 - The desk is parked (HANDOFF.md:70-71).
 Build: about 400-550 lines plus tests [unverified].
+
+---
+
+## Reconciled draft 2026-09-23
+
+> **PARKED — not law.** This section reconciles the two sections headed "The rule as
+> refuted" with each other, with amendments 33, 36, 39 and 43–46, and with the code at
+> main 9b8d96f. The text above stays as it was; where the two differ, this section is
+> the draft and the text above is its history. Its drafter refuted it against those
+> sources before committing it; it has not yet taken an independent refute round,
+> which this record's own rule requires before anything here is recorded as law.
+> **No registration opens until the owner rules on the cap's scope (Q2) and on when a
+> registration is charged (Q3).**
+
+### Authority
+
+Under the standing approval this draft settles only what amendment 46 leaves open: the
+screen's effect floor, whether a rising family count raises the bar, and the screen and
+confirm mechanics 46 does not state (clusters, degrees of freedom, floors, arms, span
+start). The reference price stays open, stated and hashed by each registration. Two
+rules depart from 46. They are drafted for the owner and take effect only on his ruling:
+
+1. **Charge at the freeze.** 46 charges every registered family. This draft charges a
+   registration only when a freeze opens its candidate (Q3).
+2. **Conditioning filters register.** 46 covers entry families. This draft writes a
+   filter's obligations as a list of its own and does not call a filter a family (Q4).
+   A filter takes neither of 46's family terms: its parent's pre-frontier rows are read
+   before it registers, and it is not screened against the random-entry null.
+
+The per-market cap is a reading of 46's "one capped total alpha", and it is the owner's
+as well (Q2). Whether the standing approval can make either departure is Q1. Calibration
+programs and amendment-36 removals get no rule here (Q4). If this is ever recorded, the
+amendment should adopt this section by reference and restate none of it: a summary set
+beside the rule is how amendment 48's brief came to disagree with its own record.
+
+### Terms
+
+- **Frontier F_s.** The latest end of any recorded read's span on symbol s. Spans are
+  half-open, as grid-totalr's overlap test reads them. The ledger holds one line today
+  (act 3, read 2026-09-03T10:09:18Z): F_s is 2026-08-26T10:45Z for 94 symbols and
+  2026-08-25T18:00Z for GFUSX, HEUSX and LEUSX. 46's "post-2026-08-26 calendar" is
+  read through 46's first sentence, "dates no recorded read has seen": the dates after
+  F_s. A single global frontier would leave those three symbols 16.75 hours that no
+  read has seen and yet count as read.
+- **Registration.** One hypothesis, hashed and appended to the registry. An entry
+  family registers before any of its decisions is computed on any fold (46). A filter
+  registers before its freeze; its parent's pre-frontier rows are free to read.
+- **Label.** What a registration decides from the market at each decision: an entry
+  family's side call, a filter's keep predicate.
+- **Cluster.** The UTC decision day: `Math.floor(time / DAY_MS)` of each row's decision
+  time, over filled rows (grid-totalr's day key) or, at a family's screen, over
+  decisions. Where a registration's label autocorrelates past a day, the
+  cluster is a block of B UTC days counted from the Unix epoch. B is rule 2 item 6's
+  test: the shortest length on the ladder 1, 7, 14, 28, 56, 91, 182, 364, 728 days at
+  which, and at every longer length leaving at least 10 blocks, the lag-one
+  autocorrelation of the block-aggregated label share lies within max(0.2, 2/√blocks)
+  (both JUDGED). No qualifying length is NO VERDICT on that market. The registration
+  hashes this rule. The B it yields on each market is computed from the label alone at
+  the screen, recorded, recomputed by test (c) and fixed for confirm; it cannot be
+  hashed at registration, because 46 bars computing a family's decisions before then.
+- **Arms.** The three R columns of `ARM_COLUMNS` in `scripts/sweepStats.ts`: net
+  (zero-latency arming), arming-bound (protection arms one bar late, at net cost) and
+  gross (E8's commission, no modelled spread or slippage).
+
+### The rule
+
+1. **Span start.** Every sweep a registered read consumes puts each symbol's
+   select-to-confirm boundary at F_s exactly. Its span is [F_s − 3L, F_s + L). L is not
+   chosen: per fold group it is the shortest whole number of days, longer than the
+   5-day embargo, at which the traded confirm clusters projected from pre-frontier
+   density meet the floor of the registration the freeze is timed for on every market the group
+   names. It is fixed before the sweep runs. Symbols in one fold group share F_s; a
+   class whose symbols' frontiers differ is split into separate reads. No fit or select
+   date lies after F_s, and every confirm date does. The mechanism and its sealing
+   conditions follow the rule.
+
+2. **Registration.** A canonical spec, merged on main before its freeze, carrying:
+   - kind and roster;
+   - for a family: side rule, clock, W (inside the embargo), reference price, the
+     statistic's ATR (primary or daily, named), and the analyzerVersion whose cost
+     model sets its screen floor;
+   - for a filter: its parent, which is a shipped cell (a filter on an unshipped
+     family is a new family registration), a field from `DERIVED_FIELDS`, an op, a
+     finite value grid, and the gate's two formulas (decisionHourDistance, costShare);
+   - for both: the fit fold it is screened on, wholly before every F_s it names; a
+     freeze rule yielding at most one candidate per market; a readiness floor per
+     market, the fewest confirm clusters it will be read on, at least 30; and the
+     cluster rule. Whether a span meets the floor is projected from pre-frontier
+     density and the span's dates, so no confirm row is opened.
+
+   The cluster unit belongs to each registration, not to the registry header.
+   ANALYZER_VERSION is pinned only for a family's screen and recorded at every screen,
+   freeze and read.
+
+3. **Screen.**
+   - *Entry family.* Items (1)–(3) and (5) of the random-entry design's smallest
+     defensible design, on the registered fit fold: uncensored MFE − MAE over
+     (t, t + W] in the registered ATR, against a null with the same symbol, side and
+     clock on a random fit-fold day. It passes on m when the lower bound of the
+     candidate-minus-null difference's clustered 95 % interval, at
+     tMultiplier95(clusters − 1), exceeds m's **effect floor**: the mean, over its
+     screened decisions on m, of the engine's modelled round trip
+     (`estimatedRoundTripCost` as `estimateExecutionQuality` computes it at that
+     decision) ÷ the same ATR at that decision, under the registered analyzerVersion's
+     cost model. This replaces that design's item (4). Fewer than 30 clusters is NO
+     VERDICT. The bar does not move with the count. A decision emit stamped with
+     another analyzerVersion is refused, and a registration screens each market once.
+   - *Filter.* Legs (a) and (b) of item 6 on the parent's pre-frontier fit rows, at
+     tMultiplier95(clusters − 1), with item 6's arms and floors. A pass carries no
+     weight; a refusal stands.
+   - The status line records analyzerVersion, manifestHash, and per market the floor
+     (families), clusters, B, multiplier and verdict.
+
+4. **Opening.** One rule for both kinds. At a freeze a registration opens a candidate on
+   m only where its screen passed on m, its freeze rule yields a candidate there from the
+   confirm sweep's fit and select folds, and the freeze's confirm span meets its
+   readiness floor on m. Each freeze is timed for one registration, whose floor sets L.
+   Every other registration meeting all three conditions on m opens there too; one that
+   does not draws nothing and keeps its claim. A candidate whose read falls short of 30
+   clusters after all takes NO VERDICT, and its draw stays spent. This replaces rule 2
+   item 4's "every line … whose fit screen PASSED there opens" and "one read per market
+   window opens all its candidates".
+
+5. **Draws.** As rule 1 item 3: each candidate on m draws 0.8 × (0.05 − S_m) / c_m.
+   c_m and every draw are fixed from the gradings and the freeze file before the fold
+   opens. No recorded draw, multiplier or verdict moves.
+
+6. **Confirm.** Realized R totalled per cluster, on the net and arming-bound arms both.
+   A missing column is NO VERDICT.
+   - (a) The mean over the candidate's traded clusters has its lower bound above 0.
+     df = those clusters − 1.
+   - (b) Where the candidate filters or replaces a shipped cell's trades (a filter
+     always does, against its parent): d = candidate cluster R − cell cluster R over
+     every cluster either side traded, with 0 for an idle side. The lower bound of the
+     mean of d is above 0. df = those clusters − 1. The sum of d is the money delta
+     amendment 39 names. On a JUDGED cost profile (amendment 43), (b) also holds on
+     gross.
+   - At least 30 traded clusters for (a), and on each side for (b), else NO VERDICT.
+   - The multiplier is the t quantile at 1 − draw/2 for that df.
+   - (a) is readable only where the shipped cell under the candidate is held back from
+     this read's spans (ADMISSIBILITY_RULE). Otherwise the candidate cannot confirm on
+     m, and (b) alone never confirms. On a frontier-anchored span no shipped cell was
+     selected or confirmed inside the confirm fold, so (a) is readable once provenance
+     is computed against each read's own spans.
+   - For a family that adds trades, (a) is the whole test.
+   - If two confirmed candidates filter or replace the same shipped cell, the earlier
+     in freeze order ships.
+
+7. **Reads.** A registered read grades both arms and records them. A
+   calendar or shard overlap with any recorded span refuses, with no override. An
+   identity-only match against a line that records spans is logged and proceeds. The
+   read records each symbol's span, and its end becomes that symbol's F_s.
+
+8. **Population.** Every read passes on the full population and on every exclusion map
+   in force from registration to read; an exclusion refuses and never admits. A
+   population exclusion never registers, ships or draws. A filter that shrinks a loss
+   while its kept rows stay unprofitable is refused, and the market goes to amendment
+   36's removal test. Act 3 is charged nothing. `maxCostShare` 0.15 stays; changing it
+   is a new registration.
+
+9. **Printing.** Each market prints "draws S_m of 0.05 · c_m · draw". The program prints
+   the sum of draws beside the confirmed count, never as a pass.
+
+### The span-start mechanism, as built
+
+- `calendarFolds` in `scripts/sweepFolds.ts` cuts [start, end) into fit 50 %, select
+  25 % and confirm 25 %, each fold's decisions ending a 5-day embargo before it closes.
+  `assertEmbargoCoversReview` holds the longest review window plus a 24-hour resolution
+  horizon inside that embargo, so every select row resolves before select closes.
+- `scripts/replay-sweep.ts` takes the span from `--fold-start`/`--fold-end` (one
+  calendar for every symbol), from `--fold-spec` (one span per class, through
+  `foldsByClass`), or from the union of the symbols' cached history. No amendment pins
+  a span's start. `calendarFoldsExcluding` has no production caller.
+- The door seals rows labelled confirm (`SEALED_FOLD`) and nothing else. The ledger
+  records confirm spans only, per symbol.
+- So today a fit or select row dated after F_s is readable by every reader, unledgered.
+
+**The frontier-anchored span.** Run through the real `calendarFolds` on 2026-09-23,
+[F − 3L, F + L) puts select's end and confirm's start at F exactly for L of 6, 30, 90
+and 365 days and 7.55 years, on EURUSD's frontier and on LEUSX's, with no overlap of
+act 3's recorded spans. When L exceeds a third of the class's pre-frontier history the
+nominal start falls before the data, and fit and select hold all of it. The span is
+honest on four conditions:
+
+1. No fit or select date lies after F_s. This holds by construction and is checked at
+   the read, by a refusal still to be built.
+2. The confirm rows stay sealed by the door until the ledgered read.
+3. L follows from a hashed floor and pre-frontier density and is fixed before the
+   sweep runs, so nothing about the span is chosen after a look at a post-frontier
+   row.
+4. The read records [F_s, F_s + L), and its end becomes the next F_s.
+
+The first confirm decisions warm up on bars before F_s. That is decision-time history,
+not an outcome.
+
+**The history-start span** (today's fold spec) has a post-frontier confirm fold only
+when its end reaches start + 4(F_s − start)/3: 2032-04-16 on forex, 2031-01-09 metals,
+2030-12-02 crypto, 2028-10-26 indices, 2027-08-14 to 2027-08-16 energies, livestock,
+futures and agriculture. Before that end its confirm overlaps act 3, and the ledger
+refuses it unless the acknowledgement flag is passed. At that end it is the
+frontier-anchored span with L = (F_s − start)/3. Past it, its select fold holds post-frontier dates the door does not seal: 22.5 days
+of them thirty days later. **Until a door withholds every fit and select row dated
+after its symbol's frontier (rule 2 item 2(a), unbuilt), no sweep of any kind may
+place a fit or select date after F_s**, registered or not. The late-listed classes'
+history-start sweeps cross that line from 2027-08-14.
+
+**The cost.** With L below a third of the pre-frontier history, fit and select hold
+3L, not the whole history, which amendment 33's "to each market's true data limit"
+does not favour. A fold rule that cuts [history start, F_s) 2 : 1 into fit and select
+and makes [F_s, F_s + L) the confirm fold would keep the whole history at any L under
+the same four conditions. It needs a new fold function and is not built.
+
+**What it changes.** Amendment 46 calls the quarter rate "the most consequential
+number" in its ruling: new calendar buys confirm fold at a quarter of the rate it
+accrues. That rate belongs to history-start spans. A frontier-anchored span's confirm
+fold is still the last quarter of the sweep's span, as 46 describes it, yet it buys
+confirm fold at the full rate (table under "Why").
+
+### Registry and tests
+
+Header, pinned by hash: capPerMarket 0.05 (reading pending Q2); the charge rule
+(pending Q3); burnFraction 0.8, JUDGED, with its reason; screen multiplier
+tMultiplier95(clusters − 1); minClusters 30, JUDGED; the frontier rule; the span rule;
+the confirm rule's text and its hash. No cluster unit and no anchor date in the header.
+
+Status lines: *screen* as item 3; *freeze*: frozenHash, and per market F_m, L, S_m,
+the candidates opened, c_m, the draw, and each registration without a candidate with
+its reason; *confirm*: readId, and per candidate, market and arm the clusters on each
+side, the multiplier, the (a) and (b) lower bounds, the sum of d and the verdict.
+
+Tests are rule 1's, with two changed; rule 2's checks stand where this section does
+not replace them:
+
+- (c) Each screen multiplier equals tMultiplier95(clusters − 1). Each family floor is
+  recomputed from the recorded decisions' cost and ATR under the recorded
+  analyzerVersion and manifestHash. Each B is recomputed from the label.
+- (d) Each confirm multiplier equals the t quantile at 1 − draw/2 at the one df rule.
+  Verdicts are recomputed from the recorded cluster series on both arms, and on gross
+  for (b) where the profile is JUDGED. readAt > frozenAt > registeredAt. For every
+  symbol a read names, select's end equals confirm's start equals F_s at the freeze.
+
+Mutations the tests must also catch: a floor in R instead of the registered ATR; a
+thinner-side df; day clusters where the recorded B is longer; the net arm alone; a
+select fold ending after F_s; a filter opening with its floor unmet.
+
+### Build, none of it written
+
+The registry; a general t inverse; the paired cluster bound over every cluster either
+side traded (grid-totalr's `pairedP` is a sign-flip over shared days only and is not
+it); the label block-length rule; a multi-candidate freeze and read; provenance
+against each read's own spans; one ledgered read grading net and bound together
+(grid-totalr refuses `--r-arm` with `--confirm-final` today, because the ledger records
+no arm); the span-start refusal; the door for post-frontier fit and select rows; an
+overlap refusal with no override (the acknowledgement flag lets one through today);
+the confirm rule's registered text; the screen's status fields. Nothing registers until
+the registry is built, and no entry family is screened until the random-entry screen
+is built.
+
+### Why
+
+- **Money ships at confirm, so multiplicity is paid there.** A draw that is never read
+  cannot produce a false confirm. At three registrations with one unread, the two that
+  are read draw 0.0133 each instead of 0.02: z 2.475 against 2.326, ×1.40 the n
+  against ×1.28, power 0.63 against 0.68.
+- **The floor in the statistic's unit.** A family with no stop has no R. Cost in ATR is
+  cost in R × riskDistance ÷ ATR, and 65 of the 80 `maxStopAtrMultiplier` values in
+  `calibration.ts` allow a stop of 4 ATR, so mixing the units can err fourfold.
+- **Both arms.** Net arming credits same-bar exits at the lock level. The one-bar
+  bound costs 0.0225–0.0261 R per fill in all eight forex cells
+  (`docs/research/arming-bound-2026-09-14.md` §3), and 65 of the 72 `runnerProtection`
+  stamps are trail_tp1. A family confirmed on net alone can ship lock value an operator
+  does not bank.
+- **One cluster rule.** Cluster sums measure money; a per-fill figure rises when good
+  trades grow rarer. For a costShare ≤ 0.15 filter on EURUSD, GBPUSD and USDJPY's
+  fit-fold baseline rows, the unpaired standard error ran 6.2 to 7.8 times the nested
+  one [verified: fit fold, round-2 journal]. A label that persists for weeks makes day
+  clusters overstate independence; its B keeps the interval honest.
+- **The per-market reading, priced.** At c = 1 each market read draws 0.04, a
+  favourable false-confirm rate of 0.02 per market at a first burn. For a family that
+  adds trades nothing lowers that. It is reached only at net breakeven: at a true mean
+  0.5 SE below zero the confirm probability is 0.0053. One program-wide cap over 126 to
+  235 cells at the same 0.8 burn gives z 3.60–3.76, ×2.51–2.70 the n and power
+  0.21–0.17.
+
+Forex, on the round late-2030s base [verified: arithmetic; base unverified; a family's
+own n sets its wait]:
+
+| | history-start span | frontier-anchored span |
+|---|---:|---:|
+| uncharged | 11.35 y | 7.07 y |
+| c = 1 | 13.27 y | 7.55 y |
+| c = 2 | 19.23 y | 9.04 y |
+| c = 3 | 22.69 y | 9.90 y |
+| program-wide, 0.05/N over 126–235 cells | 52.3–57.5 y | 17.3–18.6 y |
+| program-wide, 0.04/N, like-for-like | 54.2–59.3 y | 17.8–19.1 y |
+
+Inputs: forex's fold-spec start 2009-09-25, F 2026-08-26T10:45Z, base end 2038-01-01,
+365.25-day years, 80 % power at 1.96. History-start waits are max(D/3, k(D + W) − D);
+frontier-anchored waits are k(D + W)/4, with D = F − start, W the uncharged history-start
+wait and k the n multiplier.
+
+### Corrections to the text above
+
+- "For the owner", first question: "52-58 y" is 52-57 y, corrected in place.
+- Rule 1 item 3, "the second burn comes at least (E1 − S)/3 later", rule 1's CALENDAR
+  figures and the owner section's "at least 9.4 y later on forex" hold on
+  history-start spans only.
+- "D4's absolute term is the cross-market brake" is withdrawn as the reason for the
+  per-market reading, in the owner section, rule 1 and amendment 48. The pricing above
+  replaces it.
+- Amendment 48's "the owner … may reverse any; a draw fixed before a reversal stands"
+  is withdrawn. After one freeze names two markets, a program-wide cap can no longer be
+  honoured over spans already read: a c = 1 freeze on nine markets spends 0.36. So the
+  ruling comes first.
+- Amendment 48's "a conditioning filter … is a family" is withdrawn.
+- Rule 1 item 5's "the later of 2026-08-26 and the end of every other recorded read's
+  span" and rule 2 item 2's single frontier become the per-symbol F_s.
+- The registry header's anchor, `minTradedDays` and `tMultiplier95(dayClusters − 1)`
+  become the header above.
+- The body's Status, the 6.2–7.8 wording, the unbuilt list and the stale citations
+  stand corrected as check-round findings A8, F5, F8 and A7 give them.
+
+### Contradictions, and how each was resolved
+
+| # | Contradiction | Resolution |
+|---|---|---|
+| 1 | Rule 1 opens a line only where its readiness floor is met; rule 2 opens every line whose screen passed, and a filter hashes no floor. | One opening rule (item 4); a filter hashes a floor. |
+| 2 | Rule 1 times each freeze for one family; rule 2 opens every candidate at one read. | A freeze is timed for one registration; any other meeting all three conditions opens with it. |
+| 3 | Day clusters (rule 1 and the screen design) against B-day blocks (rule 2); a header that holds day clusters only. | Day, or B where the label autocorrelates past a day, for both kinds: a family whose side call persists for weeks, as a COT family's would, carries the same regime-coincidence exposure as a slow filter label. The unit sits in each registration. |
+| 4 | Leg (b)'s df: every cluster either side traded (rule 1) against the thinner side (rule 2). | The paired series length − 1: rule 2's own by-reference clause points at rule 1. |
+| 5 | 30 days (rule 1) against 30 blocks (rule 2); no minimum on rule 1's screen; "≥ 30 fills" in the screen design. | 30 clusters everywhere, the screen included. |
+| 6 | Leg (b) only against a shipped cell (rule 1) against always against the parent (rule 2). | The same rule once a filter's parent is read as the shipped cell it filters. |
+| 7 | Families confirm on net only; filters on net and arming-bound. | Both arms for every candidate. Gross for every (b) under a JUDGED profile, because a replacing family can win on the judged spread exactly as a filter can. |
+| 8 | Effect floor in R; the screen measures in ATR. | cost ÷ ATR at each decision, the ATR named in the registration. |
+| 9 | "A threshold fixed in advance" (46) against a floor read from an unpinned cost model. | The registration pins the analyzerVersion for its screen; the status line records it with manifestHash and the floor; test (c) recomputes the floor. |
+| 10 | Rule 2 pins no ANALYZER_VERSION; the family floor needs one. | Pinned for a family's screen only; recorded everywhere else. |
+| 11 | "A filter is a family" against 46's "registered before any fold is read" and "screened against the random-entry null". | A filter is not a family; its obligations are listed; the extension is named as departure 2. |
+| 12 | 46 charges every family; rule 1 charges at the freeze. | Named as departure 1, pending Q3. |
+| 13 | The per-market reading rests on "the cross-market brake", which is absent for a family that adds trades. | Rationale withdrawn; priced; Q2. |
+| 14 | "May reverse any" against a program-wide cap that cannot be restored after a multi-market freeze. | No registration opens before the ruling. |
+| 15 | Amendment 48 amends 46 under the standing approval; 46 is headed "owner ruling"; the record held that a standing approval cannot do that. | Authority limited to what 46 leaves open; Q1. |
+| 16 | Amendment 48 registers calibration programs; no section gives them a rule; the random-entry screen cannot see one. | Out of this draft; Q4. |
+| 17 | One global frontier (rule 2), a per-symbol frontier (amendment 48), 46's "post-2026-08-26", and rule 1 item 5's date anchor. | Per-symbol F_s, read through 46's first sentence. |
+| 18 | The record's calendar and 46's Why assume confirm accrues at a quarter rate; `calendarFolds` on a frontier-anchored span buys it at the full rate. | Span-start rule; figures relabelled; the premise goes to the owner as Q5. |
+| 19 | Rule 2 item 2 assumes a door for post-frontier fit and select rows; the door seals by label only. | No sweep may place fit or select after F_s until that door exists. |
+| 20 | `pairedP` exists; leg (b) is a different statistic. | Named in the build list. |
+| 21 | Both arms at confirm; grid-totalr refuses a non-net arm under `--confirm-final`. | Named in the build list. |
+| 22 | "52-58 y" in the record; "52 to 57" in amendment 48. | 52-57; 57.48 y verified. |
+| 23 | Rule 2 item 8 (full population and every exclusion map) binds filters; rule 1 says nothing for families. | Item 8 binds every read. |
+| 24 | L hashed at registration needs the family's density, and 46 bars computing its decisions before registration. | The floor is hashed; L follows from it and pre-frontier density after the screen, before the sweep. |
+| 25 | Rule 2 item 2(b) records every fold's post-frontier spans. | Not needed: no registered read opens a post-frontier fit or select date. |
+
+### Open
+
+1. **The burn fraction.** 0.8 was judged where burns fall at least 9.42 years apart on
+   forex. On frontier-anchored spans a market can burn as often as floors allow; a
+   second read on a market then draws 0.008 at c = 1 (z 2.652) and a third 0.0016
+   (z 3.156). It stays at 0.8, JUDGED, until a refute round weighs a schedule that
+   spends less on the first read.
+2. **Amendment 46's premise** (Q5).
+3. **Amendment 33 and short spans.** A registration whose floor yields an L below a
+   third of the pre-frontier history freezes on 3L of it. It can buy the whole history
+   only by hashing a higher floor, which delays its read. The unbuilt fold rule above
+   removes the trade-off.
+4. **Calibration programs and amendment-36 removals** (Q4). Until ruled, a calibration
+   confirm read on m moves F_m and takes those dates from every registration on m, and
+   nothing stops it but the overlap refusal and the acknowledgement flag.
+5. **Authority** (Q1).
+6. **Raw post-frontier reads stay unpoliceable.** The minute bank and the cache
+   top-ups hold post-frontier prices and are read routinely: restore proofs, recoveries,
+   probes. Once the desk reopens, its live record will also show every operator the
+   shipped cells' post-frontier outcomes. The door cannot see a family or a filter
+   designed after looking at either, and leg (b) against a cell whose confirm-span
+   results its designer has watched is the case most exposed.
+7. **Three results stay unverified**: the union bound on draws fixed before the read
+   (rule 1 item 3), the intersection-union size of (a) and (b) together (rule 1 item
+   4), and rule 2 item 4's "family-law draft; unverified until ruled".
+
+### For the owner
+
+- **Q1.** Can the standing approval amend law headed "owner ruling", or only settle
+  what that law leaves open?
+- **Q2.** Is the cap per market calendar or program-wide? Per market, each market read
+  carries up to 0.02 favourable false confirms at a first burn, with no second leg for a
+  family that adds trades. Program-wide at the same 0.8 burn puts forex at 54–59 years
+  on history-start spans, or 17.8–19.1 years on frontier-anchored spans against 7.6 at
+  c = 1. The answer is needed before the first registration.
+- **Q3.** Is a family charged at registration, as 46 reads, or only when a freeze opens
+  its candidate?
+- **Q4.** Do conditioning filters, calibration programs and amendment-36 removals claim
+  the same cap? If calibration programs register, what screens them? The random-entry
+  screen reads no stop, TP1, ladder or window, so it cannot see one.
+- **Q5.** Amendment 46 rests its timing on confirm accruing at a quarter rate, which is
+  true of history-start spans only. Is the frontier-anchored span, with every fit and
+  select date before the frontier and every confirm date after it, an honest way to buy
+  a confirm read, and does its full-rate accrual change anything 46 decided?

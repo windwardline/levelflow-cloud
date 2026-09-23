@@ -2532,7 +2532,9 @@ cluster, degrees-of-freedom and floor rules differ from the family's); calibrati
 programs have no rule; the settled effect floor is in R where the random-entry screen
 measures in ATR; and the adopted sections never took a refute round of their own.
 The findings are distilled in
-`docs/research/designs/amendment-48-check-round-2026-09-22.md`.
+`docs/research/designs/amendment-48-check-round-2026-09-22.md`. A reconciled draft,
+not law either, is the last section of
+`docs/research/designs/amendment-46-parameters-2026-09-21.md`.
 
 **The two rules headed "The rule as refuted" in
 `docs/research/designs/amendment-46-parameters-2026-09-21.md` are law as written,
