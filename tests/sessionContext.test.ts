@@ -306,10 +306,49 @@ describe("a low-edge refusal states its window and claims no measurement", () =>
     ].map((match) => match[1]);
     assert.ok(sites >= 3, `only ${sites} lowEdge sites found — the scan broke`);
     assert.equal(reasons.length, sites, "a lowEdge site's reason was not read");
-    // The words an operator reads are the literal parts; an interpolation is
-    // code (a helper's name), and the executed test above reads its output.
+    // The words an operator reads are the literal parts plus whatever an
+    // interpolation returns. A helper's NAME is code and is not read; its
+    // string literals are, because a site the roster cannot reach is covered
+    // by this scan alone. An interpolation that is not a call to a function in
+    // this file cannot be read, so it fails rather than passing unread.
+    let helpers = 0;
     for (const reason of reasons) {
+      for (const [, expression] of reason.matchAll(/\$\{([^}]*)\}/g)) {
+        const call = /^\s*([A-Za-z_]\w*)\(/.exec(expression!);
+        assert.ok(call, `a lowEdge reason interpolates \`${expression}\`, which this scan cannot read; move the text into a helper in sessions.ts`);
+        for (const literal of helperLiterals(source, call[1]!)) assert.doesNotMatch(literal, CLAIM, `${call[1]}(): ${literal}`);
+        helpers += 1;
+      }
       assert.doesNotMatch(reason.replace(/\$\{[^}]*\}/g, ""), CLAIM, reason);
     }
+    assert.ok(helpers >= 1, "no reason interpolates a helper; the energies window did on 2026-09-23 — the scan broke");
   });
 });
+
+/**
+ * Every string literal in the body of `function name(` in `source`, comments
+ * removed and template interpolations dropped. Fails when the function or the
+ * end of its body cannot be found.
+ */
+function helperLiterals(source: string, name: string): string[] {
+  const at = source.indexOf(`function ${name}(`);
+  assert.ok(at >= 0, `the reason interpolates ${name}(), which is not a function in sessions.ts`);
+  const head = /\)\s*(?::[^{]+)?\{/.exec(source.slice(at));
+  assert.ok(head, `${name}() has no body the scan can find`);
+  const open = at + head.index + head[0].length - 1;
+  let depth = 0;
+  let close = -1;
+  for (let index = open; index < source.length; index += 1) {
+    if (source[index] === "{") depth += 1;
+    if (source[index] === "}") depth -= 1;
+    if (depth === 0) {
+      close = index;
+      break;
+    }
+  }
+  assert.ok(close > open, `${name}()'s body never closes for the scan`);
+  const body = source.slice(open + 1, close).replace(/^\s*\/\/[^\n]*$/gm, "");
+  return [...body.matchAll(/"([^"\\\n]*)"|'([^'\\\n]*)'|`([^`]*)`/g)].map((match) =>
+    (match[1] ?? match[2] ?? match[3] ?? "").replace(/\$\{[^}]*\}/g, "")
+  );
+}

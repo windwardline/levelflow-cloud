@@ -15,10 +15,13 @@ import { describe, it } from "node:test";
  * #635 restored HANDOFF's block and not the two files. A citation to a file
  * that is gone is a claim nobody can check, so this test refuses the tree.
  *
- * Scope: every tracked markdown file under docs/, and two spellings of a
- * citation — a repository path (`docs/research/…`) and the research tree's
- * short form (`r3/…`, `r4/…` in backticks). Only .md and .txt targets: the
- * corpora beside them are gitignored by design and cited freely.
+ * Scope: every tracked markdown file under docs/ and every tracked source
+ * file (.ts, .tsx, .mjs, .sh), whose comments cite the same records, and two
+ * spellings of a citation — a repository path (`docs/research/…`) and the
+ * research tree's short form (`r3/…`, `r4/…` in backticks). A path wrapped
+ * across two lines at a hyphen is joined before it is read, so a re-wrap
+ * cannot hide a citation. Only .md and .txt targets: the corpora beside them
+ * are gitignored by design and cited freely.
  */
 
 const RESEARCH_PATH = /docs\/research\/[A-Za-z0-9_./-]+?\.(?:md|txt)/g;
@@ -40,8 +43,28 @@ function trackedDocs(): string[] {
   return [...trackedFiles()].filter((path) => path.startsWith("docs/") && path.endsWith(".md")).sort();
 }
 
+function trackedSources(): string[] {
+  return [...trackedFiles()].filter((path) => /\.(?:ts|tsx|mjs|sh)$/.test(path)).sort();
+}
+
+/**
+ * Research paths a source names as DATA, not as a citation: each is a fixture
+ * the code under test classifies. Keyed by file, and each must still appear,
+ * so an entry cannot outlive its reason.
+ */
+const FIXTURE_PATHS = new Map([
+  // Spelled in parts, or this file would cite it.
+  ["scripts/vercel-ignore-build-test.sh", [["docs/research/", "note.md"].join("")]],
+]);
+
+/** A path wrapped at a hyphen, with the next line's comment or quote marker, reads as one. */
+export function joinWrappedPaths(text: string): string {
+  return text.replace(/([A-Za-z0-9_./])-\n[ \t]*(?:\/\/+|\*|#|>)?[ \t]*/g, "$1-");
+}
+
 export function citedResearchFiles(text: string): Set<string> {
   const cited = new Set<string>();
+  text = joinWrappedPaths(text);
   for (const match of text.matchAll(RESEARCH_PATH)) cited.add(match[0]);
   for (const match of text.matchAll(SHORT_FORM)) cited.add(`docs/research/${match[1]}`);
   return cited;
@@ -65,6 +88,17 @@ describe("research citations resolve to tracked files", () => {
     );
   });
 
+  it("reads a path wrapped across two comment or prose lines", () => {
+    for (const text of [
+      "// out of register (docs/research/evaluator-repair-map-\n// 2026-08-09.md, cluster A)",
+      " * see docs/research/evaluator-repair-map-\n *   2026-08-09.md for the map",
+      "the map (docs/research/evaluator-repair-map-\n2026-08-09.md) says",
+      "> docs/research/evaluator-repair-map-\n> 2026-08-09.md",
+    ]) {
+      assert.deepEqual([...citedResearchFiles(text)], ["docs/research/evaluator-repair-map-2026-08-09.md"], text);
+    }
+  });
+
   it("finds no citation of a file that is not in the tree", () => {
     const tracked = trackedFiles();
     const docs = trackedDocs();
@@ -78,6 +112,29 @@ describe("research citations resolve to tracked files", () => {
       }
     }
     assert.ok(citations > 0, "the docs cite research files; a scan that found none examined nothing");
+    assert.deepEqual(dangling, [], `every cited research file must be tracked:\n  ${dangling.join("\n  ")}`);
+  });
+
+  it("finds no citation of a missing file in a source comment either", () => {
+    const tracked = trackedFiles();
+    const sources = trackedSources();
+    const dangling: string[] = [];
+    let citations = 0;
+    for (const source of sources) {
+      const cited = citedResearchFiles(readFileSync(source, "utf8"));
+      const fixtures = FIXTURE_PATHS.get(source) ?? [];
+      for (const fixture of fixtures) {
+        assert.ok(cited.has(fixture), `${source} no longer names ${fixture}; drop it from FIXTURE_PATHS`);
+      }
+      for (const path of cited) {
+        if (fixtures.includes(path)) continue;
+        citations += 1;
+        if (!tracked.has(path)) dangling.push(`${source} cites ${path}`);
+      }
+    }
+    for (const source of FIXTURE_PATHS.keys()) assert.ok(sources.includes(source), `${source} is excepted but not tracked`);
+    // 79 on 2026-09-23, in 49 files; a scan that finds none examined nothing.
+    assert.ok(citations >= 40, `source comments cite ${citations} research files; the scan broke`);
     assert.deepEqual(dangling, [], `every cited research file must be tracked:\n  ${dangling.join("\n  ")}`);
   });
 });
