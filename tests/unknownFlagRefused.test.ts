@@ -329,17 +329,18 @@ const CONCURRENCY = 4;
 
 describe("every argv reader refuses an unknown flag by name", { concurrency: CONCURRENCY }, () => {
   it("the population is derived, its exemptions hold, and the named readers are in it", () => {
-    // Floors AT the counts measured on 2026-09-22 (43 argv readers, 42
-    // executed, 31 on the shared walk, 15 of them flags-only). A glob that
+    // Floors AT the counts measured on 2026-09-22 (44 argv readers, 43
+    // executed, 32 on the shared walk, 16 of them flags-only — the entry
+    // excursion screen joined all four that day). A glob that
     // silently matched nothing would otherwise pass every law below
     // vacuously, and a floor one below the count — as these were until
     // 2026-09-22 — let one reader leave unnoticed. A refactor that
     // legitimately shrinks a population lowers its floor in the same commit
     // and says which readers left and why; one that grows it may raise it.
-    assert.ok(ARGV_READERS.length >= 43, `argv readers: ${ARGV_READERS.length}`);
-    assert.ok(EXECUTED.length >= 42, `executed: ${EXECUTED.length}`);
-    assert.ok(ADOPTERS.length >= 31, `adopters: ${ADOPTERS.length}`);
-    assert.ok(FLAGS_ONLY.length >= 15, `flags-only: ${FLAGS_ONLY.length}`);
+    assert.ok(ARGV_READERS.length >= 44, `argv readers: ${ARGV_READERS.length}`);
+    assert.ok(EXECUTED.length >= 43, `executed: ${EXECUTED.length}`);
+    assert.ok(ADOPTERS.length >= 32, `adopters: ${ADOPTERS.length}`);
+    assert.ok(FLAGS_ONLY.length >= 16, `flags-only: ${FLAGS_ONLY.length}`);
     for (const exempt of [...NOT_OPERATOR_INPUT.keys(), ...FAILS_TOWARD_RUNNING.keys(), ...STACK_ON_REFUSAL]) {
       assert.ok(
         ARGV_READERS.includes(exempt),

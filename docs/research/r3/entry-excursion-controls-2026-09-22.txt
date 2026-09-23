@@ -1,0 +1,331 @@
+Entry excursion screen — controls only. No family is screened: amendment 46 registers a family before any fold is read, and the registry that needs (amendment 48) does not exist.
+corpus /Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-14.jsonl · manifest 2bd117256d48 · anchor 2026-08-26 · depth 7000d · analyzer 2026.09.13.forex-commission-usd-quote
+fold: fit only — 2141527 confirm rows withheld at the door, 1826259 rows of other folds (select among them) refused on their split before any other field was read
+population: variant baseline, accepted, in-pool — 243530 kept of 4493205 read (2287722 other variants, 68910 not accepted, 66784 held out)
+W = 8h wall-clock through the engine's expiry (weekly-close clamp) · reference = the decision bar's close · stream from the next bar on the pinned 5-minute series · unit = ATR(14) of the 15-minute series at the decision, anchored to each row's atr and latestClose
+null: same symbol, side and UTC clock on a random fit-fold day in a contained month, |shift| > W, K = 20 draws with replacement, seed "random-entry-screen-2026-09-14"
+verdict: per market (amendment 45), mean of candidate − null with a 95% interval clustered by UTC decision day (CR1) at tMultiplier95(days − 1); fewer than 30 days is NO VERDICT; PASS iff the lower bound clears the floor
+floor: the row's round-trip cost (estimatedRoundTripCost), mean per market, in ATR and in R — amendment 48 has not settled the unit; the verdict reads the ATR floor against the ATR statistic
+month map: manifest feedCharacter (5min tier)
+holdout: stratified-per-class-20pct — 20 markets excluded from every class pool (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only; also absent from every per-market line
+
+CONTROLS
+control look-ahead   HOLDS — passes in 51 of 51 markets with a verdict (8 NO VERDICT); narrowest margin +0.5677 ATR above the floor (DOGEUSD)
+control coin-flip    HOLDS — passes in 0 of 51 markets with a verdict (8 NO VERDICT)
+control shipped      HOLDS — passes in 0 of 51 markets with a verdict (8 NO VERDICT); the interval covers zero in 41 of 51 (about 95% expected at no effect)
+control censoring    HOLDS — 2000 of 2000 sampled fit rows reproduce maxFavorableMove and maxAdverseMove exactly (5-minute 2000; 2000 drawn, and a drawn row of an unpinned market is not re-resolved)
+controls established: yes
+
+SHIPPED DECISIONS BY MARKET
+market    class        read  anchored  screened  unanchored  escaping  no-bars  pre-5min  zero-ATR  null-short
+ADAUSD    crypto       2021      2021         0           0      2021        0         0         0           0
+ALGOUSD   crypto        387       387       387           0         0        0         0         0           0
+ATOMUSD   crypto         44        44        44           0         0        0         0         0           0
+AUDCAD    forex        8583      8583      8351           0       210       22         0         0           0
+AUDJPY    forex        9088      9088      8962           0       110       16         0         0           0
+AUDUSD    forex        9482      9482      9347           0       117       18         0         0           0
+BCHUSD    crypto       2548      2548         0           0      2548        0         0         0           0
+BTCUSD    crypto       4171      4171       341           0      3825        5         0         0           0
+CADCHF    forex        9078      9078      8736           0       322       20         0         0           0
+CADJPY    forex        9215      9215      9194           0         0       21         0         0           0
+CHFJPY    forex        9101      9101      9015           0        65       21         0         0           0
+CLUSD     futures       791       791       790           0         0        1         0         0           0
+DOGEUSD   crypto       1854      1854       200           0      1654        0         0         0           0
+ESUSD     futures       984       984       981           0         0        3         0         0           0
+ETCUSD    crypto       1842      1842         0           0      1842        0         0         0           0
+ETHUSD    crypto       3927      3927       680           0      3246        1         0         0           0
+EURAUD    forex        9201      9201      9071           0       110       20         0         0           0
+EURCAD    forex        8988      8988      8974           0         0       14         0         0           0
+EURCHF    forex        5211      5211      4856           0       347        8         0         0           0
+EURGBP    forex        8474      8474      8359           0        99       16         0         0           0
+EURJPY    forex        9131      9131      9109           0         0       22         0         0           0
+EURNZD    forex        9244      9244      8663           0       558       23         0         0           0
+GBPAUD    forex        9366      9366      9342           0         0       24         0         0           0
+GBPCHF    forex        8570      8570      8548           0         0       22         0         0           0
+GBPJPY    forex        9042      9042      9028           0         0       14         0         0           0
+GBPNZD    forex        9302      9302      8999           0       278       25         0         0           0
+GBPUSD    forex        9033      9033      9009           0         0       24         0         0           0
+GCUSD     futures      1049      1049      1047           0         0        2         0         0           0
+GFUSX     livestock     240       240       140           0        95        5         0         0           0
+HGUSD     futures      1058      1058       984           0        73        1         0         0           0
+HOUSD     futures       870       870       722           0       144        4         0         0           0
+LEUSX     livestock     210       210       131           0        69       10         0         0           0
+LINKUSD   crypto        692       692       276           0       416        0         0         0           0
+LTCUSD    crypto       3261      3261        27           0      3230        4         0         0           0
+NQUSD     futures       903       903       898           0         0        5         0         0           0
+NZDCAD    forex        8845      8845      8085           0       738       22         0         0           0
+NZDUSD    forex        9200      9200      9178           0         0       22         0         0           0
+PAUSD     futures      1023      1023      1022           0         0        1         0         0           0
+PLUSD     futures       895       895       893           0         0        2         0         0           0
+RBUSD     futures       883       883       552           0       330        1         0         0           0
+SIUSD     futures       978       978       975           0         0        3         0         0           0
+SP        indices       324       324       317           0         0        7         0         0           0
+TRXUSD    crypto       1681      1681         0           0      1681        0         0         0           0
+USDCAD    forex        7743      7743      7726           0         0       17         0         0           0
+USDCHF    forex        8844      8844      8822           0         0       22         0         0           0
+USDJPY    forex        8912      8912      8892           0         0       20         0         0           0
+WTI       energies      693       693       693           0         0        0         0         0           0
+XAUUSD    metals       6972      6972      6950           0         0       22         0         0           0
+XRPUSD    crypto       2526      2526         0           0      2526        0         0         0           0
+XTZUSD    crypto        937       937         0           0       937        0         0         0           0
+ZBUSD     futures      1131      1131      1125           0         0        6         0         0           0
+ZCUSX     agriculture   1089      1089      1048           0        35        6         0         0           0
+ZFUSD     futures       288       288       240           0        48        0         0         0           0
+ZLUSX     agriculture    973       973       866           0       104        3         0         0           0
+ZNUSD     futures      1063      1063       928           0       134        1         0         0           0
+ZOUSX     agriculture    485       485       460           0        19        6         0         0           0
+ZRUSD     agriculture    317       317       297           0        14        6         0         0           0
+ZSUSX     agriculture    707       707       675           0        26        6         0         0           0
+ZTUSD     futures        60        60        42           0        18        0         0         0           0
+
+PER MARKET (candidate − null, ATR)
+family      market    class        decisions   days      mean      lo95      hi95        t  floorATR  floorR  verdict
+look-ahead  ADAUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+look-ahead  ALGOUSD   crypto            387    160   +4.2959   +3.6705   +4.9212   +13.60    0.5811   0.5811  PASS
+look-ahead  ATOMUSD   crypto             44     22   +3.5297   +2.1762   +4.8832    +5.42    0.8484   0.8484  NO VERDICT
+look-ahead  AUDCAD    forex            8325   1922   +2.7682   +2.6927   +2.8437   +71.93    0.1489   0.0758  PASS
+look-ahead  AUDJPY    forex            8947   2033   +3.0116   +2.9300   +3.0932   +72.38    0.1167   0.0565  PASS
+look-ahead  AUDUSD    forex            9328   2093   +3.1720   +3.0899   +3.2540   +75.84    0.1487   0.0675  PASS
+look-ahead  BCHUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+look-ahead  BTCUSD    crypto            337    237   +3.2170   +2.5468   +3.8871    +9.47    0.2340   0.0912  PASS
+look-ahead  CADCHF    forex            8713   1952   +3.3323   +3.1845   +3.4801   +44.23    0.1566   0.0687  PASS
+look-ahead  CADJPY    forex            9173   2059   +3.2311   +3.1421   +3.3201   +71.23    0.1312   0.0596  PASS
+look-ahead  CHFJPY    forex            9001   2022   +3.0052   +2.9141   +3.0963   +64.72    0.1365   0.0648  PASS
+look-ahead  CLUSD     futures           786    302   +4.7493   +4.3293   +5.1694   +22.30    0.2658   0.0845  PASS
+look-ahead  DOGEUSD   crypto            200     76   +2.0804   +0.6864   +3.4744    +2.98    0.1186   0.0570  PASS
+look-ahead  ESUSD     futures           968    288   +4.4239   +4.0140   +4.8338   +21.28    0.4290   0.1313  PASS
+look-ahead  ETCUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+look-ahead  ETHUSD    crypto            677    247   +3.7792   +3.3676   +4.1907   +18.11    0.2614   0.0912  PASS
+look-ahead  EURAUD    forex            9057   2026   +3.0459   +2.9643   +3.1274   +73.29    0.1466   0.0701  PASS
+look-ahead  EURCAD    forex            8965   2033   +3.2207   +3.1245   +3.3168   +65.70    0.1682   0.0749  PASS
+look-ahead  EURCHF    forex            4847   1384   +2.9241   +2.6811   +3.1671   +23.61    0.1990   0.0844  PASS
+look-ahead  EURGBP    forex            8330   1975   +3.4389   +3.3317   +3.5461   +62.94    0.1912   0.0797  PASS
+look-ahead  EURJPY    forex            9102   2074   +3.2593   +3.1682   +3.3505   +70.15    0.1420   0.0635  PASS
+look-ahead  EURNZD    forex            8645   1938   +2.9119   +2.8320   +2.9917   +71.52    0.1278   0.0631  PASS
+look-ahead  GBPAUD    forex            9332   2067   +2.9640   +2.8882   +3.0399   +76.66    0.1346   0.0656  PASS
+look-ahead  GBPCHF    forex            8530   1976   +3.2524   +3.1212   +3.3837   +48.63    0.1660   0.0725  PASS
+look-ahead  GBPJPY    forex            9016   2029   +3.1374   +3.0460   +3.2287   +67.38    0.1365   0.0623  PASS
+look-ahead  GBPNZD    forex            8994   1989   +2.9146   +2.8365   +2.9927   +73.21    0.1225   0.0609  PASS
+look-ahead  GBPUSD    forex            8998   2057   +3.5792   +3.4697   +3.6887   +64.13    0.1737   0.0709  PASS
+look-ahead  GCUSD     futures          1040    316   +3.9528   +3.6549   +4.2508   +26.16    0.2542   0.0884  PASS
+look-ahead  GFUSX     livestock         136    123   +1.1158   +0.8518   +1.3798    +8.37    0.1710   0.1705  PASS
+look-ahead  HGUSD     futures           825    298   +6.2545   +5.5959   +6.9132   +18.73    0.3109   0.0841  PASS
+look-ahead  HOUSD     futures           536    239   +7.3451   +6.3774   +8.3128   +14.97    0.2242   0.2038  PASS
+look-ahead  LEUSX     livestock         125    117   +1.3916   +1.0624   +1.7207    +8.39    0.2087   0.2087  PASS
+look-ahead  LINKUSD   crypto            276     82   +2.7257   +1.4218   +4.0295    +4.16    0.1748   0.0777  PASS
+look-ahead  LTCUSD    crypto             26     25   +2.1512   +1.1438   +3.1586    +4.41    0.2821   0.1081  NO VERDICT
+look-ahead  NQUSD     futures           898    282   +4.8482   +4.3799   +5.3165   +20.42    0.2734   0.0855  PASS
+look-ahead  NZDCAD    forex            8062   1812   +2.7820   +2.7024   +2.8617   +68.55    0.1314   0.0666  PASS
+look-ahead  NZDUSD    forex            9158   2033   +3.1234   +3.0416   +3.2051   +74.96    0.1433   0.0664  PASS
+look-ahead  PAUSD     futures           999    322   +4.5897   +4.2474   +4.9320   +26.44    0.1365   0.1366  PASS
+look-ahead  PLUSD     futures           889    277   +4.3436   +4.0164   +4.6708   +26.18    0.2063   0.2068  PASS
+look-ahead  RBUSD     futures           413    180   +7.3740   +6.3776   +8.3705   +14.65    0.1948   0.1824  PASS
+look-ahead  SIUSD     futures           954    304   +4.0157   +3.6534   +4.3779   +21.86    0.2136   0.0718  PASS
+look-ahead  SP        indices           317    317   +1.6242   +1.4051   +1.8432   +14.62    0.2334   0.0980  PASS
+look-ahead  TRXUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+look-ahead  USDCAD    forex            7709   1968   +3.5143   +3.4047   +3.6239   +62.90    0.2046   0.0848  PASS
+look-ahead  USDCHF    forex            8810   2039   +3.6545   +3.4765   +3.8326   +40.28    0.1805   0.0741  PASS
+look-ahead  USDJPY    forex            8872   2054   +3.5251   +3.4257   +3.6245   +69.59    0.1749   0.0756  PASS
+look-ahead  WTI       energies          690    289   +4.7158   +4.2714   +5.1603   +20.92    0.7938   0.2534  PASS
+look-ahead  XAUUSD    metals           6942   1624   +3.6986   +3.5735   +3.8238   +57.98    0.5218   0.2011  PASS
+look-ahead  XRPUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+look-ahead  XTZUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+look-ahead  ZBUSD     futures          1079    340   +4.2541   +3.9324   +4.5759   +26.07    0.7027   0.2197  PASS
+look-ahead  ZCUSX     agriculture       995    310   +4.0124   +3.6103   +4.4146   +19.68    1.0437   0.3369  PASS
+look-ahead  ZFUSD     futures           230    166   +3.0273   +2.4411   +3.6134   +10.23    0.9023   0.8233  PASS
+look-ahead  ZLUSX     agriculture       857    261   +4.0778   +3.7127   +4.4429   +22.03    0.4689   0.1711  PASS
+look-ahead  ZNUSD     futures           883    296   +3.9851   +3.5968   +4.3734   +20.24    0.9651   0.3146  PASS
+look-ahead  ZOUSX     agriculture       439    268   +2.8029   +2.4526   +3.1532   +15.78    0.4092   0.1754  PASS
+look-ahead  ZRUSD     agriculture       273    217   +2.0820   +1.5864   +2.5776    +8.28    0.4390   0.3568  PASS
+look-ahead  ZSUSX     agriculture       667    285   +2.9371   +2.5680   +3.3061   +15.69    0.5099   0.5119  PASS
+look-ahead  ZTUSD     futures            39     33   +6.3402   +2.8316   +9.8488    +3.69    1.4731   0.8488  PASS
+coin-flip   ADAUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+coin-flip   ALGOUSD   crypto            387    160   +0.0281   -0.6297   +0.6860    +0.08    0.5811   0.5811  FAIL
+coin-flip   ATOMUSD   crypto             44     22   +0.6626   -0.9377   +2.2629    +0.86    0.8484   0.8484  NO VERDICT
+coin-flip   AUDCAD    forex            8351   1922   +0.0383   -0.0519   +0.1285    +0.83    0.1489   0.0758  FAIL
+coin-flip   AUDJPY    forex            8962   2033   +0.0176   -0.0792   +0.1143    +0.36    0.1167   0.0565  FAIL
+coin-flip   AUDUSD    forex            9347   2093   +0.0481   -0.0514   +0.1476    +0.95    0.1487   0.0675  FAIL
+coin-flip   BCHUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+coin-flip   BTCUSD    crypto            341    240   +0.1746   -0.5392   +0.8884    +0.48    0.2333   0.0910  FAIL
+coin-flip   CADCHF    forex            8736   1953   +0.0570   -0.0649   +0.1789    +0.92    0.1566   0.0687  FAIL
+coin-flip   CADJPY    forex            9194   2059   +0.0344   -0.0714   +0.1402    +0.64    0.1312   0.0596  FAIL
+coin-flip   CHFJPY    forex            9015   2023   +0.0553   -0.0526   +0.1631    +1.01    0.1365   0.0648  FAIL
+coin-flip   CLUSD     futures           790    302   -0.4652   -1.0152   +0.0848    -1.67    0.2658   0.0845  FAIL
+coin-flip   DOGEUSD   crypto            200     76   -0.1533   -1.5843   +1.2776    -0.21    0.1186   0.0570  FAIL
+coin-flip   ESUSD     futures           981    288   -0.0013   -0.5080   +0.5053    -0.01    0.4285   0.1313  FAIL
+coin-flip   ETCUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+coin-flip   ETHUSD    crypto            680    248   -0.1577   -0.7089   +0.3935    -0.56    0.2627   0.0915  FAIL
+coin-flip   EURAUD    forex            9071   2026   -0.0614   -0.1606   +0.0378    -1.21    0.1466   0.0701  FAIL
+coin-flip   EURCAD    forex            8974   2034   -0.0153   -0.1231   +0.0924    -0.28    0.1683   0.0749  FAIL
+coin-flip   EURCHF    forex            4856   1385   -0.0264   -0.2850   +0.2323    -0.20    0.1989   0.0843  FAIL
+coin-flip   EURGBP    forex            8359   1976   -0.0638   -0.1931   +0.0654    -0.97    0.1912   0.0797  FAIL
+coin-flip   EURJPY    forex            9109   2074   +0.0056   -0.1030   +0.1141    +0.10    0.1421   0.0636  FAIL
+coin-flip   EURNZD    forex            8663   1938   -0.0508   -0.1476   +0.0459    -1.03    0.1278   0.0631  FAIL
+coin-flip   GBPAUD    forex            9342   2067   +0.0559   -0.0362   +0.1481    +1.19    0.1347   0.0656  FAIL
+coin-flip   GBPCHF    forex            8548   1976   -0.0676   -0.2145   +0.0794    -0.90    0.1660   0.0725  FAIL
+coin-flip   GBPJPY    forex            9028   2030   -0.0140   -0.1224   +0.0944    -0.25    0.1365   0.0623  FAIL
+coin-flip   GBPNZD    forex            8999   1989   -0.0332   -0.1273   +0.0609    -0.69    0.1226   0.0609  FAIL
+coin-flip   GBPUSD    forex            9009   2058   +0.0474   -0.0771   +0.1719    +0.75    0.1737   0.0709  FAIL
+coin-flip   GCUSD     futures          1047    316   -0.0292   -0.3747   +0.3164    -0.17    0.2541   0.0884  FAIL
+coin-flip   GFUSX     livestock         140    126   +0.1086   -0.2031   +0.4203    +0.69    0.1720   0.1717  FAIL
+coin-flip   HGUSD     futures           984    306   +0.3992   -0.2647   +1.0631    +1.19    0.3124   0.0850  FAIL
+coin-flip   HOUSD     futures           722    259   +0.1508   -0.7513   +1.0530    +0.33    0.2232   0.2013  FAIL
+coin-flip   LEUSX     livestock         131    123   +0.1527   -0.2372   +0.5426    +0.78    0.2087   0.2084  FAIL
+coin-flip   LINKUSD   crypto            276     82   -0.0142   -1.3466   +1.3183    -0.02    0.1748   0.0777  FAIL
+coin-flip   LTCUSD    crypto             27     26   +0.4178   -0.8788   +1.7145    +0.66    0.2810   0.1105  NO VERDICT
+coin-flip   NQUSD     futures           898    282   +0.0293   -0.5155   +0.5741    +0.11    0.2734   0.0855  FAIL
+coin-flip   NZDCAD    forex            8085   1812   +0.0175   -0.0788   +0.1138    +0.36    0.1315   0.0666  FAIL
+coin-flip   NZDUSD    forex            9178   2033   -0.0181   -0.1160   +0.0798    -0.36    0.1433   0.0665  FAIL
+coin-flip   PAUSD     futures          1022    324   +0.1287   -0.2738   +0.5312    +0.63    0.1365   0.1366  FAIL
+coin-flip   PLUSD     futures           893    277   -0.0478   -0.4912   +0.3955    -0.21    0.2062   0.2068  FAIL
+coin-flip   RBUSD     futures           552    194   +0.9932   +0.0636   +1.9229    +2.12    0.1981   0.1855  FAIL
+coin-flip   SIUSD     futures           975    306   +0.0608   -0.3415   +0.4630    +0.30    0.2142   0.0718  FAIL
+coin-flip   SP        indices           317    317   +0.1579   -0.1252   +0.4410    +1.10    0.2334   0.0980  FAIL
+coin-flip   TRXUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+coin-flip   USDCAD    forex            7726   1970   -0.0942   -0.2214   +0.0329    -1.45    0.2047   0.0849  FAIL
+coin-flip   USDCHF    forex            8822   2039   +0.1335   +0.0092   +0.2579    +2.11    0.1805   0.0742  FAIL
+coin-flip   USDJPY    forex            8892   2054   -0.0034   -0.1216   +0.1147    -0.06    0.1749   0.0756  FAIL
+coin-flip   WTI       energies          693    289   +0.5472   -0.0064   +1.1009    +1.95    0.7928   0.2533  FAIL
+coin-flip   XAUUSD    metals           6950   1624   +0.2222   +0.0801   +0.3643    +3.07    0.5218   0.2011  FAIL
+coin-flip   XRPUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+coin-flip   XTZUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+coin-flip   ZBUSD     futures          1125    343   -0.3710   -0.7559   +0.0140    -1.90    0.7038   0.2199  FAIL
+coin-flip   ZCUSX     agriculture      1048    311   -0.1150   -0.5692   +0.3391    -0.50    1.0445   0.3376  FAIL
+coin-flip   ZFUSD     futures           240    172   -0.0332   -0.7326   +0.6661    -0.09    0.9024   0.8256  FAIL
+coin-flip   ZLUSX     agriculture       866    261   -0.1723   -0.6183   +0.2737    -0.76    0.4697   0.1711  FAIL
+coin-flip   ZNUSD     futures           928    298   -0.1450   -0.5498   +0.2598    -0.71    0.9609   0.3138  FAIL
+coin-flip   ZOUSX     agriculture       460    274   -0.0667   -0.4846   +0.3512    -0.31    0.4066   0.1752  FAIL
+coin-flip   ZRUSD     agriculture       297    229   +0.3432   -0.1702   +0.8566    +1.32    0.4390   0.3566  FAIL
+coin-flip   ZSUSX     agriculture       675    285   +0.1180   -0.3007   +0.5368    +0.56    0.5088   0.5109  FAIL
+coin-flip   ZTUSD     futures            42     36   -1.7549   -5.6773   +2.1674    -0.91    1.4912   0.8518  FAIL
+shipped     ADAUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+shipped     ALGOUSD   crypto            387    160   +0.7408   +0.0646   +1.4169    +2.17    0.5811   0.5811  FAIL
+shipped     ATOMUSD   crypto             44     22   +1.4355   -1.2003   +4.0713    +1.13    0.8484   0.8484  NO VERDICT
+shipped     AUDCAD    forex            8351   1922   -0.1057   -0.2003   -0.0112    -2.19    0.1489   0.0758  FAIL
+shipped     AUDJPY    forex            8962   2033   +0.1675   +0.0650   +0.2699    +3.21    0.1167   0.0565  FAIL
+shipped     AUDUSD    forex            9347   2093   -0.0290   -0.1362   +0.0783    -0.53    0.1487   0.0675  FAIL
+shipped     BCHUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+shipped     BTCUSD    crypto            341    240   +0.4970   -0.2483   +1.2423    +1.32    0.2333   0.0910  FAIL
+shipped     CADCHF    forex            8736   1953   -0.0310   -0.1589   +0.0968    -0.48    0.1566   0.0687  FAIL
+shipped     CADJPY    forex            9194   2059   +0.1569   +0.0427   +0.2711    +2.70    0.1312   0.0596  FAIL
+shipped     CHFJPY    forex            9015   2023   -0.0065   -0.1180   +0.1051    -0.11    0.1365   0.0648  FAIL
+shipped     CLUSD     futures           790    302   +0.3426   -0.2317   +0.9170    +1.18    0.2658   0.0845  FAIL
+shipped     DOGEUSD   crypto            200     76   +1.4359   +0.0547   +2.8172    +2.08    0.1186   0.0570  FAIL
+shipped     ESUSD     futures           981    288   -0.0623   -0.6199   +0.4954    -0.22    0.4285   0.1313  FAIL
+shipped     ETCUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+shipped     ETHUSD    crypto            680    248   +0.3666   -0.1667   +0.9000    +1.36    0.2627   0.0915  FAIL
+shipped     EURAUD    forex            9071   2026   +0.1094   +0.0037   +0.2151    +2.03    0.1466   0.0701  FAIL
+shipped     EURCAD    forex            8974   2034   +0.0936   -0.0260   +0.2131    +1.54    0.1683   0.0749  FAIL
+shipped     EURCHF    forex            4856   1385   -0.3642   -0.6243   -0.1041    -2.75    0.1989   0.0843  FAIL
+shipped     EURGBP    forex            8359   1976   +0.0413   -0.0959   +0.1785    +0.59    0.1912   0.0797  FAIL
+shipped     EURJPY    forex            9109   2074   +0.1109   -0.0051   +0.2268    +1.88    0.1421   0.0636  FAIL
+shipped     EURNZD    forex            8663   1938   +0.0277   -0.0751   +0.1305    +0.53    0.1278   0.0631  FAIL
+shipped     GBPAUD    forex            9342   2067   +0.0366   -0.0649   +0.1382    +0.71    0.1347   0.0656  FAIL
+shipped     GBPCHF    forex            8548   1976   -0.0388   -0.1911   +0.1135    -0.50    0.1660   0.0725  FAIL
+shipped     GBPJPY    forex            9028   2030   +0.0781   -0.0348   +0.1911    +1.36    0.1365   0.0623  FAIL
+shipped     GBPNZD    forex            8999   1989   +0.0358   -0.0658   +0.1373    +0.69    0.1226   0.0609  FAIL
+shipped     GBPUSD    forex            9009   2058   -0.0108   -0.1469   +0.1254    -0.16    0.1737   0.0709  FAIL
+shipped     GCUSD     futures          1047    316   +0.3476   -0.0591   +0.7542    +1.69    0.2541   0.0884  FAIL
+shipped     GFUSX     livestock         140    126   +0.2472   -0.1351   +0.6295    +1.28    0.1720   0.1717  FAIL
+shipped     HGUSD     futures           984    306   +0.4709   -0.1982   +1.1400    +1.39    0.3124   0.0850  FAIL
+shipped     HOUSD     futures           722    259   -0.5041   -1.4570   +0.4488    -1.04    0.2232   0.2013  FAIL
+shipped     LEUSX     livestock         131    123   +0.1866   -0.2132   +0.5864    +0.92    0.2087   0.2084  FAIL
+shipped     LINKUSD   crypto            276     82   +0.0416   -1.3410   +1.4241    +0.06    0.1748   0.0777  FAIL
+shipped     LTCUSD    crypto             27     26   -1.1632   -2.5647   +0.2383    -1.71    0.2810   0.1105  NO VERDICT
+shipped     NQUSD     futures           898    282   +0.0071   -0.5852   +0.5993    +0.02    0.2734   0.0855  FAIL
+shipped     NZDCAD    forex            8085   1812   +0.0233   -0.0781   +0.1247    +0.45    0.1315   0.0666  FAIL
+shipped     NZDUSD    forex            9178   2033   -0.0478   -0.1538   +0.0582    -0.88    0.1433   0.0665  FAIL
+shipped     PAUSD     futures          1022    324   -0.2050   -0.6759   +0.2658    -0.86    0.1365   0.1366  FAIL
+shipped     PLUSD     futures           893    277   -0.1674   -0.6161   +0.2814    -0.74    0.2062   0.2068  FAIL
+shipped     RBUSD     futures           552    194   -0.7235   -1.7087   +0.2617    -1.45    0.1981   0.1855  FAIL
+shipped     SIUSD     futures           975    306   +0.1439   -0.3092   +0.5970    +0.63    0.2142   0.0718  FAIL
+shipped     SP        indices           317    317   +0.0924   -0.1911   +0.3758    +0.64    0.2334   0.0980  FAIL
+shipped     TRXUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+shipped     USDCAD    forex            7726   1970   -0.0635   -0.1997   +0.0726    -0.92    0.2047   0.0849  FAIL
+shipped     USDCHF    forex            8822   2039   -0.0341   -0.2294   +0.1612    -0.34    0.1805   0.0742  FAIL
+shipped     USDJPY    forex            8892   2054   +0.1701   +0.0397   +0.3005    +2.56    0.1749   0.0756  FAIL
+shipped     WTI       energies          693    289   +0.3130   -0.2543   +0.8803    +1.09    0.7928   0.2533  FAIL
+shipped     XAUUSD    metals           6950   1624   +0.1106   -0.0396   +0.2608    +1.44    0.5218   0.2011  FAIL
+shipped     XRPUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+shipped     XTZUSD    crypto              0      0         -         -         -        -         -        -  NO VERDICT
+shipped     ZBUSD     futures          1125    343   +0.5482   +0.1167   +0.9797    +2.51    0.7038   0.2199  FAIL
+shipped     ZCUSX     agriculture      1048    311   -0.2755   -0.7685   +0.2175    -1.10    1.0445   0.3376  FAIL
+shipped     ZFUSD     futures           240    172   +0.2968   -0.4603   +1.0538    +0.78    0.9024   0.8256  FAIL
+shipped     ZLUSX     agriculture       866    261   +0.1257   -0.3305   +0.5818    +0.54    0.4697   0.1711  FAIL
+shipped     ZNUSD     futures           928    298   +0.0669   -0.3692   +0.5030    +0.30    0.9609   0.3138  FAIL
+shipped     ZOUSX     agriculture       460    274   +0.1038   -0.3227   +0.5304    +0.48    0.4066   0.1752  FAIL
+shipped     ZRUSD     agriculture       297    229   -0.1099   -0.6271   +0.4072    -0.42    0.4390   0.3566  FAIL
+shipped     ZSUSX     agriculture       675    285   +0.3288   -0.1198   +0.7775    +1.45    0.5088   0.5109  FAIL
+shipped     ZTUSD     futures            42     36   +3.8349   +0.2183   +7.4516    +2.17    1.4912   0.8518  FAIL
+
+CLASS POOLS AND THE 16:00–21:59 UTC SPAN (no verdict — amendment 45)
+pool family      class        span    decisions   days      mean      lo95      hi95        t  floorATR  floorR
+pool look-ahead  agriculture  all        3231    339   +3.4803   +3.2754   +3.6852   +33.49    0.6438  0.3088
+pool look-ahead  agriculture  in          771    320   +1.5082   +1.3294   +1.6871   +16.63    0.3761  0.2462
+pool look-ahead  agriculture  out        2460    338   +4.0984   +3.8399   +4.3569   +31.27    0.7276  0.3284
+pool look-ahead  crypto       all        1947    787   +3.4333   +3.1088   +3.7579   +20.79    0.3068  0.2005
+pool look-ahead  crypto       in          468    446   +2.7702   +2.2243   +3.3161   +10.01    0.3086  0.2095
+pool look-ahead  crypto       out        1479    732   +3.6432   +3.2539   +4.0324   +18.39    0.3062  0.1976
+pool look-ahead  energies     all         690    289   +4.7158   +4.2714   +5.1603   +20.92    0.7938  0.2534
+pool look-ahead  energies     in           96     86   +1.5715   +1.1658   +1.9773    +7.71    0.4161  0.2187
+pool look-ahead  energies     out         594    282   +5.2240   +4.7256   +5.7224   +20.67    0.8548  0.2589
+pool look-ahead  forex        all      189914   2623   +3.1758   +3.1351   +3.2165  +153.00    0.1523  0.0690
+pool look-ahead  forex        in        44789   2433   +2.0260   +1.9714   +2.0807   +72.73    0.1432  0.0668
+pool look-ahead  forex        out      145125   2621   +3.5306   +3.4801   +3.5811  +137.15    0.1551  0.0696
+pool look-ahead  futures      all       10539    434   +4.7398   +4.5775   +4.9020   +57.61    0.3786  0.1653
+pool look-ahead  futures      in         1887    355   +1.9108   +1.7603   +2.0613   +25.04    0.2775  0.1575
+pool look-ahead  futures      out        8652    433   +5.3568   +5.1634   +5.5502   +54.62    0.4006  0.1670
+pool look-ahead  indices      all         317    317   +1.6242   +1.4051   +1.8432   +14.62    0.2334  0.0980
+pool look-ahead  indices      in          317    317   +1.6242   +1.4051   +1.8432   +14.62    0.2334  0.0980
+pool look-ahead  livestock    all         261    180   +1.2479   +1.0353   +1.4604   +11.62    0.1891  0.1888
+pool look-ahead  livestock    in          147    127   +0.9694   +0.7306   +1.2081    +8.04    0.1849  0.1847
+pool look-ahead  livestock    out         114    102   +1.6070   +1.2106   +2.0035    +8.04    0.1944  0.1940
+pool look-ahead  metals       all        6942   1624   +3.6986   +3.5735   +3.8238   +57.98    0.5218  0.2011
+pool look-ahead  metals       in         1511   1228   +1.8217   +1.6887   +1.9548   +26.86    0.4260  0.1874
+pool look-ahead  metals       out        5431   1613   +4.2208   +4.0654   +4.3762   +53.29    0.5484  0.2049
+pool coin-flip   agriculture  all        3346    340   -0.0355   -0.2413   +0.1702    -0.34    0.6462  0.3088
+pool coin-flip   agriculture  in          807    323   +0.0817   -0.1203   +0.2838    +0.80    0.3785  0.2477
+pool coin-flip   agriculture  out        2539    339   -0.0728   -0.3356   +0.1900    -0.55    0.7313  0.3283
+pool coin-flip   crypto       all        1955    791   -0.0158   -0.3696   +0.3379    -0.09    0.3069  0.2002
+pool coin-flip   crypto       in          471    448   +0.2119   -0.3871   +0.8109    +0.70    0.3105  0.2092
+pool coin-flip   crypto       out        1484    735   -0.0881   -0.5235   +0.3473    -0.40    0.3058  0.1973
+pool coin-flip   energies     all         693    289   +0.5472   -0.0064   +1.1009    +1.95    0.7928  0.2533
+pool coin-flip   energies     in           98     87   -0.1667   -0.6590   +0.3255    -0.67    0.4185  0.2194
+pool coin-flip   energies     out         595    282   +0.6648   +0.0327   +1.2970    +2.07    0.8545  0.2589
+pool coin-flip   forex        all      190266   2623   +0.0044   -0.0189   +0.0277    +0.37    0.1523  0.0690
+pool coin-flip   forex        in        44926   2433   -0.0019   -0.0344   +0.0306    -0.12    0.1433  0.0668
+pool coin-flip   forex        out      145340   2621   +0.0063   -0.0226   +0.0353    +0.43    0.1551  0.0696
+pool coin-flip   futures      all       11199    434   +0.0171   -0.1455   +0.1796    +0.21    0.3764  0.1664
+pool coin-flip   futures      in         2110    355   -0.0779   -0.2140   +0.0583    -1.13    0.2749  0.1567
+pool coin-flip   futures      out        9089    433   +0.0391   -0.1589   +0.2371    +0.39    0.3999  0.1686
+pool coin-flip   indices      all         317    317   +0.1579   -0.1252   +0.4410    +1.10    0.2334  0.0980
+pool coin-flip   indices      in          317    317   +0.1579   -0.1252   +0.4410    +1.10    0.2334  0.0980
+pool coin-flip   livestock    all         271    184   +0.1299   -0.1214   +0.3813    +1.02    0.1897  0.1895
+pool coin-flip   livestock    in          154    132   +0.1439   -0.1324   +0.4202    +1.03    0.1863  0.1861
+pool coin-flip   livestock    out         117    104   +0.1115   -0.4067   +0.6297    +0.43    0.1942  0.1939
+pool coin-flip   metals       all        6950   1624   +0.2222   +0.0801   +0.3643    +3.07    0.5218  0.2011
+pool coin-flip   metals       in         1517   1232   -0.0961   -0.2575   +0.0653    -1.17    0.4267  0.1876
+pool coin-flip   metals       out        5433   1613   +0.3111   +0.1351   +0.4872    +3.47    0.5483  0.2049
+pool shipped     agriculture  all        3346    340   +0.0171   -0.2323   +0.2665    +0.14    0.6462  0.3088
+pool shipped     agriculture  in          807    323   -0.0045   -0.2094   +0.2005    -0.04    0.3785  0.2477
+pool shipped     agriculture  out        2539    339   +0.0239   -0.2953   +0.3432    +0.15    0.7313  0.3283
+pool shipped     crypto       all        1955    791   +0.5299   +0.1691   +0.8906    +2.89    0.3069  0.2002
+pool shipped     crypto       in          471    448   +0.5312   -0.0858   +1.1483    +1.70    0.3105  0.2092
+pool shipped     crypto       out        1484    735   +0.5294   +0.0973   +0.9616    +2.41    0.3058  0.1973
+pool shipped     energies     all         693    289   +0.3130   -0.2543   +0.8803    +1.09    0.7928  0.2533
+pool shipped     energies     in           98     87   -0.1111   -0.6360   +0.4139    -0.42    0.4185  0.2194
+pool shipped     energies     out         595    282   +0.3828   -0.2724   +1.0381    +1.15    0.8545  0.2589
+pool shipped     forex        all      190266   2623   +0.0238   -0.0144   +0.0620    +1.22    0.1523  0.0690
+pool shipped     forex        in        44926   2433   -0.0521   -0.1037   -0.0005    -1.98    0.1433  0.0668
+pool shipped     forex        out      145340   2621   +0.0473   +0.0016   +0.0930    +2.03    0.1551  0.0696
+pool shipped     futures      all       11199    434   +0.0868   -0.1030   +0.2767    +0.90    0.3764  0.1664
+pool shipped     futures      in         2110    355   +0.0232   -0.1283   +0.1748    +0.30    0.2749  0.1567
+pool shipped     futures      out        9089    433   +0.1016   -0.1252   +0.3284    +0.88    0.3999  0.1686
+pool shipped     indices      all         317    317   +0.0924   -0.1911   +0.3758    +0.64    0.2334  0.0980
+pool shipped     indices      in          317    317   +0.0924   -0.1911   +0.3758    +0.64    0.2334  0.0980
+pool shipped     livestock    all         271    184   +0.2179   -0.0632   +0.4990    +1.53    0.1897  0.1895
+pool shipped     livestock    in          154    132   +0.0410   -0.2411   +0.3231    +0.29    0.1863  0.1861
+pool shipped     livestock    out         117    104   +0.4508   -0.0291   +0.9307    +1.86    0.1942  0.1939
+pool shipped     metals       all        6950   1624   +0.1106   -0.0396   +0.2608    +1.44    0.5218  0.2011
+pool shipped     metals       in         1517   1232   +0.0854   -0.0790   +0.2497    +1.02    0.4267  0.1876
+pool shipped     metals       out        5433   1613   +0.1176   -0.0684   +0.3037    +1.24    0.5483  0.2049

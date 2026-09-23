@@ -1,4 +1,15 @@
-> **Status (recorded 2026-09-16): designed, refuted, NOT BUILT.** The draft below was
+> **Status (2026-09-22): built as a controls-only reader.** `scripts/entry-excursion-screen.ts`
+> implements the smallest defensible design below and screens no family: amendment 46
+> registers a family before any fold is read, and the registry that needs (amendment 48)
+> does not exist. On the fit fold of the 2026-09-14 corpus at W = 8h
+> (`r3/entry-excursion-controls-2026-09-22.txt`) all four controls held. The look-ahead
+> family passed in 51 of 51 markets with a verdict, the coin flip and the shipped entry in
+> none, and 2,000 of 2,000 sampled rows reproduced the resolver's censored excursions. The
+> shipped entry's interval excludes zero in 10 of the 51, eight of them above zero, where
+> about 2.5 are expected at no effect; none clears its cost floor. The reader's header
+> states the choices this design left open.
+>
+> **Status (recorded 2026-09-16): designed, refuted, not built.** The draft below was
 > refuted on 2026-09-14; the section headed REFUTED carries the verdicts and the
 > smallest defensible design, which governs over the draft above it. Amendments 45 and
 > 46 have since settled two of the rulings the draft left open — and settling them
