@@ -298,7 +298,10 @@ describe("every corpus reader refuses a run that names no corpus", () => {
     // The readers as measured on 2026-09-22, which the derivation must
     // CONTAIN. A floor (17, against 27 found) let ten readers leave the law
     // with this still green, and named none of them; a recorded path names
-    // the one that left. The derivation may grow past it.
+    // the one that left. The derivation may grow past it. The entry
+    // excursion screen joined the same day (#694): it opens the door for the
+    // shipped fit decisions and the censoring sample, so a run naming no
+    // corpus must refuse by naming it.
     const recorded = [
       "scripts/account-type-report.ts",
       "scripts/ag-class-derivation.ts",
@@ -311,6 +314,7 @@ describe("every corpus reader refuses a run that names no corpus", () => {
       "scripts/data-limits.ts",
       "scripts/derive-4d.ts",
       "scripts/e4-collapse.ts",
+      "scripts/entry-excursion-screen.ts",
       "scripts/exclusion-suspects.ts",
       "scripts/feasibility-4d.ts",
       "scripts/forex-commission-admission.ts",

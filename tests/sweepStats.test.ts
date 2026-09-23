@@ -1997,6 +1997,7 @@ describe("every emit reader passes the one-clock door (R0) — the population, n
       "scripts/ag-class-derivation.ts",
       "scripts/exclusion-suspects.ts",
       "scripts/stop-provenance.ts",
+      "scripts/entry-excursion-screen.ts",
     ]
   ) {
     it(`${script} asserts the manifest before reading a line`, () => {

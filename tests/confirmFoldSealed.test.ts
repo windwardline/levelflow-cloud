@@ -29,6 +29,9 @@ import {
   m3Of,
   ADMISSIBILITY_RULE,
 } from "../scripts/ledgeredRead.ts";
+import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
+import { writePinnedStore } from "./support/pinnedStore.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 /**
  * THE CONFIRM FOLD IS SEALED — proven by execution, reader by reader.
@@ -548,9 +551,82 @@ function fixture(shape: Shape, label: string): Fixture {
 }
 
 /**
+ * The pinned cache the entry-excursion screen reads, built once from shape A's
+ * FIT rows — identical in A, A′, B and C, so one cache serves every run and
+ * nothing in it can carry a confirm outcome.
+ *
+ * The screen anchors every row it reads: the 15-minute decision bar's close
+ * must equal the row's `latestClose` and the engine's ATR there must equal its
+ * `atr`, and on a sample of filled rows the resolver's censoring re-applied to
+ * the 5-minute bars must reproduce `maxFavorableMove` and `maxAdverseMove`. A
+ * cache that failed either would exit non-zero, and this guard would stop
+ * before the fold was ever in question. So the bars are built to agree:
+ *
+ * - 15-minute: every bar spans exactly the rows' ATR (constant per market by
+ *   the fixture's construction) and contains the previous close, so each true
+ *   range IS that ATR; closes walk linearly between the rows' `latestClose`s.
+ * - 5-minute: flat at the current row's planned entry, except on a filled row's
+ *   fill bar, whose low is the entry less `maxAdverseMove`, and the bar after
+ *   it, whose high is the entry plus `maxFavorableMove` — every fixture row is
+ *   a buy.
+ *
+ * Ten fit days cannot reach the screen's 30 day clusters, so its families are
+ * NO VERDICT here; the censoring sample and every row's anchor are judged.
+ *
+ * Made through scratchDir, so the helper removes it at exit; it is not kept
+ * under SEALED_GUARD_KEEP=1, and a hand run rebuilds it from this function.
+ */
+function screenCache(): string {
+  const dir = scratchDir("sealed-screen-cache-");
+  const MIN5 = 5 * 60_000;
+  const MIN15 = 15 * 60_000;
+  const start = FIT_START - DAY;
+  const end = FIT_START + 21 * DAY;
+  const fit = rowsFor("A").filter((row) => row.split === "fit" && row.variant === BASELINE);
+  for (const { symbol } of SYMBOLS) {
+    const mine = fit.filter((row) => row.symbol === symbol).sort((a, b) => (a.time as number) - (b.time as number));
+    const atr = mine[0].atr as number;
+    const closeAt = (time: number): number => {
+      const next = mine.findIndex((row) => (row.time as number) >= time);
+      if (next === 0) return mine[0].latestClose as number;
+      if (next === -1) return mine.at(-1)!.latestClose as number;
+      const [a, b] = [mine[next - 1], mine[next]];
+      if (b.time === time) return b.latestClose as number;
+      const share = (time - (a.time as number)) / ((b.time as number) - (a.time as number));
+      return (a.latestClose as number) + share * ((b.latestClose as number) - (a.latestClose as number));
+    };
+    const fifteen: Bar[] = [];
+    let previous = closeAt(start - MIN15);
+    for (let time = start; time < end; time += MIN15) {
+      const close = closeAt(time);
+      const low = Math.min(previous, close) - (atr - Math.abs(close - previous)) / 2;
+      fifteen.push({ close, high: low + atr, low, open: previous, time, volume: 1 });
+      previous = close;
+    }
+    const five: Bar[] = [];
+    for (let time = start; time < end; time += MIN5) {
+      const current = [...mine].reverse().find((row) => (row.time as number) <= time) ?? mine[0];
+      const entry = current.entryPrice as number;
+      five.push({ close: entry, high: entry, low: entry, open: entry, time, volume: 1 });
+    }
+    for (const row of mine) {
+      if (row.filledAtMs === null) continue;
+      const fill = five.findIndex((entry) => entry.time === row.filledAtMs);
+      const entry = row.entryPrice as number;
+      five[fill] = { ...five[fill], low: entry - (row.maxAdverseMove as number) };
+      five[fill + 1] = { ...five[fill + 1], high: entry + (row.maxFavorableMove as number) };
+    }
+    writePinnedStore(dir, `${symbol}-15min-7000`, ANCHOR, fifteen);
+    writePinnedStore(dir, `${symbol}-5min-7000`, ANCHOR, five);
+  }
+  return dir;
+}
+
+/**
  * The per-reader argument table. Tokens: F the capture-all corpus, G its
  * gated twin, O the fixture's artifact directory, C the candidate file, L
- * the fixture's ledgered-read artifact.
+ * the fixture's ledgered-read artifact, K the screen's pinned cache (shared by
+ * every fixture; see screenCache).
  * Every reader runs from the repo root (some read tracked side inputs by
  * relative path) and every artifact writer is pointed at O.
  */
@@ -567,6 +643,10 @@ const READERS: Record<string, { args: string[]; cwd?: "fixture"; note?: string }
   "data-limits": { args: ["F"] },
   "derive-4d": { args: ["F", "--baseline", BASELINE, "--out", "O/candidates.json", "--permutations", "20"] },
   "e4-collapse": { args: ["F", "--bucket-minutes", "60", "--variant", BASELINE, "--min-groups", "1"] },
+  "entry-excursion-screen": {
+    args: ["--corpus", "F", "--cache-dir", "K", "--window-hours", "8", "--witness", "W"],
+    note: "reads fit rows only, outcome columns included (the censoring sample); the cache is built from A's fit rows",
+  },
   "exclusion-suspects": { args: ["F"] },
   "forex-commission-admission": { args: ["F"] },
   "forex-commission-conversion": { args: ["F"] },
@@ -782,6 +862,12 @@ function artifactSurfaces(entry: Fixture, out: string, fixtures: Fixture[]): Sur
   return surfaces;
 }
 
+let screenCacheBuilt: string | undefined;
+function screenCacheDir(): string {
+  screenCacheBuilt ??= screenCache();
+  return screenCacheBuilt;
+}
+
 async function run(
   label: string,
   reader: string,
@@ -802,6 +888,7 @@ async function run(
     : token === "L" ? entry.ledgeredRead
     : token === "M" ? `${entry.captureAll}.manifest.json`
     : token === "W" ? entry.witness
+    : token === "K" ? screenCacheDir()
     : token.startsWith("O/") ? join(out, token.slice(2))
     : token
   );

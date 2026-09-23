@@ -253,7 +253,7 @@ const STACK_ON_REFUSAL_RECORDED = [
 
 /**
  * The populations as measured on 2026-09-22, which the derivations must
- * CONTAIN. A floor at the count let a reader leave while another arrived, and
+ * CONTAIN; the entry excursion screen joined all three the same day (#694). A floor at the count let a reader leave while another arrived, and
  * named nobody when one left; a recorded path names the one that left. The
  * derivations may grow past these. A reader that legitimately leaves — deleted,
  * or no longer reading argv — leaves its line here in the same commit.
@@ -273,6 +273,7 @@ const ARGV_READERS_RECORDED = [
   "scripts/derive-baselines.ts",
   "scripts/derive-fold-spec.ts",
   "scripts/e4-collapse.ts",
+  "scripts/entry-excursion-screen.ts",
   "scripts/exclusion-suspects.ts",
   "scripts/feasibility-4d.ts",
   "scripts/feed-character.ts",
@@ -315,6 +316,7 @@ const ADOPTERS_RECORDED = [
   "scripts/derive-4d.ts",
   "scripts/derive-baselines.ts",
   "scripts/derive-fold-spec.ts",
+  "scripts/entry-excursion-screen.ts",
   "scripts/exclusion-suspects.ts",
   "scripts/feasibility-4d.ts",
   "scripts/fmpRunGate.ts",
@@ -343,6 +345,7 @@ const FLAGS_ONLY_RECORDED = [
   "scripts/cost-sensitivity-verdict.ts",
   "scripts/derive-baselines.ts",
   "scripts/derive-fold-spec.ts",
+  "scripts/entry-excursion-screen.ts",
   "scripts/fmpRunGate.ts",
   "scripts/market-dossier.ts",
   "scripts/probe-minute-bars.ts",
