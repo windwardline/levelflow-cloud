@@ -4,12 +4,16 @@
 
 The subject is the "Reconciled draft 2026-09-23" section of
 [`amendment-46-parameters-2026-09-21.md`](/docs/research/designs/amendment-46-parameters-2026-09-21.md)
-at 5ac022c. Four refuters attacked it through one lens each (internal consistency,
+as it stood before this round: 393 lines from its heading to the end of the file, sha256
+`ba74bcc45e2e3a50c144dbdf1fe3136eccb7860b1e4e8890daaa037e958ea17f`. (The drafting branch did not merge, so no commit on main holds that text; the hash
+is the anchor.) The section on main differs in one place: its header now names this round
+and adds Q5 to the gate, which is half of major 3's fix. Four refuters attacked it through one lens each (internal consistency,
 arithmetic and code, authority against amendment 46, sealing of the span-start rule), and an
 independent checker per refuter tried to overturn every finding by re-reading the cited lines
 and re-running the computations. 49 findings; 4 overturned; the rest hold or partly hold.
 Findings are distilled here, with the checker's corrected fix where the checker changed it.
-The round's journal is the session's workflow record `wf_07bdb5a6-119`.
+The round's journal, outside the repository:
+`~/.claude/projects/-Users-peacock-Projects-levelflow-cloud/899fcfeb-a1c1-46da-9a31-765c580eb0f8/subagents/workflows/wf_07bdb5a6-119/journal.jsonl`.
 
 ## Majors that survive
 
@@ -38,7 +42,8 @@ The round's journal is the session's workflow record `wf_07bdb5a6-119`.
    pending mark and only Q2 and Q3 gate registration. *Fix:* take span start out of the
    Authority list, mark the span rule pending Q5, and add Q5 to the gate. Q5 should state the
    minimum-floor case (46 days, 0.04 of the market's 0.05 at c = 1) beside Open 1's note that
-   0.8 was judged on burns 9.42 years apart.
+   0.8 was judged on burns 9.42 years apart. *(Half taken since the round: the header now adds
+   Q5 to the gate. Span start is still in the Authority list.)*
 4. **The frontier is per symbol, but the price path is not** (SS-2). Four correlation groups
    cross classes (crude, gold, silver, US equity indices: 14 of 97 markets), and the overlap
    refusal is keyed by symbol. After a read that names GCUSD, its post-frontier rows are
