@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
@@ -17,6 +16,7 @@ import {
   RANGE_DRIFT_LIMIT,
   serializeContainment,
 } from "../scripts/feedCharacter.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 /**
  * A daily bar is the parent of every intraday bar on its day, so the
@@ -219,7 +219,7 @@ describe("the reader over a cache", () => {
     writeFileSync(join(dir, `${symbol}-${tf}-7000.rolling.json`), JSON.stringify({ clock: "test", items: items.map((b) => ({ ...b, open: b.low, close: b.high, volume: 1 })), pinned: {} }));
   }
   it("reads every store it is pointed at, prints the table, and exits non-zero on an escaping store when asked", () => {
-    const cache = mkdtempSync(join(tmpdir(), "feed-character-"));
+    const cache = scratchDir("feed-character-");
     mkdirSync(cache, { recursive: true });
     const clean = store(() => 0);
     const dirty = store((y) => (y === 2018 ? 0.0035 : 0));

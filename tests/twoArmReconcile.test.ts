@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
@@ -20,6 +19,7 @@ import {
   reconcileTwoArms,
   SHARED_TERMS,
 } from "../scripts/two-arm-reconcile.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 /**
  * R3 register item H: two arms, one measurement — proven on the corpus rather
@@ -183,7 +183,7 @@ function twoArms(mutate: {
   gatedManifest?: Record<string, unknown>;
   captureAllManifest?: Record<string, unknown>;
 } = {}) {
-  const dir = mkdtempSync(join(tmpdir(), "two-arm-"));
+  const dir = scratchDir("two-arm-");
   const all = mutate.captureAllRows?.(captureAllRows()) ?? captureAllRows();
   const accepted = all.filter((entry) => entry.accepted === true);
   const gatedRowSet = mutate.gatedRows?.(accepted) ?? accepted;
@@ -651,7 +651,7 @@ describe("the doors", () => {
 
   it("refuses an emit with no manifest beside it", () => {
     const arms = twoArms();
-    const dir = mkdtempSync(join(tmpdir(), "two-arm-nomanifest-"));
+    const dir = scratchDir("two-arm-nomanifest-");
     const bare = join(dir, "bare.jsonl");
     writeFileSync(bare, readFileSync(arms.gatedPath, "utf8"));
     assert.throws(
@@ -663,7 +663,7 @@ describe("the doors", () => {
 
 describe("the line iterator", () => {
   it("yields every line across chunk boundaries, multi-byte characters intact", () => {
-    const dir = mkdtempSync(join(tmpdir(), "two-arm-lines-"));
+    const dir = scratchDir("two-arm-lines-");
     const path = join(dir, "lines.txt");
     // Long enough to cross several 64 KB reads, with a multi-byte character
     // on every line so at least one straddles a chunk edge.
@@ -679,7 +679,7 @@ describe("as a binary", () => {
     delete env.TSX_TSCONFIG_PATH;
     try {
       const stdout = execFileSync(TSX, [READER, ...args], {
-        cwd: cwd ?? mkdtempSync(join(tmpdir(), "two-arm-run-")),
+        cwd: cwd ?? scratchDir("two-arm-run-"),
         encoding: "utf8",
         env,
         stdio: "pipe",

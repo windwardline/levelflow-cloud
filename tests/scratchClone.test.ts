@@ -30,7 +30,7 @@ import { describe, it } from "node:test";
  * need `.git`, and therefore what `--no-git` costs. That set is invisible until someone runs the suite from a copy
  * made without it, and then it presents as 19 failures reading
  * `Command failed: git status --porcelain` — which looks like a broken test, not
- * a missing directory. Pinning it means a FIFTH git-dependent test fails here,
+ * a missing directory. Pinning it means a new git-dependent test fails here,
  * where the message says what to do, rather than in a scratch copy an hour later.
  */
 
@@ -51,6 +51,9 @@ const REPO = new URL("..", import.meta.url).pathname;
 const GIT_DEPENDENT_TESTS = [
   "emptyCorpusRefusals.test.ts",
   "feedSource.test.ts",
+  // The off-box capability census asks git which files it tracks or would
+  // commit: a walk of the working tree read an ignored local settings file.
+  "offboxCapability.test.ts",
   // The citation guard asks git which files are tracked: a research file that
   // exists on disk but not in the repository is exactly the case it refuses.
   "researchLinks.test.ts",

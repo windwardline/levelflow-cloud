@@ -19,7 +19,6 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { dirname, join, sep } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -114,7 +113,7 @@ function trainRow(
 }
 
 function corpusWith(rows: SweepEmitRow[]): string {
-  const dir = mkdtempSync(join(tmpdir(), "gate-"));
+  const dir = scratchDir("gate-");
   const emitPath = join(dir, "grid.jsonl");
   writeFileSync(
     emitPath,
@@ -837,7 +836,7 @@ describe("a folded corpus names its own partition (3c/3d)", () => {
         });
       }
     }
-    const dir = mkdtempSync(join(tmpdir(), "gate-folds-"));
+    const dir = scratchDir("gate-folds-");
     const emitPath = join(dir, "folded.jsonl");
     writeFileSync(
       emitPath,
@@ -904,7 +903,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     decisionsOverride?: SweepManifest["decisions"],
     engineDeclinedOverride?: string[],
   ): string => {
-    const dir = mkdtempSync(join(tmpdir(), "gate-shard-"));
+    const dir = scratchDir("gate-shard-");
     const emitPath = join(dir, "shard.jsonl");
     writeFileSync(
       emitPath,
@@ -1502,7 +1501,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
         }
       }
     }
-    const dir = mkdtempSync(join(tmpdir(), "gate-v2-"));
+    const dir = scratchDir("gate-v2-");
     const emitPath = join(dir, "folded.jsonl");
     writeFileSync(
       emitPath,
@@ -1655,7 +1654,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
         },
       }),
     );
-    const ledgerDir = mkdtempSync(join(tmpdir(), "gate-provenance-"));
+    const ledgerDir = scratchDir("gate-provenance-");
     const graded = await gradeCorpus(emitPath, {
       confirmFinal: true,
       confirmLogDir: ledgerDir,
@@ -1692,13 +1691,13 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       opened += 1;
     };
     await assert.rejects(
-      gradeCorpus(emitPath, { beforeOpen, confirmFinal: true, confirmLogDir: mkdtempSync(join(tmpdir(), "gate-p-")), permutations: 50, provenancePath: condemned, seed: 4 }),
+      gradeCorpus(emitPath, { beforeOpen, confirmFinal: true, confirmLogDir: scratchDir("gate-p-"), permutations: 50, provenancePath: condemned, seed: 4 }),
       /provenance artifact is condemned/,
     );
     const mute = join(dirname(emitPath), "mute.json");
     writeFileSync(mute, JSON.stringify({ markets: { EURUSD: { derived: true, tranche: "totality" } } }));
     await assert.rejects(
-      gradeCorpus(emitPath, { beforeOpen, confirmFinal: true, confirmLogDir: mkdtempSync(join(tmpdir(), "gate-p-")), permutations: 50, provenancePath: mute, seed: 4 }),
+      gradeCorpus(emitPath, { beforeOpen, confirmFinal: true, confirmLogDir: scratchDir("gate-p-"), permutations: 50, provenancePath: mute, seed: 4 }),
       /carries no heldBack/,
     );
     assert.equal(opened, 0, "a provenance refusal came after the hook that opens the fold");
@@ -1712,7 +1711,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     );
     const graded = await gradeCorpus(emitPath, {
       confirmFinal: true,
-      confirmLogDir: mkdtempSync(join(tmpdir(), "gate-p-")),
+      confirmLogDir: scratchDir("gate-p-"),
       permutations: 50,
       provenancePath: undeterminable,
       seed: 4,
@@ -1898,7 +1897,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("names every derived variant in the sealed artifact with its predicate and hash", () => {
-      const dir = mkdtempSync(join(tmpdir(), "derived-out-"));
+      const dir = scratchDir("derived-out-");
       const out = join(dir, "grading.json");
       const result = spawnSync(process.execPath, [
         "./node_modules/.bin/tsx", "scripts/grid-totalr.ts", corpusWith(rows()),
@@ -2011,7 +2010,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     };
 
     it("equals the plain confirm-final read over one corpus when the freeze names its variant (identity)", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const dir = scratchDir("frozen-read-");
       const corpus = foldedCorpus();
       const frozen = await freeze(dir, [{ arm: "A", grading: await gradingFor(corpus, { EURUSD: { variant: "good", accepted: true } }) }]);
       const plain = await gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "plain-")), permutations: 100, seed: 4, verdictUnit: "market" });
@@ -2053,7 +2052,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("opens each market's candidate from its own arm and every arm's baseline once (two corpora, two grids)", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const dir = scratchDir("frozen-read-");
       const { first, frozen, second } = await twoArms(dir);
       assert.equal(frozen.candidates.markets.EURUSD.candidate!.variant, "good");
       assert.equal(frozen.candidates.markets.USDJPY.candidate!.variant, "y=2");
@@ -2086,7 +2085,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("refuses a frozen read that is not confirm-final, a shard no arm bound, an arm whose corpus is missing, and derive-filters beside it", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const dir = scratchDir("frozen-read-");
       const { first, frozen: both, second } = await twoArms(dir);
       const onlyFirst = await freeze(mkdtempSync(join(dir, "one-")), [{ arm: "A", grading: await gradingFor(first, { EURUSD: { variant: "good", accepted: true } }) }]);
       await assert.rejects(gradeCorpus(first, { frozen: onlyFirst, permutations: 20, seed: 4, verdictUnit: "market" }), /confirm-final/);
@@ -2106,7 +2105,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("refuses a derived read of the fold that nothing froze", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const dir = scratchDir("frozen-read-");
       const corpus = foldedCorpus();
       await assert.rejects(
         gradeCorpus(corpus, { confirmFinal: true, confirmLogDir: mkdtempSync(join(dir, "l-")), deriveFilters: parseDerivedFilters("f:rewardRisk>=1.5"), permutations: 20, seed: 4, verdictUnit: "market" }),
@@ -2115,7 +2114,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("refuses a frozen candidate that contributes no rows, rather than reading as silence", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const dir = scratchDir("frozen-read-");
       const corpus = foldedCorpus();
       const ghost = await freeze(dir, [{ arm: "A", grading: await gradingFor(corpus, { EURUSD: { variant: "ghost", accepted: true } }) }]);
       await assert.rejects(
@@ -2125,7 +2124,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("refuses a corpus whose bytes differ from the ones its arm was graded on, and a grading that bound none", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const dir = scratchDir("frozen-read-");
       const corpus = foldedCorpus();
       const wrong = await freeze(dir, [{ arm: "A", grading: await gradingFor(corpus, { EURUSD: { variant: "good", accepted: true } }, { emitSha256: { [manifestHashOf(corpus)]: "0".repeat(64) } }) }]);
       await assert.rejects(
@@ -2140,7 +2139,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("refuses arms whose baseline rows are not the same rows, confirm fold included, without printing a figure", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const dir = scratchDir("frozen-read-");
       const first = foldedCorpus({ extraRows: usdjpy("baseline", 0.1) });
       const extra = Array.from({ length: 5 }, (_, day) => ({ ...outcomeRow("baseline", 96 + day, 0.1), split: "confirm" }));
       const second = foldedCorpus({ extraRows: [...usdjpy("baseline", 0.1), ...usdjpy("y=2", 0.5, -0.6), ...extra], grid: [{}, { y: 2 }] });
@@ -2155,7 +2154,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("refuses a derived name that means two predicates across arms, and a derived spec not parented on the baseline", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const dir = scratchDir("frozen-read-");
       const first = foldedCorpus({ extraRows: usdjpy("baseline", 0.1) });
       const second = foldedCorpus({ extraRows: usdjpy("baseline", 0.1), grid: [{}, { y: 2 }] });
       const spec = (predicate: string, parent = "baseline") => ({ field: "rewardRisk", op: ">=", parent, predicate, predicateHash: createHash("sha256").update(predicate).digest("hex"), value: Number(predicate.split(">=")[1]) });
@@ -2183,7 +2182,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("refuses a candidate whose tuning-fold figures are not the frozen ones, before any burn", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const dir = scratchDir("frozen-read-");
       const corpus = foldedCorpus();
       const grading = await gradingFor(corpus, { EURUSD: { variant: "good", accepted: true } });
       (grading.markets as Record<string, { variants: Record<string, { fitTotalDelta: number }> }>).EURUSD.variants.good.fitTotalDelta = 999;
@@ -2197,7 +2196,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("refuses a baseline present on one side only (the digest is bidirectional)", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const dir = scratchDir("frozen-read-");
       const first = foldedCorpus();
       const second = foldedCorpus({ extraRows: [...usdjpy("baseline", 0.1), ...usdjpy("y=2", 0.5, -0.6)], grid: [{}, { y: 2 }] });
       const frozen = await freeze(dir, [
@@ -2232,7 +2231,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     };
 
     it("reads a class candidate over the pooled members, equal to the plain class read, and its held-out members on the same cell", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-class-"));
+      const dir = scratchDir("frozen-class-");
       const corpus = foldedCorpus({ extraRows: [...fiveMarkets(), ...cryptoMarkets()] });
       const heldOut = [...resolveHeldOut([JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"))]).held].sort();
       assert.equal(heldOut.length, 2, "the stratified rule holds one forex and one crypto market out");
@@ -2292,7 +2291,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("opens a class candidate's rows from its own arm only, though another arm carries the same cell name", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-class-"));
+      const dir = scratchDir("frozen-class-");
       const first = foldedCorpus({ extraRows: fiveMarkets() });
       const second = foldedCorpus({ extraRows: fiveMarkets(), grid: [{}, { y: 2 }] });
       const heldOut = [...resolveHeldOut([JSON.parse(readFileSync(`${first}.manifest.json`, "utf8"))]).held].sort();
@@ -2314,7 +2313,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("tolerates a frozen figure drifted in the last bits and refuses one drifted by a millionth, on either fold", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-class-"));
+      const dir = scratchDir("frozen-class-");
       const corpus = foldedCorpus({ extraRows: fiveMarkets() });
       const heldOut = [...resolveHeldOut([JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"))]).held].sort();
       const run = async (drift: number, fold: "fitTotalDelta" | "selectTotalDelta") => {
@@ -2333,7 +2332,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("rehearses the frozen read sealed: every check, no fold, no ledger", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-rehearse-"));
+      const dir = scratchDir("frozen-rehearse-");
       const corpus = foldedCorpus({ extraRows: fiveMarkets() });
       const heldOut = [...resolveHeldOut([JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"))]).held].sort();
       const marketGrading = { ...(await gradingFor(corpus, { EURUSD: { variant: "good", accepted: true } })), heldOut };
@@ -2363,7 +2362,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("rebuilds a derived class candidate for every member from the baseline rows, equal to its class grading", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-class-derived-"));
+      const dir = scratchDir("frozen-class-derived-");
       const withPayoff = (rowsIn: SweepEmitRow[]) => rowsIn.map((row, index) => ({ ...row, rewardRisk: index % 3 === 0 ? 1.3 : 1.6, riskDistance: 1, estimatedRoundTripCost: 0.1 }));
       let counter = 0;
       const corpus = foldedCorpus({ extraRows: withPayoff(fiveMarkets()), transform: (row) => ({ ...row, rewardRisk: counter++ % 3 === 0 ? 1.3 : 1.6, riskDistance: 1, estimatedRoundTripCost: 0.1 }) });
@@ -2396,7 +2395,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("judges a pool unreadable when the BASELINE side is below the floor, though the variant side clears it", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-class-floor-"));
+      const dir = scratchDir("frozen-class-floor-");
       // The four markets' baseline confirm rows are thinned to 5 days each (20 in the pool); their "good" rows keep 32 (128 in the pool).
       const thin = fiveMarkets().filter((row) => !(row.variant === "baseline" && row.split === "confirm" && Number(row.time) >= Date.UTC(2025, 0, 6) + 85 * 86_400_000));
       const corpus = foldedCorpus({ extraRows: thin, omitConfirmFor: ["baseline"] });
@@ -2416,7 +2415,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("re-tests a market candidate in a family of one, however many class cells share its rows", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-family-"));
+      const dir = scratchDir("frozen-family-");
       // EURUSD carries its own candidate "x=1" — a WEAK cell (every other day
       // below the baseline), so its p sits mid-range where a widened family
       // would move it — and, through the class, the strong cell "good"; the
@@ -2447,7 +2446,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("refuses a class candidate whose pooled tuning-fold figures are not the frozen ones, before any burn", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-class-"));
+      const dir = scratchDir("frozen-class-");
       const corpus = foldedCorpus({ extraRows: fiveMarkets() });
       const heldOut = [...resolveHeldOut([JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"))]).held].sort();
       const marketGrading = { ...(await gradingFor(corpus, { EURUSD: { variant: "good", accepted: false } })), heldOut };
@@ -2466,7 +2465,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     });
 
     it("refuses a tampered frozen file at the command line", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "frozen-read-"));
+      const dir = scratchDir("frozen-read-");
       const corpus = foldedCorpus();
       writeFileSync(join(dir, "A.json"), JSON.stringify(await gradingFor(corpus, { EURUSD: { variant: "good", accepted: true } })));
       const frozenPath = join(dir, "frozen.json");
@@ -2489,7 +2488,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     // overlap this way: spans were built over the request alone.
     const emitPath = foldedCorpus({ requestedSymbols: ["GBPUSD"] });
     await assert.rejects(
-      gradeCorpus(emitPath, { confirmFinal: true, confirmLogDir: mkdtempSync(join(tmpdir(), "gate-req-")), permutations: 50, seed: 4 }),
+      gradeCorpus(emitPath, { confirmFinal: true, confirmLogDir: scratchDir("gate-req-"), permutations: 50, seed: 4 }),
       /EURUSD: carried by a shard but absent from the manifests' requestedSymbols/,
     );
     // Sealed, the same corpus grades — only a recorded read needs the roster.
@@ -2503,7 +2502,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     const emitPath = foldedCorpus();
     const graded = await gradeCorpus(emitPath, {
       confirmFinal: true,
-      confirmLogDir: mkdtempSync(join(tmpdir(), "gate-group-")),
+      confirmLogDir: scratchDir("gate-group-"),
       permutations: 100,
       seed: 4,
     });
@@ -2528,7 +2527,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     );
     const held = await gradeCorpus(foldedCorpus(), {
       confirmFinal: true,
-      confirmLogDir: mkdtempSync(join(tmpdir(), "gate-group-")),
+      confirmLogDir: scratchDir("gate-group-"),
       permutations: 100,
       provenancePath,
       seed: 4,
@@ -2544,7 +2543,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // the held-back DATES per requested symbol and the scan matches by
   // overlap, so no engine version, clock name or fold shape can dodge it.
   it("refuses a second read of the same held-back CALENDAR from a corpus with another grid", async () => {
-    const ledgerDir = mkdtempSync(join(tmpdir(), "gate-calendar-"));
+    const ledgerDir = scratchDir("gate-calendar-");
     const first = await gradeCorpus(foldedCorpus(), {
       confirmFinal: true,
       confirmLogDir: ledgerDir,
@@ -2718,7 +2717,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
         rows.push({ ...outcomeRow("good", day + offset, 0.4, undefined, symbol), split });
       }
     }
-    const dir = mkdtempSync(join(tmpdir(), "gate-fshard-"));
+    const dir = scratchDir("gate-fshard-");
     const emitPath = join(dir, `${symbol}.jsonl`);
     writeFileSync(
       emitPath,
@@ -2780,7 +2779,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   it("refuses a subset re-read when the shards were swept on different run days", async () => {
     const tuesday = foldedShard("EURUSD", { anchor: "2026-08-11" });
     const wednesday = foldedShard("GBPUSD", { anchor: "2026-08-12" });
-    const confirmLogDir = mkdtempSync(join(tmpdir(), "gate-anchor-"));
+    const confirmLogDir = scratchDir("gate-anchor-");
     const grade = (paths: string[]) =>
       gradeCorpus(paths, {
         confirmFinal: true,
@@ -2841,7 +2840,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     // temp one — a test must never append to the real confirm record —
     // and they all name the SAME one, which is the point: the ledger no
     // longer moves when the corpus does.
-    const confirmLogDir = mkdtempSync(join(tmpdir(), "gate-ledger-"));
+    const confirmLogDir = scratchDir("gate-ledger-");
     const grade = (paths: string[], extra: Record<string, unknown> = {}) =>
       gradeCorpus(paths, {
         confirmFinal: true,
@@ -2942,7 +2941,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // conditionsOf can move.
   it("still refuses when the recorded read was filed under an older corpus identity", async () => {
     const corpus = foldedShard("EURUSD");
-    const confirmLogDir = mkdtempSync(join(tmpdir(), "gate-identity-"));
+    const confirmLogDir = scratchDir("gate-identity-");
     const first = await gradeCorpus([corpus], {
       confirmFinal: true,
       confirmLogDir,
@@ -3212,7 +3211,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // place — the round-12 defect class, in a test.
   it("tells a redirected run its read is unrecorded, and does not also tell it to commit", async () => {
     const corpus = foldedShard("GBPUSD");
-    const redirect = mkdtempSync(join(tmpdir(), "gate-warn-"));
+    const redirect = scratchDir("gate-warn-");
     const warnings: string[] = [];
     const original = console.warn;
     console.warn = (message: string) => void warnings.push(message);
@@ -3367,7 +3366,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // while the original's count never moved.
   it("refuses a re-read of a corpus that was COPIED to a fresh directory", async () => {
     const original = foldedShard("EURUSD");
-    const confirmLogDir = mkdtempSync(join(tmpdir(), "gate-ledger-copy-"));
+    const confirmLogDir = scratchDir("gate-ledger-copy-");
     const first = await gradeCorpus([original], {
       confirmFinal: true,
       confirmLogDir,
@@ -3377,7 +3376,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.equal(first.confirmRead, true);
 
     // A byte-identical copy at a path sharing nothing with the original.
-    const elsewhere = mkdtempSync(join(tmpdir(), "gate-moved-"));
+    const elsewhere = scratchDir("gate-moved-");
     const copied = join(elsewhere, "EURUSD.jsonl");
     copyFileSync(original, copied);
     copyFileSync(`${original}.manifest.json`, `${copied}.manifest.json`);
@@ -3428,10 +3427,10 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     // share one corpus identity, and the first read of it now burns (every
     // shipped cell is read), so a second run against the same ledger is
     // refused as a prior read — correct, and not what this test measures.
-    let ledgerDir = mkdtempSync(join(tmpdir(), "gate-main-ledger-"));
+    let ledgerDir = scratchDir("gate-main-ledger-");
     const ledgersIn = (): string[] => readdirSync(ledgerDir);
     const run = (emitPath: string, extra: string[]): string => {
-      ledgerDir = mkdtempSync(join(tmpdir(), "gate-main-ledger-"));
+      ledgerDir = scratchDir("gate-main-ledger-");
       return execFileSync(
         "npx",
         [
@@ -3504,7 +3503,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     // that corpus and was about to stand in a tracked report. The sealed
     // state has its own words now; the legacy label is reserved for a
     // manifest that declares no folds at all.
-    const ledgerDir = mkdtempSync(join(tmpdir(), "gate-main-sealed-"));
+    const ledgerDir = scratchDir("gate-main-sealed-");
     const out = execFileSync(
       "npx",
       [
@@ -3733,7 +3732,7 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
     researchDir: string;
   } => {
     const rows = symbols.flatMap(rowsFor);
-    const dir = mkdtempSync(join(tmpdir(), "confirm4d-"));
+    const dir = scratchDir("confirm4d-");
     const corpus = join(dir, "shard.jsonl");
     writeFileSync(
       corpus,
@@ -3820,7 +3819,7 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
     // means each run needs its own ledger to be a first read.
     return {
       corpus,
-      ledgerDir: mkdtempSync(join(tmpdir(), "confirm4d-ledger-")),
+      ledgerDir: scratchDir("confirm4d-ledger-"),
       researchDir,
     };
   };
