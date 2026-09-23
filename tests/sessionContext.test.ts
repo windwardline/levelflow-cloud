@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { SECURITY_OPTIONS } from "../src/lib/symbolMap.ts";
 import { getSessionContext } from "../supabase/functions/trade-analyzer/sessions.ts";
 
 describe("trade analyzer session context", () => {
@@ -213,5 +215,97 @@ describe("trade analyzer session context", () => {
     );
     assert.equal(metalsMaintenance.block, true);
     assert.equal(metalsMaintenance.lowEdge, undefined);
+  });
+});
+
+// The low-edge hours were set on the r4/r12/r15/r22 corpora (2026-07-28..30),
+// which read FMP's New York bar stamps as UTC: every low-edge hour in them sat
+// 4-5 DST-variable hours out of register (docs/research/evaluator-repair-map-
+// 2026-08-09.md, cluster A), and nothing has re-derived them since. A refusal
+// that says the hours were measured cites evidence that does not exist, so the
+// reason may state the window and nothing more. Unconditional: the copy is
+// wrong whether or not the desk is parked.
+describe("a low-edge refusal states its window and claims no measurement", () => {
+  const CLAIM = /measured|replay|split|history|results|negative|weak/i;
+  const WINDOW = /from (\d{2}):00 to (\d{2}):00 UTC\.$/;
+  const HOUR_MS = 3_600_000;
+
+  // Every roster symbol, every hour of one EDT week and one EST week, on the
+  // half hour: the gates are whole UTC hours, and the New York closures that
+  // run ahead of them move with DST.
+  function lowEdgeContexts() {
+    const found: { at: Date; kind: string; reason: string; symbol: string }[] = [];
+    for (const option of SECURITY_OPTIONS) {
+      for (const monday of [Date.UTC(2026, 5, 8), Date.UTC(2026, 0, 12)]) {
+        for (let hour = 0; hour < 7 * 24; hour += 1) {
+          const at = new Date(monday + hour * HOUR_MS + 30 * 60_000);
+          const session = getSessionContext(option.symbol, at);
+          if (!session.lowEdge) continue;
+          assert.equal(session.block, true, `${option.symbol} ${at.toISOString()}`);
+          found.push({
+            at,
+            kind: session.marketKind,
+            reason: session.reason ?? "",
+            symbol: option.symbol,
+          });
+        }
+      }
+    }
+    return found;
+  }
+
+  it("says nothing about a measurement, for every low-edge refusal the roster reaches", () => {
+    const found = lowEdgeContexts();
+    // NON-VACUITY: a population that reached no gate would pass having read
+    // nothing. Every class with a low-edge site must be in it.
+    assert.deepEqual(
+      [...new Set(found.map(({ kind }) => kind))].sort(),
+      ["crypto", "energies", "futures", "indices"],
+    );
+    for (const { at, reason, symbol } of found) {
+      assert.doesNotMatch(reason, CLAIM, `${symbol} ${at.toISOString()}: ${reason}`);
+    }
+  });
+
+  it("names the window it enforces: the gate holds inside it and lifts at its edges", () => {
+    for (const { at, reason, symbol } of lowEdgeContexts()) {
+      const where = `${symbol} ${at.toISOString()}: ${reason}`;
+      const window = WINDOW.exec(reason);
+      assert.ok(window, where);
+      const start = Number(window[1]);
+      const end = Number(window[2]);
+      const span = (end - start + 24) % 24;
+      const into = (at.getUTCHours() - start + 24) % 24;
+      assert.ok(into < span, `${where} — the hour is outside the stated window`);
+      const startOf = at.getTime() - into * HOUR_MS;
+      for (let step = 0; step < span; step += 1) {
+        assert.equal(
+          getSessionContext(symbol, new Date(startOf + step * HOUR_MS)).lowEdge,
+          true,
+          `${where} — the gate lifts inside the stated window`,
+        );
+      }
+      for (const edge of [startOf - HOUR_MS, startOf + span * HOUR_MS]) {
+        assert.notEqual(
+          getSessionContext(symbol, new Date(edge)).lowEdge,
+          true,
+          `${where} — the gate outlasts the stated window at ${new Date(edge).toISOString()}`,
+        );
+      }
+    }
+  });
+
+  it("holds at every lowEdge site in the source, reached or not", () => {
+    const source = readFileSync(
+      new URL("../supabase/functions/trade-analyzer/sessions.ts", import.meta.url),
+      "utf8",
+    );
+    const sites = (source.match(/lowEdge: true,/g) ?? []).length;
+    const reasons = [
+      ...source.matchAll(/lowEdge: true,[\s\S]*?reason:\s*([\s\S]*?),\n\s*\};/g),
+    ].map((match) => match[1]);
+    assert.ok(sites >= 3, `only ${sites} lowEdge sites found — the scan broke`);
+    assert.equal(reasons.length, sites, "a lowEdge site's reason was not read");
+    for (const reason of reasons) assert.doesNotMatch(reason, CLAIM, reason);
   });
 });

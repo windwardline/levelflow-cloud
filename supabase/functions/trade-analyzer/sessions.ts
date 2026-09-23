@@ -3,9 +3,11 @@ import { getAssetType } from "./calibration.ts";
 export type SessionContext = {
   block: boolean;
   label: string;
-  // Marks measurement-only gates (hours blocked on replay evidence, not
-  // market closures). The sweep's --ignore-low-edge flag sees through
-  // these to re-measure the hours; hard closures are never bypassed.
+  // Marks the hour gates that are policy, not market closures. They were set
+  // on replay evidence that predates the 2026-08-09 clock repair and has not
+  // been re-derived (see isLowEdgeUtcWindow). The sweep's --ignore-low-edge
+  // flag sees through these to re-measure the hours; hard closures are never
+  // bypassed.
   lowEdge?: boolean;
   marketKind: string;
   penalty: number;
@@ -19,10 +21,10 @@ export function getSessionContext(
   const assetType = getAssetType(symbol);
 
   if (assetType === "crypto") {
-    // 12:00-18:00 UTC: r4 (1,200d) measured these hours negative; r22 at
-    // full depth measured them positive but dilutive — ungating adds +33%
-    // volume at train +0.002 / test -0.008, failing the both-splits bar.
-    // The gate stays as a net-quality filter.
+    // 12:00-18:00 UTC, set by r4 (1,200d) and kept by r22 at full depth as a
+    // net-quality filter. Both ran on the pre-repair clock (see
+    // isLowEdgeUtcWindow), so the reason states the window and cites no
+    // measurement.
     if (isLowEdgeUtcWindow(now)) {
       return {
         block: true,
@@ -31,7 +33,7 @@ export function getSessionContext(
         marketKind: "crypto",
         penalty: 100,
         reason:
-          "Measured results for crypto setups opened between 12:00 and 18:00 UTC run well below every other hour across the full replay history, so Levelflow does not open new crypto setups in this window.",
+          "Levelflow does not open new setups on this market from 12:00 to 18:00 UTC.",
       };
     }
     return {
@@ -157,9 +159,9 @@ export function getSessionContext(
       };
     }
 
-    // Energies: six UTC hours measured negative on both walk-forward splits
-    // at full history (r15 per-hour curves; excluding them lifts both
-    // splits from ~0.04R to ~0.08R per accepted setup).
+    // Energies: six UTC hours set by r15's per-hour curves, on the pre-repair
+    // clock (see isLowEdgeUtcWindow). The reason names the whole contiguous
+    // closure, so 03:00 and 04:00 read as one window that ends at 05:00.
     if (
       marketKind === "energies" &&
       ENERGIES_LOW_EDGE_UTC_HOURS.has(now.getUTCHours())
@@ -171,14 +173,15 @@ export function getSessionContext(
         marketKind,
         penalty: 100,
         reason:
-          "Measured results for energy setups opened in this hour were negative across every replay split, so Levelflow does not open new setups here right now.",
+          `Levelflow does not open new setups on this market from ${
+            energiesLowEdgeWindow(now.getUTCHours())
+          } UTC.`,
       };
     }
 
-    // Futures and cash indices: 12:00-18:00 UTC is the weakest stretch of
-    // the day (indices: full history, round 12; futures: r22 full-depth
-    // re-measurement — removing the gate costs -0.022 train / -0.027 test,
-    // with hours 16-17 negative on the test split).
+    // Futures and cash indices: 12:00-18:00 UTC, set by round 12 (indices)
+    // and r22 (futures), both on the pre-repair clock (see
+    // isLowEdgeUtcWindow).
     if (
       (marketKind === "futures" || marketKind === "indices") &&
       isLowEdgeUtcWindow(now)
@@ -191,7 +194,7 @@ export function getSessionContext(
         marketKind,
         penalty: 100,
         reason:
-          `Measured results for ${marketKind === "futures" ? "futures" : "index"} setups opened between 12:00 and 18:00 UTC are the weakest stretch of the day across the full replay history, so Levelflow does not open new setups here in this window.`,
+          "Levelflow does not open new setups on this market from 12:00 to 18:00 UTC.",
       };
     }
 
@@ -279,15 +282,41 @@ export function getSessionContext(
   };
 }
 
+// THE LOW-EDGE HOURS ARE UNVERIFIED. Every one of them was set on the r4, r12,
+// r15 and r22 corpora (2026-07-28..30), which read FMP's New York bar stamps as
+// UTC. The repair map records every low-edge hour in that corpus as 4-5
+// DST-variable hours out of register (docs/research/evaluator-repair-map-
+// 2026-08-09.md, cluster A; docs/research/remediation-program-2026-08-11.md),
+// and nothing has re-derived them. No verdict exists to move them, so the hours
+// stand as they were, and the refusal reasons state the window without citing
+// a measurement. A market-grain re-grade is queued with the next re-simulate.
 function isLowEdgeUtcWindow(now: Date) {
   const hour = now.getUTCHours();
   return hour >= 12 && hour < 18;
 }
 
-// r15 per-hour curves, full history: the energy hours negative on both
-// walk-forward splits. Scattered rather than one window — the arbiter was
-// the split agreement, not shape.
+// r15 per-hour curves, full history, pre-repair clock (see isLowEdgeUtcWindow):
+// the energy hours read negative on both walk-forward splits. Scattered rather
+// than one window — the arbiter was the split agreement, not shape.
 const ENERGIES_LOW_EDGE_UTC_HOURS = new Set([3, 4, 12, 15, 19, 21]);
+
+// The contiguous run of gated hours around `hour`, as "03:00 to 05:00". A
+// per-hour window would tell an operator at 03:30 that review resumes at 04:00,
+// an hour early.
+function energiesLowEdgeWindow(hour: number) {
+  let start = hour;
+  let end = (hour + 1) % 24;
+  for (let guard = 0; guard < 24; guard += 1) {
+    if (!ENERGIES_LOW_EDGE_UTC_HOURS.has((start + 23) % 24)) break;
+    start = (start + 23) % 24;
+  }
+  for (let guard = 0; guard < 24; guard += 1) {
+    if (!ENERGIES_LOW_EDGE_UTC_HOURS.has(end)) break;
+    end = (end + 1) % 24;
+  }
+  const clock = (value: number) => `${String(value).padStart(2, "0")}:00`;
+  return `${clock(start)} to ${clock(end)}`;
+}
 
 // OP-8: hoisted per zone — construction is ~50us and this runs per scan
 // decision. Minute-level output makes value caching pointless; the

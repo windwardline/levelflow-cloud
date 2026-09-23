@@ -1740,25 +1740,30 @@ async function explainNoSetup(
       );
     }
     if (pricePlan && pricePlan.rewardRisk < calibration.minRewardRisk) {
-      // PH-9: the refusal names its cause. A payoff that cleared the bar
+      // PH-9: the refusal names its cause. A ratio that cleared the bar
       // gross and lost it to the round trip is a COST story, not a
       // geometry story — and under the venue's real bill they are very
       // different instructions to the operator.
+      //
+      // The figure is named for what it is: Target 2 on the FULL position.
+      // On a laddered setup the Desk prints the ladder's payoff under "payoff
+      // after costs", and half the position leaves at TP1, so calling this
+      // ratio "payoff" gave one word two numbers (tests/reviewCopyCoupling).
       if (pricePlan.grossRewardRisk >= calibration.minRewardRisk) {
         diagnostics.push(
-          `Trading costs took the payoff from ${
+          `Trading costs took Target 2 on the full position from ${
             pricePlan.grossRewardRisk.toFixed(2)
           }x to ${
             pricePlan.rewardRisk.toFixed(2)
-          }x; Levelflow requires at least ${
+          }x the risk; Levelflow requires at least ${
             calibration.minRewardRisk.toFixed(2)
           }x for this market.`,
         );
       } else {
         diagnostics.push(
-          `Payoff was ${
+          `Target 2 on the full position would pay ${
             pricePlan.rewardRisk.toFixed(2)
-          }x; Levelflow requires at least ${
+          }x the risk; Levelflow requires at least ${
             calibration.minRewardRisk.toFixed(2)
           }x for this market.`,
         );
