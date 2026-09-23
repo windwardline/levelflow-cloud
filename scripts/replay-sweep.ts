@@ -46,6 +46,7 @@ import {
   createByteBudget,
   readJsonWithBudget,
   SpendRefusedError,
+  UngovernedSpendError,
 } from "./fmpByteBudget.ts";
 import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
@@ -224,7 +225,7 @@ export function formatGib(bytes: number): string {
 
 function budget(): ByteBudget {
   if (!sweepBudget) {
-    throw new Error(
+    throw new UngovernedSpendError(
       "FMP byte budget was never declared. Pass --byte-budget before any provider read.",
     );
   }
@@ -242,7 +243,7 @@ let spend: { consumer: "topup" | "adhoc"; state: FmpStatePaths } | undefined;
 
 function spendContext(): { consumer: "topup" | "adhoc"; state: FmpStatePaths } {
   if (!spend) {
-    throw new Error("the FMP spend class was never declared before a provider read");
+    throw new UngovernedSpendError("the FMP spend class was never declared before a provider read");
   }
   return spend;
 }

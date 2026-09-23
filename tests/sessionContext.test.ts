@@ -220,11 +220,11 @@ describe("trade analyzer session context", () => {
 
 // The low-edge hours were set on the r4/r12/r15/r22 corpora (2026-07-28..30),
 // which read FMP's New York bar stamps as UTC: every low-edge hour in them sat
-// 4-5 DST-variable hours out of register (docs/research/evaluator-repair-map-
-// 2026-08-09.md, cluster A), and nothing has re-derived them since. A refusal
-// that says the hours were measured cites evidence that does not exist, so the
-// reason may state the window and nothing more. Unconditional: the copy is
-// wrong whether or not the desk is parked.
+// 4-5 DST-variable hours out of register
+// (docs/research/evaluator-repair-map-2026-08-09.md, cluster A), and nothing
+// has re-derived them since. A refusal that says the hours were measured cites
+// evidence that does not exist, so the reason may state the window and nothing
+// more. Unconditional: the copy is wrong whether or not the desk is parked.
 describe("a low-edge refusal states its window and claims no measurement", () => {
   const CLAIM = /measured|replay|split|history|results|negative|weak/i;
   const WINDOW = /from (\d{2}):00 to (\d{2}):00 UTC\.$/;
@@ -306,6 +306,10 @@ describe("a low-edge refusal states its window and claims no measurement", () =>
     ].map((match) => match[1]);
     assert.ok(sites >= 3, `only ${sites} lowEdge sites found — the scan broke`);
     assert.equal(reasons.length, sites, "a lowEdge site's reason was not read");
-    for (const reason of reasons) assert.doesNotMatch(reason, CLAIM, reason);
+    // The words an operator reads are the literal parts; an interpolation is
+    // code (a helper's name), and the executed test above reads its output.
+    for (const reason of reasons) {
+      assert.doesNotMatch(reason.replace(/\$\{[^}]*\}/g, ""), CLAIM, reason);
+    }
   });
 });

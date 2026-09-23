@@ -835,23 +835,47 @@ describe("the stand-down token is derived from what refused", () => {
     assert.equal(standDownFor(refusal), "fmpStandDown: kind=ungoverned source=governor");
   });
 
-  it("gives no FMP script a module-scope budget or fetch that is not governed, bar the named exception", () => {
+  it("gives no FMP script a module-scope budget, fetch or state that is not governed, bar the named exception", () => {
     // Derived over every script, not one path. replay-sweep keeps the plain
     // fetch as its default for a stated reason: an anchored run that proved it
-    // cannot reach the provider (scripts/replay-sweep.ts, above the let).
+    // cannot reach the provider (scripts/replay-sweep.ts, above the let). State
+    // resolved at import is the same hazard as a raw fetch: it reads the live
+    // checkout's ledger before main() could have been handed another.
     const EXCEPTIONS = new Map([["scripts/replay-sweep.ts", "an anchored run proved offline keeps the plain fetch"]]);
+    // The state resolver is spelled in parts: the live-state guard above counts
+    // this file's mentions of it.
+    const resolver = ["default", "StatePaths"].join("");
+    const UNGOVERNED = new RegExp(
+      String.raw`^(?:export )?(?:let|const|var) \w*(?:[Bb]udget|[Ff]etch|[Ss]tate)\w*\b[^;]*=\s*(?:(?:globalThis\.)?fetch\b|createByteBudget\(|${resolver}\()`,
+      "m",
+    );
     const offenders: string[] = [];
+    let spenders = 0;
     for (const name of readdirSync("scripts", { recursive: true }).map(String).filter((file) => file.endsWith(".ts"))) {
       const file = join("scripts", name);
       const code = withoutComments(readFileSync(file, "utf8"));
       if (!code.includes("financialmodelingprep.com")) continue;
-      if (/^let \w*(?:[Bb]udget|[Ff]etch)\w*\b[^;]*=\s*(?:fetch\b|createByteBudget\()/m.test(code) && !EXCEPTIONS.has(file)) {
-        offenders.push(file);
-      }
+      spenders += 1;
+      if (UNGOVERNED.test(code) && !EXCEPTIONS.has(file)) offenders.push(file);
     }
+    assert.ok(spenders >= 5, `the derivation found ${spenders} FMP scripts; five spelled the host on 2026-09-23`);
     assert.deepEqual(offenders, []);
     for (const file of EXCEPTIONS.keys()) {
       assert.match(withoutComments(readFileSync(file, "utf8")), /^let providerFetch: FetchLike = fetch;$/m, `${file} is excepted but no longer holds the default`);
+    }
+  });
+
+  it("makes replay-sweep's two pre-main() accessors refuse with the final class", () => {
+    // A plain Error here is retried by the FMP ladder as transport, re-issuing
+    // a paid request, and a --warm-only Treasury load warns over it and goes
+    // on. Unreachable today (main() sets both from a required --byte-budget);
+    // the class is what a refactor inherits.
+    const source = withoutComments(readFileSync("scripts/replay-sweep.ts", "utf8"));
+    for (const accessor of ["function budget(", "function spendContext("]) {
+      const at = source.indexOf(accessor);
+      assert.ok(at >= 0, `${accessor} is gone from replay-sweep`);
+      const body = blockAt(source, source.indexOf(" {\n", at)).body;
+      assert.match(body, /throw new UngovernedSpendError\(/, `${accessor} ${body.slice(0, 160)}`);
     }
   });
 
