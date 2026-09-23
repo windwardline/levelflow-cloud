@@ -1,3 +1,4 @@
+SUPERSEDED by docs/research/r3/exit-slippage-2026-09-23.txt (2026-09-23), which adds the expiry close's charge (#692). The commands below are the ones this record ran, at 4a54051; --stop-exit-slippage was retired by #692 and is now refused by name.
 $ tsx scripts/banked-fraction.ts docs/research/r3/capture-all-classfolds.jsonl --folds fit,select --stop-exit-slippage
 corpus 021821537f28 · engine 2026.09.01.platinum-group-rate-inverse · anchor 2026-08-26 · variant baseline
 folds read: fit, select · confirm: SEALED, not read (2141527 rows withheld at the door)

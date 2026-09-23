@@ -87,6 +87,8 @@ const VALUE_FLAGS = new Set(["--folds", "--grain", "--variant", "--years", "--wi
 export const GRAINS = ["class", "market"] as const;
 export type Grain = (typeof GRAINS)[number];
 const BOOLEAN_FLAGS = new Set(["--include-holdout", "--exit-slippage"]);
+/** Every flag the CLI accepts. A recorded command using any other is from a retired reader and its record must say so. */
+export const DECLARED_FLAGS: ReadonlySet<string> = new Set([...VALUE_FLAGS, ...BOOLEAN_FLAGS]);
 
 const IDENTITY_TERMS = [
   "acceptance",
@@ -116,9 +118,14 @@ export const LEVEL_TOLERANCE = 1.5e-8;
  * the bar's close with none either. A
  * fraction below ½ moves money from the tp1 limit print onto that leg, so the
  * slippage-priced table charges the sweep's own estimatedSlippage, in R, on
- * the runner fraction of every such row — a hybrid model, named as such:
- * neither the resolver's gap-only rule nor the gate's every-side rule, and
- * the tp1 limit leg stays unslipped (FR-4's haircut is defaulted off).
+ * the runner fraction of every such row — a hybrid model, named as such, and
+ * the table prints it so. Its SLOPE across fractions follows the current
+ * resolver's market-exit rule; its LEVELS do not, for two reasons stated on
+ * every read: it charges tp1 rows only (a row without a tp1 leg prices the
+ * same at every fraction, though the resolver slips its stop and expiry prints
+ * at full size), and S_row is the unscaled estimatedSlippage, never the
+ * corpus's modeledCostScale. `--exit-slippage` prices the levels. The tp1
+ * limit leg stays unslipped (FR-4's haircut is defaulted off).
  * Round 1, 2026-09-06: forex select's slope +1,100.2 → +785.2 R under it.
  *
  * The class decides what is still unslipped (review of #689, finding 1): on a
@@ -193,26 +200,37 @@ export const EXPIRY_SLIPPAGE_SINCE = "2026.09.23.expiry-exit-slippage";
 export type SlippageClass = "gapped-only" | "clean-stops" | "every-market-exit";
 
 /**
- * A corpus's slippage class, from its engine version. Both changes shipped on
- * one day, so a date alone cannot tell them apart: that day's versions are
- * placed by name, and a same-day name the reader does not know is refused, as
- * is a version that carries no date. Never guessed.
+ * Every engine version from CLEAN_STOP_SLIPPAGE_SINCE on, placed by name with
+ * the exits its resolver slips. The population, not a rule: a later date is no
+ * evidence of which exits an engine slips (review of #692, finding 2), so the
+ * next ANALYZER_VERSION is refused here until someone places it —
+ * `tests/bankedFraction.test.ts` fails on the bump that forgets.
+ */
+export const PLACED_ENGINE_VERSIONS: ReadonlyMap<string, SlippageClass> = new Map<string, SlippageClass>([
+  [CLEAN_STOP_SLIPPAGE_SINCE, "clean-stops"],
+  [EXPIRY_SLIPPAGE_SINCE, "every-market-exit"],
+]);
+
+/**
+ * A corpus's slippage class, from its engine version. A version dated before
+ * CLEAN_STOP_SLIPPAGE_SINCE's day slipped gapped stops alone; from that day
+ * on a version is placed by name in PLACED_ENGINE_VERSIONS or refused — the
+ * two changes shipped on one day, so no date can tell them apart, and no date
+ * after them says what a later engine did. A version that carries no date is
+ * refused too. Never guessed.
  */
 export function slippageClassOf(analyzerVersion: string): SlippageClass {
+  const placed = PLACED_ENGINE_VERSIONS.get(analyzerVersion);
+  if (placed !== undefined) return placed;
   const day = (version: string) => /^(\d{4}\.\d{2}\.\d{2})\./.exec(version)?.[1] ?? null;
   const corpusDay = day(analyzerVersion);
   if (corpusDay === null) {
     throw new Error(`the corpus's engine version "${analyzerVersion}" carries no date — the reader cannot tell which exits it already slipped`);
   }
-  const cleanDay = day(CLEAN_STOP_SLIPPAGE_SINCE) as string;
-  const expiryDay = day(EXPIRY_SLIPPAGE_SINCE) as string;
-  if (corpusDay < cleanDay) return "gapped-only";
-  if (analyzerVersion === CLEAN_STOP_SLIPPAGE_SINCE) return "clean-stops";
-  if (analyzerVersion === EXPIRY_SLIPPAGE_SINCE) return "every-market-exit";
-  if (corpusDay > expiryDay) return "every-market-exit";
-  if (corpusDay > cleanDay && corpusDay < expiryDay) return "clean-stops";
+  if (corpusDay < (day(CLEAN_STOP_SLIPPAGE_SINCE) as string)) return "gapped-only";
   throw new Error(
-    `the corpus's engine version "${analyzerVersion}" shares its date with ${CLEAN_STOP_SLIPPAGE_SINCE} or ${EXPIRY_SLIPPAGE_SINCE} and is neither — the reader cannot place which exits it already slipped`,
+    `the corpus's engine version "${analyzerVersion}" is dated on or after ${CLEAN_STOP_SLIPPAGE_SINCE} and is not placed in PLACED_ENGINE_VERSIONS — ` +
+      "the reader cannot place which exits it already slipped; add it with the exits its resolver slips",
   );
 }
 
@@ -403,6 +421,8 @@ export type FractionSummary = {
   exitSlippage: { scale: number } | null;
   /** Which market-order exits the corpus's engine already slipped — decided from its version, stated on every read. */
   slippageClass: SlippageClass;
+  /** The modelled-cost scale the corpus's resolver ran at, as its manifest states it; null when it states none. Printed beside the hybrid table, which does not apply it. */
+  modeledCostScale: number | null;
   rows: {
     controlChecked: number;
     otherYears: number;
@@ -616,6 +636,9 @@ export async function bankedFraction(input: {
     holdout,
     includeHoldout: Boolean(input.includeHoldout),
     exitSlippage: exitScale === null ? null : { scale: exitScale },
+    modeledCostScale: typeof manifests[0].modeledCostScale === "number" && Number.isFinite(manifests[0].modeledCostScale)
+      ? manifests[0].modeledCostScale
+      : null,
     slippageClass,
     years,
     yearMapSource: yearMap ? yearMap.source : null,
@@ -878,7 +901,7 @@ export function formatBankedFraction(summary: FractionSummary): string {
       `costs are the emitted commission; spread rides in the leg prices; ${SLIPPAGE_RIDES[summary.slippageClass]}. Rows without a tp1 leg price the same at every fraction.`,
   );
   lines.push(
-    `${SLIPPAGE_PRICED[summary.slippageClass]} ` +
+    `${SLIPPAGE_PRICED[summary.slippageClass](summary.modeledCostScale)} ` +
       "same-bar = exits resolved on the TP1 touch bar itself (FR-3), which the corpus arms with zero latency and cannot price.",
   );
   if (summary.exitSlippage) {
@@ -982,12 +1005,31 @@ const SLIPPAGE_RIDES: Record<SlippageClass, string> = {
   "clean-stops": "slippage rides in every stop-kind print, gapped (FR-7) or clean, and not in the expiry print",
   "every-market-exit": "slippage rides in every stop-kind print and in the expiry print",
 };
-const SLIPPAGE_PRICED: Record<SlippageClass, string> = {
-  "gapped-only": "slippage-priced: R_adj(f) = R(f) − (1−f)·S_row on every tp1 row whose exit is a stop print sitting at its level or an expiry print, S_row = estimatedSlippage/riskDistance — " +
-    "the current resolver's market-exit rule applied to this corpus's unslipped prints at each fraction, at the full modelled slippage; the tp1 limit leg stays unslipped.",
-  "clean-stops": "slippage-priced: R_adj(f) = R(f) − (1−f)·S_row on every tp1 row whose exit is an expiry print, S_row = estimatedSlippage/riskDistance — " +
-    "this corpus's stops already print with their slippage, so R(f) carries it at (1−f) and no stop print is charged; 'stop prints' and S count expiry prints only, by design.",
-  "every-market-exit": "slippage-priced: R_adj(f) = R(f) on every row — this corpus prints every market-order exit with its slippage, so R(f) already carries it at (1−f); " +
+/** The corpus's scale as the hybrid statement names it: stated, or stated as absent. */
+function scaleClause(scale: number | null): string {
+  return scale === null
+    ? "the manifest states no modeledCostScale"
+    : `this corpus's resolver ran at modeledCostScale ${scale}`;
+}
+/**
+ * The slippage-priced line per class. True on every class and every scale: the
+ * hybrid charges tp1 rows only, at the unscaled estimatedSlippage, and says
+ * both — so its slope across fractions is the resolver's rule and its levels
+ * are not (review of #692, finding 1).
+ */
+const SLIPPAGE_PRICED: Record<SlippageClass, (scale: number | null) => string> = {
+  "gapped-only": (scale) =>
+    "slippage-priced: R_adj(f) = R(f) − (1−f)·S_row on tp1 rows only, where the exit is a stop print sitting at its level or an expiry print, " +
+    `S_row = estimatedSlippage/riskDistance at the unscaled modelled slippage (${scaleClause(scale)}; S_row does not apply it) — a hybrid model: ` +
+    "its slope across fractions follows the current resolver's market-exit rule, its levels do not, because rows without a tp1 leg are never charged " +
+    "(they price the same at every fraction) though the resolver slips their stop and expiry prints; --exit-slippage prices the levels. The tp1 limit leg stays unslipped.",
+  "clean-stops": (scale) =>
+    "slippage-priced: R_adj(f) = R(f) − (1−f)·S_row on tp1 rows only, where the exit is an expiry print, " +
+    `S_row = estimatedSlippage/riskDistance at the unscaled modelled slippage (${scaleClause(scale)}; S_row does not apply it) — a hybrid model: ` +
+    "this corpus's stops already print with their slippage, so R(f) carries it at (1−f) and no stop print is charged; 'stop prints' and S count expiry prints only, by design; " +
+    "rows without a tp1 leg are never charged; --exit-slippage prices the levels.",
+  "every-market-exit": () =>
+    "slippage-priced: R_adj(f) = R(f) on every row — this corpus prints every market-order exit with its slippage, so R(f) already carries it at (1−f); " +
     "'stop prints' and S are 0 by design, not because any row gapped. The same-bar columns do not depend on slippage.",
 };
 

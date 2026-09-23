@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -12,15 +12,18 @@ import {
 } from "../scripts/sweepManifest.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { ECON_CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
+import { ANALYZER_VERSION } from "../supabase/functions/trade-analyzer/calibration.ts";
 import {
   bankedFraction,
   CLEAN_STOP_SLIPPAGE_SINCE,
+  DECLARED_FLAGS,
   EXPIRY_SLIPPAGE_SINCE,
   exitSlippageCharge,
   formatBankedFraction,
   FRACTIONS,
   GRAINS,
   parseFolds,
+  PLACED_ENGINE_VERSIONS,
   rFromLegs,
   SEALED_FOLD,
   slippageClassOf,
@@ -622,10 +625,25 @@ describe("the slippage class of a corpus, stated", () => {
     assert.equal(slippageClassOf("2026.09.05.test"), "gapped-only");
     assert.equal(slippageClassOf(CLEAN_STOP_SLIPPAGE_SINCE), "clean-stops");
     assert.equal(slippageClassOf(EXPIRY_SLIPPAGE_SINCE), "every-market-exit");
-    assert.equal(slippageClassOf("2026.10.01.later"), "every-market-exit");
-    // Both changes shipped on one day: a same-day name the reader does not know cannot be placed by its date.
+    // From the first exit-physics change on, a version is placed by name or refused (review of #692,
+    // finding 2): a later date is not evidence of which exits an engine slips, so it is never guessed.
+    assert.throws(() => slippageClassOf("2026.10.01.later"), /not placed/);
+    assert.throws(() => slippageClassOf("2026.09.24.next-physics"), /not placed/);
+    // Both changes shipped on one day: a same-day name the reader does not know cannot be placed by its date either.
     assert.throws(() => slippageClassOf("2026.09.23.something-else"), /cannot place/);
     assert.throws(() => slippageClassOf("unversioned"), /carries no date/);
+  });
+
+  it("the placement table is the population: both named versions, nothing dated before the first, and the live engine", () => {
+    assert.deepEqual(
+      [...PLACED_ENGINE_VERSIONS.entries()].sort(([a], [b]) => a.localeCompare(b)),
+      [[EXPIRY_SLIPPAGE_SINCE, "every-market-exit"], [CLEAN_STOP_SLIPPAGE_SINCE, "clean-stops"]],
+    );
+    // The next ANALYZER_VERSION bump fails here until someone states which exits it slips.
+    assert.doesNotThrow(
+      () => slippageClassOf(ANALYZER_VERSION),
+      "the live engine version is not in PLACED_ENGINE_VERSIONS — place it with the exits its resolver slips",
+    );
   });
 
   it("a pre-change corpus reads as before, and says which class it is", async () => {
@@ -671,6 +689,48 @@ describe("the slippage class of a corpus, stated", () => {
   it("refuses a corpus whose class it cannot place, before it reads a row", async () => {
     await assert.rejects(read([writeCorpus(slipRows(), "shard", { analyzerVersion: "unversioned" })], { folds: ["fit"] }), /carries no date/);
     await assert.rejects(read([writeCorpus(slipRows(), "shard", { analyzerVersion: "2026.09.23.something-else" })], { folds: ["fit"] }), /cannot place/);
+    // The default path used to guess a later-dated engine as every-market-exit and print R_adj(f) = R(f) "by design".
+    await assert.rejects(read([writeCorpus(slipRows(), "shard", { analyzerVersion: "2026.09.24.next-physics" })], { folds: ["fit"] }), /not placed/);
+  });
+
+  it("the slippage-priced statement is true at every scale: tp1 rows only, the unscaled slippage, the corpus's scale named", async () => {
+    // Review of #692, finding 1. S_row is the raw estimatedSlippage and only tp1 rows are charged, so on a
+    // corpus run at half the modelled cost the table's levels are not the resolver's, and it must say so.
+    let index = 100;
+    const rows = slipRows().concat([
+      // A tp1-less stop at its level: the resolver slips it, the hybrid does not charge it (it prices the same at every f).
+      row({ exit: 99, index: index++, outcome: "stop_loss", slippage: 0.2, split: "fit", symbol: "EURUSD" }),
+    ]);
+    const half = await read([writeCorpus(rows, "shard", { modeledCostScale: 0.5 })], { folds: ["fit"] });
+    const full = await read([writeCorpus(rows)], { folds: ["fit"] });
+    assert.equal(half.modeledCostScale, 0.5);
+    assert.equal(full.modeledCostScale, 1);
+    // Unscaled: the same S at half the scale, and the tp1-less stop is not in it.
+    near(half.cells.get("forex|fit")!.slippageTotal, 0.7);
+    near(full.cells.get("forex|fit")!.slippageTotal, 0.7);
+    assert.equal(half.cells.get("forex|fit")!.stopPrintRows, 4);
+    const text = formatBankedFraction(half);
+    const priced = text.split("\n").find((line) => line.startsWith("slippage-priced:"))!;
+    assert.match(priced, /on tp1 rows only/);
+    assert.match(priced, /unscaled/);
+    assert.match(priced, /modeledCostScale 0\.5/);
+    assert.match(priced, /hybrid/);
+    assert.match(priced, /--exit-slippage/);
+    assert.doesNotMatch(priced, /at the full modelled slippage/);
+    assert.doesNotMatch(priced, /the current resolver's market-exit rule applied/);
+    const unstated = formatBankedFraction(await read([writeCorpus(rows, "shard", { modeledCostScale: undefined })], { folds: ["fit"] }));
+    assert.match(unstated.split("\n").find((line) => line.startsWith("slippage-priced:"))!, /states no modeledCostScale/);
+    // The clean-stops statement is scoped the same way; the every-market-exit one charges nothing and says so.
+    const cleanStops = formatBankedFraction(
+      await read([writeCorpus(rows, "shard", { analyzerVersion: CLEAN_STOP_SLIPPAGE_SINCE, modeledCostScale: 0.5 })], { folds: ["fit"] }),
+    ).split("\n").find((line) => line.startsWith("slippage-priced:"))!;
+    assert.match(cleanStops, /on tp1 rows only/);
+    assert.match(cleanStops, /unscaled/);
+    assert.match(cleanStops, /modeledCostScale 0\.5/);
+    const every = formatBankedFraction(
+      await read([writeCorpus(rows, "shard", { analyzerVersion: EXPIRY_SLIPPAGE_SINCE, modeledCostScale: 0.5 })], { folds: ["fit"] }),
+    ).split("\n").find((line) => line.startsWith("slippage-priced:"))!;
+    assert.match(every, /R_adj\(f\) = R\(f\) on every row/);
   });
 });
 
@@ -865,5 +925,39 @@ describe("--exit-slippage — every market-order exit, priced at the current res
       () => execFileSync(TSX, [READER, path, "--folds", "fit", "--stop-exit-slippage"], { encoding: "utf8", env, stdio: ["ignore", "pipe", "pipe"] }),
       /unknown flag --stop-exit-slippage/,
     );
+  });
+});
+
+/**
+ * A recorded command the reader no longer accepts is a transcript of a retired
+ * reader, and its record must say what supersedes it (review of #692, finding
+ * 3). Derived from the research tree's transcripts, not listed: every line
+ * beginning `$ tsx scripts/banked-fraction.ts` is checked against the flags the
+ * CLI declares today. Read from the filesystem, not git, so this file does not
+ * join the git-dependent set `tests/scratchClone.test.ts` pins.
+ */
+describe("recorded banked-fraction commands", () => {
+  it("every transcript whose command the reader now refuses opens with a superseded-by line naming a record that exists", () => {
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const name of readdirSync(dir)) {
+        const full = join(dir, name);
+        if (statSync(full).isDirectory()) walk(full);
+        else if (/\.(?:txt|md)$/.test(name)) files.push(full);
+      }
+    };
+    walk(join("docs", "research"));
+    let commands = 0;
+    for (const file of files) {
+      const lines = readFileSync(file, "utf8").split("\n");
+      const recorded = lines.filter((line) => line.startsWith("$ tsx scripts/banked-fraction.ts "));
+      commands += recorded.length;
+      const retired = recorded.flatMap((line) => line.split(/\s+/).filter((token) => token.startsWith("--") && !DECLARED_FLAGS.has(token)));
+      if (retired.length === 0) continue;
+      const marker = /^SUPERSEDED by (docs\/research\/\S+?\.txt)\b/.exec(lines[0]);
+      assert.ok(marker, `${file} records ${retired.join(", ")}, which the reader now refuses, and does not open with "SUPERSEDED by <record>"`);
+      assert.ok(existsSync(marker[1]), `${file} is superseded by ${marker[1]}, which does not exist`);
+    }
+    assert.ok(commands > 0, "no recorded banked-fraction command was found — a scan that examined nothing proves nothing");
   });
 });
