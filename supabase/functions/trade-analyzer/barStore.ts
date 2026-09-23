@@ -7,7 +7,7 @@
  * the account bought the same four years of daily history on every scan, and
  * FMP bills bytes over a trailing 30 days. They are not immutable: FMP revises
  * some after the fact (a quarter of the minute bank's held 1-minute bars, by
- * about 1e-4 relative, measured 2026-09-22). `fetchPlan` decides which land:
+ * about 1e-4 relative, measured 2026-09-22). `windowToBuy` decides which land:
  * once the store spans the requested window it re-asks only its newest stored
  * date to today, so a revision there supersedes the stored copy and one to an
  * older settled bar is not asked for; a request reaching back past the store's

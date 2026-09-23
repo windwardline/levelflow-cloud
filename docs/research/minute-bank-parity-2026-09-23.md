@@ -4,9 +4,11 @@
 files hold, in pips (× 1e4), from the minute bank's own files. The bank keeps the
 first copy of each minute, so each key's first line is read. Zero bytes; read-only.
 
-**Every time below is a raw provider stamp, not UTC.** The bank stores FMP's intraday
-strings verbatim, and FMP returns them in `America/New_York` (`docs/minute-bank.md`,
-"Raw provider strings are stored verbatim"): EDT, UTC−4, in September. The off block,
+**Every window bound below is a raw provider stamp, not UTC.** The bank stores FMP's
+intraday strings verbatim, and FMP returns them in `America/New_York` (`docs/minute-bank.md`,
+"Raw provider strings are stored verbatim"; the sidecar's `sourceTimezone` has not yet
+stamped it by measurement): EDT, UTC−4, in September. The calendar dates of the
+suspension and the recovery are dates, not stamps. The off block,
 2026-09-07 22:00 to 09-08 16:00 in provider stamps, is **2026-09-08 02:00Z to 20:00Z**.
 A reader exclusion built from these bounds converts them first.
 
