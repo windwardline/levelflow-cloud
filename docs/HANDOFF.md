@@ -710,7 +710,9 @@ and one daily is kept beside the protected `20260823`: R2 holds 60 verified
 archives, so the local copy is the staging copy and one offline restore point.
 A skipped push now skips the prune, a named root that does not exist is
 refused rather than created, and the prune never deletes the snapshot its own
-run pushed. R2's copy of `20260823` is not permanent — see §6b-1 item I.
+run pushed. R2's DAILY copy of `20260823` is not permanent; the permanent copy is in
+`windwardline-archives` since 2026-09-22 (#677), and parity still requires the daily —
+see §6b-1 item I.
 
 *Migration, executed 2026-09-21 before this merged:* the fifteen directories
 left `/Users/peacock` by hand. `20260823` and that day's `20260921` moved to the
@@ -5503,8 +5505,10 @@ differing field for field), so the two corpora reconcile exactly, and
 `acceptance.captureAll` in the manifest plus `assertAcceptanceMode` keeps a
 reader from mixing them.
 
-**I. The naive-era corpus has no copy that never expires — OPEN, raised
-2026-09-21.** `minute-bank-20260823.tar.zst` is spared by name from the push's
+**I. The naive-era corpus has no copy that never expires — the COPY is DONE
+(#677, 2026-09-22: `levelflow-minute-bank-snapshot-20260823` in the locked
+`windwardline-archives` bucket); the PARITY RULING stays OPEN, due before
+2027-09-02, raised 2026-09-21.** The case as raised: `minute-bank-20260823.tar.zst` is spared by name from the push's
 remote prune, but `windwardline-backups` carries a 365-day lifecycle expiry
 over every object (windwardline FLEET.md, set 2026-09-03), and a lifecycle rule
 cannot exclude a name. R2 deletes it a year after its upload. It was uploaded
@@ -5516,7 +5520,9 @@ write-once `windwardline-archives` bucket (windwardline branch
 `docs/r2-archives-bucket`, not merged at this writing). Owed before the expiry:
 a permanent copy of `20260823`, its upload date read from R2, and a ruling on
 whether the parity check should then stop requiring the protected stamp in
-`windwardline-backups`.
+`windwardline-backups`. The copy and the date are done; until the ruling lands,
+parity still requires `20260823` in the expiring bucket and fails from about
+2027-09-02, stopping the backup before its prune.
 
 **J. Nobody had ever restored the minute bank from R2 — CLOSED 2026-09-22,
 raised 2026-09-21.** `scripts/ops/verify-minute-bank-restore.sh` pulls the newest

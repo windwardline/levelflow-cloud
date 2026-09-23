@@ -64,7 +64,9 @@ DEST="$DEST_ROOT/levelflow-minute-bank-snapshot-$STAMP"
 # copy was uploaded 2026-09-02 15:40:42Z, so it lapses about 2027-09-02. From
 # that day parity fails naming 20260823, this job exits 1 before the prune,
 # dailies accumulate here again, and the local copy is the naive-era corpus's
-# only custodian. HANDOFF §6b-1 item I owes it a copy that never expires.
+# only custodian of the daily. The permanent copy is in windwardline-archives
+# since 2026-09-22 (#677, docs/offbox-archives.md); HANDOFF §6b-1 item I still
+# owes the ruling on whether parity should stop requiring 20260823 here.
 #
 # The local prune cannot outrun the push. It runs only after the push has
 # verified the remote object AND the parity check has found every local
