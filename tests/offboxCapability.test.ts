@@ -65,8 +65,8 @@ const NAMES_WITHOUT_HOLDING = new Map<string, { reason: string; standing: boolea
   }],
   [".fleet-standard/", {
     reason: "the fleet standard's prose, which no process runs: the fleet review lane checks " +
-      "FLEET.md out here, and a plain copy of it lists as files. Not ignored, because " +
-      "fleet-template does not ignore it and a local entry would be drift",
+      "FLEET.md out here, and a plain copy of it lists as files. A lane artifact this repository " +
+      "must never track; the test proves it tracks nothing there",
     standing: false,
   }],
 ]);
@@ -74,7 +74,10 @@ const NAMES_WITHOUT_HOLDING = new Map<string, { reason: string; standing: boolea
 const namesCapability = (text: string): string[] =>
   CAPABILITY.filter(([, pattern]) => pattern.test(text)).map(([name]) => name);
 
-const exemptionOf = (path: string) => [...NAMES_WITHOUT_HOLDING.keys()].find((prefix) => path.startsWith(prefix));
+// A key ending in "/" exempts a directory; any other key exempts that one file,
+// so AGENTS.md does not also exempt an AGENTS.md.bak.
+const exemptionOf = (path: string) =>
+  [...NAMES_WITHOUT_HOLDING.keys()].find((key) => (key.endsWith("/") ? path.startsWith(key) : path === key));
 
 /** Each file that names the capability outside its home and every exemption, with what it names. */
 const outsideOf = (naming: ReadonlyArray<{ names: string[]; path: string }>): string[] =>
@@ -163,6 +166,13 @@ describe("only scripts/ops holds the off-box capability", () => {
     for (const text of ["cloudflare", "r2 bucket", "windwardline-labs", "wrangler deploy", "R2_TOKEN"]) {
       assert.deepEqual(namesCapability(text), [], text);
     }
+  });
+
+  it("exempts a directory key by prefix and a file key only by its own name", () => {
+    assert.equal(exemptionOf("tests/archiveOffbox.test.ts"), "tests/");
+    assert.equal(exemptionOf("AGENTS.md"), "AGENTS.md");
+    assert.equal(exemptionOf("AGENTS.md.bak"), undefined);
+    assert.equal(exemptionOf("testsuite/x.sh"), undefined);
   });
 
   it("names a nested repository without reading it, and still names the violation beside it — executed", () => {

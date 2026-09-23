@@ -12,13 +12,14 @@ import {
 } from "../supabase/functions/trade-analyzer/barStore.ts";
 
 /**
- * Stop re-buying history that cannot change.
+ * Stop re-buying history that has already been bought.
  *
  * Measured 2026-08-31: every scan re-fetched the full window from FMP —
  * 11,470 bars per market across the five decision frames, ~1.72 MB, ~167 MB
- * for a full 97-market scan. The bars are immutable, and FMP bills bytes over
- * a trailing 30 days, so the account bought the same four years of daily
- * history on every scan.
+ * for a full 97-market scan. Settled bars almost never need buying twice, and
+ * FMP bills bytes over a trailing 30 days, so the account bought the same four
+ * years of daily history on every scan. They are not immutable: FMP revises
+ * some, and a revision supersedes the stored copy (tested below).
  *
  * The in-memory `candleCache` cannot fix it: a module-level Map inside an
  * ephemeral Edge instance, cold on every cold start, shared with nothing.

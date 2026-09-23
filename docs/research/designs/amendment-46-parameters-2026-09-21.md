@@ -297,7 +297,7 @@ Build: about 400-550 lines plus tests [unverified].
 > main 9b8d96f. The text above stays as it was; where the two differ, this section is
 > the draft and the text above is its history. Its drafter refuted it against those
 > sources before committing it. **Its first independent refute round (2026-09-23) left
-> seven majors standing**
+> six majors standing, and a seventh its checker scoped to minor is kept among them**
 > ([`amendment-48-refute-round-2026-09-23.md`](/docs/research/designs/amendment-48-refute-round-2026-09-23.md)):
 > L is a free parameter the seal cannot see, a family registration hashes no trade, the span
 > rule changes 46's premise without the owner, the frontier is per symbol while the price

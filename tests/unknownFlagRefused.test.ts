@@ -494,7 +494,7 @@ const subjectEnv = (checkout: string): NodeJS.ProcessEnv => {
  *   redirect it with --confirm-log-dir.
  *
  * It is also why this file shells out to no git: `tests/scratchClone.test.ts`
- * pins the set of tests a `--no-git` scratch copy breaks, and a sixth
+ * pins the set of tests a `--no-git` scratch copy breaks, and a seventh
  * member would be bought for an assertion `tests/emptyCorpusRefusals.test.ts`
  * already executes over every reader.
  */

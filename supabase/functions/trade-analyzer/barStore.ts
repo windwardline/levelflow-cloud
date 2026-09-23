@@ -3,9 +3,12 @@
  *
  * Every scan re-fetched the full window from FMP. Measured 2026-08-31: 11,470
  * bars per market per scan across the five decision frames, ~1.72 MB, ~167 MB
- * for a full 97-market scan. The bars are IMMUTABLE — a 15-minute bar from
- * last Tuesday never changes — so the account bought the same four years of
- * daily history on every scan, and FMP bills bytes over a trailing 30 days.
+ * for a full 97-market scan. Settled bars almost never need buying twice, so
+ * the account bought the same four years of daily history on every scan, and
+ * FMP bills bytes over a trailing 30 days. They are not immutable: FMP revises
+ * some after the fact (a quarter of the minute bank's held 1-minute bars, by
+ * about 1e-4 relative, measured 2026-09-22), and the store lets the fresher
+ * row win (below).
  *
  * The existing in-memory `candleCache` cannot fix that. It is a module-level
  * Map inside an ephemeral Edge instance: cold on every cold start, never

@@ -214,6 +214,14 @@ minutes came back revised` when the answer landed on minutes the file held, and 
 both can appear on one record. The high-water mark, first date and recent keys stay
 the scheduled bank's.
 
+**Neither vintage is clean.** The bank's first copies and a recovery's dated answers can
+both sit off parity. Measured 2026-09-23 on the EUR/GBP/USD triangle
+(EURUSD − EURGBP × GBPUSD, closes on shared minutes): the recovered block
+2026-09-07 22:00 to 09-08 16:00 sits a median +3.26 pips off (1,080 minutes), against
++0.30 to +0.58 in first-copy windows either side, and first-copy windows reach about
++4 pips at their 90th percentile too. One triangle cannot say which leg moved; a
+reader that needs parity measures it rather than trusting either vintage.
+
 ## Backup
 
 Two layers, both on a timer, neither waiting on anyone to remember.
