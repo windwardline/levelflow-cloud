@@ -295,6 +295,28 @@ describe("a low-edge refusal states its window and claims no measurement", () =>
     }
   });
 
+  it("reads a helper's words through the functions it calls, and refuses a body it cannot bound", () => {
+    const delegating = [
+      "function outer(hour: number) {",
+      "  return inner(hour);",
+      "}",
+      "",
+      "function inner(hour: number) {",
+      '  return `${hour}:00, a weak stretch`;',
+      "}",
+      "",
+    ].join("\n");
+    assert.ok(helperLiterals(delegating, "outer").some((literal) => CLAIM.test(literal)), "a delegated claim went unread");
+    const braceInString = [
+      "function windowPhrase(hour: number) {",
+      '  const brace = "}";',
+      '  return "measured on the r15 split";',
+      "}",
+      "",
+    ].join("\n");
+    assert.throws(() => helperLiterals(braceInString, "windowPhrase"), /alone at column 0/);
+  });
+
   it("holds at every lowEdge site in the source, reached or not", () => {
     const source = readFileSync(
       new URL("../supabase/functions/trade-analyzer/sessions.ts", import.meta.url),
@@ -327,10 +349,14 @@ describe("a low-edge refusal states its window and claims no measurement", () =>
 
 /**
  * Every string literal in the body of `function name(` in `source`, comments
- * removed and template interpolations dropped. Fails when the function or the
- * end of its body cannot be found.
+ * removed and template interpolations dropped, and every literal of each
+ * top-level function in the same file that the body calls. Fails when a
+ * function or the end of its body cannot be found: the body must close on a
+ * `}` alone at column 0, so a brace inside a string cannot end the read early.
  */
-function helperLiterals(source: string, name: string): string[] {
+function helperLiterals(source: string, name: string, seen = new Set<string>()): string[] {
+  if (seen.has(name)) return [];
+  seen.add(name);
   const at = source.indexOf(`function ${name}(`);
   assert.ok(at >= 0, `the reason interpolates ${name}(), which is not a function in sessions.ts`);
   const head = /\)\s*(?::[^{]+)?\{/.exec(source.slice(at));
@@ -346,9 +372,16 @@ function helperLiterals(source: string, name: string): string[] {
       break;
     }
   }
-  assert.ok(close > open, `${name}()'s body never closes for the scan`);
+  assert.ok(
+    close > open && source[close - 1] === "\n" && (source[close + 1] ?? "\n") === "\n",
+    `${name}()'s body did not close on a \`}\` alone at column 0; the scan cannot trust where it ends`,
+  );
   const body = source.slice(open + 1, close).replace(/^\s*\/\/[^\n]*$/gm, "");
-  return [...body.matchAll(/"([^"\\\n]*)"|'([^'\\\n]*)'|`([^`]*)`/g)].map((match) =>
+  const literals = [...body.matchAll(/"([^"\\\n]*)"|'([^'\\\n]*)'|`([^`]*)`/g)].map((match) =>
     (match[1] ?? match[2] ?? match[3] ?? "").replace(/\$\{[^}]*\}/g, "")
   );
+  for (const [, callee] of body.matchAll(/(?<![.\w])([A-Za-z_]\w*)\(/g)) {
+    if (source.includes(`\nfunction ${callee}(`)) literals.push(...helperLiterals(source, callee!, seen));
+  }
+  return literals;
 }
