@@ -19,7 +19,7 @@ import { writeFileSync } from "node:fs";
 
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
 import { redactProviderSecrets } from "../supabase/functions/trade-analyzer/redact.ts";
-import { flagReader, OperatorInputError } from "./flagReader.ts";
+import { flagReader, flagsOnly, OperatorInputError } from "./flagReader.ts";
 import { createByteBudget, SpendRefusedError } from "./fmpByteBudget.ts";
 import { createProbeGate, type FetchLike } from "./fmpCircuit.ts";
 import {
@@ -46,6 +46,10 @@ const DAY_MS = 86_400_000;
 // round 50, finding 2 — the scan globs scripts/, so every reader with a
 // value-taking flag is inside the law rather than on a curated list).
 const VALUE_FLAGS = new Set(["--symbol", "--from", "--to", "--json"]);
+// The flags that own no token, declared so the walk can refuse an UNKNOWN
+// flag or a stray argument by name (2026-09-21): this reader read its
+// flags through accessors alone, so a typo ran as the default.
+const BOOLEAN_FLAGS = new Set<string>([]);
 
 type Print = { out: (line: string) => void; err: (line: string) => void };
 
@@ -62,6 +66,7 @@ export type ProbeDeps = {
 type Question = { symbol: string; from: string; to: string; jsonPath: string | undefined };
 
 function readQuestion(argv: string[]): Question {
+  flagsOnly(argv, VALUE_FLAGS, BOOLEAN_FLAGS, "probe-minute-bars");
   const { str } = flagReader(argv, VALUE_FLAGS);
   const symbol = str("--symbol");
   const from = str("--from");

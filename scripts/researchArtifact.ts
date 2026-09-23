@@ -26,7 +26,7 @@
  * corpus behind it, by hand, with the reason recorded. It is never retired
  * as a side effect of running the script again.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 
 /**
  * Any invalidation banner already standing at `outPath`.
@@ -76,4 +76,25 @@ export function writeResearchArtifact(
         `recorded; running this script again is not a revalidation`,
     );
   }
+}
+
+/**
+ * The bytes a research artifact holds now, or null when it does not exist:
+ * what `restoreResearchArtifact` puts back.
+ */
+export function researchArtifactBytes(outPath: string): Buffer | null {
+  return existsSync(outPath) ? readFileSync(outPath) : null;
+}
+
+/**
+ * Put a research artifact back exactly as it stood, or remove it when it did
+ * not exist (2026-09-22). For a write that must land before work that can
+ * still fail: confirm-4d freezes its picks before the confirm fold is opened,
+ * and withdraws the freeze when the read then records nothing. The prior
+ * bytes carry whatever INVALID banner stood on them, so a restore neither
+ * adds a banner nor retires one.
+ */
+export function restoreResearchArtifact(outPath: string, prior: Buffer | null): void {
+  if (prior === null) rmSync(outPath, { force: true });
+  else writeFileSync(outPath, prior);
 }

@@ -31,6 +31,7 @@ import {
   tuningFolds,
 } from "./sweepStats.ts";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
+import { positionalArgs } from "./flagReader.ts";
 
 type Row = {
   accepted?: boolean;
@@ -72,7 +73,10 @@ function add(k: string, row: Row): void {
   if (row.outcome === "stop_loss") s.stops += 1;
 }
 
-const files = process.argv.slice(2);
+// Positional shard paths and nothing else. Read whole, a `--x` was
+// opened as a file and refused as a missing manifest — the wrong
+// diagnosis for a typo; the shared walk names it as a flag.
+const files = positionalArgs(process.argv.slice(2), new Set(), new Set(), "stop-provenance");
 // WIF-4, derived population (#364 round 54, finding 2): a run over zero
 // rows cannot report a verdict, and this reader had no door — with no
 // shard the loop never runs and the table prints its column header alone

@@ -11,14 +11,16 @@ was declined in round 25: at a 0.5 cap, 26% of setups end in neither a target no
 stop, so the expectancy figure describes the harness rather than the market.
 
 Minute bars resolve the order. FMP served them for 99 of 99 probed symbols, and an
-undated request returns about **three days** (probe, 2026-08-06). Whether a dated
-request reaches deeper has not been measured; `scripts/probe-minute-bars.ts --symbol
---from --to` asks one such question through the governor. Until it is answered, the
-depth is treated as unrecoverable: the bank accumulates forward, one day at a time.
+undated request returns about **three days** (probe, 2026-08-06). The bank was built
+on the belief that nothing deeper was served, so every day not banked was a day never
+recovered.
 
-That makes this the one piece of work whose value depends purely on its start date.
-Every day not banked is a day never recovered. The analysis that consumes it comes
-much later, and does not need to be designed first.
+**A dated request reaches much deeper.** On 2026-09-22, `scripts/probe-minute-bars.ts`
+asked for one day at a time through the governor, and FMP returned all 1,440 minutes
+each time for EURUSD and BTCUSD, on 2026-09-08, 2025-09-09 and 2021-09-08. That is two
+symbols and three dates; the rest of the roster is unmeasured. The bank still runs
+forward on its schedule, and a hole inside what it holds is filled by date
+(`scripts/recover-minute-bank.ts`, below).
 
 ## Raw provider strings are stored verbatim
 
@@ -37,11 +39,9 @@ winter 2026-01-30 first=09:30 last=15:45 bars=26
 ```
 
 That convention is wrong and will be corrected. The bank must not inherit it, and it
-must not need a refetch after the correction lands: an undated request returns about
-three days, and until a dated one is shown to reach deeper a refetch is treated as
-impossible. So the store holds the provider's own date string, unparsed and
-unconverted. Re-normalising later becomes a re-read of local disk instead of a fetch
-that may no longer be possible.
+must not need a refetch after the correction lands. So the store holds the provider's
+own date string, unparsed and unconverted. Re-normalising later becomes a re-read of
+local disk instead of a fetch of every banked day.
 
 The sidecar carries a `sourceTimezone` field, null until the convention is
 established by measurement rather than assumption.
@@ -78,8 +78,8 @@ The later run appends that minute after its own newest bar. Measured 2026-09-21 
 The other 412 steps predate the thirty runs a sidecar remembers, so they are
 consistent with the mechanism rather than proven by it. Nothing is lost or
 duplicated, and a sort by `date` yields the true series. The files are deliberately
-not rewritten into order: the bank is unrecoverable, and a reader-side sort costs
-nothing.
+not rewritten into order: a rewrite of the one copy risks what an append never does,
+and a reader-side sort costs nothing.
 
 De-duplication holds because the key window outlasts the provider's: 8,000 keys
 against a largest single-run fetch of 4,276 bars. Late fills reach back a day at
@@ -97,8 +97,7 @@ indistinguishable from a real one.
 FMP_API_KEY=$(security find-generic-password -s fmp-api-key -a peacock -w) npx tsx scripts/bank-minute-bars.ts
 ```
 
-It must run at least once every three days. Until a dated request is shown to reach
-deeper, a longer gap is treated as one that cannot be closed.
+It must run at least once every three days. A longer gap is filled by date, below.
 
 The bank is never refused at a door (§21c). It does not consult the shared FMP
 breaker or ask the ledger for room: its first symbol is its probe, so an outage costs
@@ -136,6 +135,84 @@ change set, because an installed slot moved earlier than the tracked one would l
 clean overnight run skip a genuine scheduled start.
 
 First run, 2026-08-06: 338,971 bars across 100 symbols, 42 MB.
+
+## Filling a hole
+
+The bank could not run from 2026-09-04 to 2026-09-14. `scripts/recover-minute-bank.ts`
+fills a hole like that one from dated requests, once, as the ad-hoc class:
+
+```bash
+~/.local/bin/wl-secret fmp-api-key=FMP_API_KEY -- npx tsx scripts/recover-minute-bank.ts --from 2026-09-03 --to 2026-09-11 --dry-run
+~/.local/bin/wl-secret fmp-api-key=FMP_API_KEY -- npx tsx scripts/recover-minute-bank.ts --from 2026-09-03 --to 2026-09-11
+```
+
+`--dry-run` prints what each file holds for each day and fetches nothing. The run:
+
+- writes only to the checkout's own `.minute-bank`, and holds its lock, the same
+  `.minute-bank.lock` the scheduled bank and its backup take. A held lock is refused.
+  They wait up to 900 s for it and then fail loudly, so run it clear of their slots
+  (07:00-07:30, 19:20 and 20:10 local); a full roster is a few minutes.
+- asks one dated question per symbol and day, and only for days on or after the first
+  one the file holds. Extending the bank backward is a backfill, which is not approved.
+- dedupes against every key in the file, not the sidecar's recent-key window.
+- appends oldest first after what is there, and never rewrites.
+- refuses a window reaching into the last seven days, where the scheduled bank is
+  still served the same minutes and would bank them again.
+- refuses a file whose last line is torn, and appends nothing to it, and refuses a
+  checkout that holds no bank file for any roster symbol.
+- charges every byte to the ad-hoc class under its 256 MiB day, retrying on the bank's
+  own ladder, which stops on a wall. The first symbol with an asked day goes alone, as
+  the bank's scout does, and if it gets no usable bars back (none at all, or none from
+  the asked days) the run stands down; then `--concurrency` workers (4) take the rest. The governor or a wall the
+  provider named stops the run, keeping the minutes already paid for, and names every
+  symbol it did not start; a settled 404 costs only its day. A second run appends nothing.
+- refuses a whole symbol, after buying its days and before writing a line, when its
+  answers cannot be placed: a date in another shape, a day over 1,440 minutes, held
+  minutes that match the answer more often at some offset within a day than where they
+  are keyed (both sides are judged over 60 pairs or more, so a day whose fetch failed
+  judges nothing, and neither does a window of wholly missing days; a move between New
+  York and UTC is 240 or 300 minutes), or, once the file holds a day's worth, more than
+  5% of the new
+  minutes at times of day it has never held. Other prices alone refuse nothing: FMP
+  revises minutes after the bank takes them live, and a dated probe of 2026-09-03 found
+  164 of ^GSPC's 389 held minutes and 114 of AAVEUSD's 1,159 revised, with agreement
+  highest at offset 0. A revised minute stays as banked; the tally line and the sidecar
+  note count them. Dedupe is string equality in an append-only store, so a clock that
+  moved would append every minute again for good. The bytes stay spent; nothing is
+  written. A foreign date shape or an over-full day belongs to the endpoint and stops
+  the run at once. The offset and clock bounds stop it at their second symbol: one file
+  can be its own, and a 24-hour market's file holds every time of day, so a shifted
+  session shows there only in its prices. A disputed scout is settled by the next symbol
+  that asks and does not come back an expected refusal, alone, before the pool opens;
+  inside the pool the workers already in flight finish, so a dispute first met there
+  costs up to `--concurrency` symbols. A failed ledger write on a refusal fails the run.
+  Recovered lines take the bank's own key order. A window across a US daylight-saving
+  change shifts an equity session by an hour and trips the clock bound, so recover each
+  side of the change separately.
+
+A symbol neither bound can judge in the window is refused before a byte is bought:
+fewer than 60 held minutes inside the window leaves the price bound nothing to pair
+on, and a file that already holds nearly every time of day (every 24-hour market, and
+futures with an hour's daily break) leaves the clock bound nothing to see. Its line
+reads `not asked`, and the remedy is a window holding 60 held minutes, which any
+partly held day provides. A file
+of under a day's minutes is judged by neither bound whatever the window; it is asked,
+and its tally line says `shift test unjudged`.
+
+ZOUSX is expected to refuse on the clock bound, and its share of a hole stays open. Its
+file had held 1,618 minutes at 561 distinct times of day by 2026-09-03, and its trades
+still land at new ones: replayed against the bank's own 09-12..09-20, 59 of 508 minutes
+fell at never-held times, scattered across the day, where a moved clock would shift
+one edge of a session. It was the only one of 100 symbols to trip. The script names it
+in `EXPECTED_CLOCK_REFUSALS`, so its clock refusal does not count toward a stand-down;
+it still exits 1, because its hole is still open. Its asked days are bought on every run
+and discarded. Read the `refused` column.
+
+A recovery's sidecar record is `recovered <from>..<to>`, followed by `; N of M held
+minutes came back revised` when the answer landed on minutes the file held, and by
+`; shift test unjudged (N same-key pairs)` when the answer paired fewer than 60 times;
+both can appear on one record. The high-water mark, first date and recent keys stay
+the scheduled bank's.
 
 ## Backup
 
@@ -246,17 +323,23 @@ accumulating. Local retention is one daily plus the protected `20260823`, and re
 is 60. `20260823` is protected by name in both prunes, because it is the only naive-era
 corpus in existence and a retention count cannot protect what oldest-first deletes
 first. The local prune runs only after the push verified the remote object and parity
-passed; a failed or skipped push skips it. The remote protection is not permanent: the
-bucket's lifecycle rule expires every object 365 days after upload, whatever its name,
-so R2's copy of `20260823` lapses about 2027-09-02, a year after it was uploaded at
-2026-09-02 15:40:42Z (HANDOFF §6b-1 item I).
+passed; a failed or skipped push skips it. Name-protection binds this repo's prunes and
+nothing else: `windwardline-backups` carries the lifecycle rule
+`expire-backups-after-365-days` over every object, so R2 deletes the daily
+`minute-bank-20260823.tar.zst` about 2027-09-02, a year after its upload at
+2026-09-02 15:40:42Z, whatever its name. The copy that outlives it is
+`windwardline-archives/levelflow-cloud/minute-bank/levelflow-minute-bank-snapshot-20260823.tar.zst`,
+written once by `push-archive-offbox.sh` and never pruned (HANDOFF §6b-1 item I). Until
+the operator's push fills its row in `docs/offbox-archives.md`, the local snapshot and
+the expiring daily are the only copies.
 
-**Nothing has ever been restored from these archives.** The push compares the remote
-object's md5 with the local archive's, and parity compares names; neither unpacks
-anything. A bad `zstd` stream or a layout nobody has unpacked passes both every day
-and is found on the day it is needed. Postgres is proven by restoring it; the bank is
-not, and since 2026-09-21 local retention is one day rather than fourteen, so R2 is
-the only route to any earlier day. HANDOFF §6b-1 item J owes the restore proof.
+The push compares the remote object's md5 with the local archive's, and parity
+compares names; neither unpacks anything. A bad `zstd` stream or a layout nobody has
+unpacked passes both every day and is found on the day it is needed. Since 2026-09-21
+local retention is one day rather than fourteen, so R2 is the only route to any
+earlier day. The restore proof below unpacks one. First proof 2026-09-22:
+`minute-bank-20260922`, the newest of 22, restored 100 data files and 3,516,278 bars,
+equal to live.
 
 ## The two sides are checked against each other
 
@@ -280,6 +363,112 @@ would fail every day from the second day.
 The comparison takes the remote listing on stdin and touches no network, which is why
 it is exercised against real directories in `tests/minuteBankParity.test.ts` rather
 than asserted by reading its source.
+
+## An archive is proven by restoring it
+
+```bash
+~/.local/bin/wl-secret cloudflare-r2-backup=R2_TOKEN -- bash scripts/ops/verify-minute-bank-restore.sh
+```
+
+`verify-minute-bank-restore.sh` lists `windwardline-backups/levelflow-cloud/minute-bank/`,
+downloads the newest archive by name into a scratch directory under `$TMPDIR`, runs
+`zstd -t`, extracts it and compares the restore with the live bank. It fails when:
+
+- the listing cannot be read, the bucket is missing, a key sits outside
+  `<YYYY>/<MM>/minute-bank-<YYYYMMDD>.tar.zst`, or there is no archive;
+- the newest archive's stamp is more than three days before today (UTC), which means
+  the daily push has stopped, or is later than today, which would hide that;
+- a member's name is absolute or carries a `..` segment, or a member is a link — read
+  from the tar's own listing before anything is extracted, since GNU and BSD tar each
+  sanitise some of this and not the same way;
+- the archive holds anything but one directory stamped as its key is, or that
+  directory holds a link or a subdirectory (the bank is flat);
+- a restored `.jsonl` has no sidecar, its sidecar does not parse, or the sidecar's
+  `bars` differs from the file's line count;
+- a sidecar with no data file counts any bars;
+- a restored file ends without a newline, which is a torn final line;
+- a restored file is missing from the live bank, or its bytes are not the head of the
+  live file;
+- a live file the archive lacks starts more than four days before the stamp, or its
+  first line carries no date;
+- the restore holds no data file, or no bars.
+
+Every failure is named, not counted. A live symbol the archive lacks passes, named,
+only when the bar on its first line is at most four days older than the stamp: a
+symbol's first fetch reaches about three days back, and the fourth day covers the
+provider's New York dates against a UTC stamp. Before that rule, an archive holding
+one symbol of a hundred passed. Success prints one line on stdout: the archive, the
+files and bars restored, and the live bars. The scratch directory goes on every exit,
+signals included, and needs room for one uncompressed bank.
+
+The prefix test carries the proof. The bank appends and never rewrites, so a
+snapshot's bytes stay the head of the live file for good, late fills included. The
+same property is why the proof takes no bank lock: it reads no live sidecar, and an
+append in flight only extends a file past the bytes it compares. It can run while the
+bank runs. macOS `cmp -n` cannot make that comparison, because it reports unequal
+lengths even inside its limit, so the script pipes `head -c` of the live file into
+`cmp`.
+
+It runs weekly beside `verify-postgres-restore.sh` on the fleet-health cadence
+(`CADENCE.md` in windwardline/windwardline, from windwardline#118), not daily, because
+it downloads and unpacks a whole archive. From a checkout it reads that checkout's `.minute-bank`. From any other tree,
+name the checkout inside `wl-secret`'s command, because `wl-secret` execs its child
+under `env -i` and drops a `LEVELFLOW_CHECKOUT` set in the calling shell:
+
+```bash
+~/.local/bin/wl-secret cloudflare-r2-backup=R2_TOKEN -- env LEVELFLOW_CHECKOUT=<checkout> bash <tree>/scripts/ops/verify-minute-bank-restore.sh
+```
+
+A named checkout that does not exist, or one with no bank, is refused before anything
+is listed.
+`tests/minuteBankRestore.test.ts` runs the real script, tar and zstd against a stub
+`rclone` over a directory, with every stamp and bar date relative to today. Fifty-seven
+mutations of the first version's guards each failed it, as did 32 of 35 against the
+guards added after review and both run against the portable fixture and the widened
+listing: 91 of 94. The three that survive drop a `|| die` behind a walk that
+has already read the same directory, which no input can reach.
+
+### Restoring by hand
+
+Pull an archive into the project's data directory. The rclone settings are the
+script's, and the secret lives only in this one child's environment:
+
+```bash
+mkdir -p ~/.local/share/levelflow-cloud/restore
+~/.local/bin/wl-secret cloudflare-r2-backup=R2_TOKEN -- bash -c '
+  export RCLONE_CONFIG_R2_TYPE=s3 RCLONE_CONFIG_R2_PROVIDER=Cloudflare
+  export RCLONE_CONFIG_R2_ENDPOINT=https://c8da9a44c29c435205b2ec133ee05f20.r2.cloudflarestorage.com
+  export RCLONE_CONFIG_R2_ACCESS_KEY_ID=fafbbe863abb74c59933f028095a04ce
+  export RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="$(printf %s "$R2_TOKEN" | shasum -a 256 | cut -d" " -f1)"
+  rclone lsf -R --files-only R2:windwardline-backups/levelflow-cloud/minute-bank/
+  rclone copyto R2:windwardline-backups/levelflow-cloud/minute-bank/2026/09/minute-bank-20260921.tar.zst \
+    ~/.local/share/levelflow-cloud/restore/minute-bank-20260921.tar.zst'
+```
+
+Verify it, then extract it:
+
+```bash
+cd ~/.local/share/levelflow-cloud/restore
+zstd -t minute-bank-20260921.tar.zst
+zstd -q --decompress --stdout minute-bank-20260921.tar.zst | tar -xf -
+```
+
+The archive holds one directory, `levelflow-minute-bank-snapshot-20260921`, laid out
+as `.minute-bank/` is. To rebuild a lost bank, move that directory to
+`<checkout>/.minute-bank`. To put one symbol back, copy its data file and sidecar
+together, under the bank lock, from the checkout:
+
+```bash
+bash -c '. scripts/ops/bank-lock.sh && acquire_bank_lock .minute-bank &&
+  cp ~/.local/share/levelflow-cloud/restore/levelflow-minute-bank-snapshot-20260921/EURUSD.{jsonl,state.json} .minute-bank/ &&
+  release_bank_lock'
+```
+
+The pair travels together because the sidecar's `bars` and `recentKeys` describe that
+data file. Bars banked after the snapshot leave with the replaced file. The next bank
+run appends whatever the provider's three-day window still holds, since the restored
+key window no longer lists those bars; anything older is gone. Run the restore proof
+afterwards, then delete the restore directory.
 
 ## Keeping it running
 

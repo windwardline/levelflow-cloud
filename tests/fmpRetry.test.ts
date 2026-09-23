@@ -6,7 +6,7 @@
 // exercise every branch without a network.
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import {
   fetchFmpJsonWithRetry,
@@ -267,6 +267,47 @@ describe("every FMP fetch in the repo shares the one policy", () => {
         `${name} passes an inline retry-options literal instead of a shared one`,
       );
     }
+  });
+});
+
+describe("every FMP spender retries on a ladder that knows the provider, or asks once", () => {
+  // Two ladders exist: this module's, for the sweep, and bank-minute-bars.ts's
+  // withRetry, for the 1-minute endpoint, which stops on a wall this module
+  // cannot see in a status. A spender that hand-rolls a third is invisible to
+  // the derivation above, which finds only callers of this module. So the
+  // population here is every script that names the provider.
+  // Keyed by the path the population yields and looked up by it, so a
+  // spender under scripts/ops/ is named the way it is found.
+  const ASKS_ONCE = new Map([
+    [join("scripts", "probe-minute-bars.ts"), "one governed question per run; a failed answer is the answer it reports"],
+    [join("scripts", "verify-fmp-matches.ts"), "a gate: a request that fails lapses its row and the gate exits 1"],
+  ]);
+  const spenders = readdirSync("scripts", { recursive: true })
+    .map((entry) => join("scripts", String(entry)))
+    .filter((path) => path.endsWith(".ts"))
+    .filter((path) => readFileSync(path, "utf8").includes("financialmodelingprep.com"))
+    .sort();
+
+  it("finds the spenders, and names each one's ladder", () => {
+    assert.ok(spenders.length >= 5, `only ${spenders.length} spenders found`);
+    for (const path of spenders) {
+      // Comments stripped: a ladder named in a doc comment is not a ladder.
+      const text = readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+      // The dependency, not the name: a private ladder called withRetry would
+      // satisfy a call-site pattern. bank-minute-bars.ts is the one that
+      // defines the 1-minute ladder rather than importing it.
+      const imports = [...text.matchAll(/from "(\.{1,2}\/[^"]+)"/g)].map((match) => join(dirname(path), match[1]!));
+      const ladder =
+        /\b(fetchFmpWithRetry|fetchFmpJsonWithRetry|withRetry)\(/.test(text) &&
+        (path === join("scripts", "bank-minute-bars.ts") ||
+          imports.some((target) => target === join("scripts", "fmpRetry.ts") || target === join("scripts", "bank-minute-bars.ts")));
+      if (ASKS_ONCE.has(path)) {
+        assert.ok(!ladder, `${path} is named as asking once and retries after all`);
+      } else {
+        assert.ok(ladder, `${path} fetches FMP on no shared ladder: retry through fmpRetry.ts or bank-minute-bars.ts's withRetry, or name it in ASKS_ONCE with its reason`);
+      }
+    }
+    for (const path of ASKS_ONCE.keys()) assert.ok(spenders.includes(path), `${path} is exempt but no longer a spender`);
   });
 });
 

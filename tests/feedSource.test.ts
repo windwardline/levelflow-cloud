@@ -60,6 +60,10 @@ const FMP_FILE_ALLOWLIST = [
   // deeper than the ~3 days an undated one returns. Same standing as the bank
   // above — reads the feed, writes a report, and is not a price path.
   "scripts/probe-minute-bars.ts",
+  // The hole filler (docs/minute-bank.md, "Filling a hole"): dated 1-minute
+  // requests through the governor, appended to the bank. Same standing as the
+  // bank and the probe — reads the feed, writes the store, not a price path.
+  "scripts/recover-minute-bank.ts",
   "scripts/replay-sweep.ts",
   // The match-confirmation gate (owner directive, 2026-08-05): probes every
   // master-list row's FMP mate for real, deep, current bars and exits

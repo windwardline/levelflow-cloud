@@ -26,6 +26,7 @@ import {
   SEALED_FOLD,
   tuningFolds,
 } from "./sweepStats.ts";
+import { positionalArgs } from "./flagReader.ts";
 
 // SYMBOLS: external the grain complex | 6 of 6 vs agriculture
 const GRAINS = new Set(["ZCUSX", "ZSUSX", "ZLUSX", "ZMUSD", "ZOUSX", "ZRUSD"]);
@@ -55,7 +56,10 @@ async function main(): Promise<void> {
   const bands = new Map<string, S>();     // cohort|floor|split
   const hours = new Map<string, S>();     // cohort|utcHour
   const totals = new Map<string, S>();
-  const files = process.argv.slice(2);
+  // Positional shard paths and nothing else. Read whole, a `--x` was
+  // opened as a file and refused as a missing manifest — the wrong
+  // diagnosis for a typo; the shared walk names it as a flag.
+  const files = positionalArgs(process.argv.slice(2), new Set(), new Set(), "ag-class-derivation");
   // WIF-4, derived population (#364 round 54, finding 2): a run over zero
   // rows cannot report a verdict, and this reader had no door — with no
   // shard the loop never runs and the table prints its column header alone

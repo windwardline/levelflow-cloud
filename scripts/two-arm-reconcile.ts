@@ -53,7 +53,7 @@
 import { closeSync, openSync, readSync } from "node:fs";
 import { StringDecoder } from "node:string_decoder";
 import { fileURLToPath } from "node:url";
-import { flagReader, OperatorInputError } from "./flagReader.ts";
+import { flagReader, flagsOnly, OperatorInputError } from "./flagReader.ts";
 import {
   describeHeldOut,
   type ResolvedHeldOut,
@@ -63,6 +63,10 @@ import { type SweepManifest, stableStringify } from "./sweepManifest.ts";
 import { assertAcceptanceMode, assertManifest, SEALED_FOLD } from "./sweepStats.ts";
 
 const VALUE_FLAGS = new Set(["--capture-all", "--gated", "--max-examples"]);
+// The flags that own no token, declared so the walk can refuse an UNKNOWN
+// flag or a stray argument by name (2026-09-21): this reader read its
+// flags through accessors alone, so a typo ran as the default.
+const BOOLEAN_FLAGS = new Set<string>([]);
 
 /**
  * Synchronous line iterator over a file of any size: 64 KB reads, lines
@@ -518,6 +522,7 @@ export function formatReport(report: ReconcileReport): string {
 }
 
 function main(): void {
+  flagsOnly(process.argv.slice(2), VALUE_FLAGS, BOOLEAN_FLAGS, "two-arm-reconcile");
   const { num, str } = flagReader(process.argv.slice(2), VALUE_FLAGS);
   const gatedPath = str("--gated");
   const captureAllPath = str("--capture-all");
