@@ -378,6 +378,47 @@ describe("review copy is coupled to the engine that feeds it", () => {
     );
   });
 
+  it("never calls the full-size Target 2 ratio 'payoff', at the engine or on the surface", () => {
+    // The reward-risk gate reads `pricePlan.rewardRisk` (and, for the cost
+    // story, `grossRewardRisk`): Target 2 on a FULL-SIZE position. The Desk
+    // prints the ladder's payoff under "payoff after costs", and half the
+    // position leaves at TP1, so the two figures differ by a third or more on
+    // every laddered setup. A refusal that calls its figure "payoff" gives the
+    // operator one word for two numbers.
+    //
+    // DERIVED: every emit site whose value interpolates either ratio.
+    const quoting: string[] = [];
+    for (const file of EMITTERS) {
+      const source = readFileSync(join(ANALYZER, file), "utf8");
+      for (const match of source.matchAll(SITE)) {
+        const { joins, texts } = literalsAt(source, match.index + match[0].length);
+        for (const sentence of groupsOf(joins, texts)) {
+          if (/\bpricePlan\.(?:rewardRisk|grossRewardRisk)\b/.test(sentence)) {
+            quoting.push(sentence);
+          }
+        }
+      }
+    }
+    // NON-VACUITY: the geometry refusal and the cost refusal.
+    assert.ok(
+      quoting.length >= 2,
+      `only ${quoting.length} sentences quote the Target 2 ratio — the scan broke`,
+    );
+    const offenders: string[] = [];
+    for (const sentence of quoting) {
+      for (const variant of expand(sentence)) {
+        for (const text of [variant, applyRewrites(variant)]) {
+          if (/payoff/i.test(text) || !/Target 2/.test(text)) offenders.push(text);
+        }
+      }
+    }
+    assert.deepEqual(
+      Array.from(new Set(offenders)),
+      [],
+      "these refusals call the full-size Target 2 ratio something else",
+    );
+  });
+
   it("lets no engine-internal vocabulary reach the reader", () => {
     // Not a style preference. Each of these named something the reader can
     // neither act on nor see: a server environment variable, a log they

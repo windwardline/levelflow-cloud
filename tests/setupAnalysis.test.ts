@@ -156,9 +156,9 @@ function diagnosticsFor(
     );
   } else if (pricePlan.rewardRisk < calibration.minRewardRisk) {
     diagnostics.push(
-      `Payoff was ${
+      `Target 2 on the full position would pay ${
         pricePlan.rewardRisk.toFixed(2)
-      }x; Levelflow requires at least ${
+      }x the risk; Levelflow requires at least ${
         calibration.minRewardRisk.toFixed(2)
       }x for this market.`,
     );

@@ -68,16 +68,20 @@ export const REVIEW_REWRITES: ReviewRewrite[] = [
         .trim(),
   },
   {
+    // Target 2 on the FULL position is the gate's figure. On a laddered
+    // setup the Desk's "payoff after costs" is the ladder's, which is smaller
+    // because half the position leaves at TP1, so this copy never calls its
+    // figure "payoff".
     pattern:
-      /Payoff was ([0-9.]+)x; Levelflow requires at least ([0-9.]+)x for this market\./i,
-    to: (_match, payoff: string, required: string) =>
-      `The target was not far enough from the entry to justify the risk (${payoff}x payoff; ${required}x required).`,
+      /Target 2 on the full position would pay ([0-9.]+)x the risk; Levelflow requires at least ([0-9.]+)x for this market\./i,
+    to: (_match, ratio: string, required: string) =>
+      `Target 2 was not far enough from the entry to justify the risk (${ratio}x on the full position; ${required}x required).`,
   },
   {
     pattern:
-      /Trading costs took the payoff from ([0-9.]+)x to ([0-9.]+)x; Levelflow requires at least ([0-9.]+)x for this market\./i,
+      /Trading costs took Target 2 on the full position from ([0-9.]+)x to ([0-9.]+)x the risk; Levelflow requires at least ([0-9.]+)x for this market\./i,
     to: (_match, gross: string, net: string, required: string) =>
-      `Trading costs took the payoff from ${gross}x to ${net}x (${required}x required).`,
+      `Trading costs took Target 2 on the full position from ${gross}x to ${net}x (${required}x required).`,
   },
   {
     pattern:

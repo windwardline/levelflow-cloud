@@ -115,7 +115,10 @@ that touches a value the UI mirrors, which is why
 Session gates: 12:00–18:00 UTC blocked for crypto, futures, and indices
 (r22 full-depth validation — futures emphatic, crypto retained as a
 net-quality filter); energies additionally blocked at UTC hours 3, 4,
-12, 15, 19, 21 (r15). Chop-regime gate active for all classes (r3b).
+12, 15, 19, 21 (r15). Every one of those hours was set on the pre-repair
+clock and has not been re-derived, so the refusal names the window and
+cites no measurement; the hours stand until a market-grain re-grade
+rides the next re-simulate. Chop-regime gate active for all classes (r3b).
 Forex/futures carry the buy-side tilt (r5). High-impact scheduled news
 blocks reviews; penalties per the caps above (r23 validated them as
 calibrated).
@@ -1333,7 +1336,8 @@ Full-depth per-hour curves, both splits, every hour visible:
   train +0.002 / test **−0.008**, failing the both-splits bar. The gate
   survives as a net-quality filter, and the user-facing refusal reason
   now says exactly that ("run well below every other hour") instead of
-  the no-longer-true "were negative."
+  the no-longer-true "were negative." (Withdrawn 2026-09-22: the corpus
+  carried the clock defect, so the reason now states only the window.)
 - **No new low-edge hours in either class** — zero negative-both buckets
   outside the gated window, matching r15's null for forex, futures,
   crypto, and metals open hours.
