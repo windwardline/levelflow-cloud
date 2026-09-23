@@ -1223,7 +1223,8 @@ export function simulateSymbol(input: {
           // Engine v2 (round-8 FR-1/3/5/7/8, LA-2): the venue's fills. The
           // spread lives in the TRIGGERS and the expiry print, slippage in
           // every stop-kind exit print (gapped: FR-7's gap print; clean:
-          // the level, since 2026.09.23.stop-exit-slippage) — so the leg
+          // the level, since 2026.09.23.stop-exit-slippage) and in the
+          // expiry close (since 2026.09.23.expiry-exit-slippage) — so the leg
           // accountant charges only what the prints cannot carry: the
           // commission.
           //
@@ -1386,10 +1387,11 @@ export function simulateSymbol(input: {
       volatilityPercentile: regime.volatilityPercentile,
       riskDistance: Math.abs(plan.entryPrice - plan.stopLoss),
       // NET, and the name collides. This `realizedR` charges commission
-      // through `perLegCost` while spread and stop slippage already ride in the
-      // leg prints — so the corpus's figure is fully cost-net (stop slippage on
-      // clean stops only since 2026.09.23.stop-exit-slippage; a corpus emitted
-      // before it slipped gapped stops alone and is optimistic by that much). `replay.ts`
+      // through `perLegCost` while spread and exit slippage already ride in the
+      // leg prints — so the corpus's figure is fully cost-net (slippage on
+      // clean stops since 2026.09.23.stop-exit-slippage and on the expiry close
+      // since 2026.09.23.expiry-exit-slippage; a corpus emitted before them
+      // slipped gapped stops alone and is optimistic by that much). `replay.ts`
       // uses the SAME NAME for its GROSS twin (`perLegCost: 0`) and carries
       // `netRealizedR` beside it, which is what the Desk reads. One name, two
       // cost bases, on the measure amendment 39 governs: a reader joining the
@@ -1449,7 +1451,7 @@ export function simulateSymbol(input: {
       realizedR: realizedRFromLegs({
         legs: evaluation.legs,
         // v2: spread and slippage are IN the leg prints (bid/ask triggers,
-        // every stop-kind exit, gapped or clean, the expiry bid) — charging
+        // every stop-kind exit, gapped or clean, the slipped expiry bid) — charging
         // them again here would double-bill the trip. The commission is the one cost no print
         // can carry, and half of it rides on each full-size unit.
         perLegCost: plan.executionQuality.estimatedCommission / 2,

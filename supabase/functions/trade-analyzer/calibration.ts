@@ -148,10 +148,21 @@ import { isKnownSymbol } from "./symbols.ts";
 // target and expiry prints do not move; outcome labels do not move; realized R
 // on every clean stop-kind exit falls by its exit fraction times
 // slippage / riskDistance. Corpora emitted before this version carry the
-// unslipped prints; `scripts/banked-fraction.ts --stop-exit-slippage` prices
+// unslipped prints; `scripts/banked-fraction.ts --exit-slippage` prices
 // them at this physics without a re-simulate.
 // (Prior: 2026.09.14.forex-commission-cross-rate.)
-export const ANALYZER_VERSION = "2026.09.23.stop-exit-slippage";
+//
+// 2026.09.23.expiry-exit-slippage: FR-1's review-end close is a market order
+// too, so it prints the last close ∓ half a spread ∓ the modelled slippage,
+// against the position (`expiryExitSlippage`, replay.ts), on the sweep and the
+// live bridge alike through `resolverCostOptions`. Realized R on every expiry
+// exit falls by its exit fraction times slippage / riskDistance, and FR-8's
+// label moves with it: an expiry without a tp1 leg whose net R sat within one
+// slippage of zero now reads expired_at_loss. Stop, limit and entry prints do
+// not move. Closes the second finding of #689's review; corpora emitted before
+// it carry the unslipped close and `--exit-slippage` prices them.
+// (Prior: 2026.09.23.stop-exit-slippage.)
+export const ANALYZER_VERSION = "2026.09.23.expiry-exit-slippage";
 
 export type AssetType =
   | "agriculture"

@@ -196,6 +196,35 @@ describe("the scale moves the MONEY, not only the gate", () => {
     assert.equal(atZero.slipped, 0, "the gross arm (scale 0) slipped a stop print — the scale does not reach stopExitSlippage");
   });
 
+  it("every expiry close slips by the modelled slippage at scale 1, and by nothing at scale 0 (2026-09-23)", () => {
+    // End to end through the sweep. A slow triangle (period 400) leaves setups
+    // open to the review's end. Where the net arm AND the gross arm both
+    // expire, both print the same bar's close: gross (scale 0) at the close
+    // itself, net at close ∓ (half spread + slippage), against the position.
+    const slow = { primaryBars: triangleBars(600, 400, 4) };
+    const TOLERANCE = 2e-8;
+    const census = (result: ReturnType<typeof simulateSymbol>, scale: number) => {
+      let matched = 0;
+      let expiries = 0;
+      for (const row of filled(result)) {
+        const exit = row.legs.find((leg) => leg.leg === "exit");
+        if (exit?.kind !== "expiry" || !String(row.grossOutcome).startsWith("expired_")) continue;
+        expiries += 1;
+        const against = row.side === "buy" ? -1 : 1;
+        const expected = Number(row.grossExitPrice) +
+          against * scale * (row.estimatedSpread / 2 + row.estimatedSlippage);
+        if (Math.abs(exit.price - expected) <= TOLERANCE) matched += 1;
+      }
+      return { expiries, matched };
+    };
+    const atFull = census(runAtScale("1", slow), 1);
+    assert.ok(atFull.expiries >= 5, `only ${atFull.expiries} rows expired on both arms — the fixture cannot discriminate`);
+    assert.equal(atFull.matched, atFull.expiries, "an expiry close at scale 1 did not print close ∓ (half spread + slippage)");
+    const atZero = census(runAtScale("0", slow), 0);
+    assert.ok(atZero.expiries >= 5);
+    assert.equal(atZero.matched, atZero.expiries, "an expiry close at scale 0 moved off the close");
+  });
+
   it("the gross arm is the CHEAPER one, never merely a looser gate", () => {
     // Direction matters and is the half the old wiring got wrong. Removing
     // cost must make the same trades earn MORE. If it only admitted more
@@ -244,6 +273,7 @@ describe("what the scale multiplies, and what it must never touch", () => {
     // sample `venueCosts` itself warns "is not a cost model". The commission
     // is E8's published bill, so it survives every scale intact.
     assert.deepEqual(resolverCostOptions(quality, 0), {
+      expiryExitSlippage: 0,
       gapExitSlippage: 0,
       halfSpread: 0,
       roundTripCost: 0.00007,
@@ -253,6 +283,7 @@ describe("what the scale multiplies, and what it must never touch", () => {
 
   it("is bit-identical to the hand-written form at scale 1", () => {
     assert.deepEqual(resolverCostOptions(quality, 1), {
+      expiryExitSlippage: quality.estimatedSlippage,
       gapExitSlippage: quality.estimatedSlippage,
       halfSpread: quality.estimatedSpread / 2,
       roundTripCost: quality.estimatedCommission,
@@ -264,6 +295,7 @@ describe("what the scale multiplies, and what it must never touch", () => {
     const half = resolverCostOptions(quality, 0.5);
     assert.equal(half.gapExitSlippage, 0.00002);
     assert.equal(half.stopExitSlippage, 0.00002);
+    assert.equal(half.expiryExitSlippage, 0.00002);
     assert.equal(half.halfSpread, 0.00003);
     assert.equal(half.roundTripCost, 0.00007);
   });
@@ -290,6 +322,7 @@ describe("the live bridge is scale-free by construction", () => {
       assert.equal(options.halfSpread, 0.00005);
       assert.equal(options.gapExitSlippage, 0.00004);
       assert.equal(options.stopExitSlippage, 0.00004);
+      assert.equal(options.expiryExitSlippage, 0.00004);
       assert.equal(options.roundTripCost, 0.00006);
     } finally {
       if (prior === undefined) delete process.env.LEVELFLOW_MODELED_COST_SCALE;
@@ -313,6 +346,7 @@ describe("the live bridge carries every cost the sweep's mapping produces", () =
     const live = fillOptionsFromRiskModel({ executionQuality: quality }) as
       Record<string, unknown>;
     assert.ok(Object.keys(sweep).includes("stopExitSlippage"));
+    assert.ok(Object.keys(sweep).includes("expiryExitSlippage"));
     for (const [key, value] of Object.entries(sweep)) {
       assert.equal(live[key], value, `the live bridge dropped or changed ${key}`);
     }

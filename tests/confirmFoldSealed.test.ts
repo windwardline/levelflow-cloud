@@ -370,7 +370,7 @@ function writeCorpus(
     generatedAt: "2026-09-02T20:00:00.000Z",
     grid: [{}, { runnerProtection: "hold" }],
     // Stated as every corpus since M5 states it: banked-fraction's
-    // --stop-exit-slippage prices at this scale and refuses a manifest without one.
+    // --exit-slippage prices at this scale and refuses a manifest without one.
     modeledCostScale: 1,
     // The roster the sweep was ASKED for — every symbol here survived, so it
     // equals `symbols`. The held-out helper (R4 act 2, deliverable 4) draws
@@ -608,11 +608,11 @@ const EXTRA_RUNS: Array<{ args: string[]; cwd?: "fixture"; label: string; reader
     label: "banked-fraction --include-holdout",
     reader: "banked-fraction",
   },
-  // The stop-exit pass prices every stop-kind row, tp1 or not: a wider
-  // population than the default tables, so its own proof that the fold stays shut.
+  // The exit-slippage pass prices every stop-kind and expiry row, tp1 or not:
+  // a wider population than the default tables, so its own proof that the fold stays shut.
   {
-    args: ["F", "--stop-exit-slippage"],
-    label: "banked-fraction --stop-exit-slippage",
+    args: ["F", "--exit-slippage"],
+    label: "banked-fraction --exit-slippage",
     reader: "banked-fraction",
   },
   {
