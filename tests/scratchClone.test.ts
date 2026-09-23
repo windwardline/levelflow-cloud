@@ -28,7 +28,7 @@ import { describe, it } from "node:test";
  *
  * WHAT THIS FILE PINS is the half a helper cannot pin about itself: which tests
  * need `.git`, and therefore what `--no-git` costs. That set is invisible until someone runs the suite from a copy
- * made without it, and then it presents as 19 failures reading
+ * made without it, and then it presents as 33 failures (measured 2026-09-22) reading
  * `Command failed: git status --porcelain` — which looks like a broken test, not
  * a missing directory. Pinning it means a new git-dependent test fails here,
  * where the message says what to do, rather than in a scratch copy an hour later.

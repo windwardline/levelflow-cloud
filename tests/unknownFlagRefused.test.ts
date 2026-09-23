@@ -398,6 +398,14 @@ const declaredFlags = (source: string): { boolean: string[]; value: string[] } =
  * `name: { … type: "string" | "boolean" … }` in a script that binds
  * node:util's parseArgs. Keyed on the option's own shape, so an options
  * object built apart from the call is read as well as one written inline.
+ *
+ * Residue, stated: the scan is the whole file, not the options object that
+ * reaches the call, so a typed literal elsewhere declares a flag the parser
+ * does not know. That is the one direction that could read green, and the
+ * executed acceptance run below closes it: it passes every declared flag, and
+ * a strict parser refuses the stray one as an "Unknown option", which that run
+ * refuses as it does an unknown flag. An option whose type is not a literal is
+ * not declared at all, and a read of it is then red as undeclared.
  */
 const parseArgsOptions = (source: string): Array<[string, "boolean" | "string"]> => {
   const code = withoutComments(source);
@@ -415,6 +423,11 @@ const parseArgsOptions = (source: string): Array<[string, "boolean" | "string"]>
  * operator-facing prose that mentions flags does not count. A parseArgs
  * reader reads its options by key off `values` (`values.out`,
  * `values["dry-run"]`), and each key read that way is a flag read.
+ *
+ * Residue, stated: in a parseArgs reader every `values.<member>` counts,
+ * whatever `values` is bound to, so `values.length` or a local array's
+ * `values.map` reads as a flag. Each such read is red as undeclared, never
+ * green: the over-read fails closed.
  */
 const readFlags = (source: string): string[] => {
   const code = withoutComments(source);
@@ -896,26 +909,56 @@ describe("every argv reader refuses an unknown flag by name", { concurrency: CON
         t.diagnostic(`${reader} declares no flag`);
         return;
       }
-      // Every declared flag in ONE invocation. The walk throws on the FIRST
-      // token it does not know, so passing them together still names
-      // whichever one fell out of the declaration. Each value flag gets a
-      // plausible token, never asserted to be VALID for the dial: the claim
-      // under test is that the WALK knows the flag. A domain refusal below
-      // it is a different guard with its own tests.
-      const every = [
-        ...declared.boolean,
-        ...declared.value.flatMap((flag) => [flag, "1"]),
-      ];
-      const run = await runReader(reader, every);
-      assertExecuted(reader, run);
-      assert.doesNotMatch(
-        run.stderr + run.stdout,
-        /unknown ?flag/i,
-        `${reader} refuses a flag it declares itself, out of ` +
-          `${every.join(" ")} — a guard that refuses everything is not a guard`,
-      );
+      await assertAcceptsEveryDeclared(reader);
     });
   }
+
+  /** The acceptance law, as one reader answers it. */
+  async function assertAcceptsEveryDeclared(reader: string): Promise<void> {
+    const declared = declaredFlags(sourceOf(reader));
+    // Every declared flag in ONE invocation. The walk throws on the FIRST
+    // token it does not know, so passing them together still names
+    // whichever one fell out of the declaration. Each value flag gets a
+    // plausible token, never asserted to be VALID for the dial: the claim
+    // under test is that the WALK knows the flag. A domain refusal below
+    // it is a different guard with its own tests.
+    const every = [
+      ...declared.boolean,
+      ...declared.value.flatMap((flag) => [flag, "1"]),
+    ];
+    const run = await runReader(reader, every);
+    assertExecuted(reader, run);
+    // node:util's parseArgs names a flag it does not know an "option".
+    assert.doesNotMatch(
+      run.stderr + run.stdout,
+      /unknown ?(?:flag|option)/i,
+      `${reader} refuses a flag it declares itself, out of ` +
+        `${every.join(" ")} — a guard that refuses everything is not a guard`,
+    );
+  }
+
+  it("a flag declared outside the parser's options is refused when executed, never read green", async () => {
+    // declaredFlags scans the whole file of a parseArgs reader, so a typed
+    // literal the parser never sees still counts as declared. Executed, the
+    // strict parser refuses that flag as an "Unknown option", and the
+    // acceptance law must refuse the reader for it. The control proves the
+    // law accepts the same reader without the stray literal.
+    const reader = (stray: boolean) => {
+      const file = join(scratchDir("parse-args-declared-"), "reader.ts");
+      writeFileSync(
+        file,
+        'import { parseArgs } from "node:util";\n' +
+          (stray ? 'const LEGACY = { ghost: { type: "string" } };\nvoid LEGACY;\n' : "") +
+          'const { values } = parseArgs({ options: { out: { type: "string" } } });\n' +
+          "void values.out;\n",
+      );
+      return file;
+    };
+    const straying = reader(true);
+    assert.deepEqual(declaredFlags(sourceOf(straying)).value.sort(), ["--ghost", "--out"], "premise: the stray literal reads as declared");
+    await assert.rejects(assertAcceptsEveryDeclared(straying), /refuses a flag it declares itself/);
+    await assertAcceptsEveryDeclared(reader(false));
+  });
 
   for (const reader of FLAGS_ONLY) {
     it(`${reader} refuses a stray argument by name — executed`, async () => {

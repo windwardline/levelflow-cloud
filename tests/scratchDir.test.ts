@@ -288,7 +288,7 @@ describe("the durable scratch dir stays behind two stubs", () => {
     // refusal of a temp-rooted store (barrier 2 of tests/support/noKeychain.ts)
     // does not stop a run that uses it. Its docstring limits it to a test whose
     // tsx and security are stubs; this makes that limit a census. A directory
-    // walk, not `git ls-files`: this file is not one of the git-dependent five.
+    // walk, not `git ls-files`: this file is not one of the git-dependent six.
     const walk = (dir: string): string[] =>
       readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
         entry.isDirectory() ? walk(join(dir, entry.name)) : [join(dir, entry.name)]
