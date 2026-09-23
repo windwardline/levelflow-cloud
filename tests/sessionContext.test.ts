@@ -315,6 +315,26 @@ describe("a low-edge refusal states its window and claims no measurement", () =>
       "",
     ].join("\n");
     assert.throws(() => helperLiterals(braceInString, "windowPhrase"), /alone at column 0/);
+    const exported = [
+      "function outer() {",
+      "  return phrase();",
+      "}",
+      "",
+      "export function phrase() {",
+      '  return "she said \\"measured\\"";',
+      "}",
+      "",
+    ].join("\n");
+    assert.ok(
+      helperLiterals(exported, "outer").some((literal) => CLAIM.test(literal)),
+      "an exported callee, or a literal with an escape, went unread",
+    );
+    const arrow = ["function outer() {", "  return phrase();", "}", "", 'const phrase = () => "measured";', ""].join("\n");
+    assert.throws(() => helperLiterals(arrow, "outer"), /function declaration/);
+    for (const expression of ['outer() + ", a measured stretch"', "outer() || other()"]) {
+      assert.throws(() => reasonWords(delegating, `Closed \${${expression}} UTC.`), /one call to a helper/, expression);
+    }
+    assert.equal(reasonWords(delegating, "Closed ${outer(now.getUTCHours())} UTC.").helpers, 1);
   });
 
   it("holds at every lowEdge site in the source, reached or not", () => {
@@ -329,36 +349,75 @@ describe("a low-edge refusal states its window and claims no measurement", () =>
     assert.ok(sites >= 3, `only ${sites} lowEdge sites found — the scan broke`);
     assert.equal(reasons.length, sites, "a lowEdge site's reason was not read");
     // The words an operator reads are the literal parts plus whatever an
-    // interpolation returns. A helper's NAME is code and is not read; its
-    // string literals are, because a site the roster cannot reach is covered
-    // by this scan alone. An interpolation that is not a call to a function in
-    // this file cannot be read, so it fails rather than passing unread.
+    // interpolation returns (`reasonWords`), because a site the roster cannot
+    // reach is covered by this scan alone.
     let helpers = 0;
     for (const reason of reasons) {
-      for (const [, expression] of reason.matchAll(/\$\{([^}]*)\}/g)) {
-        const call = /^\s*([A-Za-z_]\w*)\(/.exec(expression!);
-        assert.ok(call, `a lowEdge reason interpolates \`${expression}\`, which this scan cannot read; move the text into a helper in sessions.ts`);
-        for (const literal of helperLiterals(source, call[1]!)) assert.doesNotMatch(literal, CLAIM, `${call[1]}(): ${literal}`);
-        helpers += 1;
-      }
-      assert.doesNotMatch(reason.replace(/\$\{[^}]*\}/g, ""), CLAIM, reason);
+      const read = reasonWords(source, reason!);
+      helpers += read.helpers;
+      for (const word of read.words) assert.doesNotMatch(word, CLAIM, `${reason}\n  reads: ${word}`);
     }
     assert.ok(helpers >= 1, "no reason interpolates a helper; the energies window did on 2026-09-23 — the scan broke");
   });
 });
 
+/** The index of the ")" that closes the "(" at `open` in `text`, or -1. */
+function closingParen(text: string, open: number): number {
+  let depth = 0;
+  for (let index = open; index < text.length; index += 1) {
+    if (text[index] === "(") depth += 1;
+    if (text[index] === ")" && --depth === 0) return index;
+  }
+  return -1;
+}
+
 /**
- * Every string literal in the body of `function name(` in `source`, comments
- * removed and template interpolations dropped, and every literal of each
- * top-level function in the same file that the body calls. Fails when a
- * function or the end of its body cannot be found: the body must close on a
- * `}` alone at column 0, so a brace inside a string cannot end the read early.
+ * What a top-level binding named `name` in `source` is: a function
+ * declaration the scan can read, some other binding it cannot, or none (a
+ * builtin, a method, or a local the enclosing body's literals already cover).
+ */
+function topLevelBinding(source: string, name: string): "function" | "other" | null {
+  if (new RegExp(String.raw`^(?:export )?(?:async )?function ${name}\(`, "m").test(source)) return "function";
+  if (new RegExp(String.raw`^(?:export )?(?:const|let|var) ${name}\b`, "m").test(source)) return "other";
+  return null;
+}
+
+/**
+ * The words a reason can put in front of an operator: its literal parts, and
+ * every literal of the same-file function each interpolation calls. An
+ * interpolation must be exactly one call to such a function; anything beside
+ * the call would be read by nobody, so the scan refuses it.
+ */
+function reasonWords(source: string, reason: string): { helpers: number; words: string[] } {
+  const words = [reason.replace(/\$\{[^}]*\}/g, "")];
+  let helpers = 0;
+  for (const [, expression] of reason.matchAll(/\$\{([^}]*)\}/g)) {
+    const call = /^\s*([A-Za-z_]\w*)\(/.exec(expression!);
+    const end = call ? closingParen(expression!, call[0].length - 1) : -1;
+    assert.ok(
+      call && end >= 0 && expression!.slice(end + 1).trim() === "",
+      `a lowEdge reason interpolates \`${expression}\`, which this scan cannot read; make it one call to a helper in sessions.ts`,
+    );
+    words.push(...helperLiterals(source, call[1]!));
+    helpers += 1;
+  }
+  return { helpers, words };
+}
+
+/**
+ * Every string literal in the body of the top-level `function name(` in
+ * `source`, comments removed, escapes allowed and template interpolations
+ * dropped, and every literal of each top-level function the body calls. A
+ * call to a top-level binding that is not a function declaration fails, and
+ * so does a body that does not close on a `}` alone at column 0: a brace
+ * inside a string cannot end the read early. (An unbalanced `{` in a string
+ * reads past the body, a superset: loud or over-inclusive, never short.)
  */
 function helperLiterals(source: string, name: string, seen = new Set<string>()): string[] {
   if (seen.has(name)) return [];
   seen.add(name);
-  const at = source.indexOf(`function ${name}(`);
-  assert.ok(at >= 0, `the reason interpolates ${name}(), which is not a function in sessions.ts`);
+  const at = source.search(new RegExp(String.raw`^(?:export )?(?:async )?function ${name}\(`, "m"));
+  assert.ok(at >= 0, `the reason reads ${name}(), which is not a top-level function declaration in sessions.ts`);
   const head = /\)\s*(?::[^{]+)?\{/.exec(source.slice(at));
   assert.ok(head, `${name}() has no body the scan can find`);
   const open = at + head.index + head[0].length - 1;
@@ -377,11 +436,13 @@ function helperLiterals(source: string, name: string, seen = new Set<string>()):
     `${name}()'s body did not close on a \`}\` alone at column 0; the scan cannot trust where it ends`,
   );
   const body = source.slice(open + 1, close).replace(/^\s*\/\/[^\n]*$/gm, "");
-  const literals = [...body.matchAll(/"([^"\\\n]*)"|'([^'\\\n]*)'|`([^`]*)`/g)].map((match) =>
-    (match[1] ?? match[2] ?? match[3] ?? "").replace(/\$\{[^}]*\}/g, "")
-  );
+  const literals = [
+    ...body.matchAll(/"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g),
+  ].map((match) => (match[1] ?? match[2] ?? match[3] ?? "").replace(/\$\{[^}]*\}/g, ""));
   for (const [, callee] of body.matchAll(/(?<![.\w])([A-Za-z_]\w*)\(/g)) {
-    if (source.includes(`\nfunction ${callee}(`)) literals.push(...helperLiterals(source, callee!, seen));
+    const kind = topLevelBinding(source, callee!);
+    assert.ok(kind !== "other", `${name}() calls ${callee}, a top-level binding this scan cannot read; write it as a function declaration`);
+    if (kind === "function") literals.push(...helperLiterals(source, callee!, seen));
   }
   return literals;
 }
