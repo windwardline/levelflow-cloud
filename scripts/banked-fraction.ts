@@ -1037,10 +1037,11 @@ function scaleClause(scale: number | null): string {
     : `this corpus's resolver ran at modeledCostScale ${scale}`;
 }
 /**
- * The slippage-priced line per class. True on every class and every scale: the
- * hybrid charges tp1 rows only, at the unscaled estimatedSlippage, and says
- * both — so its slope across fractions is the resolver's rule and its levels
- * are not (review of #692, finding 1).
+ * The slippage-priced line per class. Each says what is true on its class at any
+ * scale: the hybrid charges tp1 rows only, at the unscaled estimatedSlippage,
+ * and says both. Its slippage term follows the resolver's rule at
+ * modeledCostScale 1 only (at scale c the resolver's is c times it), and its
+ * levels never do (reviews of #692 and #695).
  */
 const SLIPPAGE_PRICED: Record<SlippageClass, (scale: number | null) => string> = {
   "gapped-only": (scale) =>

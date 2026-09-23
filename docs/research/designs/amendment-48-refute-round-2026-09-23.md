@@ -1,19 +1,24 @@
 # Amendment 48, reconciled draft: refute round 1 (2026-09-23)
 
-**Verdict: the draft stays PARKED. Seven majors survive their checkers; a fifth pass is owed.**
+**Verdict: the draft stays PARKED. Six majors survive their checkers, and a seventh, scoped to minor by its checker, is kept among them because it is what parked the last pass; a fifth pass is owed.**
 
 The subject is the "Reconciled draft 2026-09-23" section of
 [`amendment-46-parameters-2026-09-21.md`](/docs/research/designs/amendment-46-parameters-2026-09-21.md)
 as it stood before this round: 393 lines from its heading to the end of the file, sha256
 `ba74bcc45e2e3a50c144dbdf1fe3136eccb7860b1e4e8890daaa037e958ea17f`. (The drafting branch did not merge, so no commit on main holds that text; the hash
 is the anchor.) The section on main differs in one place: its header now names this round
-and adds Q5 to the gate, which is half of major 3's fix. Four refuters attacked it through one lens each (internal consistency,
+and adds Q5 to the gate, which is half of major 3's fix. As corrected on main on
+2026-09-23 (this round's verdict carried into its header), the section runs 398 lines from
+its heading to the end of the file, sha256 `3563f37cb9b02813068b5f01c069ec49c88038ec5cb0239e55f86108c1265ac2`; a later edit to
+it changes that hash. Four refuters attacked it through one lens each (internal consistency,
 arithmetic and code, authority against amendment 46, sealing of the span-start rule), and an
 independent checker per refuter tried to overturn every finding by re-reading the cited lines
 and re-running the computations. 49 findings; 4 overturned; the rest hold or partly hold.
 Findings are distilled here, with the checker's corrected fix where the checker changed it.
 The round's journal, outside the repository:
 `~/.claude/projects/-Users-peacock-Projects-levelflow-cloud/899fcfeb-a1c1-46da-9a31-765c580eb0f8/subagents/workflows/wf_07bdb5a6-119/journal.jsonl`.
+Both layouts under that session are real: `workflows/<id>.json` holds a run's record (the
+check round cites those) and `subagents/workflows/<id>/` holds its agents and journal.
 
 ## Majors that survive
 
@@ -21,7 +26,8 @@ The round's journal, outside the repository:
    is "not chosen", but the draft never says whose density projects it, which registration a
    freeze is timed for, or which markets the group names, and nothing records or recomputes L
    before the sweep. Test (d) holds for every L: `calendarFolds` gives select end = confirm
-   start = F for all 7,990 whole-day L from 6 to 4000. At a 30-cluster floor the shortest L is
+   start = F for every whole-day L from 6 to 4000 (3,995 values) on each of the two recorded
+   frontiers, 7,990 cases. At a 30-cluster floor the shortest L is
    34 days for a seven-day market (confirm ends 2026-09-29, 81% elapsed on 09-23) and 46 days
    for a weekday market (ends 2026-10-11). A designer who has watched `[F, now)` in the cache
    or the minute bank can register after F + L and pick a confirm window already seen.

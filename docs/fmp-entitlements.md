@@ -16,8 +16,11 @@ The balance is paid and the dashboard shows Ultimate. ~~**The API key still read
 suspended**, and the owner is escalating with FMP.~~ **Reinstated 2026-09-14**
 (verified with one `/stable/quote` request; the minute bank's 11:20Z run banked
 205,647 bars on its own). The table below is the record of the suspension
-(2026-09-04 → 2026-09-14); none of it blocks now, and the key is owed a
-rotation because thirteen `analyzer_events` rows carried it until 2026-09-14:
+(2026-09-04 → 2026-09-14); none of it blocks now. No rotation is owed for
+the thirteen `analyzer_events` rows that carried a key until 2026-09-14: all
+thirteen date from 2026-08-07, are redacted, and carry the key rotated out on
+2026-08-17, which FMP rejects. Edge console logs since 2026-08-18 are unmeasured
+([FMP plan, E4](/docs/research/designs/fmp-plan-2026-09-16.md)).
 
 | | blocked |
 |---|---|

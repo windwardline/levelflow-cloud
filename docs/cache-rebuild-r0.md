@@ -29,27 +29,22 @@ per symbol, and was never carried by the defect. Leave it running.
   drain date. Probed the same day from the rebuild PR's session (via the
   FMP connector, which shares the account): a quote request returned
   **200** — no 429. If this runbook is being executed much later, re-run
-  one cheap probe first:
-
-  The key rides a 600-mode curl config read with `-K`, never the URL on
-  argv — the query-string form is inside the never-argv law's scope
-  (#363 round 6; `ps -ax` on the studio machine shows argv, and a key
-  inside a URL is still a key):
+  one cheap probe first, through the governor: it asks the breaker and the
+  ad-hoc class's day before its one request, and records the bytes to the
+  ledger. The key reaches the process at exec and never argv:
 
   ```sh
-  ( f="$(mktemp "${TMPDIR:-/tmp}/levelflow-fmp-probe.XXXXXXXX")" && \
-      trap 'rm -f "$f"' EXIT && chmod 600 "$f" && \
-      printf 'url = "https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=EURUSD&from=2026-09-10&to=2026-09-12&apikey=%s"\n' \
-        "$(security find-generic-password -a peacock -s fmp-api-key -w)" > "$f" && \
-      curl -sS --max-time 60 -o /dev/null -w "%{http_code}\n" -K "$f" )
+  wl-secret fmp-api-key=FMP_API_KEY -- \
+    npx tsx scripts/probe-minute-bars.ts --symbol EURUSD --from YYYY-MM-DD --to YYYY-MM-DD
   ```
 
-  (Explicit `mktemp` template — a bare `mktemp` is a usage error on
-  macOS, the #360 ruling recorded in `sync-function-secrets.sh`; the
-  subshell's EXIT trap removes the key file when the probe ends —
-  verified for bash; if your shell handles an interrupt differently,
-  `rm -f` the probe file yourself — and `--max-time 60` bounds the wait
-  against a provider that has 429'd.)
+  It asks the 1-minute endpoint, not EOD, so its answer is about that
+  entitlement. A rate-limit or account refusal opens the breaker's account
+  entry, which stands down every consumer, the minute bank included, until
+  the breaker clears: that is the governor working, not the probe failing.
+  (Until 2026-09-23 this step was a raw `curl` with the key in a 600-mode
+  config file. It kept the key off argv, and it spent outside every
+  ledger.)
 
 - **The `to`-inclusivity and BOTH caps are SETTLED, measured 2026-08-18:**
   `historical-chart/5min?symbol=BTCUSD&from=2026-08-10&to=2026-08-15`

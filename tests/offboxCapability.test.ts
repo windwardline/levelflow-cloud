@@ -42,7 +42,8 @@ const CAPABILITY: ReadonlyArray<readonly [string, RegExp, string]> = [
 const HOME = "scripts/ops/";
 
 /**
- * Prefixes that name the capability without holding it, each with its reason.
+ * Keys that name the capability without holding it, each with its reason: a key
+ * ending in "/" is a directory, any other key one file (`covers`, below).
  * A standing exemption must still be needed: one no file uses is stale. A
  * workspace exemption covers a path that exists only in some checkouts, so its
  * absence is not staleness; its premise is that this repository tracks nothing
@@ -65,8 +66,8 @@ const NAMES_WITHOUT_HOLDING = new Map<string, { reason: string; standing: boolea
   }],
   [".fleet-standard/", {
     reason: "the fleet standard's prose, which no process runs: the fleet review lane checks " +
-      "FLEET.md out here, and a plain copy of it lists as files. Not ignored, because " +
-      "fleet-template does not ignore it and a local entry would be drift",
+      "FLEET.md out here, and a plain copy of it lists as files. A lane artifact this repository " +
+      "must never track; the test proves it tracks nothing there",
     standing: false,
   }],
 ]);
@@ -74,7 +75,14 @@ const NAMES_WITHOUT_HOLDING = new Map<string, { reason: string; standing: boolea
 const namesCapability = (text: string): string[] =>
   CAPABILITY.filter(([, pattern]) => pattern.test(text)).map(([name]) => name);
 
-const exemptionOf = (path: string) => [...NAMES_WITHOUT_HOLDING.keys()].find((prefix) => path.startsWith(prefix));
+// A key ending in "/" covers a directory; any other key covers that one file,
+// so AGENTS.md does not also cover an AGENTS.md.bak. Every use of the map goes
+// through this one rule.
+// A directory key also covers its bare name, which is how git lists a gitlink:
+// `git add` over an embedded clone tracks `.fleet-standard`, no slash.
+const covers = (key: string, path: string) =>
+  key.endsWith("/") ? path.startsWith(key) || path === key.slice(0, -1) : path === key;
+const exemptionOf = (path: string) => [...NAMES_WITHOUT_HOLDING.keys()].find((key) => covers(key, path));
 
 /** Each file that names the capability outside its home and every exemption, with what it names. */
 const outsideOf = (naming: ReadonlyArray<{ names: string[]; path: string }>): string[] =>
@@ -165,6 +173,16 @@ describe("only scripts/ops holds the off-box capability", () => {
     }
   });
 
+  it("exempts a directory key by prefix and a file key only by its own name", () => {
+    assert.equal(exemptionOf("tests/archiveOffbox.test.ts"), "tests/");
+    assert.equal(exemptionOf("AGENTS.md"), "AGENTS.md");
+    assert.equal(exemptionOf("AGENTS.md.bak"), undefined);
+    assert.equal(exemptionOf("testsuite/x.sh"), undefined);
+    assert.equal(covers("AGENTS.md", "AGENTS.md.bak"), false, "a file key reaches past its own name");
+    assert.equal(covers(".fleet-standard/", ".fleet-standard/FLEET.md"), true);
+    assert.equal(covers(".fleet-standard/", ".fleet-standard"), true, "a tracked gitlink escapes its directory key");
+  });
+
   it("names a nested repository without reading it, and still names the violation beside it — executed", () => {
     // The fleet review lane clones the standard into its workspace, and git
     // lists that clone as one `dir/` entry. Read as a file it threw EISDIR in a
@@ -218,17 +236,17 @@ describe("only scripts/ops holds the off-box capability", () => {
         "what they do to the permanent bucket: move the capability into scripts/ops/, " +
         "or name the path in NAMES_WITHOUT_HOLDING with its reason",
     );
-    for (const [prefix, { standing }] of NAMES_WITHOUT_HOLDING) {
+    for (const [key, { standing }] of NAMES_WITHOUT_HOLDING) {
       if (standing) {
         assert.ok(
-          census.naming.some(({ path }) => path.startsWith(prefix)),
-          `${prefix} no longer names the capability — drop its exemption`,
+          census.naming.some(({ path }) => covers(key, path)),
+          `${key} no longer names the capability — drop its exemption`,
         );
       } else {
         assert.deepEqual(
-          [...census.tracked].filter((path) => path.startsWith(prefix)),
+          [...census.tracked].filter((path) => covers(key, path)),
           [],
-          `${prefix} is exempt because this repository never tracks it, and it now does`,
+          `${key} is exempt because this repository never tracks it, and it now does`,
         );
       }
     }
