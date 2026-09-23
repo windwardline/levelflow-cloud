@@ -23,6 +23,7 @@ import {
   ProbeLostError,
   readJsonWithBudget,
   SpendRefusedError,
+  UngovernedSpendError,
 } from "../scripts/fmpByteBudget.ts";
 import { openCircuit, readBreaker } from "../scripts/fmpCircuit.ts";
 import {
@@ -801,6 +802,57 @@ describe("the stand-down token is derived from what refused", () => {
     // An entitlement gap is per endpoint: the verifier's other probes still answer.
     assert.doesNotThrow(() => rethrowIfFinal(refusal(BODIES.restricted, 402)));
     assert.doesNotThrow(() => rethrowIfFinal(new TypeError("fetch failed")));
+  });
+
+  it("starts the verifier's budget, fetch and state unset, so nothing reaches the provider ungoverned", () => {
+    // They used to default to an unledgered budget and the raw fetch, replaced
+    // in main(); any path to the provider before that would have spent outside
+    // the ledger and the probe gate.
+    const source = withoutComments(readFileSync("scripts/verify-fmp-matches.ts", "utf8"));
+    for (const name of ["budget", "providerFetch", "state"]) {
+      assert.match(source, new RegExp(`^let ${name}: \\w+ \\| undefined;$`, "m"), `${name} is not declared unset`);
+    }
+    // main() is the one place they are assigned: exactly once each, there.
+    const main = blockAt(source, source.indexOf("async function main("));
+    for (const name of ["budget", "providerFetch", "state"]) {
+      assert.equal([...main.body.matchAll(new RegExp(`^\\s*${name} = `, "gm"))].length, 1, `main() does not govern ${name} once`);
+    }
+    // Everywhere else the bare names never appear: every use goes through the
+    // refusing accessor.
+    const rest = (source.slice(0, main.start) + source.slice(main.end + 1))
+      .replace(/function governed\(\)[\s\S]*?\n\}/, "")
+      .replace(/^let (budget|providerFetch|state)\b.*$/gm, "");
+    assert.doesNotMatch(rest, /(?<![.\w])(budget|providerFetch|state)(?![\w:])/, "a use bypasses the refusing accessor");
+    // And the accessor's refusal is final, so the probes' catches rethrow it.
+    // The body's brace, not the return type's.
+    const governed = blockAt(source, source.indexOf(" {\n", source.indexOf("function governed(")));
+    assert.match(governed.body, /throw new UngovernedSpendError\(/);
+  });
+
+  it("reads an ungoverned spend as final, with a stand-down token", () => {
+    const refusal = new UngovernedSpendError("no governed budget");
+    assert.throws(() => rethrowIfFinal(refusal), UngovernedSpendError);
+    assert.equal(standDownFor(refusal), "fmpStandDown: kind=ungoverned source=governor");
+  });
+
+  it("gives no FMP script a module-scope budget or fetch that is not governed, bar the named exception", () => {
+    // Derived over every script, not one path. replay-sweep keeps the plain
+    // fetch as its default for a stated reason: an anchored run that proved it
+    // cannot reach the provider (scripts/replay-sweep.ts, above the let).
+    const EXCEPTIONS = new Map([["scripts/replay-sweep.ts", "an anchored run proved offline keeps the plain fetch"]]);
+    const offenders: string[] = [];
+    for (const name of readdirSync("scripts", { recursive: true }).map(String).filter((file) => file.endsWith(".ts"))) {
+      const file = join("scripts", name);
+      const code = withoutComments(readFileSync(file, "utf8"));
+      if (!code.includes("financialmodelingprep.com")) continue;
+      if (/^let \w*(?:[Bb]udget|[Ff]etch)\w*\b[^;]*=\s*(?:fetch\b|createByteBudget\()/m.test(code) && !EXCEPTIONS.has(file)) {
+        offenders.push(file);
+      }
+    }
+    assert.deepEqual(offenders, []);
+    for (const file of EXCEPTIONS.keys()) {
+      assert.match(withoutComments(readFileSync(file, "utf8")), /^let providerFetch: FetchLike = fetch;$/m, `${file} is excepted but no longer holds the default`);
+    }
   });
 
   it("starts every verifier catch by rethrowing a final refusal", () => {

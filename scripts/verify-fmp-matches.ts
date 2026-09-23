@@ -25,6 +25,7 @@ import {
   type ByteBudget,
   createByteBudget,
   readJsonWithBudget,
+  UngovernedSpendError,
 } from "./fmpByteBudget.ts";
 import { createProbeGate, type FetchLike } from "./fmpCircuit.ts";
 import {
@@ -47,10 +48,24 @@ const LABEL = "verify-fmp-matches";
 // The machine's state, and the ad-hoc class's budget and probe-gated fetch,
 // all set in main(). The state is resolved there rather than as this module
 // loads, so a checkout that names nothing is refused in one line by main's
-// handler instead of killing module evaluation with a stack.
-let state: FmpStatePaths;
-let budget: ByteBudget = createByteBudget(CLASS_DAILY_CEILING_BYTES.adhoc);
-let providerFetch: FetchLike = fetch;
+// handler instead of killing module evaluation with a stack. All three
+// start UNSET, not as an unledgered budget and the raw fetch: a path that
+// reached the provider before main governed them would have spent outside
+// the ledger and the probe gate, so it refuses instead (2026-09-22). The
+// refusal is final, so the probes' catches rethrow it rather than filing it
+// as a lapse for every symbol.
+let state: FmpStatePaths | undefined;
+let budget: ByteBudget | undefined;
+let providerFetch: FetchLike | undefined;
+
+function governed(): { budget: ByteBudget; providerFetch: FetchLike; state: FmpStatePaths } {
+  if (budget === undefined || providerFetch === undefined || state === undefined) {
+    throw new UngovernedSpendError(
+      `${LABEL}: no governed budget, probe-gated fetch or state — main() sets all three before any request`,
+    );
+  }
+  return { budget, providerFetch, state };
+}
 
 /** A year of daily bars is the floor the calibration work assumes. */
 const MIN_DAILY_BARS = 250;
@@ -74,7 +89,7 @@ type Probe = {
 };
 
 async function fetchJson(url: URL): Promise<unknown> {
-  const response = await providerFetch(url, { headers: { accept: "application/json" } });
+  const response = await governed().providerFetch(url, { headers: { accept: "application/json" } });
   if (!response.ok) {
     // The provider's own words reach the classifier, not just the status:
     // a bare `HTTP 429` cannot be told from the per-minute rate limit, and
@@ -85,10 +100,10 @@ async function fetchJson(url: URL): Promise<unknown> {
       endpointPath: url.pathname,
       label: LABEL,
       note: true,
-      state,
+      state: governed().state,
     });
   }
-  return readJsonWithBudget(response, budget, url.pathname);
+  return readJsonWithBudget(response, governed().budget, url.pathname);
 }
 
 type EodBar = { date?: string; close?: number };

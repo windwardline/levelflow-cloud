@@ -91,6 +91,19 @@ export class ProbeLostError extends SpendRefusedError {
   }
 }
 
+/**
+ * A spender reached for its budget, its fetch or its state before main()
+ * governed them. Final like every refusal here, so a catch that rethrows
+ * finals ends the run red instead of filing the refusal as the provider's
+ * answer for each symbol.
+ */
+export class UngovernedSpendError extends SpendRefusedError {
+  constructor(message: string) {
+    super(message, "ungoverned", "governor");
+    this.name = "UngovernedSpendError";
+  }
+}
+
 /** What the governor needs to close the breaker on this answer's evidence. */
 export type RecordMeta = { endpointPath: string; answeredAtMs: number };
 
