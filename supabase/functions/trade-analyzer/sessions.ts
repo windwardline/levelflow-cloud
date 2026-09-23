@@ -285,9 +285,10 @@ export function getSessionContext(
 // THE LOW-EDGE HOURS ARE UNVERIFIED. Every one of them was set on the r4, r12,
 // r15 and r22 corpora (2026-07-28..30), which read FMP's New York bar stamps as
 // UTC. The repair map records every low-edge hour in that corpus as 4-5
-// DST-variable hours out of register (docs/research/evaluator-repair-map-
-// 2026-08-09.md, cluster A; docs/research/remediation-program-2026-08-11.md),
-// and nothing has re-derived them. No verdict exists to move them, so the hours
+// DST-variable hours out of register
+// (docs/research/evaluator-repair-map-2026-08-09.md, cluster A;
+// docs/research/remediation-program-2026-08-11.md), and nothing has
+// re-derived them. No verdict exists to move them, so the hours
 // stand as they were, and the refusal reasons state the window without citing
 // a measurement. A market-grain re-grade is queued with the next re-simulate.
 function isLowEdgeUtcWindow(now: Date) {
