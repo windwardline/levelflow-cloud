@@ -7,14 +7,38 @@
 //
 // Usage:
 //   FMP_API_KEY=... npx tsx scripts/replay-sweep.ts \
-//     --symbols EURUSD,XAUUSD,SP --days 60 \
+//     --symbols EURUSD,XAUUSD,SP --days 60 --byte-budget 256mb \
 //     --grid tp1AtrMultiplier=0.5,0.7,0.9 [--step 16]
+//     --byte-budget size   required on every run: this run's own ceiling, in
+//                          bytes or b/kb/mb/gb (1gb = 1024**3 bytes), refused
+//                          above its class's day
 //     [--cache-dir path]   pin bars to disk so later runs reuse identical data
 //     [--capture-all]      evaluate below-threshold setups too (calibration)
 //     [--emit path.jsonl]  write one JSON line per evaluated setup
 //     [--days max]         discover each symbol's full history (rolling from
 //                          the run date) instead of a fixed lookback
 //     [--discover]         report discovered depth per symbol and exit
+//     [--anchor YYYY-MM-DD]  read every store at that day's pin; default
+//                          today, never a future day. A past anchor refuses
+//                          --repin, and one whose preflight finds the pin in
+//                          every artifact it checks skips the class-ceiling
+//                          check and the spend gate
+//     [--repin]            clear today's pins and top every series up to one
+//                          instant (with --warm-only: the rebuild's last pass)
+//     [--warm-only]        top up and pin every cache, simulate nothing (the
+//                          nightly top-up and the R0 rebuild)
+//     [--spend-class topup|adhoc]  the governor class billed; adhoc by
+//                          default, topup only with --warm-only
+//     [--daily-ceiling size]  the owner's raise of the adhoc class's day for
+//                          this run; refused under topup
+//     [--fold-spec path]   fold each class on its own spans, from
+//                          scripts/derive-fold-spec.ts
+//     [--fold-start ms --fold-end ms]  fold on one pinned span, in epoch ms,
+//                          when there is no --fold-spec
+//     [--ignore-low-edge]  score low-edge session hours as ungated, to
+//                          measure them; hard market closures still block
+//     [--print-confirm-table]  print the confirm fold's outcome cells, which
+//                          read "sealed" by default
 
 import { dailyContainment, type FeedCharacterRecord, serializeContainment } from "./feedCharacter.ts";
 import {
