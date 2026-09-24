@@ -24,27 +24,29 @@ forward on its schedule, and a hole inside what it holds is filled by date
 
 ## Raw provider strings are stored verbatim
 
-The engine's `toTimestamp` (`supabase/functions/trade-analyzer/bars.ts`) appends `Z`
-to FMP's intraday `"YYYY-MM-DD HH:MM:SS"`. FMP returns those in `America/New_York`,
-so every intraday bar in the engine and in the calibration corpus is stamped four or
-five hours early, and the error flips twice a year.
-
-The proof is in the existing corpus. The S&P cash session truly runs 09:30–16:00 New
-York. Stored, it reads 09:30–15:45 in **both** July and January. True UTC would move
-it by an hour between them. New York wall clock labelled as UTC does not move at all.
+FMP labels an intraday bar `"YYYY-MM-DD HH:MM:SS"` in a wall clock it does not name.
+The engine once appended `Z`, reading New York wall clock as UTC, which stamped every
+intraday bar four or five hours early and flipped twice a year. The proof was in the
+corpus. The S&P cash session truly runs 09:30–16:00 New York. Stored, it read
+09:30–15:45 in **both** July and January. True UTC would move it by an hour between
+them.
 
 ```
 summer 2026-07-31 first=09:30 last=15:45 bars=26
 winter 2026-01-30 first=09:30 last=15:45 bars=26
 ```
 
-That convention is wrong and will be corrected. The bank must not inherit it, and it
-must not need a refetch after the correction lands. So the store holds the provider's
-own date string, unparsed and unconverted. Re-normalising later becomes a re-read of
-local disk instead of a fetch of every banked day.
+The engine now reads each label in its venue's clock (#358, 2026-08-18; #395,
+2026-08-24). `toTimestamp` (`supabase/functions/trade-analyzer/bars.ts`) takes the
+zone from `labelZoneFor` (`venues.ts`): New York by default, and the exchange's own
+clock for `^GDAXI`, `^N225` and `^AXJO`. The convention is measured, and `bars.ts`
+records how: banked EURUSD stops at Friday 17:00 New York and reopens Sunday 17:05,
+and ES is missing exactly the 17:00–18:00 maintenance hour.
 
-The sidecar carries a `sourceTimezone` field, null until the convention is
-established by measurement rather than assumption.
+The bank inherited neither the defect nor the fix. It stores the provider's own
+string, unparsed, so a clock correction is a re-read of local disk, never a refetch.
+The sidecar's `sourceTimezone` field is vestigial: it is written null and nothing
+reads it, because the zone comes from `labelZoneFor` at read time.
 
 ## Shape
 
@@ -218,8 +220,8 @@ the scheduled bank's.
 both sit off parity. Measured 2026-09-23 on the EUR/GBP/USD triangle
 (EURUSD − EURGBP × GBPUSD, closes on shared minutes;
 [record](/docs/research/minute-bank-parity-2026-09-23.md)): one recovered block,
-2026-09-07 22:00 to 09-08 16:00 in provider stamps (New York by the convention above,
-which the sidecar's `sourceTimezone` has not yet stamped by measurement; 09-08 02:00Z to 20:00Z),
+2026-09-07 22:00 to 09-08 16:00 in provider stamps (New York wall clock, forex's
+label zone above; 09-08 02:00Z to 20:00Z),
 sits a median +3.26 pips off (1,080 minutes); the
 recovered day after it sits +0.30, and first-copy windows +0.39 and +0.58, but those
 reach about +4 pips at their 90th percentile. One triangle cannot say which leg moved;
