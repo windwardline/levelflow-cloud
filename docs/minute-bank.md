@@ -36,10 +36,12 @@ summer 2026-07-31 first=09:30 last=15:45 bars=26
 winter 2026-01-30 first=09:30 last=15:45 bars=26
 ```
 
-The engine now reads each label in its venue's clock (#358, 2026-08-18; #395,
-2026-08-24). `toTimestamp` (`supabase/functions/trade-analyzer/bars.ts`) takes the
-zone from `labelZoneFor` (`venues.ts`): New York by default, and the exchange's own
-clock for `^GDAXI`, `^N225` and `^AXJO`. The convention is measured, and `bars.ts`
+The engine now reads each intraday label in its venue's clock: New York wall from
+#288 (2026-08-09), the venue's own from #395 (2026-08-24). `toTimestamp`
+(`supabase/functions/trade-analyzer/bars.ts`) takes the zone from `labelZoneFor`
+(`venues.ts`): New York by default, and the exchange's own clock for `^GDAXI`, `^N225`
+and `^AXJO`. A date-only label has no time of day and anchors at New York midnight
+whatever the venue (#402). The convention is measured, and `bars.ts`
 records how: banked EURUSD stops at Friday 17:00 New York and reopens Sunday 17:05,
 and ES is missing exactly the 17:00–18:00 maintenance hour.
 

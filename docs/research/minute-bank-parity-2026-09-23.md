@@ -4,11 +4,12 @@
 files hold, in pips (× 1e4), from the minute bank's own files. The bank keeps the
 first copy of each minute, so each key's first line is read. Zero bytes; read-only.
 
-**Every window bound and vintage date below is a raw provider stamp, not UTC.** The bank
-stores FMP's intraday strings verbatim, and forex labels are New York wall clock
-(`labelZoneFor` in `venues.ts`; the measurement is in `docs/minute-bank.md`, "Raw provider
-strings are stored verbatim"): EDT, UTC−4, in September. The calendar dates of the
-suspension and the recovery are dates, not stamps. The off block,
+**Every window bound below, and every day key in the vintage list (the missing, partial,
+recovered and first-copy days), is a raw provider stamp, not UTC.** The bank stores FMP's
+intraday strings verbatim, and forex labels are New York wall clock (`labelZoneFor` in
+`venues.ts`; the measurement is in `docs/minute-bank.md`, "Raw provider strings are stored
+verbatim"): EDT, UTC−4, in September. The suspension (2026-09-04 → 09-14) and the recovery
+(2026-09-22) are calendar dates, not stamps. The off block,
 2026-09-07 22:00 to 09-08 16:00 in provider stamps, is **2026-09-08 02:00Z to 20:00Z**.
 A reader exclusion built from these bounds converts them first.
 
