@@ -1,10 +1,11 @@
 # Amendment 48, fifth pass: refute round 2 (2026-09-24)
 
 **Verdict: the fifth pass does not stand. 21 majors survive their checkers, and they reduce to eleven
-root causes, every one closed in the sixth pass
-([`amendment-48-draft-2026-09-24.md`](/docs/research/designs/amendment-48-draft-2026-09-24.md)). The
-draft stays PARKED for the owner's Q1–Q6, and the text as ruled takes one more refute round before it
-is recorded as law.**
+root causes. The sixth pass closed them; a closure check on it (below) found seven new majors in the
+mechanics it added, and the seventh pass
+([`amendment-48-draft-2026-09-24.md`](/docs/research/designs/amendment-48-draft-2026-09-24.md)) closes
+those. The draft stays PARKED for the owner's Q1–Q6, and the text as ruled takes one more refute round
+before it is recorded as law.**
 
 The subject was the fifth pass: `amendment-48-draft-2026-09-24.md` at commit 0f38ffd, 418 lines, sha256
 `e6fee61d139fec061f819ff22428516b7327193c92d955440ccee4a0fb148a1d`. The sixth pass rewrote that file
@@ -80,3 +81,34 @@ Round 2's closure lens found round 1's majors 1, 2 and 4 closed only in part and
 unbuildable; the root causes above carry them, and the sixth pass closes each. Majors 3, 6 and 7 and
 every round-1 minor closed in the fifth pass, with the corrections listed under "Minors" above. The
 closure table that sat at the end of the fifth pass is superseded by this record.
+
+## The closure check on the sixth pass
+
+The sixth pass (commit 5b2abc6, sha256 `7759a9535601287bd67107f6bd552f760483cdbf49c3c364a18c670934368e3f`)
+took a closure check: three checkers (closure of round 2, the new mechanics through a sealing lens,
+consistency and arithmetic), each followed by an independent verifier. 52 findings: 9 majors hold (7
+distinct), 2 majors were scoped down to minor, and 41 minors hold; 74 closures were confirmed. Journal:
+`a48-closure-check-journal.jsonl` in the same session-artifacts directory (sha256 prefix
+4bf76fba785b4cc4), with the extracted result and the checkers' scripts.
+
+| # | Major | Closed in the seventh pass |
+|---|---|---|
+| 1 | **The freeze fixed c_m and the draws before L existed.** C_s came from the landing, L from C_s, and with B > 1 whether a co-registration opens depends on the landing weekday (reproduced: a Thursday start opens a B = 7 registration, a Friday start does not). | The freeze line declares C_s and computes L, the openings, c_m and the draws against it; it must land before C_s. |
+| 2 | **When to freeze was the operator's choice**, so the window could be timed to a favourable post-frontier state. | C_s is the later of F_s and the timed registration's landing plus 21 days (JUDGED); a late freeze lapses as a burn. |
+| 3 | **A burn let a registration freeze again**, so an operator could read only a pass and let a fail burn. | A burn counts as a read for eligibility; burns derive from dates. |
+| 4 | **A pending claim inside F_s unsealed its own window**: every seal keyed on F_s treated the claimed dates as behind the frontier. | Two frontiers: F°_s (recorded and burned) for every seal, F_s (claims included) for eligibility and C_s. |
+| 5 | **The sweeps were not pinned to cost scale 1**, so a family losing at modelled cost could confirm at a lower scale (+0.0078 to +0.0107 R per fill at 0.5). | Both sweeps, both arms and every screen refuse a scale other than 1. |
+| 6 | **The confirm sweep's bars were unbound**: its anchor and cache were chosen after the window. | A fixed anchor at C_s + L_m + 4 days, the canonical cache, and a digest line landed before any confirm row. |
+| 7 | **Rule 12's enacted-text hash missed the cluster rule.** | The Label and Cluster definitions are hashed into the header's screen fields, and a registration's cluster rule must equal the header's. |
+
+The 41 minors are closed in the seventh pass: two frontiers indexed per read; overlap refusals over
+claims and live plans; per-market L with a registration's own maximum; one fold call over an extended
+span under a named, hashed month map; the embargo bounds as a refusal; one window for rule 12; every
+header question marked pending; the registration commit and cost closure recorded outside the spec,
+from `pricePlan.ts`; the freeze rule hashed; the freeze listed once; the calibration by value governing
+its trades; the admissible screen folds named; the screen's seed, source revision and cost inputs
+recorded and recomputed; the door stated as a rule; departure 5 on one date; Q1 and Q3 priced in place;
+Q2 and Q4 carrying the sequential and follow-on prices; the null count stated as a ceiling across 91
+and 97 markets; and the missing tests and mutations added. The record states that the Q4–Q6
+recommendations were written after round 2 and are for the next round to refute.
+
