@@ -15,17 +15,18 @@
  *
  * ## Raw provider strings are stored verbatim, and that is the point
  *
- * The engine's own `toTimestamp` (supabase/functions/trade-analyzer/bars.ts)
- * appends "Z" to FMP's intraday "YYYY-MM-DD HH:MM:SS", but FMP returns those in
- * America/New_York. Proof from the existing corpus: the S&P cash session, truly
- * 09:30-16:00 New York, reads 09:30-15:45 in BOTH July and January. True UTC
- * would move it by an hour between them; New York wall clock stamped as UTC
- * does not move at all.
+ * FMP labels an intraday bar "YYYY-MM-DD HH:MM:SS" in a wall clock it does not
+ * name. The engine once appended "Z", reading New York wall clock as UTC: the
+ * S&P cash session, truly 09:30-16:00 New York, read 09:30-15:45 in BOTH July
+ * and January, which true UTC cannot do. The engine now reads each intraday
+ * label in its venue's clock (`toTimestamp` in
+ * supabase/functions/trade-analyzer/bars.ts, the zone from `labelZoneFor` in
+ * venues.ts; #288, then #395), and a date-only label at New York midnight
+ * whatever the venue (#402).
  *
- * That convention is wrong and will be corrected. This bank must not inherit
- * the error, and it must not have to be refetched once the correction lands.
- * So the store holds the provider's own date string, unparsed. Re-normalising
- * later is then a re-read of local disk rather than a fetch of every banked day.
+ * This bank inherited neither the defect nor the fix. The store holds the
+ * provider's own date string, unparsed, so a clock correction is a re-read of
+ * local disk rather than a fetch of every banked day.
  *
  * ## Shape
  *
@@ -162,9 +163,9 @@ type SidecarState = {
   runs: Array<{ at: string; fetched: number; appended: number; note: string }>;
   recentKeys: string[];
   /**
-   * The provider's timezone for this endpoint, once established. Null means
-   * unresolved — the banked strings are still exact, so this can be filled in
-   * later without refetching. See the header.
+   * Vestigial: written null and read by nothing. A label's zone comes from
+   * `labelZoneFor` (venues.ts) at read time, and the banked strings are exact
+   * either way. See the header.
    */
   sourceTimezone: string | null;
 };
