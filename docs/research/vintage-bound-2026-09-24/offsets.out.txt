@@ -1,0 +1,8 @@
+EURUSD  unit 0.0001  buckets  4086  close: mean +0.585 median +0.000, differs 33% (median when it does +2.700)  high +1.557  low +0.295  range +1.262  bank strictly inside 5%
+GBPUSD  unit 0.0001  buckets  4079  close: mean +0.032 median +0.000, differs 24% (median when it does +0.100)  high -0.034  low +0.104  range -0.138  bank strictly inside 45%
+USDJPY  unit 0.01  buckets  4080  close: mean -0.066 median +0.000, differs 48% (median when it does -0.100)  high -0.063  low -0.089  range +0.026  bank strictly inside 18%
+AUDCAD  unit 0.0001  buckets  4083  close: mean -0.030 median +0.000, differs 52% (median when it does -0.100)  high +0.197  low -0.331  range +0.529  bank strictly inside 20%
+XAUUSD  unit 0.01  buckets  3894  close: mean +0.093 median +0.000, differs 60% (median when it does -0.500)  high -15.454  low +16.062  range -31.516  bank strictly inside 65%
+XAGUSD  unit 0.001  buckets  3883  close: mean +0.117 median +0.000, differs 32% (median when it does -1.000)  high -3.702  low +2.911  range -6.614  bank strictly inside 49%
+BTCUSD  unit 1  buckets  5444  close: mean -0.024 median +0.000, differs 56% (median when it does +0.000)  high -3.328  low +3.153  range -6.481  bank strictly inside 64%
+ESUSD   unit 0.25  buckets  3906  close: mean +0.007 median +0.000, differs 28% (median when it does +1.000)  high -0.393  low +0.395  range -0.789  bank strictly inside 37%

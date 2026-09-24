@@ -29,11 +29,24 @@ minutes in [2026-08-04, 2026-08-26), before the frontier, where both stores hold
    d = outcome on the bank − outcome on the cache, for k = 0.5, 1 and 2. A second variant reads the
    bank's path from the cache's reference, so only the path differs.
 
-Script, output and an independent cross-check are beside this file in
-[`vintage-bound-2026-09-24/`](/docs/research/vintage-bound-2026-09-24/vintage_bound.out). Run from
-the checkout root: `python3 docs/research/vintage-bound-2026-09-24/vintage_bound.py`. Reproduced
-byte-identical except its run stamp on 2026-09-24; the cross-check re-implements the brackets without
-sharing code and matches the script's counts and sums for EURUSD, NGUSD and ETHUSD at all three k.
+The script, its output, an independent cross-check and the offsets measurement below sit beside
+this file, stored as `.txt` so the citation guard covers them:
+[`vintage_bound.py.txt`](/docs/research/vintage-bound-2026-09-24/vintage_bound.py.txt) and
+[`vintage_bound.out.txt`](/docs/research/vintage-bound-2026-09-24/vintage_bound.out.txt),
+[`crosscheck.py.txt`](/docs/research/vintage-bound-2026-09-24/crosscheck.py.txt),
+[`offsets.py.txt`](/docs/research/vintage-bound-2026-09-24/offsets.py.txt) and
+[`offsets.out.txt`](/docs/research/vintage-bound-2026-09-24/offsets.out.txt). Each resolves the
+checkout from its own location:
+
+```
+python3 docs/research/vintage-bound-2026-09-24/vintage_bound.py.txt
+python3 docs/research/vintage-bound-2026-09-24/crosscheck.py.txt EURUSD NGUSD ETHUSD
+python3 docs/research/vintage-bound-2026-09-24/offsets.py.txt
+```
+
+The script reproduced byte-identical except its run stamp on 2026-09-24. The cross-check
+re-implements the brackets without sharing code, refuses a venue-clock index it cannot decode, and
+matches the script's counts and sums for EURUSD, NGUSD and ETHUSD at all three k.
 
 ## Results
 
@@ -44,15 +57,17 @@ late the bank captured them:
 
 | bank's capture lag after the bucket | buckets | exact match |
 |---|---:|---:|
+| before the run log begins (lag unknown) | 62,350 | 64.9 % |
 | under 6 h | 125,790 | 27.0 % |
 | 6–12 h | 88,278 | 37.2 % |
 | 12–24 h | 43,531 | 50.6 % |
 | 24–48 h | 32,486 | 74.4 % |
 | 48 h or more | 3,076 | 76.8 % |
 
-A first copy taken a day late has mostly been revised already. August 4–5, 14, 16–17 and 21 were first
-banked a day or more late (lag from `~/Library/Logs/levelflow-minute-bank.log`), so "first copy" is
-a mix of live and already-revised values.
+The six rows hold all 355,511 compared buckets. The run log (`~/Library/Logs/levelflow-minute-bank.log`)
+begins at 2026-08-06T23:28Z, after the bank already held earlier runs, so a bucket before that has no
+measured lag. A first copy taken a day late has mostly been revised already. August 14, 16–17 and 21
+were first banked a day or more late, so "first copy" is a mix of live and already-revised values.
 
 **The band, all 91 symbols (77 with brackets, 11,368 brackets per k).**
 
@@ -75,9 +90,21 @@ k = 0.5, and 240 against 120 at k = 1. The rest is unexplained.
 | futures | 18 | 10.0 % / 7.2 % / 6.5 % | −0.039 / −0.008 / −0.006 R |
 | crypto | 28 | 1.8 % / 1.6 % / 1.5 % | +0.005 / 0.000 / 0.000 R |
 | metals | 2 | 2.3 % / 1.8 % / 0.9 % | +0.027 / 0 / 0 R |
+| agriculture | 1 | 10.0 % / 0 % / 0 % | −0.200 / 0 / 0 R |
 
-Indices and livestock hold no 8-hour span inside the window's sessions. Forex bank buckets sit lower
-than the cache's at both extremes (high below the cache's in 33.7 % of buckets, low below in 36.3 %).
+Agriculture is one symbol and ten brackets, so its −0.200 R is one flipped bracket. Indices and
+livestock hold no 8-hour span inside the window's sessions.
+
+**A shift or a revision?** If one series were the other shifted (bid against mid, say), the bank's
+close would sit off the cache's by a constant. It does not
+([offsets](/docs/research/vintage-bound-2026-09-24/offsets.out.txt)). On EURUSD, GBPUSD, USDJPY and
+AUDCAD the median close difference is zero. Closes differ on 24–52 % of buckets, usually by one tick
+(0.1 pip), except EURUSD, whose differing closes sit a median +2.7 pips apart and whose bank buckets
+span 1.3 pips more on average. On metals, crypto and ES the pattern is containment instead: the bank's
+five minutes sit strictly inside the cache's 5-minute bar on 37–65 % of buckets, and their range is
+narrower on average (XAUUSD by $0.32, BTCUSD by $6.48). The cache's bars there reach extremes the
+minutes do not hold. This cannot separate FMP revising the minutes from FMP building its 5-minute bars
+from a finer feed.
 
 **The construction-clean set** (28 symbols at the 50 % threshold, 26 with brackets, no forex and no
 metals) reads almost nothing: 1.1–1.8 % of brackets differ and the pooled mean d is +0.001 to +0.004
@@ -91,7 +118,9 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   (1.44 on AUDCAD), near the shipped forex `stopAtrMultiplier` of 1.2. That is the same size as forex's measured edge on the tuning
   folds (+0.006 R per fill, R3) and as the exit-slippage correction of 2026-09-23 (0.006 to 0.011 R
   per fill). A forex figure that changes sign by less than that is a vintage question, not a finding.
-- **For crypto and metals it is below 0.005 R per bracket** on the few symbols measured.
+  No constant offset explains it.
+- **For crypto and metals it is below 0.005 R per bracket**, and there the comparison may be of two
+  constructions rather than two vintages: the cache's 5-minute bars are wider than the bank's minutes.
 - **The later history is not a fixed vintage either.** The cache records no fetch time for its August
   bars, and the top-ups may have replaced 2026-08-23..25 with a later copy.
 

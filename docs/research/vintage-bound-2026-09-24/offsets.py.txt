@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+"""Signed bank-minus-cache differences on 5-minute buckets, per symbol (review round 1 on #699).
+
+Is the vintage band a basis offset (one series shifted against the other) or revision? Reads the
+same stores as vintage_bound.py.txt, read-only, standard library only, zero provider bytes. Run from
+the checkout root:  python3 docs/research/vintage-bound-2026-09-24/offsets.py.txt
+New York wall clock decodes every symbol listed here (none is a venue-clock index).
+"""
+import json, os, statistics
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+NY = ZoneInfo("America/New_York"); UTC = timezone.utc
+WS = int(datetime(2026, 8, 4, tzinfo=UTC).timestamp() * 1000)
+WE = int(datetime(2026, 8, 26, tzinfo=UTC).timestamp() * 1000)
+# (provider symbol, the unit differences print in)
+SYMBOLS = [("EURUSD", 1e-4), ("GBPUSD", 1e-4), ("USDJPY", 1e-2), ("AUDCAD", 1e-4),
+           ("XAUUSD", 1e-2), ("XAGUSD", 1e-3), ("BTCUSD", 1.0), ("ESUSD", 0.25)]
+
+def bank_buckets(sym):
+    first = {}
+    with open(f"{REPO}/.minute-bank/{sym}.jsonl", "r") as f:
+        for line in f:
+            r = json.loads(line); k = r["date"]
+            if k in first: continue  # the bank keeps the first copy
+            t = int(datetime.strptime(k, "%Y-%m-%d %H:%M:%S").replace(tzinfo=NY).timestamp() * 1000)
+            if WS <= t < WE: first[k] = (t, r["open"], r["high"], r["low"], r["close"])
+    grouped = {}
+    for t, o, h, l, c in sorted(first.values()):
+        grouped.setdefault(t - t % 300_000, []).append((o, h, l, c))
+    return {s: (m[0][0], max(x[1] for x in m), min(x[2] for x in m), m[-1][3])
+            for s, m in grouped.items() if len(m) == 5}
+
+for sym, unit in SYMBOLS:
+    bank = bank_buckets(sym)
+    with open(f"{REPO}/.calibration-cache/{sym}-5min-7000.rolling.json", "r") as f:
+        cache = {b["time"]: (b["open"], b["high"], b["low"], b["close"])
+                 for b in json.load(f)["items"] if WS <= b["time"] < WE}
+    common = [s for s in bank if s in cache]
+    dc = [(bank[s][3] - cache[s][3]) / unit for s in common]
+    dh = [(bank[s][1] - cache[s][1]) / unit for s in common]
+    dl = [(bank[s][2] - cache[s][2]) / unit for s in common]
+    dr = [((bank[s][1] - bank[s][2]) - (cache[s][1] - cache[s][2])) / unit for s in common]
+    inside = sum(1 for s in common if bank[s][1] <= cache[s][1] and bank[s][2] >= cache[s][2]
+                 and (bank[s][1] < cache[s][1] or bank[s][2] > cache[s][2]))
+    nz = [x for x in dc if abs(x) > 1e-9]
+    print(f"{sym:7} unit {unit:g}  buckets {len(common):5}  close: mean {statistics.mean(dc):+.3f} "
+          f"median {statistics.median(dc):+.3f}, differs {len(nz)/len(dc):.0%} (median when it does "
+          f"{statistics.median(nz) if nz else 0:+.3f})  high {statistics.mean(dh):+.3f}  low "
+          f"{statistics.mean(dl):+.3f}  range {statistics.mean(dr):+.3f}  bank strictly inside {inside/len(common):.0%}")

@@ -1,5 +1,6 @@
-# Independent re-implementation for two symbols (no code shared with vintage_bound.py),
-# compared with vintage_bound's own functions.
+# Independent re-implementation of the brackets (no code shared with vintage_bound.py.txt),
+# compared with vintage_bound's own functions. Run from anywhere:
+#   python3 docs/research/vintage-bound-2026-09-24/crosscheck.py.txt EURUSD NGUSD ETHUSD
 import os, json, sys
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
@@ -58,9 +59,14 @@ def indep(sym, zone='America/New_York'):
                             out[k][0]+=1; out[k][1]+=(d!=0); out[k][2]+=d
         t+=timedelta(hours=1)
     return out
-sys.path.insert(0,'.')
-import vintage_bound as vb, collections
+# Load the script under test from beside this file, never from the working directory.
+import importlib.machinery, importlib.util, collections
+_path=os.path.join(os.path.dirname(os.path.abspath(__file__)),'vintage_bound.py.txt')
+_loader=importlib.machinery.SourceFileLoader('vintage_bound',_path)
+vb=importlib.util.module_from_spec(importlib.util.spec_from_loader('vintage_bound',_loader)); _loader.exec_module(vb)
 for sym in sys.argv[1:]:
+    # indep() decodes New York wall clock; a venue-clock index would diverge for the wrong reason.
+    if sym in vb.LABEL_ZONES: sys.exit(f'{sym}: labels in {vb.LABEL_ZONES[sym]}, which indep() does not decode')
     a=indep(sym)
     minutes,_=vb.load_bank(sym); bb,_=vb.build_buckets(minutes)
     cb,_=vb.load_cache(sym)
