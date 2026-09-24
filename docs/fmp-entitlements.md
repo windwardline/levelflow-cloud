@@ -44,8 +44,11 @@ every URL built on the provider's base in `supabase/functions/` and `scripts/`,
 `/historical-chart/` takes five intervals (1min, 5min, 15min, 1hour, 4hour)
 and `/news/` three categories (forex, crypto, stock). The nine Edge URLs sit in
 the seven fetch sites `tests/fmpBudgetByClass.test.ts` derives, and the five
-scripts are the set `tests/fmpGovernor.test.ts` derives. No test pins the paths
-themselves, so re-derive this table when a fetch site changes. Edge paths are
+scripts are the set `tests/fmpGovernor.test.ts` derives. Each cited line is a `new URL` on
+the provider base; four build their path from the file's endpoint constant rather than a
+literal (`bank-minute-bars.ts`, `probe-minute-bars.ts`, `recover-minute-bank.ts`, and
+`verify-fmp-matches.ts`'s list loop). No test pins the paths themselves, so re-derive this
+table when a fetch site changes. Edge paths are
 relative to `supabase/functions/`, script paths to `scripts/`.
 
 | endpoint | Edge | scripts | what for |
