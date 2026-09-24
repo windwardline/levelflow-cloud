@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 import { readPinnedDays } from "../scripts/calibrationCache.ts";
 import { anchoredPreflight } from "../scripts/replay-sweep.ts";
 import { getCotContractMapping } from "../supabase/functions/trade-analyzer/cotContext.ts";
-import { resolveProviderSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
+import { quoteCurrencyUsdLeg, resolveProviderSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 
 /**
  * A run that provably spends nothing is not subject to a gate on spending.
@@ -213,5 +213,73 @@ describe("the pre-flight is derived from the run", () => {
     const result = await anchoredPreflight({ anchor, cacheDir: dir, days, symbols });
     assert.equal(result.missing.length, 1);
     assert.match(result.missing[0], /not an array/);
+  });
+});
+
+describe("a forex cross's USD leg is an artifact the run reads", () => {
+  // The sweep prices a cross's commission from its quote currency's USD leg,
+  // loading `<leg>-daily-<days>` through loadRollingSeries with live fetchers
+  // (loadQuoteCurrencyLeg). A sweep of the cross alone never names the leg in
+  // --symbols, so a pre-flight keyed on --symbols passed while the run could
+  // still fetch the leg's daily bars behind the breaker (found 2026-09-24).
+  const anchor = "2026-08-26";
+  const days = 7000;
+  const cross = "EURJPY";
+
+  function seedCrossOnly(options: { withLeg: boolean }): string {
+    const dir = mkdtempSync(join(tmpdir(), "pf-leg-"));
+    const pinned = { [anchor]: 1 };
+    const provider = resolveProviderSymbols(cross)[0];
+    for (const frame of ["15min", "daily", "5min"]) {
+      writeFileSync(join(dir, `${provider}-${frame}-${days}.rolling.json`), store(pinned));
+    }
+    writeFileSync(join(dir, "econ-calendar.rolling.json"), store(pinned));
+    writeFileSync(join(dir, "treasury-rates.rolling.json"), store(pinned));
+    const mapping = getCotContractMapping(cross);
+    for (const contract of [mapping?.primary, mapping?.secondary]) {
+      if (contract) writeFileSync(join(dir, `cot-${contract}.json`), "[]");
+    }
+    if (options.withLeg) {
+      const leg = quoteCurrencyUsdLeg(cross);
+      assert.equal(leg.kind, "leg", `${cross} is no longer a cross with a USD leg`);
+      const legProvider = resolveProviderSymbols(leg.kind === "leg" ? leg.leg : "")[0];
+      writeFileSync(join(dir, `${legProvider}-daily-${days}.rolling.json`), store(pinned));
+    }
+    return dir;
+  }
+
+  it("names the leg's daily store when the cross is swept without it", async () => {
+    const leg = quoteCurrencyUsdLeg(cross);
+    assert.equal(leg.kind, "leg");
+    const legProvider = resolveProviderSymbols(leg.kind === "leg" ? leg.leg : "")[0];
+    const result = await anchoredPreflight({
+      anchor,
+      cacheDir: seedCrossOnly({ withLeg: false }),
+      days,
+      symbols: [cross],
+    });
+    assert.deepEqual(result.missing, [`${legProvider}-daily-${days} (no store)`]);
+  });
+
+  it("passes once the leg's daily store carries the pin", async () => {
+    const result = await anchoredPreflight({
+      anchor,
+      cacheDir: seedCrossOnly({ withLeg: true }),
+      days,
+      symbols: [cross],
+    });
+    assert.deepEqual(result.missing, []);
+  });
+
+  it("checks a leg once, however many crosses share it", async () => {
+    // EURJPY and GBPJPY both price through USDJPY: one store, one check.
+    const both = await anchoredPreflight({
+      anchor,
+      cacheDir: seedCrossOnly({ withLeg: false }),
+      days,
+      symbols: [cross, "GBPJPY"],
+    });
+    const legMisses = both.missing.filter((entry) => /-daily-/.test(entry) && !entry.startsWith(resolveProviderSymbols(cross)[0]) && !entry.startsWith(resolveProviderSymbols("GBPJPY")[0]));
+    assert.equal(legMisses.length, 1, both.missing.join("; "));
   });
 });
