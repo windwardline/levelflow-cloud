@@ -1,4 +1,4 @@
-> **Superseded as a draft (2026-09-24).** Amendment 48's fifth pass is
+> **Superseded as a draft (2026-09-24).** Amendment 48's current draft is
 > [`amendment-48-draft-2026-09-24.md`](/docs/research/designs/amendment-48-draft-2026-09-24.md),
 > self-contained. The section headed "Reconciled draft 2026-09-23" below stays unchanged as
 > its history, and so does everything above it.

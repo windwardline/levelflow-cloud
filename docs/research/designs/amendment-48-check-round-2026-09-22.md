@@ -18,6 +18,7 @@ parking reasons HANDOFF names and filed eight more; independent refuters graded 
 
 Journals, outside the repository:
 `~/.claude/projects/-Users-peacock-Projects-levelflow-cloud/899fcfeb-a1c1-46da-9a31-765c580eb0f8/workflows/`
+*(deleted with its session on 2026-09-24; this file is now the round's only record)*
 — `wf_649acd65-123.json` (refute round), `wf_dbb69a78-2a3.json` (check round),
 `wf_21166d51-34c.json` and its `journal.jsonl` (lens and refuters).
 
