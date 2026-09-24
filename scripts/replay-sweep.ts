@@ -450,6 +450,25 @@ export async function anchoredPreflight(input: {
       await check(`${providerSymbol}-${frame}-${input.days}`);
     }
   }
+  // A forex cross prices its commission from its quote currency's USD leg,
+  // whose daily store loadQuoteCurrencyLeg reads with live fetchers. The leg
+  // is often absent from --symbols, so it is derived here the way the run
+  // derives it, once per leg: a sweep of EURJPY alone still reads USDJPY's
+  // daily bars. A leg missing from the roster is the run's own refusal.
+  const usdLegStores = new Set<string>();
+  for (const symbol of input.symbols) {
+    const leg = quoteCurrencyUsdLeg(symbol);
+    if (leg.kind !== "leg") continue;
+    const legProviderSymbol = resolveProviderSymbols(leg.leg)[0];
+    if (legProviderSymbol) usdLegStores.add(legProviderSymbol);
+  }
+  const ownDaily = new Set(
+    input.symbols.map((symbol) => resolveProviderSymbols(symbol)[0]).filter(Boolean),
+  );
+  for (const legProviderSymbol of [...usdLegStores].sort()) {
+    if (ownDaily.has(legProviderSymbol)) continue;
+    await check(`${legProviderSymbol}-daily-${input.days}`);
+  }
   await check("econ-calendar");
   await check("treasury-rates");
   // COT caches BY CONTRACT rather than by run day — a plain array, no pins —
