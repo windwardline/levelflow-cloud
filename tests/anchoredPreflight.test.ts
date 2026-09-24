@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -8,6 +8,7 @@ import { readPinnedDays } from "../scripts/calibrationCache.ts";
 import { anchoredPreflight } from "../scripts/replay-sweep.ts";
 import { getCotContractMapping } from "../supabase/functions/trade-analyzer/cotContext.ts";
 import { quoteCurrencyUsdLeg, resolveProviderSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
+import { scratchDir } from "./support/scratchDir.ts";
 
 /**
  * A run that provably spends nothing is not subject to a gate on spending.
@@ -227,7 +228,7 @@ describe("a forex cross's USD leg is an artifact the run reads", () => {
   const cross = "EURJPY";
 
   function seedCrossOnly(options: { withLeg: boolean }): string {
-    const dir = mkdtempSync(join(tmpdir(), "pf-leg-"));
+    const dir = scratchDir("pf-leg-");
     const pinned = { [anchor]: 1 };
     const provider = resolveProviderSymbols(cross)[0];
     for (const frame of ["15min", "daily", "5min"]) {
@@ -272,7 +273,16 @@ describe("a forex cross's USD leg is an artifact the run reads", () => {
   });
 
   it("checks a leg once, however many crosses share it", async () => {
-    // EURJPY and GBPJPY both price through USDJPY: one store, one check.
+    // EURJPY and GBPJPY both price through USDJPY: one store, one check. The
+    // premise is asserted, or a GBPJPY that stopped being a cross would leave
+    // EURJPY alone to satisfy the count.
+    const a = quoteCurrencyUsdLeg(cross);
+    const b = quoteCurrencyUsdLeg("GBPJPY");
+    assert.ok(
+      a.kind === "leg" && b.kind === "leg" && a.leg === b.leg,
+      `${cross} and GBPJPY no longer share one USD leg; choose two crosses that do`,
+    );
+    assert.ok(resolveProviderSymbols("GBPJPY")[0], "GBPJPY has no provider symbol");
     const both = await anchoredPreflight({
       anchor,
       cacheDir: seedCrossOnly({ withLeg: false }),
@@ -283,3 +293,83 @@ describe("a forex cross's USD leg is an artifact the run reads", () => {
     assert.equal(legMisses.length, 1, both.missing.join("; "));
   });
 });
+
+describe("a leg swept beside its cross is checked once", () => {
+  it("names the leg's daily store once when both are swept", async () => {
+    // A roster-wide sweep always takes this branch: the leg is in --symbols,
+    // so its per-symbol frames already cover its daily store.
+    const leg = quoteCurrencyUsdLeg("EURJPY");
+    assert.equal(leg.kind, "leg");
+    const legSymbol = leg.kind === "leg" ? leg.leg : "";
+    const legProvider = resolveProviderSymbols(legSymbol)[0];
+    const result = await anchoredPreflight({
+      anchor: "2026-08-26",
+      cacheDir: scratchDir("pf-both-"),
+      days: 7000,
+      symbols: ["EURJPY", legSymbol],
+    });
+    const legDaily = result.missing.filter((entry) => entry.startsWith(`${legProvider}-daily-7000 `));
+    assert.equal(legDaily.length, 1, result.missing.join("; "));
+  });
+});
+
+describe("the pre-flight covers every rolling store the driver loads — derived, not listed", () => {
+  // anchoredPreflight names its stores by hand, and the USD-leg store went
+  // unchecked for ten days after #641 added its loader (#701). This census reads
+  // every loadRollingSeries key template from the driver's source, fills in the
+  // variables it knows, and requires the pre-flight, run on an empty cache, to
+  // name each resulting store. A template with a variable it does not know
+  // fails by name, which is the point: a new kind of store needs a new census
+  // line and a pre-flight check together.
+  const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
+
+  function loaderKeys(): string[] {
+    const keys: string[] = [];
+    for (const call of driver.matchAll(/loadRollingSeries<[^>]+>\(\{/g)) {
+      const rest = driver.slice(call.index ?? 0);
+      const key = rest.match(/\n\s*key:\s*(`[^`]*`|"[^"]*")/);
+      assert.ok(key, `a loadRollingSeries call at offset ${call.index} has no key: the census cannot read it`);
+      keys.push(key![1].slice(1, -1));
+    }
+    return keys;
+  }
+
+  it("reads every loader's key", () => {
+    const loads = (driver.match(/loadRollingSeries</g) ?? []).length;
+    assert.ok(loads > 0, "no rolling-store loads found — re-anchor this test");
+    assert.equal(loaderKeys().length, loads);
+  });
+
+  it("names every store those keys produce for a cross and a crypto market", async () => {
+    const days = 7000;
+    const symbols = ["EURJPY", "BTCUSD"];
+    const providers = symbols.map((symbol) => resolveProviderSymbols(symbol)[0]);
+    const legs = symbols.flatMap((symbol) => {
+      const leg = quoteCurrencyUsdLeg(symbol);
+      return leg.kind === "leg" ? [resolveProviderSymbols(leg.leg)[0]] : [];
+    });
+    assert.ok(legs.length > 0, "neither symbol is a cross with a USD leg; the census proves nothing about legs");
+    const expected = new Set<string>();
+    for (const template of loaderKeys()) {
+      const variables = [...template.matchAll(/\$\{([^}]+)\}/g)].map((match) => match[1]);
+      const known = new Set(["providerSymbol", "legProviderSymbol", "args.days"]);
+      for (const variable of variables) {
+        assert.ok(known.has(variable), `key template ${template} uses \${${variable}}, which the census cannot fill: extend both it and anchoredPreflight`);
+      }
+      const values = template.includes("${legProviderSymbol}") ? legs : template.includes("${providerSymbol}") ? providers : [""];
+      for (const value of values) {
+        expected.add(
+          template
+            .replaceAll("${providerSymbol}", value)
+            .replaceAll("${legProviderSymbol}", value)
+            .replaceAll("${args.days}", String(days)),
+        );
+      }
+    }
+    const result = await anchoredPreflight({ anchor: "2026-08-26", cacheDir: scratchDir("pf-census-"), days, symbols });
+    const named = new Set(result.missing.map((entry) => entry.replace(/ \(.*\)$/, "")));
+    const unchecked = [...expected].filter((key) => !named.has(key));
+    assert.deepEqual(unchecked, [], `the driver loads stores the pre-flight never checks: ${unchecked.join(", ")}`);
+  });
+});
+
