@@ -35,13 +35,16 @@ this file, stored as `.txt` so the citation guard covers them:
 [`vintage_bound.out.txt`](/docs/research/vintage-bound-2026-09-24/vintage_bound.out.txt),
 [`crosscheck.py.txt`](/docs/research/vintage-bound-2026-09-24/crosscheck.py.txt),
 [`offsets.py.txt`](/docs/research/vintage-bound-2026-09-24/offsets.py.txt) and
-[`offsets.out.txt`](/docs/research/vintage-bound-2026-09-24/offsets.out.txt). Each resolves the
+[`offsets.out.txt`](/docs/research/vintage-bound-2026-09-24/offsets.out.txt), and
+[`forex.py.txt`](/docs/research/vintage-bound-2026-09-24/forex.py.txt) and
+[`forex.out.txt`](/docs/research/vintage-bound-2026-09-24/forex.out.txt). Each resolves the
 checkout from its own location:
 
 ```
 python3 docs/research/vintage-bound-2026-09-24/vintage_bound.py.txt
 python3 docs/research/vintage-bound-2026-09-24/crosscheck.py.txt EURUSD NGUSD ETHUSD
 python3 docs/research/vintage-bound-2026-09-24/offsets.py.txt
+python3 docs/research/vintage-bound-2026-09-24/forex.py.txt
 ```
 
 The script reproduced byte-identical except its run stamp on 2026-09-24. The cross-check
@@ -96,15 +99,20 @@ Agriculture is one symbol and ten brackets, so its −0.200 R is one flipped bra
 livestock hold no 8-hour span inside the window's sessions.
 
 **A shift or a revision?** If one series were the other shifted (bid against mid, say), the bank's
-close would sit off the cache's by a constant. It does not
-([offsets](/docs/research/vintage-bound-2026-09-24/offsets.out.txt)). On EURUSD, GBPUSD, USDJPY and
-AUDCAD the median close difference is zero. Closes differ on 24–52 % of buckets, usually by one tick
-(0.1 pip), except EURUSD, whose differing closes sit a median +2.7 pips apart and whose bank buckets
-span 1.3 pips more on average. On metals, crypto and ES the pattern is containment instead: the bank's
-five minutes sit strictly inside the cache's 5-minute bar on 37–65 % of buckets, and their range is
-narrower on average (XAUUSD by $0.32, BTCUSD by $6.48). The cache's bars there reach extremes the
-minutes do not hold. This cannot separate FMP revising the minutes from FMP building its 5-minute bars
-from a finer feed.
+close would sit off the cache's by a constant. It does not. Across all 28 forex pairs
+([forex](/docs/research/vintage-bound-2026-09-24/forex.out.txt)) the close differs on 22–60 % of
+buckets, by a median of 1–8 ticks where it does, except three USD-quoted majors: EURUSD 27, AUDUSD 24
+and NZDUSD 15 ticks. The extremes do shift. In 23 of the 28 pairs the bank's bucket sits lower than the
+cache's at both ends: across the 25 pairs outside those three majors, the bank's high is below the
+cache's on 25–52 % of buckets and above it on 2–23 %. EURUSD, AUDUSD and NZDUSD run the other way
+(EURUSD's bank high is above the cache's on 56 % of buckets), GBPUSD is contained, and CADJPY is mixed.
+At the class grain the bank's high is below the cache's on 33.7 % of 114,076 buckets and above on
+15.3 %, and its low below on 36.3 % and above on 18.1 %. Strict containment, the bank's five minutes
+inside the cache's 5-minute bar, runs 4–45 % across forex (GBPUSD highest) and 37–65 % on the metals,
+crypto and ES symbols measured
+([offsets](/docs/research/vintage-bound-2026-09-24/offsets.out.txt); XAUUSD's range narrower by $0.32,
+BTCUSD's by $6.48). Wherever it is high, the cache's bars reach extremes the minutes do not hold. None of
+this can separate FMP revising the minutes from FMP building its 5-minute bars from a finer feed.
 
 **The construction-clean set** (28 symbols at the 50 % threshold, 26 with brackets, no forex and no
 metals) reads almost nothing: 1.1–1.8 % of brackets differ and the pooled mean d is +0.001 to +0.004
@@ -115,12 +123,16 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
 - **For forex, the vintage is not moot.** On the band's widest bracket, k = 2 five-minute ATRs, the
   bank's copies read 0.010 R worse per bracket than FMP's later history. Measured over the window, 2
   five-minute mean ranges are 1.10 to 1.13 fifteen-minute mean ranges on EURUSD, GBPUSD and USDJPY
-  (1.44 on AUDCAD), near the shipped forex `stopAtrMultiplier` of 1.2. That is the same size as forex's measured edge on the tuning
-  folds (+0.006 R per fill, R3) and as the exit-slippage correction of 2026-09-23 (0.006 to 0.011 R
-  per fill). A forex figure that changes sign by less than that is a vintage question, not a finding.
-  No constant offset explains it.
+  (1.44 on AUDCAD), near the shipped forex `stopAtrMultiplier` of 1.2. That is the same size as forex's
+  measured edge on the tuning folds (+0.006 R per fill, R3) and as the exit-slippage correction of
+  2026-09-23 (0.006 to 0.011 R per fill). A forex figure that changes sign by less than that is a
+  vintage question, not a finding. It does not come from EURUSD, whose large one-sided gaps net +2 R
+  over its 156 brackets at k = 2. It is spread across the crosses: 14 pairs are negative, 12 zero and 2
+  positive, the largest AUDCHF, CHFJPY and EURCHF at −6 R each. Where a pair's bank buckets are mostly
+  contained (GBPUSD, 45 %), the caveat below applies to it too.
 - **For crypto and metals it is below 0.005 R per bracket**, and there the comparison may be of two
-  constructions rather than two vintages: the cache's 5-minute bars are wider than the bank's minutes.
+  constructions rather than two vintages: the cache's 5-minute bars reach extremes the bank's minutes
+  do not hold.
 - **The later history is not a fixed vintage either.** The cache records no fetch time for its August
   bars, and the top-ups may have replaced 2026-08-23..25 with a later copy.
 

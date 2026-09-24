@@ -44,8 +44,9 @@ for sym, unit in SYMBOLS:
     dr = [((bank[s][1] - bank[s][2]) - (cache[s][1] - cache[s][2])) / unit for s in common]
     inside = sum(1 for s in common if bank[s][1] <= cache[s][1] and bank[s][2] >= cache[s][2]
                  and (bank[s][1] < cache[s][1] or bank[s][2] > cache[s][2]))
-    nz = [x for x in dc if abs(x) > 1e-9]
+    # Nonzero in PRICE units (1e-12), not after dividing by the print unit.
+    nz = [(bank[s][3] - cache[s][3]) / unit for s in common if abs(bank[s][3] - cache[s][3]) > 1e-12]
     print(f"{sym:7} unit {unit:g}  buckets {len(common):5}  close: mean {statistics.mean(dc):+.3f} "
           f"median {statistics.median(dc):+.3f}, differs {len(nz)/len(dc):.0%} (median when it does "
-          f"{statistics.median(nz) if nz else 0:+.3f})  high {statistics.mean(dh):+.3f}  low "
+          f"{statistics.median(nz) if nz else 0:+.4f})  high {statistics.mean(dh):+.3f}  low "
           f"{statistics.mean(dl):+.3f}  range {statistics.mean(dr):+.3f}  bank strictly inside {inside/len(common):.0%}")
