@@ -80,8 +80,9 @@ export const COOL_OFF_MS = 6 * 60 * 60 * 1000;
  *     changes and never otherwise;
  *   - a SUSPENSION (403, "Account suspended", captured in the minute bank's log
  *     from 2026-09-08T23:20:01Z) clears when the owner resolves it with FMP;
- *   - a REJECTED KEY (401, "Invalid API KEY", 805 stored rows on 2026-08-18)
- *     clears when the key a consumer holds is one FMP accepts.
+ *   - a REJECTED KEY (401, "Invalid API KEY", 1,417 `analyzer_events` rows
+ *     on 2026-08-18: 805 carry it in `message` and 612 more only in
+ *     `metadata`) clears when the key a consumer holds is one FMP accepts.
  *
  * A bare per-minute rate limit is none of them: its ladder works.
  *
@@ -336,7 +337,7 @@ export function readBreaker(nowMs: number, state: FmpStatePaths): BreakerRead {
   // A rejected key opens nothing, whichever record carries one. `openCircuit`
   // refuses to write it, because it is a fact about one consumer's copy of the
   // key rather than about the account; the legacy marker predates that rule and
-  // the 2026-08-18 key failure (805 stored rows) is a shape it can hold; and a
+  // the 2026-08-18 key failure (1,417 stored rows) is a shape it can hold; and a
   // log line with that kind can only be a hand edit. Read through, either would
   // refuse every top-up and ad-hoc run under `invalidKey`. The consumer holding
   // the bad key still meets it, red, on its own call.

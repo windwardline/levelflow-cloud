@@ -2,8 +2,14 @@
 
 Plan of record: **Ultimate**. Register compiled 2026-09-12 from the owner's own
 dashboard export, so it records **what the dashboard presented**, not what a
-live key returned. Nothing here was probed: the account is suspended (below), and
-every intraday call returns 402.
+live key returned. ~~Nothing here was probed: the account is suspended (below), and
+every intraday call returns 402.~~ **Corrected 2026-09-24:** three probes are
+recorded since. One `/stable/quote` request confirmed the reinstatement on
+2026-09-14; the full-quote and aftermarket-quote requests of the same day are
+below; and on 2026-09-22 dated 1-minute requests for EURUSD and BTCUSD returned
+full days back to 2021-09-08 ([minute-bank.md](/docs/minute-bank.md)). Beyond
+those and the endpoints the code below calls, the register is the dashboard's
+word.
 
 This file exists because the entitlement list lived only in a screenshot. The
 2026-07-02 upgrade argument is [fmp-ultimate-upgrade.md](/docs/fmp-ultimate-upgrade.md),
@@ -31,20 +37,29 @@ thirteen date from 2026-08-07, are redacted, and carry the key rotated out on
 
 ## What Levelflow calls today
 
-Nine endpoints, across the Edge functions and the research scripts. This is
-the whole of it.
+~~Nine endpoints, across the Edge functions and the research scripts. This is
+the whole of it.~~ **Rebuilt from code 2026-09-24:** ten endpoint paths, from
+every URL built on the provider's base in `supabase/functions/` and `scripts/`,
+22 sites in nine files. Filled in, the two templates make sixteen:
+`/historical-chart/` takes five intervals (1min, 5min, 15min, 1hour, 4hour)
+and `/news/` three categories (forex, crypto, stock). The nine Edge URLs sit in
+the seven fetch sites `tests/fmpBudgetByClass.test.ts` derives, and the five
+scripts are the set `tests/fmpGovernor.test.ts` derives. No test pins the paths
+themselves, so re-derive this table when a fetch site changes. Edge paths are
+relative to `supabase/functions/`, script paths to `scripts/`.
 
-| endpoint | where | what for |
-|---|---|---|
-| `/quote` | `trade-analyzer/marketLoader.ts:273` | the decision bar's current-price reference |
-| `/historical-price-eod/full` | `marketLoader.ts:391`, `market-data/index.ts:581` | daily bars |
-| `/historical-chart/{timeframe}` | `marketLoader.ts:394`, `market-data/index.ts:584` | intraday bars; 15-minute is the primary analyzer lens |
-| `/treasury-rates` | `trade-analyzer/macroContext.ts:109` | the macro tilt (10-year change) |
-| `/economic-calendar` | `news-calendar/index.ts:327` | timing risk |
-| `/earnings-calendar` | `news-calendar/index.ts:391` | timing risk |
-| `/news/{category}` | `news-calendar/index.ts:489` | timing risk, never direction |
-| `/commitment-of-traders-report` | `scripts/replay-sweep.ts:2061` | `cotPercentile`, `cotStance`, `cotSampleSize` on every corpus row; `trade-analyzer/sweep.ts` only consumes it, via `cotContext.ts` |
-| `/commodities-list`, `/index-list` | `scripts/verify-fmp-matches.ts:207` | the two authoritative enumerations, for re-probing the unmatched register |
+| endpoint | Edge | scripts | what for |
+|---|---|---|---|
+| `/quote` | `trade-analyzer/marketLoader.ts:273` | `verify-fmp-matches.ts:247` | the decision bar's current-price reference; the verifier's first test of a candidate ticker |
+| `/historical-price-eod/full` | `trade-analyzer/marketLoader.ts:391`, `market-data/index.ts:581` | `replay-sweep.ts:2366`, `verify-fmp-matches.ts:127` | daily bars |
+| `/historical-chart/{interval}` | `trade-analyzer/marketLoader.ts:394`, `market-data/index.ts:584` | `replay-sweep.ts:2340`, `verify-fmp-matches.ts:142`, `:257`, `bank-minute-bars.ts:488`, `probe-minute-bars.ts:133`, `recover-minute-bank.ts:422` | intraday bars. The analyzer reads 4hour, 1hour, 15min and 5min, with 15-minute its primary lens; outcome grading 15min and 5min; the chart feed all five; the sweep 15min and 5min; the verifier 15min; the minute bank, its probe and its recovery 1min |
+| `/treasury-rates` | `trade-analyzer/macroContext.ts:109` | `replay-sweep.ts:1967` | the macro tilt (10-year change), live and in replay |
+| `/economic-calendar` | `news-calendar/index.ts:327` | `replay-sweep.ts:1819` | timing risk, live and in replay |
+| `/earnings-calendar` | `news-calendar/index.ts:391` | | timing risk |
+| `/news/{category}` | `news-calendar/index.ts:489` | | timing risk, never direction |
+| `/commitment-of-traders-report` | | `replay-sweep.ts:2086` | `cotPercentile`, `cotStance`, `cotSampleSize` on every corpus row; `trade-analyzer/sweep.ts` only consumes it, via `cotContext.ts` |
+| `/commodities-list` | | `verify-fmp-matches.ts:224` | one of the two authoritative enumerations, for re-probing the unmatched register |
+| `/index-list` | | `verify-fmp-matches.ts:224` | the other |
 
 Spend is governed, not merely rate-limited, and the bulk of each rolling 30-day
 window stays deliberately unused. On the Edge, `trade-analyzer/fmpBudget.ts`
@@ -57,7 +72,12 @@ ledger keyed by consumer, the breaker's event log and the run gate's markers.
 The top-up and ad-hoc classes each get 256 MiB a UTC day from a pool that
 reserves 333,333,333 bytes for the minute bank, and only the owner's
 `--daily-ceiling` lifts one ad-hoc run above that. The bank is never refused at
-a door; it bounds each run at 512 MiB instead. A 1-minute question goes through
+a door; it bounds each run at 512 MiB instead. A script names its class in
+code: `bank-minute-bars.ts` spends as `bank`, and `probe-minute-bars.ts`,
+`recover-minute-bank.ts` and `verify-fmp-matches.ts` as `adhoc`.
+`replay-sweep.ts` alone reads `--spend-class`, `adhoc` by default and `topup`
+only beside `--warm-only`, as `scripts/ops/daily-cache-topup.sh` runs it; no
+sweep can spend as the bank. A 1-minute question goes through
 `scripts/probe-minute-bars.ts --symbol --from --to`, which the governor meters.
 
 ## What the subscription includes and Levelflow does not use

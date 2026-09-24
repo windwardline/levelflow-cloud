@@ -3291,7 +3291,8 @@ calendar can run, and no new calendar exists to re-read the share on.
 
 **FMP, 2026-09-12.** The balance is paid and the dashboard shows **Ultimate**;
 the key still reads SUSPENDED and the owner is escalating. What the subscription
-includes, what Levelflow actually calls (nine endpoints), and what is
+includes, what Levelflow actually calls (~~nine endpoints~~ ten, rebuilt from
+code 2026-09-24), and what is
 entitled and unused now lives in
 [`docs/fmp-entitlements.md`](/docs/fmp-entitlements.md) rather than in a
 screenshot. **Both entitlements first named as bearing were
