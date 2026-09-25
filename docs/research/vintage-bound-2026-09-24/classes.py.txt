@@ -39,6 +39,9 @@ with open(vb.MANIFEST, "r") as f:
 # output names each one, and this script excludes exactly those so the pooled rows are the record's.
 with open(os.path.join(HERE, "vintage_bound.out.txt"), "r") as f:
     SKIPPED = {line.split()[1] for line in f if line.startswith("  read ") and "SKIP:" in line}
+# Review round 9 on #699: the raw sign-flip SEs under every clustering, the pair included, printed after
+# the lines above so those keep the numbers the record cites.
+raw_se = []
 for cls in ("crypto", "metals"):
     symbols = sorted(e["providerSymbol"] for e in manifest if e["assetType"] == cls)
     rows = []
@@ -58,10 +61,11 @@ for cls in ("crypto", "metals"):
         d = [r["ob"] - r["oc"] for _, r in sel]
         n, net = len(sel), sum(d)
         assert (n, round(net, 6)) == RECORDED[cls][k], f"{cls} k={k}: {n} brackets, sum d {net} against the record's {RECORDED[cls][k]}"
-        by_dec, by_day = {}, {}
+        by_dec, by_day, by_pair = {}, {}, {}
         for (sym, r), x in zip(sel, d):
             by_dec[(sym, r["t"])] = by_dec.get((sym, r["t"]), 0.0) + x
             by_day[r["t"] // 86_400_000] = by_day.get(r["t"] // 86_400_000, 0.0) + x
+            by_pair[sym] = by_pair.get(sym, 0.0) + x
         se_b = sum(x * x for x in d) ** 0.5
         se_c = sum(x * x for x in by_dec.values()) ** 0.5
         se_d = sum(x * x for x in by_day.values()) ** 0.5
@@ -69,4 +73,11 @@ for cls in ("crypto", "metals"):
         print(f"{cls:7} k={k}: {n} brackets, net {net:+.1f} R; 95% half-width per bracket: "
               f"{1.96 * se_b / n:.4f} (per bracket), {1.96 * se_c / n:.4f} (by decision), "
               f"{t * se_d / n:.4f} (by day, t {t:.3f} at {len(by_day) - 1} df)")
+        se_p = sum(x * x for x in by_pair.values()) ** 0.5
+        raw_se.append(f"{cls:7} k={k}: net {net:+.1f} R; sign-flip SE per bracket {se_b:.1f} R, by decision {se_c:.1f} "
+                      f"({len(by_dec)}), by symbol {se_p:.1f} ({len(by_pair)}), by day {se_d:.1f} ({len(by_day)})")
 print("pooled rows reproduce vintage_bound.out.txt's crypto and metals class lines")
+print()
+print("raw sign-flip standard errors, clusters in brackets (the forex table's unit):")
+for line in raw_se:
+    print("  " + line)

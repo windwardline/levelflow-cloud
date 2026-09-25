@@ -131,27 +131,31 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
 - **For forex, the vintage moves outcomes against the bank's copies at every width, and at the shipped
   stop width by about 0.01 R per bracket.** The direction needs no model of the magnitudes, but at
   k = 2 it needs aggregating: per bracket, 267 of 511 differing brackets are negative (two-sided sign
-  test p = 0.33). Every aggregated unit agrees. Of the UTC days whose forex net is nonzero, 14 of 14 are
-  negative at k = 0.5, 12 of 13 at k = 1 (08-07 nets +2 R) and 9 of 9 at k = 2 (p = 0.0001, 0.003 and
-  0.004); of the pairs, 25 of 27, 17 of 19 and 14 of 16 (p below 0.0001, 0.0007 and 0.004). Neither
-  unit nests the other. The size needs a model. The standard error of the
-  forex net under a sign-flip null, four ways ([forex](/docs/research/vintage-bound-2026-09-24/forex.out.txt)):
+  test p = 0.33). Every aggregated unit agrees at every width. The last column below counts, for the
+  decisions, pairs and days with a nonzero net, how many are negative, with each count's two-sided sign
+  test; the one positive day at k = 1 is 08-07, at +2 R. A decision whose brackets cancel drops out of
+  its count without biasing the sign of those left, so the deflation that caveats the decision SE does
+  not reach its sign test. The size needs a model. The standard error of the forex net under a
+  sign-flip null, four ways ([forex](/docs/research/vintage-bound-2026-09-24/forex.out.txt)):
 
-  | k | net | SE per bracket (net/SE) | by decision, 2,178 | by pair, 28 | by UTC day, 14 | nonzero days negative |
+  | k | net | SE per bracket (net/SE) | by decision, 2,178 | by pair, 28 | by UTC day, 14 | negative of nonzero: decisions · pairs · days (p) |
   |---|---:|---:|---:|---:|---:|---:|
-  | 0.5 | −250 R | 41.4 (−6.0) | 27.8 (−9.0) | 63.3 (−4.0) | 74.1 (−3.4) | 14 of 14 |
-  | 1 | −112 R | 42.3 (−2.6) | 16.2 (−6.9) | 32.7 (−3.4) | 38.3 (−2.9) | 12 of 13 |
-  | 2 | −44 R | 42.8 (−1.0) | 12.6 (−3.5) | 14.4 (−3.1) | 17.4 (−2.5) | 9 of 9 |
+  | 0.5 | −250 R | 41.4 (−6.0) | 27.8 (−9.0) | 63.3 (−4.0) | 74.1 (−3.4) | 159/193 · 25/27 · 14/14 (< 0.0001, < 0.0001, 0.0001) |
+  | 1 | −112 R | 42.3 (−2.6) | 16.2 (−6.9) | 32.7 (−3.4) | 38.3 (−2.9) | 61/66 · 17/19 · 12/13 (< 0.0001, 0.0007, 0.003) |
+  | 2 | −44 R | 42.8 (−1.0) | 12.6 (−3.5) | 14.4 (−3.1) | 17.4 (−2.5) | 31/40 · 14/16 · 9/9 (0.0007, 0.004, 0.004) |
 
   Which error sizes it is JUDGED: whether a revision is a random event per bracket, or hits a decision's
   long and short brackets together, which move in opposite directions, or a whole day, or a whole pair.
   The record takes the day because it nests the decision: every decision that day reads the same revised
   bars, so the day allows each dependence the decision does and the one across decisions too. It does not
-  nest the pair, the unit a revision or a capture acts on; measured, the day is the wider of the two at
-  every k here. That is a finding on this class, not a property of the day: on crypto the day's
-  half-width is narrower than the decision's at k = 1 and 2 (0.0020 against 0.0021, 0.0015 against
-  0.0023), though it carries the larger multiplier (t = 2.101 at 18 degrees of freedom against 1.96).
-  The decision column is not a tighter estimate, only a deflated one. A decision's long and short
+  nest the pair, the unit a revision or a capture acts on; on forex the day is the wider of the two at
+  every k. That ordering is measured on forex only. On crypto the day's SE is below the symbol's at
+  k = 0.5 and 2 and equal at k = 1 (13.4, 5.3 and 4.0 R against 15.6, 5.3 and 6.3;
+  [classes](/docs/research/vintage-bound-2026-09-24/classes.out.txt)), and its half-width is narrower
+  even than the decision's at k = 1 and 2 (0.0020 against 0.0021, 0.0015 against 0.0023) though it
+  carries the larger multiplier (t = 2.101 at 18 degrees of freedom against 1.96). No estimator here
+  allows day and pair dependence at once. The direction survives that because it rests on the sign
+  tests; the size's interval is only as good as the clustering. The decision column is not a tighter estimate, only a deflated one. A decision's long and short
   brackets flip in opposite directions, so their cluster sum cancels; that is why it is a third of the
   per-bracket figure at k = 2 on a cluster of two, and why it is exactly zero on metals. At k = 2, the width nearest the shipped forex `stopAtrMultiplier` of
   1.2 (2 five-minute mean ranges are 1.10 to 1.13 fifteen-minute ones on EURUSD, GBPUSD and USDJPY,

@@ -5,3 +5,11 @@ metals  k=0.5: 220 brackets, net +6.0 R; 95% half-width per bracket: 0.0398 (per
 metals  k=1.0: 220 brackets, net +0.0 R; 95% half-width per bracket: 0.0356 (per bracket), 0.0000 (by decision), 0.0000 (by day, t 2.160 at 13 df)
 metals  k=2.0: 220 brackets, net +0.0 R; 95% half-width per bracket: 0.0252 (per bracket), 0.0000 (by decision), 0.0000 (by day, t 2.160 at 13 df)
 pooled rows reproduce vintage_bound.out.txt's crypto and metals class lines
+
+raw sign-flip standard errors, clusters in brackets (the forex table's unit):
+  crypto  k=0.5: net +26.0 R; sign-flip SE per bracket 19.9 R, by decision 13.4 (2745), by symbol 15.6 (28), by day 13.4 (19)
+  crypto  k=1.0: net +2.0 R; sign-flip SE per bracket 18.9 R, by decision 6.0 (2745), by symbol 5.3 (28), by day 5.3 (19)
+  crypto  k=2.0: net +0.0 R; sign-flip SE per bracket 17.0 R, by decision 6.3 (2745), by symbol 6.3 (28), by day 4.0 (19)
+  metals  k=0.5: net +6.0 R; sign-flip SE per bracket 4.5 R, by decision 3.5 (110), by symbol 6.0 (2), by day 3.5 (14)
+  metals  k=1.0: net +0.0 R; sign-flip SE per bracket 4.0 R, by decision 0.0 (110), by symbol 0.0 (2), by day 0.0 (14)
+  metals  k=2.0: net +0.0 R; sign-flip SE per bracket 2.8 R, by decision 0.0 (110), by symbol 0.0 (2), by day 0.0 (14)
