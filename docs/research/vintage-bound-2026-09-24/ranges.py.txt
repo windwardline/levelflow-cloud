@@ -9,7 +9,8 @@ calibration cache's 5-minute and 15-minute bars the way vintage_bound.py.txt tak
 median of stop x ATR15 / ATR5: the stop in the brackets' unit. It then places that stop against the
 measured widths k = 0.5, 1 and 2: the nearest k where the stop lies inside [0.5, 2], and "beyond 2"
 or "below 0.5" where it does not, so a clamp never reads as a bracketing. Last, each series' k = 0.5
-bracket as a share of its own stop.
+and k = 2 brackets as shares of its own stop (round 20), with each class's range and median, so the
+fraction of a shipped stop a bracket-R stands for reads off this file.
 
 The stop multipliers are the resolver's, read on 2026-09-25 by executing getCategoryCalibration for
 every roster market: all 28 forex pairs 1.2, all 18 futures markets 1.3, WTI (energies, on CLUSD's
@@ -67,7 +68,7 @@ with open(vb.MANIFEST, "r") as f:
 with open(os.path.join(HERE, "vintage_bound.out.txt"), "r") as f:
     SKIPPED = {line.split()[1] for line in f if line.startswith("  read ") and "SKIP:" in line}
 print("stop in 5-minute ATRs = stopAtrMultiplier x ATR15 / ATR5 at each decision that produced a bracket; median")
-print(f"{'class':9} {'series':10} {'decisions':>9} {'ATR15/ATR5':>10} {'stop':>5} {'stop in ATR5':>12} {'placement':>11} {'k=0.5 / stop':>12}")
+print(f"{'class':9} {'series':10} {'decisions':>9} {'ATR15/ATR5':>10} {'stop':>5} {'stop in ATR5':>12} {'placement':>11} {'k=0.5 / stop':>12} {'k=2 / stop':>10}")
 summary = {}
 for cls in ("forex", "futures", "energies"):
     per = []
@@ -95,7 +96,7 @@ for cls in ("forex", "futures", "energies"):
         ratio = statistics.median(ratios)
         stop5 = STOP[cls] * ratio
         per.append(stop5)
-        print(f"{cls:9} {provider:10} {len(ratios):>9} {ratio:>10.3f} {STOP[cls]:>5.2f} {stop5:>12.2f} {place(stop5):>11} {0.5 / stop5:>11.1%}")
+        print(f"{cls:9} {provider:10} {len(ratios):>9} {ratio:>10.3f} {STOP[cls]:>5.2f} {stop5:>12.2f} {place(stop5):>11} {0.5 / stop5:>11.1%} {2 / stop5:>10.1%}")
     summary[cls] = per
 print()
 for cls, per in summary.items():
@@ -106,3 +107,6 @@ for cls, per in summary.items():
     print(f"{cls}: {len(per)} series; stop in ATR5 median {statistics.median(per):.2f}, {spread}"
           f"range {min(per):.2f} to {max(per):.2f}; placement: "
           + ", ".join(f"{p} on {placed.count(p)}" for p in sorted(set(placed))))
+    for k in (0.5, 2.0):
+        shares = [k / s for s in per]
+        print(f"  {cls} k={k:g} bracket as a share of the stop: {min(shares):.1%} to {max(shares):.1%}, median {statistics.median(shares):.1%}")
