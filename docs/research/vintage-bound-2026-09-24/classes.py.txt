@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sampling error of every class's net but forex's (review rounds 6 and 11 on #699).
+"""Sampling error of every class's net but forex's (review rounds 6, 11, 13 and 15 on #699).
 
 The standard errors forex.py.txt prints for forex, under the same sign-flip null, for every other class
 with brackets (crypto, metals, futures, agriculture; indices and livestock have none): per bracket, clustered by decision (a symbol's long and short

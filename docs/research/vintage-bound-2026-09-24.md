@@ -39,7 +39,9 @@ this file, stored as `.txt` so the citation guard covers them:
 [`forex.py.txt`](/docs/research/vintage-bound-2026-09-24/forex.py.txt) and
 [`forex.out.txt`](/docs/research/vintage-bound-2026-09-24/forex.out.txt), and
 [`classes.py.txt`](/docs/research/vintage-bound-2026-09-24/classes.py.txt) and
-[`classes.out.txt`](/docs/research/vintage-bound-2026-09-24/classes.out.txt). Each resolves the
+[`classes.out.txt`](/docs/research/vintage-bound-2026-09-24/classes.out.txt), and
+[`ranges.py.txt`](/docs/research/vintage-bound-2026-09-24/ranges.py.txt) and
+[`ranges.out.txt`](/docs/research/vintage-bound-2026-09-24/ranges.out.txt). Each resolves the
 checkout from its own location:
 
 ```
@@ -48,6 +50,7 @@ python3 docs/research/vintage-bound-2026-09-24/crosscheck.py.txt EURUSD NGUSD ET
 python3 docs/research/vintage-bound-2026-09-24/offsets.py.txt
 python3 docs/research/vintage-bound-2026-09-24/forex.py.txt
 python3 docs/research/vintage-bound-2026-09-24/classes.py.txt
+python3 docs/research/vintage-bound-2026-09-24/ranges.py.txt
 ```
 
 The script reproduced byte-identical except its run stamp on 2026-09-24. The cross-check
@@ -156,7 +159,7 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   nests the decision: every decision that day reads the same revised bars, so the day allows each
   dependence the decision does and the one across decisions too. It does not nest the pair (the symbol,
   in the other classes), the unit a revision or a capture acts on. On forex the day is the wider of the
-  two at every k. That ordering is measured on forex only
+  two at every k. That direction holds on forex only; the ordering is measured on every class
   ([classes](/docs/research/vintage-bound-2026-09-24/classes.out.txt)). On crypto the day's SE is below
   the symbol's at k = 0.5 and 2 and equal at k = 1 (13.4, 5.3 and 4.0 R against 15.6, 5.3 and 6.3), and
   its half-width is narrower even than the decision's at k = 1 and 2 (0.0020 against 0.0021, 0.0015
@@ -171,9 +174,10 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   What the direction rests on is that it rejects under every aggregated clustering tried, decisions, pairs and days
   each at p below 0.005 at k = 2 (0.0007, 0.0042 and 0.0039), so it does not turn on which one a reader picks.
 
-  At k = 2, the width nearest the shipped forex `stopAtrMultiplier` of
-  1.2 (2 five-minute mean ranges are 1.10 to 1.13 fifteen-minute ones on EURUSD, GBPUSD and USDJPY,
-  1.44 on AUDCAD), the mean is −0.010 R per bracket, 95 % about −0.019 to −0.001 R clustered by day
+  At k = 2, the width nearest the shipped forex stop (the resolver gives all 28 pairs a
+  `stopAtrMultiplier` of 1.2, `calibration.ts` class row :775; at the decision times that stop is 1.87
+  to 2.38 five-minute ATRs, median 2.01, and k = 2 is nearest on all 28;
+  [ranges](/docs/research/vintage-bound-2026-09-24/ranges.out.txt)), the mean is −0.010 R per bracket, 95 % about −0.019 to −0.001 R clustered by day
   (t = 2.160 at 13 degrees of freedom; counting only the 9 days with a nonzero net, t = 2.306 at 8, the
   near end is −0.0009). Per bracket, at 1.96, it would be −0.029 to +0.009. That is the size of forex's
   measured edge on the tuning folds (+0.006 R per fill, R3) and of the exit-slippage correction of
@@ -207,10 +211,13 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   its low above on 24.4 % and below on 19.4 %, the bank's bucket inside the cache's rather than shifted
   as forex's is. For futures, as for forex, the record cannot separate revision from construction. The record sizes no
   futures line, and not for want of a stop: the resolver gives all 18 futures markets a 1.3 ATR stop
-  (WTI, calibrated as energies, 1.38). What is missing is the step that maps a stop to a width, the
-  5-to-15-minute range ratio, which the record measures on four forex pairs only. At k = 2, forex's
-  convention would give about 0.014 R per bracket (the day-clustered interval there runs −0.0144 to
-  +0.0020); whether k = 2 is the width nearest futures' stop waits on that ratio. At k = 1 and 2 the
+  (`calibration.ts` class row :825; WTI, calibrated as energies, 1.38 at :683). In the brackets' unit
+  that stop is 2.09 to 3.55 five-minute ATRs on 16 of the 18 (median 2.60 over all 18), beyond the
+  widest width measured on every one of them
+  ([ranges](/docs/research/vintage-bound-2026-09-24/ranges.out.txt)). No measured width stands for it,
+  so a futures line waits on a bracket at about that width. HOUSD and RBUSD, which carry the net, are
+  the two markets whose 5-minute ATR is smallest against their 15-minute one: their stop is 8.9 and
+  45.5 five-minute ATRs. Why they carry it is not measured here. At k = 1 and 2 the
   nets, −0.0077 and −0.0062 R per bracket, sit inside every interval but the deflated decision one at
   k = 2 (±0.0061), whose sign test does not reject (4 of 4 decisions, p = 0.13). Agriculture (6 series
   in the manifest, all 6 evaluated, 1 with brackets, 10 brackets) bounds nothing: one flipped bracket at k = 0.5, none at the

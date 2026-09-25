@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""Which bracket width is nearest each market's shipped stop (review round 17 on #699).
+
+The brackets are k times a 5-minute ATR; the engine's stop is stopAtrMultiplier times the 15-minute
+ATR of the decision bar. At every decision time the brackets use (00/04/08/12/16/20Z over the window),
+this takes ATR(14) on the calibration cache's 5-minute and 15-minute bars the way vintage_bound.py.txt
+takes the 5-minute one (the 14 bars up to and including the bar opening at the decision time), and
+prints per symbol the median of stop x ATR15 / ATR5: the stop in the brackets' own unit. The nearest
+of k = 0.5, 1 and 2 follows.
+
+The stop multipliers are the resolver's, read on 2026-09-25 by executing getCategoryCalibration for
+every roster market (supabase/functions/trade-analyzer/calibration.ts, class rows forex :775, futures
+:825, energies :683): all 28 forex pairs 1.2, all 18 futures markets 1.3, WTI (energies, on CLUSD's
+series) 1.38. They are pinned here, so a calibration change leaves this stale rather than silently
+current. Read-only, standard library, zero provider bytes. Run from anywhere:
+    python3 docs/research/vintage-bound-2026-09-24/ranges.py.txt
+"""
+import bisect, importlib.machinery, importlib.util, json, os, statistics, sys
+sys.dont_write_bytecode = True
+HERE = os.path.dirname(os.path.abspath(__file__))
+_loader = importlib.machinery.SourceFileLoader("vintage_bound", os.path.join(HERE, "vintage_bound.py.txt"))
+vb = importlib.util.module_from_spec(importlib.util.spec_from_loader("vintage_bound", _loader)); _loader.exec_module(vb)
+
+STOP = {"forex": 1.2, "futures": 1.3}
+KS = (0.5, 1.0, 2.0)
+
+def load(provider, frame):
+    path = vb.cache_path(provider).replace("-5min-", f"-{frame}-")
+    with open(path, "r", encoding="utf-8") as fh:
+        items = json.load(fh)["items"]
+    lo = vb.WS - 3 * vb.DAY
+    bars = sorted((it["time"], float(it["high"]) - float(it["low"])) for it in items if lo <= it["time"] < vb.WE)
+    return [t for t, _ in bars], [r for _, r in bars]
+
+def atr(times, ranges, t):
+    i = bisect.bisect_right(times, t)
+    if i < vb.ATR_BARS:
+        return None
+    window = ranges[i - vb.ATR_BARS:i]
+    value = sum(window) / vb.ATR_BARS
+    return value if value > 0 else None
+
+with open(vb.MANIFEST, "r") as f:
+    manifest = json.load(f)["symbols"]
+print("stop in 5-minute ATRs = stopAtrMultiplier x ATR15 / ATR5 at each decision time; median over decisions")
+print(f"{'class':8} {'series':10} {'decisions':>9} {'ATR15/ATR5':>10} {'stop':>5} {'stop in ATR5':>12} {'nearest k':>9}")
+summary = {}
+for cls in ("forex", "futures"):
+    per = []
+    for provider in sorted({e["providerSymbol"] for e in manifest if e["assetType"] == cls}):
+        t5, r5 = load(provider, "5min")
+        t15, r15 = load(provider, "15min")
+        ratios = []
+        day = vb.WS
+        while day < vb.WE:
+            for hour in vb.DECISION_HOURS:
+                t = day + hour * 3_600_000
+                a5, a15 = atr(t5, r5, t), atr(t15, r15, t)
+                if a5 and a15:
+                    ratios.append(a15 / a5)
+            day += vb.DAY
+        if not ratios:
+            print(f"{cls:8} {provider:10} {0:>9}  no decision with both ATRs")
+            continue
+        ratio = statistics.median(ratios)
+        stop5 = STOP[cls] * ratio
+        nearest = min(KS, key=lambda k: abs(k - stop5))
+        per.append(stop5)
+        print(f"{cls:8} {provider:10} {len(ratios):>9} {ratio:>10.3f} {STOP[cls]:>5.2f} {stop5:>12.2f} {nearest:>9}")
+    summary[cls] = per
+print()
+for cls, per in summary.items():
+    q = statistics.quantiles(per, n=4)
+    nearest = [min(KS, key=lambda k: abs(k - s)) for s in per]
+    print(f"{cls}: {len(per)} series; stop in ATR5 median {statistics.median(per):.2f}, quartiles {q[0]:.2f} to {q[2]:.2f}, "
+          f"range {min(per):.2f} to {max(per):.2f}; nearest k: " + ", ".join(f"{k} on {nearest.count(k)}" for k in KS))
