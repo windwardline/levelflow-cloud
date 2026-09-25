@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
@@ -41,7 +40,7 @@ function store(pinned: Record<string, number>, items = 3): string {
 }
 
 describe("the pin census reads the tail, not the store", () => {
-  const dir = mkdtempSync(join(tmpdir(), "pins-"));
+  const dir = scratchDir("pins-");
 
   it("returns the pins without parsing megabytes", async () => {
     const path = join(dir, "a.rolling.json");
@@ -116,7 +115,7 @@ describe("the pre-flight is derived from the run", () => {
     dropFrame?: string;
     pinDay?: string;
   }): string {
-    const dir = mkdtempSync(join(tmpdir(), "pf-"));
+    const dir = scratchDir("pf-");
     const pinned = { [options.pinDay ?? anchor]: 1 };
     for (const symbol of symbols) {
       const provider = resolveProviderSymbols(symbol)[0];
@@ -320,14 +319,20 @@ describe("the pre-flight covers every rolling store the driver loads — derived
   // variables it knows, and requires the pre-flight, run on an empty cache, to
   // name each resulting store. A template with a variable it does not know
   // fails by name, which is the point: a new kind of store needs a new census
-  // line and a pre-flight check together.
+  // line and a pre-flight check together. It covers rolling stores only: the
+  // COT cache is read with a plain readFile and stays hand-listed in the
+  // pre-flight, so a second store of that shape would pass this census.
   const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
 
   function loaderKeys(): string[] {
     const keys: string[] = [];
     for (const call of driver.matchAll(/loadRollingSeries<[^>]+>\(\{/g)) {
-      const rest = driver.slice(call.index ?? 0);
-      const key = rest.match(/\n\s*key:\s*(`[^`]*`|"[^"]*")/);
+      // Bounded to THIS call: searching the rest of the file would let a
+      // non-literal key slide onto the next loader's literal and pass.
+      const start = call.index ?? 0;
+      const next = driver.indexOf("loadRollingSeries<", start + 1);
+      const body = driver.slice(start, next === -1 ? undefined : next);
+      const key = body.match(/\n\s*key:\s*(`[^`]*`|"[^"]*")/);
       assert.ok(key, `a loadRollingSeries call at offset ${call.index} has no key: the census cannot read it`);
       keys.push(key![1].slice(1, -1));
     }
