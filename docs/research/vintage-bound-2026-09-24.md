@@ -146,7 +146,7 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
 
   The decision column is not a tighter estimate, only a deflated one: a decision's long and short
   brackets flip in opposite directions, so their cluster sum cancels. That is why it is a third of the
-  per-bracket figure at k = 2 on a cluster of two, and why it is exactly zero on metals.
+  per-bracket figure at k = 2 on a cluster of two, and why it is exactly zero on metals at k = 1 and 2.
 
   Which error sizes it is JUDGED: whether a revision is a random event per bracket, or hits a decision's
   long and short brackets together, or a whole day, or a whole pair. The record takes the day because it
@@ -158,12 +158,12 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   the symbol's at k = 0.5 and 2 and equal at k = 1 (13.4, 5.3 and 4.0 R against 15.6, 5.3 and 6.3), and
   its half-width is narrower even than the decision's at k = 1 and 2 (0.0020 against 0.0021, 0.0015
   against 0.0023) though it carries the larger multiplier (t = 2.101 at 18 degrees of freedom against
-  1.96). On metals at k = 0.5 the symbol is the widest unit and the day the narrowest (6.0 R against
-  3.5, and 4.5 per bracket), because one of its two symbols carries all +6 R; two clusters are a
+  1.96). On metals at k = 0.5 the symbol is the widest unit and the day ties the decision as the
+  narrowest (6.0 R against 3.5 each, and 4.5 per bracket), because one of its two symbols carries all +6 R; two clusters are a
   degenerate count. No unit here covers day and pair dependence at once, and that limit falls on the
   direction as much as on the size: a sign test over days is the day-clustered null, and one over pairs
   the pair-clustered null. The sign tests are free of a model of the magnitudes, not of the dependence.
-  What the direction rests on is that it rejects under every clustering tried, decisions, pairs and days
+  What the direction rests on is that it rejects under every aggregated clustering tried, decisions, pairs and days
   each at p below 0.005 at k = 2 (0.0007, 0.0042 and 0.0039), so it does not turn on which one a reader picks.
 
   At k = 2, the width nearest the shipped forex `stopAtrMultiplier` of
@@ -178,11 +178,21 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   over its 156 brackets at k = 2; it is spread across the crosses (14 pairs negative, 12 zero, 2
   positive, the largest AUDCHF, CHFJPY and EURCHF at −6 R each). GBPUSD and EURUSD carry the
   two-constructions caveat above.
+- **Futures moves against the bank's copies at the tightest width, and is not established at the
+  others** ([classes](/docs/research/vintage-bound-2026-09-24/classes.out.txt)). Eighteen symbols,
+  1,292 brackets. At k = 0.5 the net is −50 R, −0.0387 R per bracket, and zero lies outside the 95 %
+  interval with brackets independent (±0.0345), by decision (±0.0204) and by day (±0.0308); the sign
+  tests agree on brackets (77 of 129 negative, p = 0.03), decisions (35 of 45, p = 0.0002) and days
+  (10 of 11, p = 0.01). Clustered by symbol it does not reject (net/SE −1.75; 8 of 12 symbols
+  negative, p = 0.39), so unlike forex's its direction turns on the clustering. At k = 1 and 2 the
+  nets, −0.0077 and −0.0062 R per bracket, sit inside every interval but the deflated decision one at
+  k = 2 (±0.0061), whose sign test does not reject (4 of 4 decisions, p = 0.13). Agriculture's one
+  symbol and ten brackets bound nothing.
 - **Neither crypto nor metals is measurably moved at any width**
   ([classes](/docs/research/vintage-bound-2026-09-24/classes.out.txt)). Crypto's net (33 series in the
   manifest, 31 evaluated after the DYDXUSD and FILUSD skips, 28 with brackets, 5,490 brackets) is
-  +0.0047 R per bracket at k = 0.5, inside ±0.0071 with brackets independent and ±0.0051 clustered by
-  day; at k = 1 and 2 it sits within ±0.0067 and ±0.0061 R per bracket at 95 % with brackets
+  +0.0047 R per bracket at k = 0.5, inside ±0.0071 with brackets independent, ±0.0051 clustered by
+  day and ±0.0048 by decision, the last only just (the point is +0.00474); at k = 1 and 2 it sits within ±0.0067 and ±0.0061 R per bracket at 95 % with brackets
   independent, and within ±0.0020 and ±0.0015 clustered by day. At k = 1 and 2 metals' two symbols
   bound it only to ±0.036 and ±0.025 R per bracket (220 brackets); their few flips cancel inside their
   decisions, so the clustered errors there are exactly zero and bound nothing. Metals' +0.027 R at

@@ -4,7 +4,13 @@ crypto  k=2.0: 5490 brackets, net +0.0 R; 95% half-width per bracket: 0.0061 (pe
 metals  k=0.5: 220 brackets, net +6.0 R; 95% half-width per bracket: 0.0398 (per bracket), 0.0309 (by decision), 0.0340 (by day, t 2.160 at 13 df)
 metals  k=1.0: 220 brackets, net +0.0 R; 95% half-width per bracket: 0.0356 (per bracket), 0.0000 (by decision), 0.0000 (by day, t 2.160 at 13 df)
 metals  k=2.0: 220 brackets, net +0.0 R; 95% half-width per bracket: 0.0252 (per bracket), 0.0000 (by decision), 0.0000 (by day, t 2.160 at 13 df)
-pooled rows reproduce vintage_bound.out.txt's crypto and metals class lines
+futures k=0.5: 1292 brackets, net -50.0 R; 95% half-width per bracket: 0.0345 (per bracket), 0.0204 (by decision), 0.0308 (by day, t 2.160 at 13 df)
+futures k=1.0: 1292 brackets, net -10.0 R; 95% half-width per bracket: 0.0293 (per bracket), 0.0139 (by decision), 0.0174 (by day, t 2.160 at 13 df)
+futures k=2.0: 1292 brackets, net -8.0 R; 95% half-width per bracket: 0.0278 (per bracket), 0.0061 (by decision), 0.0082 (by day, t 2.160 at 13 df)
+agriculture k=0.5: 10 brackets, net -2.0 R; 95% half-width per bracket: 0.3920 (per bracket), 0.3920 (by decision), 0.5553 (by day, t 2.776 at 4 df)
+agriculture k=1.0: 10 brackets, net +0.0 R; 95% half-width per bracket: 0.0000 (per bracket), 0.0000 (by decision), 0.0000 (by day, t 2.776 at 4 df)
+agriculture k=2.0: 10 brackets, net +0.0 R; 95% half-width per bracket: 0.0000 (per bracket), 0.0000 (by decision), 0.0000 (by day, t 2.776 at 4 df)
+pooled rows reproduce vintage_bound.out.txt's crypto, metals, futures and agriculture class lines
 
 raw sign-flip standard errors, clusters in brackets (the forex table's unit):
   crypto  k=0.5: net +26.0 R; sign-flip SE per bracket 19.9 R, by decision 13.4 (2745), by symbol 15.6 (28), by day 13.4 (19)
@@ -13,3 +19,23 @@ raw sign-flip standard errors, clusters in brackets (the forex table's unit):
   metals  k=0.5: net +6.0 R; sign-flip SE per bracket 4.5 R, by decision 3.5 (110), by symbol 6.0 (2), by day 3.5 (14)
   metals  k=1.0: net +0.0 R; sign-flip SE per bracket 4.0 R, by decision 0.0 (110), by symbol 0.0 (2), by day 0.0 (14)
   metals  k=2.0: net +0.0 R; sign-flip SE per bracket 2.8 R, by decision 0.0 (110), by symbol 0.0 (2), by day 0.0 (14)
+  futures k=0.5: net -50.0 R; sign-flip SE per bracket 22.7 R, by decision 13.4 (646), by symbol 28.6 (18), by day 18.4 (14)
+  futures k=1.0: net -10.0 R; sign-flip SE per bracket 19.3 R, by decision 9.2 (646), by symbol 14.8 (18), by day 10.4 (14)
+  futures k=2.0: net -8.0 R; sign-flip SE per bracket 18.3 R, by decision 4.0 (646), by symbol 5.7 (18), by day 4.9 (14)
+  agriculture k=0.5: net -2.0 R; sign-flip SE per bracket 2.0 R, by decision 2.0 (5), by symbol 2.0 (1), by day 2.0 (5)
+  agriculture k=1.0: net +0.0 R; sign-flip SE per bracket 0.0 R, by decision 0.0 (5), by symbol 0.0 (1), by day 0.0 (5)
+  agriculture k=2.0: net +0.0 R; sign-flip SE per bracket 0.0 R, by decision 0.0 (5), by symbol 0.0 (1), by day 0.0 (5)
+
+sign tests on every unit (round 11):
+  crypto      k=0.5: negative of nonzero, exact two-sided sign test: brackets 43/99 (p 0.2276), decisions 16/45 (p 0.0725), symbols 5/20 (p 0.0414), days 5/15 (p 0.3018)
+  crypto      k=1.0: negative of nonzero, exact two-sided sign test: brackets 44/89 (p 1.0000), decisions 4/9 (p 1.0000), symbols 3/7 (p 1.0000), days 3/7 (p 1.0000)
+  crypto      k=2.0: negative of nonzero, exact two-sided sign test: brackets 40/80 (p 1.0000), decisions 5/10 (p 1.0000), symbols 4/7 (p 1.0000), days 2/4 (p 1.0000)
+  metals      k=0.5: negative of nonzero, exact two-sided sign test: brackets 1/5 (p 0.3750), decisions 0/3 (p 0.2500), symbols 0/1 (p 1.0000), days 0/3 (p 0.2500)
+  metals      k=1.0: negative of nonzero, exact two-sided sign test: brackets 2/4 (p 1.0000), decisions 0/0 (p nan), symbols 0/0 (p nan), days 0/0 (p nan)
+  metals      k=2.0: negative of nonzero, exact two-sided sign test: brackets 1/2 (p 1.0000), decisions 0/0 (p nan), symbols 0/0 (p nan), days 0/0 (p nan)
+  futures     k=0.5: negative of nonzero, exact two-sided sign test: brackets 77/129 (p 0.0342), decisions 35/45 (p 0.0002), symbols 8/12 (p 0.3877), days 10/11 (p 0.0117)
+  futures     k=1.0: negative of nonzero, exact two-sided sign test: brackets 49/93 (p 0.6785), decisions 13/21 (p 0.3833), symbols 3/9 (p 0.5078), days 7/10 (p 0.3438)
+  futures     k=2.0: negative of nonzero, exact two-sided sign test: brackets 44/84 (p 0.7436), decisions 4/4 (p 0.1250), symbols 2/2 (p 0.5000), days 3/3 (p 0.2500)
+  agriculture k=0.5: negative of nonzero, exact two-sided sign test: brackets 1/1 (p 1.0000), decisions 1/1 (p 1.0000), symbols 1/1 (p 1.0000), days 1/1 (p 1.0000)
+  agriculture k=1.0: negative of nonzero, exact two-sided sign test: brackets 0/0 (p nan), decisions 0/0 (p nan), symbols 0/0 (p nan), days 0/0 (p nan)
+  agriculture k=2.0: negative of nonzero, exact two-sided sign test: brackets 0/0 (p nan), decisions 0/0 (p nan), symbols 0/0 (p nan), days 0/0 (p nan)
