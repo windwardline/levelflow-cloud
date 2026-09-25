@@ -46,7 +46,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   );
   const [error, setError] = useState("");
   // The same ask the authed shell now opens its Donate tab on, read from the one
-  // predicate both surfaces share (src/lib/donateEntry.ts). What this screen does
+  // predicate every surface shares (src/lib/donateEntry.ts). What this screen does
   // with it is unchanged, including leaving the parameter in the URL: there is one
   // surface here and nothing a reload could displace, so consuming it — which the
   // authed shell does — would buy nothing.

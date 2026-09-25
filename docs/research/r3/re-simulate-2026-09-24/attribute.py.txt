@@ -17,8 +17,9 @@ On a cross the commission's own value is not recomputed; the check there is whic
 how much. estimatedSlippage itself may not move anywhere.
 
 Streams both files in lockstep by (symbol, time, variant, holdout), resyncing past rows present in only
-one file. Confirm rows are withheld on their split before any other field is read. The forex roster is
-read from OLD's manifest, beside it. Read-only; stdout only.
+one file. Confirm rows are withheld on their split before any other field is read. usdPerQuote, new with
+#641, is stripped from each new row before the comparison. The forex roster is read from OLD's manifest,
+beside it. Read-only; stdout only.
 Usage: python3 attribute.py.txt OLD.jsonl NEW.jsonl [--limit N]
 """
 import json, sys, collections

@@ -474,8 +474,8 @@ describe("§17i — the satellites' Donate opens something, and it can be seen (
   it(`${name} opens the block from the query and from the hash, on load`, () => {
     // Both forms still, and still on load — but the reading itself moved to
     // src/lib/donateEntry.ts, because the authed shell answers the same ask now
-    // (it opens its Donate tab) and two surfaces reading one URL contract from two
-    // places is how they drift. tests/donateEntry.test.ts owns what counts as the
+    // (it opens its Donate tab) and surfaces reading one URL contract from separate
+    // places are how they drift. tests/donateEntry.test.ts owns what counts as the
     // ask; what this pins is that this screen still asks on load, and asks that
     // module rather than the URL.
     assert.match(AUTH, /useState\(donateRequested\)/);

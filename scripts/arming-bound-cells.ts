@@ -102,7 +102,7 @@ export function mean(s: Stat): number {
 
 /**
  * mean − 1.96·sd/√n with the sample sd (n − 1): the record's own producer's
- * formula (hour-mechanism.py, outside this tree), kept so the control is a
+ * formula (docs/research/r3/re-simulate-2026-09-24/hour-mechanism.py.txt), kept so the control is a
  * reproduction and not a re-derivation. The shared t-interval helper would
  * differ by 6e-6 at the record's smallest cell — inside the control's
  * tolerance, but a different formula. Below two fills there is no interval:
