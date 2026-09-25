@@ -97,7 +97,7 @@ describe("construction soft gate", () => {
     assert.match(screen, /import \{ AppFooter \} from "\.\.\/AppFooter";/);
     // The footer's own link row is where the trio comes from, and it reads the
     // single source LegalLinks.tsx exports (tests/appFooter.test.ts pins that).
-    assert.match(screen, /<AppFooter\s+donate=\{\{ href: "\/\?donate" \}\}/);
+    assert.match(screen, /<AppFooter\s+donate=\{\{\s*expanded: donationsOpen,/);
     // Signed out there is no frame to present a document in, so this screen passes
     // neither §17o tier-2 prop and the trio stays a set of plain links — which now
     // navigate in the SAME tab, the new tab having been the thing §17o removed.
@@ -281,3 +281,28 @@ describe("an unpark may not carry a condemned claim back onto a screen", () => {
     );
   });
 });
+
+describe("the parking screen answers its own Donate", () => {
+  // While the desk is parked the app root IS this screen, so a Donate that links
+  // to the root reloads the parking page and nothing else. It reveals the same
+  // donation block the sign-in screen reveals instead, and §17j's composition at
+  // rest (mark, eyebrow, wordmark, accent rule, one body line, the footer) is
+  // unchanged: the block exists only once asked for.
+  const screen = readFileSync("src/components/auth/ParkingScreen.tsx", "utf8");
+
+  it("opens on the ?donate ask, read from the one shared predicate", () => {
+    assert.match(screen, /import \{ donateRequested \} from "\.\.\/\.\.\/lib\/donateEntry";/);
+    assert.match(screen, /useState\(donateRequested\)/);
+  });
+
+  it("renders the sign-in screen's donation block, only when open", () => {
+    assert.match(screen, /\{donationsOpen \? \(/);
+    assert.match(screen, /\{DONATION_SUPPORT_COPY\}/);
+    assert.match(screen, /<DonationOptions\s+fallbackHref=\{DONATION_REQUEST_MAILTO\}\s+mode="compact"\s*\/>/);
+  });
+
+  it("keeps the canonical body line", () => {
+    assert.match(screen, /The desk is closed while we work on it\. Sign-in resumes the moment it\s+reopens\./);
+  });
+});
+
