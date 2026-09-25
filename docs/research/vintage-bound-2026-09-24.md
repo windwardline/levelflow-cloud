@@ -174,20 +174,19 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   What the direction rests on is that it rejects under every aggregated clustering tried, decisions, pairs and days
   each at p below 0.005 at k = 2 (0.0007, 0.0042 and 0.0039), so it does not turn on which one a reader picks.
 
-  At k = 2, the width nearest the shipped forex stop (the resolver gives all 28 pairs a
-  `stopAtrMultiplier` of 1.2, `calibration.ts` class row :775; at the decisions that produced brackets
-  that stop is 2.07 to 2.46 five-minute ATRs, median 2.22, so k = 2, the widest width measured, sits
-  just inside it on all 28 and a k = 2 bracket stands for 81 % to 97 % of each pair's stop, median
-  90 %, so a forex R per bracket is about 0.9 of a shipped-stop R;
+  At k = 2, the widest width measured and the one nearest the engine's forex stop (that stop is
+  floored at 1.25 fifteen-minute ATRs from entry in `pricePlan.ts` and widened where a pivot sets it;
+  every pair's cap is 4 ATRs, so the cap never binds below the floor; at the decisions that produced
+  brackets the floor alone is at least 2.16 to 2.56 five-minute ranges, beyond k = 2 on all 28;
   [ranges](/docs/research/vintage-bound-2026-09-24/ranges.out.txt)), the mean is −0.010 R per bracket, 95 % about −0.019 to −0.001 R clustered by day
   (t = 2.160 at 13 degrees of freedom; counting only the 9 days with a nonzero net, t = 2.306 at 8, the
   near end is −0.0009). Per bracket, at 1.96, it would be −0.029 to +0.009. That is the size of forex's
   measured edge on the tuning folds (+0.006 R per fill, R3) and of the exit-slippage correction of
   2026-09-23 (0.006 to 0.011 R per fill). **A forex figure that moves by less than about 0.02 R per
-  bracket at k = 2, the measured width nearest the shipped stop (the far end of the day-clustered
-  interval there), is a vintage question, not a finding;** at 0.9 of a shipped stop per bracket that is
-  about 0.018 in shipped-stop R. That converts the unit, not the comparison: a bracket is still
-  two-sided, first-touch and costless, unlike a fill. Under the
+  bracket at k = 2, the measured width nearest the engine's stop (the far end of the day-clustered
+  interval there), is a vintage question, not a finding.** The line is in bracket R: a bracket is
+  two-sided, first-touch and costless, and narrower than any forex stop, so it is not the R of a fill,
+  and the record does not convert between them. Under the
   per-bracket estimator the line would be 0.03 R per bracket. It does not come from EURUSD, whose large one-sided gaps net +2 R
   over its 156 brackets at k = 2; it is spread across the crosses (14 pairs negative, 12 zero, 2
   positive, the largest AUDCHF, CHFJPY and EURCHF at −6 R each). GBPUSD and EURUSD carry the
@@ -214,19 +213,17 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   would: over 58,451 buckets the bank's high sits below the cache's on 25.3 % and above on 17.5 %, and
   its low above on 24.4 % and below on 19.4 %, the bank's bucket inside the cache's rather than shifted
   as forex's is. For futures, as for forex, the record cannot separate revision from construction. The record sizes no
-  futures line, and not for want of a stop: the resolver gives all 18 futures markets a 1.3 ATR stop
-  (`calibration.ts` class row :825; WTI, calibrated as energies, 1.38 at :683). In the brackets' unit,
-  at the decisions that produced brackets, that stop is 1.72 to 14.19 five-minute ATRs (median 2.36):
-  within the measured widths on 5 markets and beyond them on 13, and a bracket stands for 3.5 % to 29 %
-  of each market's stop at k = 0.5 and 14 % to 116 % at k = 2, against forex's 20 % to 24 % and 81 % to
-  97 %
-  ([ranges](/docs/research/vintage-bound-2026-09-24/ranges.out.txt)). HOUSD and RBUSD, which carry the
-  net, are the two furthest beyond, at 5.2 and 14.2, where a k = 0.5 bracket is 9.6 % and 3.5 % of the
-  stop against 15 to 29 % on the other 16. Futures' R per bracket therefore pools brackets that stand
-  for very different fractions of a shipped stop, and the two narrowest carry the net: it is not in
-  shipped-stop R, and a futures line waits on brackets sized to each market's stop. HOUSD and RBUSD are
-  also the class's two lowest exact shares in step 1 (22.4 % and 22.6 %); which of these explains the
-  net is not measured here. At k = 1 and 2 the
+  futures line. The engine's futures stop is set per market: twelve markets and WTI carry a 4-ATR cap,
+  so their stop is floored at 1.25 fifteen-minute ATRs like forex's, and six (HOUSD, RBUSD, PLUSD,
+  PAUSD, ZFUSD, ZTUSD) carry a 1-ATR cap, below the floor, so their stop is exactly one fifteen-minute
+  ATR. In the brackets' unit that is at least 1.37 to 10.92 five-minute ranges across the class, beyond k = 2 on
+  12 markets ([ranges](/docs/research/vintage-bound-2026-09-24/ranges.out.txt)). The 5-minute range is
+  also a very different fraction of the 15-minute ATR across futures (ATR15/ATR5 1.33 to 10.92, against
+  1.73 to 2.05 across forex), and HOUSD and RBUSD, which carry the net, are the two furthest out (4.00
+  and 10.92, their stop at least that many of the brackets' units). Futures' R per bracket therefore stands for
+  very different fractions of a stop across the class, and a futures line waits on brackets sized to
+  each market's own stop. HOUSD and RBUSD are also the class's two lowest exact shares in step 1 (22.4 %
+  and 22.6 %); which of these explains the net is not measured here. At k = 1 and 2 the
   nets, −0.0077 and −0.0062 R per bracket, sit inside every interval but the deflated decision one at
   k = 2 (±0.0061), whose sign test does not reject (4 of 4 decisions, p = 0.13). Agriculture (6 series
   in the manifest, all 6 evaluated, 1 with brackets, 10 brackets) bounds nothing: one flipped bracket at k = 0.5, none at the
