@@ -69,11 +69,12 @@ Whether the standing approval may make any of them is Q1.
 - **Confirm start C_s.** The first UTC midnight at or after the later of F_s and T + 21 days
   (JUDGED), where T is the timed registration's landing (for a rule-12 family, the registry's own
   landing). The freeze line declares C_s and must land before it; a later landing refuses, and the
-  timed registration's claim on the pool lapses as a burn (rule 8). So the window's start is fixed by a
+  timed registration lapses on the pool (rule 8). So the window's start is fixed by a
   landing the operator made before any post-registration choice, not by when the freeze is filed.
-- **History start H_s.** The first bar of market s's pinned 5-minute series in the manifest of the
-  read's pre-frontier sweep (amendment 33: per market, to each market's true data limit). The freeze
-  line records it and test (d) recomputes it.
+- **History start H_s.** The first bar of market s's pinned 5-minute series, found by a discovery run
+  of the pool (`replay-sweep --discover`) before the pre-frontier sweep, whose manifest must then agree
+  (amendment 33: per market, to each market's true data limit). The freeze line records it and test (d)
+  recomputes it from both manifests.
 - **Registration.** One hypothesis, a canonical spec that has landed on `main` (rule 3).
   Registrations take ordinals in landing order, strictly increasing by one. The registry's other lines
   (screen, plan, manifest, digest, freeze, freeze-landed, confirm) take none; a burn is derived from
@@ -91,7 +92,8 @@ Whether the standing approval may make any of them is Q1.
   definitions are hashed into the header's screen fields.
 - **Arms.** The three R columns of `ARM_COLUMNS` in `scripts/sweepStats.ts`: net (zero-latency
   arming), arming-bound (protection arms one bar late, at net cost) and gross (E8's commission, no
-  modelled spread or slippage). Every arm is graded at `modeledCostScale` 1.
+  modelled spread or slippage). Every arm is graded at `modeledCostScale` 1 and `grossCostScale` 0
+  (the gross arm's definition; `GROSS_COST_SCALE` in `executionQuality.ts`).
 
 ## The rule
 
@@ -134,14 +136,15 @@ Whether the standing approval may make any of them is Q1.
      overlap has settled, with no cache override and no refetch of the window. A digest line holding
      each symbol's window and warm-up bars lands before any confirm row is computed, and the read
      refuses any other bars. The sweep refuses unless its analyzerVersion, `costModelHash`, source
-     revision, `modeledCostScale` 1 and `conditionsOf` (folds and anchor aside) equal the freeze's.
+     revision, `modeledCostScale` 1, `grossCostScale` 0 and `conditionsOf` (folds and anchor aside) equal the
+     freeze's.
 
 3. **Registration.** A canonical spec that lands on `main` before its freeze and, for a family, before
    any of its decisions is computed on any fold. Its hash covers:
    - kind and roster;
    - for a family: side rule, clock, W, reference price (decision close recommended), and the
      statistic's ATR (primary or daily, named);
-   - for a family: the analyzerVersion, `modeledCostScale` 1, and the cost-model closure that the
+   - for a family: the analyzerVersion, `modeledCostScale` 1, `grossCostScale` 0, and the cost-model closure that the
      registry line's `costModelHash` pins: the transitive runtime import closure of `pricePlan.ts`,
      `estimateExecutionQuality` and `venueCommissionRoundTripPrice`, files in sorted path order, raw
      bytes (#408 changed `estimatedRoundTripCost` without a version bump, and the commission reads
@@ -187,7 +190,7 @@ Whether the standing approval may make any of them is Q1.
      `tMultiplier95(clusters − 1)`, on the net and arming-bound arms, 30 clusters a side, and (b) on
      gross too under a JUDGED cost profile (amendment 43). A pass carries no weight; a refusal stands.
    - A screen refuses when its analyzerVersion or `costModelHash` differs from the registration's, when
-     its `modeledCostScale` is not 1, or when any artifact holding the family's decisions (a decision
+     its `modeledCostScale` is not 1 or its `grossCostScale` not 0, or when any artifact holding the family's decisions (a decision
      emit's manifest, or the screen's own record where it computes them) does not postdate the
      registration's landing. The fit fold's corpus may predate it. Each registration, member and market
      is screened once.
@@ -214,7 +217,7 @@ Whether the standing approval may make any of them is Q1.
    window's prices exist, and a read left to burn keeps its draw spent.
 
 7. **Confirm.** Realized R totalled per cluster, on the net and arming-bound arms both, at
-   `modeledCostScale` 1. A missing column is NO VERDICT.
+   `modeledCostScale` 1 and `grossCostScale` 0. A missing column is NO VERDICT.
    - (a) The mean over the candidate's traded clusters has its lower bound above 0, with
      df = those clusters − 1.
    - (b) Where the candidate filters or replaces a shipped cell's trades (a filter always does, against
@@ -247,6 +250,11 @@ Whether the standing approval may make any of them is Q1.
      proceeds; against a line that records none, it refuses. These refusals bind every ledgered read,
      registered or not; for an unregistered read, its freeze means its rule-9 plan, and F_s is taken as
      it stood when that plan landed.
+   - A registration whose screen passed on m lapses there at the first UTC midnight at or after the
+     later of F_m and its own landing plus 21 days (for a rule-12 family, the registry's landing), if no
+     freeze naming m has landed before then. A freeze that lands moves F_m, and with it every other
+     registration's lapse date on m. A lapse is recorded as a burn of that registration on m, derived
+     from the registry's lines and the dates alone, so no pool waits on a registration nobody freezes.
    - A freeze with no recorded read by C_s + L_m + 14 days (JUDGED) on a market is burned there on that
      date, whether its read never ran or ran and refused, and any later read of it refuses. The burn is
      recorded on the market and its correlated set. Its draws stay spent. For eligibility a burn counts
@@ -305,8 +313,10 @@ Whether the standing approval may make any of them is Q1.
   reader, unledgered, and a 60-day sweep run on 2026-09-23 places decisions after it in select.
 - A sweep's manifestHash covers its outputs (the emit digest, the rejections, the per-symbol
   decisions; `scripts/sweepManifest.ts`), so no manifest hash exists before a run.
-- `conditionsOf` (`scripts/grid-totalr.ts`) includes `modeledCostScale` and treats every value as
-  legitimate; no reader refuses a scale other than 1.
+- `conditionsOf` (`scripts/grid-totalr.ts`) includes `modeledCostScale` and `grossCostScale` and treats
+  every value as legitimate; no reader refuses a scale other than 1 or 0. `GROSS_COST_SCALE` is a
+  constant 0 in `executionQuality.ts`, so the gross scale moves only with the code, which the confirm
+  sweep's source-revision equality binds.
 - `grid-totalr`'s `confirmLogDir` files a confirm read in any directory, and one filed anywhere but the
   ledger directory or the next read's shard directories is invisible to that read's prior-read scan.
   `replay-sweep --print-confirm-table` prints confirm outcomes to stdout. Both are deliberate and
@@ -343,7 +353,7 @@ Tests:
   series on both arms at scale 1, and on gross for (b) where the profile is JUDGED. Every opened
   registration landed before its freeze, and C_s < readAt. For every named symbol, select ends at F_s,
   confirm starts at C_s, and no confirm span starts before F_s or overlaps a recorded, claimed or burned
-  span. The confirm bars equal the digest line. Burns derive from the dates alone.
+  span. The confirm bars equal the digest line. Burns and lapses derive from the dates alone.
 - (e) The chain is intact; ordinals rise by one in landing order; specHash matches; exact duplicates
   are refused; each landing time is the pull request's `mergedAt` and matches the first-parent commit;
   every artifact holding a family's decisions postdates its registration's landing; and the confirm
@@ -364,9 +374,9 @@ delta; the net arm alone; a select fold ending after F_s; a freeze landing after
 C_s taken from the freeze's landing instead of T; a timed registration that is not the lowest eligible
 ordinal; a non-timed candidate that landed after its freeze; an L that does not recompute; ignoring
 S_m; counting a registration without a candidate in c_m; spending a draw where none opened; a burn
-that leaves a registration eligible; a read or burn that leaves a correlated member's frontier behind;
+that leaves a registration eligible; a registration left eligible after its lapse date; a read or burn that leaves a correlated member's frontier behind;
 a member read after its set's recorded read; a seal keyed on F_s instead of F°_s; a filter opening with
-its floor unmet; a screen or a confirm sweep at `modeledCostScale` ≠ 1; a screen under another
+its floor unmet; a screen, sweep or read at `modeledCostScale` ≠ 1 or `grossCostScale` ≠ 0; a screen under another
 `costModelHash`; a window exit above 96 h; confirm bars that differ from the digest; sealing by label
 only; the gross leg keyed on the five cost names; a spec edited in place; a changed burnFraction.
 

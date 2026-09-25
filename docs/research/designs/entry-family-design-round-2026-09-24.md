@@ -67,6 +67,11 @@ decides at most once a day.
   a positive mean net R per cluster over at least 30 clusters, and the confirm span meets the floor.
 - **Readiness floor.** 560 traded confirm clusters per market, ESUSD's 80 %-power size at the full
   published effect.
+- **Its calendar bill.** Under amendment 48's draft (rule 8) a freeze claims its window on every member
+  of the named markets' correlated set. ESUSD and NQUSD sit in `us_equity_indices`, all seven US index
+  markets (SP, NSDQ, DOW, ESUSD, NQUSD, RTYUSD, YMUSD), three of them the 2026-08-26 holdout's. A read
+  at the 560-cluster floor claims about 42 to 49 months of confirm calendar on all seven, and the days
+  from the frontier to its start are lost to confirm on all seven for good.
 
 **Power**, from external and cost-model inputs only, orders of magnitude. The three figures in each
 cell assume the full, three-quarters and half published effect.
@@ -120,7 +125,8 @@ admitted day is smaller than its headline. Second, the two markets are closer to
   orders only.
 - **OQ-3.** May the desk instruct a timed close at 16:00 ET?
 
-*Recommendation:* register it only if alpha is charged at the freeze (Q3). It is a long shot, and an
-unread registration should not draw. The judge also made a point that bears on every family:
+*Recommendation:* register it only if alpha is charged at the freeze (Q3). It is a long shot, an
+unread registration should not draw, and its read would hold every US index market's confirm calendar
+for about four years. The judge also made a point that bears on every family:
 amendment 39 already names a faster route to money. That route closes the gap between the 1.6:1 gate
 and the roughly 1:1 the ladder ships. No entry family here reaches money sooner.
