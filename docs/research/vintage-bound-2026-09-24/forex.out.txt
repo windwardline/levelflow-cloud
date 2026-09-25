@@ -38,3 +38,15 @@ the sign-flip standard error sqrt(sum of squares), first per bracket, then with 
   k=0.5: net -250.0 R over 429 differing brackets; per-bracket SE 41.4 R (net/SE -6.04); day-clustered SE 74.1 R over 14 days (net/SE -3.38)
   k=1.0: net -112.0 R over 448 differing brackets; per-bracket SE 42.3 R (net/SE -2.65); day-clustered SE 38.3 R over 14 days (net/SE -2.93)
   k=2.0: net -44.0 R over 511 differing brackets; per-bracket SE 42.8 R (net/SE -1.03); day-clustered SE 17.4 R over 14 days (net/SE -2.52)
+clustered by decision (a pair at one decision time: its long and short brackets together):
+  k=0.5: decision-clustered SE 27.8 R over 2178 decisions (net/SE -9.00)
+  k=1.0: decision-clustered SE 16.2 R over 2178 decisions (net/SE -6.89)
+  k=2.0: decision-clustered SE 12.6 R over 2178 decisions (net/SE -3.48)
+days with a nonzero net, and how many of them are negative:
+  k=0.5: 14 of 14 negative
+  k=1.0: 12 of 13 negative
+  k=2.0: 9 of 9 negative
+per-day net d (R) over the 28 pairs, in date order: the clusters behind the clustered SE
+  k=0.5: 08-04   -20  08-05    -8  08-06   -28  08-07   -20  08-10   -18  08-11   -30  08-12   -12  08-17    -4  08-18   -32  08-19    -8  08-20   -12  08-21   -20  08-24   -26  08-25   -12
+  k=1.0: 08-04    -8  08-05    -2  08-06   -12  08-07    +2  08-10   -10  08-11    +0  08-12   -12  08-17    -4  08-18   -20  08-19   -10  08-20    -6  08-21    -6  08-24   -20  08-25    -4
+  k=2.0: 08-04    +0  08-05    +0  08-06    -4  08-07    -2  08-10    -2  08-11    -2  08-12    -6  08-17    -2  08-18   -10  08-19    +0  08-20    -6  08-21    +0  08-24   -10  08-25    +0

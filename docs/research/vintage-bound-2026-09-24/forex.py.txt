@@ -21,6 +21,7 @@ KS = (0.5, 1.0, 2.0)
 pooled = {k: [0, 0, 0.0] for k in KS}
 # d summed per UTC decision day, pooled over the 28 pairs, for the sampling error below.
 by_day = {k: {} for k in KS}
+by_decision = {k: {} for k in KS}
 squares = {k: 0.0 for k in KS}
 print("symbol   buckets close-differs med|d|(ticks) high above/below  low below/above  inside  | per k: n differ sum_d")
 for sym in forex:
@@ -47,6 +48,8 @@ for sym in forex:
         for r in sel:
             day = r["t"] // 86_400_000
             by_day[k][day] = by_day[k].get(day, 0.0) + (r["ob"] - r["oc"])
+            key = (sym, r["t"])
+            by_decision[k][key] = by_decision[k].get(key, 0.0) + (r["ob"] - r["oc"])
         cells.append(f"{len(sel):4} {sum(1 for x in d if x != 0):3} {sum(d):+6.2f}")
     print(f"{sym:7} {len(common):6} {len(nz)/len(common):6.0%} {statistics.median(nz) if nz else 0:7.1f}   "
           f"{hi_above:5.1%}/{hi_below:5.1%}   {lo_below:5.1%}/{lo_above:5.1%}  {inside:5.1%}  | " + "  |  ".join(cells))
@@ -68,3 +71,18 @@ for k in KS:
     se_day = sum(v * v for v in days) ** 0.5
     print(f"  k={k}: net {s_:+.1f} R over {nzc} differing brackets; per-bracket SE {se_bracket:.1f} R (net/SE {s_/se_bracket:+.2f}); "
           f"day-clustered SE {se_day:.1f} R over {len(days)} days (net/SE {s_/se_day:+.2f})")
+print("clustered by decision (a pair at one decision time: its long and short brackets together):")
+for k in KS:
+    n, nzc, s_ = pooled[k]
+    dec = list(by_decision[k].values())
+    se_dec = sum(v * v for v in dec) ** 0.5
+    print(f"  k={k}: decision-clustered SE {se_dec:.1f} R over {len(dec)} decisions (net/SE {s_/se_dec:+.2f})")
+print("days with a nonzero net, and how many of them are negative:")
+for k in KS:
+    nz = [v for v in by_day[k].values() if v != 0]
+    print(f"  k={k}: {sum(1 for v in nz if v < 0)} of {len(nz)} negative")
+print("per-day net d (R) over the 28 pairs, in date order: the clusters behind the clustered SE")
+import datetime as _dt
+for k in KS:
+    row = "  ".join(f"{_dt.datetime.fromtimestamp(day * 86400, _dt.timezone.utc):%m-%d} {v:+5.0f}" for day, v in sorted(by_day[k].items()))
+    print(f"  k={k}: {row}")
