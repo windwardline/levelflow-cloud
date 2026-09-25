@@ -1,0 +1,578 @@
+VINTAGE BOUND  first copies (minute bank) vs revised history (calibration cache)
+window [2026-08-04T00:00Z, 2026-08-26T00:00Z)  run 2026-09-24T22:33:07Z  python 3.14.7
+
+manifest: 97 markets on 96 provider series
+  CLUSD serves CLUSD, WTI: measured once, labelled CLUSD
+bank files: 100; not in manifest (skipped, no cache mapping): MGCUSD, USDMXN, ^MID, ^STOXX50E
+manifest series with no bank file: none; with no 5-min cache store: none
+
+BANK OUTAGES (derived: holes >= 60 min in which none of the 33 crypto bank files,
+24/7 markets, holds a minute)
+  [2026-08-04T00:00Z, 2026-08-04T04:00Z)  4.0 h; 0 non-crypto files nonetheless hold minutes inside it
+  [2026-08-13T05:47Z, 2026-08-16T04:00Z)  70.2 h; 6 non-crypto files nonetheless hold minutes inside it: ^GSPC ^NDX ^N225 ^DJI ^GDAXI ^AXJO
+  No bracket reads these spans (brackets need both vintages); they are not a skip reason.
+  bank files whose first window minute is a day or more after the window start: ^N225 2026-08-05T00:00Z, ^GDAXI 2026-08-05T07:00Z, ^AXJO 2026-08-05T00:00Z
+
+bank read: 4,551,353 lines, 0 unparseable, 0 repeated keys (first kept), 0 window minutes appended >72 h late (not live captures), 0 incoherent-OHLC window minutes kept as-is
+bank files that changed while being read: none
+
+run log /Users/peacock/Library/Logs/levelflow-minute-bank.log: first logged run 2026-08-06T23:28Z, 72 successful runs (read-only; used only for the capture-lag tables)
+
+  read EURUSD     bank buckets  4086  cache bars  4605
+  read GBPUSD     bank buckets  4079  cache bars  4605
+  read USDJPY     bank buckets  4080  cache bars  4605
+  read AUDUSD     bank buckets  4025  cache bars  4605
+  read USDCAD     bank buckets  4070  cache bars  4605
+  read USDCHF     bank buckets  4077  cache bars  4603
+  read NZDUSD     bank buckets  4046  cache bars  4603
+  read NZDJPY     bank buckets  4065  cache bars  4602
+  read NZDCHF     bank buckets  4081  cache bars  4599
+  read NZDCAD     bank buckets  4078  cache bars  4605
+  read GBPNZD     bank buckets  4075  cache bars  4605
+  read GBPJPY     bank buckets  4081  cache bars  4604
+  read GBPCHF     bank buckets  4081  cache bars  4605
+  read GBPCAD     bank buckets  4083  cache bars  4605
+  read GBPAUD     bank buckets  4075  cache bars  4605
+  read EURNZD     bank buckets  4077  cache bars  4605
+  read EURJPY     bank buckets  4085  cache bars  4605
+  read EURGBP     bank buckets  4085  cache bars  4605
+  read EURCHF     bank buckets  4068  cache bars  4602
+  read EURCAD     bank buckets  4085  cache bars  4605
+  read EURAUD     bank buckets  4083  cache bars  4605
+  read CHFJPY     bank buckets  4078  cache bars  4605
+  read CADJPY     bank buckets  4076  cache bars  4605
+  read CADCHF     bank buckets  4047  cache bars  4605
+  read AUDNZD     bank buckets  4076  cache bars  4605
+  read AUDJPY     bank buckets  4078  cache bars  4605
+  read AUDCHF     bank buckets  4081  cache bars  4605
+  read AUDCAD     bank buckets  4083  cache bars  4605
+  read XAUUSD     bank buckets  3894  cache bars  4416
+  read XAGUSD     bank buckets  3883  cache bars  4422
+  read BZUSD      bank buckets  3588  cache bars  4405
+  read CLUSD      bank buckets  3862  cache bars  4428
+  read ESUSD      bank buckets  3906  cache bars  4429
+  read GCUSD      bank buckets  3900  cache bars  4425
+  read HGUSD      bank buckets  3781  cache bars  4457
+  read NGUSD      bank buckets  2891  cache bars  4408
+  read NQUSD      bank buckets  3907  cache bars  4429
+  read RTYUSD     bank buckets  3754  cache bars  4428
+  read SIUSD      bank buckets  3466  cache bars  4425
+  read YMUSD      bank buckets  3476  cache bars  4426
+  read ZBUSD      bank buckets  2191  cache bars  4353
+  read ZNUSD      bank buckets  2805  cache bars  4404
+  read ^GSPC      bank buckets  1168  cache bars  1247
+  read ^NDX       bank buckets  1169  cache bars  1248
+  read ^N225      bank buckets   912  cache bars  1020  SKIP: bank missing days 2026-08-04(0/31)
+  read ^DJI       bank buckets  1170  cache bars  1248
+  read ^GDAXI     bank buckets  1428  cache bars  1648  SKIP: bank missing days 2026-08-04(0/103)
+  read ^AXJO      bank buckets  1070  cache bars  1168  SKIP: bank missing days 2026-08-04(0/25)
+  read XRPUSD     bank buckets  5445  cache bars  6336
+  read SOLUSD     bank buckets  5444  cache bars  6336
+  read LTCUSD     bank buckets  5444  cache bars  6336
+  read ETHUSD     bank buckets  5445  cache bars  6336
+  read BTCUSD     bank buckets  5444  cache bars  6336
+  read BNBUSD     bank buckets  5445  cache bars  6336
+  read BCHUSD     bank buckets  5445  cache bars  6336
+  read ADAUSD     bank buckets  5445  cache bars  6336
+  read ZFUSD      bank buckets  2372  cache bars  4376
+  read ZTUSD      bank buckets  2109  cache bars  4375
+  read HOUSD      bank buckets  3027  cache bars  4235
+  read RBUSD      bank buckets  2446  cache bars  4157
+  read PLUSD      bank buckets  3876  cache bars  4456
+  read PAUSD      bank buckets  3094  cache bars  4448
+  read ZCUSX      bank buckets  1964  cache bars  3417
+  read ZSUSX      bank buckets  2193  cache bars  3393
+  read ZLUSX      bank buckets  2551  cache bars  3436
+  read ZMUSD      bank buckets  1929  cache bars  3421
+  read ZOUSX      bank buckets     5  cache bars   784
+  read ZRUSD      bank buckets    50  cache bars   878
+  read LEUSX      bank buckets   767  cache bars   896
+  read GFUSX      bank buckets   716  cache bars   881
+  read HEUSX      bank buckets   728  cache bars   894
+  read AAVEUSD    bank buckets  5445  cache bars  6336
+  read ALGOUSD    bank buckets  5444  cache bars  6336
+  read ARUSD      bank buckets  4019  cache bars  6336
+  read ATOMUSD    bank buckets  5383  cache bars  6336
+  read AVAXUSD    bank buckets  5445  cache bars  6334
+  read CAKEUSD    bank buckets  5243  cache bars  5564
+  read DASHUSD    bank buckets  5426  cache bars  6335
+  read DOGEUSD    bank buckets  5444  cache bars  6336
+  read DOTUSD     bank buckets  5441  cache bars  6336
+  read DYDXUSD    bank buckets  3823  cache bars  4692  SKIP: bank missing days 2026-08-05(54/168); cache missing days 2026-08-07(91/247) 2026-08-09(124/272)
+  read EGLDUSD    bank buckets  5315  cache bars  6126
+  read ETCUSD     bank buckets  5432  cache bars  6332
+  read FILUSD     bank buckets  5207  cache bars  6335  SKIP: bank missing days 2026-08-16(84/239)
+  read GRTUSD     bank buckets  5435  cache bars  6229
+  read HBARUSD    bank buckets  5445  cache bars  6336
+  read IMXUSD     bank buckets  5363  cache bars  6327
+  read LINKUSD    bank buckets  5443  cache bars  6336
+  read NEARUSD    bank buckets  5445  cache bars  6336
+  read THETAUSD   bank buckets  4085  cache bars  6333
+  read OTRUMPUSD  bank buckets  4494  cache bars  6336
+  read TRXUSD     bank buckets  3754  cache bars  6336
+  read UNIUSD     bank buckets  5444  cache bars  6336
+  read XLMUSD     bank buckets  5443  cache bars  6336
+  read XMRUSD     bank buckets  4124  cache bars  6336
+  read XTZUSD     bank buckets  5442  cache bars  6334
+
+sha256 of the window data read (provider|utc ms|(o,h,l,c) lines, provider then time order):
+  bank minutes  ea1aac562125a0505348ee19b82d84708387e88776e5ee00c5079b7832ec24e4
+  cache bars    2dbd1e3df056217596cc08099a281c7549db349faf5732be1d8a1f9cfc4b3116
+
+STEP 1  CONSTRUCTION  complete bank buckets vs the cache bar of the same UTC open time
+exact = all of open/high/low/close within 1e-09 relative; 'close' = close alone.
+best offset = the label offset (min) with the highest all-four share; ties go to 0.
+best day = highest all-four share on any one UTC day with >= 12 compared buckets (offset 0).
+market    provider   class         cmp exact  exact% close  close%  -5 ex%  +5 ex%  best bestDay  clean@30/50/70
+EURUSD    EURUSD     forex        4086  1559   38.2%  2758   67.5%    0.0%    0.0%    +0   98.3%  Y   .   .
+GBPUSD    GBPUSD     forex        4079  1820   44.6%  3106   76.1%    0.0%    0.0%    +0  100.0%  Y   .   .
+USDJPY    USDJPY     forex        4080  1559   38.2%  2123   52.0%    0.0%    0.0%    +0   99.6%  Y   .   .
+AUDUSD    AUDUSD     forex        4025  1178   29.3%  2496   62.0%    0.0%    0.0%    +0   99.3%  .   .   .
+USDCAD    USDCAD     forex        4070  1697   41.7%  3178   78.1%    0.0%    0.0%    +0   99.2%  Y   .   .
+USDCHF    USDCHF     forex        4077  1440   35.3%  2218   54.4%    0.0%    0.0%    +0  100.0%  Y   .   .
+NZDUSD    NZDUSD     forex        4046  1658   41.0%  2904   71.8%    0.0%    0.0%    +0  100.0%  Y   .   .
+NZDJPY    NZDJPY     forex        4063  1437   35.4%  1986   48.9%    0.0%    0.0%    +0  100.0%  Y   .   .
+NZDCHF    NZDCHF     forex        4076  1245   30.5%  1835   45.0%    0.0%    0.0%    +0   97.1%  Y   .   .
+NZDCAD    NZDCAD     forex        4078  1328   32.6%  1839   45.1%    0.0%    0.0%    +0   99.3%  Y   .   .
+GBPNZD    GBPNZD     forex        4075  1176   28.9%  1646   40.4%    0.0%    0.0%    +0   99.0%  .   .   .
+GBPJPY    GBPJPY     forex        4080  1618   39.7%  2225   54.5%    0.0%    0.0%    +0   99.6%  Y   .   .
+GBPCHF    GBPCHF     forex        4081  1410   34.6%  2084   51.1%    0.0%    0.0%    +0  100.0%  Y   .   .
+GBPCAD    GBPCAD     forex        4083  1723   42.2%  2257   55.3%    0.0%    0.0%    +0  100.0%  Y   .   .
+GBPAUD    GBPAUD     forex        4075  1353   33.2%  1829   44.9%    0.0%    0.0%    +0   99.6%  Y   .   .
+EURNZD    EURNZD     forex        4077  1307   32.1%  2016   49.4%    0.0%    0.0%    +0   98.8%  Y   .   .
+EURJPY    EURJPY     forex        4085  1499   36.7%  2202   53.9%    0.0%    0.0%    +0  100.0%  Y   .   .
+EURGBP    EURGBP     forex        4085  1569   38.4%  2270   55.6%    0.1%    0.0%    +0   99.6%  Y   .   .
+EURCHF    EURCHF     forex        4068  1491   36.7%  2055   50.5%    0.0%    0.0%    +0   98.6%  Y   .   .
+EURCAD    EURCAD     forex        4085  1659   40.6%  2297   56.2%    0.0%    0.0%    +0   99.7%  Y   .   .
+EURAUD    EURAUD     forex        4083  1487   36.4%  1975   48.4%    0.0%    0.0%    +0   97.1%  Y   .   .
+CHFJPY    CHFJPY     forex        4078  1544   37.9%  2008   49.2%    0.0%    0.0%    +0  100.0%  Y   .   .
+CADJPY    CADJPY     forex        4076  1391   34.1%  2014   49.4%    0.0%    0.0%    +0   99.6%  Y   .   .
+CADCHF    CADCHF     forex        4047  1329   32.8%  2944   72.7%    0.0%    0.0%    +0   97.0%  Y   .   .
+AUDNZD    AUDNZD     forex        4076  1696   41.6%  2134   52.4%    0.0%    0.0%    +0  100.0%  Y   .   .
+AUDJPY    AUDJPY     forex        4078  1627   39.9%  2210   54.2%    0.0%    0.0%    +0   99.6%  Y   .   .
+AUDCHF    AUDCHF     forex        4081  1347   33.0%  1950   47.8%    0.0%    0.0%    +0   98.6%  Y   .   .
+AUDCAD    AUDCAD     forex        4083  1347   33.0%  1980   48.5%    0.0%    0.0%    +0  100.0%  Y   .   .
+XAUUSD    XAUUSD     metals       3894  1365   35.1%  1541   39.6%    0.0%    0.0%    +0  100.0%  Y   .   .
+XAGUSD    XAGUSD     metals       3883  1882   48.5%  2633   67.8%    0.0%    0.0%    +0  100.0%  Y   .   .
+BZUSD     BZUSD      futures      3588  1256   35.0%  1778   49.6%    0.0%    0.0%    +0   87.7%  Y   .   .
+CLUSD     CLUSD      futures      3862  1528   39.6%  2513   65.1%    0.0%    0.0%    +0   99.6%  Y   .   .
+ESUSD     ESUSD      futures      3906  1870   47.9%  2809   71.9%    0.1%    0.0%    +0  100.0%  Y   .   .
+GCUSD     GCUSD      futures      3900  1709   43.8%  2503   64.2%    0.0%    0.0%    +0  100.0%  Y   .   .
+HGUSD     HGUSD      futures      3781  1205   31.9%  1382   36.6%    7.5%    7.7%    +0   88.5%  Y   .   .
+NGUSD     NGUSD      futures      2891  1498   51.8%  1807   62.5%   19.6%   19.9%    +0   97.2%  Y   Y   .
+NQUSD     NQUSD      futures      3907  1304   33.4%  1932   49.4%    0.0%    0.0%    +0  100.0%  Y   .   .
+RTYUSD    RTYUSD     futures      3754  2306   61.4%  3076   81.9%    0.0%    0.0%    +0  100.0%  Y   Y   .
+SIUSD     SIUSD      futures      3466  1382   39.9%  2233   64.4%    0.0%    0.0%    +0  100.0%  Y   .   .
+YMUSD     YMUSD      futures      3476  2049   58.9%  2827   81.3%    0.0%    0.0%    +0  100.0%  Y   Y   .
+ZBUSD     ZBUSD      futures      2191  1039   47.4%  1295   59.1%    2.2%    2.3%    +0   99.4%  Y   .   .
+ZNUSD     ZNUSD      futures      2805  1487   53.0%  1717   61.2%    3.1%    3.1%    +0  100.0%  Y   Y   .
+SP        ^GSPC      indices      1168   539   46.1%   701   60.0%    0.0%    0.0%    +0   98.7%  Y   .   .
+NSDQ      ^NDX       indices      1169   414   35.4%   569   48.7%    0.0%    0.0%    +0   92.3%  Y   .   .
+NIKKEI    ^N225      indices       912   850   93.2%   873   95.7%    0.0%    1.0%    +0  100.0%  SKIPPED, not counted
+DOW       ^DJI       indices      1170   736   62.9%   896   76.6%    0.0%    0.0%    +0  100.0%  Y   Y   .
+DAX       ^GDAXI     indices      1428   471   33.0%   817   57.2%    0.0%    0.0%    +0  100.0%  SKIPPED, not counted
+ASX       ^AXJO      indices      1070  1063   99.3%  1068   99.8%    0.0%    0.0%    +0  100.0%  SKIPPED, not counted
+XRPUSD    XRPUSD     crypto       5445  2123   39.0%  3965   72.8%    0.0%    0.0%    +0  100.0%  Y   .   .
+SOLUSD    SOLUSD     crypto       5444  2812   51.7%  4536   83.3%    0.0%    0.0%    +0  100.0%  Y   Y   .
+LTCUSD    LTCUSD     crypto       5444  3277   60.2%  4902   90.0%    0.1%    0.0%    +0   99.6%  Y   Y   .
+ETHUSD    ETHUSD     crypto       5445  1591   29.2%  2749   50.5%    0.0%    0.0%    +0  100.0%  .   .   .
+BTCUSD    BTCUSD     crypto       5444  1211   22.2%  2395   44.0%    0.0%    0.0%    +0  100.0%  .   .   .
+BNBUSD    BNBUSD     crypto       5445  1339   24.6%  2535   46.6%    0.0%    0.0%    +0  100.0%  .   .   .
+BCHUSD    BCHUSD     crypto       5445  2439   44.8%  4783   87.8%    0.0%    0.0%    +0   91.3%  Y   .   .
+ADAUSD    ADAUSD     crypto       5445  2177   40.0%  4528   83.2%    0.0%    0.0%    +0  100.0%  Y   .   .
+ZFUSD     ZFUSD      futures      2372  1194   50.3%  1358   57.3%    3.7%    3.8%    +0   99.3%  Y   Y   .
+ZTUSD     ZTUSD      futures      2109  1177   55.8%  1335   63.3%   15.1%   15.3%    +0  100.0%  Y   Y   .
+HOUSD     HOUSD      futures      3027   679   22.4%   993   32.8%    2.7%    2.7%    +0   57.9%  .   .   .
+RBUSD     RBUSD      futures      2446   553   22.6%   714   29.2%    5.8%    5.9%    +0   90.6%  .   .   .
+PLUSD     PLUSD      futures      3876  1485   38.3%  1956   50.5%    0.0%    0.0%    +0   85.9%  Y   .   .
+PAUSD     PAUSD      futures      3094   790   25.5%  1401   45.3%    0.0%    0.0%    +0   51.5%  .   .   .
+ZCUSX     ZCUSX      agriculture  1964   837   42.6%   970   49.4%    1.0%    1.0%    +0   98.1%  Y   .   .
+ZSUSX     ZSUSX      agriculture  2192  1500   68.4%  2023   92.3%    0.4%    0.2%    +0  100.0%  Y   Y   .
+ZLUSX     ZLUSX      agriculture  2550  1314   51.5%  1977   77.5%    0.0%    0.0%    +0   96.8%  Y   Y   .
+ZMUSD     ZMUSD      agriculture  1929   591   30.6%   894   46.3%    0.2%    0.2%    +0   93.4%  Y   .   .
+ZOUSX     ZOUSX      agriculture     5     5  100.0%     5  100.0%    0.0%    0.0%    +0    0.0%  .   .   .
+ZRUSD     ZRUSD      agriculture    50    27   54.0%    36   72.0%    0.0%    0.0%    +0    7.7%  .   .   .
+LEUSX     LEUSX      livestock     767   335   43.7%   385   50.2%    0.0%    0.0%    +0  100.0%  Y   .   .
+GFUSX     GFUSX      livestock     716   270   37.7%   461   64.4%    0.0%    0.0%    +0  100.0%  Y   .   .
+HEUSX     HEUSX      livestock     728   311   42.7%   540   74.2%    0.3%    0.0%    +0   98.1%  Y   .   .
+AAVEUSD   AAVEUSD    crypto       5445  2914   53.5%  4960   91.1%    0.0%    0.0%    +0   81.7%  Y   Y   .
+ALGOUSD   ALGOUSD    crypto       5444  2782   51.1%  5181   95.2%    0.1%    0.1%    +0   88.2%  Y   Y   .
+ARWUSD    ARUSD      crypto       4019   141    3.5%   957   23.8%    0.0%    0.0%    +0    8.2%  .   .   .
+ATOMUSD   ATOMUSD    crypto       5383  3148   58.5%  5215   96.9%    3.4%    2.5%    +0   86.5%  Y   Y   .
+AVAXUSD   AVAXUSD    crypto       5443  3054   56.1%  4975   91.4%    0.0%    0.0%    +0  100.0%  Y   Y   .
+CAKEUSD   CAKEUSD    crypto       4714  4650   98.6%  4702   99.7%   39.4%   39.6%    +0  100.0%  Y   Y   Y
+DASHUSD   DASHUSD    crypto       5425  2675   49.3%  5305   97.8%   10.9%    7.0%    +0   87.5%  Y   .   .
+DOGEUSD   DOGEUSD    crypto       5444  3177   58.4%  5047   92.7%    0.1%    0.1%    +0   90.6%  Y   Y   .
+DOTUSD    DOTUSD     crypto       5441  2966   54.5%  4997   91.8%    0.0%    0.0%    +0   82.3%  Y   Y   .
+DYDXUSD   DYDXUSD    crypto       3089  2432   78.7%  2506   81.1%   52.9%   53.7%    +0   93.0%  SKIPPED, not counted
+EGLDUSD   EGLDUSD    crypto       5256  4330   82.4%  5205   99.0%   67.9%   60.3%    +0   98.6%  Y   Y   Y
+ETCUSD    ETCUSD     crypto       5429  3616   66.6%  5229   96.3%   32.1%   25.8%    +0   89.5%  Y   Y   .
+FILUSD    FILUSD     crypto       5207  3144   60.4%  4989   95.8%   17.4%   12.8%    +0  100.0%  SKIPPED, not counted
+GRTUSD    GRTUSD     crypto       5328  3936   73.9%  5188   97.4%   43.6%   39.4%    +0   98.9%  Y   Y   Y
+HBARUSD   HBARUSD    crypto       5445  3363   61.8%  5207   95.6%    0.1%    0.1%    +0   96.9%  Y   Y   .
+IMXUSD    IMXUSD     crypto       5354  3417   63.8%  5154   96.3%   24.1%   20.2%    +0   94.7%  Y   Y   .
+LINKUSD   LINKUSD    crypto       5443  3061   56.2%  4894   89.9%    0.0%    0.0%    +0   99.2%  Y   Y   .
+NEARUSD   NEARUSD    crypto       5445  2736   50.2%  5090   93.5%    0.0%    0.0%    +0   92.0%  Y   Y   .
+THETAUSD  THETAUSD   crypto       4085   216    5.3%  1092   26.7%    0.0%    0.0%    +0    8.2%  .   .   .
+TRUMPUSD  OTRUMPUSD  crypto       4494  2402   53.4%  3817   84.9%    0.9%    0.8%    +0   92.9%  Y   Y   .
+TRXUSD    TRXUSD     crypto       3754  1144   30.5%  2498   66.5%    0.1%    0.1%    +0   61.4%  Y   .   .
+UNIUSD    UNIUSD     crypto       5444  2117   38.9%  4754   87.3%    0.0%    0.0%    +0   96.7%  Y   .   .
+XLMUSD    XLMUSD     crypto       5443  2944   54.1%  4791   88.0%    0.0%    0.0%    +0   99.7%  Y   Y   .
+XMRUSD    XMRUSD     crypto       4124   932   22.6%  2509   60.8%    0.0%    0.0%    +0   34.1%  .   .   .
+XTZUSD    XTZUSD     crypto       5440  2938   54.0%  5309   97.6%   16.1%   10.8%    +0   81.2%  Y   Y   .
+
+fewer than 100 compared buckets (never clean, JUDGED floor): ZOUSX, ZRUSD
+evaluated 91 of 96 provider series; skipped 5:
+  ^N225: bank missing days 2026-08-04(0/31)
+  ^GDAXI: bank missing days 2026-08-04(0/103)
+  ^AXJO: bank missing days 2026-08-04(0/25)
+  DYDXUSD: bank missing days 2026-08-05(54/168); cache missing days 2026-08-07(91/247) 2026-08-09(124/272)
+  FILUSD: bank missing days 2026-08-16(84/239)
+best offset != 0: none
+construction-clean at >= 30% exact (sensitivity): 78  EURUSD GBPUSD USDJPY USDCAD USDCHF NZDUSD NZDJPY NZDCHF NZDCAD GBPJPY GBPCHF GBPCAD GBPAUD EURNZD EURJPY EURGBP EURCHF EURCAD EURAUD CHFJPY CADJPY CADCHF AUDNZD AUDJPY AUDCHF AUDCAD XAUUSD XAGUSD BZUSD CLUSD ESUSD GCUSD HGUSD NGUSD NQUSD RTYUSD SIUSD YMUSD ZBUSD ZNUSD SP NSDQ DOW XRPUSD SOLUSD LTCUSD BCHUSD ADAUSD ZFUSD ZTUSD PLUSD ZCUSX ZSUSX ZLUSX ZMUSD LEUSX GFUSX HEUSX AAVEUSD ALGOUSD ATOMUSD AVAXUSD CAKEUSD DASHUSD DOGEUSD DOTUSD EGLDUSD ETCUSD GRTUSD HBARUSD IMXUSD LINKUSD NEARUSD TRUMPUSD TRXUSD UNIUSD XLMUSD XTZUSD
+construction-clean at >= 50% exact (JUDGED): 28  NGUSD RTYUSD YMUSD ZNUSD DOW SOLUSD LTCUSD ZFUSD ZTUSD ZSUSX ZLUSX AAVEUSD ALGOUSD ATOMUSD AVAXUSD CAKEUSD DOGEUSD DOTUSD EGLDUSD ETCUSD GRTUSD HBARUSD IMXUSD LINKUSD NEARUSD TRUMPUSD XLMUSD XTZUSD
+construction-clean at >= 70% exact (sensitivity): 3  CAKEUSD EGLDUSD GRTUSD
+the 25th-ranked exact share is 51.5% (ZLUSX), the 26th 51.1%: a 25-symbol set needs a threshold in that interval
+  exact share in [90%, 100%]: 2
+  exact share in [50%, 90%): 28
+  exact share in [30%, 50%): 50
+  exact share in [10%, 30%): 9
+  exact share in [0%, 10%): 2
+symbols with some UTC day at >= 90% exact (construction reproduced on at least one day): 73 of 91
+
+pooled exact share by UTC day (all evaluated symbols, offset 0):
+  08-04 80%  08-05 79%  08-06 38%  08-07 29%  08-08 51%  08-09 49%  08-10 41%  08-11 33%  08-12 26%  08-13 34%  08-14 87%  08-16 79%  08-17 76%  08-18 26%  08-19 35%  08-20 26%  08-21 63%  08-22 35%  08-23 29%  08-24 35%  08-25 26%
+bank bucket extremes vs cache, all evaluated symbols, 355,511 compared buckets: high above cache 12.6%, below 24.4%; low below cache 20.5%, above 19.2%
+pooled exact share by estimated capture lag of the bank's first copy (run log; the lag
+is from the bucket's end to the first logged run that banked the symbol afterwards):
+   pre-log:   62350 buckets, exact 64.9%
+     < 6 h:  125790 buckets, exact 27.0%
+    6-12 h:   88278 buckets, exact 37.2%
+   12-24 h:   43531 buckets, exact 50.6%
+   24-48 h:   32486 buckets, exact 74.4%
+   >= 48 h:    3076 buckets, exact 76.8%
+
+STEP 2  SYNTHETIC BRACKETS  (construction-clean at the JUDGED 50% threshold)
+decision = the bucket OPENING at 00/04/08/12/16/20Z; entry at its close on each vintage;
+ATR = mean(high-low) of the last 14 CACHE bars up to and including it; forward = the next 96
+5-min slots inside the window, each vintage resolving over the slots it holds (>= 90 each).
+Outcome R: +1 target, -1 stop (both in one bucket = stop), else signed (last held close - ref)
+over the stop distance k*ATR.  d = outcome_bank - outcome_cache.
+variant 'own': each vintage's own reference.  variant 'cacheRef': the bank path read from the
+cache's reference and ATR, so only the path differs.
+
+NGUSD (NGUSD, futures): 26 decisions; not taken: decision bucket not held 59, forward < 90 of 96 held 47
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own          52  13.5%  13.5%  -0.1154  0.0000  -2.000  -2.000  +0.000  +2.000     -6.00    26.92
+    0.5 cacheRef     52  13.5%  13.5%  -0.0385  0.0000  -2.000  -2.000  +0.900  +2.000     -2.00    26.92
+    1.0 own          52   7.7%   7.7%  -0.0769  0.0000  -2.000  -0.900  +0.000  +0.980     -4.00    15.38
+    1.0 cacheRef     52   9.6%   9.6%  -0.0385  0.0000  -2.000  -0.900  +0.000  +2.000     -2.00    19.23
+    2.0 own          52   3.8%   3.8%  +0.0000  0.0000  -0.980  +0.000  +0.000  +0.980     +0.00     7.69
+    2.0 cacheRef     52   9.6%   9.6%  -0.0385  0.0000  -2.000  -0.900  +0.000  +2.000     -2.00    19.23
+RTYUSD (RTYUSD, futures): 45 decisions; not taken: decision bucket not held 47, forward < 90 of 96 held 40
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own          90   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    0.5 cacheRef     90   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    1.0 own          90   2.2%   2.2%  +0.0000  0.0000  -0.220  +0.000  +0.000  +0.220     +0.00     4.44
+    1.0 cacheRef     90   2.2%   2.2%  +0.0000  0.0000  -0.220  +0.000  +0.000  +0.220     +0.00     4.44
+    2.0 own          90   2.2%   2.2%  +0.0000  0.0000  -0.220  +0.000  +0.000  +0.220     +0.00     4.44
+    2.0 cacheRef     90   2.2%   2.2%  +0.0000  0.0000  -0.220  +0.000  +0.000  +0.220     +0.00     4.44
+YMUSD (YMUSD, futures): 40 decisions; not taken: decision bucket not held 52, forward < 90 of 96 held 40
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own          80   2.5%   2.5%  +0.0500  0.0000  +0.000  +0.000  +0.000  +2.000     +4.00     5.00
+    0.5 cacheRef     80   2.5%   2.5%  +0.0500  0.0000  +0.000  +0.000  +0.000  +2.000     +4.00     5.00
+    1.0 own          80   3.8%   3.8%  +0.0250  0.0000  -0.420  +0.000  +0.000  +2.000     +2.00     7.50
+    1.0 cacheRef     80   3.8%   3.8%  +0.0250  0.0000  -0.420  +0.000  +0.000  +2.000     +2.00     7.50
+    2.0 own          80   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 cacheRef     80   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+ZNUSD (ZNUSD, futures): 22 decisions; not taken: decision bucket not held 62, forward < 90 of 96 held 48
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own          44  11.4%  11.4%  -0.1364  0.0000  -2.000  -2.000  +0.000  +1.140     -6.00    22.73
+    0.5 cacheRef     44   2.3%   2.3%  -0.0455  0.0000  -1.140  +0.000  +0.000  +0.000     -2.00     4.55
+    1.0 own          44   9.1%   9.1%  +0.0000  0.0000  -2.000  +0.000  +0.000  +2.000     +0.00    18.18
+    1.0 cacheRef     44   9.1%   9.1%  +0.0000  0.0000  -2.000  +0.000  +0.000  +2.000     +0.00    18.18
+    2.0 own          44   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 cacheRef     44   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+DOW (^DJI, indices): 0 decisions; not taken: decision bucket not held 117, forward < 90 of 96 held 15
+SOLUSD (SOLUSD, crypto): 111 decisions; not taken: decision bucket not held 18, forward < 90 of 96 held 3
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    0.5 cacheRef    222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    1.0 own         222   1.8%   1.8%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     3.60
+    1.0 cacheRef    222   1.8%   1.8%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     3.60
+    2.0 own         222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 cacheRef    222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+LTCUSD (LTCUSD, crypto): 111 decisions; not taken: decision bucket not held 18, forward < 90 of 96 held 3
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         222   1.8%   1.8%  +0.0180  0.0000  +0.000  +0.000  +0.000  +1.580     +4.00     3.60
+    0.5 cacheRef    222   2.7%   2.7%  +0.0180  0.0000  +0.000  +0.000  +0.000  +2.000     +4.00     5.41
+    1.0 own         222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    1.0 cacheRef    222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 own         222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 cacheRef    222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+ZFUSD (ZFUSD, futures): 14 decisions; not taken: decision bucket not held 73, forward < 90 of 96 held 45
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own          28  10.7%  10.7%  +0.0714  0.0000  -1.460  +0.000  +1.300  +2.000     +2.00    21.43
+    0.5 cacheRef     28   7.1%   7.1%  +0.0000  0.0000  -1.460  +0.000  +0.000  +1.460     +0.00    14.29
+    1.0 own          28   3.6%   3.6%  +0.0714  0.0000  +0.000  +0.000  +0.000  +1.460     +2.00     7.14
+    1.0 cacheRef     28   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 own          28   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 cacheRef     28   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+ZTUSD (ZTUSD, futures): 5 decisions; not taken: decision bucket not held 73, forward < 90 of 96 held 54
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own          10  10.0%  10.0%  -0.2000  0.0000  -1.820  -1.100  +0.000  +0.000     -2.00    20.00
+    0.5 cacheRef     10   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    1.0 own          10   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    1.0 cacheRef     10   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 own          10   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 cacheRef     10   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+ZSUSX (ZSUSX, agriculture): 0 decisions; not taken: decision bucket not held 75, forward < 90 of 96 held 57
+ZLUSX (ZLUSX, agriculture): 5 decisions; not taken: decision bucket not held 69, forward < 90 of 96 held 58
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own          10  10.0%  10.0%  -0.2000  0.0000  -1.820  -1.100  +0.000  +0.000     -2.00    20.00
+    0.5 cacheRef     10  10.0%  10.0%  -0.2000  0.0000  -1.820  -1.100  +0.000  +0.000     -2.00    20.00
+    1.0 own          10   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    1.0 cacheRef     10   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 own          10   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 cacheRef     10   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+AAVEUSD (AAVEUSD, crypto): 111 decisions; not taken: decision bucket not held 18, forward < 90 of 96 held 3
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         222   2.3%   2.3%  +0.0270  0.0000  +0.000  +0.000  +0.000  +2.000     +6.00     4.50
+    0.5 cacheRef    222   1.4%   1.4%  +0.0270  0.0000  +0.000  +0.000  +0.000  +1.580     +6.00     2.70
+    1.0 own         222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    1.0 cacheRef    222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 own         222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 cacheRef    222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+ALGOUSD (ALGOUSD, crypto): 111 decisions; not taken: decision bucket not held 18, forward < 90 of 96 held 3
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         222   1.8%   1.8%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     3.60
+    0.5 cacheRef    222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    1.0 own         222   0.9%   0.9%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.80
+    1.0 cacheRef    222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 own         222   0.9%   0.9%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.80
+    2.0 cacheRef    222   0.9%   0.9%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.80
+ATOMUSD (ATOMUSD, crypto): 104 decisions; not taken: decision bucket not held 20, forward < 90 of 96 held 8
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         208   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    0.5 cacheRef    208   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    1.0 own         208   1.0%   1.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.92
+    1.0 cacheRef    208   1.0%   1.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.92
+    2.0 own         208   0.5%   0.5%  -0.0096  0.0000  +0.000  +0.000  +0.000  +0.000     -2.00     0.96
+    2.0 cacheRef    208   0.5%   0.5%  -0.0096  0.0000  +0.000  +0.000  +0.000  +0.000     -2.00     0.96
+AVAXUSD (AVAXUSD, crypto): 111 decisions; not taken: decision bucket not held 18, forward < 90 of 96 held 3
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         222   0.9%   0.9%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.80
+    0.5 cacheRef    222   1.8%   1.8%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     3.60
+    1.0 own         222   1.4%   1.4%  +0.0090  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     2.70
+    1.0 cacheRef    222   1.4%   1.4%  +0.0090  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     2.70
+    2.0 own         222   3.6%   3.6%  +0.0000  0.0000  -2.000  +0.000  +0.000  +2.000     +0.00     7.21
+    2.0 cacheRef    222   2.7%   2.7%  +0.0000  0.0000  -1.580  +0.000  +0.000  +1.580     +0.00     5.41
+CAKEUSD (CAKEUSD, crypto): 46 decisions; not taken: ATR not positive 1, decision bucket not held 34, forward < 90 of 96 held 51
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own          92   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    0.5 cacheRef     92   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    1.0 own          92   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    1.0 cacheRef     92   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 own          92   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 cacheRef     92   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+DOGEUSD (DOGEUSD, crypto): 111 decisions; not taken: decision bucket not held 18, forward < 90 of 96 held 3
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         222   1.4%   1.4%  +0.0090  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     2.70
+    0.5 cacheRef    222   0.5%   0.5%  +0.0090  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     0.90
+    1.0 own         222   1.8%   1.8%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     3.60
+    1.0 cacheRef    222   0.9%   0.9%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.80
+    2.0 own         222   0.9%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.06
+    2.0 cacheRef    222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+DOTUSD (DOTUSD, crypto): 111 decisions; not taken: decision bucket not held 18, forward < 90 of 96 held 3
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         222   1.8%   1.8%  +0.0180  0.0000  +0.000  +0.000  +0.000  +1.580     +4.00     3.60
+    0.5 cacheRef    222   0.9%   0.9%  +0.0180  0.0000  +0.000  +0.000  +0.000  +0.000     +4.00     1.80
+    1.0 own         222   0.9%   0.9%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.80
+    1.0 cacheRef    222   0.9%   0.9%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.80
+    2.0 own         222   0.9%   0.9%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.80
+    2.0 cacheRef    222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+EGLDUSD (EGLDUSD, crypto): 53 decisions; not taken: ATR not positive 41, decision bucket not held 19, forward < 90 of 96 held 19
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         106   2.8%   2.8%  +0.0189  0.0000  +0.000  +0.000  +0.000  +1.900     +2.00     5.66
+    0.5 cacheRef    106   0.9%   0.9%  +0.0189  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     1.89
+    1.0 own         106   2.8%   2.8%  +0.0189  0.0000  +0.000  +0.000  +0.000  +1.900     +2.00     5.66
+    1.0 cacheRef    106   0.9%   0.9%  +0.0189  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     1.89
+    2.0 own         106   2.8%   2.8%  +0.0189  0.0000  +0.000  +0.000  +0.000  +1.900     +2.00     5.66
+    2.0 cacheRef    106   0.9%   0.9%  +0.0189  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     1.89
+ETCUSD (ETCUSD, crypto): 98 decisions; not taken: ATR not positive 12, decision bucket not held 19, forward < 90 of 96 held 3
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         196   2.0%   2.0%  +0.0000  0.0000  -0.100  +0.000  +0.000  +0.100     +0.00     4.08
+    0.5 cacheRef    196   1.0%   1.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     2.04
+    1.0 own         196   2.0%   2.0%  +0.0000  0.0000  -0.100  +0.000  +0.000  +0.100     +0.00     4.08
+    1.0 cacheRef    196   1.0%   1.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     2.04
+    2.0 own         196   3.1%   3.1%  +0.0000  0.0000  -2.000  +0.000  +0.000  +2.000     +0.00     6.12
+    2.0 cacheRef    196   2.0%   2.0%  +0.0000  0.0000  -0.100  +0.000  +0.000  +0.100     +0.00     4.08
+GRTUSD (GRTUSD, crypto): 79 decisions; not taken: ATR not positive 18, decision bucket not held 19, forward < 90 of 96 held 16
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         158   3.2%   3.2%  -0.0127  0.0000  -2.000  +0.000  +0.000  +0.860     -2.00     6.33
+    0.5 cacheRef    158   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    1.0 own         158   2.5%   2.5%  +0.0000  0.0000  -0.860  +0.000  +0.000  +0.860     +0.00     5.06
+    1.0 cacheRef    158   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 own         158   2.5%   2.5%  +0.0000  0.0000  -0.860  +0.000  +0.000  +0.860     +0.00     5.06
+    2.0 cacheRef    158   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+HBARUSD (HBARUSD, crypto): 111 decisions; not taken: decision bucket not held 18, forward < 90 of 96 held 3
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         222   0.5%   0.5%  +0.0090  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     0.90
+    0.5 cacheRef    222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    1.0 own         222   2.7%   2.7%  +0.0000  0.0000  -1.580  +0.000  +0.000  +1.580     +0.00     5.41
+    1.0 cacheRef    222   1.8%   1.8%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     3.60
+    2.0 own         222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 cacheRef    222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+IMXUSD (IMXUSD, crypto): 100 decisions; not taken: ATR not positive 5, decision bucket not held 18, forward < 90 of 96 held 9
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         200   2.0%   2.0%  -0.0200  0.0000  -2.000  +0.000  +0.000  +0.000     -4.00     4.00
+    0.5 cacheRef    200   1.0%   1.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     2.00
+    1.0 own         200   1.0%   1.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     2.00
+    1.0 cacheRef    200   1.0%   1.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     2.00
+    2.0 own         200   3.0%   3.0%  +0.0000  0.0000  -2.000  +0.000  +0.000  +2.000     +0.00     6.00
+    2.0 cacheRef    200   3.0%   3.0%  +0.0000  0.0000  -2.000  +0.000  +0.000  +2.000     +0.00     6.00
+LINKUSD (LINKUSD, crypto): 111 decisions; not taken: decision bucket not held 18, forward < 90 of 96 held 3
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    0.5 cacheRef    222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    1.0 own         222   1.8%   1.8%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     3.60
+    1.0 cacheRef    222   0.9%   0.9%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.80
+    2.0 own         222   0.9%   0.9%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.80
+    2.0 cacheRef    222   0.9%   0.9%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.80
+NEARUSD (NEARUSD, crypto): 111 decisions; not taken: decision bucket not held 18, forward < 90 of 96 held 3
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         222   0.9%   0.9%  +0.0180  0.0000  +0.000  +0.000  +0.000  +0.000     +4.00     1.80
+    0.5 cacheRef    222   0.5%   0.5%  +0.0090  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     0.90
+    1.0 own         222   5.0%   5.0%  -0.0090  0.0000  -2.000  +0.000  +0.000  +2.000     -2.00     9.91
+    1.0 cacheRef    222   5.0%   5.0%  -0.0090  0.0000  -2.000  +0.000  +0.000  +2.000     -2.00     9.91
+    2.0 own         222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 cacheRef    222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+TRUMPUSD (OTRUMPUSD, crypto): 45 decisions; not taken: decision bucket not held 37, forward < 90 of 96 held 50
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own          90   1.1%   1.1%  +0.0222  0.0000  +0.000  +0.000  +0.000  +0.220     +2.00     2.22
+    0.5 cacheRef     90   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    1.0 own          90   4.4%   4.4%  +0.0000  0.0000  -2.000  +0.000  +0.000  +2.000     +0.00     8.89
+    1.0 cacheRef     90   4.4%   4.4%  +0.0000  0.0000  -2.000  +0.000  +0.000  +2.000     +0.00     8.89
+    2.0 own          90   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+    2.0 cacheRef     90   2.2%   2.2%  +0.0000  0.0000  -0.220  +0.000  +0.000  +0.220     +0.00     4.44
+XLMUSD (XLMUSD, crypto): 111 decisions; not taken: decision bucket not held 18, forward < 90 of 96 held 3
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         222   1.8%   1.8%  +0.0180  0.0000  +0.000  +0.000  +0.000  +1.580     +4.00     3.60
+    0.5 cacheRef    222   0.5%   0.5%  +0.0090  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     0.90
+    1.0 own         222   0.9%   0.9%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.80
+    1.0 cacheRef    222   0.9%   0.9%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.80
+    2.0 own         222   0.9%   0.9%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.80
+    2.0 cacheRef    222   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+XTZUSD (XTZUSD, crypto): 111 decisions; not taken: decision bucket not held 18, forward < 90 of 96 held 3
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         222   1.4%   1.4%  +0.0090  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     2.70
+    0.5 cacheRef    222   0.5%   0.5%  +0.0090  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     0.90
+    1.0 own         222   0.5%   0.5%  +0.0090  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     0.90
+    1.0 cacheRef    222   0.5%   0.5%  +0.0090  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     0.90
+    2.0 own         222   0.9%   0.9%  +0.0180  0.0000  +0.000  +0.000  +0.000  +0.000     +4.00     1.80
+    2.0 cacheRef    222   0.9%   0.9%  +0.0180  0.0000  +0.000  +0.000  +0.000  +0.000     +4.00     1.80
+
+POOLED construction-clean @50% (JUDGED, the headline): 28 symbols, 26 with brackets, 2014 decisions
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own        4028   1.7%   1.7%  +0.0040  0.0000  +0.000  +0.000  +0.000  +0.000    +16.00     3.38
+    0.5 cacheRef   4028   0.9%   0.9%  +0.0055  0.0000  +0.000  +0.000  +0.000  +0.000    +22.00     1.84
+    1.0 own        4028   1.8%   1.8%  +0.0010  0.0000  +0.000  +0.000  +0.000  +0.000     +4.00     3.57
+    1.0 cacheRef   4028   1.4%   1.4%  +0.0010  0.0000  +0.000  +0.000  +0.000  +0.000     +4.00     2.78
+    2.0 own        4028   1.1%   1.0%  +0.0010  0.0000  +0.000  +0.000  +0.000  +0.000     +4.00     2.09
+    2.0 cacheRef   4028   0.8%   0.8%  +0.0005  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     1.64
+
+BAND (headline set): pooled p1..p99 of d, and the per-symbol range of mean d
+   k=0.5  own      p1..p99 [+0.000, +0.000] R   mean d per symbol [-0.2000 ZLUSX n=10, +0.0714 ZFUSD n=28] R   pooled mean +0.0040 R over 4028 brackets
+   k=0.5  cacheRef p1..p99 [+0.000, +0.000] R   mean d per symbol [-0.2000 ZLUSX n=10, +0.0500 YMUSD n=80] R   pooled mean +0.0055 R over 4028 brackets
+   k=1.0  own      p1..p99 [+0.000, +0.000] R   mean d per symbol [-0.0769 NGUSD n=52, +0.0714 ZFUSD n=28] R   pooled mean +0.0010 R over 4028 brackets
+   k=1.0  cacheRef p1..p99 [+0.000, +0.000] R   mean d per symbol [-0.0385 NGUSD n=52, +0.0250 YMUSD n=80] R   pooled mean +0.0010 R over 4028 brackets
+   k=2.0  own      p1..p99 [+0.000, +0.000] R   mean d per symbol [-0.0096 ATOMUSD n=208, +0.0189 EGLDUSD n=106] R   pooled mean +0.0010 R over 4028 brackets
+   k=2.0  cacheRef p1..p99 [+0.000, +0.000] R   mean d per symbol [-0.0385 NGUSD n=52, +0.0189 EGLDUSD n=106] R   pooled mean +0.0005 R over 4028 brackets
+
+outcome transitions, headline set, variant 'own' (rows = cache, columns = bank):
+   k=0.5: T->T 1815  T->S 30  T->E 0  S->T 38  S->S 2145  S->E 0  E->T 0  E->S 0  E->E 0
+   k=1.0: T->T 1950  T->S 35  T->E 0  S->T 37  S->S 2006  S->E 0  E->T 0  E->S 0  E->E 0
+   k=2.0: T->T 1983  T->S 20  T->E 0  S->T 22  S->S 2001  S->E 0  E->T 0  E->S 0  E->E 2
+   k=0.5: resolving bucket, median slot cache 1 / bank 1 (x5 min); stops from a bucket touching both levels: cache 338, bank 322
+   k=1.0: resolving bucket, median slot cache 2 / bank 2 (x5 min); stops from a bucket touching both levels: cache 58, bank 54
+   k=2.0: resolving bucket, median slot cache 5 / bank 5 (x5 min); stops from a bucket touching both levels: cache 20, bank 16
+   brackets whose two vintages hold different forward slots: 11.4%
+   ATR window span (first to last of the 14 cache bars): median 1.08 h, max 2.2 h
+
+d != 0 share by estimated capture lag of the decision bucket, headline set, variant 'own':
+   k=0.5: pre-log 2/582 (0.3%);  < 6 h 27/1172 (2.3%);  6-12 h 27/1218 (2.2%);  12-24 h 10/616 (1.6%);  24-48 h 2/360 (0.6%);  >= 48 h 0/80 (0.0%)
+   k=1.0: pre-log 0/582 (0.0%);  < 6 h 36/1172 (3.1%);  6-12 h 29/1218 (2.4%);  12-24 h 7/616 (1.1%);  24-48 h 0/360 (0.0%);  >= 48 h 0/80 (0.0%)
+   k=2.0: pre-log 4/582 (0.7%);  < 6 h 22/1172 (1.9%);  6-12 h 13/1218 (1.1%);  12-24 h 5/616 (0.8%);  24-48 h 0/360 (0.0%);  >= 48 h 0/80 (0.0%)
+
+SENSITIVITY (same statistics, other symbol sets)
+POOLED construction-clean @30%: 78 symbols, 68 with brackets, 5123 decisions
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own       10246   5.4%   5.4%  -0.0207  0.0000  -2.000  +0.000  +0.000  +2.000   -212.00    10.77
+    0.5 cacheRef  10246   4.7%   4.7%  -0.0193  0.0000  -2.000  +0.000  +0.000  +2.000   -198.00     9.35
+    1.0 own       10246   5.2%   5.2%  -0.0088  0.0000  -2.000  +0.000  +0.000  +2.000    -90.00    10.47
+    1.0 cacheRef  10246   4.8%   4.8%  -0.0068  0.0000  -2.000  +0.000  +0.000  +2.000    -70.00     9.54
+    2.0 own       10246   5.6%   5.1%  -0.0039  0.0000  -2.000  +0.000  +0.000  +2.000    -40.00    10.18
+    2.0 cacheRef  10246   5.1%   4.6%  -0.0041  0.0000  -2.000  +0.000  +0.000  +2.000    -42.00     9.25
+
+POOLED construction-clean @70%: 3 symbols, 3 with brackets, 178 decisions
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own         356   2.2%   2.2%  +0.0000  0.0000  -0.900  +0.000  +0.000  +0.900     +0.00     4.49
+    0.5 cacheRef    356   0.3%   0.3%  +0.0056  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     0.56
+    1.0 own         356   2.0%   2.0%  +0.0056  0.0000  +0.000  +0.000  +0.000  +0.900     +2.00     3.93
+    1.0 cacheRef    356   0.3%   0.3%  +0.0056  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     0.56
+    2.0 own         356   2.0%   2.0%  +0.0056  0.0000  +0.000  +0.000  +0.000  +0.900     +2.00     3.93
+    2.0 cacheRef    356   0.3%   0.3%  +0.0056  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     0.56
+
+POOLED construction proven: some UTC day >= 90% exact (not in the brief): 73 symbols, 64 with brackets, 4714 decisions
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own        9428   5.9%   5.9%  -0.0261  0.0000  -2.000  +0.000  +0.000  +2.000   -246.00    11.86
+    0.5 cacheRef   9428   5.6%   5.6%  -0.0255  0.0000  -2.000  +0.000  +0.000  +2.000   -240.00    11.24
+    1.0 own        9428   6.0%   6.0%  -0.0119  0.0000  -2.000  +0.000  +0.000  +2.000   -112.00    11.91
+    1.0 cacheRef   9428   5.9%   5.9%  -0.0091  0.0000  -2.000  +0.000  +0.000  +2.000    -86.00    11.72
+    2.0 own        9428   6.4%   5.8%  -0.0049  0.0000  -2.000  +0.000  +0.000  +2.000    -46.00    11.54
+    2.0 cacheRef   9428   6.1%   5.6%  -0.0051  0.0000  -2.000  +0.000  +0.000  +2.000    -48.00    11.08
+
+POOLED every evaluated symbol (no construction filter): 91 symbols, 77 with brackets, 5684 decisions
+      k variant       n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+    0.5 own       11368   5.8%   5.8%  -0.0238  0.0000  -2.000  +0.000  +0.000  +2.000   -270.00    11.66
+    0.5 cacheRef  11368   5.2%   5.2%  -0.0220  0.0000  -2.000  +0.000  +0.000  +2.000   -250.00    10.33
+    1.0 own       11368   5.6%   5.6%  -0.0106  0.0000  -2.000  +0.000  +0.000  +2.000   -120.00    11.15
+    1.0 cacheRef  11368   5.2%   5.2%  -0.0081  0.0000  -2.000  +0.000  +0.000  +2.000    -92.00    10.41
+    2.0 own       11368   6.0%   5.5%  -0.0046  0.0000  -2.000  +0.000  +0.000  +2.000    -52.00    10.92
+    2.0 cacheRef  11368   5.5%   5.1%  -0.0048  0.0000  -2.000  +0.000  +0.000  +2.000    -54.00    10.08
+   transitions k=0.5 (cache->bank): T->T 4848  T->S 399  S->T 264  S->S 5857;  both-touch stops cache 874, bank 1144
+   transitions k=1.0 (cache->bank): T->T 5277  T->S 346  T->E 1  S->T 286  S->S 5457  S->E 1;  both-touch stops cache 120, bank 240
+   transitions k=2.0 (cache->bank): T->T 5294  T->S 318  T->E 2  S->T 293  S->S 5381  S->E 2  E->T 5  E->S 7  E->E 66;  both-touch stops cache 62, bank 114
+d != 0 share by estimated capture lag of the decision bucket, every evaluated symbol, variant 'own':
+   k=0.5: pre-log 104/2062 (5.0%);  < 6 h 220/2994 (7.3%);  6-12 h 231/3550 (6.5%);  12-24 h 80/1634 (4.9%);  24-48 h 28/1006 (2.8%);  >= 48 h 0/122 (0.0%)
+   k=1.0: pre-log 105/2062 (5.1%);  < 6 h 188/2994 (6.3%);  6-12 h 232/3550 (6.5%);  12-24 h 84/1634 (5.1%);  24-48 h 25/1006 (2.5%);  >= 48 h 0/122 (0.0%)
+   k=2.0: pre-log 117/2062 (5.7%);  < 6 h 243/2994 (8.1%);  6-12 h 205/3550 (5.8%);  12-24 h 94/1634 (5.8%);  24-48 h 18/1006 (1.8%);  >= 48 h 0/122 (0.0%)
+
+BY CLASS (manifest assetType), every evaluated symbol, variant 'own':
+   agriculture step-1 extremes over 8,690 buckets: bank high above cache 10.4%, below 23.3%; bank low below cache 16.2%, above 20.9%
+   crypto      step-1 extremes over 160,799 buckets: bank high above cache 9.7%, below 16.1%; bank low below cache 11.4%, above 16.0%
+   forex       step-1 extremes over 114,076 buckets: bank high above cache 15.3%, below 33.7%; bank low below cache 36.3%, above 18.1%
+   futures     step-1 extremes over 58,451 buckets: bank high above cache 17.5%, below 25.3%; bank low below cache 19.4%, above 24.4%
+   indices     step-1 extremes over 3,507 buckets: bank high above cache 4.2%, below 38.6%; bank low below cache 4.0%, above 37.6%
+   livestock   step-1 extremes over 2,211 buckets: bank high above cache 27.0%, below 16.5%; bank low below cache 15.7%, above 23.1%
+   metals      step-1 extremes over 7,777 buckets: bank high above cache 0.0%, below 51.7%; bank low below cache 0.0%, above 52.1%
+   class          k syms      n   d!=0  sgn!=   mean d  med|d|      p1      p5     p95     p99     sum d  |d|/100
+   agriculture  0.5    1     10  10.0%  10.0%  -0.2000  0.0000  -1.820  -1.100  +0.000  +0.000     -2.00    20.00
+   agriculture  1.0    1     10   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+   agriculture  2.0    1     10   0.0%   0.0%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     0.00
+   crypto       0.5   28   5490   1.8%   1.8%  +0.0047  0.0000  +0.000  +0.000  +0.000  +2.000    +26.00     3.61
+   crypto       1.0   28   5490   1.6%   1.6%  +0.0004  0.0000  +0.000  +0.000  +0.000  +0.000     +2.00     3.24
+   crypto       2.0   28   5490   1.5%   1.3%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     2.63
+   forex        0.5   28   4356   9.8%   9.8%  -0.0574  0.0000  -2.000  -2.000  +0.000  +2.000   -250.00    19.70
+   forex        1.0   28   4356  10.3%  10.3%  -0.0257  0.0000  -2.000  -2.000  +0.000  +2.000   -112.00    20.55
+   forex        2.0   28   4356  11.7%  10.7%  -0.0101  0.0000  -2.000  -2.000  +1.021  +2.000    -44.00    21.24
+   futures      0.5   18   1292  10.0%  10.0%  -0.0387  0.0000  -2.000  -2.000  +0.000  +2.000    -50.00    19.97
+   futures      1.0   18   1292   7.2%   7.2%  -0.0077  0.0000  -2.000  +0.000  +0.000  +2.000    -10.00    14.40
+   futures      2.0   18   1292   6.5%   6.5%  -0.0062  0.0000  -2.000  +0.000  +0.000  +2.000     -8.00    13.00
+   indices     no brackets (no 8-hour forward span in the session)
+   livestock   no brackets (no 8-hour forward span in the session)
+   metals       0.5    2    220   2.3%   2.3%  +0.0273  0.0000  +0.000  +0.000  +0.000  +2.000     +6.00     4.55
+   metals       1.0    2    220   1.8%   1.8%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     3.64
+   metals       2.0    2    220   0.9%   0.9%  +0.0000  0.0000  +0.000  +0.000  +0.000  +0.000     +0.00     1.82
+
+headline-set symbols with no bracket (no 8-hour forward span in their session): DOW, ZSUSX

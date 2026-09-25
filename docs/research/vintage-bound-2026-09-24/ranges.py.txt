@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+"""The brackets' unit against the engine's stop (review rounds 17 to 24 on #699).
+
+The brackets are k times a 5-minute ATR of high - low ranges. The engine sizes a stop from the 15-minute
+ATR of the decision bar (true ranges, so never smaller than the high - low mean used here), and
+stopAtrMultiplier is not the stop: supabase/functions/trade-analyzer/pricePlan.ts uses it as the buffer
+beyond a pivot, floors the stop at 1.25 x ATR15 from entry, and caps it at maxStopAtrMultiplier x ATR15.
+Executing the resolver on 2026-09-25 for every roster market gave that cap as 4 on all 28 forex pairs,
+on 12 futures markets and on WTI, and as 1 on six futures markets, where it sits below the floor and so
+sets the stop exactly.
+
+At every decision that produced a bracket in vintage_bound.py.txt (the same loaders and bracket code,
+so the same decision set), this takes ATR(14) of high - low ranges on the cache's 5-minute and 15-minute
+bars (the 14 bars up to and including the bar opening at the decision time) and prints per series the
+median ATR15 / ATR5, then the engine's stop in 5-minute ranges: at least 1.25 x the ratio where the cap
+is 4 (the floor; a pivot can widen it), and exactly 1.0 x the ratio where the cap is 1. Both use the
+high - low ATR15, so both are lower bounds on the true-range figure. Each is placed against the measured
+widths k = 0.5, 1 and 2 ("beyond 2" where it exceeds them). The per-market caps are pinned from the
+resolver run above; this script cannot see a later override, and says so rather than pretending to.
+Skips named in vintage_bound.out.txt are excluded, as in classes.py.txt. Read-only, standard library,
+zero provider bytes. Run from anywhere:
+    python3 docs/research/vintage-bound-2026-09-24/ranges.py.txt
+"""
+import bisect, importlib.machinery, importlib.util, json, os, statistics, sys
+sys.dont_write_bytecode = True
+HERE = os.path.dirname(os.path.abspath(__file__))
+_loader = importlib.machinery.SourceFileLoader("vintage_bound", os.path.join(HERE, "vintage_bound.py.txt"))
+vb = importlib.util.module_from_spec(importlib.util.spec_from_loader("vintage_bound", _loader)); _loader.exec_module(vb)
+
+FLOOR = 1.25
+CAP_ONE = {"HOUSD", "RBUSD", "PLUSD", "PAUSD", "ZFUSD", "ZTUSD"}   # maxStopAtrMultiplier 1, resolver 2026-09-25
+KS = (0.5, 1.0, 2.0)
+
+def load_frame(provider, frame):
+    path = vb.cache_path(provider).replace("-5min-", f"-{frame}-")
+    if not os.path.exists(path):
+        return None
+    with open(path, "r", encoding="utf-8") as fh:
+        items = json.load(fh)["items"]
+    lo = vb.WS - 3 * vb.DAY
+    bars = sorted((it["time"], float(it["high"]) - float(it["low"])) for it in items if lo <= it["time"] < vb.WE)
+    return [t for t, _ in bars], [r for _, r in bars]
+
+def atr(frame, t):
+    times, ranges = frame
+    i = bisect.bisect_right(times, t)
+    if i < vb.ATR_BARS:
+        return None
+    value = sum(ranges[i - vb.ATR_BARS:i]) / vb.ATR_BARS
+    return value if value > 0 else None
+
+def place(stop5):
+    if stop5 > max(KS):
+        return f"beyond {max(KS):g}"
+    if stop5 < min(KS):
+        return f"below {min(KS):g}"
+    return f"nearest {min(KS, key=lambda k: abs(k - stop5)):g}"
+
+with open(vb.MANIFEST, "r") as f:
+    manifest = json.load(f)["symbols"]
+with open(os.path.join(HERE, "vintage_bound.out.txt"), "r") as f:
+    SKIPPED = {line.split()[1] for line in f if line.startswith("  read ") and "SKIP:" in line}
+print("ATR15/ATR5 = median over the decisions that produced brackets; engine stop in 5-minute ranges:")
+print("'>=' is the 1.25 x ATR15 floor (cap 4; a pivot can widen it), '=' is the 1.0 x ATR15 cap (cap 1)")
+print(f"{'class':9} {'series':10} {'decisions':>9} {'ATR15/ATR5':>10} {'engine stop in ATR5':>20} {'placement':>11}")
+summary = {}
+for cls in ("forex", "futures", "energies"):
+    ratios_by, stops = [], []
+    for provider in sorted({e["providerSymbol"] for e in manifest if e["assetType"] == cls}):
+        if provider in SKIPPED:
+            continue
+        f15 = load_frame(provider, "15min")
+        if f15 is None:
+            print(f"{cls:9} {provider:10} no 15-minute cache store: not placed")
+            continue
+        minutes, _ = vb.load_bank(provider)
+        bank, _ = vb.build_buckets(minutes)
+        cache, _ = vb.load_cache(provider)
+        rows, _ = vb.brackets_for(bank, cache, sorted(cache), lambda end: None)
+        f5 = load_frame(provider, "5min")
+        ratios = [a15 / a5 for t in sorted({r["t"] for r in rows})
+                  for a5, a15 in [(atr(f5, t), atr(f15, t))] if a5 and a15]
+        if not ratios:
+            print(f"{cls:9} {provider:10} no decision with both ATRs: not placed")
+            continue
+        ratio = statistics.median(ratios)
+        capped = cls == "futures" and provider in CAP_ONE
+        stop5 = (1.0 if capped else FLOOR) * ratio
+        ratios_by.append(ratio); stops.append((stop5, capped))
+        mark = "=" if capped else ">="
+        print(f"{cls:9} {provider:10} {len(ratios):>9} {ratio:>10.3f} {mark:>13} {stop5:>6.2f} {place(stop5):>11}")
+    summary[cls] = (ratios_by, stops)
+print()
+for cls, (ratios_by, stops) in summary.items():
+    if not ratios_by:
+        continue
+    placed = [place(s) for s, _ in stops]
+    print(f"{cls}: {len(ratios_by)} series; ATR15/ATR5 {min(ratios_by):.3f} to {max(ratios_by):.3f}, median "
+          f"{statistics.median(ratios_by):.3f}; engine stop in ATR5 {min(s for s, _ in stops):.2f} to "
+          f"{max(s for s, _ in stops):.2f} ({sum(1 for _, c in stops if c)} set by the 1.0 cap); placement: "
+          + ", ".join(f"{p} on {placed.count(p)}" for p in sorted(set(placed))))

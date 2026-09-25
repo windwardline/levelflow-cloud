@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+"""Sampling error of every class's net but forex's (review rounds 6, 11, 13 and 15 on #699).
+
+The standard errors forex.py.txt prints for forex, under the same sign-flip null, for every other class
+with brackets (crypto, metals, futures, agriculture; indices and livestock have none): per bracket, clustered by decision (a symbol's long and short
+brackets at one decision time) and clustered by UTC decision day, with the 95 % half-width per bracket
+each implies (1.96 per bracket and by decision, t at days - 1 by day); and, appended (round 9), the raw
+SE under all four clusterings, the symbol included; (round 11) the exact sign test on every unit;
+(round 12) each class's nonzero per-symbol nets; (round 13) the symbol's own 95 % half-width, at t
+on symbols - 1; and (round 15) the same counting only symbols with a nonzero net. Uses
+vintage_bound.py.txt's own loaders and brackets and asserts its pooled rows reproduce the recorded
+class lines. Its exclusions are parsed from the committed vintage_bound.out.txt rather than a live run,
+so it is pinned to that artifact; if the two drift, the RECORDED assert fails loudly rather than
+pooling a different population. Read-only, standard library, zero provider bytes. Run from anywhere:
+    python3 docs/research/vintage-bound-2026-09-24/classes.py.txt
+"""
+import importlib.machinery, importlib.util, json, math, os, sys
+sys.dont_write_bytecode = True
+HERE = os.path.dirname(os.path.abspath(__file__))
+_loader = importlib.machinery.SourceFileLoader("vintage_bound", os.path.join(HERE, "vintage_bound.py.txt"))
+vb = importlib.util.module_from_spec(importlib.util.spec_from_loader("vintage_bound", _loader)); _loader.exec_module(vb)
+
+def tinv975(df):
+    f = lambda u: math.exp(math.lgamma((df + 1) / 2) - math.lgamma(df / 2)) / math.sqrt(df * math.pi) * (1 + u * u / df) ** (-(df + 1) / 2)
+    def cdf(x):
+        n = 4000; h = x / n; s = f(0) + f(x)
+        for i in range(1, n): s += (4 if i % 2 else 2) * f(i * h)
+        return 0.5 + s * h / 3
+    lo, hi = 0.0, 50.0
+    for _ in range(70):
+        mid = (lo + hi) / 2
+        if cdf(mid) < 0.975: lo = mid
+        else: hi = mid
+    return (lo + hi) / 2
+
+# vintage_bound.out.txt's class lines: (brackets, sum d) per k, by construction the same brackets.
+RECORDED = {"crypto": {0.5: (5490, 26.0), 1.0: (5490, 2.0), 2.0: (5490, 0.0)},
+            "metals": {0.5: (220, 6.0), 1.0: (220, 0.0), 2.0: (220, 0.0)},
+            # Round 11: every other class with brackets (indices and livestock have none).
+            "futures": {0.5: (1292, -50.0), 1.0: (1292, -10.0), 2.0: (1292, -8.0)},
+            "agriculture": {0.5: (10, -2.0), 1.0: (10, 0.0), 2.0: (10, 0.0)}}
+from math import comb
+def sign_p(values):
+    neg = sum(1 for v in values if v < 0); pos = sum(1 for v in values if v > 0); n = neg + pos
+    if n == 0:
+        return "0/0 (n/a, no nonzero cluster)"
+    p = min(1.0, 2 * sum(comb(n, i) for i in range(min(neg, pos) + 1)) / 2 ** n)
+    return f"{neg}/{n} (p {p:.4f})"
+signs = []
+nets = []
+with open(vb.MANIFEST, "r") as f:
+    manifest = json.load(f)["symbols"]
+# The main script skips a symbol it cannot measure cleanly (missing days in a vintage); its recorded
+# output names each one, and this script excludes exactly those so the pooled rows are the record's.
+with open(os.path.join(HERE, "vintage_bound.out.txt"), "r") as f:
+    SKIPPED = {line.split()[1] for line in f if line.startswith("  read ") and "SKIP:" in line}
+# Review round 9 on #699: the raw sign-flip SEs under every clustering, the pair included, printed after
+# the lines above so those keep the numbers the record cites.
+raw_se = []
+for cls in ("crypto", "metals", "futures", "agriculture"):
+    # One series per provider symbol: CLUSD serves two markets and is read once.
+    symbols = sorted({e["providerSymbol"] for e in manifest if e["assetType"] == cls})
+    rows = []
+    for sym in symbols:
+        if sym in SKIPPED:
+            continue
+        try:
+            minutes, _ = vb.load_bank(sym)
+        except FileNotFoundError:
+            continue
+        bank, _ = vb.build_buckets(minutes)
+        cache, _ = vb.load_cache(sym)
+        got, _ = vb.brackets_for(bank, cache, sorted(cache), lambda end: None)
+        rows += [(sym, r) for r in got]
+    for k in (0.5, 1.0, 2.0):
+        sel = [(sym, r) for sym, r in rows if r["k"] == k]
+        d = [r["ob"] - r["oc"] for _, r in sel]
+        n, net = len(sel), sum(d)
+        assert (n, round(net, 6)) == RECORDED[cls][k], f"{cls} k={k}: {n} brackets, sum d {net} against the record's {RECORDED[cls][k]}"
+        by_dec, by_day, by_pair = {}, {}, {}
+        for (sym, r), x in zip(sel, d):
+            by_dec[(sym, r["t"])] = by_dec.get((sym, r["t"]), 0.0) + x
+            by_day[r["t"] // 86_400_000] = by_day.get(r["t"] // 86_400_000, 0.0) + x
+            by_pair[sym] = by_pair.get(sym, 0.0) + x
+        se_b = sum(x * x for x in d) ** 0.5
+        se_c = sum(x * x for x in by_dec.values()) ** 0.5
+        se_d = sum(x * x for x in by_day.values()) ** 0.5
+        t = tinv975(len(by_day) - 1)
+        se_p = sum(x * x for x in by_pair.values()) ** 0.5
+        # Round 13: the symbol's interval too, at t on symbols - 1; one symbol has none.
+        if len(by_pair) >= 2:
+            ts = tinv975(len(by_pair) - 1)
+            by_symbol = f", {ts * se_p / n:.4f} (by symbol, t {ts:.3f} at {len(by_pair) - 1} df"
+            # Round 15: the same interval counting only symbols with a nonzero net, as the record reads
+            # forex's days both ways.
+            nz = sum(1 for v in by_pair.values() if v != 0)
+            if nz >= 2:
+                tz = tinv975(nz - 1)
+                by_symbol += f"; nonzero symbols only {tz * se_p / n:.4f}, t {tz:.3f} at {nz - 1} df)"
+            else:
+                by_symbol += f"; nonzero symbols only n/a, {nz} of them)"
+        else:
+            by_symbol = ", n/a (by symbol: one symbol)"
+        if not any(d):
+            # Round 12: no bracket differs, so there is no interval to print, only an absence.
+            print(f"{cls:7} k={k}: {n} brackets, net {net:+.1f} R; no differing brackets, so no interval")
+        else:
+            print(f"{cls:7} k={k}: {n} brackets, net {net:+.1f} R; 95% half-width per bracket: "
+                  f"{1.96 * se_b / n:.4f} (per bracket), {1.96 * se_c / n:.4f} (by decision), "
+                  f"{t * se_d / n:.4f} (by day, t {t:.3f} at {len(by_day) - 1} df)" + by_symbol)
+        raw_se.append(f"{cls:7} k={k}: net {net:+.1f} R; sign-flip SE per bracket {se_b:.1f} R, by decision {se_c:.1f} "
+                      f"({len(by_dec)}), by symbol {se_p:.1f} ({len(by_pair)}), by day {se_d:.1f} ({len(by_day)})")
+        nz_sym = sorted((v, s) for s, v in by_pair.items() if v != 0)
+        nets.append(f"{cls:11} k={k}: " + (", ".join(f"{s} {v:+.0f}" for v, s in nz_sym) or "none"))
+        signs.append(f"{cls:11} k={k}: negative of nonzero, exact two-sided sign test: brackets {sign_p(d)}, "
+                     f"decisions {sign_p(list(by_dec.values()))}, symbols {sign_p(list(by_pair.values()))}, "
+                     f"days {sign_p(list(by_day.values()))}")
+print("pooled rows reproduce vintage_bound.out.txt's crypto, metals, futures and agriculture class lines")
+print()
+print("raw sign-flip standard errors, clusters in brackets (the forex table's unit):")
+for line in raw_se:
+    print("  " + line)
+print()
+print("sign tests on every unit (round 11):")
+for line in signs:
+    print("  " + line)
+print()
+print("per-symbol nets (R) with a nonzero net, most negative first (round 12):")
+for line in nets:
+    print("  " + line)
