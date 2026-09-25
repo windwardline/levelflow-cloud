@@ -37,7 +37,9 @@ this file, stored as `.txt` so the citation guard covers them:
 [`offsets.py.txt`](/docs/research/vintage-bound-2026-09-24/offsets.py.txt) and
 [`offsets.out.txt`](/docs/research/vintage-bound-2026-09-24/offsets.out.txt), and
 [`forex.py.txt`](/docs/research/vintage-bound-2026-09-24/forex.py.txt) and
-[`forex.out.txt`](/docs/research/vintage-bound-2026-09-24/forex.out.txt). Each resolves the
+[`forex.out.txt`](/docs/research/vintage-bound-2026-09-24/forex.out.txt), and
+[`classes.py.txt`](/docs/research/vintage-bound-2026-09-24/classes.py.txt) and
+[`classes.out.txt`](/docs/research/vintage-bound-2026-09-24/classes.out.txt). Each resolves the
 checkout from its own location:
 
 ```
@@ -45,6 +47,7 @@ python3 docs/research/vintage-bound-2026-09-24/vintage_bound.py.txt
 python3 docs/research/vintage-bound-2026-09-24/crosscheck.py.txt EURUSD NGUSD ETHUSD
 python3 docs/research/vintage-bound-2026-09-24/offsets.py.txt
 python3 docs/research/vintage-bound-2026-09-24/forex.py.txt
+python3 docs/research/vintage-bound-2026-09-24/classes.py.txt
 ```
 
 The script reproduced byte-identical except its run stamp on 2026-09-24. The cross-check
@@ -126,33 +129,39 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
 ## What it means
 
 - **For forex, the vintage moves outcomes against the bank's copies at every width, and at the shipped
-  stop width by about 0.01 R per bracket.** The standard error of the forex net under a sign-flip null,
-  three ways ([forex](/docs/research/vintage-bound-2026-09-24/forex.out.txt)):
+  stop width by about 0.01 R per bracket.** The direction needs no model of the error: every UTC day
+  whose forex net is nonzero is negative, 14 of 14 at k = 0.5, 12 of 13 at k = 1 and 9 of 9 at k = 2
+  (two-sided sign test p = 0.0001, 0.003 and 0.004). The size does. The standard error of the forex net
+  under a sign-flip null, three ways ([forex](/docs/research/vintage-bound-2026-09-24/forex.out.txt)):
 
-  | k | net | per bracket | by decision (2,178) | by UTC day (14) | days negative |
+  | k | net | SE per bracket (net/SE) | by decision, 2,178 | by UTC day, 14 | nonzero days negative |
   |---|---:|---:|---:|---:|---:|
   | 0.5 | −250 R | 41.4 (−6.0) | 27.8 (−9.0) | 74.1 (−3.4) | 14 of 14 |
   | 1 | −112 R | 42.3 (−2.6) | 16.2 (−6.9) | 38.3 (−2.9) | 12 of 13 |
   | 2 | −44 R | 42.8 (−1.0) | 12.6 (−3.5) | 17.4 (−2.5) | 9 of 9 |
 
-  Each cell is the SE with net/SE beside it; "days negative" counts the days with a nonzero net. The
-  per-bracket error is too wide: a decision's long and short brackets move in opposite directions, so
-  clustering them by decision narrows the error, and clustering by day, where decisions share a
-  market's move, widens it again. The day is the conservative cluster, and every day with a
-  difference is negative at k = 2. At k = 2, the width nearest the shipped forex `stopAtrMultiplier` of
+  Which error sizes it is JUDGED: whether a revision is a random event per bracket, or hits a decision's
+  long and short brackets together, which move in opposite directions. The record takes the day: it is
+  wider than the decision (decisions in one day share the market's move) and treats a revision as
+  hitting a decision, not a bracket. At k = 2, the width nearest the shipped forex `stopAtrMultiplier` of
   1.2 (2 five-minute mean ranges are 1.10 to 1.13 fifteen-minute ones on EURUSD, GBPUSD and USDJPY,
-  1.44 on AUDCAD), the mean is −0.010 R per bracket, with a 95 % interval of about −0.019 to −0.001 R
-  clustered by day (t = 2.160 at 13 degrees of freedom); the per-bracket estimator, at 1.96, would give
-  −0.029 to +0.009. That is the size of forex's measured edge on the tuning folds (+0.006 R per fill, R3)
-  and of the exit-slippage correction of 2026-09-23 (0.006 to 0.011 R per fill). **A forex figure that
-  moves by less than about 0.02 R per bracket is a vintage question, not a finding.** It does not come
-  from EURUSD, whose large one-sided gaps net +2 R over its 156 brackets at k = 2; it is spread across
-  the crosses (14 pairs negative, 12 zero, 2 positive, the largest AUDCHF, CHFJPY and EURCHF at −6 R
-  each). GBPUSD and EURUSD carry the two-constructions caveat above.
-- **Crypto and metals are not measurably moved at k = 1 and 2**: crypto's net sits within about
-  ±0.007 R per bracket at 95 % (28 symbols, 5,490 brackets), and metals' two symbols bound it only to
-  about ±0.03 R (220 brackets). Metals' +0.027 R at k = 0.5 is five differing brackets netting +6 R.
-  There the comparison may be of two constructions rather than two vintages.
+  1.44 on AUDCAD), the mean is −0.010 R per bracket, 95 % about −0.019 to −0.001 R clustered by day
+  (t = 2.160 at 13 degrees of freedom; counting only the 9 days with a nonzero net, t = 2.306 at 8, the
+  near end is −0.0009). Per bracket, at 1.96, it would be −0.029 to +0.009. That is the size of forex's
+  measured edge on the tuning folds (+0.006 R per fill, R3) and of the exit-slippage correction of
+  2026-09-23 (0.006 to 0.011 R per fill). **A forex figure that moves by less than about 0.02 R per
+  bracket, the far end of the day-clustered interval, is a vintage question, not a finding;** read per
+  bracket, the line would be 0.03. It does not come from EURUSD, whose large one-sided gaps net +2 R
+  over its 156 brackets at k = 2; it is spread across the crosses (14 pairs negative, 12 zero, 2
+  positive, the largest AUDCHF, CHFJPY and EURCHF at −6 R each). GBPUSD and EURUSD carry the
+  two-constructions caveat above.
+- **Crypto and metals are not measurably moved at k = 1 and 2**
+  ([classes](/docs/research/vintage-bound-2026-09-24/classes.out.txt)). Crypto's net (28 symbols less
+  DYDXUSD and FILUSD, 5,490 brackets) sits within ±0.0067 and ±0.0061 R per bracket at 95 % per bracket,
+  and within ±0.0020 and ±0.0015 clustered by day. Metals' two symbols bound it only to ±0.036 and ±0.025
+  R per bracket (220 brackets); their few flips cancel inside their decisions, so the clustered errors
+  there are exactly zero and bound nothing. Metals' +0.027 R at k = 0.5 is five differing brackets
+  netting +6 R. There the comparison may be of two constructions rather than two vintages.
 - **The later history is not a fixed vintage either.** The cache records no fetch time for its August
   bars, and the top-ups may have replaced 2026-08-23..25 with a later copy.
 

@@ -3,7 +3,7 @@
 
 Is the vintage band a basis offset (one series shifted against the other) or revision? Reads the
 same stores as vintage_bound.py.txt, read-only, standard library only, zero provider bytes. Run from
-the checkout root:  python3 docs/research/vintage-bound-2026-09-24/offsets.py.txt
+anywhere; it resolves the checkout from its own location:  python3 docs/research/vintage-bound-2026-09-24/offsets.py.txt
 New York wall clock decodes every symbol listed here (none is a venue-clock index).
 """
 import json, os, statistics

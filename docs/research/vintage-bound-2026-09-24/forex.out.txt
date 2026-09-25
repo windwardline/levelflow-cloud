@@ -34,7 +34,7 @@ forex pooled k=2.0: brackets 4356, differ 11.7%, mean d -0.0101 R, sum d -44.00 
 pooled rows reproduce vintage_bound.out.txt's forex class line
 
 Sampling error of the pooled net, under the null that each difference is as likely to favour either vintage:
-the sign-flip standard error sqrt(sum of squares), first per bracket, then with brackets clustered by UTC decision day
+the sign-flip standard error sqrt(sum of squares): per bracket, then clustered by UTC decision day, then by decision
   k=0.5: net -250.0 R over 429 differing brackets; per-bracket SE 41.4 R (net/SE -6.04); day-clustered SE 74.1 R over 14 days (net/SE -3.38)
   k=1.0: net -112.0 R over 448 differing brackets; per-bracket SE 42.3 R (net/SE -2.65); day-clustered SE 38.3 R over 14 days (net/SE -2.93)
   k=2.0: net -44.0 R over 511 differing brackets; per-bracket SE 42.8 R (net/SE -1.03); day-clustered SE 17.4 R over 14 days (net/SE -2.52)

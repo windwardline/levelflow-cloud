@@ -1,0 +1,7 @@
+crypto  k=0.5: 5490 brackets, net +26.0 R; 95% half-width per bracket: 0.0071 (per bracket), 0.0048 (by decision), 0.0051 (by day, t 2.101 at 18 df)
+crypto  k=1.0: 5490 brackets, net +2.0 R; 95% half-width per bracket: 0.0067 (per bracket), 0.0021 (by decision), 0.0020 (by day, t 2.101 at 18 df)
+crypto  k=2.0: 5490 brackets, net +0.0 R; 95% half-width per bracket: 0.0061 (per bracket), 0.0023 (by decision), 0.0015 (by day, t 2.101 at 18 df)
+metals  k=0.5: 220 brackets, net +6.0 R; 95% half-width per bracket: 0.0398 (per bracket), 0.0309 (by decision), 0.0340 (by day, t 2.160 at 13 df)
+metals  k=1.0: 220 brackets, net +0.0 R; 95% half-width per bracket: 0.0356 (per bracket), 0.0000 (by decision), 0.0000 (by day, t 2.160 at 13 df)
+metals  k=2.0: 220 brackets, net +0.0 R; 95% half-width per bracket: 0.0252 (per bracket), 0.0000 (by decision), 0.0000 (by day, t 2.160 at 13 df)
+pooled rows reproduce vintage_bound.out.txt's crypto and metals class lines

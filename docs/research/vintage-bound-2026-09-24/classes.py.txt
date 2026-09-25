@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+"""Sampling error of the crypto and metals nets (review round 6 on #699).
+
+The same three standard errors forex.py.txt prints for forex, under the same sign-flip null, for the
+two classes the record bounds in its last bullet: per bracket, clustered by decision (a symbol's long
+and short brackets at one decision time) and clustered by UTC decision day, with the 95 % half-width
+per bracket each implies (1.96 per bracket and by decision, t at days - 1 by day). Uses
+vintage_bound.py.txt's own loaders and brackets and asserts its pooled rows reproduce the recorded
+class lines. Read-only, standard library, zero provider bytes. Run from anywhere:
+    python3 docs/research/vintage-bound-2026-09-24/classes.py.txt
+"""
+import importlib.machinery, importlib.util, json, math, os, sys
+sys.dont_write_bytecode = True
+HERE = os.path.dirname(os.path.abspath(__file__))
+_loader = importlib.machinery.SourceFileLoader("vintage_bound", os.path.join(HERE, "vintage_bound.py.txt"))
+vb = importlib.util.module_from_spec(importlib.util.spec_from_loader("vintage_bound", _loader)); _loader.exec_module(vb)
+
+def tinv975(df):
+    f = lambda u: math.exp(math.lgamma((df + 1) / 2) - math.lgamma(df / 2)) / math.sqrt(df * math.pi) * (1 + u * u / df) ** (-(df + 1) / 2)
+    def cdf(x):
+        n = 4000; h = x / n; s = f(0) + f(x)
+        for i in range(1, n): s += (4 if i % 2 else 2) * f(i * h)
+        return 0.5 + s * h / 3
+    lo, hi = 0.0, 50.0
+    for _ in range(70):
+        mid = (lo + hi) / 2
+        if cdf(mid) < 0.975: lo = mid
+        else: hi = mid
+    return (lo + hi) / 2
+
+# vintage_bound.out.txt's class lines: (brackets, sum d) per k, by construction the same brackets.
+RECORDED = {"crypto": {0.5: (5490, 26.0), 1.0: (5490, 2.0), 2.0: (5490, 0.0)},
+            "metals": {0.5: (220, 6.0), 1.0: (220, 0.0), 2.0: (220, 0.0)}}
+with open(vb.MANIFEST, "r") as f:
+    manifest = json.load(f)["symbols"]
+# The main script skips a symbol it cannot measure cleanly (missing days in a vintage); its recorded
+# output names each one, and this script excludes exactly those so the pooled rows are the record's.
+with open(os.path.join(HERE, "vintage_bound.out.txt"), "r") as f:
+    SKIPPED = {line.split()[1] for line in f if line.startswith("  read ") and "SKIP:" in line}
+for cls in ("crypto", "metals"):
+    symbols = sorted(e["providerSymbol"] for e in manifest if e["assetType"] == cls)
+    rows = []
+    for sym in symbols:
+        if sym in SKIPPED:
+            continue
+        try:
+            minutes, _ = vb.load_bank(sym)
+        except FileNotFoundError:
+            continue
+        bank, _ = vb.build_buckets(minutes)
+        cache, _ = vb.load_cache(sym)
+        got, _ = vb.brackets_for(bank, cache, sorted(cache), lambda end: None)
+        rows += [(sym, r) for r in got]
+    for k in (0.5, 1.0, 2.0):
+        sel = [(sym, r) for sym, r in rows if r["k"] == k]
+        d = [r["ob"] - r["oc"] for _, r in sel]
+        n, net = len(sel), sum(d)
+        assert (n, round(net, 6)) == RECORDED[cls][k], f"{cls} k={k}: {n} brackets, sum d {net} against the record's {RECORDED[cls][k]}"
+        by_dec, by_day = {}, {}
+        for (sym, r), x in zip(sel, d):
+            by_dec[(sym, r["t"])] = by_dec.get((sym, r["t"]), 0.0) + x
+            by_day[r["t"] // 86_400_000] = by_day.get(r["t"] // 86_400_000, 0.0) + x
+        se_b = sum(x * x for x in d) ** 0.5
+        se_c = sum(x * x for x in by_dec.values()) ** 0.5
+        se_d = sum(x * x for x in by_day.values()) ** 0.5
+        t = tinv975(len(by_day) - 1)
+        print(f"{cls:7} k={k}: {n} brackets, net {net:+.1f} R; 95% half-width per bracket: "
+              f"{1.96 * se_b / n:.4f} (per bracket), {1.96 * se_c / n:.4f} (by decision), "
+              f"{t * se_d / n:.4f} (by day, t {t:.3f} at {len(by_day) - 1} df)")
+print("pooled rows reproduce vintage_bound.out.txt's crypto and metals class lines")
