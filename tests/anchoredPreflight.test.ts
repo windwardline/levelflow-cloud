@@ -327,11 +327,17 @@ describe("the pre-flight covers every rolling store the driver loads — derived
   function loaderKeys(): string[] {
     const keys: string[] = [];
     for (const call of driver.matchAll(/loadRollingSeries<[^>]+>\(\{/g)) {
-      // Bounded to THIS call: searching the rest of the file would let a
-      // non-literal key slide onto the next loader's literal and pass.
+      // Bounded to THIS call's own object literal, by brace depth from its "{":
+      // searching further would let a non-literal key slide onto a later literal.
       const start = call.index ?? 0;
-      const next = driver.indexOf("loadRollingSeries<", start + 1);
-      const body = driver.slice(start, next === -1 ? undefined : next);
+      const open = driver.indexOf("{", start);
+      let depth = 0;
+      let end = open;
+      for (; end < driver.length; end += 1) {
+        if (driver[end] === "{") depth += 1;
+        else if (driver[end] === "}" && --depth === 0) break;
+      }
+      const body = driver.slice(open, end + 1);
       const key = body.match(/\n\s*key:\s*(`[^`]*`|"[^"]*")/);
       assert.ok(key, `a loadRollingSeries call at offset ${call.index} has no key: the census cannot read it`);
       keys.push(key![1].slice(1, -1));

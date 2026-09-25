@@ -54,13 +54,13 @@ relative to `supabase/functions/`, script paths to `scripts/`.
 | endpoint | Edge | scripts | what for |
 |---|---|---|---|
 | `/quote` | `trade-analyzer/marketLoader.ts:273` | `verify-fmp-matches.ts:247` | the decision bar's current-price reference; the verifier's first test of a candidate ticker |
-| `/historical-price-eod/full` | `trade-analyzer/marketLoader.ts:391`, `market-data/index.ts:581` | `replay-sweep.ts:2366`, `verify-fmp-matches.ts:127` | daily bars |
-| `/historical-chart/{interval}` | `trade-analyzer/marketLoader.ts:394`, `market-data/index.ts:584` | `replay-sweep.ts:2340`, `verify-fmp-matches.ts:142`, `:257`, `bank-minute-bars.ts:488`, `probe-minute-bars.ts:133`, `recover-minute-bank.ts:422` | intraday bars. The analyzer reads 4hour, 1hour, 15min and 5min, with 15-minute its primary lens; outcome grading 15min and 5min; the chart feed all five; the sweep 15min and 5min; the verifier 15min; the minute bank, its probe and its recovery 1min |
-| `/treasury-rates` | `trade-analyzer/macroContext.ts:109` | `replay-sweep.ts:1967` | the macro tilt (10-year change), live and in replay |
-| `/economic-calendar` | `news-calendar/index.ts:327` | `replay-sweep.ts:1819` | timing risk, live and in replay |
+| `/historical-price-eod/full` | `trade-analyzer/marketLoader.ts:391`, `market-data/index.ts:581` | `replay-sweep.ts:2387`, `verify-fmp-matches.ts:127` | daily bars |
+| `/historical-chart/{interval}` | `trade-analyzer/marketLoader.ts:394`, `market-data/index.ts:584` | `replay-sweep.ts:2361`, `verify-fmp-matches.ts:142`, `:257`, `bank-minute-bars.ts:488`, `probe-minute-bars.ts:133`, `recover-minute-bank.ts:422` | intraday bars. The analyzer reads 4hour, 1hour, 15min and 5min, with 15-minute its primary lens; outcome grading 15min and 5min; the chart feed all five; the sweep 15min and 5min; the verifier 15min; the minute bank, its probe and its recovery 1min |
+| `/treasury-rates` | `trade-analyzer/macroContext.ts:109` | `replay-sweep.ts:1988` | the macro tilt (10-year change), live and in replay |
+| `/economic-calendar` | `news-calendar/index.ts:327` | `replay-sweep.ts:1840` | timing risk, live and in replay |
 | `/earnings-calendar` | `news-calendar/index.ts:391` | | timing risk |
 | `/news/{category}` | `news-calendar/index.ts:489` | | timing risk, never direction |
-| `/commitment-of-traders-report` | | `replay-sweep.ts:2086` | `cotPercentile`, `cotStance`, `cotSampleSize` on every corpus row; `trade-analyzer/sweep.ts` only consumes it, via `cotContext.ts` |
+| `/commitment-of-traders-report` | | `replay-sweep.ts:2107` | `cotPercentile`, `cotStance`, `cotSampleSize` on every corpus row; `trade-analyzer/sweep.ts` only consumes it, via `cotContext.ts` |
 | `/commodities-list` | | `verify-fmp-matches.ts:224` | one of the two authoritative enumerations, for re-probing the unmatched register |
 | `/index-list` | | `verify-fmp-matches.ts:224` | the other |
 
