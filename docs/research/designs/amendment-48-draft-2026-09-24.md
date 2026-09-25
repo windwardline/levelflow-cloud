@@ -71,10 +71,11 @@ Whether the standing approval may make any of them is Q1.
   landing). The freeze line declares C_s and must land before it; a later landing refuses, and the
   timed registration lapses on the pool (rule 8). So the window's start is fixed by a
   landing the operator made before any post-registration choice, not by when the freeze is filed.
-- **History start H_s.** The first bar of market s's pinned 5-minute series, found by a discovery run
-  of the pool (`replay-sweep --discover`) before the pre-frontier sweep, whose manifest must then agree
-  (amendment 33: per market, to each market's true data limit). The freeze line records it and test (d)
-  recomputes it from both manifests.
+- **History start H_s.** The first bar of market s's 5-minute series in the calibration cache's store,
+  read at the freeze's anchor from local disk before any sweep runs, at zero provider bytes (amendment
+  33: per market, to each market's true data limit; the 5-minute series is the one the screen measures
+  on, and it is shallower than the 15-minute one for most symbols). The freeze line records it and test
+  (d) recomputes it from the store at that anchor.
 - **Registration.** One hypothesis, a canonical spec that has landed on `main` (rule 3).
   Registrations take ordinals in landing order, strictly increasing by one. The registry's other lines
   (screen, plan, manifest, digest, freeze, freeze-landed, confirm) take none; a burn is derived from
@@ -111,7 +112,7 @@ Whether the standing approval may make any of them is Q1.
    - The freeze is timed for one registration: the lowest ordinal among registrations whose screen
      landed before the freeze, whose pass on a pool market is rule 5's pass (for a filter, the member
      its freeze rule yields), which have a candidate there from the pre-frontier folds, and which have
-     no read, burned freeze or pending freeze on that market. Only screen and registration lines that
+     no read, burned freeze, lapse or pending freeze on that market. Only screen and registration lines that
      landed before the freeze count.
    - The read names exactly the pool markets on which the timed registration has a candidate.
    - For each named market m, L_m is the shortest whole number of days above 5 at which the timed
@@ -205,7 +206,7 @@ Whether the standing approval may make any of them is Q1.
    screen passed on m (for a filter, the frozen member's did); its freeze rule yields a candidate there
    from the pre-frontier folds; the declared confirm span meets its readiness floor on m within its
    maximum confirm length, and on the shipped cell's side for a candidate that replaces it; it landed
-   before the freeze; and it has no read, burned freeze or pending freeze on m. Every registration
+   before the freeze; and it has no read, burned freeze, lapse or pending freeze on m. Every registration
    meeting all of them opens; one that does not draws nothing and keeps its claim. A candidate whose
    read falls short of its readiness floor takes NO VERDICT, and its draw stays spent.
 
@@ -341,7 +342,7 @@ Tests:
 - (a) Per market, the draws sum to 0.05 or less, and each equals 0.8(0.05 − S_m)/c_m, with c_m
   recomputed from the gradings, the freeze line and its declared C_s.
 - (b) A registration draws on m only at a freeze that names m and opens its candidate there, and never
-  while it has a read, a burned freeze or a pending freeze on m.
+  while it has a read, a burned freeze, a lapse or a pending freeze on m.
 - (c) Each screen multiplier equals `tMultiplier95(clusters − 1)`. The null draws, the lower bound and
   the verdict recompute from the specHash seed and the recorded decisions; each family floor recomputes
   from the recorded cost inputs under the registration commit's cost code; each B recomputes from the
