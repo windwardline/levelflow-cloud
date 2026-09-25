@@ -306,7 +306,6 @@ type MarketScanCandidate = {
   executionLabel?: string;
   executionScore?: number;
   marketRegime?: string;
-  rationale?: string[];
   reason?: string;
   relatedSymbols?: SupportedSymbol[];
   rewardRisk?: number;
