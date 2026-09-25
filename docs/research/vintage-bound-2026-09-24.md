@@ -125,25 +125,33 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
 
 ## What it means
 
-- **For forex, the vintage is not moot.** On the band's widest bracket, k = 2 five-minute ATRs, the
-  bank's copies read 0.010 R worse per bracket than FMP's later history. Measured over the window, 2
-  five-minute mean ranges are 1.10 to 1.13 fifteen-minute mean ranges on EURUSD, GBPUSD and USDJPY
-  (1.44 on AUDCAD), near the shipped forex `stopAtrMultiplier` of 1.2. That is the same size as forex's
-  measured edge on the tuning folds (+0.006 R per fill, R3) and as the exit-slippage correction of
-  2026-09-23 (0.006 to 0.011 R per fill). A forex figure that changes sign by less than that is a
-  vintage question, not a finding. It does not come from EURUSD, whose large one-sided gaps net +2 R
-  over its 156 brackets at k = 2. It is spread across the crosses: 14 pairs are negative, 12 zero and 2
-  positive, the largest AUDCHF, CHFJPY and EURCHF at −6 R each. GBPUSD and EURUSD carry the
+- **For forex, the vintage moves tight brackets against the bank; at the shipped stop width its size
+  is not established.** Two standard errors of the forex net, both under the null that a difference is
+  as likely to favour either vintage
+  ([forex](/docs/research/vintage-bound-2026-09-24/forex.out.txt)):
+
+  | k | net | per-bracket SE | net/SE | day-clustered SE (14 days) | net/SE |
+  |---|---:|---:|---:|---:|---:|
+  | 0.5 | −250 R | 41.4 | −6.0 | 74.1 | −3.4 |
+  | 1 | −112 R | 42.3 | −2.6 | 38.3 | −2.9 |
+  | 2 | −44 R | 42.8 | −1.0 | 17.4 | −2.5 |
+
+  At k = 0.5 and 1 both exclude zero. At k = 2, the width nearest the shipped forex `stopAtrMultiplier`
+  of 1.2 (2 five-minute mean ranges are 1.10 to 1.13 fifteen-minute ones on EURUSD, GBPUSD and USDJPY,
+  1.44 on AUDCAD), the mean is −0.010 R per bracket: its 95 % interval is about −0.019 to −0.001 R
+  clustered, and about −0.029 to +0.009 R per bracket, which contains zero and forex's measured edge of
+  +0.006 R per fill (R3). Clustering is the defensible model, because brackets inside a day are not
+  independent, but 14 clusters estimate it poorly, and the dependence runs both ways: the two sides of
+  one decision flip together and cancel, which narrows the error at k = 2, while same-direction flips
+  across a day's decisions widen it at k = 0.5. So the price at the shipped width lies somewhere from
+  zero to about 0.03 R per bracket, a range that holds the forex edge and the exit-slippage correction
+  of 2026-09-23 (0.006 to 0.011 R per fill). It does not come from EURUSD, whose large one-sided gaps net
+  +2 R over its 156 brackets at k = 2; it is spread across the crosses (14 pairs negative, 12 zero, 2
+  positive, the largest AUDCHF, CHFJPY and EURCHF at −6 R each). GBPUSD and EURUSD carry the
   two-constructions caveat above.
-- **k = 2 is the weakest of the three.** Clustered by UTC decision day, the forex net is −250 ± 74,
-  −112 ± 38 and −44 ± 17 R at k = 0.5, 1 and 2 (net over its sign-flip standard error −3.4, −2.9 and
-  −2.5, against a t of 2.16 at 13 degrees of freedom;
-  [forex](/docs/research/vintage-bound-2026-09-24/forex.out.txt)). At k = 2 the mean is −0.010 R per
-  bracket with a 95 % interval of about −0.019 to −0.001. The two sides of one decision flip together
-  and cancel, so clustering narrows the error. The window holds only 14 trading days.
 - **For crypto and metals it is below 0.005 R per bracket at k = 1 and 2**; metals' +0.027 R at
-  k = 0.5 is three flipped brackets of 220. There the comparison may be of two constructions rather
-  than two vintages.
+  k = 0.5 is five differing brackets of 220, netting +6 R. There the comparison may be of two
+  constructions rather than two vintages.
 - **The later history is not a fixed vintage either.** The cache records no fetch time for its August
   bars, and the top-ups may have replaced 2026-08-23..25 with a later copy.
 
