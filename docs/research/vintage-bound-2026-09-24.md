@@ -129,23 +129,29 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
 ## What it means
 
 - **For forex, the vintage moves outcomes against the bank's copies at every width, and at the shipped
-  stop width by about 0.01 R per bracket.** The direction needs no model of the error: of the UTC days
-  whose forex net is nonzero, 14 of 14 are negative at k = 0.5, 12 of 13 at k = 1 (08-07 nets +2 R) and
-  9 of 9 at k = 2 (two-sided sign test p = 0.0001, 0.003 and 0.004). The size does. The standard error of the forex net
-  under a sign-flip null, three ways ([forex](/docs/research/vintage-bound-2026-09-24/forex.out.txt)):
+  stop width by about 0.01 R per bracket.** The direction needs no model of the magnitudes, but at
+  k = 2 it needs aggregating: per bracket, 267 of 511 differing brackets are negative (two-sided sign
+  test p = 0.33). Every aggregated unit agrees. Of the UTC days whose forex net is nonzero, 14 of 14 are
+  negative at k = 0.5, 12 of 13 at k = 1 (08-07 nets +2 R) and 9 of 9 at k = 2 (p = 0.0001, 0.003 and
+  0.004); of the pairs, 25 of 27, 17 of 19 and 14 of 16 (p below 0.0001, 0.0007 and 0.004). Neither
+  unit nests the other. The size needs a model. The standard error of the
+  forex net under a sign-flip null, four ways ([forex](/docs/research/vintage-bound-2026-09-24/forex.out.txt)):
 
-  | k | net | SE per bracket (net/SE) | by decision, 2,178 | by UTC day, 14 | nonzero days negative |
-  |---|---:|---:|---:|---:|---:|
-  | 0.5 | −250 R | 41.4 (−6.0) | 27.8 (−9.0) | 74.1 (−3.4) | 14 of 14 |
-  | 1 | −112 R | 42.3 (−2.6) | 16.2 (−6.9) | 38.3 (−2.9) | 12 of 13 |
-  | 2 | −44 R | 42.8 (−1.0) | 12.6 (−3.5) | 17.4 (−2.5) | 9 of 9 |
+  | k | net | SE per bracket (net/SE) | by decision, 2,178 | by pair, 28 | by UTC day, 14 | nonzero days negative |
+  |---|---:|---:|---:|---:|---:|---:|
+  | 0.5 | −250 R | 41.4 (−6.0) | 27.8 (−9.0) | 63.3 (−4.0) | 74.1 (−3.4) | 14 of 14 |
+  | 1 | −112 R | 42.3 (−2.6) | 16.2 (−6.9) | 32.7 (−3.4) | 38.3 (−2.9) | 12 of 13 |
+  | 2 | −44 R | 42.8 (−1.0) | 12.6 (−3.5) | 14.4 (−3.1) | 17.4 (−2.5) | 9 of 9 |
 
   Which error sizes it is JUDGED: whether a revision is a random event per bracket, or hits a decision's
-  long and short brackets together, which move in opposite directions. The record takes the day because
-  it nests the decision: every decision that day reads the same revised bars, so the day allows each
-  dependence the decision does and the one across decisions too. That is a reason about structure, not
-  size; on crypto the day is the narrower of the two at k = 1 and 2 (0.0020 against 0.0021, 0.0015
-  against 0.0023). The decision column is not the tightest of three readings. A decision's long and short
+  long and short brackets together, which move in opposite directions, or a whole day, or a whole pair.
+  The record takes the day because it nests the decision: every decision that day reads the same revised
+  bars, so the day allows each dependence the decision does and the one across decisions too. It does not
+  nest the pair, the unit a revision or a capture acts on; measured, the day is the wider of the two at
+  every k here. That is a finding on this class, not a property of the day: on crypto the day's
+  half-width is narrower than the decision's at k = 1 and 2 (0.0020 against 0.0021, 0.0015 against
+  0.0023), though it carries the larger multiplier (t = 2.101 at 18 degrees of freedom against 1.96).
+  The decision column is not a tighter estimate, only a deflated one. A decision's long and short
   brackets flip in opposite directions, so their cluster sum cancels; that is why it is a third of the
   per-bracket figure at k = 2 on a cluster of two, and why it is exactly zero on metals. At k = 2, the width nearest the shipped forex `stopAtrMultiplier` of
   1.2 (2 five-minute mean ranges are 1.10 to 1.13 fifteen-minute ones on EURUSD, GBPUSD and USDJPY,
@@ -159,11 +165,12 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   over its 156 brackets at k = 2; it is spread across the crosses (14 pairs negative, 12 zero, 2
   positive, the largest AUDCHF, CHFJPY and EURCHF at −6 R each). GBPUSD and EURUSD carry the
   two-constructions caveat above.
-- **Crypto and metals are not measurably moved at k = 1 and 2**
+- **Crypto is not measurably moved at any width, and metals not at k = 1 and 2**
   ([classes](/docs/research/vintage-bound-2026-09-24/classes.out.txt)). Crypto's net (33 series in the
-  manifest, 31 evaluated after the DYDXUSD and FILUSD skips, 28 with brackets, 5,490 brackets) sits
-  within ±0.0067 and ±0.0061 R per bracket at 95 % with brackets independent, and within ±0.0020 and
-  ±0.0015 clustered by day. Metals' two symbols bound it only to ±0.036 and ±0.025
+  manifest, 31 evaluated after the DYDXUSD and FILUSD skips, 28 with brackets, 5,490 brackets) is
+  +0.0047 R per bracket at k = 0.5, inside ±0.0071 with brackets independent and ±0.0051 clustered by
+  day; at k = 1 and 2 it sits within ±0.0067 and ±0.0061 R per bracket at 95 % with brackets
+  independent, and within ±0.0020 and ±0.0015 clustered by day. Metals' two symbols bound it only to ±0.036 and ±0.025
   R per bracket (220 brackets); their few flips cancel inside their decisions, so the clustered errors
   there are exactly zero and bound nothing. Metals' +0.027 R at k = 0.5 is five differing brackets
   netting +6 R. There the comparison may be of two constructions rather than two vintages.

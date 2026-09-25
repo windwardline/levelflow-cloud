@@ -22,6 +22,9 @@ pooled = {k: [0, 0, 0.0] for k in KS}
 # d summed per UTC decision day, pooled over the 28 pairs, for the sampling error below.
 by_day = {k: {} for k in KS}
 by_decision = {k: {} for k in KS}
+# d summed per pair (review round 8): the unit a revision or a capture acts on, which the day does not nest.
+by_pair = {k: {} for k in KS}
+diffs = {k: [] for k in KS}
 squares = {k: 0.0 for k in KS}
 print("symbol   buckets close-differs med|d|(ticks) high above/below  low below/above  inside  | per k: n differ sum_d")
 for sym in forex:
@@ -50,6 +53,8 @@ for sym in forex:
             by_day[k][day] = by_day[k].get(day, 0.0) + (r["ob"] - r["oc"])
             key = (sym, r["t"])
             by_decision[k][key] = by_decision[k].get(key, 0.0) + (r["ob"] - r["oc"])
+            by_pair[k][sym] = by_pair[k].get(sym, 0.0) + (r["ob"] - r["oc"])
+        diffs[k].extend(x for x in d if x != 0)
         cells.append(f"{len(sel):4} {sum(1 for x in d if x != 0):3} {sum(d):+6.2f}")
     print(f"{sym:7} {len(common):6} {len(nz)/len(common):6.0%} {statistics.median(nz) if nz else 0:7.1f}   "
           f"{hi_above:5.1%}/{hi_below:5.1%}   {lo_below:5.1%}/{lo_above:5.1%}  {inside:5.1%}  | " + "  |  ".join(cells))
@@ -86,3 +91,25 @@ import datetime as _dt
 for k in KS:
     row = "  ".join(f"{_dt.datetime.fromtimestamp(day * 86400, _dt.timezone.utc):%m-%d} {v:+5.0f}" for day, v in sorted(by_day[k].items()))
     print(f"  k={k}: {row}")
+
+# Review round 8 on #699: the pair as a third aggregated unit, and the exact sign test on every unit,
+# per bracket included, printed rather than computed by hand. Appended so the lines above keep the
+# numbers the record cites.
+from math import comb
+def sign_p(values):
+    neg = sum(1 for v in values if v < 0); pos = sum(1 for v in values if v > 0); n = neg + pos
+    return neg, n, min(1.0, 2 * sum(comb(n, i) for i in range(min(neg, pos) + 1)) / 2 ** n)
+print()
+print("clustered by pair (a pair's brackets together):")
+for k in KS:
+    n, nzc, s_ = pooled[k]
+    se_pair = sum(v * v for v in by_pair[k].values()) ** 0.5
+    print(f"  k={k}: pair-clustered SE {se_pair:.1f} R over {len(by_pair[k])} pairs (net/SE {s_/se_pair:+.2f})")
+print("exact two-sided sign test on each unit (units with a nonzero net only):")
+for k in KS:
+    parts = []
+    for name, values in (("brackets", diffs[k]), ("decisions", list(by_decision[k].values())),
+                         ("days", list(by_day[k].values())), ("pairs", list(by_pair[k].values()))):
+        neg, n, p = sign_p(values)
+        parts.append(f"{name} {neg} of {n} negative, p {p:.4f}")
+    print(f"  k={k}: " + "; ".join(parts))

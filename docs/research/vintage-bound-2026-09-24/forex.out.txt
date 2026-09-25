@@ -50,3 +50,12 @@ per-day net d (R) over the 28 pairs, in date order: the clusters behind the clus
   k=0.5: 08-04   -20  08-05    -8  08-06   -28  08-07   -20  08-10   -18  08-11   -30  08-12   -12  08-17    -4  08-18   -32  08-19    -8  08-20   -12  08-21   -20  08-24   -26  08-25   -12
   k=1.0: 08-04    -8  08-05    -2  08-06   -12  08-07    +2  08-10   -10  08-11    +0  08-12   -12  08-17    -4  08-18   -20  08-19   -10  08-20    -6  08-21    -6  08-24   -20  08-25    -4
   k=2.0: 08-04    +0  08-05    +0  08-06    -4  08-07    -2  08-10    -2  08-11    -2  08-12    -6  08-17    -2  08-18   -10  08-19    +0  08-20    -6  08-21    +0  08-24   -10  08-25    +0
+
+clustered by pair (a pair's brackets together):
+  k=0.5: pair-clustered SE 63.3 R over 28 pairs (net/SE -3.95)
+  k=1.0: pair-clustered SE 32.7 R over 28 pairs (net/SE -3.42)
+  k=2.0: pair-clustered SE 14.4 R over 28 pairs (net/SE -3.05)
+exact two-sided sign test on each unit (units with a nonzero net only):
+  k=0.5: brackets 277 of 429 negative, p 0.0000; decisions 159 of 193 negative, p 0.0000; days 14 of 14 negative, p 0.0001; pairs 25 of 27 negative, p 0.0000
+  k=1.0: brackets 252 of 448 negative, p 0.0093; decisions 61 of 66 negative, p 0.0000; days 12 of 13 negative, p 0.0034; pairs 17 of 19 negative, p 0.0007
+  k=2.0: brackets 267 of 511 negative, p 0.3304; decisions 31 of 40 negative, p 0.0007; days 9 of 9 negative, p 0.0039; pairs 14 of 16 negative, p 0.0042
