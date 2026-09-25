@@ -17,6 +17,9 @@ WE = int(datetime(2026, 8, 26, tzinfo=UTC).timestamp() * 1000)
 # (provider symbol, the unit differences print in)
 SYMBOLS = [("EURUSD", 1e-4), ("GBPUSD", 1e-4), ("USDJPY", 1e-2), ("AUDCAD", 1e-4),
            ("XAUUSD", 1e-2), ("XAGUSD", 1e-3), ("BTCUSD", 1.0), ("ESUSD", 0.25)]
+# Each symbol's price tick: a difference under half a tick is float residue, not a difference.
+TICK = {"EURUSD": 1e-5, "GBPUSD": 1e-5, "USDJPY": 1e-3, "AUDCAD": 1e-5,
+        "XAUUSD": 0.01, "XAGUSD": 0.001, "BTCUSD": 0.01, "ESUSD": 0.25}
 
 def bank_buckets(sym):
     first = {}
@@ -44,8 +47,8 @@ for sym, unit in SYMBOLS:
     dr = [((bank[s][1] - bank[s][2]) - (cache[s][1] - cache[s][2])) / unit for s in common]
     inside = sum(1 for s in common if bank[s][1] <= cache[s][1] and bank[s][2] >= cache[s][2]
                  and (bank[s][1] < cache[s][1] or bank[s][2] > cache[s][2]))
-    # Nonzero in PRICE units (1e-12), not after dividing by the print unit.
-    nz = [(bank[s][3] - cache[s][3]) / unit for s in common if abs(bank[s][3] - cache[s][3]) > 1e-12]
+    # Nonzero means at least half a tick in price units, not after dividing by the print unit.
+    nz = [(bank[s][3] - cache[s][3]) / unit for s in common if abs(bank[s][3] - cache[s][3]) > TICK[sym] / 2]
     print(f"{sym:7} unit {unit:g}  buckets {len(common):5}  close: mean {statistics.mean(dc):+.3f} "
           f"median {statistics.median(dc):+.3f}, differs {len(nz)/len(dc):.0%} (median when it does "
           f"{statistics.median(nz) if nz else 0:+.4f})  high {statistics.mean(dh):+.3f}  low "

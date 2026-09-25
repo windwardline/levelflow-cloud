@@ -4,5 +4,5 @@ USDJPY  unit 0.01  buckets  4080  close: mean -0.066 median +0.000, differs 48% 
 AUDCAD  unit 0.0001  buckets  4083  close: mean -0.030 median +0.000, differs 52% (median when it does -0.1000)  high +0.197  low -0.331  range +0.529  bank strictly inside 20%
 XAUUSD  unit 0.01  buckets  3894  close: mean +0.093 median +0.000, differs 60% (median when it does -0.5000)  high -15.454  low +16.062  range -31.516  bank strictly inside 65%
 XAGUSD  unit 0.001  buckets  3883  close: mean +0.117 median +0.000, differs 32% (median when it does -1.0000)  high -3.702  low +2.911  range -6.614  bank strictly inside 49%
-BTCUSD  unit 1  buckets  5444  close: mean -0.024 median +0.000, differs 56% (median when it does +0.0003)  high -3.328  low +3.153  range -6.481  bank strictly inside 64%
+BTCUSD  unit 1  buckets  5444  close: mean -0.024 median +0.000, differs 43% (median when it does +0.0092)  high -3.328  low +3.153  range -6.481  bank strictly inside 64%
 ESUSD   unit 0.25  buckets  3906  close: mean +0.007 median +0.000, differs 28% (median when it does +1.0000)  high -0.393  low +0.395  range -0.789  bank strictly inside 37%

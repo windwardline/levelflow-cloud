@@ -19,6 +19,9 @@ with open(vb.MANIFEST, "r") as f:
 assert len(forex) == 28, len(forex)
 KS = (0.5, 1.0, 2.0)
 pooled = {k: [0, 0, 0.0] for k in KS}
+# d summed per UTC decision day, pooled over the 28 pairs, for the sampling error below.
+by_day = {k: {} for k in KS}
+squares = {k: 0.0 for k in KS}
 print("symbol   buckets close-differs med|d|(ticks) high above/below  low below/above  inside  | per k: n differ sum_d")
 for sym in forex:
     tick = 0.001 if sym.endswith("JPY") else 0.00001
@@ -40,6 +43,10 @@ for sym in forex:
         sel = [r for r in rows if r["k"] == k]
         d = [r["ob"] - r["oc"] for r in sel]
         pooled[k][0] += len(sel); pooled[k][1] += sum(1 for x in d if x != 0); pooled[k][2] += sum(d)
+        squares[k] += sum(x * x for x in d)
+        for r in sel:
+            day = r["t"] // 86_400_000
+            by_day[k][day] = by_day[k].get(day, 0.0) + (r["ob"] - r["oc"])
         cells.append(f"{len(sel):4} {sum(1 for x in d if x != 0):3} {sum(d):+6.2f}")
     print(f"{sym:7} {len(common):6} {len(nz)/len(common):6.0%} {statistics.median(nz) if nz else 0:7.1f}   "
           f"{hi_above:5.1%}/{hi_below:5.1%}   {lo_below:5.1%}/{lo_above:5.1%}  {inside:5.1%}  | " + "  |  ".join(cells))
@@ -51,3 +58,13 @@ for k in KS:
     print(f"forex pooled k={k}: brackets {n}, differ {nzc/n:.1%}, mean d {s/n:+.4f} R, sum d {s:+.2f} R")
     assert (n, round(s, 6)) == RECORDED[k], f"k={k}: {n} brackets, sum d {s} against the record's {RECORDED[k]}"
 print("pooled rows reproduce vintage_bound.out.txt's forex class line")
+print()
+print("Sampling error of the pooled net, under the null that each difference is as likely to favour either vintage:")
+print("the sign-flip standard error sqrt(sum of squares), first per bracket, then with brackets clustered by UTC decision day")
+for k in KS:
+    n, nzc, s_ = pooled[k]
+    se_bracket = squares[k] ** 0.5
+    days = list(by_day[k].values())
+    se_day = sum(v * v for v in days) ** 0.5
+    print(f"  k={k}: net {s_:+.1f} R over {nzc} differing brackets; per-bracket SE {se_bracket:.1f} R (net/SE {s_/se_bracket:+.2f}); "
+          f"day-clustered SE {se_day:.1f} R over {len(days)} days (net/SE {s_/se_day:+.2f})")

@@ -59,8 +59,10 @@ def indep(sym, zone='America/New_York'):
                             out[k][0]+=1; out[k][1]+=(d!=0); out[k][2]+=d
         t+=timedelta(hours=1)
     return out
-# Load the script under test from beside this file, never from the working directory.
+# Load the script under test from beside this file, never from the working directory,
+# and write no __pycache__ into the tracked docs tree.
 import importlib.machinery, importlib.util, collections
+sys.dont_write_bytecode = True
 _path=os.path.join(os.path.dirname(os.path.abspath(__file__)),'vintage_bound.py.txt')
 _loader=importlib.machinery.SourceFileLoader('vintage_bound',_path)
 vb=importlib.util.module_from_spec(importlib.util.spec_from_loader('vintage_bound',_loader)); _loader.exec_module(vb)

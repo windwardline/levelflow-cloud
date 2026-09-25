@@ -103,16 +103,21 @@ close would sit off the cache's by a constant. It does not. Across all 28 forex 
 ([forex](/docs/research/vintage-bound-2026-09-24/forex.out.txt)) the close differs on 22–60 % of
 buckets, by a median of 1–8 ticks where it does, except three USD-quoted majors: EURUSD 27, AUDUSD 24
 and NZDUSD 15 ticks. The extremes do shift. In 23 of the 28 pairs the bank's bucket sits lower than the
-cache's at both ends: across the 25 pairs outside those three majors, the bank's high is below the
-cache's on 25–52 % of buckets and above it on 2–23 %. EURUSD, AUDUSD and NZDUSD run the other way
-(EURUSD's bank high is above the cache's on 56 % of buckets), GBPUSD is contained, and CADJPY is mixed.
+cache's at both ends: for those 23, the bank's high is below the cache's on 25–52 % of buckets and
+above it on 4–23 %, and its low below on 26–63 % and above on 3–28 %. EURUSD, AUDUSD and NZDUSD run the
+other way (EURUSD's bank high is above the cache's on 56 % of buckets), GBPUSD is contained, and CADJPY
+is mixed. Two pairs have a side that never passes: EURUSD's and GBPUSD's bank lows are below the
+cache's on 0.0 % of buckets, the signature metals shows at both ends.
 At the class grain the bank's high is below the cache's on 33.7 % of 114,076 buckets and above on
 15.3 %, and its low below on 36.3 % and above on 18.1 %. Strict containment, the bank's five minutes
 inside the cache's 5-minute bar, runs 4–45 % across forex (GBPUSD highest) and 37–65 % on the metals,
 crypto and ES symbols measured
 ([offsets](/docs/research/vintage-bound-2026-09-24/offsets.out.txt); XAUUSD's range narrower by $0.32,
-BTCUSD's by $6.48). Wherever it is high, the cache's bars reach extremes the minutes do not hold. None of
-this can separate FMP revising the minutes from FMP building its 5-minute bars from a finer feed.
+BTCUSD's by $6.48). Where containment passes a third of buckets (JUDGED), or one side of the bank's
+range never passes the cache's, the cache's bars reach extremes the minutes do not hold: metals,
+crypto and ES among those measured, and in forex GBPUSD (45 %) and EURUSD (a low that never passes).
+None of this can separate FMP revising the minutes from FMP building its 5-minute bars from a finer
+feed; for those symbols the comparison may be of two constructions rather than two vintages.
 
 **The construction-clean set** (28 symbols at the 50 % threshold, 26 with brackets, no forex and no
 metals) reads almost nothing: 1.1–1.8 % of brackets differ and the pooled mean d is +0.001 to +0.004
@@ -128,11 +133,17 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   2026-09-23 (0.006 to 0.011 R per fill). A forex figure that changes sign by less than that is a
   vintage question, not a finding. It does not come from EURUSD, whose large one-sided gaps net +2 R
   over its 156 brackets at k = 2. It is spread across the crosses: 14 pairs are negative, 12 zero and 2
-  positive, the largest AUDCHF, CHFJPY and EURCHF at −6 R each. Where a pair's bank buckets are mostly
-  contained (GBPUSD, 45 %), the caveat below applies to it too.
-- **For crypto and metals it is below 0.005 R per bracket**, and there the comparison may be of two
-  constructions rather than two vintages: the cache's 5-minute bars reach extremes the bank's minutes
-  do not hold.
+  positive, the largest AUDCHF, CHFJPY and EURCHF at −6 R each. GBPUSD and EURUSD carry the
+  two-constructions caveat above.
+- **k = 2 is the weakest of the three.** Clustered by UTC decision day, the forex net is −250 ± 74,
+  −112 ± 38 and −44 ± 17 R at k = 0.5, 1 and 2 (net over its sign-flip standard error −3.4, −2.9 and
+  −2.5, against a t of 2.16 at 13 degrees of freedom;
+  [forex](/docs/research/vintage-bound-2026-09-24/forex.out.txt)). At k = 2 the mean is −0.010 R per
+  bracket with a 95 % interval of about −0.019 to −0.001. The two sides of one decision flip together
+  and cancel, so clustering narrows the error. The window holds only 14 trading days.
+- **For crypto and metals it is below 0.005 R per bracket at k = 1 and 2**; metals' +0.027 R at
+  k = 0.5 is three flipped brackets of 220. There the comparison may be of two constructions rather
+  than two vintages.
 - **The later history is not a fixed vintage either.** The cache records no fetch time for its August
   bars, and the top-ups may have replaced 2026-08-23..25 with a later copy.
 
