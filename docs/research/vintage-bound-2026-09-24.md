@@ -177,7 +177,7 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   At k = 2, the width nearest the shipped forex stop (the resolver gives all 28 pairs a
   `stopAtrMultiplier` of 1.2, `calibration.ts` class row :775; at the decisions that produced brackets
   that stop is 2.07 to 2.46 five-minute ATRs, median 2.22, so k = 2, the widest width measured, sits
-  just inside it on all 28;
+  just inside it on all 28 and a k = 2 bracket stands for 82 % to 96 % of each pair's stop;
   [ranges](/docs/research/vintage-bound-2026-09-24/ranges.out.txt)), the mean is −0.010 R per bracket, 95 % about −0.019 to −0.001 R clustered by day
   (t = 2.160 at 13 degrees of freedom; counting only the 9 days with a nonzero net, t = 2.306 at 8, the
   near end is −0.0009). Per bracket, at 1.96, it would be −0.029 to +0.009. That is the size of forex's
@@ -214,7 +214,8 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   futures line, and not for want of a stop: the resolver gives all 18 futures markets a 1.3 ATR stop
   (`calibration.ts` class row :825; WTI, calibrated as energies, 1.38 at :683). In the brackets' unit,
   at the decisions that produced brackets, that stop is 1.72 to 14.19 five-minute ATRs (median 2.36):
-  within the measured widths on 5 markets and beyond them on 13
+  within the measured widths on 5 markets and beyond them on 13, and a k = 2 bracket stands for 14 % to
+  116 % of each market's stop, against forex's 82 % to 96 %
   ([ranges](/docs/research/vintage-bound-2026-09-24/ranges.out.txt)). HOUSD and RBUSD, which carry the
   net, are the two furthest beyond, at 5.2 and 14.2, where a k = 0.5 bracket is 9.6 % and 3.5 % of the
   stop against 15 to 29 % on the other 16. Futures' R per bracket therefore pools brackets that stand
