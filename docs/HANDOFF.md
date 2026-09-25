@@ -335,8 +335,8 @@ at the Edge, and it implies `PARKING_GATE`.
 - **Push 2**, only after that run is green: flip `PARKING_GATE` to `false`, invert the
   two gate tests in `tests/e2e/public-auth.spec.ts` and delete the third, the parked
   `/?donate` twin (#705; the login screen's `/?donate` test covers the ask once the root is
-  the sign-in screen), return the four sign-in tests from
-  `/?enter` to `/`, and update the pin in `tests/parkingGate.test.ts`. Spec §17p records
+  the sign-in screen), return the tests that reach sign-in through
+  `/?enter` to `/` (cosmetic, since `?enter` is inert once the gate is down), and update the pin in `tests/parkingGate.test.ts`. Spec §17p records
   it; its count of two gate tests predates #705, and this step governs. `tests/parkingGate.test.ts`
   fails an open gate while any E2E test still asserts the parking face.
 
