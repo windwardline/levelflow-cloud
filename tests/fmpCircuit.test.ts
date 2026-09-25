@@ -414,7 +414,8 @@ describe("the pre-2026-09-16 marker is read as history and never written", () =>
   });
 
   // The marker predates the rule that a rejected key never opens the shared
-  // breaker, and 2026-08-18 stored that body 805 times. Read through as it
+  // breaker, and 2026-08-18 stored that body in 1,417 analyzer_events rows (805 in
+  // `message`, 612 more only in `metadata`; fmpCircuit.ts). Read through as it
   // stood, it opened the account for every top-up and ad-hoc run.
   it("reads a legacy marker holding a rejected key as no refusal", () => {
     const t0 = Date.parse("2026-08-18T12:00:00Z");

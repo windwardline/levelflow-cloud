@@ -9,7 +9,9 @@
 //   FMP_API_KEY=... npx tsx scripts/replay-sweep.ts \
 //     --symbols EURUSD,XAUUSD,SP --days 60 --byte-budget 256mb \
 //     --grid tp1AtrMultiplier=0.5,0.7,0.9 [--step 16]
-//     --byte-budget size   required on every run: this run's own ceiling, in
+//
+//   Flags:
+//     --byte-budget size   REQUIRED on every run: this run's own ceiling, in
 //                          bytes or b/kb/mb/gb (1gb = 1024**3 bytes), refused
 //                          above its class's day
 //     [--cache-dir path]   pin bars to disk so later runs reuse identical data

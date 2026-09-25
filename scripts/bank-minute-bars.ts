@@ -22,7 +22,7 @@
  * label in its venue's clock (`toTimestamp` in
  * supabase/functions/trade-analyzer/bars.ts, the zone from `labelZoneFor` in
  * venues.ts; #288, then #395), and a date-only label at New York midnight
- * whatever the venue (#402).
+ * whatever the venue (set by #288, broken briefly by #395, restored by #402).
  *
  * This bank inherited neither the defect nor the fix. The store holds the
  * provider's own date string, unparsed, so a clock correction is a re-read of
@@ -163,9 +163,9 @@ type SidecarState = {
   runs: Array<{ at: string; fetched: number; appended: number; note: string }>;
   recentKeys: string[];
   /**
-   * Vestigial: written null and read by nothing. A label's zone comes from
-   * `labelZoneFor` (venues.ts) at read time, and the banked strings are exact
-   * either way. See the header.
+   * Vestigial: written null and read by nothing. A reader that decodes the
+   * banked strings takes the zone from `labelZoneFor` (venues.ts), never from
+   * here, and the strings are exact either way. See the header.
    */
   sourceTimezone: string | null;
 };

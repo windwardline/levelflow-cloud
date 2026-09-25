@@ -116,7 +116,6 @@ const LEAKS = "makes directories under the temp root and never removes them: con
 const REMOVES_ITS_OWN =
   "makes directories under the temp root and removes them itself with rmSync, a premise this census does not execute";
 const TEMP_ROOT_EXCEPTIONS = new Map<string, string>([
-  ["tests/anchoredPreflight.test.ts", LEAKS],
   ["tests/archiveOffbox.test.ts", "names /tmp only as a target string the rclone detector must read; it creates nothing there"],
   ["tests/armingBoundGraders.test.ts", LEAKS],
   ["tests/auditHigh.test.ts", REMOVES_ITS_OWN],
@@ -172,7 +171,6 @@ const TEMP_ROOT_EXCEPTIONS = new Map<string, string>([
 
 /** The census of 2026-09-22. Only ever edited to remove a file that no longer reaches the temp root. */
 const TEMP_ROOT_EXCEPTIONS_RECORDED = [
-  "tests/anchoredPreflight.test.ts",
   "tests/archiveOffbox.test.ts",
   "tests/armingBoundGraders.test.ts",
   "tests/auditHigh.test.ts",

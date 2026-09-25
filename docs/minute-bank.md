@@ -41,14 +41,15 @@ The engine now reads each intraday label in its venue's clock: New York wall fro
 (`supabase/functions/trade-analyzer/bars.ts`) takes the zone from `labelZoneFor`
 (`venues.ts`): New York by default, and the exchange's own clock for `^GDAXI`, `^N225`
 and `^AXJO`. A date-only label has no time of day and anchors at New York midnight
-whatever the venue (#402). The convention is measured, and `bars.ts`
+whatever the venue: #288 set that, #395 briefly broke it, and #402 restored it. The convention is measured, and `bars.ts`
 records how: banked EURUSD stops at Friday 17:00 New York and reopens Sunday 17:05,
 and ES is missing exactly the 17:00–18:00 maintenance hour.
 
 The bank inherited neither the defect nor the fix. It stores the provider's own
 string, unparsed, so a clock correction is a re-read of local disk, never a refetch.
 The sidecar's `sourceTimezone` field is vestigial: it is written null and nothing
-reads it, because the zone comes from `labelZoneFor` at read time.
+reads it. No bank reader decodes the strings today; whenever one does, the zone comes
+from `labelZoneFor`, never from the sidecar.
 
 ## Shape
 
