@@ -40,9 +40,12 @@ RECORDED = {"crypto": {0.5: (5490, 26.0), 1.0: (5490, 2.0), 2.0: (5490, 0.0)},
 from math import comb
 def sign_p(values):
     neg = sum(1 for v in values if v < 0); pos = sum(1 for v in values if v > 0); n = neg + pos
-    p = min(1.0, 2 * sum(comb(n, i) for i in range(min(neg, pos) + 1)) / 2 ** n) if n else float("nan")
+    if n == 0:
+        return "0/0 (n/a, no nonzero cluster)"
+    p = min(1.0, 2 * sum(comb(n, i) for i in range(min(neg, pos) + 1)) / 2 ** n)
     return f"{neg}/{n} (p {p:.4f})"
 signs = []
+nets = []
 with open(vb.MANIFEST, "r") as f:
     manifest = json.load(f)["symbols"]
 # The main script skips a symbol it cannot measure cleanly (missing days in a vintage); its recorded
@@ -81,12 +84,18 @@ for cls in ("crypto", "metals", "futures", "agriculture"):
         se_c = sum(x * x for x in by_dec.values()) ** 0.5
         se_d = sum(x * x for x in by_day.values()) ** 0.5
         t = tinv975(len(by_day) - 1)
-        print(f"{cls:7} k={k}: {n} brackets, net {net:+.1f} R; 95% half-width per bracket: "
-              f"{1.96 * se_b / n:.4f} (per bracket), {1.96 * se_c / n:.4f} (by decision), "
-              f"{t * se_d / n:.4f} (by day, t {t:.3f} at {len(by_day) - 1} df)")
+        if not any(d):
+            # Round 12: no bracket differs, so there is no interval to print, only an absence.
+            print(f"{cls:7} k={k}: {n} brackets, net {net:+.1f} R; no differing brackets, so no interval")
+        else:
+            print(f"{cls:7} k={k}: {n} brackets, net {net:+.1f} R; 95% half-width per bracket: "
+                  f"{1.96 * se_b / n:.4f} (per bracket), {1.96 * se_c / n:.4f} (by decision), "
+                  f"{t * se_d / n:.4f} (by day, t {t:.3f} at {len(by_day) - 1} df)")
         se_p = sum(x * x for x in by_pair.values()) ** 0.5
         raw_se.append(f"{cls:7} k={k}: net {net:+.1f} R; sign-flip SE per bracket {se_b:.1f} R, by decision {se_c:.1f} "
                       f"({len(by_dec)}), by symbol {se_p:.1f} ({len(by_pair)}), by day {se_d:.1f} ({len(by_day)})")
+        nz_sym = sorted((v, s) for s, v in by_pair.items() if v != 0)
+        nets.append(f"{cls:11} k={k}: " + (", ".join(f"{s} {v:+.0f}" for v, s in nz_sym) or "none"))
         signs.append(f"{cls:11} k={k}: negative of nonzero, exact two-sided sign test: brackets {sign_p(d)}, "
                      f"decisions {sign_p(list(by_dec.values()))}, symbols {sign_p(list(by_pair.values()))}, "
                      f"days {sign_p(list(by_day.values()))}")
@@ -98,4 +107,8 @@ for line in raw_se:
 print()
 print("sign tests on every unit (round 11):")
 for line in signs:
+    print("  " + line)
+print()
+print("per-symbol nets (R) with a nonzero net, most negative first (round 12):")
+for line in nets:
     print("  " + line)

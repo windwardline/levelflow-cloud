@@ -8,8 +8,8 @@ futures k=0.5: 1292 brackets, net -50.0 R; 95% half-width per bracket: 0.0345 (p
 futures k=1.0: 1292 brackets, net -10.0 R; 95% half-width per bracket: 0.0293 (per bracket), 0.0139 (by decision), 0.0174 (by day, t 2.160 at 13 df)
 futures k=2.0: 1292 brackets, net -8.0 R; 95% half-width per bracket: 0.0278 (per bracket), 0.0061 (by decision), 0.0082 (by day, t 2.160 at 13 df)
 agriculture k=0.5: 10 brackets, net -2.0 R; 95% half-width per bracket: 0.3920 (per bracket), 0.3920 (by decision), 0.5553 (by day, t 2.776 at 4 df)
-agriculture k=1.0: 10 brackets, net +0.0 R; 95% half-width per bracket: 0.0000 (per bracket), 0.0000 (by decision), 0.0000 (by day, t 2.776 at 4 df)
-agriculture k=2.0: 10 brackets, net +0.0 R; 95% half-width per bracket: 0.0000 (per bracket), 0.0000 (by decision), 0.0000 (by day, t 2.776 at 4 df)
+agriculture k=1.0: 10 brackets, net +0.0 R; no differing brackets, so no interval
+agriculture k=2.0: 10 brackets, net +0.0 R; no differing brackets, so no interval
 pooled rows reproduce vintage_bound.out.txt's crypto, metals, futures and agriculture class lines
 
 raw sign-flip standard errors, clusters in brackets (the forex table's unit):
@@ -31,11 +31,25 @@ sign tests on every unit (round 11):
   crypto      k=1.0: negative of nonzero, exact two-sided sign test: brackets 44/89 (p 1.0000), decisions 4/9 (p 1.0000), symbols 3/7 (p 1.0000), days 3/7 (p 1.0000)
   crypto      k=2.0: negative of nonzero, exact two-sided sign test: brackets 40/80 (p 1.0000), decisions 5/10 (p 1.0000), symbols 4/7 (p 1.0000), days 2/4 (p 1.0000)
   metals      k=0.5: negative of nonzero, exact two-sided sign test: brackets 1/5 (p 0.3750), decisions 0/3 (p 0.2500), symbols 0/1 (p 1.0000), days 0/3 (p 0.2500)
-  metals      k=1.0: negative of nonzero, exact two-sided sign test: brackets 2/4 (p 1.0000), decisions 0/0 (p nan), symbols 0/0 (p nan), days 0/0 (p nan)
-  metals      k=2.0: negative of nonzero, exact two-sided sign test: brackets 1/2 (p 1.0000), decisions 0/0 (p nan), symbols 0/0 (p nan), days 0/0 (p nan)
+  metals      k=1.0: negative of nonzero, exact two-sided sign test: brackets 2/4 (p 1.0000), decisions 0/0 (n/a, no nonzero cluster), symbols 0/0 (n/a, no nonzero cluster), days 0/0 (n/a, no nonzero cluster)
+  metals      k=2.0: negative of nonzero, exact two-sided sign test: brackets 1/2 (p 1.0000), decisions 0/0 (n/a, no nonzero cluster), symbols 0/0 (n/a, no nonzero cluster), days 0/0 (n/a, no nonzero cluster)
   futures     k=0.5: negative of nonzero, exact two-sided sign test: brackets 77/129 (p 0.0342), decisions 35/45 (p 0.0002), symbols 8/12 (p 0.3877), days 10/11 (p 0.0117)
   futures     k=1.0: negative of nonzero, exact two-sided sign test: brackets 49/93 (p 0.6785), decisions 13/21 (p 0.3833), symbols 3/9 (p 0.5078), days 7/10 (p 0.3438)
   futures     k=2.0: negative of nonzero, exact two-sided sign test: brackets 44/84 (p 0.7436), decisions 4/4 (p 0.1250), symbols 2/2 (p 0.5000), days 3/3 (p 0.2500)
   agriculture k=0.5: negative of nonzero, exact two-sided sign test: brackets 1/1 (p 1.0000), decisions 1/1 (p 1.0000), symbols 1/1 (p 1.0000), days 1/1 (p 1.0000)
-  agriculture k=1.0: negative of nonzero, exact two-sided sign test: brackets 0/0 (p nan), decisions 0/0 (p nan), symbols 0/0 (p nan), days 0/0 (p nan)
-  agriculture k=2.0: negative of nonzero, exact two-sided sign test: brackets 0/0 (p nan), decisions 0/0 (p nan), symbols 0/0 (p nan), days 0/0 (p nan)
+  agriculture k=1.0: negative of nonzero, exact two-sided sign test: brackets 0/0 (n/a, no nonzero cluster), decisions 0/0 (n/a, no nonzero cluster), symbols 0/0 (n/a, no nonzero cluster), days 0/0 (n/a, no nonzero cluster)
+  agriculture k=2.0: negative of nonzero, exact two-sided sign test: brackets 0/0 (n/a, no nonzero cluster), decisions 0/0 (n/a, no nonzero cluster), symbols 0/0 (n/a, no nonzero cluster), days 0/0 (n/a, no nonzero cluster)
+
+per-symbol nets (R) with a nonzero net, most negative first (round 12):
+  crypto      k=0.5: BNBUSD -8, IMXUSD -4, ARUSD -2, GRTUSD -2, XRPUSD -2, ADAUSD +2, BTCUSD +2, DASHUSD +2, DOGEUSD +2, EGLDUSD +2, HBARUSD +2, OTRUMPUSD +2, UNIUSD +2, XTZUSD +2, BCHUSD +4, DOTUSD +4, LTCUSD +4, NEARUSD +4, XLMUSD +4, AAVEUSD +6
+  crypto      k=1.0: ARUSD -2, NEARUSD -2, UNIUSD -2, AVAXUSD +2, EGLDUSD +2, XRPUSD +2, XTZUSD +2
+  crypto      k=2.0: ARUSD -2, ATOMUSD -2, BCHUSD -2, DASHUSD -2, EGLDUSD +2, XRPUSD +2, XTZUSD +4
+  metals      k=0.5: XAGUSD +6
+  metals      k=1.0: none
+  metals      k=2.0: none
+  futures     k=0.5: HOUSD -24, RBUSD -8, BZUSD -6, HGUSD -6, NGUSD -6, ZNUSD -6, GCUSD -2, ZTUSD -2, ESUSD +2, SIUSD +2, ZFUSD +2, YMUSD +4
+  futures     k=1.0: HOUSD -12, RBUSD -6, NGUSD -4, ESUSD +2, HGUSD +2, NQUSD +2, PLUSD +2, YMUSD +2, ZFUSD +2
+  futures     k=2.0: HOUSD -4, RBUSD -4
+  agriculture k=0.5: ZLUSX -2
+  agriculture k=1.0: none
+  agriculture k=2.0: none
