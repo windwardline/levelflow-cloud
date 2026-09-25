@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Sampling error of the crypto and metals nets (review round 6 on #699).
 
-The same three standard errors forex.py.txt prints for forex, under the same sign-flip null, for the
-two classes the record bounds in its last bullet: per bracket, clustered by decision (a symbol's long
-and short brackets at one decision time) and clustered by UTC decision day, with the 95 % half-width
-per bracket each implies (1.96 per bracket and by decision, t at days - 1 by day). Uses
+The standard errors forex.py.txt prints for forex, under the same sign-flip null, for the two classes
+the record bounds in its last bullet: per bracket, clustered by decision (a symbol's long and short
+brackets at one decision time) and clustered by UTC decision day, with the 95 % half-width per bracket
+each implies (1.96 per bracket and by decision, t at days - 1 by day); and, appended (round 9), the raw
+SE under all four clusterings, the symbol included. Uses
 vintage_bound.py.txt's own loaders and brackets and asserts its pooled rows reproduce the recorded
 class lines. Its exclusions are parsed from the committed vintage_bound.out.txt rather than a live run,
 so it is pinned to that artifact; if the two drift, the RECORDED assert fails loudly rather than

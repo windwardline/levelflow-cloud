@@ -144,20 +144,29 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   | 1 | −112 R | 42.3 (−2.6) | 16.2 (−6.9) | 32.7 (−3.4) | 38.3 (−2.9) | 61/66 · 17/19 · 12/13 (< 0.0001, 0.0007, 0.003) |
   | 2 | −44 R | 42.8 (−1.0) | 12.6 (−3.5) | 14.4 (−3.1) | 17.4 (−2.5) | 31/40 · 14/16 · 9/9 (0.0007, 0.004, 0.004) |
 
+  The decision column is not a tighter estimate, only a deflated one: a decision's long and short
+  brackets flip in opposite directions, so their cluster sum cancels. That is why it is a third of the
+  per-bracket figure at k = 2 on a cluster of two, and why it is exactly zero on metals.
+
   Which error sizes it is JUDGED: whether a revision is a random event per bracket, or hits a decision's
-  long and short brackets together, which move in opposite directions, or a whole day, or a whole pair.
-  The record takes the day because it nests the decision: every decision that day reads the same revised
-  bars, so the day allows each dependence the decision does and the one across decisions too. It does not
-  nest the pair, the unit a revision or a capture acts on; on forex the day is the wider of the two at
-  every k. That ordering is measured on forex only. On crypto the day's SE is below the symbol's at
-  k = 0.5 and 2 and equal at k = 1 (13.4, 5.3 and 4.0 R against 15.6, 5.3 and 6.3;
-  [classes](/docs/research/vintage-bound-2026-09-24/classes.out.txt)), and its half-width is narrower
-  even than the decision's at k = 1 and 2 (0.0020 against 0.0021, 0.0015 against 0.0023) though it
-  carries the larger multiplier (t = 2.101 at 18 degrees of freedom against 1.96). No estimator here
-  allows day and pair dependence at once. The direction survives that because it rests on the sign
-  tests; the size's interval is only as good as the clustering. The decision column is not a tighter estimate, only a deflated one. A decision's long and short
-  brackets flip in opposite directions, so their cluster sum cancels; that is why it is a third of the
-  per-bracket figure at k = 2 on a cluster of two, and why it is exactly zero on metals. At k = 2, the width nearest the shipped forex `stopAtrMultiplier` of
+  long and short brackets together, or a whole day, or a whole pair. The record takes the day because it
+  nests the decision: every decision that day reads the same revised bars, so the day allows each
+  dependence the decision does and the one across decisions too. It does not nest the pair (the symbol,
+  in the other classes), the unit a revision or a capture acts on. On forex the day is the wider of the
+  two at every k. That ordering is measured on forex only
+  ([classes](/docs/research/vintage-bound-2026-09-24/classes.out.txt)). On crypto the day's SE is below
+  the symbol's at k = 0.5 and 2 and equal at k = 1 (13.4, 5.3 and 4.0 R against 15.6, 5.3 and 6.3), and
+  its half-width is narrower even than the decision's at k = 1 and 2 (0.0020 against 0.0021, 0.0015
+  against 0.0023) though it carries the larger multiplier (t = 2.101 at 18 degrees of freedom against
+  1.96). On metals at k = 0.5 the symbol is the widest unit and the day the narrowest (6.0 R against
+  3.5, and 4.5 per bracket), because one of its two symbols carries all +6 R; two clusters are a
+  degenerate count. No unit here covers day and pair dependence at once, and that limit falls on the
+  direction as much as on the size: a sign test over days is the day-clustered null, and one over pairs
+  the pair-clustered null. The sign tests are free of a model of the magnitudes, not of the dependence.
+  What the direction rests on is that it rejects under every clustering tried, decisions, pairs and days
+  each at p below 0.005 at k = 2 (0.0007, 0.0042 and 0.0039), so it does not turn on which one a reader picks.
+
+  At k = 2, the width nearest the shipped forex `stopAtrMultiplier` of
   1.2 (2 five-minute mean ranges are 1.10 to 1.13 fifteen-minute ones on EURUSD, GBPUSD and USDJPY,
   1.44 on AUDCAD), the mean is −0.010 R per bracket, 95 % about −0.019 to −0.001 R clustered by day
   (t = 2.160 at 13 degrees of freedom; counting only the 9 days with a nonzero net, t = 2.306 at 8, the
@@ -169,15 +178,16 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   over its 156 brackets at k = 2; it is spread across the crosses (14 pairs negative, 12 zero, 2
   positive, the largest AUDCHF, CHFJPY and EURCHF at −6 R each). GBPUSD and EURUSD carry the
   two-constructions caveat above.
-- **Crypto is not measurably moved at any width, and metals not at k = 1 and 2**
+- **Neither crypto nor metals is measurably moved at any width**
   ([classes](/docs/research/vintage-bound-2026-09-24/classes.out.txt)). Crypto's net (33 series in the
   manifest, 31 evaluated after the DYDXUSD and FILUSD skips, 28 with brackets, 5,490 brackets) is
   +0.0047 R per bracket at k = 0.5, inside ±0.0071 with brackets independent and ±0.0051 clustered by
   day; at k = 1 and 2 it sits within ±0.0067 and ±0.0061 R per bracket at 95 % with brackets
-  independent, and within ±0.0020 and ±0.0015 clustered by day. Metals' two symbols bound it only to ±0.036 and ±0.025
-  R per bracket (220 brackets); their few flips cancel inside their decisions, so the clustered errors
-  there are exactly zero and bound nothing. Metals' +0.027 R at k = 0.5 is five differing brackets
-  netting +6 R. There the comparison may be of two constructions rather than two vintages.
+  independent, and within ±0.0020 and ±0.0015 clustered by day. At k = 1 and 2 metals' two symbols
+  bound it only to ±0.036 and ±0.025 R per bracket (220 brackets); their few flips cancel inside their
+  decisions, so the clustered errors there are exactly zero and bound nothing. Metals' +0.027 R at
+  k = 0.5 is five differing brackets netting +6 R, inside ±0.040 with brackets independent, ±0.031 by
+  decision and ±0.034 by day. There the comparison may be of two constructions rather than two vintages.
 - **The later history is not a fixed vintage either.** The cache records no fetch time for its August
   bars, and the top-ups may have replaced 2026-08-23..25 with a later copy.
 
