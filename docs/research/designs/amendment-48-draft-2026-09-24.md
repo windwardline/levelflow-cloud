@@ -71,11 +71,12 @@ Whether the standing approval may make any of them is Q1.
   landing). The freeze line declares C_s and must land before it; a later landing refuses, and the
   timed registration lapses on the pool (rule 8). So the window's start is fixed by a
   landing the operator made before any post-registration choice, not by when the freeze is filed.
-- **History start H_s.** The first bar of market s's 5-minute series in the calibration cache's store,
-  read at the freeze's anchor from local disk before any sweep runs, at zero provider bytes (amendment
-  33: per market, to each market's true data limit; the 5-minute series is the one the screen measures
-  on, and it is shallower than the 15-minute one for most symbols). The freeze line records it and test
-  (d) recomputes it from the store at that anchor.
+- **History start H_s.** The first bar of market s's pinned 5-minute series as the pre-frontier sweep
+  loads it, at full depth (`--days max`) and the freeze's anchor, before it cuts any fold (amendment 33:
+  per market, to each market's true data limit; the 5-minute series is the one the screen measures on,
+  and it is shallower than the 15-minute one for most symbols). The sweep's manifest records it as that
+  series' first time, the freeze line carries the manifest's hash, and test (d) recomputes the folds from
+  that record.
 - **Registration.** One hypothesis, a canonical spec that has landed on `main` (rule 3).
   Registrations take ordinals in landing order, strictly increasing by one. The registry's other lines
   (screen, plan, manifest, digest, freeze, freeze-landed, confirm) take none; a burn is derived from
@@ -348,8 +349,8 @@ Tests:
   from the recorded cost inputs under the registration commit's cost code; each B recomputes from the
   label under the header's cluster rule. Every registration's W and window exit fit the embargo.
 - (d) The timed registration (from lines landed before the freeze), the pool, the named markets, each
-  H_s, density and L_m, and the declared C_s recompute from the registry, the class map, the
-  pre-frontier manifest and the gradings. The freeze landed before C_s. Each confirm multiplier equals
+  H_s (the pre-frontier manifest's 5-minute first time), density and L_m, and the declared C_s
+  recompute from the registry, the class map, the pre-frontier manifest and the gradings. The freeze landed before C_s. Each confirm multiplier equals
   the t quantile at 1 − draw/2 at the one df rule, and verdicts recompute from the recorded cluster
   series on both arms at scale 1, and on gross for (b) where the profile is JUDGED. Every opened
   registration landed before its freeze, and C_s < readAt. For every named symbol, select ends at F_s,
