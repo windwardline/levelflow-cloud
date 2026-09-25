@@ -306,8 +306,8 @@ describe("the parking screen answers its own Donate", () => {
 // test in public-auth.spec.ts that asserts the parking face. HANDOFF's unpark step named
 // two, then three, by hand; this reads the file, so a fourth fails at the flip rather
 // than in the acceptance deploy. The face is any of its signals: the eyebrow, §17j's canonical
-// line, or the sign-in field's absence, matched after quotes are normalized and whitespace is
-// collapsed as the §17j block above does. Whole-line // comments are dropped first, so prose about
+// line, or the sign-in field's absence, matched after quotes are normalized, whitespace is
+// collapsed as the §17j block above does, and whitespace beside "." and ")" is dropped. Whole-line // comments are dropped first, so prose about
 // the face is not a test of it; a trailing or block comment is not dropped, and one naming the face
 // lands in the population and fails the pin below, where the remedy is the comment, not the list.
 describe("an unpark leaves no E2E test asserting the parking face", () => {
@@ -323,13 +323,17 @@ describe("an unpark leaves no E2E test asserting the parking face", () => {
     "the gate is up — signed-out visitors land on parking, not sign-in",
   ];
   const gateIsOpen = () => /export const PARKING_GATE = false;/.test(readFileSync("src/lib/parkingGate.ts", "utf8"));
+  // Quotes to one kind, whitespace collapsed, and none left beside a "." or ")", so a chain
+  // wrapped onto its own line (`.toHaveCount(0)` under its locator) still reads as one.
+  const normalize = (text: string) =>
+    text.replace(/['`]/g, '"').replace(/\s+/g, " ").replace(/\s*([.)])\s*/g, "$1");
   const parkedFaceTests = () =>
     readFileSync("tests/e2e/public-auth.spec.ts", "utf8")
       .split(/^(?=[ \t]*test\()/m)
       .filter((block) => /^[ \t]*test\(/.test(block))
       .filter((block) => {
-        const code = block.replace(/^[ \t]*\/\/.*$/gm, "").replace(/['`]/g, '"').replace(/\s+/g, " ");
-        return FACE_SIGNALS.some((signal) => code.includes(signal));
+        const code = normalize(block.replace(/^[ \t]*\/\/.*$/gm, ""));
+        return FACE_SIGNALS.some((signal) => code.includes(normalize(signal)));
       })
       .map((block) => /test\(\s*["'`](.+?)["'`]/.exec(block)?.[1] ?? "<unnamed test>");
 

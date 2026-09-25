@@ -180,7 +180,8 @@ staging before the upload, because a key cannot be written twice.
 The three cache sources went to the Trash on 2026-09-22, each after its object was
 proven (the v4 source was an APFS clone of the live cache); emptying it is the
 owner's call. The snapshot stays where it is: `backup-minute-bank.sh` counts it in
-parity and spares it by name.
+parity and spares it by name. The rebuild logs' source, pushed 2026-09-25, is a copy of logs kept at
+their cited paths, and passed the script's own refusal of anything but regular files and directories.
 
 | Archive | Source on this machine | Why it is kept |
 | --- | --- | --- |
@@ -190,7 +191,7 @@ parity and spares it by name.
 | `levelflow-minute-bank-snapshot-20260823` | `~/.local/share/levelflow-cloud/minute-bank-snapshots/levelflow-minute-bank-snapshot-20260823` (190,643,620 bytes, 200 files) | The naive-era minute bank. Its daily copy in `windwardline-backups` expires around 2027-09-02 |
 | `levelflow-rebuild-logs-20260824` | `~/.local/share/levelflow-cloud/archives/levelflow-rebuild-logs-20260824` (79,567 bytes, 4 files: copies of the four R0 rebuild logs, scanned for key material before the push, none found) | The August cache rebuild's own account of what it fetched and refused. The originals stay at the paths `docs/HANDOFF.md` and `docs/cache-rebuild-r0.md` cite; the pushed copy is the one that survives this machine |
 
-Measured 2026-09-22: no hard links, symlinks or special files in any of the four (the
+Measured 2026-09-22: no hard links, symlinks or special files in any of the four sources pushed that day (the
 v4 clone was measured on the live cache it was cloned from, and compared to it with
 `diff -rq`). The
 script refuses a source holding anything but regular files and directories: `diff -rq`

@@ -32,13 +32,22 @@ A=$HERE/attribute.py.txt
 sed 's/"ladderRewardRisk", "grossRealizedR"/"ladderRewardRisk"/' "$A" > "$TMP/no-gross.py"
 sed 's/abs(abs(d) - slip) <= 2e-8/abs(abs(d) - 2 * slip) <= 2e-8/' "$A" > "$TMP/double-slip.py"
 for m in no-gross double-slip; do cmp -s "$A" "$TMP/$m.py" && { echo "mutation $m did not change the instrument"; exit 2; }; done
+# Each run must print both lines, and its verdict must be the one the proof needs: the instrument as
+# committed finds nothing, and each mutation finds cross violations. Anything else refuses.
 run() {
-  local label=$1 file=$2 out
+  local label=$1 file=$2 want=$3 out rows verdict cross
   out=$(python3 "$file" "$TMP/old.jsonl" "$TMP/new.jsonl")
-  echo "$out" | grep -q '^VIOLATIONS' || { echo "$label: no verdict"; exit 2; }
-  echo "$label: $(echo "$out" | grep -E '^rows compared' | cut -c1-80)"
-  echo "$label: $(echo "$out" | grep -E '^VIOLATIONS')"
+  rows=$(echo "$out" | grep -E '^rows compared' || true)
+  verdict=$(echo "$out" | grep -E '^VIOLATIONS' || true)
+  [ -n "$rows" ] && [ -n "$verdict" ] || { echo "$label: no verdict"; exit 2; }
+  cross=$(echo "$verdict" | sed -E 's/.*cross ([0-9]+).*/\1/')
+  echo "$label: $(echo "$rows" | cut -c1-80)"
+  echo "$label: $verdict"
+  case $want in
+    clean) [[ "$verdict" == "VIOLATIONS: non-cross 0, cross 0" ]] || { echo "$label: expected no violations"; exit 1; } ;;
+    fires) [ "$cross" -gt 0 ] || { echo "$label: the check did not fire"; exit 1; } ;;
+  esac
 }
-run "instrument as committed" "$A"
-run "grossRealizedR disallowed on a cross" "$TMP/no-gross.py"
-run "twice the slippage required" "$TMP/double-slip.py"
+run "instrument as committed" "$A" clean
+run "grossRealizedR disallowed on a cross" "$TMP/no-gross.py" fires
+run "twice the slippage required" "$TMP/double-slip.py" fires
