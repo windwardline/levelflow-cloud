@@ -8,14 +8,19 @@ direction being any different. Measured, forex contained, in and out of the
 16-21 UTC span: outcome mix, stop rate, tp1 rate, and the excursion shape.
 Plus per year and per market, so concentration is visible.
 
-Usage: hour-mechanism-argv.py CORPUS.jsonl MANIFEST.json
+Usage: python3 docs/research/r3/re-simulate-2026-09-24/hour-mechanism.py.txt CORPUS.jsonl MANIFEST.json
+Also reads, from the checkout this file sits in, docs/research/r3/feed-character.txt (the escaping
+years) and docs/research/r4/holdout-2026-08-26.json (the pinned holdout).
 
-CONTROL: forex select contained 55,419 fills -1,321.1 R. Confirm skipped. READ-ONLY.
+The session copy of 2026-09-24: the original hardcoded R3's corpus of record, on which its CONTROL
+line read forex select contained 55,419 fills -1,321.1 R. Confirm rows are withheld on their split
+before any other field is read, and counted; a row with no split refuses the run. READ-ONLY.
 """
-import json, re, math, collections, datetime, sys
+import json, re, math, collections, datetime, sys, os
 
-R = "/Users/peacock/Projects/levelflow-cloud/docs/research/r3"
-held = set(json.load(open("/Users/peacock/Projects/levelflow-cloud/docs/research/r4/holdout-2026-08-26.json"))["markets"])
+ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", ".."))
+R = os.path.join(ROOT, "docs", "research", "r3")
+held = set(json.load(open(os.path.join(ROOT, "docs", "research", "r4", "holdout-2026-08-26.json")))["markets"])
 man = json.load(open(sys.argv[2]))  # session copy 2026-09-24: corpus and manifest as arguments
 cls = {s["symbol"]: s.get("assetType") for s in man["symbols"]}
 esc = collections.defaultdict(set)
@@ -30,9 +35,17 @@ agg = collections.defaultdict(lambda: [0, 0.0, 0.0, 0.0, 0.0])  # n,sum,sumsq,mf
 per_year = collections.defaultdict(lambda: [0, 0.0])
 per_market = collections.defaultdict(lambda: [0, 0.0])
 control = [0, 0.0]
+SPLIT = re.compile(rb'"split"\s*:\s*"([a-z]+)"')
+withheld = 0
 with open(sys.argv[1], "rb") as f:
     for line in f:
-        if b'"split":"confirm"' in line or b'"variant":"baseline"' not in line or b'"accepted":true' not in line:
+        split = SPLIT.search(line)
+        if split is None:
+            sys.exit("a row carries no split: refusing rather than guessing its fold")
+        if split.group(1) == b"confirm":
+            withheld += 1
+            continue
+        if b'"variant":"baseline"' not in line or b'"accepted":true' not in line:
             continue
         row = json.loads(line)
         sym = row["symbol"]
@@ -58,6 +71,7 @@ with open(sys.argv[1], "rb") as f:
             if fold == "select":
                 per_market[(sym, span)][0] += 1; per_market[(sym, span)][1] += r
 
+print(f"confirm withheld at the door: {withheld} rows")
 print(f"CONTROL forex select contained in-pool: {control[0]} fills {control[1]:+.1f} R")
 print("\n| fold | pool | span | n | net R | E | lo95 | stop rate | tp1 rate | tp rate | mean fav | mean adv |")
 for fold in ("fit", "select"):

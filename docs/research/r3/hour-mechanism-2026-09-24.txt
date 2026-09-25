@@ -1,3 +1,4 @@
+confirm withheld at the door: 2141527 rows
 CONTROL forex select contained in-pool: 49515 fills -1336.0 R
 
 | fold | pool | span | n | net R | E | lo95 | stop rate | tp1 rate | tp rate | mean fav | mean adv |

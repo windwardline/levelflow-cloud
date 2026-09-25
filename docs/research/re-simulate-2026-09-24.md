@@ -3,9 +3,10 @@
 HANDOFF sequence item 4: one re-simulate at the current engine, zero bytes from the anchor-pinned
 2026-08-26 slice, capture-all plus an `--ignore-low-edge` arm. Then re-grade on fit and select only:
 the eight arming-bound cells, `grid-totalr` per market, `banked-fraction`, and the low-edge windows at
-market grain on net R. Every grader here seals confirm at the door; so do the two session instruments
-(`attribute.py.txt` and `lowedge.py.txt`), which skip a confirm row on its split before reading any
-other field. No figure below reads the confirm fold.
+market grain on net R. Every grader here seals confirm at the door, and so do the three session
+instruments (`attribute.py.txt`, `lowedge.py.txt` and the control's producer, `hour-mechanism.py.txt`).
+Each skips a confirm row on its split before reading any other field and prints how many it withheld:
+2,141,527 on the capture-all arm, the graders' own count. No figure below reads the confirm fold.
 
 ## 1. The run
 
@@ -33,17 +34,27 @@ attribution ([record](/docs/research/r3/re-simulate-attribution-2026-09-24.txt))
 lockstep:
 
 - 4,493,205 fit and select rows compared; 2,141,527 confirm rows withheld; no row in only one file.
-- 644,008 identical. 2,343,829 differ on the 21 crosses (#641's commission and what follows from it).
-- 1,505,368 differ elsewhere. Each moved only exit legs, and each moved leg moved by exactly the
-  modelled slippage against the position, at a stop kind or the review-end close (#689, #692).
-  `grossRealizedR` moved on none of them, as predicted.
+  644,008 are identical.
+- Every differing row is checked on two counts. Its differing fields must lie inside a named set:
+  exit slippage's on every row, and on a cross also #641's commission and what follows from it (cost,
+  the cost-derived scores, the reward ratios, acceptance). Where its legs moved, only exit legs may
+  move, each by the modelled slippage (to the corpus's 8-decimal rounding) against the position, at a stop kind or the review-end
+  close (#689, #692).
+- 1,505,368 rows differ off the crosses. Every one moved its exit legs by the slippage, and
+  none moved `grossRealizedR`, as predicted.
+- 2,343,829 differ on the 21 crosses. 1,803,198 of them moved legs, every leg by the slippage;
+  no cross moved a field outside its set. The commission's own value is not recomputed: on a cross the
+  check is which fields moved, not by how much.
 - 22,151 rows left acceptance and 19,057 entered it, all on crosses.
-- **Violations: 0.**
+- **Violations: 0 off the crosses and 0 on them.** Two mutations of the instrument, run on the first
+  100,000 rows from the first cross, proved each check fires: disallowing `grossRealizedR` on a cross
+  flagged 68,887 rows, and requiring twice the slippage flagged 59,060.
 
 **The repricer is the engine.** `banked-fraction --exit-slippage` has priced every figure since
 2026-09-23 without a re-simulate. On every market whose only change is exit slippage (every non-forex
-market and the seven USD majors), its repriced R at ½ on the 2026-09-14 corpus equals this corpus's
-emitted R at ½: 43 markets on fit and 58 on select, with a largest difference of 0.00 R at the printed
+market and the seven USD majors), its repriced R at ½ on the 2026-09-14 corpus
+([table](/docs/research/r3/banked-fraction-capture-all-classfolds-2026-09-14-market-exit-slippage.txt))
+equals this corpus's emitted R at ½: 43 markets on fit and 58 on select, with a largest difference of 0.00 R at the printed
 precision and identical filled counts
 ([check](/docs/research/r3/repricer-vs-engine-2026-09-24.txt),
 [instrument](/docs/research/r3/re-simulate-2026-09-24/repricer-vs-engine.py.txt)). Every figure
@@ -113,7 +124,7 @@ energies at six scattered hours. Of 51 markets with accepted baseline fills insi
 ## 4. What it means
 
 - Every market-order exit now carries its slippage in the engine, the crosses carry their USD-leg
-  commission, and the corpus that carries both reproduces the repricer exactly where it should. This
+  commission, and the corpus that carries both reproduces the repricer, at the printed precision, where it should. This
   corpus supersedes 2026-09-14 as the current-engine corpus for fit and select reads.
 - Nothing is accepted on net at market grain, the hour gate is 0 of 91, and the shipped ladder loses
   on both tuning folds pooled. Forex's one positive fold lives in years whose feed is suspect. The
@@ -128,5 +139,7 @@ The instruments are committed beside the record, since the scratchpad is reaped:
 repricer check above, and the three launch scripts
 ([`launch.sh.txt`](/docs/research/r3/re-simulate-2026-09-24/launch.sh.txt),
 [`analyze.sh.txt`](/docs/research/r3/re-simulate-2026-09-24/analyze.sh.txt),
-[`graders.sh.txt`](/docs/research/r3/re-simulate-2026-09-24/graders.sh.txt)). The JSON artifacts
+[`graders.sh.txt`](/docs/research/r3/re-simulate-2026-09-24/graders.sh.txt)), and the review re-run
+that produced the attribution and control as committed
+([`rerun.sh.txt`](/docs/research/r3/re-simulate-2026-09-24/rerun.sh.txt)). The JSON artifacts
 beside each `grid-totalr` read are the reader's own `--out`.
