@@ -333,7 +333,9 @@ at the Edge, and it implies `PARKING_GATE`.
   and `tests/e2eParkedScope.test.ts`. `deploy.yml` deploys the functions and runs the
   full E2E against the open Edge.
 - **Push 2**, only after that run is green: flip `PARKING_GATE` to `false`, invert the
-  two gate tests in `tests/e2e/public-auth.spec.ts`, return the four sign-in tests from
+  two gate tests in `tests/e2e/public-auth.spec.ts` and delete the third, the parked
+  `/?donate` twin (#705; the login screen's `/?donate` test covers the ask once the root is
+  the sign-in screen), return the four sign-in tests from
   `/?enter` to `/`, and update the pin in `tests/parkingGate.test.ts`. Spec §17p records
   it.
 

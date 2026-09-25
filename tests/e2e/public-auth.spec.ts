@@ -488,21 +488,33 @@ test("/?donate opens the login screen's donation block and brings it into view",
 // The parked twin (2026-09-24): while the desk is parked, /?donate without ?enter
 // lands on the parking screen, which now answers the ask itself. Before, its
 // footer linked to the app root, which was the parking page again.
+//
+// A GATE TEST, the third beside the two below: it holds only while PARKING_GATE is
+// true. At unpark, delete it; the login screen's /?donate test above covers the
+// ask once the root is the sign-in screen (HANDOFF's unpark procedure names it).
 test("/?donate on the parked screen opens its donation block and brings it into view", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 375, height: 812 });
+  // 375x460: short enough that the block sits below the frame's scroll region
+  // when nothing scrolls it (measured 2026-09-24: at 812 the whole composition
+  // fits, so an in-view check there passes with the scroll effect deleted).
+  await page.setViewportSize({ width: 375, height: 460 });
   await page.goto("/?donate", { waitUntil: "networkidle" });
-  await expect(page.getByText("Under construction")).toBeVisible();
+  await expect(page.getByText("Under construction", { exact: true })).toBeVisible();
 
   const donate = page.getByRole("button", { name: "Donate", exact: true });
   await expect(donate).toHaveAttribute("aria-expanded", "true");
   const options = page.getByText(DONATION_SUPPORT_COPY);
   await expect(options).toBeVisible();
-  const inView = await options.evaluate((element) => {
+  // Inside the frame's scroll region, not merely inside the window: the region
+  // clips its content above the footer, and a clipped block still reports window
+  // coordinates on screen.
+  const region = page.getByRole("region", { name: "Under construction" });
+  const inView = await options.evaluate((element, frame) => {
     const box = element.getBoundingClientRect();
-    return box.top >= 0 && box.bottom <= window.innerHeight;
-  });
+    const clip = (frame as Element).getBoundingClientRect();
+    return box.top >= clip.top && box.bottom <= clip.bottom;
+  }, await region.elementHandle());
   expect(inView, "the donation block opened out of view").toBe(true);
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
