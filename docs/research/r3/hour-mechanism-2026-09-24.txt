@@ -1,0 +1,18 @@
+CONTROL forex select contained in-pool: 49515 fills -1336.0 R
+
+| fold | pool | span | n | net R | E | lo95 | stop rate | tp1 rate | tp rate | mean fav | mean adv |
+| fit | in-pool | in | 37809 |  +1305.2 | +0.0345 | +0.0287 | 0.176 | 0.628 | 0.017 | +0.4741 | +0.4806 |
+| fit | in-pool | out | 130431 |  -1540.3 | -0.0118 | -0.0154 | 0.264 | 0.652 | 0.031 | +0.5220 | +0.5587 |
+| fit | held-out | in | 10192 |   +260.9 | +0.0256 | +0.0141 | 0.189 | 0.627 | 0.020 | +0.4899 | +0.4995 |
+| fit | held-out | out | 34860 |    -73.2 | -0.0021 | -0.0089 | 0.254 | 0.661 | 0.030 | +0.5226 | +0.5468 |
+| select | in-pool | in | 11319 |   +339.2 | +0.0300 | +0.0195 | 0.173 | 0.624 | 0.020 | +0.4802 | +0.4829 |
+| select | in-pool | out | 38196 |  -1675.3 | -0.0439 | -0.0504 | 0.275 | 0.637 | 0.030 | +0.5070 | +0.5657 |
+| select | held-out | in | 3180 |    +13.9 | +0.0044 | -0.0159 | 0.189 | 0.615 | 0.018 | +0.4722 | +0.5047 |
+| select | held-out | out | 10173 |   -341.5 | -0.0336 | -0.0462 | 0.267 | 0.642 | 0.032 | +0.5116 | +0.5563 |
+
+PER YEAR, in-pool (net R in-span / out-of-span):
+  fit: in-span positive in 9 of 10 years — 2009:+53/+41, 2010:+227/+395, 2011:+248/+184, 2012:+229/-275, 2013:+201/-461, 2014:+45/-420, 2015:+111/-433, 2016:+88/-31, 2017:+109/-489, 2018:-3/-50
+  select: in-span positive in 4 of 4 years — 2018:+125/-573, 2019:+116/-625, 2020:+93/-460, 2022:+6/-17
+
+PER MARKET, select in-pool:
+  in-span net R positive on 20 of 22 markets; in-span expectancy beats out-of-span on 22 of 22

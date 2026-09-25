@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+"""The low-edge windows re-graded at market grain on net realized R (HANDOFF item 4).
+
+The --ignore-low-edge arm differs from the capture-all arm only where sessions.ts blocks a low-edge
+hour: sweep.ts rewrites that session to { block: false, penalty: 0 } and nothing else. So the rows in
+the ignore arm that the capture-all arm lacks ARE the low-edge population, derived rather than
+listed. Every row the two share must be identical; this script asserts it.
+
+Per market and fold (fit, select; confirm withheld at the door), over the shipped cell (variant
+baseline) and accepted rows inside the windows: fills, net realized R, arming-bound R, and a 95 %
+interval of the mean net R per UTC decision day (CR1, t at days - 1). A window whose rows lose money
+supports the refusal; one whose rows make money is a refusal amendment 39 cannot keep on its word.
+
+Usage: lowedge.py CAPTURE_ALL IGNORE_LOW_EDGE MANIFEST   (read-only; stdout only)
+"""
+import json, sys, math, collections
+
+A, B, MANIFEST = sys.argv[1], sys.argv[2], sys.argv[3]
+cls = {e["symbol"]: e["assetType"] for e in json.load(open(MANIFEST, "r"))["symbols"]}
+DAY = 86_400_000
+
+def tcdf(x, df):
+    f = lambda u: math.exp(math.lgamma((df + 1) / 2) - math.lgamma(df / 2)) / math.sqrt(df * math.pi) * (1 + u * u / df) ** (-(df + 1) / 2)
+    n = 2000; h = x / n; s = f(0) + f(x)
+    for i in range(1, n): s += (4 if i % 2 else 2) * f(i * h)
+    return 0.5 + s * h / 3
+
+def tinv(p, df):
+    lo, hi = 0.0, 50.0
+    for _ in range(60):
+        mid = (lo + hi) / 2
+        if tcdf(mid, df) < p: lo = mid
+        else: hi = mid
+    return (lo + hi) / 2
+
+def key(r):
+    return (r["symbol"], r["time"], r["variant"], r.get("holdout"))
+
+counts = collections.Counter()
+shared_diff = []
+extra_census = collections.Counter()   # (class, utc hour)
+cells = collections.defaultdict(lambda: {"rows": 0, "fills": 0, "net": 0.0, "bound": 0.0, "days": collections.defaultdict(float), "holdout": None})
+
+def take_extra(r):
+    if r.get("split") == "confirm":
+        counts["extra_confirm_withheld"] += 1
+        return
+    c = cls.get(r["symbol"], "?")
+    extra_census[(c, (r["time"] // 3_600_000) % 24)] += 1
+    counts["extra"] += 1
+    if r.get("variant") != "baseline" or r.get("accepted") is not True:
+        return
+    cell = cells[(r["symbol"], r["split"])]
+    cell["rows"] += 1
+    cell["holdout"] = r.get("holdout")
+    if r.get("filledAtMs") is None:
+        return
+    cell["fills"] += 1
+    net = r.get("realizedR") or 0.0
+    cell["net"] += net
+    cell["bound"] += r.get("armingBoundRealizedR") or 0.0
+    cell["days"][r["time"] // DAY] += net
+
+def rows(p):
+    with open(p, "r") as f:
+        for line in f:
+            yield json.loads(line)
+
+ai, bi = rows(A), rows(B)
+a = next(ai, None); b = next(bi, None)
+# The ignore arm only ADDS rows, in the same order: walk both, and every ignore-arm row that does not
+# match the capture-all arm's next row is an extra. If the invariant fails, capture-all rows are left
+# over at the end and the run says so.
+leftover_a = 0
+while b is not None:
+    if a is not None and key(a) == key(b):
+        if a.get("split") != "confirm":
+            if a != b:
+                counts["shared_differ"] += 1
+                if len(shared_diff) < 10: shared_diff.append(key(a))
+            else:
+                counts["shared_identical"] += 1
+        else:
+            counts["shared_confirm_withheld"] += 1
+        a = next(ai, None)
+    else:
+        take_extra(b)
+    b = next(bi, None)
+while a is not None:
+    leftover_a += 1; a = next(ai, None)
+counts["only_in_capture_all"] = leftover_a
+
+print("LOW-EDGE RE-GRADE — capture-all against --ignore-low-edge, 2026-09-24 re-simulate")
+print(f"counts: {dict(counts)}")
+if shared_diff: print(f"SHARED ROWS THAT DIFFER (a defect): {shared_diff}")
+print("extra rows by class and UTC hour (the derived window population, fit and select):")
+by_class = collections.defaultdict(dict)
+for (c, h), n in sorted(extra_census.items()): by_class[c][h] = n
+for c, hours in by_class.items(): print(f"  {c:12} {dict(sorted(hours.items()))}")
+print()
+print("per market (baseline, accepted, inside the window): fold, fills, net R, net R per fill, 95% CI of mean daily net R, arming-bound R")
+for (sym, fold), cell in sorted(cells.items(), key=lambda kv: (cls.get(kv[0][0], ''), kv[0][0], kv[0][1])):
+    days = list(cell["days"].values()); g = len(days)
+    if g >= 2:
+        m = sum(days) / g
+        sd = math.sqrt(sum((x - m) ** 2 for x in days) / (g - 1))
+        half = tinv(0.975, g - 1) * sd / math.sqrt(g)
+        ci = f"[{m - half:+.4f}, {m + half:+.4f}] over {g} days"
+        verdict = "LOSES" if m + half < 0 else ("EARNS" if m - half > 0 else "unresolved")
+    else:
+        ci, verdict = "n/a", "no verdict"
+    per = cell["net"] / cell["fills"] if cell["fills"] else float("nan")
+    print(f"  {cls.get(sym,'?'):10} {sym:9} {fold:6} holdout={str(cell['holdout'])[0]} fills {cell['fills']:6}  net {cell['net']:+9.1f} R  {per:+.4f}/fill  {ci}  bound {cell['bound']:+9.1f} R  {verdict}")

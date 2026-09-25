@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+"""The repricer against the engine (2026-09-24 re-simulate).
+
+Old: banked-fraction.ts --grain market --exit-slippage on capture-all-classfolds-2026-09-14, column
+'R, market exits slipped'. New: banked-fraction.ts --grain market on capture-all-classfolds-2026-09-24,
+column 'R(½)'. Compared only where exit slippage is the one engine change between them: every non-forex
+market and the seven USD majors (the 21 crosses also carry #641's commission). Both readers seal
+confirm at the door. Reads the two printed tables; stdout only.
+Usage: repricer-vs-engine.py OLD_TABLE NEW_TABLE
+"""
+import sys
+def tables(path):
+    L = open(path, "r").read().splitlines(); fold = None; out = {}; i = 0
+    while i < len(L):
+        l = L[i]
+        if l.startswith("=== "): fold = l.strip("= ").lower()
+        if l.startswith("--- ") or l.startswith("=== "): title = l.strip("-= ")
+        if l.startswith("| class | market"):
+            hdr = [c.strip() for c in l.strip("|").split("|")]; rows = []; j = i + 2
+            while j < len(L) and L[j].startswith("|"):
+                rows.append([c.strip() for c in L[j].strip("|").split("|")]); j += 1
+            out[(fold, title)] = (hdr, rows); i = j; continue
+        i += 1
+    return out
+old = tables(sys.argv[1]); new = tables(sys.argv[2])
+MAJ = {"EURUSD", "GBPUSD", "AUDUSD", "NZDUSD", "USDJPY", "USDCHF", "USDCAD"}
+for fold in ("fit", "select"):
+    ok = [k for k in old if k[0] == fold and "exit slippage per market" in k[1]][0]
+    nk = [k for k in new if k[0] == fold and k[1].startswith(fold + " · per market")][0]
+    oh, orows = old[ok]; nh, nrows = new[nk]
+    oi = oh.index("R, market exits slipped"); ni = nh.index("R(½)"); ofi = oh.index("filled"); nfi = nh.index("filled")
+    o = {r[1]: r for r in orows}; n = {r[1]: r for r in nrows}
+    comp = [m for m in n if m in o and not (n[m][0] == "forex" and m not in MAJ)]
+    assert comp, f"{fold}: nothing compared"
+    d = [abs(float(n[m][ni]) - float(o[m][oi])) for m in comp]
+    fills = sum(1 for m in comp if n[m][nfi] != o[m][ofi])
+    print(f"{fold}: {len(comp)} markets compared; max |ΔR| {max(d):.2f} (printed to 0.1 R); "
+          f"markets whose filled count differs: {fills}; markets only in one table: {sorted(set(o) ^ set(n))}")

@@ -1,0 +1,7 @@
+#!/bin/bash
+# Read-only streams over the 2026-09-24 re-simulate; outputs to the scratchpad only.
+set -u
+cd /private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/346375fb-00a3-4e95-b614-3b91115b7550/scratchpad/resim-2026-09-24
+( /usr/bin/time -l python3 attribute.py /Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-14.jsonl /Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-24.jsonl > attribution.txt 2> attribution.err; echo "attribute exit $?" >> analyze.status ) &
+( /usr/bin/time -l python3 lowedge.py /Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-24.jsonl /Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-ignore-low-edge-classfolds-2026-09-24.jsonl /Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-24.jsonl.manifest.json > lowedge.txt 2> lowedge.err; echo "lowedge exit $?" >> analyze.status ) &
+wait

@@ -1,0 +1,22 @@
+#!/bin/bash
+# The census-registered graders over the 2026-09-24 re-simulate, fit and select only (each seals
+# confirm at the door). Run from the shared checkout on main; outputs to the scratchpad only.
+set -u
+R=/private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/346375fb-00a3-4e95-b614-3b91115b7550/scratchpad/resim-2026-09-24
+C=docs/research/r3
+N=$C/capture-all-classfolds-2026-09-24.jsonl
+cd /Users/peacock/Projects/levelflow-cloud || exit 2
+[ "$(git branch --show-current)" = main ] || { echo "shared checkout not on main" >> $R/graders.status; exit 2; }
+step() { local name="$1"; shift; local t0=$(date +%s); "$@" > "$R/$name.txt" 2> "$R/$name.err"; local rc=$?; echo "$name exit $rc ($(( $(date +%s) - t0 ))s)" >> $R/graders.status; }
+TSX=./node_modules/.bin/tsx
+step hour-mechanism-2026-09-24 python3 $R/hour-mechanism-argv.py $N $N.manifest.json
+step arming-bound-cells-2026-09-24 $TSX scripts/arming-bound-cells.ts $N --years contained --witness $C/feed-character.txt --control $R/hour-mechanism-2026-09-24.txt
+step grid-market-net $TSX scripts/grid-totalr.ts $N --verdict-unit market --out $R/grid-market-net.json
+step grid-market-bound $TSX scripts/grid-totalr.ts $N --verdict-unit market --r-arm bound --out $R/grid-market-bound.json
+step hour-gate-market-bound $TSX scripts/grid-totalr.ts $N --derive-filters "inSpan:decisionHourDistance<=2.5" --verdict-unit market --r-arm bound --out $R/hour-gate-market-bound.json
+step hour-gate-market-net $TSX scripts/grid-totalr.ts $N --derive-filters "inSpan:decisionHourDistance<=2.5" --verdict-unit market --out $R/hour-gate-market-net.json
+step banked-fraction-class $TSX scripts/banked-fraction.ts $N
+step banked-fraction-market $TSX scripts/banked-fraction.ts $N --grain market
+step banked-fraction-contained $TSX scripts/banked-fraction.ts $N --years contained --witness $C/feed-character.txt
+step banked-fraction-escaping $TSX scripts/banked-fraction.ts $N --years escaping --witness $C/feed-character.txt
+echo "graders done" >> $R/graders.status

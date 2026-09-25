@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+"""Attribute every row of the 2026-09-24 re-simulate against the 2026-09-14 corpus.
+
+Engine changes between them (expected-differences.md, written before the run):
+  #641 2026.09.14.forex-commission-cross-rate: the 21 forex crosses' commission and everything
+       downstream; a new usdPerQuote column on every row.
+  #689 2026.09.23.stop-exit-slippage: stop-kind exits that did not gap print level - slippage.
+  #692 2026.09.23.expiry-exit-slippage: the review-end close prints with slippage.
+A difference is EXPLAINED when it is on a cross, or when a non-cross row's only differing fields are
+exit-slippage fields AND the row has a stop-kind or expiry exit leg. Anything else is a VIOLATION.
+
+Streams both files in lockstep by (symbol, time, variant, holdout), resyncing past rows present in
+only one file. Read-only; stdout only.  Usage: attribute.py OLD NEW [--limit N]
+"""
+import json, sys, collections, re
+
+OLD, NEW = sys.argv[1], sys.argv[2]
+LIMIT = int(sys.argv[sys.argv.index("--limit") + 1]) if "--limit" in sys.argv else None
+MAJORS = {"EURUSD", "GBPUSD", "AUDUSD", "NZDUSD", "USDJPY", "USDCHF", "USDCAD"}
+NEW_COLUMNS = {"usdPerQuote"}
+STOP_KINDS = {"stop_loss", "breakeven_stop", "tp1_lock", "ambiguous", "same_bar_lock"}
+
+def key(r):
+    return (r["symbol"], r["time"], r["variant"], r.get("holdout"))
+
+def exit_kinds(r):
+    legs = r.get("legs") or []
+    return {l.get("kind") for l in legs if l.get("leg") == "exit"}
+
+def is_cross(r, forex_symbols):
+    return r["symbol"] in forex_symbols and r["symbol"] not in MAJORS
+
+counts = collections.Counter()
+fields_noncross = collections.Counter()
+fields_cross = collections.Counter()
+kinds_on_changed = collections.Counter()
+violations = []
+flips = collections.Counter()
+only_old = collections.Counter(); only_new = collections.Counter()
+MANIFEST = "/Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-14.jsonl.manifest.json"
+forex_symbols = {e["symbol"] for e in json.load(open(MANIFEST, "r"))["symbols"] if e["assetType"] == "forex"}
+assert len(forex_symbols) == 28, len(forex_symbols)
+exit_price_delta_ok = collections.Counter()
+
+def compare(o, n):
+    # The door: confirm rows are withheld on their split before any other field is read.
+    if o.get("split") == "confirm" or n.get("split") == "confirm":
+        counts["confirm_withheld"] += 1
+        return
+    for c in NEW_COLUMNS:
+        n.pop(c, None)
+    if o == n:
+        counts["identical"] += 1
+        return
+    diff = sorted(k for k in set(o) | set(n) if o.get(k) != n.get(k))
+    if o.get("accepted") != n.get("accepted"):
+        flips[f"{o.get('accepted')}->{n.get('accepted')}"] += 1
+    if is_cross(o, forex_symbols):
+        counts["differ_cross"] += 1
+        fields_cross.update(diff)
+        return
+    counts["differ_noncross"] += 1
+    fields_noncross.update(diff)
+    ek = exit_kinds(o) | exit_kinds(n)
+    kinds_on_changed.update(ek or {"<no exit leg>"})
+    # legs: only exit-leg prices may move
+    ok = True
+    if "legs" in diff:
+        ol, nl = o.get("legs") or [], n.get("legs") or []
+        if len(ol) != len(nl):
+            ok = False
+        else:
+            for a, b in zip(ol, nl):
+                if a == b:
+                    continue
+                if a.get("leg") != "exit" or {k: v for k, v in a.items() if k != "price"} != {k: v for k, v in b.items() if k != "price"}:
+                    ok = False
+                    continue
+                # The move must BE the modelled slippage (to the corpus's 8-decimal rounding),
+                # against the position: a long exits lower, a short higher.
+                d = b["price"] - a["price"]
+                slip = o.get("estimatedSlippage") or 0
+                against = (d < 0) if o["side"] == "buy" else (d > 0)
+                if slip > 0 and abs(abs(d) - slip) <= 2e-8 + 1e-9 * abs(a["price"]) and against:
+                    exit_price_delta_ok[a.get("kind")] += 1
+                else:
+                    ok = False
+                    exit_price_delta_ok[f"BAD:{a.get('kind')}"] += 1
+    if not (ek & (STOP_KINDS | {"expiry", "review_end"})) and not any("expir" in (k or "") for k in ek):
+        ok = False
+    if not ok and len(violations) < 25:
+        violations.append({"key": key(o), "diff": diff, "exitKinds": sorted(x or "" for x in ek)})
+    if not ok:
+        counts["violation"] += 1
+
+def rows(path):
+    with open(path, "r") as f:
+        for i, line in enumerate(f):
+            if LIMIT is not None and i >= LIMIT:
+                return
+            r = json.loads(line)
+            yield r
+
+oi, ni = rows(OLD), rows(NEW)
+o = next(oi, None); n = next(ni, None)
+pending_old, pending_new = {}, {}
+while o is not None or n is not None:
+    if o is not None and n is not None and key(o) == key(n):
+        compare(o, n); o = next(oi, None); n = next(ni, None); continue
+    # resync: park the unmatched row and look for its partner later
+    if o is not None:
+        ko = key(o)
+        if ko in pending_new:
+            compare(o, pending_new.pop(ko)); o = next(oi, None); continue
+        pending_old[ko] = o; o = next(oi, None)
+    if n is not None:
+        kn = key(n)
+        if kn in pending_old:
+            compare(pending_old.pop(kn), n); n = next(ni, None); continue
+        pending_new[kn] = n; n = next(ni, None)
+    if len(pending_old) + len(pending_new) > 200_000:
+        sys.exit("resync buffer exceeded 200k rows: the files are not in one order")
+for k, r in pending_old.items(): only_old[r["symbol"]] += 1
+for k, r in pending_new.items(): only_new[r["symbol"]] += 1
+
+print(f"rows compared (fit and select): {sum(counts[c] for c in ('identical','differ_cross','differ_noncross'))}  confirm withheld at the door: {counts['confirm_withheld']}  {dict(counts)}")
+print(f"only in old: {sum(only_old.values())} {dict(only_old.most_common(10))}")
+print(f"only in new: {sum(only_new.values())} {dict(only_new.most_common(10))}")
+print(f"accepted flips: {dict(flips)}")
+print(f"non-cross differing fields: {dict(fields_noncross.most_common())}")
+print(f"cross differing fields: {dict(fields_cross.most_common(15))}")
+print(f"exit kinds on changed non-cross rows: {dict(kinds_on_changed)}")
+print(f"exit-leg price moves by kind: {dict(exit_price_delta_ok)}")
+print(f"VIOLATIONS: {counts['violation']}")
+for v in violations: print("  ", v)

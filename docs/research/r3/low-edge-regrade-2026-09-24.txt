@@ -1,0 +1,98 @@
+# Produced 2026-09-25 by re-simulate-2026-09-24/lowedge.py.txt over r3/capture-all-classfolds-2026-09-24.jsonl (manifest 21738a0a48a5) and r3/capture-all-ignore-low-edge-classfolds-2026-09-24.jsonl (manifest 3e8dc92feda2): the rows the --ignore-low-edge arm adds are the low-edge window population, derived rather than listed. Confirm rows are withheld on their split. Every shared fit and select row must be identical; the counts line says whether it was.
+LOW-EDGE RE-GRADE — capture-all against --ignore-low-edge, 2026-09-24 re-simulate
+counts: {'shared_identical': 4493205, 'shared_confirm_withheld': 2141527, 'extra': 419321, 'extra_confirm_withheld': 373337, 'only_in_capture_all': 0}
+extra rows by class and UTC hour (the derived window population, fit and select):
+  crypto       {12: 47702, 13: 54353, 14: 59818, 15: 53205, 16: 50294, 17: 55223}
+  energies     {3: 667, 4: 748, 12: 570, 15: 349, 19: 442, 21: 181}
+  futures      {12: 13197, 13: 13245, 14: 13106, 15: 13135, 16: 13536, 17: 12883}
+  indices      {12: 455, 13: 1632, 14: 3438, 15: 3855, 16: 3638, 17: 3649}
+
+per market (baseline, accepted, inside the window): fold, fills, net R, net R per fill, 95% CI of mean daily net R, arming-bound R
+  crypto     AAVEUSD   select holdout=F fills    896  net     -87.3 R  -0.0975/fill  [-0.2009, -0.0721] over 640 days  bound    -100.7 R  LOSES
+  crypto     ADAUSD    fit    holdout=F fills    669  net     -26.6 R  -0.0398/fill  [-0.1184, +0.0164] over 522 days  bound     -43.4 R  unresolved
+  crypto     ADAUSD    select holdout=F fills    948  net     -95.2 R  -0.1005/fill  [-0.1797, -0.0700] over 763 days  bound    -114.5 R  LOSES
+  crypto     ALGOUSD   fit    holdout=F fills    112  net     -72.2 R  -0.6447/fill  [-0.9246, -0.5642] over 97 days  bound     -72.3 R  LOSES
+  crypto     ALGOUSD   select holdout=F fills    651  net    -295.1 R  -0.4534/fill  [-0.6515, -0.4881] over 518 days  bound    -296.4 R  LOSES
+  crypto     ATOMUSD   fit    holdout=F fills      8  net      -7.2 R  -0.9037/fill  [-1.2725, -0.5348] over 8 days  bound      -7.2 R  LOSES
+  crypto     ATOMUSD   select holdout=F fills    156  net    -148.2 R  -0.9499/fill  [-1.1824, -0.9808] over 137 days  bound    -148.2 R  LOSES
+  crypto     AVAXUSD   select holdout=F fills    446  net    -229.4 R  -0.5144/fill  [-0.8073, -0.5958] over 327 days  bound    -230.1 R  LOSES
+  crypto     BCHUSD    fit    holdout=T fills    707  net     -31.4 R  -0.0444/fill  [-0.1188, +0.0040] over 547 days  bound     -55.0 R  unresolved
+  crypto     BCHUSD    select holdout=T fills    709  net    -184.2 R  -0.2599/fill  [-0.3540, -0.2356] over 625 days  bound    -194.7 R  LOSES
+  crypto     BTCUSD    fit    holdout=F fills   1130  net    +118.8 R  +0.1051/fill  [+0.0847, +0.1665] over 946 days  bound     +73.6 R  EARNS
+  crypto     BTCUSD    select holdout=F fills    931  net     -59.1 R  -0.0635/fill  [-0.1265, -0.0264] over 773 days  bound     -82.2 R  LOSES
+  crypto     DASHUSD   fit    holdout=F fills    782  net     +93.9 R  +0.1201/fill  [+0.0726, +0.2255] over 630 days  bound     +56.3 R  EARNS
+  crypto     DASHUSD   select holdout=F fills    932  net     -46.2 R  -0.0496/fill  [-0.1162, -0.0067] over 752 days  bound     -62.8 R  LOSES
+  crypto     DOGEUSD   fit    holdout=F fills    504  net      +6.9 R  +0.0136/fill  [-0.0555, +0.0882] over 420 days  bound      -9.3 R  unresolved
+  crypto     DOGEUSD   select holdout=F fills    740  net      -6.7 R  -0.0090/fill  [-0.0644, +0.0431] over 627 days  bound     -24.7 R  unresolved
+  crypto     DOTUSD    select holdout=F fills    260  net    -154.3 R  -0.5936/fill  [-0.8547, -0.5943] over 213 days  bound    -155.0 R  LOSES
+  crypto     DYDXUSD   select holdout=F fills     98  net     -95.0 R  -0.9693/fill  [-1.2203, -0.8674] over 91 days  bound     -95.0 R  LOSES
+  crypto     EGLDUSD   select holdout=F fills    473  net    -122.3 R  -0.2585/fill  [-0.4290, -0.2484] over 361 days  bound    -126.5 R  LOSES
+  crypto     ETCUSD    fit    holdout=F fills    524  net     +32.7 R  +0.0624/fill  [+0.0069, +0.1491] over 419 days  bound     +12.2 R  EARNS
+  crypto     ETCUSD    select holdout=F fills    707  net     -41.8 R  -0.0591/fill  [-0.1320, -0.0129] over 577 days  bound     -58.8 R  LOSES
+  crypto     ETHUSD    fit    holdout=F fills   1009  net    +129.1 R  +0.1280/fill  [+0.1107, +0.1982] over 836 days  bound     +86.7 R  EARNS
+  crypto     ETHUSD    select holdout=F fills    955  net     -39.2 R  -0.0410/fill  [-0.1002, +0.0004] over 786 days  bound     -60.8 R  unresolved
+  crypto     FILUSD    select holdout=T fills      4  net      -5.1 R  -1.2849/fill  [-2.0621, -0.5077] over 4 days  bound      -5.1 R  LOSES
+  crypto     GRTUSD    select holdout=F fills    863  net     -33.9 R  -0.0393/fill  [-0.1130, +0.0080] over 646 days  bound     -46.1 R  unresolved
+  crypto     HBARUSD   select holdout=F fills    213  net     -34.5 R  -0.1621/fill  [-0.3426, -0.0785] over 164 days  bound     -38.5 R  LOSES
+  crypto     IMXUSD    select holdout=F fills    413  net     -46.7 R  -0.1131/fill  [-0.2777, -0.0390] over 295 days  bound     -46.7 R  LOSES
+  crypto     LINKUSD   fit    holdout=F fills    270  net     -17.2 R  -0.0637/fill  [-0.2503, +0.0559] over 177 days  bound     -17.2 R  unresolved
+  crypto     LINKUSD   select holdout=F fills    858  net     -55.9 R  -0.0651/fill  [-0.1410, -0.0087] over 746 days  bound     -55.9 R  LOSES
+  crypto     LTCUSD    fit    holdout=F fills    685  net     +45.0 R  +0.0656/fill  [+0.0209, +0.1287] over 601 days  bound     +13.4 R  EARNS
+  crypto     LTCUSD    select holdout=F fills    638  net    -160.1 R  -0.2510/fill  [-0.3337, -0.2147] over 584 days  bound    -170.9 R  LOSES
+  crypto     NEARUSD   select holdout=T fills    203  net    -143.9 R  -0.7089/fill  [-0.9497, -0.6949] over 175 days  bound    -143.9 R  LOSES
+  crypto     SOLUSD    select holdout=F fills    865  net     -24.2 R  -0.0280/fill  [-0.1082, +0.0307] over 624 days  bound     -37.9 R  unresolved
+  crypto     TRXUSD    fit    holdout=F fills    594  net     -83.7 R  -0.1409/fill  [-0.2820, -0.0977] over 441 days  bound     -86.3 R  LOSES
+  crypto     TRXUSD    select holdout=F fills    395  net    -188.9 R  -0.4783/fill  [-0.6803, -0.4510] over 334 days  bound    -189.6 R  LOSES
+  crypto     UNIUSD    select holdout=F fills   1082  net     -88.1 R  -0.0814/fill  [-0.1833, -0.0608] over 722 days  bound    -106.2 R  LOSES
+  crypto     XLMUSD    fit    holdout=T fills    612  net    +101.3 R  +0.1655/fill  [+0.1381, +0.3131] over 449 days  bound    +101.3 R  EARNS
+  crypto     XLMUSD    select holdout=T fills    949  net     -49.5 R  -0.0521/fill  [-0.1307, +0.0012] over 764 days  bound     -49.5 R  unresolved
+  crypto     XMRUSD    fit    holdout=F fills    666  net     +94.1 R  +0.1414/fill  [+0.1084, +0.2113] over 589 days  bound     +66.2 R  EARNS
+  crypto     XMRUSD    select holdout=F fills    978  net     -57.8 R  -0.0591/fill  [-0.1328, -0.0207] over 753 days  bound     -77.1 R  LOSES
+  crypto     XRPUSD    fit    holdout=F fills    733  net    +134.4 R  +0.1833/fill  [+0.1976, +0.2982] over 542 days  bound     +97.6 R  EARNS
+  crypto     XRPUSD    select holdout=F fills   1214  net     -70.0 R  -0.0577/fill  [-0.1363, -0.0270] over 857 days  bound     -96.5 R  LOSES
+  crypto     XTZUSD    fit    holdout=F fills    243  net     -72.7 R  -0.2992/fill  [-0.4709, -0.2215] over 210 days  bound     -75.3 R  LOSES
+  crypto     XTZUSD    select holdout=F fills     87  net     -59.3 R  -0.6814/fill  [-0.8757, -0.5528] over 83 days  bound     -60.3 R  LOSES
+  energies   WTI       fit    holdout=F fills    174  net     -28.1 R  -0.1614/fill  [-0.3902, -0.0451] over 129 days  bound     -31.7 R  LOSES
+  energies   WTI       select holdout=F fills     77  net     -24.1 R  -0.3129/fill  [-0.7642, -0.1450] over 53 days  bound     -25.3 R  LOSES
+  futures    BZUSD     fit    holdout=F fills    248  net      -2.3 R  -0.0091/fill  [-0.1373, +0.1147] over 201 days  bound      -7.5 R  unresolved
+  futures    BZUSD     select holdout=F fills    131  net      +2.6 R  +0.0195/fill  [-0.1515, +0.2006] over 104 days  bound      +0.4 R  unresolved
+  futures    CLUSD     fit    holdout=F fills    145  net      -5.5 R  -0.0381/fill  [-0.1863, +0.0987] over 126 days  bound      -8.4 R  unresolved
+  futures    CLUSD     select holdout=F fills     68  net      -1.5 R  -0.0221/fill  [-0.2358, +0.1857] over 60 days  bound      -2.5 R  unresolved
+  futures    ESUSD     fit    holdout=F fills    267  net      -4.9 R  -0.0183/fill  [-0.1257, +0.0786] over 207 days  bound     -12.7 R  unresolved
+  futures    ESUSD     select holdout=F fills    141  net     -15.8 R  -0.1118/fill  [-0.2915, +0.0075] over 111 days  bound     -19.6 R  unresolved
+  futures    GCUSD     fit    holdout=F fills    241  net      -6.3 R  -0.0260/fill  [-0.1283, +0.0643] over 196 days  bound     -10.8 R  unresolved
+  futures    GCUSD     select holdout=F fills    150  net      +7.2 R  +0.0480/fill  [-0.0878, +0.2108] over 117 days  bound      +5.2 R  unresolved
+  futures    HGUSD     fit    holdout=F fills    244  net      +2.0 R  +0.0080/fill  [-0.0758, +0.0954] over 201 days  bound      -3.6 R  unresolved
+  futures    HGUSD     select holdout=F fills    122  net     -14.5 R  -0.1186/fill  [-0.3135, +0.0183] over 98 days  bound     -17.2 R  unresolved
+  futures    HOUSD     fit    holdout=F fills    299  net      +4.5 R  +0.0152/fill  [-0.0850, +0.1227] over 241 days  bound      -9.6 R  unresolved
+  futures    HOUSD     select holdout=F fills    126  net     -11.8 R  -0.0933/fill  [-0.3334, +0.0960] over 99 days  bound     -16.4 R  unresolved
+  futures    NGUSD     fit    holdout=T fills    226  net     -11.1 R  -0.0490/fill  [-0.1701, +0.0484] over 182 days  bound     -14.2 R  unresolved
+  futures    NGUSD     select holdout=T fills    142  net     -19.3 R  -0.1361/fill  [-0.3158, -0.0232] over 114 days  bound     -21.2 R  LOSES
+  futures    NQUSD     fit    holdout=T fills    221  net     +19.7 R  +0.0889/fill  [+0.0045, +0.2163] over 178 days  bound     +13.6 R  EARNS
+  futures    NQUSD     select holdout=T fills    114  net      +0.3 R  +0.0027/fill  [-0.1606, +0.1673] over 91 days  bound      -2.1 R  unresolved
+  futures    PAUSD     fit    holdout=F fills    271  net      +1.2 R  +0.0043/fill  [-0.1074, +0.1177] over 223 days  bound      -2.8 R  unresolved
+  futures    PAUSD     select holdout=F fills    129  net      -0.2 R  -0.0014/fill  [-0.1576, +0.1541] over 101 days  bound      -1.6 R  unresolved
+  futures    PLUSD     fit    holdout=F fills    231  net     -53.4 R  -0.2311/fill  [-0.3989, -0.1487] over 195 days  bound     -53.8 R  LOSES
+  futures    PLUSD     select holdout=F fills    136  net      -1.3 R  -0.0097/fill  [-0.1598, +0.1358] over 110 days  bound      -1.3 R  unresolved
+  futures    RBUSD     fit    holdout=F fills    313  net     -65.9 R  -0.2107/fill  [-0.3726, -0.1679] over 244 days  bound     -81.3 R  LOSES
+  futures    RBUSD     select holdout=F fills    122  net     -29.3 R  -0.2402/fill  [-0.5134, -0.0786] over 99 days  bound     -31.8 R  LOSES
+  futures    RTYUSD    fit    holdout=F fills    220  net     -20.1 R  -0.0912/fill  [-0.2228, +0.0022] over 182 days  bound     -24.3 R  unresolved
+  futures    RTYUSD    select holdout=F fills    111  net     -15.4 R  -0.1384/fill  [-0.3190, -0.0115] over 93 days  bound     -17.8 R  LOSES
+  futures    SIUSD     fit    holdout=F fills    237  net      -5.0 R  -0.0213/fill  [-0.1207, +0.0673] over 189 days  bound      -9.5 R  unresolved
+  futures    SIUSD     select holdout=F fills    123  net      +9.8 R  +0.0794/fill  [-0.0409, +0.2286] over 104 days  bound      +7.7 R  unresolved
+  futures    YMUSD     fit    holdout=F fills    270  net      -5.6 R  -0.0209/fill  [-0.1401, +0.0888] over 220 days  bound     -11.6 R  unresolved
+  futures    YMUSD     select holdout=F fills    110  net      +4.1 R  +0.0371/fill  [-0.1106, +0.2034] over 88 days  bound      +1.8 R  unresolved
+  futures    ZBUSD     fit    holdout=F fills    260  net     -35.8 R  -0.1376/fill  [-0.2689, -0.0818] over 204 days  bound     -40.1 R  LOSES
+  futures    ZBUSD     select holdout=F fills    132  net     -22.7 R  -0.1719/fill  [-0.3525, -0.0839] over 104 days  bound     -24.0 R  LOSES
+  futures    ZFUSD     fit    holdout=F fills    161  net     -50.5 R  -0.3135/fill  [-0.5363, -0.1952] over 138 days  bound     -51.2 R  LOSES
+  futures    ZFUSD     select holdout=F fills     64  net     -31.9 R  -0.4984/fill  [-0.7797, -0.3202] over 58 days  bound     -32.3 R  LOSES
+  futures    ZNUSD     fit    holdout=F fills    254  net     -58.2 R  -0.2290/fill  [-0.3913, -0.1762] over 205 days  bound     -62.6 R  LOSES
+  futures    ZNUSD     select holdout=F fills    119  net     -29.3 R  -0.2466/fill  [-0.4266, -0.1545] over 101 days  bound     -30.7 R  LOSES
+  futures    ZTUSD     fit    holdout=F fills     37  net     -14.0 R  -0.3777/fill  [-0.7685, -0.0300] over 35 days  bound     -14.0 R  LOSES
+  futures    ZTUSD     select holdout=F fills     10  net      -6.0 R  -0.5976/fill  [-1.0731, -0.1220] over 10 days  bound      -6.0 R  LOSES
+  indices    DAX       select holdout=T fills    170  net     -33.5 R  -0.1968/fill  [-0.2972, -0.1034] over 167 days  bound     -35.0 R  LOSES
+  indices    DOW       select holdout=F fills     95  net     -11.8 R  -0.1247/fill  [-0.2991, +0.0415] over 92 days  bound     -11.9 R  unresolved
+  indices    NSDQ      fit    holdout=F fills    397  net     -14.7 R  -0.0371/fill  [-0.1059, +0.0274] over 375 days  bound     -18.8 R  unresolved
+  indices    NSDQ      select holdout=F fills    233  net      -5.8 R  -0.0250/fill  [-0.1128, +0.0598] over 220 days  bound      -8.2 R  unresolved
+  indices    SP        fit    holdout=T fills    494  net     -31.7 R  -0.0641/fill  [-0.1399, +0.0019] over 459 days  bound     -31.7 R  unresolved
+  indices    SP        select holdout=T fills    241  net     -45.0 R  -0.1865/fill  [-0.3006, -0.1026] over 223 days  bound     -45.0 R  LOSES

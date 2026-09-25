@@ -1,0 +1,19 @@
+THE EIGHT FOREX CELLS UNDER THREE CONVENTIONS OF THE SAME FILLS
+  folds read: fit, select · confirm: SEALED, not read (2,141,527 rows withheld at the door) · variant baseline · years contained (year map: manifest feedCharacter (5min tier))
+  holdout: stratified-per-class-20pct — 20 markets labelled HELD OUT per market (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only — held-out fills form the held-out cells; nothing is excluded
+  span = decision hour 16–21 UTC · arms: net = realizedR as emitted (FR-3 zero-latency arming) · gross = grossRealizedR · bound = armingBoundRealizedR (protection arms one bar late)
+  control: the net column reproduces all 8 cells of docs/research/r3/hour-mechanism-2026-09-24.txt
+rows 6,634,732 (2,141,527 sealed) · not accepted 992,808 · other fold 0 · other variant 3,001,884 · not forex 142,791 · unfilled 48,958 · other years 30,604 · priced 276,160
+
+| fold | pool | span | fills | net R | E net | lo95 net | E gross | lo95 gross | E bound | lo95 bound | ΔE bound − net |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| fit | held-out | in | 10,192 | +260.9 | +0.0256 | +0.0141 | +0.0505 | +0.0392 | +0.0011 | -0.0102 | -0.0245 |
+| fit | held-out | out | 34,860 | -73.2 | -0.0021 | -0.0089 | +0.0216 | +0.0149 | -0.0261 | -0.0327 | -0.0240 |
+| fit | in-pool | in | 37,809 | +1305.2 | +0.0345 | +0.0287 | +0.0563 | +0.0506 | +0.0119 | +0.0062 | -0.0226 |
+| fit | in-pool | out | 130,431 | -1540.3 | -0.0118 | -0.0154 | +0.0133 | +0.0098 | -0.0345 | -0.0380 | -0.0227 |
+| select | held-out | in | 3,180 | +13.9 | +0.0044 | -0.0159 | +0.0310 | +0.0112 | -0.0187 | -0.0386 | -0.0231 |
+| select | held-out | out | 10,173 | -341.5 | -0.0336 | -0.0462 | -0.0060 | -0.0185 | -0.0535 | -0.0660 | -0.0199 |
+| select | in-pool | in | 11,319 | +339.2 | +0.0300 | +0.0195 | +0.0578 | +0.0475 | +0.0076 | -0.0027 | -0.0224 |
+| select | in-pool | out | 38,196 | -1675.3 | -0.0439 | -0.0504 | -0.0124 | -0.0189 | -0.0645 | -0.0710 | -0.0207 |
+
+in-span cells clearing zero at lo95: net 3 of 4 · gross 4 of 4 · bound 1 of 4

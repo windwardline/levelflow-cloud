@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+"""Is the hour effect a signal, or a mis-sized stop clock?
+
+The engine sizes its window move as dailyAtr * sqrt(reviewHours * factor / 24)
+(pricePlan.ts) with NO hour-of-day term. If trades opened in quiet hours are
+sized for average volatility, they should stop out more often without the
+direction being any different. Measured, forex contained, in and out of the
+16-21 UTC span: outcome mix, stop rate, tp1 rate, and the excursion shape.
+Plus per year and per market, so concentration is visible.
+
+Usage: hour-mechanism-argv.py CORPUS.jsonl MANIFEST.json
+
+CONTROL: forex select contained 55,419 fills -1,321.1 R. Confirm skipped. READ-ONLY.
+"""
+import json, re, math, collections, datetime, sys
+
+R = "/Users/peacock/Projects/levelflow-cloud/docs/research/r3"
+held = set(json.load(open("/Users/peacock/Projects/levelflow-cloud/docs/research/r4/holdout-2026-08-26.json"))["markets"])
+man = json.load(open(sys.argv[2]))  # session copy 2026-09-24: corpus and manifest as arguments
+cls = {s["symbol"]: s.get("assetType") for s in man["symbols"]}
+esc = collections.defaultdict(set)
+for line in open(f"{R}/feed-character.txt"):
+    m = re.match(r"^([A-Z0-9^]+) 5min ESCAPES: (.*)$", line.strip())
+    if m:
+        esc[m.group(1)] = {int(y) for y in m.group(2).split(", ")}
+IN = lambda h: 16 <= h < 22
+
+mix = collections.defaultdict(collections.Counter)
+agg = collections.defaultdict(lambda: [0, 0.0, 0.0, 0.0, 0.0])  # n,sum,sumsq,mfe,mae
+per_year = collections.defaultdict(lambda: [0, 0.0])
+per_market = collections.defaultdict(lambda: [0, 0.0])
+control = [0, 0.0]
+with open(sys.argv[1], "rb") as f:
+    for line in f:
+        if b'"split":"confirm"' in line or b'"variant":"baseline"' not in line or b'"accepted":true' not in line:
+            continue
+        row = json.loads(line)
+        sym = row["symbol"]
+        if cls.get(sym) != "forex" or row["outcome"] == "unfilled" or row.get("noBarsInReviewWindow"):
+            continue
+        t = datetime.datetime.fromtimestamp(row["time"] / 1000, datetime.UTC)
+        if t.year in esc.get(sym, ()):
+            continue
+        fold, r = row["split"], float(row["realizedR"])
+        pool = "held-out" if sym in held else "in-pool"
+        if pool == "in-pool" and fold == "select":
+            control[0] += 1; control[1] += r
+        span = "in" if IN(t.hour) else "out"
+        key = (fold, pool, span)
+        mix[key][row["outcome"]] += 1
+        a = agg[key]; a[0] += 1; a[1] += r; a[2] += r * r
+        risk = float(row["riskDistance"])
+        mfe, mae = row.get("maxFavorableMove"), row.get("maxAdverseMove")
+        if risk > 0 and mfe is not None and mae is not None:
+            a[3] += abs(float(mfe)) / risk; a[4] += abs(float(mae)) / risk
+        if pool == "in-pool":
+            per_year[(fold, t.year, span)][0] += 1; per_year[(fold, t.year, span)][1] += r
+            if fold == "select":
+                per_market[(sym, span)][0] += 1; per_market[(sym, span)][1] += r
+
+print(f"CONTROL forex select contained in-pool: {control[0]} fills {control[1]:+.1f} R")
+print("\n| fold | pool | span | n | net R | E | lo95 | stop rate | tp1 rate | tp rate | mean fav | mean adv |")
+for fold in ("fit", "select"):
+    for pool in ("in-pool", "held-out"):
+        for span in ("in", "out"):
+            n, s, sq, mf, ma = agg[(fold, pool, span)]
+            if n < 2: continue
+            mean = s / n
+            var = max(0.0, (sq - n * mean * mean) / (n - 1))
+            lo = mean - 1.96 * math.sqrt(var / n)
+            c = mix[(fold, pool, span)]
+            stops = c.get("stop_loss", 0) / n; tp1 = c.get("tp1_partial", 0) / n; tp = c.get("take_profit", 0) / n
+            print(f"| {fold} | {pool} | {span} | {n} | {s:+8.1f} | {mean:+.4f} | {lo:+.4f} | {stops:.3f} | {tp1:.3f} | {tp:.3f} | {mf/n:+.4f} | {ma/n:+.4f} |")
+
+print("\nPER YEAR, in-pool (net R in-span / out-of-span):")
+years = sorted({k[1] for k in per_year})
+for fold in ("fit", "select"):
+    rows = [(y, per_year.get((fold, y, "in"), [0, 0.0]), per_year.get((fold, y, "out"), [0, 0.0])) for y in years]
+    rows = [r for r in rows if r[1][0] or r[2][0]]
+    pos = sum(1 for _, i, _ in rows if i[1] > 0)
+    print(f"  {fold}: in-span positive in {pos} of {len(rows)} years — " +
+          ", ".join(f"{y}:{i[1]:+.0f}/{o[1]:+.0f}" for y, i, o in rows))
+
+print("\nPER MARKET, select in-pool:")
+syms = sorted({k[0] for k in per_market})
+pos = sum(1 for s in syms if per_market[(s, "in")][1] > 0)
+better = sum(1 for s in syms if per_market[(s, "in")][0] and per_market[(s, "out")][0]
+             and per_market[(s, "in")][1] / per_market[(s, "in")][0] > per_market[(s, "out")][1] / max(1, per_market[(s, "out")][0]))
+print(f"  in-span net R positive on {pos} of {len(syms)} markets; in-span expectancy beats out-of-span on {better} of {len(syms)}")

@@ -1,0 +1,36 @@
+#!/bin/bash
+# The re-simulate of 2026-09-24: armed-corpus.sh's recipe at main d919615, from a clean detached
+# worktree, pinned cache at zero provider bytes, two arms concurrently. Emits beside the record,
+# never over it.
+set -u
+WT=/Users/peacock/Projects/.lf-resim-wt
+OUT=/Users/peacock/Projects/levelflow-cloud/docs/research/r3
+STATUS="$OUT/classfolds.status.log"
+cd "$WT" || exit 1
+[ -z "$(git status --porcelain)" ] || { echo "worktree not clean"; exit 1; }
+HEAD=$(git rev-parse --short HEAD)
+run_arm() {
+  local name="$1"; shift
+  echo "$(date -u +%FT%TZ) $name: start (re-simulate at $HEAD, clean detached worktree, cache-dir main checkout)" >> "$STATUS"
+  LEVELFLOW_CHECKOUT=/Users/peacock/Projects/levelflow-cloud \
+  /Users/peacock/.local/bin/wl-secret fmp-api-key=FMP_API_KEY -- \
+    ./node_modules/.bin/tsx scripts/replay-sweep.ts \
+      --anchor 2026-08-26 --days 7000 --symbols roster --capture-all "$@" \
+      --fold-spec docs/research/r3/fold-spec-2026-08-26.json \
+      --grid "runnerProtection=breakeven,hold,trail_tp1;stopStructureSource=intraday,intraday_and_daily" \
+      --byte-budget 1MB \
+      --cache-dir /Users/peacock/Projects/levelflow-cloud/.calibration-cache \
+      --emit "$OUT/$name.jsonl" > "$OUT/$name.log" 2>&1
+  local rc=$?
+  echo "$(date -u +%FT%TZ) $name: exit=$rc" >> "$STATUS"
+  return $rc
+}
+caffeinate -i -w $$ &
+run_arm capture-all-classfolds-2026-09-24 &
+p1=$!
+run_arm capture-all-ignore-low-edge-classfolds-2026-09-24 --ignore-low-edge &
+p2=$!
+wait $p1; rc1=$?
+wait $p2; rc2=$?
+echo "arm1 exit $rc1, arm2 exit $rc2"
+[ $rc1 -eq 0 ] && [ $rc2 -eq 0 ]
