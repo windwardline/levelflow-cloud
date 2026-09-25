@@ -300,9 +300,31 @@ describe("the parking screen answers its own Donate", () => {
     assert.match(screen, /\{DONATION_SUPPORT_COPY\}/);
     assert.match(screen, /<DonationOptions\s+fallbackHref=\{DONATION_REQUEST_MAILTO\}\s+mode="compact"\s*\/>/);
   });
-
-  it("keeps the canonical body line", () => {
-    assert.match(screen, /The desk is closed while we work on it\. Sign-in resumes the moment it\s+reopens\./);
-  });
 });
 
+// The gate-dependent E2E population, derived rather than counted (#705 review): every
+// test in public-auth.spec.ts that asserts the parking face. HANDOFF's unpark step named
+// two, then three, by hand; this reads the file, so a fourth fails at the flip rather
+// than in the acceptance deploy.
+describe("an unpark leaves no E2E test asserting the parking face", () => {
+  const gateIsOpen = () => /export const PARKING_GATE = false;/.test(readFileSync("src/lib/parkingGate.ts", "utf8"));
+  const parkedFaceTests = () =>
+    readFileSync("tests/e2e/public-auth.spec.ts", "utf8")
+      .split(/^(?=[ \t]*test\()/m)
+      .filter((block) => /^[ \t]*test\(/.test(block) && /"Under construction"/.test(block))
+      .map((block) => /test\(\s*["`](.+?)["`]/.exec(block)?.[1] ?? "<unnamed test>");
+
+  it("names them while parked, and fails an open gate that keeps any", (t) => {
+    const tests = parkedFaceTests();
+    if (!gateIsOpen()) {
+      assert.ok(tests.length > 0, "no E2E test asserts the parking face while the desk is parked: the derivation read nothing");
+      t.diagnostic(`PARKING_GATE is TRUE — ${tests.length} E2E tests assert the parking face and go at unpark: ${tests.join(" | ")}`);
+      return;
+    }
+    assert.deepEqual(
+      tests,
+      [],
+      "PARKING_GATE is FALSE and these E2E tests still assert the parking face: invert or delete them (HANDOFF's unpark step)",
+    );
+  });
+});

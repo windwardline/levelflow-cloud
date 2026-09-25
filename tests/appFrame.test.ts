@@ -453,8 +453,8 @@ describe("§17i — the pre-auth theme control scrolls with the content (owner r
   });
 });
 
-// M6 (wave-8 review): the footer's Donate is a link to /?donate on every satellite
-// (pinned below and in tests/appFooter.test.ts), and what makes that a route rather
+// M6 (wave-8 review): the footer's Donate is a link to /?donate on every satellite but
+// parking, which opens its block in place (both pinned in tests/appFooter.test.ts), and what makes that a route rather
 // than a page load with no visible result is the login screen reading it — and then
 // bringing the block it opens into view, because the control that opens it is the
 // frame's bottom row and the block can be most of a scroll region away. Nothing

@@ -337,7 +337,8 @@ at the Edge, and it implies `PARKING_GATE`.
   `/?donate` twin (#705; the login screen's `/?donate` test covers the ask once the root is
   the sign-in screen), return the four sign-in tests from
   `/?enter` to `/`, and update the pin in `tests/parkingGate.test.ts`. Spec §17p records
-  it.
+  it; its count of two gate tests predates #705, and this step governs. `tests/parkingGate.test.ts`
+  fails an open gate while any E2E test still asserts the parking face.
 
 Parking is the reverse: raise `PARKING_GATE` first, or both together, then §17p's logout.
 

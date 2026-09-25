@@ -495,9 +495,8 @@ test("/?donate opens the login screen's donation block and brings it into view",
 test("/?donate on the parked screen opens its donation block and brings it into view", async ({
   page,
 }) => {
-  // 375x460: short enough that the block sits below the frame's scroll region
-  // when nothing scrolls it (measured 2026-09-24: at 812 the whole composition
-  // fits, so an in-view check there passes with the scroll effect deleted).
+  // 375x460: short enough that the block starts below the frame's scroll region,
+  // which the first assertion on its geometry checks rather than assumes.
   await page.setViewportSize({ width: 375, height: 460 });
   await page.goto("/?donate", { waitUntil: "networkidle" });
   await expect(page.getByText("Under construction", { exact: true })).toBeVisible();
@@ -510,12 +509,21 @@ test("/?donate on the parked screen opens its donation block and brings it into 
   // clips its content above the footer, and a clipped block still reports window
   // coordinates on screen.
   const region = page.getByRole("region", { name: "Under construction" });
-  const inView = await options.evaluate((element, frame) => {
+  const geometry = await options.evaluate((element, frame) => {
+    const scroller = frame as Element;
     const box = element.getBoundingClientRect();
-    const clip = (frame as Element).getBoundingClientRect();
-    return box.top >= clip.top && box.bottom <= clip.bottom;
+    const clip = scroller.getBoundingClientRect();
+    return {
+      // Where the block's bottom would sit with the region unscrolled.
+      startsOutOfView: box.bottom + scroller.scrollTop > clip.bottom,
+      inView: box.top >= clip.top && box.bottom <= clip.bottom,
+    };
   }, await region.elementHandle());
-  expect(inView, "the donation block opened out of view").toBe(true);
+  expect(
+    geometry.startsOutOfView,
+    "the block no longer starts below the fold at this height, so the in-view check proves nothing: lower the height",
+  ).toBe(true);
+  expect(geometry.inView, "the donation block opened out of view").toBe(true);
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
