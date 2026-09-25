@@ -186,7 +186,8 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   2026-09-23 (0.006 to 0.011 R per fill). **A forex figure that moves by less than about 0.02 R per
   bracket at k = 2, the measured width nearest the shipped stop (the far end of the day-clustered
   interval there), is a vintage question, not a finding;** at 0.9 of a shipped stop per bracket that is
-  about 0.018 in shipped-stop R, the unit of the per-fill figures it is set against; read per
+  about 0.018 in shipped-stop R. That converts the unit, not the comparison: a bracket is still
+  two-sided, first-touch and costless, unlike a fill; read per
   bracket, the line would be 0.03. It does not come from EURUSD, whose large one-sided gaps net +2 R
   over its 156 brackets at k = 2; it is spread across the crosses (14 pairs negative, 12 zero, 2
   positive, the largest AUDCHF, CHFJPY and EURCHF at −6 R each). GBPUSD and EURUSD carry the
