@@ -1,0 +1,62 @@
+corpus 21738a0a48a5 · engine 2026.09.23.expiry-exit-slippage · anchor 2026-08-26 · variant baseline
+folds read: fit, select · confirm: SEALED, not read (2141527 rows withheld at the door)
+rows 6634732: 333730 priced · 992808 not accepted · 0 in other folds · 3001884 other variants · 73829 unfilled · 436 data-absent · 90518 held out · 0 in other years
+years: all (no feed-character stratification)
+control: 333730 rows reproduced their emitted realizedR at the shipped fraction 0.5 (tolerance 0.00011)
+holdout: stratified-per-class-20pct — 20 markets excluded from every class pool (pinned docs/research/r4/holdout-2026-08-26.json); stamped flag: 19 markets, provenance only
+engine slippage class: every-market-exit — the engine that wrote this corpus slipped every market-order exit — every stop-kind print and the expiry close (from 2026.09.23.expiry-exit-slippage)
+
+allocation only: the exit path is the emitted one at every fraction (the runner's protection re-arms on the TP1 touch, not on the size banked); costs are the emitted commission; spread rides in the leg prices; slippage rides in every stop-kind print and in the expiry print. Rows without a tp1 leg price the same at every fraction.
+slippage-priced: R_adj(f) = R(f) on every row — this corpus prints every market-order exit with its slippage, so R(f) already carries it at (1−f); 'stop prints' and S are 0 by design, not because any row gapped. The same-bar columns do not depend on slippage. same-bar = exits resolved on the TP1 touch bar itself (FR-3), which the corpus arms with zero latency and cannot price.
+
+=== FIT ===
+| class | filled | tp1 rows | no-tp1 rows | shipped R (½) | banked half | runner half | costs | no-tp1 R | R(0) | R(0.25) | R(0.5) | R(0.75) | R(1) | best f | Δ best vs ½ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| agriculture | 2512 | 1327 | 1185 | -470.5 | 326.1 | 331.8 | -84.4 | -1044.0 | -464.9 | -467.7 | -470.5 | -473.4 | -476.2 | 0 | 5.7 |
+| crypto | 21392 | 15239 | 6153 | 256.2 | 3594.9 | 3051.6 | -623.7 | -5766.7 | -287.1 | -15.5 | 256.2 | 527.8 | 799.5 | 1 | 543.3 |
+| energies | 577 | 237 | 340 | -126.1 | 95.6 | 101.6 | -40.6 | -282.8 | -120.1 | -123.1 | -126.1 | -129.2 | -132.2 | 0 | 6.1 |
+| forex | 168240 | 113544 | 54696 | -235.2 | 23191.8 | 25844.8 | -3163.0 | -46108.8 | 2417.8 | 1091.3 | -235.2 | -1561.7 | -2888.2 | 0 | 2653.0 |
+| futures | 9237 | 4710 | 4527 | -1457.4 | 1146.8 | 1117.8 | -119.2 | -3602.8 | -1486.4 | -1471.9 | -1457.4 | -1443.0 | -1428.5 | 1 | 28.9 |
+| indices | 280 | 132 | 148 | -19.2 | 26.6 | 27.8 | -3.1 | -70.5 | -18.1 | -18.7 | -19.2 | -19.8 | -20.4 | 0 | 1.1 |
+| livestock | 340 | 205 | 135 | -19.6 | 56.5 | 64.2 | -6.9 | -133.3 | -11.9 | -15.7 | -19.6 | -23.4 | -27.3 | 0 | 7.7 |
+| metals | 5497 | 3207 | 2290 | -686.6 | 650.8 | 698.2 | -67.5 | -1968.1 | -639.1 | -662.9 | -686.6 | -710.3 | -734.1 | 0 | 47.5 |
+| **pooled** | 208075 | 138601 | 69474 | -2758.5 | 29089.0 | 31237.8 | -4108.3 | -58977.0 | -609.7 | -1684.1 | -2758.5 | -3833.0 | -4907.4 | 0 | 2148.8 |
+
+--- fit · slippage-priced and same-bar ---
+| class | tp1 rows | stop prints | S | R_adj(0) | R_adj(0.25) | R_adj(0.5) | R_adj(0.75) | R_adj(1) | best f (adj) | Δ_adj best vs ½ | lock exits same-bar | take_profit exits same-bar |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| agriculture | 1327 | 0 | 0.0 | -464.9 | -467.7 | -470.5 | -473.4 | -476.2 | 0 | 5.7 | 366/701 (52.2%) | 11/208 (5.3%) |
+| crypto | 15239 | 0 | 0.0 | -287.1 | -15.5 | 256.2 | 527.8 | 799.5 | 1 | 543.3 | 7876/13122 (60.0%) | 117/673 (17.4%) |
+| energies | 237 | 0 | 0.0 | -120.1 | -123.1 | -126.1 | -129.2 | -132.2 | 0 | 6.1 | 121/216 (56.0%) | 3/19 (15.8%) |
+| forex | 113544 | 0 | 0.0 | 2417.8 | 1091.3 | -235.2 | -1561.7 | -2888.2 | 0 | 2653.0 | 58933/107589 (54.8%) | 620/4640 (13.4%) |
+| futures | 4710 | 0 | 0.0 | -1486.4 | -1471.9 | -1457.4 | -1443.0 | -1428.5 | 1 | 28.9 | 1841/3550 (51.9%) | 47/399 (11.8%) |
+| indices | 132 | 0 | 0.0 | -18.1 | -18.7 | -19.2 | -19.8 | -20.4 | 0 | 1.1 | — | 1/12 (8.3%) |
+| livestock | 205 | 0 | 0.0 | -11.9 | -15.7 | -19.6 | -23.4 | -27.3 | 0 | 7.7 | — | 8/63 (12.7%) |
+| metals | 3207 | 0 | 0.0 | -639.1 | -662.9 | -686.6 | -710.3 | -734.1 | 0 | 47.5 | 1656/2979 (55.6%) | 23/172 (13.4%) |
+| **pooled** | 138601 | 0 | 0.0 | -609.7 | -1684.1 | -2758.5 | -3833.0 | -4907.4 | 0 | 2148.8 | 70793/128157 (55.2%) | 830/6186 (13.4%) |
+
+=== SELECT ===
+| class | filled | tp1 rows | no-tp1 rows | shipped R (½) | banked half | runner half | costs | no-tp1 R | R(0) | R(0.25) | R(0.5) | R(0.75) | R(1) | best f | Δ best vs ½ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| agriculture | 1263 | 651 | 612 | -202.9 | 169.3 | 175.3 | -42.3 | -505.2 | -196.9 | -199.9 | -202.9 | -205.9 | -208.9 | 0 | 6.0 |
+| crypto | 43085 | 26320 | 16765 | -7091.2 | 5490.1 | 5777.7 | -1369.2 | -16989.8 | -6803.6 | -6947.4 | -7091.2 | -7235.1 | -7378.9 | 0 | 287.7 |
+| energies | 298 | 125 | 173 | -65.0 | 50.6 | 54.4 | -23.8 | -146.2 | -61.2 | -63.1 | -65.0 | -67.0 | -68.9 | 0 | 3.9 |
+| forex | 72699 | 50866 | 21833 | 1452.7 | 10417.3 | 11113.9 | -1816.6 | -18261.9 | 2149.3 | 1801.0 | 1452.7 | 1104.4 | 756.1 | 0 | 696.6 |
+| futures | 5020 | 2788 | 2232 | -425.2 | 719.6 | 678.8 | -59.3 | -1764.3 | -466.0 | -445.6 | -425.2 | -404.8 | -384.3 | 1 | 40.8 |
+| indices | 613 | 338 | 275 | -109.7 | 69.7 | 72.7 | -20.6 | -231.4 | -106.7 | -108.2 | -109.7 | -111.2 | -112.7 | 0 | 3.0 |
+| livestock | 170 | 93 | 77 | -3.8 | 28.6 | 38.6 | -2.0 | -69.0 | 6.3 | 1.2 | -3.8 | -8.8 | -13.8 | 0 | 10.0 |
+| metals | 2507 | 1538 | 969 | -182.2 | 317.3 | 324.9 | -19.7 | -804.7 | -174.6 | -178.4 | -182.2 | -185.9 | -189.7 | 0 | 7.6 |
+| **pooled** | 125655 | 82719 | 42936 | -6627.3 | 17262.4 | 18236.4 | -3353.5 | -38772.6 | -5653.3 | -6140.3 | -6627.3 | -7114.3 | -7601.2 | 0 | 974.0 |
+
+--- select · slippage-priced and same-bar ---
+| class | tp1 rows | stop prints | S | R_adj(0) | R_adj(0.25) | R_adj(0.5) | R_adj(0.75) | R_adj(1) | best f (adj) | Δ_adj best vs ½ | lock exits same-bar | take_profit exits same-bar |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| agriculture | 651 | 0 | 0.0 | -196.9 | -199.9 | -202.9 | -205.9 | -208.9 | 0 | 6.0 | 166/338 (49.1%) | 15/108 (13.9%) |
+| crypto | 26320 | 0 | 0.0 | -6803.6 | -6947.4 | -7091.2 | -7235.1 | -7378.9 | 0 | 287.7 | 11047/20442 (54.0%) | 95/2125 (4.5%) |
+| energies | 125 | 0 | 0.0 | -61.2 | -63.1 | -65.0 | -67.0 | -68.9 | 0 | 3.9 | 67/112 (59.8%) | 2/10 (20.0%) |
+| forex | 50866 | 0 | 0.0 | 2149.3 | 1801.0 | 1452.7 | 1104.4 | 756.1 | 0 | 696.6 | 29391/48779 (60.3%) | 325/1720 (18.9%) |
+| futures | 2788 | 0 | 0.0 | -466.0 | -445.6 | -425.2 | -404.8 | -384.3 | 1 | 40.8 | 1092/2062 (53.0%) | 34/240 (14.2%) |
+| indices | 338 | 0 | 0.0 | -106.7 | -108.2 | -109.7 | -111.2 | -112.7 | 0 | 3.0 | 56/126 (44.4%) | 1/33 (3.0%) |
+| livestock | 93 | 0 | 0.0 | 6.3 | 1.2 | -3.8 | -8.8 | -13.8 | 0 | 10.0 | — | 5/31 (16.1%) |
+| metals | 1538 | 0 | 0.0 | -174.6 | -178.4 | -182.2 | -185.9 | -189.7 | 0 | 7.6 | 792/1458 (54.3%) | 7/66 (10.6%) |
+| **pooled** | 82719 | 0 | 0.0 | -5653.3 | -6140.3 | -6627.3 | -7114.3 | -7601.2 | 0 | 974.0 | 42611/73317 (58.1%) | 484/4333 (11.2%) |

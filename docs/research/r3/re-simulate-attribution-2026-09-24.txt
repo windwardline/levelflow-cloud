@@ -1,0 +1,13 @@
+# Produced 2026-09-25 by re-simulate-2026-09-24/attribute.py.txt: every row of r3/capture-all-classfolds-2026-09-24.jsonl (engine 2026.09.23.expiry-exit-slippage, main d919615, manifest 21738a0a48a5) against r3/capture-all-classfolds-2026-09-14.jsonl (engine 2026.09.13.forex-commission-usd-quote, main 5228332, manifest 2bd117256d48), in lockstep by (symbol, time, variant, holdout). Confirm rows are withheld on their split before any other field is read. usdPerQuote (new with #641) is stripped from each new row. Every differing row, cross or not, must keep its differing fields inside a named set (exit slippage's on every row; on a cross also #641's commission and what follows from it) and, where its legs moved, move only exit legs, each by exactly estimatedSlippage against the position, at a stop kind or the review-end close. On a cross the commission's own value is not recomputed. Anything else is a violation. Expected differences were written before the run: re-simulate-2026-09-24/expected-differences.md.
+rows compared (fit and select): 4493205  confirm withheld at the door: 2141527  {'differ_noncross': 1505368, 'identical': 644008, 'confirm_withheld': 2141527, 'differ_cross': 2343829}
+only in old: 0 {}
+only in new: 0 {}
+accepted flips: {'cross True->False': 22151, 'cross False->True': 19057}
+noncross differing fields: {'legs': 1505368, 'realizedR': 1505368, 'armingBoundExitPrice': 1289225, 'armingBoundRealizedR': 1289225, 'forgoneRunnerR': 867869, 'armingBoundOutcome': 2482, 'outcome': 2482}
+noncross exit kinds on rows whose legs moved: {'tp1_lock': 385683, 'stop_loss': 619328, 'expiry': 275623, 'ambiguous': 4404, 'breakeven_stop': 220330}
+noncross exit-leg price moves by kind: {'tp1_lock': 385683, 'stop_loss': 619328, 'expiry': 275623, 'ambiguous': 4404, 'breakeven_stop': 220330}
+cross differing fields: {'estimatedCommission': 2343804, 'estimatedRoundTripCost': 2343804, 'ladderRewardRisk': 2343797, 'rewardRisk': 2342887, 'grossRealizedR': 2031498, 'realizedR': 2020632, 'armingBoundRealizedR': 2020450, 'legs': 1803198, 'armingBoundExitPrice': 1469977, 'forgoneRunnerR': 1194369, 'confidenceScore': 867050, 'executionScore': 867050, 'accepted': 41208, 'armingBoundOutcome': 1012, 'outcome': 1012, 'grossOutcome': 934}
+cross exit kinds on rows whose legs moved: {'stop_loss': 599400, 'tp1_lock': 564475, 'expiry': 333524, 'ambiguous': 5951, 'breakeven_stop': 299848}
+cross exit-leg price moves by kind: {'stop_loss': 599400, 'tp1_lock': 564475, 'expiry': 333524, 'ambiguous': 5951, 'breakeven_stop': 299848}
+fields outside the named sets: {}
+VIOLATIONS: non-cross 0, cross 0

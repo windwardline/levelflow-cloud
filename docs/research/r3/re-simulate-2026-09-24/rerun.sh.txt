@@ -1,0 +1,12 @@
+#!/bin/bash
+# #706 round 1: the tightened attribution and the counted control, from the committed instruments.
+set -u
+S=/private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/346375fb-00a3-4e95-b614-3b91115b7550/scratchpad/resim-2026-09-24
+W=/Users/peacock/Projects/.lf-resim-record-wt
+C=/Users/peacock/Projects/levelflow-cloud/docs/research/r3
+I=$W/docs/research/r3/re-simulate-2026-09-24
+cd $W || exit 2
+python3 $I/hour-mechanism.py.txt $C/capture-all-classfolds-2026-09-24.jsonl $C/capture-all-classfolds-2026-09-24.jsonl.manifest.json > $S/hm-706.txt 2> $S/hm-706.err; echo "hour-mechanism exit $?" >> $S/rerun-706.status
+./node_modules/.bin/tsx scripts/arming-bound-cells.ts $C/capture-all-classfolds-2026-09-24.jsonl --years contained --witness docs/research/r3/feed-character.txt --control $S/hm-706.txt > $S/abc-706.txt 2> $S/abc-706.err; echo "arming-bound-cells exit $?" >> $S/rerun-706.status
+python3 $I/attribute.py.txt $C/capture-all-classfolds-2026-09-14.jsonl $C/capture-all-classfolds-2026-09-24.jsonl > $S/attr-706.txt 2> $S/attr-706.err; echo "attribute exit $?" >> $S/rerun-706.status
+echo done >> $S/rerun-706.status

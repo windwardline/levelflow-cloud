@@ -1,0 +1,5 @@
+Repricer against engine, 2026-09-24. Old: banked-fraction.ts --grain market --exit-slippage on capture-all-classfolds-2026-09-14 ('R, market exits slipped').
+New: banked-fraction.ts --grain market on capture-all-classfolds-2026-09-24 ('R(½)'). Markets whose only engine change between the two is exit slippage:
+every non-forex market and the seven USD majors; the 21 crosses also carry #641's commission and are excluded. Fit and select only; confirm sealed by both readers.
+fit: 43 markets compared; max |ΔR| 0.00 (printed to 0.1 R); markets whose filled count differs: 0; markets only in one table: []
+select: 58 markets compared; max |ΔR| 0.00 (printed to 0.1 R); markets whose filled count differs: 0; markets only in one table: []
