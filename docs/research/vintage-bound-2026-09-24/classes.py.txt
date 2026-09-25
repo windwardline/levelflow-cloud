@@ -6,8 +6,8 @@ with brackets (crypto, metals, futures, agriculture; indices and livestock have 
 brackets at one decision time) and clustered by UTC decision day, with the 95 % half-width per bracket
 each implies (1.96 per bracket and by decision, t at days - 1 by day); and, appended (round 9), the raw
 SE under all four clusterings, the symbol included; (round 11) the exact sign test on every unit;
-(round 12) each class's nonzero per-symbol nets; and (round 13) the symbol's own 95 % half-width, at t
-on symbols - 1. Uses
+(round 12) each class's nonzero per-symbol nets; (round 13) the symbol's own 95 % half-width, at t
+on symbols - 1; and (round 15) the same counting only symbols with a nonzero net. Uses
 vintage_bound.py.txt's own loaders and brackets and asserts its pooled rows reproduce the recorded
 class lines. Its exclusions are parsed from the committed vintage_bound.out.txt rather than a live run,
 so it is pinned to that artifact; if the two drift, the RECORDED assert fails loudly rather than

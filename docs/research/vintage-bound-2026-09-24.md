@@ -161,7 +161,9 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   the symbol's at k = 0.5 and 2 and equal at k = 1 (13.4, 5.3 and 4.0 R against 15.6, 5.3 and 6.3), and
   its half-width is narrower even than the decision's at k = 1 and 2 (0.0020 against 0.0021, 0.0015
   against 0.0023) though it carries the larger multiplier (t = 2.101 at 18 degrees of freedom against
-  1.96). On metals at k = 0.5 the symbol is the widest unit and the day ties the decision as the
+  1.96). On futures the symbol is wider than the day at every k (28.6, 14.8 and 5.7 R against
+  18.4, 10.4 and 4.9), and there the ordering decides the conclusion: the symbol is the one unit under
+  which futures does not reject. On metals at k = 0.5 the symbol is the widest unit and the day ties the decision as the
   narrowest (6.0 R against 3.5 each, and 4.5 per bracket), because one of its two symbols carries all +6 R; two clusters are a
   degenerate count. No unit here covers day and pair dependence at once, and that limit falls on the
   direction as much as on the size: a sign test over days is the day-clustered null, and one over pairs
@@ -188,7 +190,7 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   of the four units, but not under the symbol, its widest**
   ([classes](/docs/research/vintage-bound-2026-09-24/classes.out.txt)). 18 series in the manifest's futures
   entries (WTI, the manifest's one energies market, shares CLUSD's series and is measured with it, so the 18
-  series carry 19 markets), all 18
+  series carry 19 markets, one of them calibrated as energies), all 18
   evaluated and with brackets, 1,292 brackets. At k = 0.5 the net is −50 R, −0.0387 R per bracket, and zero lies outside the 95 %
   interval with brackets independent (±0.0345), by decision (±0.0204, the deflated estimator) and by day (±0.0308); the sign
   tests agree on brackets (77 of 129 negative, p = 0.03), decisions (35 of 45, p = 0.0002) and days
@@ -204,8 +206,11 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   would: over 58,451 buckets the bank's high sits below the cache's on 25.3 % and above on 17.5 %, and
   its low above on 24.4 % and below on 19.4 %, the bank's bucket inside the cache's rather than shifted
   as forex's is. For futures, as for forex, the record cannot separate revision from construction. The record sizes no
-  futures line. Forex's is taken at the width nearest forex's shipped stop; futures' own stop width is
-  not measured here, and a line sized at another width would differ from forex's by convention alone. At k = 1 and 2 the
+  futures line, and not for want of a stop: the resolver gives all 18 futures markets a 1.3 ATR stop
+  (WTI, calibrated as energies, 1.38). What is missing is the step that maps a stop to a width, the
+  5-to-15-minute range ratio, which the record measures on four forex pairs only. At k = 2, forex's
+  convention would give about 0.014 R per bracket (the day-clustered interval there runs −0.0144 to
+  +0.0020); whether k = 2 is the width nearest futures' stop waits on that ratio. At k = 1 and 2 the
   nets, −0.0077 and −0.0062 R per bracket, sit inside every interval but the deflated decision one at
   k = 2 (±0.0061), whose sign test does not reject (4 of 4 decisions, p = 0.13). Agriculture (6 series
   in the manifest, all 6 evaluated, 1 with brackets, 10 brackets) bounds nothing: one flipped bracket at k = 0.5, none at the
@@ -214,11 +219,12 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   ([classes](/docs/research/vintage-bound-2026-09-24/classes.out.txt)). Crypto's net (33 series in the
   manifest, 31 evaluated after the DYDXUSD and FILUSD skips, 28 with brackets, 5,490 brackets) is
   +0.0047 R per bracket at k = 0.5, inside ±0.0071 with brackets independent, ±0.0051 clustered by
-  day, ±0.0058 by symbol and ±0.0048 by decision, the last only just (the point is +0.00474); at k = 1 and 2 it sits within ±0.0067 and ±0.0061 R per bracket at 95 % with brackets
+  day, ±0.0058 by symbol (±0.0060 counting only symbols with a nonzero net) and ±0.0048 by decision, the last only just (the point is +0.00474); at k = 1 and 2 it sits within ±0.0067 and ±0.0061 R per bracket at 95 % with brackets
   independent, ±0.0021 and ±0.0023 by decision, ±0.0020 and ±0.0015 by day, and ±0.0020 and ±0.0024
-  by symbol. At k = 1 and 2 metals (2 series in the manifest,
+  by symbol (±0.0024 and ±0.0028 counting only symbols with a nonzero net). At k = 1 and 2 metals (2 series in the manifest,
   both evaluated and with brackets) is bounded only to ±0.036 and ±0.025 R per bracket (220 brackets); its few flips cancel inside their
-  decisions, so the clustered errors there are exactly zero and bound nothing. Metals' +0.027 R at
+  decisions, and no metals symbol has a nonzero net at those widths, so the clustered errors there are
+  exactly zero and bound nothing. Metals' +0.027 R at
   k = 0.5 is five differing brackets netting +6 R, inside ±0.040 with brackets independent, ±0.031 by
   decision, ±0.034 by day and ±0.35 by symbol (t = 12.706 on its 1 degree of freedom). There the comparison may be of two constructions rather than two vintages.
   Of the 18 sign tests crypto and metals can run (the rest have no nonzero cluster), one rejects at
