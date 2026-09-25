@@ -46,9 +46,13 @@ lockstep:
   no cross moved a field outside its set. The commission's own value is not recomputed: on a cross the
   check is which fields moved, not by how much.
 - 22,151 rows left acceptance and 19,057 entered it, all on crosses.
-- **Violations: 0 off the crosses and 0 on them.** Two mutations of the instrument, run on the first
-  100,000 rows from the first cross, proved each check fires: disallowing `grossRealizedR` on a cross
-  flagged 68,887 rows, and requiring twice the slippage flagged 59,060.
+- **Violations: 0 off the crosses and 0 on them.** Two mutations of the instrument prove each check
+  fires, run by [`mutations.sh.txt`](/docs/research/r3/re-simulate-2026-09-24/mutations.sh.txt) on the
+  100,000 rows from the first cross row (line 1,025,913 of each corpus): disallowing `grossRealizedR`
+  on a cross flags 68,712 rows, and requiring twice the slippage flags 58,894
+  ([output](/docs/research/r3/re-simulate-2026-09-24/mutations.out.txt)). The figures first recorded
+  here, 68,887 and 59,060, came from a slice starting at AUDCAD's first row (line 3,992,617), which
+  this bullet called the first cross; it is not.
 
 **The repricer is the engine.** `banked-fraction --exit-slippage` has priced every figure since
 2026-09-23 without a re-simulate. On every market whose only change is exit slippage (every non-forex
