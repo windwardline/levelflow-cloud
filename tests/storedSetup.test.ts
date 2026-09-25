@@ -111,11 +111,10 @@ describe("storedSetupAsCandidate — the stored row as the stage's one input", (
     assert.equal(candidate.setup?.expiresAt, undefined);
     assert.equal(candidate.setup?.dataProvider, undefined);
     assert.equal(candidate.setup?.fmpSymbol, undefined);
-    // Scan-row meta the rail rows draw (cost chip, payoff, regime, rationale)
+    // Scan-row meta the rail rows draw (cost chip, payoff, regime)
     // is a scan's own reporting, not a stored fact.
     assert.equal(candidate.executionLabel, undefined);
     assert.equal(candidate.rewardRisk, undefined);
-    assert.equal(candidate.rationale, undefined);
     assert.equal(candidate.reason, undefined);
     assert.equal(candidate.blocked, undefined);
   });

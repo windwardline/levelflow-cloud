@@ -27,7 +27,6 @@ import {
   resolutionSeriesFor,
   type ResolvedOutcome,
 } from "./replay.ts";
-import { type ExecutionQuality } from "./executionQuality.ts";
 import {
   accumulateLearningStats,
   calculateLearningWeight,
@@ -307,7 +306,6 @@ type MarketScanCandidate = {
   executionLabel?: string;
   executionScore?: number;
   marketRegime?: string;
-  rationale?: string[];
   reason?: string;
   relatedSymbols?: SupportedSymbol[];
   rewardRisk?: number;
@@ -1133,7 +1131,6 @@ async function scanOpportunity(
         marketRegime: String(
           review.setup.confluence.marketRegime?.name ?? "",
         ),
-        rationale: buildScanRationale(review.setup),
         relatedSymbols: getRelatedScanSymbols(review.correlationGroup, symbol),
         rewardRisk: Number(review.setup.confluence.rewardRisk ?? 0),
         setup: review.setup,
@@ -1224,41 +1221,6 @@ function getRelatedScanSymbols(_group: string, symbol: SupportedSymbol) {
   return getRelatedSymbols(symbol).filter((candidate) =>
     defaultScanSymbols.includes(candidate)
   );
-}
-
-function buildScanRationale(
-  setup: NonNullable<Awaited<ReturnType<typeof analyzeSetup>>>,
-) {
-  const confluence = setup.confluence as Record<string, unknown>;
-  const riskModel = setup.riskModel as Record<string, unknown>;
-  const consensus = asRecord(confluence.consensus);
-  const marketRegime = asRecord(confluence.marketRegime);
-  const orderConstruction = asRecord(confluence.orderConstruction);
-  const sessionContext = asRecord(confluence.sessionContext);
-  const executionQuality = asExecutionQuality(riskModel.executionQuality);
-  const reasons = [
-    `${setup.side.toUpperCase()} setup scored ${setup.confidenceScore}/100.`,
-    `${formatTitle(String(marketRegime.name ?? "current"))} conditions.`,
-    `Payoff ${
-      Number(confluence.rewardRisk ?? 0).toFixed(2)
-    }x after trading-cost checks.`,
-  ];
-  const tickValidation = orderConstruction.tickValidation;
-  if (typeof tickValidation === "string" && tickValidation.length > 0) {
-    reasons.push(tickValidation);
-  }
-  reasons.push(
-    executionQuality
-      ? `${executionQuality.label} trading-cost check.`
-      : "Trading-cost check complete.",
-    String(sessionContext.label ?? "Session checked."),
-  );
-  const agreementRatio = Number(consensus.agreementRatio ?? 0);
-  if (agreementRatio > 0) {
-    reasons.push(`${Math.round(agreementRatio * 100)}% direction agreement.`);
-  }
-
-  return reasons.slice(0, 5);
 }
 
 async function findStrongerActiveCorrelatedSetup(
@@ -2602,26 +2564,6 @@ function buildSetupKey(
     leaders || "balanced",
   ].join("_");
   return context.replace(/[^a-zA-Z0-9_+.-]/g, "_");
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-}
-
-function asExecutionQuality(value: unknown): ExecutionQuality | null {
-  const record = asRecord(value);
-  return typeof record.label === "string" && typeof record.score === "number"
-    ? record as unknown as ExecutionQuality
-    : null;
-}
-
-function formatTitle(value: string) {
-  return value
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase())
-    .trim();
 }
 
 function normalizeSymbol(value: string) {

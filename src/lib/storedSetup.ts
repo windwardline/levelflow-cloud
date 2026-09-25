@@ -128,7 +128,7 @@ export function storedSetupAsCandidate(
     assetType: getSecurityOption(setup.symbol).assetType,
     // Only what the stage's adoption path actually reads (its symbol and its
     // setup) plus the class above. The scan row's own reporting — cost chip,
-    // payoff, regime, rationale — belongs to a scan that has just run; it is not
+    // payoff, regime — belongs to a scan that has just run; it is not
     // a stored fact, and a restore states nothing it cannot read (§17f).
     ...(restorable
       ? {
