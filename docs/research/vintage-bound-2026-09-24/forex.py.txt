@@ -63,7 +63,7 @@ for k in KS:
 print("pooled rows reproduce vintage_bound.out.txt's forex class line")
 print()
 print("Sampling error of the pooled net, under the null that each difference is as likely to favour either vintage:")
-print("the sign-flip standard error sqrt(sum of squares): per bracket, then clustered by UTC decision day, then by decision")
+print("the sign-flip standard error sqrt(sum of squares): per bracket, then clustered by UTC decision day")
 for k in KS:
     n, nzc, s_ = pooled[k]
     se_bracket = squares[k] ** 0.5

@@ -6,7 +6,9 @@ two classes the record bounds in its last bullet: per bracket, clustered by deci
 and short brackets at one decision time) and clustered by UTC decision day, with the 95 % half-width
 per bracket each implies (1.96 per bracket and by decision, t at days - 1 by day). Uses
 vintage_bound.py.txt's own loaders and brackets and asserts its pooled rows reproduce the recorded
-class lines. Read-only, standard library, zero provider bytes. Run from anywhere:
+class lines. Its exclusions are parsed from the committed vintage_bound.out.txt rather than a live run,
+so it is pinned to that artifact; if the two drift, the RECORDED assert fails loudly rather than
+pooling a different population. Read-only, standard library, zero provider bytes. Run from anywhere:
     python3 docs/research/vintage-bound-2026-09-24/classes.py.txt
 """
 import importlib.machinery, importlib.util, json, math, os, sys
