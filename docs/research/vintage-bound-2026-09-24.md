@@ -99,7 +99,8 @@ k = 0.5, and 240 against 120 at k = 1. The rest is unexplained.
 | agriculture | 1 | 10.0 % / 0 % / 0 % | −0.200 / 0 / 0 R |
 
 Agriculture is one symbol and ten brackets, so its −0.200 R is one flipped bracket. Indices and
-livestock hold no 8-hour span inside the window's sessions.
+livestock hold no 8-hour span inside the window's sessions. The manifest's eighth asset type,
+energies, holds one market, WTI, whose provider series is CLUSD's; it is measured once, under futures.
 
 **A shift or a revision?** If one series were the other shifted (bid against mid, say), the bank's
 close would sit off the cache's by a constant. It does not. Across all 28 forex pairs
@@ -177,15 +178,19 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   bracket, the line would be 0.03. It does not come from EURUSD, whose large one-sided gaps net +2 R
   over its 156 brackets at k = 2; it is spread across the crosses (14 pairs negative, 12 zero, 2
   positive, the largest AUDCHF, CHFJPY and EURCHF at −6 R each). GBPUSD and EURUSD carry the
-  two-constructions caveat above.
+  two-constructions caveat above, and so does the class: in 23 of the 28 pairs the bank's bucket sits
+  lower than the cache's at both ends, a shift the record prints and cannot explain, so for forex it
+  cannot separate revision from construction either.
 - **Futures is not established. At the tightest width it moves against the bank's copies under three
   of the four units, but not under the symbol, its widest**
-  ([classes](/docs/research/vintage-bound-2026-09-24/classes.out.txt)). 18 series in the manifest, all
-  18 evaluated and with brackets, 1,292 brackets. At k = 0.5 the net is −50 R, −0.0387 R per bracket, and zero lies outside the 95 %
+  ([classes](/docs/research/vintage-bound-2026-09-24/classes.out.txt)). 18 series in the manifest's futures
+  entries (WTI, its one energies market, shares CLUSD's series and is measured with it), all 18
+  evaluated and with brackets, 1,292 brackets. At k = 0.5 the net is −50 R, −0.0387 R per bracket, and zero lies outside the 95 %
   interval with brackets independent (±0.0345), by decision (±0.0204, the deflated estimator) and by day (±0.0308); the sign
   tests agree on brackets (77 of 129 negative, p = 0.03), decisions (35 of 45, p = 0.0002) and days
-  (10 of 11, p = 0.01). Clustered by symbol it does not reject (±0.0468 at t on 17 degrees of
-  freedom; 8 of 12 symbols negative, p = 0.39). The symbol is futures' widest unit (28.6 R, against 18.4 by day and 22.7 per
+  (10 of 11, p = 0.01). Clustered by symbol it does not reject (±0.0468 at t = 2.110 on 17
+  degrees of freedom; counting only the 12 symbols with a nonzero net, t = 2.201 at 11, ±0.049; 8 of
+  the 12 negative, p = 0.39). The symbol is futures' widest unit (28.6 R, against 18.4 by day and 22.7 per
   bracket), so the record's own rule of taking the wider unit picks the one that does not reject: unlike
   forex, futures does not meet the standard of rejecting under every aggregated clustering. One symbol
   carries much of it: HOUSD nets −24 R of the −50, and HOUSD and RBUSD all of the −8 at k = 2. ESUSD,
@@ -193,7 +198,9 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   containment measurement, and at the class grain futures' extremes lean the way two constructions
   would: over 58,451 buckets the bank's high sits below the cache's on 25.3 % and above on 17.5 %, and
   its low above on 24.4 % and below on 19.4 %, the bank's bucket inside the cache's rather than shifted
-  as forex's is. For futures, as for forex, the record cannot separate revision from construction. At k = 1 and 2 the
+  as forex's is. For futures, as for forex, the record cannot separate revision from construction. Futures has no
+  established width, and its widest interval at k = 0.5 is about ±0.047 R per bracket, by symbol: a
+  futures figure that moves by less than that cannot be told from the vintage. At k = 1 and 2 the
   nets, −0.0077 and −0.0062 R per bracket, sit inside every interval but the deflated decision one at
   k = 2 (±0.0061), whose sign test does not reject (4 of 4 decisions, p = 0.13). Agriculture (6 series
   in the manifest, all 6 evaluated, 1 with brackets, 10 brackets) bounds nothing: one flipped bracket at k = 0.5, none at the
@@ -203,11 +210,12 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   manifest, 31 evaluated after the DYDXUSD and FILUSD skips, 28 with brackets, 5,490 brackets) is
   +0.0047 R per bracket at k = 0.5, inside ±0.0071 with brackets independent, ±0.0051 clustered by
   day, ±0.0058 by symbol and ±0.0048 by decision, the last only just (the point is +0.00474); at k = 1 and 2 it sits within ±0.0067 and ±0.0061 R per bracket at 95 % with brackets
-  independent, and within ±0.0020 and ±0.0015 clustered by day. At k = 1 and 2 metals (2 series in the manifest,
+  independent, ±0.0021 and ±0.0023 by decision, ±0.0020 and ±0.0015 by day, and ±0.0020 and ±0.0024
+  by symbol. At k = 1 and 2 metals (2 series in the manifest,
   both evaluated and with brackets) is bounded only to ±0.036 and ±0.025 R per bracket (220 brackets); its few flips cancel inside their
   decisions, so the clustered errors there are exactly zero and bound nothing. Metals' +0.027 R at
   k = 0.5 is five differing brackets netting +6 R, inside ±0.040 with brackets independent, ±0.031 by
-  decision and ±0.034 by day. There the comparison may be of two constructions rather than two vintages.
+  decision, ±0.034 by day and ±0.35 by symbol (t = 12.706 on its 1 degree of freedom). There the comparison may be of two constructions rather than two vintages.
   Of the 18 sign tests crypto and metals can run (the rest have no nonzero cluster), one rejects at
   0.05: at k = 0.5, 15 of the 20 crypto symbols with a nonzero net favour the bank (p = 0.04), against
   forex's direction, with the decision test at p = 0.07 and the day test at 0.30. One in 18 at that
