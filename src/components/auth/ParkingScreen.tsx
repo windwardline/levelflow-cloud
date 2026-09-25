@@ -1,11 +1,15 @@
 import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppFooter } from "../AppFooter";
+import { DonationOptions } from "../donations/DonationOptions";
 import { LevelflowMark } from "../LevelflowMark";
 import {
   SATELLITE_FRAME,
   SATELLITE_FRAME_SCROLL,
 } from "../satelliteFrame";
-import { SUPPORT_MAILTO } from "../../lib/support";
+import { donateRequested } from "../../lib/donateEntry";
+import { DONATION_SUPPORT_COPY } from "../../lib/donationCopy";
+import { DONATION_REQUEST_MAILTO, SUPPORT_MAILTO } from "../../lib/support";
 
 // The construction soft gate's face: the parking composition from the static twin
 // (public/construction.html), rendered by the app so the theme toggle and tokens
@@ -23,6 +27,23 @@ import { SUPPORT_MAILTO } from "../../lib/support";
 // prior wave added, when this page had no footer at all, was a second home for
 // three links the footer already carries.
 export function ParkingScreen({ themeControl }: { themeControl?: ReactNode }) {
+  // While the desk is parked the app root is this screen, so a Donate that linked
+  // to the root reloaded this page and nothing else (2026-09-24). It reveals the
+  // sign-in screen's donation block instead, read from the one predicate both
+  // screens share (src/lib/donateEntry.ts), and §17j's composition at rest is
+  // unchanged: the block exists only once asked for.
+  const [donationsOpen, setDonationsOpen] = useState(donateRequested);
+  const donationsRef = useRef<HTMLDivElement>(null);
+
+  // The footer is the frame's bottom row, so the block it opens can sit a scroll
+  // region away from it; bring it into view once React has mounted it. Also
+  // covers the ?donate / #donate entry, which opens it on load.
+  useEffect(() => {
+    if (donationsOpen) {
+      donationsRef.current?.scrollIntoView({ block: "center" });
+    }
+  }, [donationsOpen]);
+
   return (
     <main className={SATELLITE_FRAME}>
       {/* Named for the page, which is what the eyebrow below already calls it:
@@ -61,12 +82,31 @@ export function ParkingScreen({ themeControl }: { themeControl?: ReactNode }) {
             The desk is closed while we work on it. Sign-in resumes the moment it
             reopens.
           </p>
+          {donationsOpen ? (
+            <div
+              ref={donationsRef}
+              className="mx-auto mt-8 max-w-md border-t border-ink-muted/15 pt-4 text-left"
+            >
+              <p className="mb-4 text-sm leading-6 text-ink-muted">
+                {DONATION_SUPPORT_COPY}
+              </p>
+              <DonationOptions
+                fallbackHref={DONATION_REQUEST_MAILTO}
+                mode="compact"
+              />
+            </div>
+          ) : null}
         </div>
       </div>
-      {/* The app root, with the app's own donate entry point: this screen has no
-          in-page donation block to reveal, and the root is where one lives the
-          moment the gate lifts (AuthScreen reads ?donate on load). */}
-      <AppFooter donate={{ href: "/?donate" }} supportMailto={SUPPORT_MAILTO} />
+      {/* The footer's Donate is the disclosure for the block above, as on the
+          sign-in screen. */}
+      <AppFooter
+        donate={{
+          expanded: donationsOpen,
+          onSelect: () => setDonationsOpen((value) => !value),
+        }}
+        supportMailto={SUPPORT_MAILTO}
+      />
     </main>
   );
 }

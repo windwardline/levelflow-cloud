@@ -97,7 +97,7 @@ describe("construction soft gate", () => {
     assert.match(screen, /import \{ AppFooter \} from "\.\.\/AppFooter";/);
     // The footer's own link row is where the trio comes from, and it reads the
     // single source LegalLinks.tsx exports (tests/appFooter.test.ts pins that).
-    assert.match(screen, /<AppFooter\s+donate=\{\{ href: "\/\?donate" \}\}/);
+    assert.match(screen, /<AppFooter\s+donate=\{\{\s*expanded: donationsOpen,/);
     // Signed out there is no frame to present a document in, so this screen passes
     // neither §17o tier-2 prop and the trio stays a set of plain links — which now
     // navigate in the SAME tab, the new tab having been the thing §17o removed.
@@ -278,6 +278,70 @@ describe("an unpark may not carry a condemned claim back onto a screen", () => {
         "withholds. Publishing the pre-repair figures with a caveat would " +
         "still be publishing them (copy law: text must not say what is not " +
         "true).",
+    );
+  });
+});
+
+describe("the parking screen answers its own Donate", () => {
+  // While the desk is parked the app root IS this screen, so a Donate that links
+  // to the root reloads the parking page and nothing else. It reveals the same
+  // donation block the sign-in screen reveals instead, and §17j's composition at
+  // rest (mark, eyebrow, wordmark, accent rule, one body line, the footer) is
+  // unchanged: the block exists only once asked for.
+  const screen = readFileSync("src/components/auth/ParkingScreen.tsx", "utf8");
+
+  it("opens on the ?donate ask, read from the one shared predicate", () => {
+    assert.match(screen, /import \{ donateRequested \} from "\.\.\/\.\.\/lib\/donateEntry";/);
+    assert.match(screen, /useState\(donateRequested\)/);
+  });
+
+  it("renders the sign-in screen's donation block, only when open", () => {
+    assert.match(screen, /\{donationsOpen \? \(/);
+    assert.match(screen, /\{DONATION_SUPPORT_COPY\}/);
+    assert.match(screen, /<DonationOptions\s+fallbackHref=\{DONATION_REQUEST_MAILTO\}\s+mode="compact"\s*\/>/);
+  });
+});
+
+// The gate-dependent E2E population, derived rather than counted (#705 review): every
+// test in public-auth.spec.ts that asserts the parking face. HANDOFF's unpark step named
+// two, then three, by hand; this reads the file, so a fourth fails at the flip rather
+// than in the acceptance deploy. The face is either of its two signals, the eyebrow or
+// §17j's canonical line, matched in any quoting and collapsed on whitespace as the §17j
+// block above does; comments are dropped first, so prose about the face is not a test of it.
+describe("an unpark leaves no E2E test asserting the parking face", () => {
+  const FACE_SIGNALS = ["Under construction", "The desk is closed while we work on it"];
+  // What the derivation reads today, pinned so it cannot shrink or grow unnoticed. A change
+  // here and a change to HANDOFF's unpark step belong in the same change set.
+  const PARKED_FACE_TESTS = [
+    "/?donate on the parked screen opens its donation block and brings it into view",
+    "the gate is up — signed-out visitors land on parking, not sign-in",
+  ];
+  const gateIsOpen = () => /export const PARKING_GATE = false;/.test(readFileSync("src/lib/parkingGate.ts", "utf8"));
+  const parkedFaceTests = () =>
+    readFileSync("tests/e2e/public-auth.spec.ts", "utf8")
+      .split(/^(?=[ \t]*test\()/m)
+      .filter((block) => /^[ \t]*test\(/.test(block))
+      .filter((block) => {
+        const code = block.replace(/^[ \t]*\/\/.*$/gm, "").replace(/\s+/g, " ");
+        return FACE_SIGNALS.some((signal) => code.includes(signal));
+      })
+      .map((block) => /test\(\s*["'`](.+?)["'`]/.exec(block)?.[1] ?? "<unnamed test>");
+
+  it("names them while parked, and fails an open gate that keeps any", (t) => {
+    const tests = parkedFaceTests();
+    if (!gateIsOpen()) {
+      assert.deepEqual(
+        [...tests].sort(),
+        [...PARKED_FACE_TESTS].sort(),
+        "the E2E tests asserting the parking face changed: update PARKED_FACE_TESTS and HANDOFF's unpark step together",
+      );
+      t.diagnostic(`PARKING_GATE is TRUE — ${tests.length} E2E tests assert the parking face and go at unpark: ${tests.join(" | ")}`);
+      return;
+    }
+    assert.deepEqual(
+      tests,
+      [],
+      "PARKING_GATE is FALSE and these E2E tests still assert the parking face: invert or delete them (HANDOFF's unpark step)",
     );
   });
 });

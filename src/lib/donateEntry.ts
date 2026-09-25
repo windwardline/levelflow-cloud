@@ -1,11 +1,12 @@
 // "Show me the donation surface", as a URL can say it: /?donate or /#donate.
 //
 // The satellite pages have always asked this way — public/legal/*.html's footer
-// carries `<a href="/?donate">Donate</a>`, and so does the parking page — but only
-// the sign-in screen answered. A signed-in reader who tapped it got the app's
-// remembered tab instead, since App.tsx read the ask nowhere. One predicate here,
-// read by both surfaces (AuthScreen's disclosure, App's opening tab), so the two
-// cannot drift on what asking looks like.
+// carries `<a href="/?donate">Donate</a>`, and so does the parking page — but for a
+// time only the sign-in screen answered. A signed-in reader who tapped it got the
+// app's remembered tab, since App.tsx read the ask nowhere; and while the desk was
+// parked the link reloaded the parking page (answered 2026-09-24). One predicate
+// here, read by all three surfaces (AuthScreen's and ParkingScreen's disclosures,
+// App's opening tab), so they cannot drift on what asking looks like.
 //
 // Kept as a pair of pure functions over the URL's own two halves, with the DOM
 // pair beneath them: this repo's unit suite has no DOM, and the rules worth

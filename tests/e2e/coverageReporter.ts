@@ -15,7 +15,7 @@ import { type StoodDown, summarizeE2ECoverage } from "./coverage.ts";
 
 // Evidence for the number: this suite stands down 1 test on a healthy run
 // (2026-08-12) and 14 while the upstream market feed is refusing (2026-08-17),
-// out of 115. The ceiling sits well above the known-legitimate worst case on
+// out of the 115 it ran then. The ceiling sits well above the known-legitimate worst case on
 // purpose — it is a runaway guard, not a coverage target, and tripping it
 // should mean something new is wrong rather than something known is ongoing.
 const DEFAULT_CEILING = 25;

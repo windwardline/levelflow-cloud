@@ -101,20 +101,21 @@ describe("AppFooter — the one footer's composition (p-profile-v2.html:96-99)",
     // aria-expanded rides the union member that can actually be a disclosure, and
     // is undefined (so absent from the DOM) for the app's own tab switch.
     assert.match(footer, /aria-expanded=\{donate\.expanded\}/);
-    // Every caller, and which target each one gives: the app switches tabs, the
-    // login screen reveals its own donation block, parking links to the app root.
+    // Every caller, and which target each one gives: the app switches tabs, and
+    // the login and parking screens each reveal their own donation block. Parking
+    // used to link to the app root, which is the parking screen again while the
+    // desk is parked, so its Donate went nowhere (2026-09-24).
     // §17o tier 1 put every in-app destination behind one navigation funnel, so the
     // app's Donate target is that funnel rather than a bare setState — which is also
     // what gives the switch its history entry.
     assert.match(app, /onSelect: \(\) =>\s*goToSurface\(\{ \.\.\.currentSurface, tab: "donate", document: null \}\)/);
-    assert.match(
-      readFileSync("src/components/auth/ParkingScreen.tsx", "utf8"),
-      /<AppFooter donate=\{\{ href: "\/\?donate" \}\} supportMailto=\{SUPPORT_MAILTO\} \/>/,
-    );
-    assert.match(
-      readFileSync("src/components/auth/AuthScreen.tsx", "utf8"),
-      /donate=\{\{\s*expanded: donationsOpen,\s*onSelect: \(\) => setDonationsOpen\(\(value\) => !value\),\s*\}\}/,
-    );
+    for (const screen of ["src/components/auth/AuthScreen.tsx", "src/components/auth/ParkingScreen.tsx"]) {
+      assert.match(
+        readFileSync(screen, "utf8"),
+        /donate=\{\{\s*expanded: donationsOpen,\s*onSelect: \(\) => setDonationsOpen\(\(value\) => !value\),\s*\}\}/,
+        screen,
+      );
+    }
   });
 
   it("drops the fixed tab bar's clearance — the footer never shares a viewport with the bar (§17g)", () => {

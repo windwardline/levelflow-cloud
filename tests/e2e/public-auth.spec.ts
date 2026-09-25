@@ -485,6 +485,48 @@ test("/?donate opens the login screen's donation block and brings it into view",
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
+// The parked twin (2026-09-24): while the desk is parked, /?donate without ?enter
+// lands on the parking screen, which now answers the ask itself. Before, its
+// footer linked to the app root, which was the parking page again.
+//
+// A GATE TEST, the third beside the two below: it holds only while PARKING_GATE is
+// true. At unpark, delete it; the login screen's /?donate test above covers the
+// ask once the root is the sign-in screen (HANDOFF's unpark procedure names it).
+test("/?donate on the parked screen opens its donation block and brings it into view", async ({
+  page,
+}) => {
+  // 375x460: short enough that the block starts below the frame's scroll region,
+  // which the first assertion on its geometry checks rather than assumes.
+  await page.setViewportSize({ width: 375, height: 460 });
+  await page.goto("/?donate", { waitUntil: "networkidle" });
+  await expect(page.getByText("Under construction", { exact: true })).toBeVisible();
+
+  const donate = page.getByRole("button", { name: "Donate", exact: true });
+  await expect(donate).toHaveAttribute("aria-expanded", "true");
+  const options = page.getByText(DONATION_SUPPORT_COPY);
+  await expect(options).toBeVisible();
+  // Inside the frame's scroll region, not merely inside the window: the region
+  // clips its content above the footer, and a clipped block still reports window
+  // coordinates on screen.
+  const region = page.getByRole("region", { name: "Under construction" });
+  const geometry = await options.evaluate((element, frame) => {
+    const scroller = frame as Element;
+    const box = element.getBoundingClientRect();
+    const clip = scroller.getBoundingClientRect();
+    return {
+      // Where the block's bottom would sit with the region unscrolled.
+      startsOutOfView: box.bottom + scroller.scrollTop > clip.bottom,
+      inView: box.top >= clip.top && box.bottom <= clip.bottom,
+    };
+  }, await region.elementHandle());
+  expect(
+    geometry.startsOutOfView,
+    "the block no longer starts below the fold at this height, so the in-view check proves nothing: lower the height",
+  ).toBe(true);
+  expect(geometry.inView, "the donation block opened out of view").toBe(true);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
 test("the login screen's region is a named keyboard stop too", async ({ page }) => {
   // The same fix on the React half of the satellite set, at the width where that
   // screen overflows its frame. Reached by role and name, which is the other
