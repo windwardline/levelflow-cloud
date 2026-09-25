@@ -90,7 +90,15 @@ for cls in ("crypto", "metals", "futures", "agriculture"):
         # Round 13: the symbol's interval too, at t on symbols - 1; one symbol has none.
         if len(by_pair) >= 2:
             ts = tinv975(len(by_pair) - 1)
-            by_symbol = f", {ts * se_p / n:.4f} (by symbol, t {ts:.3f} at {len(by_pair) - 1} df)"
+            by_symbol = f", {ts * se_p / n:.4f} (by symbol, t {ts:.3f} at {len(by_pair) - 1} df"
+            # Round 15: the same interval counting only symbols with a nonzero net, as the record reads
+            # forex's days both ways.
+            nz = sum(1 for v in by_pair.values() if v != 0)
+            if nz >= 2:
+                tz = tinv975(nz - 1)
+                by_symbol += f"; nonzero symbols only {tz * se_p / n:.4f}, t {tz:.3f} at {nz - 1} df)"
+            else:
+                by_symbol += f"; nonzero symbols only n/a, {nz} of them)"
         else:
             by_symbol = ", n/a (by symbol: one symbol)"
         if not any(d):
