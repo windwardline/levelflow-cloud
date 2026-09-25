@@ -1,0 +1,53 @@
+#!/bin/bash
+# The two mutation proofs of attribute.py.txt (#706 review): each of its checks must fire on rows that
+# hold crosses. The corpora do not open on a cross, so the slice is the first 100,000 rows from the first
+# cross row, found in each corpus from the manifest's own forex roster. Each mutated copy is refused
+# unless the edit changed it, and a run that prints no VIOLATIONS line is refused as no verdict.
+# Read-only against the corpora; writes only to a temporary directory it removes.
+# Usage: bash docs/research/r3/re-simulate-2026-09-24/mutations.sh.txt <directory holding both corpora>
+set -euo pipefail
+HERE=$(cd "$(dirname "$0")" && pwd)
+C=${1:?the directory holding capture-all-classfolds-2026-09-14.jsonl and -2026-09-24.jsonl}
+OLD=$C/capture-all-classfolds-2026-09-14.jsonl
+NEW=$C/capture-all-classfolds-2026-09-24.jsonl
+TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
+CROSSES=$(python3 -c '
+import json, sys
+majors = {"EURUSD", "GBPUSD", "AUDUSD", "NZDUSD", "USDJPY", "USDCHF", "USDCAD"}
+m = json.load(open(sys.argv[1]))["symbols"]
+print("|".join(sorted(e["symbol"] for e in m if e["assetType"] == "forex" and e["symbol"] not in majors)))
+' "$OLD.manifest.json")
+[ "$(echo "$CROSSES" | tr '|' '\n' | wc -l | tr -d ' ')" = 21 ] || { echo "expected 21 crosses"; exit 2; }
+first() { LANG=C grep -n -m1 -E "\"symbol\":\"($CROSSES)\"" "$1" | cut -d: -f1; }
+N_OLD=$(first "$OLD"); N_NEW=$(first "$NEW")
+[ -n "$N_OLD" ] && [ "$N_OLD" = "$N_NEW" ] || { echo "first cross row differs: $N_OLD vs $N_NEW"; exit 2; }
+echo "first cross row: line $N_OLD in both corpora; slice: 100000 rows from there"
+# sed quits at the slice's last line, so nothing downstream closes a pipe on it (pipefail).
+END=$((N_OLD + 99999))
+sed -n "${N_OLD},${END}p;${END}q" "$OLD" > "$TMP/old.jsonl"
+sed -n "${N_NEW},${END}p;${END}q" "$NEW" > "$TMP/new.jsonl"
+[ "$(wc -l < "$TMP/old.jsonl" | tr -d ' ')" = 100000 ] && [ "$(wc -l < "$TMP/new.jsonl" | tr -d ' ')" = 100000 ] || { echo "slice is not 100000 rows"; exit 2; }
+cp "$OLD.manifest.json" "$TMP/old.jsonl.manifest.json"
+A=$HERE/attribute.py.txt
+sed 's/"ladderRewardRisk", "grossRealizedR"/"ladderRewardRisk"/' "$A" > "$TMP/no-gross.py"
+sed 's/abs(abs(d) - slip) <= 2e-8/abs(abs(d) - 2 * slip) <= 2e-8/' "$A" > "$TMP/double-slip.py"
+for m in no-gross double-slip; do cmp -s "$A" "$TMP/$m.py" && { echo "mutation $m did not change the instrument"; exit 2; }; done
+# Each run must print both lines, and its verdict must be the one the proof needs: the instrument as
+# committed finds nothing, and each mutation finds cross violations. Anything else refuses.
+run() {
+  local label=$1 file=$2 want=$3 out rows verdict cross
+  out=$(python3 "$file" "$TMP/old.jsonl" "$TMP/new.jsonl")
+  rows=$(echo "$out" | grep -E '^rows compared' || true)
+  verdict=$(echo "$out" | grep -E '^VIOLATIONS' || true)
+  [ -n "$rows" ] && [ -n "$verdict" ] || { echo "$label: no verdict"; exit 2; }
+  cross=$(echo "$verdict" | sed -E 's/.*cross ([0-9]+).*/\1/')
+  echo "$label: $(echo "$rows" | cut -c1-80)"
+  echo "$label: $verdict"
+  case $want in
+    clean) [[ "$verdict" == "VIOLATIONS: non-cross 0, cross 0" ]] || { echo "$label: expected no violations"; exit 1; } ;;
+    fires) [ "$cross" -gt 0 ] || { echo "$label: the check did not fire"; exit 1; } ;;
+  esac
+}
+run "instrument as committed" "$A" clean
+run "grossRealizedR disallowed on a cross" "$TMP/no-gross.py" fires
+run "twice the slippage required" "$TMP/double-slip.py" fires

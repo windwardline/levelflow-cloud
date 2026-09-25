@@ -113,7 +113,9 @@ describe("consuming the ask takes only the ask out of the URL", () => {
   });
 });
 
-describe("both surfaces read one ask, and the app consumes it once", () => {
+// The app and the sign-in screen are pinned here; the parking screen's reading of the same
+// predicate is pinned in tests/parkingGate.test.ts.
+describe("the app and the sign-in screen read one ask, and the app consumes it once", () => {
   const app = readFileSync("src/App.tsx", "utf8");
   const auth = readFileSync("src/components/auth/AuthScreen.tsx", "utf8");
   const entry = readFileSync("src/lib/donateEntry.ts", "utf8");

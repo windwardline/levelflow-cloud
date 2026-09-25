@@ -32,6 +32,84 @@ coverage question closed, and the desk went dark on purpose.
 
 ## 1. Where things actually stand
 
+### 2026-09-24: amendment 48 at its seventh pass, the first family designed and held, the re-simulate re-graded, the vintage priced — and what the next session picks up
+
+**The goal.** Reopen the desk with setups that earn net realized R (amendment 39). The next session opens with a fresh CONVERGE on one question: what is the fastest honest route from here to a desk that is open and profitable?
+
+**Where the desk stands.** Parked. It reopens when an entry family, or a program under amendment 48's Q4, confirms net-positive realized R on a confirm read no one has seen. Amendment 48 is the gate. It has closed everything its refuters found and waits on the owner's Q1–Q6; nothing registers until it is law. The one family this session designed is held unscreened, because screening it before registration would spend the only candidate the round produced. The re-simulate at the current engine confirms the rest. No grid variant is accepted on net at market grain. The hour gate is 0 of 91. The shipped ladder loses on both tuning folds pooled.
+
+**What the evidence says about routes to profit (for the converge; none of it is a finding to act on alone).**
+- **Forex is the only class near money, and its money is in suspect years.** On the current-engine corpus, the shipped ladder at ½ earns +1,452.7 R on select forex. That is +2,788.7 R in the escaping years, whose 5-minute feed escapes its baseline (2021 on all 28 pairs, 2022–23 on 27), and −1,336.0 R in the contained years. Fit forex is −235.2 R.
+- **Fifteen forex crosses' shipped cells clear zero on select at lo95** (`grid-totalr` per market, net; every year pooled, so the escaping-years caveat applies): AUDCAD, AUDCHF, AUDNZD, CADCHF, EURAUD, EURCAD, EURCHF, EURGBP, EURNZD, GBPCAD, GBPCHF, GBPJPY, GBPNZD, NZDCAD, NZDCHF. It is 6 under the bound arm. How a shipped cell could be confirmed is Q4's question.
+- **Banking nothing at TP1 (f = 0) beats ½ in all 22 in-pool forex markets on both folds**, and it still leaves contained select forex at −606.1 R: the 2026-09-06 verdict again.
+- **The payoff gap** (amendment 39): the gate asks 1.6:1 and the ladder ships about 1:1 before costs. The design round's judge rated closing it from real structure the fastest route of any. It registers under Q4.
+- **The vintage question sizes what can be trusted:** a forex figure that moves by less than about 0.02 R per bracket is a vintage question, not a finding.
+
+**Landed, merged, deployed where that applies (deploy green through `e15a000`; production `/?donate` checked in a browser at 375×460).**
+- **#702** — amendment 48's seventh pass ([draft](/docs/research/designs/amendment-48-draft-2026-09-24.md)). Refute round 2 on the fifth pass: five lensed refuters, a checker each, 77 findings, 21 majors surviving in eleven root causes. The sixth pass closed them; a closure check found seven new majors in its own mechanics; the seventh closes those ([round](/docs/research/designs/amendment-48-refute-round-2-2026-09-24.md)). It is parked for Q1–Q6, and the text as ruled takes one more refute round before it is law. The same PR carries the first entry-family design round ([record](/docs/research/designs/entry-family-design-round-2026-09-24.md)): five designers from five published sources, two refuters each, a judge. One candidate survives, `imom-close-hedging-v1` (ES and NQ, the day's move taken at 15:30 ET and held to the 16:00 ET close), and it is a long shot. Two designs were refused for leakage.
+- **#706** — the re-simulate ([record](/docs/research/re-simulate-2026-09-24.md)): engine `2026.09.23.expiry-exit-slippage`, zero provider bytes, capture-all (6,634,732 rows) and `--ignore-low-edge` (7,427,390).
+  - Every row differing from 2026-09-14 is attributed, crosses included, with 0 violations; two mutations prove each check fires.
+  - The `--exit-slippage` repricer equals the engine at the printed precision on every market whose only change is slippage, so every figure it priced stands.
+  - Fit and select, confirm sealed: the eight arming-bound cells reproduce an independent control, and in-span cells clearing zero under the bound fall from 2 of 4 to 1.
+  - No low-edge window earns on select (33 lose, 18 unresolved of 51), so the refusals stand.
+  - **This corpus supersedes 2026-09-14 for fit and select reads.**
+- **#699** — the vintage bound ([record](/docs/research/vintage-bound-2026-09-24.md)).
+  - Forex bank copies read about 0.01 R per bracket worse than FMP's later history at k = 2, the measured width nearest the engine's stop. The direction holds under every aggregated clustering and not per bracket.
+  - Futures is not established.
+  - Crypto and metals are not measurably moved at any width.
+  - On forex and futures the record cannot separate revision from construction.
+  - Its last round withdrew a stop conversion built on the wrong premise: `stopAtrMultiplier` is the pivot buffer, not the stop. The engine floors the stop at 1.25 ATR15 and caps it per market.
+- **#705** — the parking screen answers its own Donate. An open gate fails `tests/parkingGate.test.ts` while any E2E test still asserts the parking face.
+- **#698** — the minute bank's label clock is measured and decoded per venue.
+- **#700** — the rejected-key count reconciled (1,417 = 805 + 612), `--spend-class` documented, and the FMP calls table rebuilt from code.
+- **#701**, **#703** — the anchored preflight checks each forex cross's USD-leg daily store, from a census derived from the driver.
+- **#704** — the scan response's unrendered rationale is gone.
+- **windwardline#119** — CADENCE.md runs both restore proofs from `origin/main`. Both ran that way on 2026-09-25: 21 tables from `postgres-20260924`, 4,615,702 bars from `minute-bank-20260925`.
+- This change set: the rebuild logs' row in the [off-box register](/docs/offbox-archives.md), #705 and #706's review minors, and this entry.
+
+**Machine state.** Every worktree from this session is removed and the shared checkout is on `main`. FMP, UTC 2026-09-24: 143.9 MB (top-up 46.9, bank 96.9, no ad-hoc); the re-simulate spent nothing. The two re-simulate corpora (17.8 and 19.9 GB) sit in `docs/research/r3/`, gitignored. The Playwright chromium headless shell (the repo's pinned toolchain, 94 MB) was installed to run the release E2E. Session artifacts, outside the reaped scratchpad, are in `~/Library/Application Support/WindwardLineToolchain/levelflow/session-artifacts-2026-09-24/`: every workflow journal of this session (hash-matched), the re-simulate's scratch, and the carry list.
+
+**The sequence, in order. The first act is a fresh CONVERGE on the route to a profitable open desk; it re-ranks what follows.**
+1. **Amendment 48 into law.** Once the owner has ruled Q1–Q6: apply the rulings, run one refute round with a checker per refuter on the text as ruled, verify the checkers, and record it. Fold in #702's advisory: `H_s`'s depth (`--days max`) is pinned in prose only. Make it a freeze-line field, a sweep refusal, a test (d) check and a mutation.
+2. **The payoff gap** (amendment 39): close the gap between the 1.6:1 gate and the roughly 1:1 the ladder ships, from real structure. Never by moving a target or stop to improve a printed ratio. It is a program under Q4.
+3. **The first family.** Once OQ-1 to OQ-3 are answered, register `imom-close-hedging-v1` (only if alpha is charged at the freeze, Q3) or design the next. Screen on fit at zero bytes after its build list (New York wall-clock null, calendar eligibility, B-ladder clusters, per-decision cost).
+4. **The cross-rate parity instrument**, with a reader exclusion for the recovered EURUSD block.
+5. **Ops:** `update-types` on the npm security group as a fleet change (FLEET.md, the checker, the template, every repo). The late-review triage step ran this session: no merged PR carried review content posted after its merge.
+6. **Leftovers:**
+   - detect a `confirm-4d` freeze orphaned by a crash;
+   - the recovery's price scan at long windows (about 320 s for 97 symbols at 31 days, against the bank lock's 900 s wait);
+   - COT files never top up;
+   - the donation block `AuthScreen.tsx` and `ParkingScreen.tsx` both render, identical but for its wrapper.
+7. **Bookkeeping:** the regrade build and the FMP records change set, both designed in `docs/research/designs/`.
+
+**Carried from this session's reviews, advisory, none red today.**
+- The 2026-09-23 entry's carried list stands.
+- The vintage bound's open measurements for the standing question.
+  - Does a symbol's net track how much FMP revised it? Futures' two drivers, HOUSD and RBUSD, are its two most revised (22.4 % and 22.6 % exact), and across futures ATR15/ATR5 moves with the exact share, so the two candidate explanations may be one construction effect.
+  - Measure an engine-faithful stop per market from corpus `riskDistance` rather than from class rows. #699 withdrew a conversion built on `stopAtrMultiplier`.
+  - State coverage beside futures' thin rows (ZTUSD 5 decisions, ZBUSD 6).
+  - Quote WTI's row.
+  - Check why ZBUSD and ZFUSD print one identical ratio.
+  - #699's round 25 (merged at that head) leaves three items. `ranges.py.txt`'s drift guard should watch the per-market `maxStopAtrMultiplier` caps it now depends on, derived from the resolver rather than a hand-kept set. The 1.25-ATR floor supports a one-sided conversion the record withdrew whole: a forex bracket at k = 2 is at most 0.78 to 0.93 of the engine's stop (median 0.87), from `ranges.out.txt`'s floor column. And ZFUSD is the one futures market whose stop sits inside a measured width (nearest k = 1).
+  - #699's remaining review minors are wording, listed in its thread.
+- `docs/minute-bank.md:339`, `scripts/ops/backup-minute-bank.sh:197` and `docs/offbox-archives.md:189` call `20260823` the "only naive-era" corpus, while the naive-era cache is the condemned one. The protection is the owner's; the wording is recorded, not changed.
+- Anchored `--warm-only`/`--discover` sweeps can be refused for a USD-leg store they never read (#701). That is the safe direction.
+- `fmp-entitlements.md`'s endpoint table is hand-kept. Derive it: every `path:line` citation should land on a line building that path (#703).
+- In CADENCE.md's pinned form, `PGPASSWORD` and `R2_TOKEN` also reach `wl-repo-script`'s own `git fetch`, `git archive` and `tar` (windwardline#119).
+
+**Owner only.** Items 1–3 of the sequence wait on 7 and 8.
+1. **E8 Pro Forex swap.** Swap-free, or long and short swap per pair and the triple-swap day? In-span forex net breaks even at about 1.7 bp a night.
+2. **E8's ban on signal services and trader cooperation.** Every operator gets the same levels and lots. May the desk serve E8 operators other than you, and if so: restrict E8 program lines to your accounts, disclose on the E8 walk, or treat E8 as unsupported for third parties?
+3. **Money-positive.** Does amendment 39 govern amendment 2's classifier, so a Banked half counts by the sign of its net R? A Banked half whose runner stops out nets −0.30 R or worse on the five hold markets; §17d's "Banked half · +R" would change.
+4. **The Guide deck** (§3 "keeps the trade ahead", "built to outweigh"; §5 "measured, not assumed"; §6 the Poor rating; §8 the 1-minute price check; the Payoff and Money-positive glossary entries). The Payoff entry contradicts the Desk's "payoff after costs" (`GuidePanel.tsx`, from the guide-content spec).
+5. **Sizing with commission.** Should the per-setup risk budget include E8's $5/lot round trip on Raw Spreads? Counting it, five default stops come to about 2.55–2.6% on Pro Forex, so §19b's "five inside 2.5%" no longer holds.
+6. **§20** (clocks, rulebook, compliance line, the Pro-only 2%/$2,000 daily cap): a reopen precondition, or a dated deferral?
+7. **Amendment 48, Q1–Q6** ([For the owner](/docs/research/designs/amendment-48-draft-2026-09-24.md)), each with a recommendation and its price: Q1, may the standing approval amend 46 or only settle what it leaves open; Q2, the cap per market or program-wide; Q3, charged at registration or at the freeze; Q4, whether filters, calibration programs and amendment-36 removals claim the cap (the payoff gap and any confirmation of a shipped cell wait on this); Q5, whether the frontier-anchored span is an honest way to buy a confirm read; Q6, whether a family specified before your ruling may enter the registry at its landing.
+8. **The first family, OQ-1 to OQ-3** ([record](/docs/research/designs/entry-family-design-round-2026-09-24.md)): may a registered conditional-drift family trade a timed 16:00 ET exit with a catastrophe stop and no target, outside the payoff floors; may the desk instruct a marketable limit that crosses the book; may it instruct a timed close at 16:00 ET?
+9. **Settings:** a deny rule for the FMP MCP connector, and removal of the two allowlisted raw-`curl` FMP probes in `settings.local.json`; editing the minute-bank watcher task to hand-run through `wl-repo-script` with `LEVELFLOW_CHECKOUT`.
+10. **Parity ruling on `20260823`**, due before 2027-09-02: may `check-minute-bank-parity.sh` accept the `windwardline-archives` key in place of the expiring daily?
+11. **Standing:** §21c's premise in light of E3; which vintage research reads (neither is clean; priced by the [vintage bound](/docs/research/vintage-bound-2026-09-24.md) class by class: on forex, near the shipped stop width, about 0.01 R per bracket against the bank's copies 95 % about 0.001 to 0.019 clustered by day over 14 days (the clustering is JUDGED; the direction holds on sign tests over decisions, pairs and days, 31 of 40, 14 of 16 and 9 of 9, and not per bracket), comparable in magnitude to the forex edge per fill, though a bracket is not a fill; futures not established, −0.039 R per bracket at the tightest width under three of four clusterings but not by symbol, in a unit that differs across its markets and with no line sized for it; crypto and metals not measurably moved at any width; on forex and futures the record cannot separate revision from construction); `confirm-4d`'s `--baseline` default; refresh the FMP population attestation (expired 2026-09-15); read the FMP dashboard and say whether `--daily-ceiling` needs a dated label; the FMP key rotation is not owed for the thirteen 2026-08-07 rows but stays open, because Edge console logs since 2026-08-18 would carry the current key and are unmeasured (FMP plan E4); empty the Trash; revoke the Gemini CLI's Google OAuth grant.
+
 ### 2026-09-23: the engine stops flattering its exits, the screen is built, and amendment 48 takes its first refute round — and what the next session picks up
 
 **Where the desk stands.** Parked, and it stays parked until a registered entry family confirms net-positive realized R on a confirm read (amendment 39; amendments 46 and 48). Nothing shipped earns money on trusted data, and the screen built today confirms why: the shipped entry carries no direction it can see. The route to reopening is new entry information, screened, registered under amendment 48, and confirmed on calendar no recorded read has seen. Amendment 48 is the gate, and it is not law yet.
@@ -54,7 +132,7 @@ coverage question closed, and the desk went dark on purpose.
 
 **State of record corrected here.** Bars are not immutable (FMP revises some; the store supersedes only what it re-asks: its newest stored date forward, or the whole window when a request reaches past its oldest date); the cache-rebuild runbook's raw `curl` probe is the governed `probe-minute-bars.ts`; no FMP key rotation is owed for the thirteen 2026-08-07 rows (the console-log premise stays open); neither minute-bank vintage is clean ([record](/docs/research/minute-bank-parity-2026-09-23.md): one recovered block, 09-07 22:00 to 09-08 16:00 in New York provider stamps (09-08 02:00Z to 20:00Z), sits a median +3.26 pips off EUR/GBP/USD parity over 1,080 minutes; the recovered day after it +0.30; first-copy windows +0.39 and +0.58, reaching about +4 at their 90th percentile); the ambiguous-fills question is answered on record (fit 615 fills, 0.3%, −449.7 R; select 294, 0.2%, −243.7 R; `docs/research/r3/payoff-decomposition-capture-all-classfolds.txt`).
 
-**The sequence, in order.** The profit route first, then what it needs, then what moves no R.
+**The sequence, in order.** *(Superseded by the 2026-09-24 entry above.)* The profit route first, then what it needs, then what moves no R.
 1. **Amendment 48, fifth pass.** Close the seven listed majors with their stated fixes, one refute round with a checker per refuter, verify the checkers, then put Q1–Q5 to the owner. No family registers, and so none can confirm or ship, until this is law.
 2. **A first entry family,** designed while 1 is out: an entry hypothesis with direction the shipped entry lacks, its exit geometry named (major 2), run through the screen on fit at zero bytes. The JPY crosses' shared lean on the shipped entry is a place to look, not a result.
 3. **The vintage bound** (converge rank 4): **measured 2026-09-24** ([record](/docs/research/vintage-bound-2026-09-24.md)). Across 91 symbols 5.6–6.0 % of synthetic brackets flip between the bank's first copies and FMP's later history, net against the bank; forex is the worst class: the vintage moves outcomes against the bank's copies at every width (every day with a difference negative at the widest, 9 of 9), and at the width nearest the shipped stop by −0.010 R per bracket, 95 % about −0.019 to −0.001 clustered by day over 14 days (the clustering is JUDGED; the direction rests on sign tests over decisions, pairs and days, p = 0.0007, 0.004 and 0.004, and per bracket does not reject, p = 0.33); a forex figure that moves by less than about 0.02 R per bracket, the far end of that day-clustered interval, is a vintage question, not a finding (in bracket R, not the R of a fill; under the per-bracket estimator the line would be 0.03 R per bracket); futures is not established, moving against the bank's copies at the tightest width (−0.039 R per bracket) under three of four clusterings but not by symbol, its widest, with HOUSD carrying about half, and no futures line is sized: futures' R per bracket stands for very different fractions of a stop across its markets (the 5-minute range is 1.3 to 10.9 times smaller than the 15-minute ATR, against 1.7 to 2.0 on forex), and HOUSD and RBUSD, which carry most of the net, are the two furthest out; crypto and metals are not measurably moved at any width; no constant offset lies behind the closes, but the bank's bucket sits lower at both extremes in 23 of 28 forex pairs, and futures' sits inside the cache's at both ends, so on neither class can the record separate revision from construction. The "25 construction-clean symbols" could not be reproduced (the definition died with the 2026-09-23 session) and that filter reads almost nothing, so the record reports the whole roster.
@@ -71,7 +149,7 @@ coverage question closed, and the desk went dark on purpose.
 - `supabase/migrations/20260831140000_market_bars_store.sql` still calls bars immutable in a comment. An applied migration is a record, so it stays; `barStore.ts` carries the correction.
 - #687's review asked that a low-edge refusal name a cause. Not taken: the one cause the repo can support is "unverified", which §17f keeps off the surface.
 
-**Owner only.** Nothing below blocks items 1–4; each blocks the reopen.
+**Owner only.** *(Superseded by the 2026-09-24 list above.)* Nothing below blocks items 1–4; each blocks the reopen.
 1. **E8 Pro Forex swap.** Swap-free, or long and short swap per pair and the triple-swap day? In-span forex net breaks even at about 1.7 bp a night.
 2. **E8's ban on signal services and trader cooperation.** Every operator gets the same levels and lots. May the desk serve E8 operators other than you, and if so: restrict E8 program lines to your accounts, disclose on the E8 walk, or treat E8 as unsupported for third parties?
 3. **Money-positive.** Does amendment 39 govern amendment 2's classifier, so a Banked half counts by the sign of its net R? A Banked half whose runner stops out nets −0.30 R or worse on the five hold markets; §17d's "Banked half · +R" would change.
@@ -335,8 +413,8 @@ at the Edge, and it implies `PARKING_GATE`.
 - **Push 2**, only after that run is green: flip `PARKING_GATE` to `false`, invert the
   two gate tests in `tests/e2e/public-auth.spec.ts` and delete the third, the parked
   `/?donate` twin (#705; the login screen's `/?donate` test covers the ask once the root is
-  the sign-in screen), return the four sign-in tests from
-  `/?enter` to `/`, and update the pin in `tests/parkingGate.test.ts`. Spec §17p records
+  the sign-in screen), return the tests that reach sign-in through
+  `/?enter` to `/` (cosmetic, since `?enter` is inert once the gate is down), and update the pin in `tests/parkingGate.test.ts`. Spec §17p records
   it; its count of two gate tests predates #705, and this step governs. `tests/parkingGate.test.ts`
   fails an open gate while any E2E test still asserts the parking face.
 

@@ -164,6 +164,7 @@ the date the script's restore passed, or a later monthly stream-back matched the
 | `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-v3-preDateFix-20260824.tar.zst` | 1025065828 | 5c2da51d92d26bed3e7a2986e2b07636 | 311 | 8213923007 | 2026-09-22 |
 | `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-v4-20260922.tar.zst` | 1034173076 | ba069959b977bbacd8e155071e3925c0 | 310 | 8291450783 | 2026-09-22 |
 | `windwardline-archives/levelflow-cloud/minute-bank/levelflow-minute-bank-snapshot-20260823.tar.zst` | 14194704 | d777df47dc62d26c09e21e8d84d88493 | 200 | 190643620 | 2026-09-22 |
+| `windwardline-archives/levelflow-cloud/rebuild-logs/levelflow-rebuild-logs-20260824.tar.zst` | 6391 | e62d4ac82faee7760604ce4dd959a794 | 4 | 79567 | 2026-09-25 |
 
 Bucket lock on `windwardline-archives`: rule `lock-archives-indefinitely`, prefix `""`,
 condition `Indefinite`, set 2026-09-22 after the first three pushes (the condemned
@@ -179,7 +180,8 @@ staging before the upload, because a key cannot be written twice.
 The three cache sources went to the Trash on 2026-09-22, each after its object was
 proven (the v4 source was an APFS clone of the live cache); emptying it is the
 owner's call. The snapshot stays where it is: `backup-minute-bank.sh` counts it in
-parity and spares it by name.
+parity and spares it by name. The rebuild logs' source, pushed 2026-09-25, is a copy of logs kept at
+their cited paths, and passed the script's own refusal of anything but regular files and directories.
 
 | Archive | Source on this machine | Why it is kept |
 | --- | --- | --- |
@@ -187,8 +189,9 @@ parity and spares it by name.
 | `levelflow-cache-v3-preDateFix-20260824` | `~/.local/share/levelflow-cloud/archives/levelflow-cache-v3-preDateFix-20260824` (8,213,923,007 bytes, 311 files) | `verify-rebuild-depth --reference` against it reports 24 stores / 10,850 rows master did not recover |
 | `levelflow-cache-v4-20260922` | An APFS clone of the live `.calibration-cache` taken 2026-09-22 just before the push began at 22:59:05Z, between top-ups (8,291,450,783 bytes, 310 files); the clone went to the Trash once the object was proven | The v4 cache is the input to every corpus of record since the 2026-08-25 rebuild, including the pinned 2026-08-26 slice the act-3 read and the 2026-09-14 re-simulate were built on. A rebuild costs about fourteen metered hours and does not reproduce the depth (the rebuild-depth rule). Round 1 adopted one archive per cache state |
 | `levelflow-minute-bank-snapshot-20260823` | `~/.local/share/levelflow-cloud/minute-bank-snapshots/levelflow-minute-bank-snapshot-20260823` (190,643,620 bytes, 200 files) | The naive-era minute bank. Its daily copy in `windwardline-backups` expires around 2027-09-02 |
+| `levelflow-rebuild-logs-20260824` | `~/.local/share/levelflow-cloud/archives/levelflow-rebuild-logs-20260824` (79,567 bytes, 4 files: copies of the four R0 rebuild logs, scanned for key material before the push, none found) | The August cache rebuild's own account of what it fetched and refused. The originals stay at the paths `docs/HANDOFF.md` and `docs/cache-rebuild-r0.md` cite; the pushed copy is the one that survives this machine |
 
-Measured 2026-09-22: no hard links, symlinks or special files in any of the four (the
+Measured 2026-09-22: no hard links, symlinks or special files in any of the four sources pushed that day (the
 v4 clone was measured on the live cache it was cloned from, and compared to it with
 `diff -rq`). The
 script refuses a source holding anything but regular files and directories: `diff -rq`

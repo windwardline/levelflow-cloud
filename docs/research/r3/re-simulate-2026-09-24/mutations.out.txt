@@ -1,0 +1,8 @@
+# Produced 2026-09-25 by re-simulate-2026-09-24/mutations.sh.txt against the two corpora in the main checkout's docs/research/r3 (gitignored). Read-only; the slices lived in a temporary directory the script removed.
+first cross row: line 1025913 in both corpora; slice: 100000 rows from there
+instrument as committed: rows compared (fit and select): 79010  confirm withheld at the door: 20990  {'di
+instrument as committed: VIOLATIONS: non-cross 0, cross 0
+grossRealizedR disallowed on a cross: rows compared (fit and select): 79010  confirm withheld at the door: 20990  {'di
+grossRealizedR disallowed on a cross: VIOLATIONS: non-cross 0, cross 68712
+twice the slippage required: rows compared (fit and select): 79010  confirm withheld at the door: 20990  {'di
+twice the slippage required: VIOLATIONS: non-cross 0, cross 58894
