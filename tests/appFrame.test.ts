@@ -453,12 +453,14 @@ describe("§17i — the pre-auth theme control scrolls with the content (owner r
   });
 });
 
-// M6 (wave-8 review): the footer's Donate is a link to /?donate on every satellite but
-// parking, which opens its block in place (both pinned in tests/appFooter.test.ts), and what makes that a route rather
-// than a page load with no visible result is the login screen reading it — and then
-// bringing the block it opens into view, because the control that opens it is the
-// frame's bottom row and the block can be most of a scroll region away. Nothing
-// guarded either half.
+// M6 (wave-8 review): the static pages' footer Donate is a link to /?donate (pinned in the
+// static-footer block below), and both React screens open their donation block in place
+// (their disclosure members are pinned in tests/appFooter.test.ts). What makes the link a
+// route rather than a page load with no visible result is the screen the root renders
+// reading it (the parking screen while the gate is up, the login screen once it is down or
+// ?enter is active) and then bringing the block it opens into view, because the control
+// that opens it is the frame's bottom row and the block can be most of a scroll region
+// away. Nothing guarded either half.
 describe("§17i — the satellites' Donate opens something, and it can be seen (M6)", () => {
   // Both screens, since the parking screen answers its own Donate (2026-09-24):
   // while the desk is parked it is the public face, and a copy of the mechanism
@@ -725,7 +727,9 @@ describe("§17i — the frame reaches the static pages", () => {
         `${page}: Help must link ${SUPPORT_MAILTO}`,
       );
       // Donate links to the app root, per the ruling, with the app's own donate
-      // entry point on it (AuthScreen reads ?donate on load).
+      // entry point on it: the screen the root renders reads ?donate on load
+      // (ParkingScreen while PARKING_GATE is true, AuthScreen once it is down or
+      // ?enter is active).
       assert.match(footer, /<a href="\/\?donate">Donate<\/a>/, page);
       for (const document of ["risk-disclaimer", "privacy", "terms"]) {
         assert.match(footer, new RegExp(`href="/legal/${document}\\.html"`), page);
