@@ -138,14 +138,14 @@ function getInitialAppTab(): AppTab {
   }
 
   // The satellite pages ask for this surface by URL — `<a href="/?donate">Donate</a>`
-  // is in the footer of all five (the three legal documents, the parking page, and
-  // 404) and in the React parking screen's own footer — and until now only the
-  // sign-in screen answered, so a signed-in reader who tapped it landed on
+  // is in the footer of all five static pages (the three legal documents, the
+  // parking page, and 404). The sign-in and parking screens answer it with their
+  // own donation blocks; a signed-in reader who tapped it used to land on
   // whatever tab they had last used. It is read here, ahead of that memory,
   // because it is a request made now rather than a record of where they were; and
   // it never becomes the memory itself, since "donate" is absent from
-  // PERSISTED_TABS above. The predicate is shared with AuthScreen's own reading of
-  // the same ask (src/lib/donateEntry.ts), so the two surfaces cannot drift.
+  // PERSISTED_TABS above. The predicate is shared with the two screens' own
+  // readings of the same ask (src/lib/donateEntry.ts), so the surfaces cannot drift.
   if (donateRequested()) {
     return "donate";
   }

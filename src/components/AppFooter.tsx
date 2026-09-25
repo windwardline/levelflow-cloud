@@ -4,9 +4,11 @@ import type { LegalSlug } from "../lib/legalDocuments";
 // Where Donate goes, which is the one thing that cannot be the same on every
 // surface (spec §17i: satellite pages "carry the same footer composition with
 // links that work in their context"). Inside the app it is a tab switch; on the
-// login screen it is the disclosure over that screen's own donation options; on
-// the parking screen there is no in-page target at all, so it is a link to the
-// app root. A discriminated union rather than two optional props, so "exactly one
+// login and parking screens it is the disclosure over that screen's own donation
+// options. The link form (`href`) has no React caller since the parking screen
+// answered its own Donate (2026-09-24); it stays because it is the contract the
+// static pages keep in HTML (`<a href="/?donate">`), and a React satellite with no
+// in-page target would take it. A discriminated union rather than two optional props, so "exactly one
 // of these" is a type error rather than a convention — and it decides the ELEMENT
 // only. The word, its class and its place in the row are the same either way.
 export type FooterDonate =
@@ -98,7 +100,7 @@ export function AppFooter({
               )
               : (
                 // aria-expanded only where the control really is a disclosure
-                // (the login screen's donation options). Left undefined — and so
+                // (the login and parking screens' donation options). Left undefined — and so
                 // absent from the DOM — where the click switches surfaces, since
                 // a tab switch expands nothing.
                 <button

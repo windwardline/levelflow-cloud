@@ -9,9 +9,9 @@ import { donateAsked, urlWithoutDonate } from "../src/lib/donateEntry";
 // Desk, or wherever they had last been. App.tsx has a "donate" AppTab and
 // DonatePanel behind it; nothing read the ask.
 //
-// This module is that ask, in one place, read by both surfaces (AuthScreen's
-// disclosure and App's opening tab) so they cannot drift on what asking looks
-// like.
+// This module is that ask, in one place, read by all three surfaces (AuthScreen's
+// and ParkingScreen's disclosures, and App's opening tab) so they cannot drift on
+// what asking looks like.
 describe("what asking for the donation surface looks like", () => {
   it("is the query parameter, with or without a value", () => {
     assert.equal(donateAsked("?donate", ""), true);

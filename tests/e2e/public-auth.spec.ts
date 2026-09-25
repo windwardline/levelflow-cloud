@@ -485,6 +485,28 @@ test("/?donate opens the login screen's donation block and brings it into view",
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
+// The parked twin (2026-09-24): while the desk is parked, /?donate without ?enter
+// lands on the parking screen, which now answers the ask itself. Before, its
+// footer linked to the app root, which was the parking page again.
+test("/?donate on the parked screen opens its donation block and brings it into view", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/?donate", { waitUntil: "networkidle" });
+  await expect(page.getByText("Under construction")).toBeVisible();
+
+  const donate = page.getByRole("button", { name: "Donate", exact: true });
+  await expect(donate).toHaveAttribute("aria-expanded", "true");
+  const options = page.getByText(DONATION_SUPPORT_COPY);
+  await expect(options).toBeVisible();
+  const inView = await options.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return box.top >= 0 && box.bottom <= window.innerHeight;
+  });
+  expect(inView, "the donation block opened out of view").toBe(true);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
 test("the login screen's region is a named keyboard stop too", async ({ page }) => {
   // The same fix on the React half of the satellite set, at the width where that
   // screen overflows its frame. Reached by role and name, which is the other

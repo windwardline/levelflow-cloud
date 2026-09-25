@@ -460,9 +460,16 @@ describe("§17i — the pre-auth theme control scrolls with the content (owner r
 // frame's bottom row and the block can be most of a scroll region away. Nothing
 // guarded either half.
 describe("§17i — the satellites' Donate opens something, and it can be seen (M6)", () => {
-  const AUTH = readFileSync("src/components/auth/AuthScreen.tsx", "utf8");
+  // Both screens, since the parking screen answers its own Donate (2026-09-24):
+  // while the desk is parked it is the public face, and a copy of the mechanism
+  // no test reads is the defect M6 found by hand.
+  for (const [name, path] of [
+    ["the login screen", "src/components/auth/AuthScreen.tsx"],
+    ["the parking screen", "src/components/auth/ParkingScreen.tsx"],
+  ] as const) {
+  const AUTH = readFileSync(path, "utf8");
 
-  it("opens the block from the query and from the hash, on load", () => {
+  it(`${name} opens the block from the query and from the hash, on load`, () => {
     // Both forms still, and still on load — but the reading itself moved to
     // src/lib/donateEntry.ts, because the authed shell answers the same ask now
     // (it opens its Donate tab) and two surfaces reading one URL contract from two
@@ -474,7 +481,7 @@ describe("§17i — the satellites' Donate opens something, and it can be seen (
     assert.doesNotMatch(AUTH, /URLSearchParams/);
   });
 
-  it("scrolls it into view when it opens, in an effect keyed on that state", () => {
+  it(`${name} scrolls it into view when it opens, in an effect keyed on that state`, () => {
     // An effect, not a scroll inside the click handler: the block mounts on this
     // state change, so there is nothing to scroll to until React has committed it.
     // The same effect is what covers the ?donate / #donate entry above.
@@ -488,6 +495,7 @@ describe("§17i — the satellites' Donate opens something, and it can be seen (
     assert.match(AUTH, /<div\s*\n?\s*ref=\{donationsRef\}/);
     assert.match(AUTH, /expanded: donationsOpen,/);
   });
+  }
 });
 
 // The static half of the same ruling, in the only place it can live: these four
