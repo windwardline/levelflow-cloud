@@ -1,3 +1,8 @@
+> **Superseded as a draft (2026-09-24).** Amendment 48's current draft is
+> [`amendment-48-draft-2026-09-24.md`](/docs/research/designs/amendment-48-draft-2026-09-24.md),
+> self-contained. The section headed "Reconciled draft 2026-09-23" below stays unchanged as
+> its history, and so does everything above it.
+
 > **PARKED — not law (2026-09-23).** Nothing in this file is law. It is on main as a
 > record; amendment 48 is not in the owner-rulings specs, and the branch that drafted its
 > section there (`docs/amendment-48`) did not merge. On 2026-09-22 amendment 48 enacted the two sections

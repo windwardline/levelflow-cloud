@@ -17,6 +17,7 @@ and re-running the computations. 49 findings; 4 overturned; the rest hold or par
 Findings are distilled here, with the checker's corrected fix where the checker changed it.
 The round's journal, outside the repository:
 `~/.claude/projects/-Users-peacock-Projects-levelflow-cloud/899fcfeb-a1c1-46da-9a31-765c580eb0f8/subagents/workflows/wf_07bdb5a6-119/journal.jsonl`.
+*(Deleted with its session on 2026-09-24; this distillation is now the round's only record.)*
 Both layouts under that session are real: `workflows/<id>.json` holds a run's record (the
 check round cites those) and `subagents/workflows/<id>/` holds its agents and journal.
 
