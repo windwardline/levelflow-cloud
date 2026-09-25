@@ -175,15 +175,16 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   each at p below 0.005 at k = 2 (0.0007, 0.0042 and 0.0039), so it does not turn on which one a reader picks.
 
   At k = 2, the width nearest the shipped forex stop (the resolver gives all 28 pairs a
-  `stopAtrMultiplier` of 1.2, `calibration.ts` class row :775; at the decision times that stop is 1.87
-  to 2.38 five-minute ATRs, median 2.01, and k = 2 is nearest on all 28;
+  `stopAtrMultiplier` of 1.2, `calibration.ts` class row :775; at the decisions that produced brackets
+  that stop is 2.07 to 2.46 five-minute ATRs, median 2.22, so k = 2, the widest width measured, sits
+  just inside it on all 28;
   [ranges](/docs/research/vintage-bound-2026-09-24/ranges.out.txt)), the mean is −0.010 R per bracket, 95 % about −0.019 to −0.001 R clustered by day
   (t = 2.160 at 13 degrees of freedom; counting only the 9 days with a nonzero net, t = 2.306 at 8, the
   near end is −0.0009). Per bracket, at 1.96, it would be −0.029 to +0.009. That is the size of forex's
   measured edge on the tuning folds (+0.006 R per fill, R3) and of the exit-slippage correction of
   2026-09-23 (0.006 to 0.011 R per fill). **A forex figure that moves by less than about 0.02 R per
-  bracket at the shipped stop width, the far end of the day-clustered interval at k = 2, is a vintage
-  question, not a finding;** read per
+  bracket at k = 2, the measured width nearest the shipped stop (the far end of the day-clustered
+  interval there), is a vintage question, not a finding;** read per
   bracket, the line would be 0.03. It does not come from EURUSD, whose large one-sided gaps net +2 R
   over its 156 brackets at k = 2; it is spread across the crosses (14 pairs negative, 12 zero, 2
   positive, the largest AUDCHF, CHFJPY and EURCHF at −6 R each). GBPUSD and EURUSD carry the
@@ -211,13 +212,16 @@ R. The filter selects the symbols FMP revised least, so it is not the band.
   its low above on 24.4 % and below on 19.4 %, the bank's bucket inside the cache's rather than shifted
   as forex's is. For futures, as for forex, the record cannot separate revision from construction. The record sizes no
   futures line, and not for want of a stop: the resolver gives all 18 futures markets a 1.3 ATR stop
-  (`calibration.ts` class row :825; WTI, calibrated as energies, 1.38 at :683). In the brackets' unit
-  that stop is 2.09 to 3.55 five-minute ATRs on 16 of the 18 (median 2.60 over all 18), beyond the
-  widest width measured on every one of them
-  ([ranges](/docs/research/vintage-bound-2026-09-24/ranges.out.txt)). No measured width stands for it,
-  so a futures line waits on a bracket at about that width. HOUSD and RBUSD, which carry the net, are
-  the two markets whose 5-minute ATR is smallest against their 15-minute one: their stop is 8.9 and
-  45.5 five-minute ATRs. Why they carry it is not measured here. At k = 1 and 2 the
+  (`calibration.ts` class row :825; WTI, calibrated as energies, 1.38 at :683). In the brackets' unit,
+  at the decisions that produced brackets, that stop is 1.72 to 14.19 five-minute ATRs (median 2.36):
+  within the measured widths on 5 markets and beyond them on 13
+  ([ranges](/docs/research/vintage-bound-2026-09-24/ranges.out.txt)). HOUSD and RBUSD, which carry the
+  net, are the two furthest beyond, at 5.2 and 14.2, where a k = 0.5 bracket is 9.6 % and 3.5 % of the
+  stop against 15 to 29 % on the other 16. Futures' R per bracket therefore pools brackets that stand
+  for very different fractions of a shipped stop, and the two narrowest carry the net: it is not in
+  shipped-stop R, and a futures line waits on brackets sized to each market's stop. HOUSD and RBUSD are
+  also the class's two lowest exact shares in step 1 (22.4 % and 22.6 %); which of these explains the
+  net is not measured here. At k = 1 and 2 the
   nets, −0.0077 and −0.0062 R per bracket, sit inside every interval but the deflated decision one at
   k = 2 (±0.0061), whose sign test does not reject (4 of 4 decisions, p = 0.13). Agriculture (6 series
   in the manifest, all 6 evaluated, 1 with brackets, 10 brackets) bounds nothing: one flipped bracket at k = 0.5, none at the

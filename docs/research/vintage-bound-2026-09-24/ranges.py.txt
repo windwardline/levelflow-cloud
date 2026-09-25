@@ -1,76 +1,108 @@
 #!/usr/bin/env python3
-"""Which bracket width is nearest each market's shipped stop (review round 17 on #699).
+"""Where each market's shipped stop sits in the brackets' own unit (review rounds 17 and 18 on #699).
 
 The brackets are k times a 5-minute ATR; the engine's stop is stopAtrMultiplier times the 15-minute
-ATR of the decision bar. At every decision time the brackets use (00/04/08/12/16/20Z over the window),
-this takes ATR(14) on the calibration cache's 5-minute and 15-minute bars the way vintage_bound.py.txt
-takes the 5-minute one (the 14 bars up to and including the bar opening at the decision time), and
-prints per symbol the median of stop x ATR15 / ATR5: the stop in the brackets' own unit. The nearest
-of k = 0.5, 1 and 2 follows.
+ATR of the decision bar. At every decision that produced a bracket in vintage_bound.py.txt (the same
+bank and cache loaders and the same bracket code, so the same decision set), this takes ATR(14) on the
+calibration cache's 5-minute and 15-minute bars the way vintage_bound.py.txt takes the 5-minute one
+(the 14 bars up to and including the bar opening at the decision time), and prints per series the
+median of stop x ATR15 / ATR5: the stop in the brackets' unit. It then places that stop against the
+measured widths k = 0.5, 1 and 2: the nearest k where the stop lies inside [0.5, 2], and "beyond 2"
+or "below 0.5" where it does not, so a clamp never reads as a bracketing. Last, each series' k = 0.5
+bracket as a share of its own stop.
 
 The stop multipliers are the resolver's, read on 2026-09-25 by executing getCategoryCalibration for
-every roster market (supabase/functions/trade-analyzer/calibration.ts, class rows forex :775, futures
-:825, energies :683): all 28 forex pairs 1.2, all 18 futures markets 1.3, WTI (energies, on CLUSD's
-series) 1.38. They are pinned here, so a calibration change leaves this stale rather than silently
-current. Read-only, standard library, zero provider bytes. Run from anywhere:
+every roster market: all 28 forex pairs 1.2, all 18 futures markets 1.3, WTI (energies, on CLUSD's
+series) 1.38. This script asserts the class rows in supabase/functions/trade-analyzer/calibration.ts
+still carry those values and refuses on drift; a per-market override would not show in a class row,
+which is why the resolver was executed. Skips named in vintage_bound.out.txt are excluded, as in
+classes.py.txt. Read-only, standard library, zero provider bytes. Run from anywhere:
     python3 docs/research/vintage-bound-2026-09-24/ranges.py.txt
 """
-import bisect, importlib.machinery, importlib.util, json, os, statistics, sys
+import bisect, importlib.machinery, importlib.util, json, os, re, statistics, sys
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
 _loader = importlib.machinery.SourceFileLoader("vintage_bound", os.path.join(HERE, "vintage_bound.py.txt"))
 vb = importlib.util.module_from_spec(importlib.util.spec_from_loader("vintage_bound", _loader)); _loader.exec_module(vb)
 
-STOP = {"forex": 1.2, "futures": 1.3}
+STOP = {"forex": 1.2, "futures": 1.3, "energies": 1.38}
 KS = (0.5, 1.0, 2.0)
 
-def load(provider, frame):
+# The pin, checked against the live engine file's class rows.
+with open(os.path.join(vb.REPO, "supabase", "functions", "trade-analyzer", "calibration.ts"), "r") as f:
+    source = f.read()
+for cls, pinned in STOP.items():
+    block = re.search(rf"^  {cls}: \{{(.*?)^  \}}", source, re.S | re.M)
+    row = re.search(r"\bstopAtrMultiplier: ([\d.]+)", block.group(1)) if block else None
+    if row is None or float(row.group(1)) != pinned:
+        sys.exit(f"calibration.ts's {cls} row no longer reads stopAtrMultiplier {pinned}: re-execute the resolver and re-pin")
+
+def load_frame(provider, frame):
     path = vb.cache_path(provider).replace("-5min-", f"-{frame}-")
+    if not os.path.exists(path):
+        return None
     with open(path, "r", encoding="utf-8") as fh:
         items = json.load(fh)["items"]
     lo = vb.WS - 3 * vb.DAY
     bars = sorted((it["time"], float(it["high"]) - float(it["low"])) for it in items if lo <= it["time"] < vb.WE)
     return [t for t, _ in bars], [r for _, r in bars]
 
-def atr(times, ranges, t):
+def atr(frame, t):
+    times, ranges = frame
     i = bisect.bisect_right(times, t)
     if i < vb.ATR_BARS:
         return None
-    window = ranges[i - vb.ATR_BARS:i]
-    value = sum(window) / vb.ATR_BARS
+    value = sum(ranges[i - vb.ATR_BARS:i]) / vb.ATR_BARS
     return value if value > 0 else None
+
+def place(stop5):
+    if stop5 > max(KS):
+        return f"beyond {max(KS):g}"
+    if stop5 < min(KS):
+        return f"below {min(KS):g}"
+    return f"nearest {min(KS, key=lambda k: abs(k - stop5)):g}"
 
 with open(vb.MANIFEST, "r") as f:
     manifest = json.load(f)["symbols"]
-print("stop in 5-minute ATRs = stopAtrMultiplier x ATR15 / ATR5 at each decision time; median over decisions")
-print(f"{'class':8} {'series':10} {'decisions':>9} {'ATR15/ATR5':>10} {'stop':>5} {'stop in ATR5':>12} {'nearest k':>9}")
+with open(os.path.join(HERE, "vintage_bound.out.txt"), "r") as f:
+    SKIPPED = {line.split()[1] for line in f if line.startswith("  read ") and "SKIP:" in line}
+print("stop in 5-minute ATRs = stopAtrMultiplier x ATR15 / ATR5 at each decision that produced a bracket; median")
+print(f"{'class':9} {'series':10} {'decisions':>9} {'ATR15/ATR5':>10} {'stop':>5} {'stop in ATR5':>12} {'placement':>11} {'k=0.5 / stop':>12}")
 summary = {}
-for cls in ("forex", "futures"):
+for cls in ("forex", "futures", "energies"):
     per = []
     for provider in sorted({e["providerSymbol"] for e in manifest if e["assetType"] == cls}):
-        t5, r5 = load(provider, "5min")
-        t15, r15 = load(provider, "15min")
+        if provider in SKIPPED:
+            continue
+        f15 = load_frame(provider, "15min")
+        if f15 is None:
+            print(f"{cls:9} {provider:10} no 15-minute cache store: not placed")
+            continue
+        minutes, _ = vb.load_bank(provider)
+        bank, _ = vb.build_buckets(minutes)
+        cache, _ = vb.load_cache(provider)
+        rows, _ = vb.brackets_for(bank, cache, sorted(cache), lambda end: None)
+        decisions = sorted({r["t"] for r in rows})
+        f5 = load_frame(provider, "5min")
         ratios = []
-        day = vb.WS
-        while day < vb.WE:
-            for hour in vb.DECISION_HOURS:
-                t = day + hour * 3_600_000
-                a5, a15 = atr(t5, r5, t), atr(t15, r15, t)
-                if a5 and a15:
-                    ratios.append(a15 / a5)
-            day += vb.DAY
+        for t in decisions:
+            a5, a15 = atr(f5, t), atr(f15, t)
+            if a5 and a15:
+                ratios.append(a15 / a5)
         if not ratios:
-            print(f"{cls:8} {provider:10} {0:>9}  no decision with both ATRs")
+            print(f"{cls:9} {provider:10} {len(decisions):>9}  no decision with both ATRs: not placed")
             continue
         ratio = statistics.median(ratios)
         stop5 = STOP[cls] * ratio
-        nearest = min(KS, key=lambda k: abs(k - stop5))
         per.append(stop5)
-        print(f"{cls:8} {provider:10} {len(ratios):>9} {ratio:>10.3f} {STOP[cls]:>5.2f} {stop5:>12.2f} {nearest:>9}")
+        print(f"{cls:9} {provider:10} {len(ratios):>9} {ratio:>10.3f} {STOP[cls]:>5.2f} {stop5:>12.2f} {place(stop5):>11} {0.5 / stop5:>11.1%}")
     summary[cls] = per
 print()
 for cls, per in summary.items():
-    q = statistics.quantiles(per, n=4)
-    nearest = [min(KS, key=lambda k: abs(k - s)) for s in per]
-    print(f"{cls}: {len(per)} series; stop in ATR5 median {statistics.median(per):.2f}, quartiles {q[0]:.2f} to {q[2]:.2f}, "
-          f"range {min(per):.2f} to {max(per):.2f}; nearest k: " + ", ".join(f"{k} on {nearest.count(k)}" for k in KS))
+    if not per:
+        continue
+    placed = [place(s) for s in per]
+    spread = f"quartiles {statistics.quantiles(per, n=4)[0]:.2f} to {statistics.quantiles(per, n=4)[2]:.2f}, " if len(per) >= 2 else ""
+    print(f"{cls}: {len(per)} series; stop in ATR5 median {statistics.median(per):.2f}, {spread}"
+          f"range {min(per):.2f} to {max(per):.2f}; placement: "
+          + ", ".join(f"{p} on {placed.count(p)}" for p in sorted(set(placed))))
