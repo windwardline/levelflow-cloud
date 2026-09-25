@@ -5,7 +5,9 @@ The standard errors forex.py.txt prints for forex, under the same sign-flip null
 with brackets (crypto, metals, futures, agriculture; indices and livestock have none): per bracket, clustered by decision (a symbol's long and short
 brackets at one decision time) and clustered by UTC decision day, with the 95 % half-width per bracket
 each implies (1.96 per bracket and by decision, t at days - 1 by day); and, appended (round 9), the raw
-SE under all four clusterings, the symbol included, and (round 11) the exact sign test on every unit. Uses
+SE under all four clusterings, the symbol included; (round 11) the exact sign test on every unit;
+(round 12) each class's nonzero per-symbol nets; and (round 13) the symbol's own 95 % half-width, at t
+on symbols - 1. Uses
 vintage_bound.py.txt's own loaders and brackets and asserts its pooled rows reproduce the recorded
 class lines. Its exclusions are parsed from the committed vintage_bound.out.txt rather than a live run,
 so it is pinned to that artifact; if the two drift, the RECORDED assert fails loudly rather than
@@ -84,14 +86,20 @@ for cls in ("crypto", "metals", "futures", "agriculture"):
         se_c = sum(x * x for x in by_dec.values()) ** 0.5
         se_d = sum(x * x for x in by_day.values()) ** 0.5
         t = tinv975(len(by_day) - 1)
+        se_p = sum(x * x for x in by_pair.values()) ** 0.5
+        # Round 13: the symbol's interval too, at t on symbols - 1; one symbol has none.
+        if len(by_pair) >= 2:
+            ts = tinv975(len(by_pair) - 1)
+            by_symbol = f", {ts * se_p / n:.4f} (by symbol, t {ts:.3f} at {len(by_pair) - 1} df)"
+        else:
+            by_symbol = ", n/a (by symbol: one symbol)"
         if not any(d):
             # Round 12: no bracket differs, so there is no interval to print, only an absence.
             print(f"{cls:7} k={k}: {n} brackets, net {net:+.1f} R; no differing brackets, so no interval")
         else:
             print(f"{cls:7} k={k}: {n} brackets, net {net:+.1f} R; 95% half-width per bracket: "
                   f"{1.96 * se_b / n:.4f} (per bracket), {1.96 * se_c / n:.4f} (by decision), "
-                  f"{t * se_d / n:.4f} (by day, t {t:.3f} at {len(by_day) - 1} df)")
-        se_p = sum(x * x for x in by_pair.values()) ** 0.5
+                  f"{t * se_d / n:.4f} (by day, t {t:.3f} at {len(by_day) - 1} df)" + by_symbol)
         raw_se.append(f"{cls:7} k={k}: net {net:+.1f} R; sign-flip SE per bracket {se_b:.1f} R, by decision {se_c:.1f} "
                       f"({len(by_dec)}), by symbol {se_p:.1f} ({len(by_pair)}), by day {se_d:.1f} ({len(by_day)})")
         nz_sym = sorted((v, s) for s, v in by_pair.items() if v != 0)
