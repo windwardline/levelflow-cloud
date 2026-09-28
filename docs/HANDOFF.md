@@ -739,9 +739,10 @@ rather than into that table.
 
 ## 2. Owner rulings now binding — do not re-ask
 
-- **2026-09-28: amendment 48's open questions, by delegation.** The owner ruled Q1–Q7 and OQ-1 to OQ-3
-  "whichever is recommended as the best fit for my stated goals" (the goal: an open desk earning net
-  realized R, as soon as honestly possible). The rulings are the recommendations:
+- **2026-09-28: amendment 48's open questions, by delegation.** The owner's own message, answering the
+  questions as numbered in that session: "Whichever is recommended as the best fit for my stated goals for Levelflow" (Q7), and, of Q1–Q6 and OQ-1 to OQ-3, "I am unsure what you are even asking me here? But, my answer for #2 stands here too." The goal named is an open desk earning net realized
+  R, as soon as honestly possible. The questions were explained to him in plain terms afterwards, and he
+  may override any ruling. The rulings are the recommendations:
   - **Q1:** the standing approval settles only what amendment 46 leaves open, and this ruling is the
     owner's explicit ruling on the draft's five departures.
   - **Q2:** the alpha cap is per market.
@@ -757,8 +758,9 @@ rather than into that table.
     spread and slippage.
   - **OQ-3:** the desk may instruct a timed close, graded as executed one 5-minute bar late.
 
-  The text as ruled takes one refute round with checkers before it is recorded as law. Until then the
-  confirm fold stays sealed.
+  The text as ruled took refute round 3 on 2026-09-28 (the [eighth pass](/docs/research/designs/amendment-48-draft-2026-09-28.md)).
+  It becomes law after a closure check on the machinery that round added and the owner's answers on
+  seven readings. Until then the confirm fold stays sealed.
 - **2026-09-28: execution is native orders only.** The owner trades E8 on TradeLocker and MatchTrader.
   Neither moves a stop automatically when TP1 fills, and no expert-advisor automation exists. A family
   must be executable with native orders, and any instructed action after an event or at a time is

@@ -1,3 +1,5 @@
+> **Superseded 2026-09-28** by the [eighth pass](/docs/research/designs/amendment-48-draft-2026-09-28.md), which applies the owner's rulings and closed [refute round 3](/docs/research/designs/amendment-48-refute-round-3-2026-09-28.md). This file stays as history.
+
 > **PARKED — not law.** Amendment 48's seventh pass. It closes
 > [refute round 2](/docs/research/designs/amendment-48-refute-round-2-2026-09-24.md) on the fifth
 > pass and the closure check on the sixth (same record). It replaces the section headed

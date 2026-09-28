@@ -162,7 +162,7 @@ because amendment 45 admits no exception.
   because no program has a positive contained expectation to confirm.
 - **A confirm window needs its own feed check.** The manifest flags 24 forex pair-months in 2025–26.
   Twenty-two are bar-range drift at an intraday/daily ratio of 1.0017 or below. Two break daily
-  containment: NZDCHF 2025-05 (1.048) and AUDCHF 2025-03 (1.033). The 2021–22 median was 1.065. Carried
+  containment: NZDCHF 2025-05 (1.048) and AUDCHF 2025-03 (1.032). The 2021–22 median was 1.065. Carried
   into amendment 48's next pass: a read checks its window's feed character before it grades.
 - **Live trading will read worse than this corpus.** The corpus reads FMP's later history, and the
   bank's first copies read about 0.01 R per bracket worse on forex (the vintage bound). Every forex
