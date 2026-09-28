@@ -1,3 +1,6 @@
+> **The pass as first written.** This log records the edit before refute round 3. The closed pass is
+> [the draft](/docs/research/designs/amendment-48-draft-2026-09-28.md); where the two differ, the draft governs.
+
 # Amendment 48, eighth pass: change log (2026-09-28)
 
 **Subject.** The seventh pass, `docs/research/designs/amendment-48-draft-2026-09-24.md` at `main`

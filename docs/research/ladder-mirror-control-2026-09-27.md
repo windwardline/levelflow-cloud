@@ -139,6 +139,6 @@ control reproduces every row's realizedR at ½ within 1.1e-4 (62,500 rows, large
 | held-out | select | −12.2 | −0.1059 | −0.21 | never |
 
 It clears on both folds in-pool, where the window was found, and fails held-out select. It is the one
-natively executable candidate on record, and it carries every warning above: found on these folds,
+natively executable candidate on record (Q10, if ruled yes, bars it: its target sits inside its stop), and it carries every warning above: found on these folds,
 in-sample strength well beyond the literature, and the vintage. It goes into the discovery program as
 a known candidate to beat, not as a registration.

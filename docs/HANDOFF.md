@@ -34,7 +34,7 @@ coverage question closed, and the desk went dark on purpose.
 
 ### 2026-09-28: the owner's rulings, amendment 48's eighth pass, and the setup discovery program — and what the next session picks up
 
-**Where it stands.** The desk stays parked, and no route opens it within a year. The best honest route is now written down as a [setup discovery program](/docs/research/designs/setup-discovery-program-2026-09-28.md). Its judged chance that anything freezes and confirms this cycle is about 6–8 %. Its earliest confirm read, for a true pooled post-cost Sharpe of 2.5, ends about 2028-04, from a confirm start near 2026-12-07 (JUDGED).
+**Where it stands.** The desk stays parked, and no route opens it within a year. The best honest route is now written down as a [setup discovery program](/docs/research/designs/setup-discovery-program-2026-09-28.md). Its judged chance that anything freezes and confirms this cycle is about 6 % if Q8a and Q8b are yes (8 % that anything freezes), and 1–2 % if not. Its earliest confirm read, for a true pooled post-cost Sharpe of 2.5, ends about 2028-04, from a confirm start near 2026-12-07 (JUDGED).
 
 **The owner's answers (§2).**
 - **Execution is native orders only.** TradeLocker and MatchTrader cannot move a stop when TP1 fills, and no expert advisor exists. That closes the 16–21 UTC lock-at-TP1 candidate.
@@ -63,7 +63,8 @@ coverage question closed, and the desk went dark on purpose.
    - S0 and M0 specs land in one PR before anything computes.
    - The first pass follows, about 15 minutes of compute: Track I's anchors and battery calibration, Track R's ridge verdict, the clock witness, the escaping control and the vintage by hour.
    - Track M follows Track R.
-   - Track S runs only on Q8a yes, Q8b yes and Q12 declared.
+   - The S0/M0 PR waits on the owner's Q8a, Q8b, Q10 and Q12 and the six E8 facts (owner items 1 and 2).
+   - Track S runs only on Q8a yes, Q8b yes and Q12 declared, and only after the execution version (step 2) ships, because the eighth pass's rule 12 counts a pre-law screen graded in R only at or after it.
 4. **The registry build,** once 48 is law.
 5. The rest of the 2026-09-24 sequence.
 
@@ -96,7 +97,7 @@ coverage question closed, and the desk went dark on purpose.
    - Caps per symbol.
    - Rule 12's reach.
    - A lapse is charged even when the job failed.
-4. The 2026-09-27 lists stand.
+4. The 2026-09-27 and 2026-09-24 lists stand, less the automatic lock, Q7, Q1–Q6 and OQ-1 to OQ-3, all ruled 2026-09-28 (§2).
 
 ### 2026-09-27, evening: the mirror control and the published-effects screen — and what the next session picks up
 
@@ -810,7 +811,7 @@ rather than into that table.
   R, as soon as honestly possible. The questions were explained to him in plain terms afterwards, and he
   may override any ruling. The rulings are the recommendations:
   - **Q1:** the standing approval settles only what amendment 46 leaves open, and this ruling is the
-    owner's explicit ruling on the draft's five departures.
+    owner's ruling on the departures (seven in the eighth pass; Q1 covers 2 to 6).
   - **Q2:** the alpha cap is per market.
   - **Q3:** a family is charged at the freeze.
   - **Q4:** filters, calibration programs and amendment-36 removals register and claim the cap.

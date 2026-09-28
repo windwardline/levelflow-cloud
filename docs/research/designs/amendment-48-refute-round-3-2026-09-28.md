@@ -1,5 +1,7 @@
 > **Finding A (LAW-01) closed after this round, 2026-09-28:** the owner's own message of 2026-09-28 is
 > the citable source of the rulings: "Whichever is recommended as the best fit for my stated goals for Levelflow" (Q7), and, of Q1–Q6 and OQ-1 to OQ-3, "I am unsure what you are even asking me here? But, my answer for #2 stands here too." HANDOFF §2 quotes it.
+> The committed draft (952 lines, sha256 prefix dab6a2458623e89c) differs from the as-closed pass
+> hashed below only in wording that cites that message in place of a pending confirmation.
 
 # Amendment 48, eighth pass: refute round 3 (2026-09-28)
 

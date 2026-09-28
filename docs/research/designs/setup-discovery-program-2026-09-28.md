@@ -63,12 +63,16 @@ Why this order:
   sessions against 3–4 weeks. It also attacks the likeliest failure, a feed artifact.
 - **meta-labeling can only refine the known positive.** That positive has no direction
   ([mirror](/docs/research/ladder-mirror-control-2026-09-27.md)). Its held-out select is −12.2 R, and
-  its in-sample S is 2–5 times the literature's (MEASURED, orchestrator 2026-09-28).
+  its in-sample S is 1.8–4.2 times the literature's 0.6–1.0 as a plain bracket, and 2.6–5.5 times with
+  the lock at TP1 (MEASURED, orchestrator 2026-09-28).
 
 ## The program in brief
 
-Four tracks. The specs of M and S land in one pull request with this document, before anything
-computes, so nothing that Tracks I and R print can shape them.
+Four tracks. This document landed alone (#710). The specs of M and S land together in one pull
+request before anything computes, so nothing that Tracks I and R print can shape them. Track S also
+waits for the execution version: under the eighth pass's rule 12, a pre-law screen that grades R
+counts only at or after the engine version that grades a hand-placed entry one bar late, so S2 run
+before it would make every survivor unregistrable.
 
 - **I, instrument.** The anchor, the doors, battery calibration, the clock witness, the vintage by
   hour, and E8 spreads and paths. It computes no family that could register.
@@ -450,7 +454,7 @@ E8 facts, which cost no FMP bytes:
 1. whether GTD expiry is native on TradeLocker and MatchTrader;
 2. whether a pending limit takes an attached SL and TP, or OCO;
 3. whether the account hedges or nets;
-4. whether the desk may instruct a timed close (OQ-3 of the 2026-09-24 round);
+4. whether E8 permits a timed close by hand (the desk may instruct one: OQ-3, ruled 2026-09-28);
 5. one week of E8 spreads by hour on AUDUSD, USDJPY, GBPUSD, EURGBP, GBPJPY and AUDCAD, including
    16:00–19:00 ET;
 6. either 8 weeks of exported E8 5-minute bars on those six pairs, or a 4-week demo of the orders.

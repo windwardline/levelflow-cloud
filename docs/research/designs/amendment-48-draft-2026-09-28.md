@@ -12,8 +12,8 @@
 > which stays there unchanged as history. **This file is the whole draft**: no operative rule lives in
 > the record it replaces. Every finding of rounds 1 to 3 and the closure check is closed or carried in
 > Open, except two round-1 findings the record cannot recover. No registration is recorded, and no
-> registry header is hashed, until the owner's confirmation lands with a citable source and a closure
-> check on this text finds no surviving major.
+> registry header is hashed, until a closure check on this text finds no surviving major and the
+> owner has ruled the readings round 3 raised (For the owner).
 
 # Amendment 48: registering, screening and confirming a new entry family (eighth pass, 2026-09-28)
 
@@ -558,8 +558,8 @@ has changed since, in its usage comment and its preflight.
 ## Registry, lines and tests
 
 `docs/research/family-registry/registry.json`, tracked, append-only and prevHash-chained, never under
-`docs/research/confirm-reads/`. Header, pinned by hash, recording the rulings of 2026-09-28 once the
-owner confirms them: the cap, 0.05 per market; the charge rule (at the freeze; one draw per opened
+`docs/research/confirm-reads/`. Header, pinned by hash, recording the rulings of 2026-09-28 (the owner's own
+message, For the owner): the cap, 0.05 per market; the charge rule (at the freeze; one draw per opened
 registration, charged to every market it opens on; a lapse charged as a read); burnFraction 0.8,
 JUDGED and open; the screen fields (multiplier `tMultiplier95(clusters − 1)`, minClusters 30 JUDGED,
 the hashes of rule 4's text and of the Label and Cluster definitions, the holding floor and the lag-one
@@ -820,8 +820,8 @@ quantile; a longer B or a wider calibrated multiplier lengthens every wait in it
 3. **Calibration programs and amendment-36 removals.** Closed: Q4 registers both and charges them the
    cap (rules 3 to 7). How a removal confirms is item 8.
 4. **Authority.** Closed in substance: Q1 ruled that the standing approval settles only what 46 leaves
-   open, and the rulings cover the departures. The rulings themselves wait for the owner's direct
-   confirmation (For the owner).
+   open, and the rulings cover the departures. Their source is the owner's own message of 2026-09-28
+   (For the owner).
 5. **Raw post-frontier reads stay unpoliceable.** The minute bank and the cache top-ups hold
    post-frontier prices and are read routinely: restore proofs, recoveries, probes. Once the desk
    reopens its live record shows every operator the shipped cells' post-frontier outcomes. Rules 1, 2
