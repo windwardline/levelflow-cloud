@@ -1,0 +1,4 @@
+fit all years net: markets 15 days 2611 pooling gain 10.08
+fit all years bound: markets 15 days 2611 pooling gain 10.34
+select all years net: markets 15 days 1297 pooling gain 6.48
+select all years bound: markets 15 days 1297 pooling gain 7.44

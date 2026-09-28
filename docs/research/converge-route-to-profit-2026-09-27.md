@@ -29,7 +29,7 @@ Verified by hand before anything below was ranked:
   ([output](/docs/research/r3/converge-2026-09-27/verify_bf-select-contained-market.txt)). That
   matches the finder and the refuter to the tenth.
 - The pooling gain across the 15 crosses, computed from the refuter's per-day sums: 10.1–10.3× on fit
-  and 6.5–7.4× on select, all years. The refuter's split gives 10.3–11.0 on contained folds and 6.6–8.4
+  and 6.5–7.4× on select, all years ([gain](/docs/research/r3/converge-2026-09-27/verify_pooling-gain.out.txt)). The refuter's split gives 10.3–11.0 on contained folds and 6.6–8.4
   on escaping select ([a3](/docs/research/r3/converge-2026-09-27/refute-forex-crosses_a3.out.txt)).
 - The feed-character witness quoted below, read at its source.
 
@@ -127,7 +127,7 @@ execution: lock latency, spreads, and whether stops slip.
 A per-market confirm at amendment 48's c = 1 draw (one-sided 0.02) with 80 % power needs mean ÷ SD per
 day cluster of at least 2.895 ÷ √N. Forex trades about 0.79 day clusters per weekday, so a one-year read
 holds about 206 clusters and needs mean ÷ SD of at least 0.20. At the measured cluster SD of about
-1.2–1.3 R, that is about +0.25 R per market per trading day on both arms. The best contained cell per market
+1.2–1.3 R, that is about +0.25 R per market per trading day on both arms. The best contained forex cell
 today is GBPNZD's fit, at +0.13 R per day cluster net and +0.03 bound, both in-sample. No published daily-frequency
 effect the design round found comes close.
 
