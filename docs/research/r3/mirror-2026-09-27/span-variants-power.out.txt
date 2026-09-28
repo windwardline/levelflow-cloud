@@ -1,0 +1,22 @@
+forex, contained years, 16-21 UTC, per UTC decision day pooled over the pool's markets; realizedR (net arm) and armingBoundRealizedR (bound arm); hold has one arm
+variant fold pool | days | arm | R | mean/day | lo95/day | mean/sd | days for 80% power | years
+breakeven fit held-out | 2268 | net | -144.2 | -0.0636 | -0.1211 | -0.0455 | inf | inf
+breakeven fit held-out | 2268 | bound | -162.4 | -0.0716 | -0.1290 | -0.0513 | inf | inf
+breakeven fit in-pool | 2422 | net | -213.2 | -0.0880 | -0.2015 | -0.0309 | inf | inf
+breakeven fit in-pool | 2422 | bound | -264.3 | -0.1091 | -0.2225 | -0.0383 | inf | inf
+breakeven select held-out | 744 | net | -124.0 | -0.1667 | -0.2597 | -0.1288 | inf | inf
+breakeven select held-out | 744 | bound | -129.1 | -0.1735 | -0.2665 | -0.1341 | inf | inf
+breakeven select in-pool | 897 | net | -125.3 | -0.1397 | -0.3029 | -0.0560 | inf | inf
+breakeven select in-pool | 897 | bound | -143.8 | -0.1603 | -0.3235 | -0.0643 | inf | inf
+hold fit held-out | 2268 | net | -51.4 | -0.0227 | -0.0888 | -0.0141 | inf | inf
+hold fit in-pool | 2422 | net | +142.9 | +0.0590 | -0.0769 | +0.0173 | 28,021 | 97.6
+hold select held-out | 744 | net | -67.8 | -0.0911 | -0.1986 | -0.0608 | inf | inf
+hold select in-pool | 897 | net | +75.0 | +0.0836 | -0.1102 | +0.0282 | 10,521 | 49.4
+trail_tp1 fit held-out | 2268 | net | +260.9 | +0.1151 | +0.0600 | +0.0861 | 1,132 | 4.2
+trail_tp1 fit held-out | 2268 | bound | +11.5 | +0.0051 | -0.0486 | +0.0039 | 552,517 | 2054.1
+trail_tp1 fit in-pool | 2422 | net | +1305.2 | +0.5389 | +0.4273 | +0.1924 | 226 | 0.8
+trail_tp1 fit in-pool | 2422 | bound | +450.1 | +0.1858 | +0.0774 | +0.0683 | 1,799 | 6.3
+trail_tp1 select held-out | 744 | net | +13.9 | +0.0186 | -0.0721 | +0.0148 | 38,475 | 145.2
+trail_tp1 select held-out | 744 | bound | -59.6 | -0.0801 | -0.1689 | -0.0648 | inf | inf
+trail_tp1 select in-pool | 897 | net | +339.2 | +0.3782 | +0.2148 | +0.1514 | 366 | 1.7
+trail_tp1 select in-pool | 897 | bound | +85.7 | +0.0956 | -0.0639 | +0.0392 | 5,446 | 25.6

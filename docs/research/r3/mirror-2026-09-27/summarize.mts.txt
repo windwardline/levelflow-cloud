@@ -1,0 +1,76 @@
+/**
+ * Mirror control, phase 3 — the requested rows, lifted from resolve.mts's own
+ * TSVs (no re-resolution, no corpus read). Writes <outDir>/summary.txt.
+ *
+ *   npx tsx <scratch>/mirror/summarize.mts <outDir>
+ */
+import { readFileSync, writeFileSync } from "node:fs";
+
+const [, , outDir] = process.argv;
+if (!outDir) throw new Error("usage: summarize.mts <outDir>");
+const anchor = JSON.parse(readFileSync(`${outDir}/anchor.json`, "utf8"));
+if (anchor.totalMismatches !== 0) throw new Error("summarize: the anchor did not hold — nothing to summarise");
+
+type Line = Record<string, string>;
+function readTsv(path: string): Line[] {
+  const [head, ...rest] = readFileSync(path, "utf8").trimEnd().split("\n");
+  const keys = head.split("\t");
+  return rest.map((line) => Object.fromEntries(line.split("\t").map((v, i) => [keys[i], v])));
+}
+const table = readTsv(`${outDir}/table.tsv`);
+const perMarket = readTsv(`${outDir}/per-market.tsv`);
+const num = (v: string) => (v === "" ? null : Number(v));
+const f = (v: number | null) => (v === null || !Number.isFinite(v) ? "-" : (v >= 0 ? "+" : "") + v.toFixed(4));
+const ci = (l: Line) => `${f(num(l.mean))} [${f(num(l.lo95))}, ${f(num(l.hi95))}]`;
+const ARMS = [["fricOff", "frictionless, arming OFF"], ["fricOn", "frictionless, arming ON"], ["fullOff", "full cost, arming OFF"], ["fullOn", "full cost, arming ON"]];
+const STATS = ["S", "M", "S-M", "(S+M)/2"];
+
+const out: string[] = [
+  "MIRROR CONTROL — SUMMARY (MEASURED: resolve.mts -> table.tsv / per-market.tsv; summarize.mts)",
+  `anchor: ${anchor.rowsChecked} rows checked, ${anchor.totalMismatches} mismatches over ${Object.keys(anchor.mismatchesPerField).length} fields; ` +
+    `analyzer ${anchor.analyzerVersionManifest} == HEAD ${anchor.analyzerVersionHead}: ${anchor.analyzerVersionMatches}`,
+  "",
+];
+for (const split of ["fit", "select"]) {
+  for (const span of ["all", "in"]) {
+    const rows = table.filter((l) => l.split === split && l.years === "contained" && l.pool === "in-pool" && l.span === span);
+    if (rows.length === 0) continue;
+    out.push(`== ${split} · contained · in-pool · ${span === "all" ? "all hours" : "16-21 UTC"} · decisions ${rows[0].decisions}`);
+    for (const [arm, label] of ARMS) {
+      const a = rows.filter((l) => l.arm === arm);
+      const fills = `fills S ${a[0].S_fills} M ${a[0].M_fills}`;
+      out.push(`  ${label.padEnd(26)} ${fills}`);
+      for (const basis of ["decision", "fill"]) {
+        out.push(`    per ${basis.padEnd(8)} ` + STATS.map((s) => `${s} ${ci(a.find((l) => l.basis === basis && l.stat === s)!)}`).join("  "));
+      }
+    }
+    out.push("");
+  }
+}
+
+// Per market: does S−M replicate from fit to select?
+out.push("== PER MARKET S−M (frictionless, per decision) — fit vs select, contained; * = held-out");
+for (const arm of ["fricOff", "fricOn"]) {
+  const get = (split: string) =>
+    new Map(perMarket.filter((l) => l.split === split && l.arm === arm && l.basis === "decision" && l.stat === "S-M").map((l) => [l.symbol, l]));
+  const fit = get("fit");
+  const sel = get("select");
+  const symbols = [...fit.keys()].filter((s) => sel.has(s)).sort();
+  const xs = symbols.map((s) => Number(fit.get(s)!.mean));
+  const ys = symbols.map((s) => Number(sel.get(s)!.mean));
+  const mx = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const my = ys.reduce((a, b) => a + b, 0) / ys.length;
+  const cov = xs.reduce((acc, x, i) => acc + (x - mx) * (ys[i] - my), 0);
+  const r = cov / Math.sqrt(xs.reduce((a, x) => a + (x - mx) ** 2, 0) * ys.reduce((a, y) => a + (y - my) ** 2, 0));
+  const agree = symbols.filter((_, i) => Math.sign(xs[i]) === Math.sign(ys[i])).length;
+  const excl = (m: Map<string, Line>) =>
+    [...m.values()].filter((l) => num(l.lo95)! > 0 || num(l.hi95)! < 0).map((l) => `${l.symbol}${l.pool === "held-out" ? "*" : ""} ${ci(l)}`);
+  out.push(`  ${arm === "fricOff" ? "arming OFF" : "arming ON "}: markets ${symbols.length}; sign agreement fit→select ${agree}/${symbols.length}; Pearson r(fit S−M, select S−M) = ${r.toFixed(3)}`);
+  out.push(`    fit    intervals excluding 0: ${excl(fit).join("; ") || "none"}`);
+  out.push(`    select intervals excluding 0: ${excl(sel).join("; ") || "none"}`);
+  for (const s of symbols) {
+    out.push(`    ${(s + (fit.get(s)!.pool === "held-out" ? "*" : "")).padEnd(8)} fit ${ci(fit.get(s)!).padEnd(28)} select ${ci(sel.get(s)!)}`);
+  }
+}
+writeFileSync(`${outDir}/summary.txt`, out.join("\n") + "\n");
+console.log(out.join("\n"));

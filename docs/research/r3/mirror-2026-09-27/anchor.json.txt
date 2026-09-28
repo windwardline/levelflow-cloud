@@ -1,0 +1,413 @@
+{
+  "corpus": "/Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-24.jsonl",
+  "manifestHash": "21738a0a48a5d5dcc1d08e2cfca421497424e74935ba4b6aad4fe77493c3b3dd",
+  "anchor": "2026-08-26",
+  "analyzerVersionManifest": "2026.09.23.expiry-exit-slippage",
+  "analyzerVersionHead": "2026.09.23.expiry-exit-slippage",
+  "analyzerVersionMatches": true,
+  "modeledCostScale": 1,
+  "grossCostScale": 0,
+  "heldOut": {
+    "markets": [
+      "AAVEUSD",
+      "ARWUSD",
+      "AUDCHF",
+      "AUDNZD",
+      "BNBUSD",
+      "BZUSD",
+      "DASHUSD",
+      "EURUSD",
+      "GBPCAD",
+      "HEUSX",
+      "NGUSD",
+      "NSDQ",
+      "NZDCHF",
+      "NZDJPY",
+      "RTYUSD",
+      "THETAUSD",
+      "XLMUSD",
+      "XMRUSD",
+      "YMUSD",
+      "ZMUSD"
+    ],
+    "pinState": "verified",
+    "pinned": true
+  },
+  "yearMapSource": "manifest",
+  "calibrationCheck": [
+    {
+      "symbol": "EURUSD",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "GBPUSD",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "USDJPY",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "AUDUSD",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "USDCAD",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "USDCHF",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "NZDUSD",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "NZDJPY",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "NZDCHF",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "NZDCAD",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "GBPNZD",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "GBPJPY",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "GBPCHF",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "GBPCAD",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "GBPAUD",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "EURNZD",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "EURJPY",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "EURGBP",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "EURCHF",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "EURCAD",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "EURAUD",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "CHFJPY",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "CADJPY",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "CADCHF",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "AUDNZD",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "AUDJPY",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "AUDCHF",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    },
+    {
+      "symbol": "AUDCAD",
+      "reviewHours": 8,
+      "runnerProtection": "trail_tp1",
+      "differingKeysVsHead": []
+    }
+  ],
+  "extractCensus": {
+    "delivered": 4493205,
+    "otherSplit": 0,
+    "fitSelect": 4493205,
+    "notBaseline": 3855027,
+    "notAccepted": 139665,
+    "notForex": 142791,
+    "kept": 355722,
+    "keptBySplit": {
+      "fit": 247981,
+      "select": 107741
+    }
+  },
+  "sealedRowsWithheldByDoor": 2141527,
+  "rowsChecked": 355722,
+  "unknownYearRows": 0,
+  "mismatchesPerField": {
+    "tier(resolutionIntervalMs)": 0,
+    "outcome": 0,
+    "realizedR": 0,
+    "armingBoundOutcome": 0,
+    "armingBoundRealizedR": 0,
+    "grossRealizedR": 0,
+    "grossOutcome": 0,
+    "runnerProtection(feedback)": 0,
+    "noBarsInReviewWindow": 0,
+    "filledAtMs": 0,
+    "exitAtMs": 0,
+    "armingBoundExitAtMs": 0,
+    "legs(net arm)": 0,
+    "latestClose==decisionBar.close": 0,
+    "riskDistance==|entry-stop|": 0,
+    "frictionlessOn==grossRealizedR+commission/risk(<=1e-4 rounding)": 0
+  },
+  "totalMismatches": 0,
+  "examples": {},
+  "perSymbol": {
+    "EURUSD": {
+      "rows": 13064,
+      "seconds": 1.974,
+      "tier5": 13064,
+      "tier15": 0
+    },
+    "GBPUSD": {
+      "rows": 13219,
+      "seconds": 1.902,
+      "tier5": 13219,
+      "tier15": 0
+    },
+    "USDJPY": {
+      "rows": 12019,
+      "seconds": 1.804,
+      "tier5": 12019,
+      "tier15": 0
+    },
+    "AUDUSD": {
+      "rows": 13679,
+      "seconds": 1.984,
+      "tier5": 13679,
+      "tier15": 0
+    },
+    "USDCAD": {
+      "rows": 10982,
+      "seconds": 1.693,
+      "tier5": 10982,
+      "tier15": 0
+    },
+    "USDCHF": {
+      "rows": 12175,
+      "seconds": 1.868,
+      "tier5": 12175,
+      "tier15": 0
+    },
+    "NZDUSD": {
+      "rows": 13451,
+      "seconds": 1.868,
+      "tier5": 13451,
+      "tier15": 0
+    },
+    "NZDJPY": {
+      "rows": 13221,
+      "seconds": 1.896,
+      "tier5": 13221,
+      "tier15": 0
+    },
+    "NZDCHF": {
+      "rows": 12529,
+      "seconds": 1.854,
+      "tier5": 12529,
+      "tier15": 0
+    },
+    "NZDCAD": {
+      "rows": 12631,
+      "seconds": 1.986,
+      "tier5": 12631,
+      "tier15": 0
+    },
+    "GBPNZD": {
+      "rows": 13488,
+      "seconds": 1.896,
+      "tier5": 13488,
+      "tier15": 0
+    },
+    "GBPJPY": {
+      "rows": 13258,
+      "seconds": 1.847,
+      "tier5": 13258,
+      "tier15": 0
+    },
+    "GBPCHF": {
+      "rows": 12968,
+      "seconds": 1.859,
+      "tier5": 12968,
+      "tier15": 0
+    },
+    "GBPCAD": {
+      "rows": 13051,
+      "seconds": 1.891,
+      "tier5": 13051,
+      "tier15": 0
+    },
+    "GBPAUD": {
+      "rows": 13514,
+      "seconds": 1.708,
+      "tier5": 13514,
+      "tier15": 0
+    },
+    "EURNZD": {
+      "rows": 13393,
+      "seconds": 1.719,
+      "tier5": 13393,
+      "tier15": 0
+    },
+    "EURJPY": {
+      "rows": 13257,
+      "seconds": 1.697,
+      "tier5": 13257,
+      "tier15": 0
+    },
+    "EURGBP": {
+      "rows": 12369,
+      "seconds": 1.702,
+      "tier5": 12369,
+      "tier15": 0
+    },
+    "EURCHF": {
+      "rows": 8040,
+      "seconds": 1.298,
+      "tier5": 8040,
+      "tier15": 0
+    },
+    "EURCAD": {
+      "rows": 13106,
+      "seconds": 1.673,
+      "tier5": 13106,
+      "tier15": 0
+    },
+    "EURAUD": {
+      "rows": 13411,
+      "seconds": 1.722,
+      "tier5": 13411,
+      "tier15": 0
+    },
+    "CHFJPY": {
+      "rows": 12943,
+      "seconds": 2.004,
+      "tier5": 12943,
+      "tier15": 0
+    },
+    "CADJPY": {
+      "rows": 13354,
+      "seconds": 1.686,
+      "tier5": 13354,
+      "tier15": 0
+    },
+    "CADCHF": {
+      "rows": 12760,
+      "seconds": 1.625,
+      "tier5": 12760,
+      "tier15": 0
+    },
+    "AUDNZD": {
+      "rows": 11140,
+      "seconds": 1.585,
+      "tier5": 11140,
+      "tier15": 0
+    },
+    "AUDJPY": {
+      "rows": 13383,
+      "seconds": 1.678,
+      "tier5": 13383,
+      "tier15": 0
+    },
+    "AUDCHF": {
+      "rows": 13198,
+      "seconds": 1.692,
+      "tier5": 13198,
+      "tier15": 0
+    },
+    "AUDCAD": {
+      "rows": 12119,
+      "seconds": 1.699,
+      "tier5": 12119,
+      "tier15": 0
+    }
+  }
+}

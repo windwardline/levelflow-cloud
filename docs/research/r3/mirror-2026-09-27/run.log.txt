@@ -1,0 +1,32 @@
+npm notice run levelflow-cloud@0.1.0 npx
+npm notice run 'tsx' /private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/ff8d5ada-64fe-4e04-8691-c0ab04143fa2/scratchpad/mirror/resolve.mts /Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-24.jsonl /private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/ff8d5ada-64fe-4e04-8691-c0ab04143fa2/scratchpad/mirror/extract /private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/ff8d5ada-64fe-4e04-8691-c0ab04143fa2/scratchpad/mirror/out /Users/peacock/Projects/levelflow-cloud/.calibration-cache
+EURUSD	13064 rows	5min 13064 / 15min 0	2.0s
+GBPUSD	13219 rows	5min 13219 / 15min 0	1.9s
+USDJPY	12019 rows	5min 12019 / 15min 0	1.8s
+AUDUSD	13679 rows	5min 13679 / 15min 0	2.0s
+USDCAD	10982 rows	5min 10982 / 15min 0	1.7s
+USDCHF	12175 rows	5min 12175 / 15min 0	1.9s
+NZDUSD	13451 rows	5min 13451 / 15min 0	1.9s
+NZDJPY	13221 rows	5min 13221 / 15min 0	1.9s
+NZDCHF	12529 rows	5min 12529 / 15min 0	1.9s
+NZDCAD	12631 rows	5min 12631 / 15min 0	2.0s
+GBPNZD	13488 rows	5min 13488 / 15min 0	1.9s
+GBPJPY	13258 rows	5min 13258 / 15min 0	1.8s
+GBPCHF	12968 rows	5min 12968 / 15min 0	1.9s
+GBPCAD	13051 rows	5min 13051 / 15min 0	1.9s
+GBPAUD	13514 rows	5min 13514 / 15min 0	1.7s
+EURNZD	13393 rows	5min 13393 / 15min 0	1.7s
+EURJPY	13257 rows	5min 13257 / 15min 0	1.7s
+EURGBP	12369 rows	5min 12369 / 15min 0	1.7s
+EURCHF	8040 rows	5min 8040 / 15min 0	1.3s
+EURCAD	13106 rows	5min 13106 / 15min 0	1.7s
+EURAUD	13411 rows	5min 13411 / 15min 0	1.7s
+CHFJPY	12943 rows	5min 12943 / 15min 0	2.0s
+CADJPY	13354 rows	5min 13354 / 15min 0	1.7s
+CADCHF	12760 rows	5min 12760 / 15min 0	1.6s
+AUDNZD	11140 rows	5min 11140 / 15min 0	1.6s
+AUDJPY	13383 rows	5min 13383 / 15min 0	1.7s
+AUDCHF	13198 rows	5min 13198 / 15min 0	1.7s
+AUDCAD	12119 rows	5min 12119 / 15min 0	1.7s
+ANCHOR (MEASURED, /private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/ff8d5ada-64fe-4e04-8691-c0ab04143fa2/scratchpad/mirror/out/anchor.json): rows checked 355722; mismatches per field {"tier(resolutionIntervalMs)":0,"outcome":0,"realizedR":0,"armingBoundOutcome":0,"armingBoundRealizedR":0,"grossRealizedR":0,"grossOutcome":0,"runnerProtection(feedback)":0,"noBarsInReviewWindow":0,"filledAtMs":0,"exitAtMs":0,"armingBoundExitAtMs":0,"legs(net arm)":0,"latestClose==decisionBar.close":0,"riskDistance==|entry-stop|":0,"frictionlessOn==grossRealizedR+commission/risk(<=1e-4 rounding)":0}
+done in 58s; 355722 rows (278 data-absent excluded from the table)

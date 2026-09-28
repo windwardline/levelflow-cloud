@@ -1,0 +1,26 @@
+contained years; per UTC decision day, summed over the pool's markets; full cost; unfilled = 0
+fold pool span | decisions | series | days | mean/day | sd/day | lo95/day | mean/sd | days for 80% power | years at the cell's day density
+fit held-out in | 12352 | fullOff|S | 2307 | +0.0050 | 1.294 | -0.0478 | +0.0039 | 562,014 | 2055.0
+fit held-out in | 12352 | fullOff|S+M | 2307 | +0.1212 | 1.812 | +0.0472 | +0.0669 | 1,875 | 6.9
+fit held-out in | 12352 | fullOn|S | 2307 | +0.1131 | 1.326 | +0.0590 | +0.0853 | 1,151 | 4.2
+fit held-out in | 12352 | fullOn|S+M | 2307 | +0.3356 | 1.885 | +0.2587 | +0.1781 | 264 | 1.0
+fit in-pool in | 46215 | fullOff|S | 2434 | +0.1849 | 2.716 | +0.0770 | +0.0681 | 1,808 | 6.3
+fit in-pool in | 46215 | fullOff|S+M | 2434 | +0.5893 | 3.961 | +0.4319 | +0.1488 | 379 | 1.3
+fit in-pool in | 46215 | fullOn|S | 2434 | +0.5362 | 2.794 | +0.4252 | +0.1919 | 228 | 0.8
+fit in-pool in | 46215 | fullOn|S+M | 2434 | +1.2711 | 4.145 | +1.1064 | +0.3067 | 89 | 0.3
+fit in-pool out | 148417 | fullOff|S | 2621 | -1.7183 | 5.485 | -1.9283 | -0.3133 | inf | inf
+fit in-pool out | 148417 | fullOff|S+M | 2621 | -3.8264 | 7.725 | -4.1222 | -0.4953 | inf | inf
+fit in-pool out | 148417 | fullOn|S | 2621 | -0.5877 | 5.562 | -0.8006 | -0.1057 | inf | inf
+fit in-pool out | 148417 | fullOn|S+M | 2621 | -1.5863 | 7.844 | -1.8865 | -0.2022 | inf | inf
+select held-out in | 3895 | fullOff|S | 760 | -0.0784 | 1.223 | -0.1654 | -0.0641 | inf | inf
+select held-out in | 3895 | fullOff|S+M | 760 | -0.0702 | 1.685 | -0.1900 | -0.0416 | inf | inf
+select held-out in | 3895 | fullOn|S | 760 | +0.0183 | 1.250 | -0.0706 | +0.0146 | 39,301 | 145.3
+select held-out in | 3895 | fullOn|S+M | 760 | +0.1298 | 1.757 | +0.0049 | +0.0739 | 1,535 | 5.7
+select in-pool in | 13993 | fullOff|S | 912 | +0.0940 | 2.416 | -0.0628 | +0.0389 | 5,537 | 25.6
+select in-pool in | 13993 | fullOff|S+M | 912 | +0.1352 | 3.390 | -0.0848 | +0.0399 | 5,273 | 24.4
+select in-pool in | 13993 | fullOn|S | 912 | +0.3720 | 2.477 | +0.2112 | +0.1502 | 372 | 1.7
+select in-pool in | 13993 | fullOn|S+M | 912 | +0.6872 | 3.544 | +0.4572 | +0.1939 | 223 | 1.0
+select in-pool out | 43704 | fullOff|S | 982 | -2.5095 | 4.896 | -2.8157 | -0.5126 | inf | inf
+select in-pool out | 43704 | fullOff|S+M | 982 | -5.0770 | 7.321 | -5.5349 | -0.6935 | inf | inf
+select in-pool out | 43704 | fullOn|S | 982 | -1.7060 | 4.861 | -2.0100 | -0.3510 | inf | inf
+select in-pool out | 43704 | fullOn|S+M | 982 | -3.4841 | 7.167 | -3.9323 | -0.4861 | inf | inf

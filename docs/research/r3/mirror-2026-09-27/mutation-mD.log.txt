@@ -1,0 +1,6 @@
+npm notice run levelflow-cloud@0.1.0 npx
+npm notice run 'tsx' /private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/ff8d5ada-64fe-4e04-8691-c0ab04143fa2/scratchpad/mirror/mut/mD.mts /Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-24.jsonl /private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/ff8d5ada-64fe-4e04-8691-c0ab04143fa2/scratchpad/mirror/extract /private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/ff8d5ada-64fe-4e04-8691-c0ab04143fa2/scratchpad/mirror/mut/out-mD /Users/peacock/Projects/levelflow-cloud/.calibration-cache
+EURUSD	13064 rows	5min 13064 / 15min 0	1.9s
+USDJPY	12019 rows	5min 12019 / 15min 0	1.8s
+ANCHOR (MEASURED, /private/tmp/claude-501/-Users-peacock-Projects-levelflow-cloud/ff8d5ada-64fe-4e04-8691-c0ab04143fa2/scratchpad/mirror/mut/out-mD/anchor.json): rows checked 25083; mismatches per field {"tier(resolutionIntervalMs)":0,"outcome":0,"realizedR":0,"armingBoundOutcome":0,"armingBoundRealizedR":0,"grossRealizedR":0,"grossOutcome":0,"runnerProtection(feedback)":0,"noBarsInReviewWindow":52,"filledAtMs":0,"exitAtMs":0,"armingBoundExitAtMs":0,"legs(net arm)":0,"latestClose==decisionBar.close":0,"riskDistance==|entry-stop|":0,"frictionlessOn==grossRealizedR+commission/risk(<=1e-4 rounding)":0}
+ANCHOR FAILED — no mirror figure is printed from an unanchored reader.
