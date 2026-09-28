@@ -1,0 +1,44 @@
+import json, math, sys
+from collections import defaultdict
+M=json.load(open('/Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-24.jsonl.manifest.json'))
+cls={s['symbol']:s['assetType'] for s in M['symbols']}
+esc={s['symbol']:set(s.get('feedCharacter',{}).get('5min',{}).get('escapeYears') or []) for s in M['symbols']}
+hold=set(json.load(open('/Users/peacock/Projects/levelflow-cloud/docs/research/r4/holdout-2026-08-26.json'))['markets'])
+D=json.load(open('costsplit-2026-09-24.json'))['cells']
+F=['nNet','nGross','net','net2','gross','gross2','bound','bound2','nc2','commR','commTp1','spreadR','slipR','bothN','bothGap','swapNights','swapRperBp']
+# control: tp1 commission on in-pool forex fit
+t=sum(c.get('commTp1',0) for c in D if cls[c['symbol']]=='forex' and c['split']=='fit' and c['symbol'] not in hold)
+print('control commTp1 forex fit in-pool', round(t,1), '(banked-fraction costs column: 3163.0)')
+t=sum(c.get('commTp1',0) for c in D if cls[c['symbol']]=='forex' and c['split']=='select' and c['symbol'] not in hold)
+print('control commTp1 forex select in-pool', round(t,1), '(banked-fraction: 1816.6)')
+yrs=sys.argv[1]
+def keep(c):
+    e=c['year'] in esc[c['symbol']]
+    return yrs=='all' or (yrs=='escaping')==e
+A=defaultdict(lambda: defaultdict(float))
+for c in D:
+    if keep(c):
+        for f in F: A[(c['symbol'],c['split'])][f]+=c.get(f,0)
+def st(s,s2,n):
+    if n<2: return (float('nan'),float('nan'))
+    m=s/n; v=max(s2/n-m*m,0)*n/(n-1); return m, math.sqrt(v/n)
+rows=[]
+for sym in sorted(set(k[0] for k in A), key=lambda s:(cls[s],s)):
+    rec={'sym':sym,'cls':cls[sym],'hold':sym in hold}
+    for fold in ('fit','select'):
+        a=A.get((sym,fold))
+        if not a or a['nNet']<2: rec[fold]=None; continue
+        n=a['nNet']
+        m,se=st(a['net'],a['net2'],n); b,bse=st(a['bound'],a['bound2'],n)
+        nc=(a['net']+a['commR'])/n; _,ncse=st(a['net']+a['commR'],a['nc2'],n)
+        g,gse=st(a['gross'],a['gross2'],a['nGross'])
+        rec[fold]=dict(n=n,E=m,lo=m-1.96*se,B=b,Blo=b-1.96*bse,NC=nc,NClo=nc-1.96*ncse,G=g,Glo=g-1.96*gse,comm=a['commR']/n,sp=a['spreadR']/n,sl=a['slipR']/n,swap=a['swapRperBp']/n,sum=a['net'])
+    rows.append(rec)
+json.dump(rows,open(f'permarket-{yrs}.json','w'))
+print(f"years={yrs}; E = net realizedR per fill, lo = E-1.96*iid SE (iid, optimistic), B = arming-bound, NC = net with commission added back, G = gross arm (commission charged, no spread/slip)")
+print(f"{'sym':9}{'cls':12}{'H':2}| {'fit n':>6}{'E':>8}{'lo':>8}{'B':>8}{'NC':>8}{'G':>8}{'comm':>7} | {'sel n':>6}{'E':>8}{'lo':>8}{'B':>8}{'NC':>8}{'G':>8}{'comm':>7}")
+for r in rows:
+    def f(x): 
+        if not x: return f"{'':>6}{'-':>8}{'':>8}{'':>8}{'':>8}{'':>8}{'':>7}"
+        return f"{x['n']:6.0f}{x['E']:8.3f}{x['lo']:8.3f}{x['B']:8.3f}{x['NC']:8.3f}{x['G']:8.3f}{x['comm']:7.3f}"
+    print(f"{r['sym']:9}{r['cls']:12}{'H' if r['hold'] else ' ':2}| {f(r['fit'])} | {f(r['select'])}")

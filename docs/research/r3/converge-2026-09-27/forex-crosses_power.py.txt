@@ -1,0 +1,42 @@
+import json, math, sys, datetime as dt
+from statistics import mean, stdev, NormalDist
+d=json.load(open(sys.argv[1])); cells=d['cells']
+man=json.load(open('/Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-24.jsonl.manifest.json'))
+folds={f['name']:f for f in man['foldsByClass']['forex']}
+first5={e['symbol']:e['series'].get('5min',{}).get('firstTime') for e in man['symbols']}
+X15="AUDCAD AUDCHF AUDNZD CADCHF EURAUD EURCAD EURCHF EURGBP EURNZD GBPCAD GBPCHF GBPJPY GBPNZD NZDCAD NZDCHF".split()
+DAY=86400000
+za=NormalDist().inv_cdf(1-0.02); zb=NormalDist().inv_cdf(0.80)
+print(f'z_alpha (one-sided 0.02) = {za:.4f}; z_beta (80%) = {zb:.4f}')
+def weekdays(a_ms,b_ms):
+    a=math.ceil(a_ms/DAY); b=math.ceil(b_ms/DAY)  # day indices [a,b)
+    return sum(1 for x in range(a,b) if dt.datetime.utcfromtimestamp(x*86400).weekday()<5)
+def days(sym,sp,b=None):
+    out=[]
+    for bb in (('contained','escaping') if b is None else (b,)):
+        out+=cells.get(f'{sym}|{sp}|{bb}',[])
+    return out
+def nneed(v, arm):
+    xs=[x[2] if arm=='net' else x[3] for x in v]
+    m=mean(xs); s=stdev(xs)
+    return m,s,(math.inf if m<=0 else ((za+zb)*s/m)**2)
+print('| market | density (wkday clusters/wkday, fit+select) | Sunday-cluster share | basis | net mean | net SD | n net | bound mean | bound SD | n bound | n = max | weekdays | calendar years |')
+res={}
+for s in X15+['GBPJPY']:
+    if s in res: continue
+    h=first5[s]
+    wd=0; wc=0; allc=0
+    for sp in ('fit','select'):
+        f=folds[sp]; a=max(f['startMs'],h); wd+=weekdays(a,f['decisionEndMs'])
+        for x in days(s,sp):
+            allc+=1
+            if dt.datetime.utcfromtimestamp(x[0]*86400).weekday()<5: wc+=1
+    dens=wc/wd
+    res[s]=dens
+    for basis,v in (('select all years',days(s,'select')),('select contained',days(s,'select','contained')),('fit (contained)',days(s,'fit'))):
+        mn,sn,nn=nneed(v,'net'); mb,sb,nb=nneed(v,'bound'); n=max(nn,nb)
+        n=max(n,30)
+        w=n/dens if math.isfinite(n) else math.inf
+        yrs=w/(5*52.1775) if math.isfinite(w) else math.inf
+        fmt=lambda x: 'inf' if not math.isfinite(x) else f'{x:,.0f}'
+        print(f'| {s} | {dens:.3f} | {1-wc/allc:.3f} | {basis} | {mn:+.4f} | {sn:.3f} | {fmt(nn)} | {mb:+.4f} | {sb:.3f} | {fmt(nb)} | {fmt(n)} | {fmt(w)} | {"inf" if not math.isfinite(yrs) else f"{yrs:.2f}"} |')

@@ -1,0 +1,29 @@
+import json, math
+exec(open('an1.py').read().split("print('CONTROLS")[0])
+from collections import defaultdict
+syms=sorted(cls)
+def pm(sym,sp,ys,v='baseline'):
+    t=S(lambda s,f,vv,y,mm: s==sym and vv==v and f==sp and (ys is None or y==ys))
+    n=t[0]
+    if n<2: return None
+    e,l,sd=lo(t[1],t[2],n); b,bl,_=lo(t[3],t[4],n); g,gl,_=lo(t[10],t[11],t[9]); r0,r0l,_=lo(t[6],t[7],t[8])
+    return dict(n=n,E=e,lo=l,B=b,Blo=bl,G=g,Glo=gl,R0=r0,R0lo=r0l,sd=sd)
+res={}
+for s in syms:
+    res[s]={(sp,ys):pm(s,sp,ys) for sp in ('fit','select') for ys in (None,'con','esc')}
+both=[s for s in syms if res[s][('fit','con')] and res[s][('select','con')]]
+print('markets in manifest',len(syms),'; with baseline contained fills on both folds (n>=2):',len(both))
+missing=[s for s in syms if s not in both]
+print('missing:',[(s,cls[s],'fitcon' if res[s][('fit','con')] else '-', 'selcon' if res[s][('select','con')] else '-', 'fitall' if res[s][('fit',None)] else '-','selall' if res[s][('select',None)] else '-') for s in missing])
+for arm,key in [('net','lo'),('bound','Blo'),('gross','Glo'),('R0','R0lo')]:
+    c=[s for s in both if res[s][('fit','con')][key]>0 and res[s][('select','con')][key]>0]
+    sel=[s for s in both if res[s][('select','con')][key]>0]
+    print(f'{arm}: clear lo95 on both contained folds: {len(c)} {c}; on contained select alone: {len(sel)} {sel}')
+pt=[s for s in both if res[s][('fit','con')]['E']>0 and res[s][('select','con')]['E']>0]
+print('point-positive net on both contained folds:',pt)
+json.dump({s:{f'{k[0]}|{k[1]}':v for k,v in d.items()} for s,d in res.items()},open('pm.json','w'))
+X=['AUDCAD','AUDCHF','AUDNZD','CADCHF','EURAUD','EURCAD','EURCHF','EURGBP','EURNZD','GBPCAD','GBPCHF','GBPJPY','GBPNZD','NZDCAD','NZDCHF']
+print('15 crosses: select all / contained / escaping (E [lo]) and bound contained, gross contained, fit contained')
+for s in X:
+    a=res[s][('select',None)]; c=res[s][('select','con')]; e=res[s][('select','esc')]; f=res[s][('fit','con')]
+    print(f"{s} {'H' if s in hold else ' '} all {a['E']:+.3f}[{a['lo']:+.3f}] n{a['n']:.0f} | con {c['E']:+.3f}[{c['lo']:+.3f}] n{c['n']:.0f} B {c['B']:+.3f}[{c['Blo']:+.3f}] G {c['G']:+.3f}[{c['Glo']:+.3f}] R0 {c['R0']:+.3f}[{c['R0lo']:+.3f}] | esc {e['E']:+.3f}[{e['lo']:+.3f}] n{e['n']:.0f} | fit {f['E']:+.3f}[{f['lo']:+.3f}] G {f['G']:+.3f}[{f['Glo']:+.3f}]")

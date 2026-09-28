@@ -60,7 +60,8 @@ decides at most once a day.
   - The R unit is about 3.25 ATR.
   - The payoff floors (`minRewardRisk`, `minimumTargetRewardRisk`, `window_cannot_carry_payoff`) are
     not applied, which is OQ-1. `maxCostShare` 0.15 applies, at about 0.04.
-- **Screen.** The futures fit fold of the 2026-09-14 corpus. Null: same symbol, side and New York wall
+- **Screen.** The futures fit fold of the 2026-09-14 corpus (superseded for fit and select reads by #706's
+  2026-09-24 corpus; correct this line before anything is hashed). Null: same symbol, side and New York wall
   clock on eligible random fit days, K = 20. Clusters follow the B ladder over the side label. The
   floor is the mean c ÷ ATR.
 - **Freeze.** One cell. The candidate opens only if the fit screen passed, the select fold replays to
@@ -130,3 +131,9 @@ unread registration should not draw, and its read would hold every US index mark
 for about four years. The judge also made a point that bears on every family:
 amendment 39 already names a faster route to money. That route closes the gap between the 1.6:1 gate
 and the roughly 1:1 the ladder ships. No entry family here reaches money sooner.
+
+*Withdrawn 2026-09-27.* The judge's point carried no measurement, and the
+[converge](/docs/research/converge-route-to-profit-2026-09-27.md) refutes it. On identical decisions, the
+runner protection moves bound-arm expectancy by at most 0.008 R per fill. The stop and runner are
+already structural. Placing TP1 at structure is a claim that pivots carry direction, which makes it a
+family to screen.

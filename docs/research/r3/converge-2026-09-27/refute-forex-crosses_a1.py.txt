@@ -1,0 +1,55 @@
+import json, math, datetime as dt
+from statistics import mean, stdev
+D=json.load(open('days.json')); C=D['cells']
+man=json.load(open('/Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-24.jsonl.manifest.json'))
+FX={e['symbol']:e for e in man['symbols'] if e['assetType']=='forex'}
+EY={s:set(e['feedCharacter']['5min']['escapeYears']) for s,e in FX.items()}
+EM={s:set(e['feedCharacter']['5min']['escapeMonths']) for s,e in FX.items()}
+X15="AUDCAD AUDCHF AUDNZD CADCHF EURAUD EURCAD EURCHF EURGBP EURNZD GBPCAD GBPCHF GBPJPY GBPNZD NZDCAD NZDCHF".split()
+ALL=sorted(FX)
+def ymd(day): d=dt.datetime.fromtimestamp(day*86400,dt.UTC); return d.year,d.year*100+d.month,d.weekday()
+def rows(s,sp,tag='base'): return C.get(f'{s}|{sp}|{tag}',[])
+def bucket_y(s,day): return 'esc' if ymd(day)[0] in EY[s] else 'con'
+def bucket_m(s,day): return 'esc' if ymd(day)[1] in EM[s] else 'con'
+nulls=sum(r[5] for k,v in C.items() for r in v); print('gross nulls',nulls)
+def agg(pop,sp,b,bf=bucket_y,tag='base'):
+    n=net=bd=0; pos_n=pos_b=have=0
+    for s in pop:
+        rs=[r for r in rows(s,sp,tag) if bf(s,r[0])==b]
+        sn=sum(r[1] for r in rs); snet=sum(r[2] for r in rs); sb=sum(r[3] for r in rs)
+        n+=sn; net+=snet; bd+=sb
+        if sn: have+=1; pos_n+=snet>0; pos_b+=sb>0
+    return n,net,bd,pos_n,pos_b,have
+for label,pop in (('15 crosses',X15),('28 forex',ALL),('13 others',[s for s in ALL if s not in X15])):
+    for sp in ('fit','select'):
+        for b in ('con','esc'):
+            n,net,bd,pn,pb,h=agg(pop,sp,b)
+            print(f'{label:10} {sp:6} {b} fills {n:7d} net {net:+9.1f} bound {bd:+9.1f}  >0 net {pn}/{h} bound {pb}/{h}')
+print('\nFX-1 conjunction per symbol (year grain): fitC net,bound | selC net,bound')
+surv_both=[];surv_net=[]
+for s in ALL:
+    f=[sum(r[i] for r in rows(s,'fit') if bucket_y(s,r[0])=='con') for i in (2,3)]
+    c=[sum(r[i] for r in rows(s,'select') if bucket_y(s,r[0])=='con') for i in (2,3)]
+    if f[0]>0 and c[0]>0: surv_net.append((s,round(f[0],1),round(c[0],1),round(f[1],1),round(c[1],1)))
+    if all(x>0 for x in f+c): surv_both.append(s)
+print('net-only survivors',surv_net); print('both-arm survivors',surv_both)
+# month grain variant
+surv_m=[]
+for s in ALL:
+    f=[sum(r[i] for r in rows(s,'fit') if bucket_m(s,r[0])=='con') for i in (2,3)]
+    c=[sum(r[i] for r in rows(s,'select') if bucket_m(s,r[0])=='con') for i in (2,3)]
+    if f[0]>0 and c[0]>0: surv_m.append((s,round(f[0],1),round(c[0],1),round(f[1],1),round(c[1],1)))
+print('month-grain net survivors (fitC>0 & selC>0)',surv_m)
+selc_bound_neg=sum(1 for s in ALL if sum(r[3] for r in rows(s,'select') if bucket_y(s,r[0])=='con')<0)
+print('select contained bound <0:',selc_bound_neg,'of',len(ALL))
+print('\ncontained fit+select pooled day clusters, per cross: mean, lo95, hi95 (net | bound)')
+hi_pos=[]
+for s in X15:
+    v=[r for sp in ('fit','select') for r in rows(s,sp) if bucket_y(s,r[0])=='con']
+    out=[]
+    for i in (2,3):
+        xs=[r[i] for r in v]; m=mean(xs); se=stdev(xs)/math.sqrt(len(xs))
+        out.append((m,m-1.96*se,m+1.96*se))
+    if out[1][2]>0: hi_pos.append(s)
+    print(f'{s} k={len(v)} fills/cluster {sum(r[1] for r in v)/len(v):.3f} net {out[0][0]:+.4f} [{out[0][1]:+.4f},{out[0][2]:+.4f}] bound {out[1][0]:+.4f} [{out[1][1]:+.4f},{out[1][2]:+.4f}]')
+print('bound hi95>0:',len(hi_pos),hi_pos)

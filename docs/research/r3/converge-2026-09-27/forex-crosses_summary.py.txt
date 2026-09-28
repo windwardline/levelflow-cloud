@@ -1,0 +1,25 @@
+import json, math
+from statistics import mean, stdev, NormalDist
+d=json.load(open('clusters.json'))['cells']
+X15="AUDCAD AUDCHF AUDNZD CADCHF EURAUD EURCAD EURCHF EURGBP EURNZD GBPCAD GBPCHF GBPJPY GBPNZD NZDCAD NZDCHF".split()
+syms=sorted({k.split('|')[0] for k in d})
+def tot(s,sp,b,i): return sum(x[i] for x in d.get(f'{s}|{sp}|{b}',[]))
+def fills(s,sp,b): return sum(x[1] for x in d.get(f'{s}|{sp}|{b}',[]))
+for label,pop in (('15 crosses',X15),('all 28 forex',syms),('13 other forex',[s for s in syms if s not in X15])):
+    print(label)
+    for sp,b in (('fit','contained'),('fit','escaping'),('select','contained'),('select','escaping')):
+        n=sum(fills(s,sp,b) for s in pop); net=sum(tot(s,sp,b,2) for s in pop); bd=sum(tot(s,sp,b,3) for s in pop)
+        pos_n=sum(1 for s in pop if fills(s,sp,b)>0 and tot(s,sp,b,2)>0); pos_b=sum(1 for s in pop if fills(s,sp,b)>0 and tot(s,sp,b,3)>0); have=sum(1 for s in pop if fills(s,sp,b)>0)
+        print(f'  {sp:6} {b:9} fills {n:7d} net {net:+9.1f} ({net/max(n,1):+.4f}/fill) bound {bd:+9.1f} ({bd/max(n,1):+.4f}/fill) | markets>0 net {pos_n}/{have} bound {pos_b}/{have}')
+# fit-contained + select-contained pooled cluster expectation per cross (the contained-regime estimate)
+za=NormalDist().inv_cdf(0.98); zb=NormalDist().inv_cdf(0.80)
+print('\ncontained fit+select pooled, per cross, cluster mean (net, bound) and lo95')
+for s in X15:
+    v=d.get(f'{s}|fit|contained',[])+d.get(f'{s}|select|contained',[])
+    for i,arm in ((2,'net'),(3,'bound')):
+        xs=[x[i] for x in v]; m=mean(xs); sd=stdev(xs)
+        print(f'  {s} {arm:5} k={len(xs)} mean {m:+.4f} lo95 {m-1.96*sd/math.sqrt(len(xs)):+.4f} n80={"inf" if m<=0 else f"{((za+zb)*sd/m)**2:,.0f}"}', end='')
+    print()
+# AUDNZD fit: escaping 2009-10 vs contained
+for b in ('contained','escaping'):
+    v=d.get(f'AUDNZD|fit|{b}',[]); print('AUDNZD fit',b,len(v),'clusters net/cluster',round(mean([x[2] for x in v]),4),'bound/cluster',round(mean([x[3] for x in v]),4))

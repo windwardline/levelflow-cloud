@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""Contrarian cost split, fit and select only. CONFIRM IS DROPPED BEFORE ANY R FIELD IS READ:
+the raw line is tested for its split substring and any line that is not fit or select is skipped
+before json parsing. Read-only on the corpus; writes one JSON aggregate to this scratch dir.
+
+Per (symbol, split, year), baseline variant, accepted rows, not data-absent:
+  nNet (net filled), nGross (gross filled), net (sum realizedR), gross (sum grossRealizedR),
+  bound (sum armingBoundRealizedR), commR (sum commission/risk on net-filled rows),
+  spreadR / slipR (nominal modelled bill on net-filled rows: spread/risk, 2*slippage/risk),
+  bothN / bothGap (rows filled on both arms: sum of gross - net),
+  swapNights (size-weighted NY-17:00 rollovers crossed, Wednesday x3) and
+  swapRperBp (sum over net-filled rows of price*1e-4/risk * weighted nights).
+"""
+import json, sys, datetime
+from zoneinfo import ZoneInfo
+from collections import defaultdict
+
+CORPUS = sys.argv[1]
+OUT = sys.argv[2]
+FILLED = {"take_profit", "tp1_partial", "stop_loss", "expired_at_loss", "expired_in_profit", "ambiguous"}
+NY = ZoneInfo("America/New_York")
+UTC = datetime.timezone.utc
+
+def rollovers(a_ms, b_ms):
+    """Weighted count of 17:00 New York rollovers in (a, b]; Wednesday's counts 3."""
+    if b_ms <= a_ms:
+        return 0.0
+    a = datetime.datetime.fromtimestamp(a_ms / 1000, UTC).astimezone(NY)
+    b = datetime.datetime.fromtimestamp(b_ms / 1000, UTC).astimezone(NY)
+    d = a.date()
+    w = 0.0
+    while True:
+        roll = datetime.datetime(d.year, d.month, d.day, 17, 0, tzinfo=NY)
+        if roll > b:
+            break
+        if roll > a and roll.weekday() < 5:
+            w += 3.0 if roll.weekday() == 2 else 1.0
+        d += datetime.timedelta(days=1)
+    return w
+
+agg = defaultdict(lambda: defaultdict(float))
+counts = defaultdict(int)
+with open(CORPUS, "rb") as fh:
+    for raw in fh:
+        counts["lines"] += 1
+        head = raw[:120]
+        if b'"split":"fit"' in head:
+            pass
+        elif b'"split":"select"' in head:
+            pass
+        else:
+            counts["dropped_not_fit_select"] += 1
+            continue
+        if b'"variant":"baseline"' not in head or b'"accepted":true' not in head:
+            counts["other"] += 1
+            continue
+        r = json.loads(raw)
+        if r.get("split") not in ("fit", "select"):
+            raise SystemExit("split guard mismatch")
+        if r.get("variant") != "baseline" or r.get("accepted") is not True:
+            raise SystemExit("variant guard mismatch")
+        if r.get("noBarsInReviewWindow") is True:
+            counts["dataAbsent"] += 1
+            continue
+        sym = r["symbol"]; split = r["split"]
+        year = datetime.datetime.fromtimestamp(r["time"] / 1000, UTC).year
+        a = agg[(sym, split, year)]
+        a["rows"] += 1
+        netFilled = r["outcome"] in FILLED
+        grossFilled = r.get("grossOutcome") in FILLED
+        risk = r["riskDistance"]
+        if grossFilled:
+            a["nGross"] += 1
+            a["gross"] += r["grossRealizedR"]
+            a["gross2"] += r["grossRealizedR"] ** 2
+        if netFilled:
+            counts["netFilled"] += 1
+            a["nNet"] += 1
+            a["net"] += r["realizedR"]
+            a["net2"] += r["realizedR"] ** 2
+            a["bound"] += r["armingBoundRealizedR"]
+            a["bound2"] += r["armingBoundRealizedR"] ** 2
+            nc = r["realizedR"] + r["estimatedCommission"] / risk
+            a["nc2"] += nc * nc
+            if any(l["leg"] == "tp1" for l in r["legs"]):
+                a["commTp1"] += r["estimatedCommission"] / risk
+            a["commR"] += r["estimatedCommission"] / risk
+            a["spreadR"] += r["estimatedSpread"] / risk
+            a["slipR"] += 2 * r["estimatedSlippage"] / risk
+            if grossFilled:
+                a["bothN"] += 1
+                a["bothGap"] += r["grossRealizedR"] - r["realizedR"]
+            legs = r["legs"]
+            entry = next((l for l in legs if l["leg"] == "entry"), None)
+            tp1 = next((l for l in legs if l["leg"] == "tp1"), None)
+            ex = next((l for l in legs if l["leg"] == "exit"), None)
+            if entry and ex:
+                sg = 1 if r["side"] == "buy" else -1
+                r0 = sg * (ex["price"] - entry["price"]) / risk - r["estimatedCommission"] / risk
+                a["r0"] += r0
+                a["r02"] += r0 * r0
+                if tp1:
+                    nights = rollovers(entry["time"], tp1["time"]) + 0.5 * rollovers(tp1["time"], ex["time"])
+                else:
+                    nights = rollovers(entry["time"], ex["time"])
+                a["swapNights"] += nights
+                a["swapRperBp"] += entry["price"] * 1e-4 / risk * nights
+out = {"counts": counts, "cells": [dict(symbol=k[0], split=k[1], year=k[2], **v) for k, v in agg.items()]}
+json.dump(out, open(OUT, "w"))
+print(json.dumps(counts))

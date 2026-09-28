@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+"""Refuter's own reader. SEAL: the split value is parsed from the raw line's first 200 bytes and every
+line whose split is not fit or select is skipped BEFORE json parsing, so no confirm R field is read.
+Lines whose split cannot be located in the head are counted and skipped (reported). Read-only."""
+import json, sys, os, re, datetime
+from collections import defaultdict
+from multiprocessing import Pool
+CORPUS='/Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-24.jsonl'
+M=json.load(open(CORPUS+'.manifest.json'))
+cls={s['symbol']:s['assetType'] for s in M['symbols']}
+f5={s['symbol']:((s.get('feedCharacter') or {}).get('5min') or {}) for s in M['symbols']}
+escY={k:set(v.get('escapeYears') or []) for k,v in f5.items()}
+escM={k:set(v.get('escapeMonths') or []) for k,v in f5.items()}
+FILLED={"take_profit","tp1_partial","stop_loss","expired_at_loss","expired_in_profit","ambiguous"}
+SPLIT_RE=re.compile(rb'"split":"([a-z]+)"')
+WEDGES=[0,5,10,15,20,30,40]
+UTC=datetime.timezone.utc
+def work(rng):
+    a,b=rng
+    agg=defaultdict(lambda:[0.0]*14)
+    wid=defaultdict(lambda:[0.0]*4)
+    cnt=defaultdict(int)
+    with open(CORPUS,'rb') as fh:
+        if a>0:
+            fh.seek(a-1)
+            if fh.read(1)!=b'\n': fh.readline()
+        while fh.tell()<b:
+            raw=fh.readline()
+            if not raw: break
+            cnt['lines']+=1
+            m=SPLIT_RE.search(raw[:200])
+            if not m: cnt['split_unlocated']+=1; continue
+            sp=m.group(1)
+            if sp not in (b'fit',b'select'):
+                cnt['sealed_'+sp.decode()]+=1; continue
+            if b'"accepted":true' not in raw[:300]: cnt['not_accepted_head']+=1; continue
+            r=json.loads(raw)
+            if r['split'] not in ('fit','select'): raise SystemExit('seal mismatch')
+            if r.get('accepted') is not True: raise SystemExit('accepted mismatch')
+            if r.get('noBarsInReviewWindow') is True: cnt['dataAbsent']+=1; continue
+            cnt['outcome_'+str(r['outcome'])]+=1
+            sym=r['symbol']
+            t=datetime.datetime.fromtimestamp(r['time']/1000,UTC)
+            ym=t.year*100+t.month
+            ys='esc' if t.year in escY[sym] else 'con'
+            ms='mesc' if ym in escM[sym] else 'mcon'
+            k=(sym,r['split'],r['variant'],ys,ms)
+            v=agg[k]
+            risk=r['riskDistance']
+            if r['outcome'] in FILLED:
+                x=r['realizedR']; bd=r['armingBoundRealizedR']; c=r['estimatedCommission']/risk
+                v[0]+=1; v[1]+=x; v[2]+=x*x; v[3]+=bd; v[4]+=bd*bd; v[5]+=c
+                legs=r['legs']
+                en=next((l for l in legs if l['leg']=='entry'),None); ex=next((l for l in legs if l['leg']=='exit'),None)
+                if en and ex:
+                    sg=1 if r['side']=='buy' else -1
+                    r0=sg*(ex['price']-en['price'])/risk-c
+                    v[6]+=r0; v[7]+=r0*r0; v[8]+=1
+                v[12]+=x+c; v[13]+=(x+c)**2
+                if r['variant']=='baseline' and cls[sym]=='forex':
+                    w=risk/r['entryPrice']*1e4
+                    for i,e in enumerate(WEDGES):
+                        if w>=e:
+                            q=wid[(r['split'],ys,sym,e)]; q[0]+=1; q[1]+=x; q[2]+=bd; q[3]+=x*x
+            if r.get('grossOutcome') in FILLED:
+                g=r['grossRealizedR']; v[9]+=1; v[10]+=g; v[11]+=g*g
+    return ({k:v for k,v in agg.items()},{k:v for k,v in wid.items()},dict(cnt))
+if __name__=='__main__':
+    size=os.path.getsize(CORPUS); N=64
+    rngs=[(size*i//N,size*(i+1)//N) for i in range(N)]
+    A=defaultdict(lambda:[0.0]*14); W=defaultdict(lambda:[0.0]*4); C=defaultdict(int)
+    with Pool(8) as p:
+        for agg,wid,cnt in p.imap_unordered(work,rngs):
+            for k,v in agg.items():
+                t=A[k]
+                for i in range(14): t[i]+=v[i]
+            for k,v in wid.items():
+                t=W[k]
+                for i in range(4): t[i]+=v[i]
+            for k,v in cnt.items(): C[k]+=v
+    out={'counts':C,'agg':[list(k)+v for k,v in A.items()],'wid':[list(k)+v for k,v in W.items()]}
+    json.dump(out,open('agg.json','w'))
+    print(json.dumps(C,indent=0))

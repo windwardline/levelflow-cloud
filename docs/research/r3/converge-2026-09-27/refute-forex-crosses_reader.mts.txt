@@ -1,0 +1,51 @@
+/**
+ * Refuter's independent reader (converge refute-forex-crosses, 2026-09-27). SEALED twice:
+ * rows arrive through the repo door (assertManifestedCorpusStreaming, default confirm: "sealed",
+ * which withholds every confirm row before the callback), and the callback's FIRST statement drops
+ * every row whose split is not fit or select, before any other field (and so before any R field).
+ * Class: the manifest's symbols[].assetType (not a ticker shape). Filled: the repo's FILLED_OUTCOMES
+ * (banked-fraction.ts:72). Output per symbol|split|variantTag: [day, n, net, bound, gross] day sums.
+ */
+import { writeFileSync, readFileSync } from "node:fs";
+import { assertManifestedCorpusStreaming, type SweepEmitRow } from "/Users/peacock/Projects/levelflow-cloud/scripts/sweepStats.ts";
+
+const FILLED = new Set(["take_profit", "tp1_partial", "stop_loss", "expired_at_loss", "expired_in_profit", "ambiguous"]);
+const DAY = 86_400_000;
+const [, , corpus, out] = process.argv;
+const man = JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"));
+const forex = new Set<string>(man.symbols.filter((e: any) => e.assetType === "forex").map((e: any) => e.symbol));
+const WANT_VARIANTS = new Map<string, string>([["baseline", "base"], ["runnerProtection=hold,stopStructureSource=intraday_and_daily", "holdIAD"]]);
+const cells = new Map<string, Map<number, number[]>>();
+const variantCensus = new Map<string, number>();
+const outcomeCensus = new Map<string, number>();
+const c = { seen: 0, nonTuning: 0, notAccepted: 0, notForex: 0, variantSkipped: 0, noBars: 0, unfilled: 0, priced: 0 };
+const fin = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+const res = await assertManifestedCorpusStreaming(corpus, (row: SweepEmitRow) => {
+  c.seen++;
+  const split = String(row.split);
+  if (split !== "fit" && split !== "select") { c.nonTuning++; return; }
+  if (row.accepted !== true) { c.notAccepted++; return; }
+  const sym = String(row.symbol);
+  if (!forex.has(sym)) { c.notForex++; return; }
+  const vraw = typeof row.variant === "string" ? row.variant : "baseline";
+  variantCensus.set(vraw, (variantCensus.get(vraw) ?? 0) + 1);
+  const tag = WANT_VARIANTS.get(vraw);
+  if (!tag) { c.variantSkipped++; return; }
+  const rec = row as unknown as Record<string, unknown>;
+  if (rec.noBarsInReviewWindow === true) { c.noBars++; return; }
+  const oc = String(row.outcome);
+  if (tag === "base") outcomeCensus.set(oc, (outcomeCensus.get(oc) ?? 0) + 1);
+  if (!FILLED.has(oc)) { c.unfilled++; return; }
+  const t = fin(row.time); const net = fin(rec.realizedR); const bound = fin(rec.armingBoundRealizedR); const gross = fin(rec.grossRealizedR);
+  if (t === null || net === null || bound === null) throw new Error(`${sym} ${t}: missing time/net/bound`);
+  c.priced++;
+  const key = `${sym}|${split}|${tag}`;
+  let m = cells.get(key); if (!m) { m = new Map(); cells.set(key, m); }
+  const d = Math.floor(t / DAY);
+  const a = m.get(d) ?? [0, 0, 0, 0, 0];
+  a[0]++; a[1] += net; a[2] += bound; a[3] += gross ?? NaN; a[4] += gross === null ? 1 : 0;
+  m.set(d, a);
+});
+writeFileSync(out, JSON.stringify({ sealedRows: res.sealedRows, c, variantCensus: Object.fromEntries(variantCensus), outcomeCensus: Object.fromEntries(outcomeCensus),
+  cells: Object.fromEntries([...cells].map(([k, m]) => [k, [...m].sort((x, y) => x[0] - y[0]).map(([d, a]) => [d, ...a])])) }));
+console.log(JSON.stringify({ sealedRows: res.sealedRows, c, outcomeCensus: Object.fromEntries(outcomeCensus) }));

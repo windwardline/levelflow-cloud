@@ -1,0 +1,10 @@
+forex, contained years, decision hour 16-21 UTC, per UTC decision day (traded days only); pooled over the pool's markets
+cell | days | arm | R | mean/day | sd/day | lo95/day | mean/sd | days for 80% power at one-sided 0.02 | years at 261 weekdays x days/weekday
+fit|in-pool|in | 2422 | net | +1305.2 | +0.5389 | 2.801 | +0.4273 | +0.1924 | 226 | 0.8 (density 1.100/weekday)
+fit|in-pool|in | 2422 | bound | +450.1 | +0.1858 | 2.722 | +0.0774 | +0.0683 | 1,799 | 6.3 (density 1.100/weekday)
+select|in-pool|in | 897 | net | +339.2 | +0.3782 | 2.497 | +0.2148 | +0.1514 | 366 | 1.7 (density 0.815/weekday)
+select|in-pool|in | 897 | bound | +85.7 | +0.0956 | 2.436 | -0.0639 | +0.0392 | 5,446 | 25.6 (density 0.815/weekday)
+fit|held-out|in | 2268 | net | +260.9 | +0.1151 | 1.337 | +0.0600 | +0.0861 | 1,132 | 4.2 (density 1.030/weekday)
+fit|held-out|in | 2268 | bound | +11.5 | +0.0051 | 1.305 | -0.0486 | +0.0039 | 552,517 | 2054.4 (density 1.030/weekday)
+select|held-out|in | 744 | net | +13.9 | +0.0186 | 1.263 | -0.0721 | +0.0148 | 38,475 | 145.4 (density 1.014/weekday)
+select|held-out|in | 744 | bound | -59.6 | -0.0801 | 1.236 | -0.1689 | -0.0648 | inf | inf (density 1.014/weekday)

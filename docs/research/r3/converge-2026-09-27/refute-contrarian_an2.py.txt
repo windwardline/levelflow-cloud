@@ -1,0 +1,12 @@
+import json, math
+exec(open('an1.py').read().split("print('CONTROLS")[0])
+vars_=sorted(set(r[2] for r in D['agg']))
+print('variants:',vars_)
+print('Grid variants, forex in-pool, per fold/stratum: n, net, E, lo95, bound E, R0 E, gross E (lo)')
+for sp,ys in [('fit',None),('select','con'),('select','esc')]:
+    for vv in vars_:
+        t=S(lambda s,f,v,y,mm: v==vv and cls[s]=='forex' and s not in hold and f==sp and (ys is None or y==ys))
+        n=t[0]
+        if n<2: continue
+        e,l,sd=lo(t[1],t[2],n); b,bl,_=lo(t[3],t[4],n); g,gl,_=lo(t[10],t[11],t[9]); r0,r0l,_=lo(t[6],t[7],t[8])
+        print(f" {sp:6} {ys or 'all':4} {vv:40} n={n:7.0f} net={t[1]:9.1f} E={e:+.4f} lo={l:+.4f} | bound E={b:+.4f} lo={bl:+.4f} | R0 E={r0:+.4f} lo={r0l:+.4f} | gross E={g:+.4f} lo={gl:+.4f}")

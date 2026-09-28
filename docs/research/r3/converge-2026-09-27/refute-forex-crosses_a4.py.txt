@@ -1,0 +1,58 @@
+import json, math, datetime as dt
+from statistics import mean, stdev, NormalDist
+exec(open('a1.py').read().split("def agg(")[0])
+N=NormalDist(); za=N.inv_cdf(0.98); zb=N.inv_cdf(0.80)
+folds={f['name']:f for f in man['foldsByClass']['forex']}
+DAYMS=86400000
+def density(s):
+    h=FX[s]['series']['5min']['firstTime']; wd=0; wc=0
+    for sp in ('fit','select'):
+        f=folds[sp]; a=math.ceil(max(f['startMs'],h)/DAYMS); b=math.ceil(f['decisionEndMs']/DAYMS)
+        wd+=sum(1 for x in range(a,b) if dt.datetime.fromtimestamp(x*86400,dt.UTC).weekday()<5)
+        wc+=sum(1 for r in rows(s,sp) if dt.datetime.fromtimestamp(r[0]*86400,dt.UTC).weekday()<5)
+    return wc/wd
+def stats(v,i): xs=[r[i] for r in v]; return mean(xs),stdev(xs),len(xs)
+def nreq(m,sd): return math.inf if m<=0 else ((za+zb)*sd/m)**2
+F=dt.datetime(2026,8,26,10,45,tzinfo=dt.UTC)
+def readdate(n,dens,T):
+    t=max(F,T+dt.timedelta(days=21)); Cs=dt.datetime(t.year,t.month,t.day,tzinfo=dt.UTC)
+    if Cs<t: Cs+=dt.timedelta(days=1)
+    need=n; wd=0; k=0
+    if n>20000: return Cs.date(),'>50y','>2076'
+    while wd*dens<need:
+        if (Cs+dt.timedelta(days=k)).weekday()<5: wd+=1
+        k+=1
+    L=k+5
+    anchor=Cs+dt.timedelta(days=L+4)
+    return Cs.date(),L,anchor.date()
+print('z',round(za,4),round(zb,4))
+res=[]
+for s in X15:
+    v=rows(s,'select'); d=density(s)
+    mn,sn,k=stats(v,2); mb,sb,_=stats(v,3)
+    n=max(nreq(mn,sn),nreq(mb,sb),30)
+    res.append((n,s,d,mn,sn,mb,sb,k))
+res.sort()
+T=dt.datetime(2026,9,28,12,0,tzinfo=dt.UTC)
+for n,s,d,mn,sn,mb,sb,k in res:
+    rd=readdate(math.ceil(n),d,T) if math.isfinite(n) else ('-','-','never')
+    print(f'{s} dens {d:.3f} select all-years k={k} net {mn:+.4f} sd {sn:.3f} bound {mb:+.4f} sd {sb:.3f} n80 {n if not math.isfinite(n) else round(n)} -> Cs {rd[0]} L {rd[1]} read {rd[2]}')
+# pass probability for AUDNZD at n under contained basis (fit+select contained) and at 30-cluster floor under all-years basis
+s='AUDNZD'
+vc=[r for sp in ('fit','select') for r in rows(s,sp) if bucket_y(s,r[0])=='con']
+va=rows(s,'select')
+for lab,v in (('contained fit+select',vc),('select all-years',va),('select contained only',[r for r in va if bucket_y(s,r[0])=='con'])):
+    for n in (30,191):
+        p=[]
+        for i in (2,3):
+            m,sd,_=stats(v,i); se=sd/math.sqrt(n); p.append(1-N.cdf(za-m/se))
+        print(f'  {s} basis {lab:22} n={n:3d} P(pass) net {p[0]:.3f} bound {p[1]:.3f}')
+# winner's curse: empirical-Bayes shrinkage of select all-years means across the 28 forex pairs
+for i,arm in ((2,'net'),(3,'bound')):
+    ms=[];vs=[]
+    for s2 in ALL:
+        m,sd,k=stats(rows(s2,'select'),i); ms.append(m); vs.append(sd*sd/k)
+    grand=mean(ms); tau2=max(stdev(ms)**2-mean(vs),0)
+    m,sd,k=stats(va,i); B=mean(vs)/(mean(vs)+tau2) if tau2>0 else 1
+    shr=grand+(1-B)*(m-grand)
+    print(f'  shrinkage {arm}: grand mean {grand:+.4f}, between-market var {stdev(ms)**2:.6f}, mean sampling var {mean(vs):.6f}, tau2 {tau2:.6f}; AUDNZD raw {m:+.4f} -> shrunk {shr:+.4f}; n80 raw {nreq(m,sd):.0f} shrunk {nreq(shr,sd):.0f}')

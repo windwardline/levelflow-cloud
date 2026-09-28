@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""Per-market UTC-day cluster sums of the shipped cell (variant baseline), fit and select ONLY.
+
+Seal: a line is json-parsed only when its raw bytes carry a fit or select split token, and after
+parsing the row is DROPPED unless row['split'] is exactly 'fit' or 'select' -- both checks happen
+before any R field (realizedR, armingBoundRealizedR) is read. Confirm rows are never parsed.
+Filters mirror scripts/banked-fraction.ts:664-706 (accepted, split, variant, noBarsInReviewWindow,
+FILLED_OUTCOMES). Held-out markets are NOT dropped here; they are flagged downstream.
+Year bucket: manifest feedCharacter['5min'].escapeYears, UTC year of row.time (scripts/feedYears.ts).
+Read-only on the corpus; writes only to this scratch directory.
+"""
+import json, sys, collections
+CORPUS = '/Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-24.jsonl'
+MANIFEST = CORPUS + '.manifest.json'
+OUT = sys.argv[1]
+FILLED = {"take_profit", "tp1_partial", "stop_loss", "expired_at_loss", "expired_in_profit", "ambiguous"}
+DAY = 86400000
+m = json.load(open(MANIFEST))
+esc = {}
+atype = {}
+for s in m['symbols']:
+    atype[s['symbol']] = s['assetType']
+    fc = (s.get('feedCharacter') or {}).get('5min')
+    esc[s['symbol']] = set(fc['escapeYears']) if fc else None
+# acc[(sym, split, bucket)][day] = [n, sumNet, sumBound, nBound]
+acc = collections.defaultdict(lambda: collections.defaultdict(lambda: [0, 0.0, 0.0, 0]))
+cnt = collections.Counter()
+import datetime
+with open(CORPUS, 'rb') as f:
+    for line in f:
+        cnt['lines'] += 1
+        if b'"split":"fit"' not in line and b'"split":"select"' not in line:
+            cnt['not-fit-select-raw'] += 1
+            continue
+        if b'"variant":"baseline"' not in line and b'"variant"' in line:
+            cnt['other-variant-raw'] += 1
+            continue
+        row = json.loads(line)
+        split = row.get('split')
+        if split not in ('fit', 'select'):  # SEAL: before any R field
+            cnt['dropped-seal'] += 1
+            continue
+        if row.get('accepted') is not True:
+            cnt['not-accepted'] += 1; continue
+        if (row.get('variant') if isinstance(row.get('variant'), str) else 'baseline') != 'baseline':
+            cnt['other-variant'] += 1; continue
+        if row.get('noBarsInReviewWindow') is True:
+            cnt['data-absent'] += 1; continue
+        if str(row.get('outcome')) not in FILLED:
+            cnt['unfilled'] += 1; continue
+        sym = row['symbol']
+        t = row['time']
+        yr = datetime.datetime.fromtimestamp(t / 1000, datetime.timezone.utc).year
+        e = esc.get(sym)
+        bucket = 'unknown' if e is None else ('escaping' if yr in e else 'contained')
+        r = row['realizedR']
+        b = row.get('armingBoundRealizedR')
+        cell = acc[(sym, split, bucket)][t // DAY]
+        cell[0] += 1; cell[1] += r
+        if isinstance(b, (int, float)):
+            cell[2] += b; cell[3] += 1
+        cnt['priced'] += 1
+out = {'counts': cnt, 'atype': atype, 'cells': {}}
+for (sym, split, bucket), days in acc.items():
+    out['cells'][f'{sym}|{split}|{bucket}'] = {str(d): v for d, v in days.items()}
+json.dump(out, open(OUT, 'w'))
+print(dict(cnt))

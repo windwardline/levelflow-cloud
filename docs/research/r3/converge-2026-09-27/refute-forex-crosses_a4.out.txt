@@ -1,0 +1,25 @@
+gross nulls 0
+z 2.0537 0.8416
+AUDNZD dens 0.791 select all-years k=865 net +0.3245 sd 1.025 bound +0.2011 sd 0.959 n80 191 -> Cs 2026-10-20 L 343 read 2027-10-02
+NZDCHF dens 0.795 select all-years k=916 net +0.2490 sd 1.270 bound +0.1159 sd 1.213 n80 919 -> Cs 2026-10-20 L 1623 read 2031-04-04
+AUDCHF dens 0.825 select all-years k=1001 net +0.2320 sd 1.288 bound +0.1026 sd 1.233 n80 1211 -> Cs 2026-10-20 L 2060 read 2032-06-14
+CADCHF dens 0.820 select all-years k=914 net +0.2097 sd 1.190 bound +0.0913 sd 1.141 n80 1309 -> Cs 2026-10-20 L 2241 read 2032-12-12
+EURNZD dens 0.836 select all-years k=943 net +0.2027 sd 1.221 bound +0.0740 sd 1.173 n80 2109 -> Cs 2026-10-20 L 3541 read 2036-07-04
+AUDCAD dens 0.802 select all-years k=927 net +0.1929 sd 1.214 bound +0.0704 sd 1.157 n80 2265 -> Cs 2026-10-20 L 3957 read 2037-08-24
+EURCAD dens 0.826 select all-years k=956 net +0.1737 sd 1.175 bound +0.0509 sd 1.126 n80 4105 -> Cs 2026-10-20 L 6966 read 2045-11-19
+GBPNZD dens 0.824 select all-years k=928 net +0.1855 sd 1.287 bound +0.0532 sd 1.249 n80 4626 -> Cs 2026-10-20 L 7866 read 2048-05-07
+EURCHF dens 0.652 select all-years k=760 net +0.1393 sd 1.030 bound +0.0404 sd 0.983 n80 4977 -> Cs 2026-10-20 L 10684 read 2056-01-24
+GBPJPY dens 0.820 select all-years k=902 net +0.1220 sd 1.268 bound +0.0205 sd 1.235 n80 30437 -> Cs 2026-10-20 L >50y read >2076
+GBPCHF dens 0.807 select all-years k=920 net +0.1301 sd 1.224 bound +0.0171 sd 1.192 n80 40980 -> Cs 2026-10-20 L >50y read >2076
+NZDCAD dens 0.807 select all-years k=936 net +0.1318 sd 1.207 bound +0.0026 sd 1.152 n80 1669062 -> Cs 2026-10-20 L >50y read >2076
+EURGBP dens 0.798 select all-years k=855 net +0.1053 sd 1.181 bound +0.0005 sd 1.151 n80 39325238 -> Cs 2026-10-20 L >50y read >2076
+EURAUD dens 0.828 select all-years k=951 net +0.1015 sd 1.234 bound -0.0136 sd 1.202 n80 inf -> Cs - L - read never
+GBPCAD dens 0.805 select all-years k=883 net +0.0906 sd 1.208 bound -0.0311 sd 1.178 n80 inf -> Cs - L - read never
+  AUDNZD basis contained fit+select   n= 30 P(pass) net 0.045 bound 0.015
+  AUDNZD basis contained fit+select   n=191 P(pass) net 0.124 bound 0.010
+  AUDNZD basis select all-years       n= 30 P(pass) net 0.375 bound 0.183
+  AUDNZD basis select all-years       n=191 P(pass) net 0.990 bound 0.801
+  AUDNZD basis select contained only  n= 30 P(pass) net 0.016 bound 0.006
+  AUDNZD basis select contained only  n=191 P(pass) net 0.011 bound 0.001
+  shrinkage net: grand mean +0.0872, between-market var 0.012122, mean sampling var 0.001591, tau2 0.010532; AUDNZD raw +0.3245 -> shrunk +0.2934; n80 raw 84 shrunk 102
+  shrinkage bound: grand mean -0.0203, between-market var 0.009219, mean sampling var 0.001495, tau2 0.007724; AUDNZD raw +0.2011 -> shrunk +0.1652; n80 raw 191 shrunk 282

@@ -1,0 +1,2 @@
+{"sealedRows":2141527,"c":{"seen":4493205,"nonTuning":0,"notAccepted":992808,"notForex":1005816,"variantSkipped":1781628,"noBars":555,"unfilled":97968,"priced":614430},"outcomeCensus":{"tp1_partial":201808,"stop_loss":72254,"take_profit":8109,"unfilled":48680,"expired_at_loss":18190,"expired_in_profit":5576,"ambiguous":827}}
+node_modules/.bin/tsx     50.12s user 5.26s system 107% cpu 51.615 total

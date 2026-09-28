@@ -517,3 +517,10 @@ round 2, and the next refute round tests them with the rest.
   if you enact different screen text the family cannot enter at all. Price, no: every family screened
   before the ruling can never register, because its fit fold has been read. Confirm calendar is not at
   stake either way: C_s follows the registry's landing.
+- **Q7. At which grain does a family confirm?** Raised by the
+  [2026-09-27 converge](/docs/research/converge-route-to-profit-2026-09-27.md), and a question about
+  amendment 46's text rather than this draft's. Per market, a one-year read needs mean ÷ SD of at least
+  0.20 per day cluster, about +0.25 R per market-day; pooled across a family's markets, the bar falls by
+  the square root of the pooling gain (6.5–10.1 measured across the 15 forex crosses). *Recommendation
+  and price:* in that record. Rule it before the next design round, because it sets the effect size
+  the round must find.

@@ -1,0 +1,13 @@
+{
+"lines": 6634732,
+"outcome_tp1_partial": 1708456,
+"outcome_stop_loss": 769098,
+"outcome_unfilled": 520322,
+"not_accepted_head": 992808,
+"outcome_expired_in_profit": 45267,
+"outcome_take_profit": 292354,
+"outcome_ambiguous": 8384,
+"outcome_expired_at_loss": 153449,
+"sealed_confirm": 2141527,
+"dataAbsent": 3067
+}

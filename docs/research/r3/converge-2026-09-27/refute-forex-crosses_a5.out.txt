@@ -1,0 +1,15 @@
+gross nulls 0
+AUDCHF holdIAD select fills 3727 E/fill net 0.05208218406224845 bound 0.05208218406224845
+ AUDCHF holdIAD fit con fills 7761 net -168.6 bound -168.6
+ AUDCHF holdIAD fit esc fills 0 net 0 bound 0
+ AUDCHF holdIAD select con fills 2617 net -107.4 bound -107.4
+ AUDCHF holdIAD select esc fills 1110 net 301.5 bound 301.5
+forex pairs with escape MONTHS in 2025-26: {'AUDCAD': [202508, 202511, 202604, 202608], 'AUDCHF': [202503, 202512, 202603, 202604], 'AUDNZD': [202512], 'CADCHF': [202512], 'EURAUD': [202506], 'EURCAD': [202512], 'EURCHF': [202512], 'EURGBP': [202505, 202506, 202601, 202603], 'EURUSD': [202602], 'GBPAUD': [202604], 'GBPCHF': [202512], 'GBPUSD': [202608], 'NZDCHF': [202505], 'USDCAD': [202512, 202602]}
+ AUDNZD bound contained mean -0.0228 hi95 +0.0255 sd 1.159 n80 at hi95 17,306 clusters ~ 82.9 years of weekdays at 0.8/weekday
+ EURAUD bound contained mean -0.0465 hi95 +0.0007 sd 1.244 n80 at hi95 26,481,146 clusters ~ 126874.0 years of weekdays at 0.8/weekday
+ EURCAD bound contained mean -0.0261 hi95 +0.0200 sd 1.214 n80 at hi95 30,874 clusters ~ 147.9 years of weekdays at 0.8/weekday
+ EURNZD bound contained mean -0.0453 hi95 +0.0026 sd 1.260 n80 at hi95 1,968,649 clusters ~ 9432.0 years of weekdays at 0.8/weekday
+ GBPJPY bound contained mean -0.0297 hi95 +0.0192 sd 1.285 n80 at hi95 37,364 clusters ~ 179.0 years of weekdays at 0.8/weekday
+ GBPNZD bound contained mean -0.0061 hi95 +0.0428 sd 1.282 n80 at hi95 7,508 clusters ~ 36.0 years of weekdays at 0.8/weekday
+ per fill GBPNZD net 0.02456205230244457 bound -0.001525582717453098
+ per fill AUDNZD net 0.022068360995850623 bound -0.006535580912863072
