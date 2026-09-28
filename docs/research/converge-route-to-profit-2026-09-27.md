@@ -4,8 +4,8 @@
 realized R (amendment 39)?
 
 **The answer.** No route opens a profitable desk within about a year on current evidence. The binding
-constraint is evidence, not law. On the years whose feed is trusted, no market in any class earns on
-both tuning folds, so there is nothing to confirm. The only route whose expected sign is not negative
+constraint is evidence, not law. On the years whose feed is trusted, no market in any class clears zero
+at lo95 on both tuning folds, so there is nothing to confirm. The only route whose expected sign is not negative
 is new entry information, and at the per-market grain amendments 45 and 46 set, a realistic effect
 takes years to confirm. One owner question changes that by an order of magnitude (Q7 below). It should
 be ruled before the next design round, because it sets the effect size that round has to find.
@@ -15,20 +15,22 @@ be ruled before the next design round, because it sets the effect size that roun
 Four finders, each with one lens: the forex crosses, the payoff gap, law and the critical path, and a
 contrarian lens for routes the handoff does not name. Each finder had a refuter with its own lens, and
 a completeness critic read all eight. Zero provider bytes. Fit and select only, from the current-engine
-corpus `capture-all-classfolds-2026-09-24.jsonl`. Every reader withholds confirm rows at the repo door
-and drops any row not split fit or select before it reads an R field. The readers and their outputs are
+corpus `capture-all-classfolds-2026-09-24.jsonl`. Every reader either streams through the repo door, which
+withholds confirm rows, or skips any line whose raw bytes carry no fit or select split before parsing
+it; none reads a confirm row's R. The readers and their outputs are
 in [`r3/converge-2026-09-27/`](/docs/research/r3/converge-2026-09-27/). The workflow journal is outside
 the repository, in `session-artifacts-2026-09-27/converge-journal.jsonl` (sha256 prefix
 49cc57bdbf8d03ca).
 
 Verified by hand before anything below was ranked:
 - The contained-select figures for each cross, from the repo's own sealed reader:
-  `banked-fraction --grain market --years contained --folds select` gives 10 of 11 in-pool crosses
-  losing at ½, summing to −398.4 R, with GBPJPY alone at +3.1 R
+  `banked-fraction --grain market --years contained --folds select` gives the 11 in-pool crosses
+  −398.4 R at ½, ten of them losing and GBPJPY alone at +3.1 R
   ([output](/docs/research/r3/converge-2026-09-27/verify_bf-select-contained-market.txt)). That
   matches the finder and the refuter to the tenth.
-- The pooling gain across the 15 crosses, computed from the refuter's per-day sums: 10.1× on fit and
-  6.5–7.4× on select. It reproduces the refuter's 6.6–11.
+- The pooling gain across the 15 crosses, computed from the refuter's per-day sums: 10.1–10.3× on fit
+  and 6.5–7.4× on select, all years. The refuter's split gives 10.3–11.0 on contained folds and 6.6–8.4
+  on escaping select ([a3](/docs/research/r3/converge-2026-09-27/refute-forex-crosses_a3.out.txt)).
 - The feed-character witness quoted below, read at its source.
 
 ## What the measurements say
@@ -53,8 +55,8 @@ same calendar months flagged pairs earn +0.29 R per cluster more than unflagged 
 [a2](/docs/research/r3/converge-2026-09-27/refute-forex-crosses_a2.out.txt)).
 
 Even granting the escaping years, the earliest 80 %-powered forex confirm is AUDNZD's, around 2027-10
-on its raw select mean and about 2028-03 once that mean is shrunk for being the best of 28. The next is
-in 2031 ([power](/docs/research/r3/converge-2026-09-27/forex-crosses_power.out.txt)).
+on its raw select mean, and later once that mean is shrunk for being the best of 28. The next is in 2031
+([a4](/docs/research/r3/converge-2026-09-27/refute-forex-crosses_a4.out.txt)).
 
 **2. The payoff gap is not a route on its own.** The design round's judge rated it the fastest route
 with no measurement behind it, and that rating is withdrawn. On identical forex decisions in contained
@@ -85,7 +87,9 @@ one-bar arming and the vintage, each worth about 0.01–0.025 R, so measured E8 
 instrument truth rather than a route.
 
 **4. Nothing outside forex earns either.** Of the 65 markets with contained fills on both tuning folds,
-none clears lo95 on both under the net arm, the bound arm or f = 0. Every class loses on contained
+none clears lo95 on both under the net arm, the bound arm or f = 0
+([an3](/docs/research/r3/converge-2026-09-27/refute-contrarian_an3.out.txt)); GBPJPY, LEUSX and SIUSD
+are positive on both at the point estimate under net. Every class loses on contained
 select at ½; pooled, −6,907.3 R
 ([class](/docs/research/r3/banked-fraction-capture-all-classfolds-2026-09-24-contained.txt)).
 Banking nothing at TP1 shrinks contained select forex from −1,336.0 R to −606.1 R and stays a loss.
@@ -109,7 +113,7 @@ accepts 0 of 91 (amendment 45). Pooled into one per-day money test, the numbers 
 ([power](/docs/research/r3/converge-2026-09-27/verify_span-power.out.txt), from a reader that
 reproduces that table to the fill):
 - **Net arm:** select's effect needs about 366 day-clusters for 80 % power, about 1.7 years.
-- **Bound arm:** 5,446, about 25 years. Amendment 48's draft grades both arms.
+- **Bound arm:** 5,446, about 26 years. Amendment 48's draft grades both arms.
 - **Held-out markets**, the nearest thing to out-of-sample: they do not replicate it on select. Net is
   +0.019 R per day (lo95 −0.072) and the bound arm is negative.
 
@@ -123,13 +127,13 @@ execution: lock latency, spreads, and whether stops slip.
 A per-market confirm at amendment 48's c = 1 draw (one-sided 0.02) with 80 % power needs mean ÷ SD per
 day cluster of at least 2.895 ÷ √N. Forex trades about 0.79 day clusters per weekday, so a one-year read
 holds about 206 clusters and needs mean ÷ SD of at least 0.20. At the measured cluster SD of about
-1.2–1.3 R, that is about +0.25 R per market per trading day on both arms. The best contained cell today
-is AUDNZD's fit, at +0.110 net, and it is negative on the bound arm. No published daily-frequency
+1.2–1.3 R, that is about +0.25 R per market per trading day on both arms. The best contained cell per market
+today is GBPNZD's fit, at +0.13 R per day cluster net and +0.03 bound, both in-sample. No published daily-frequency
 effect the design round found comes close.
 
 Pooling a family's markets into one money test divides the requirement by the square root of the
-pooling gain. Across the 15 crosses that gain measures 6.5–10.1. So a one-year pooled read needs about
-+0.06 to +0.08 per market-day in the same units. That is still demanding, but it is within an order of
+pooling gain. Across the 15 crosses that gain measures about 6.5 to 11. So a one-year pooled read needs
+mean ÷ SD of about 0.06 to 0.08 per market-day, about +0.08 to +0.10 R at the same SD. That is still demanding, but it is within an order of
 magnitude of effects that exist.
 
 **Q7 (new): at which grain does a family confirm?** Amendment 46 takes a family's verdict per market,
@@ -161,7 +165,7 @@ because amendment 45 admits no exception.
   bank's first copies read about 0.01 R per bracket worse on forex (the vintage bound). Every forex
   expectation here is optimistic for a live desk.
 - **Measure next, at zero bytes: a same-geometry random-entry control.** Contained forex shows a
-  positive pre-cost edge under every exit, +0.016 to +0.050 R per fill, of unexplained origin
+  positive pre-cost edge under every exit, +0.013 to +0.050 R per fill, of unexplained origin
   ([geometry](/docs/research/r3/converge-2026-09-27/refute-payoff-gap_geometry-variants.out.txt)).
   Coin-flip entries through the shipped ladder would show whether it is entry information or the
   bracket meeting the feed. The answer points design round 2 toward entry or toward cost.

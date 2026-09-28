@@ -36,11 +36,11 @@ coverage question closed, and the desk went dark on purpose.
 
 **The goal.** Unchanged: reopen the desk with setups that earn net realized R (amendment 39).
 
-**The answer** ([record](/docs/research/converge-route-to-profit-2026-09-27.md)). No route opens a profitable desk within about a year on current evidence. The binding constraint is evidence, not law. On contained years, no market in any class earns on both tuning folds under the net arm, the bound arm or f = 0 (65 markets assessed). Every class loses on contained select, pooled −6,907.3 R. The only route whose expected sign is not negative is new entry information. At the per-market grain, a one-year confirm needs about +0.25 R per market-day, and nothing measured or published comes close. Four findings drive this:
-- **The 15 forex crosses are not a route.** Their select money is 2021-01 to 2022-05, the months the 5-minute feed breaks its own daily bars (a data defect). On contained select they lose −560.5 R net and −1,287.9 R bound; the repo's sealed reader gives 10 of 11 in-pool crosses losing, GBPJPY +3.1 R.
+**The answer** ([record](/docs/research/converge-route-to-profit-2026-09-27.md)). No route opens a profitable desk within about a year on current evidence. The binding constraint is evidence, not law. On contained years, no market in any class clears zero at lo95 on both tuning folds under the net arm, the bound arm or f = 0 (65 markets assessed; GBPJPY, LEUSX and SIUSD are point-positive on both under net). Every class loses on contained select, pooled −6,907.3 R. The only route whose expected sign is not negative is new entry information. At the per-market grain, a one-year confirm needs about +0.25 R per market-day, and nothing measured or published comes close. Four findings drive this:
+- **The 15 forex crosses are not a route.** Their select money is 2021-01 to 2022-05, the months the 5-minute feed breaks its own daily bars (a data defect). On contained select they lose −560.5 R net and −1,287.9 R bound; the repo's sealed reader gives the 11 in-pool crosses −398.4 R, ten losing and GBPJPY +3.1 R.
 - **The payoff gap is not a route on its own.** The judge's "fastest route" rating is withdrawn. Runner protection moves bound expectancy by at most 0.008 R per fill, and TP1-at-structure is a family to screen.
 - **Costs do not make it earn.** Removing all modelled spread and slippage lifts contained select forex only to +0.0065 R per fill.
-- **The one positive at class grain fails the bound arm.** That is forex at 16–21 UTC. Pooled, its select effect confirms in about 1.7 years on the net arm and about 25 on the bound arm, and held-out markets do not replicate it on select.
+- **The one positive at class grain fails the bound arm.** That is forex at 16–21 UTC. Pooled, its select effect confirms in about 1.7 years on the net arm and about 26 on the bound arm, and held-out markets do not replicate it on select.
 
 **Where the desk stands.** Parked, and it stays parked. No amendment states a reopen criterion; the park is the owner's 2026-08-07 instruction. Reopening on the shipped engine is lawful and fails amendment 39.
 
@@ -56,7 +56,7 @@ coverage question closed, and the desk went dark on purpose.
 
 **The sequence, re-ranked by the converge.**
 1. **Owner: Q7, then Q1–Q6 as one batch, then OQ-1 to OQ-3.** Q7 sets the effect size any family must reach. Each day Q1–Q6 wait costs a day of confirm calendar on every market; 32 are gone since the frontier. Only Q2, Q3, Q5 and Q6 move a date.
-2. **A same-geometry random-entry control, at zero bytes.** Run coin-flip entries through the shipped ladder in a re-simulate. Contained forex carries a positive pre-cost edge under every exit (+0.016 to +0.050 R per fill) of unexplained origin, and this says whether it is entry information or the bracket meeting the feed. It points design round 2.
+2. **A same-geometry random-entry control, at zero bytes.** Run coin-flip entries through the shipped ladder in a re-simulate. Contained forex carries a positive pre-cost edge under every exit (+0.013 to +0.050 R per fill) of unexplained origin, and this says whether it is entry information or the bracket meeting the feed. It points design round 2.
 3. **Design round 2, held to the power bar Q7 sets,** screening sources against the bar before any design effort.
 4. **Amendment 48 into law** once ruled: one refute round with checkers on the text as ruled. Fold in #702's `H_s` depth pin, Q7's ruling, and a feed-character check on every confirm window. The manifest flags NZDCHF 2025-05 and AUDCHF 2025-03 as breaking daily containment.
 5. **The registry build,** after Q7, because its read statistic depends on the grain.

@@ -521,6 +521,6 @@ round 2, and the next refute round tests them with the rest.
   [2026-09-27 converge](/docs/research/converge-route-to-profit-2026-09-27.md), and a question about
   amendment 46's text rather than this draft's. Per market, a one-year read needs mean ÷ SD of at least
   0.20 per day cluster, about +0.25 R per market-day; pooled across a family's markets, the bar falls by
-  the square root of the pooling gain (6.5–10.1 measured across the 15 forex crosses). *Recommendation
+  the square root of the pooling gain (about 6.5 to 11 measured across the 15 forex crosses). *Recommendation
   and price:* in that record. Rule it before the next design round, because it sets the effect size
   the round must find.
