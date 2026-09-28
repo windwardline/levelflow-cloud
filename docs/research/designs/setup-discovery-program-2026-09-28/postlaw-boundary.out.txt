@@ -1,0 +1,29 @@
+type of escapeMonths entries: int
+EURUSD pin month:2018-12-18 union:2018-09-07 admitted-in-escaping-years(select):
+GBPUSD  month:2019-02-18 union:2018-09-10 admitted-in-escaping-years(select):202106,202107,202206
+USDJPY  month:2020-05-06 union:2020-03-27 admitted-in-escaping-years(select):202109,202111
+AUDUSD  month:2018-08-05 union:2018-04-25 admitted-in-escaping-years(select):
+USDCAD  month:2018-08-18 union:2018-07-08 admitted-in-escaping-years(select):202101
+USDCHF  month:2018-09-06 union:2018-05-06 admitted-in-escaping-years(select):202105
+NZDUSD  month:2018-09-06 union:2018-05-06 admitted-in-escaping-years(select):
+NZDJPY pin month:2018-08-25 union:2018-06-05 admitted-in-escaping-years(select):
+NZDCHF pin month:2018-08-16 union:2018-05-06 admitted-in-escaping-years(select):
+NZDCAD  month:2018-11-26 union:2018-07-26 admitted-in-escaping-years(select):
+GBPNZD  month:2018-10-06 union:2018-10-06 admitted-in-escaping-years(select):
+GBPJPY  month:2019-05-07 union:2018-11-05 admitted-in-escaping-years(select):202110,202203
+GBPCHF  month:2018-08-17 union:2018-08-17 admitted-in-escaping-years(select):
+GBPCAD pin month:2018-08-16 union:2018-05-06 admitted-in-escaping-years(select):
+GBPAUD  month:2018-07-27 union:2018-03-26 admitted-in-escaping-years(select):
+EURNZD  month:2018-11-06 union:2018-11-06 admitted-in-escaping-years(select):
+EURJPY  month:2019-01-27 union:2018-10-16 admitted-in-escaping-years(select):202203,202206
+EURGBP  month:2018-06-05 union:2018-02-23 admitted-in-escaping-years(select):
+EURCHF  month:2019-01-04 union:2018-12-14 admitted-in-escaping-years(select):202105
+EURCAD  month:2018-08-16 union:2018-08-16 admitted-in-escaping-years(select):
+EURAUD  month:2018-08-27 union:2018-04-26 admitted-in-escaping-years(select):
+CHFJPY  month:2018-09-16 union:2018-05-16 admitted-in-escaping-years(select):
+CADJPY  month:2018-11-06 union:2018-09-26 admitted-in-escaping-years(select):202206
+CADCHF  month:2018-08-26 union:2018-05-16 admitted-in-escaping-years(select):
+AUDNZD pin month:2019-01-14 union:2018-11-06 admitted-in-escaping-years(select):
+AUDJPY  month:2018-12-27 union:2018-10-07 admitted-in-escaping-years(select):202205,202206
+AUDCHF pin month:2018-06-05 union:2018-02-23 admitted-in-escaping-years(select):
+AUDCAD  month:2018-07-10 union:2018-03-09 admitted-in-escaping-years(select):

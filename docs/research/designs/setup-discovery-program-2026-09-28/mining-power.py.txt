@@ -1,0 +1,32 @@
+# Deflation thresholds, stage powers and confirm years for the rigorous-mining design.
+# Pure arithmetic from stated inputs (JUDGED): SE(annual S) = 1/sqrt(years); years to
+# confirm pooled = (z_0.98 + z_0.80)^2 / S^2 = 8.38 / S^2 (one-sided 0.02, 80 % power).
+from math import sqrt, e
+from statistics import NormalDist
+N = NormalDist(); g = 0.5772156649
+def emax(n): return (1-g)*N.inv_cdf(1-1/n) + g*N.inv_cdf(1-1/(n*e))   # Bailey & Lopez de Prado (2014)
+FOLDS = {"fit forex contained 2009-09..2018-03": 8.45, "select contained 2018-03..2020-12": 2.8,
+         "vault contained (post-law) ~2025-01..2026-08": 1.7}
+for label, T in FOLDS.items():
+    se = 1/sqrt(T); print(f"\n{label}: T={T} y, SE(annual S)={se:.3f}")
+    for n in [1e2, 1e3, 1e4, 1e5, 1e6]:
+        print(f"  N_eff={int(n):>8}  E[max null S]={emax(n)*se:.2f}  FWER5% max-t thr={N.inv_cdf(1-0.05/n)*se:.2f}  DSR>=0.95 thr={(emax(n)+1.645)*se:.2f}")
+seA = 1/sqrt(8.45)
+for neff in [1e3, 1e4, 1e5]:
+    thr = N.inv_cdf(1-0.05/neff)*seA
+    print(f"\nStage A power (N_eff {int(neff)}, thr {thr:.2f}):", {S: round(1-N.cdf((thr-S)/seA), 2) for S in [1.0, 1.5, 1.67, 2.0, 2.5]})
+for K in [3, 5, 10]:
+    seB = 1/sqrt(2.8); thrB = N.inv_cdf(1-0.05/K)*seB
+    print(f"Stage B power (Holm first step, K={K}, thr {thrB:.2f}):", {S: round(1-N.cdf((thrB-S)/seB), 2) for S in [1.0, 1.5, 1.67, 2.0, 2.5]})
+print("Stage E (vault point>0 and t>=1):", {S: round(1-N.cdf(1-S*sqrt(1.7)), 2) for S in [0, 1.0, 1.5, 2.0, 2.5]})
+print()
+for S in [0.8, 1.0, 1.29, 1.5, 1.67, 2.0, 2.05, 2.5]:
+    print(f"S={S}: pooled years to 80% power {8.38/S**2:.2f}; power of a 1 y read {N.cdf(S-2.054):.2f}, 2 y {N.cdf(S*sqrt(2)-2.054):.2f}, 3 y {N.cdf(S*sqrt(3)-2.054):.2f}")
+# The 16-21 UTC plain TP1 bracket priced on unselected evidence only (held-out forex, 6 pairs),
+# from the orchestrator's 2026-09-28 figures: held-out fit +167.2 R at S 0.93 over ~8.45 y; held-out select -12.2 R over ~2.8 y.
+sd_year = (167.2/8.45)/0.93
+s_sel = (-12.2/2.8)/sd_year
+s_all = ((167.2-12.2)/11.25)/sd_year
+print(f"\n16-21 bracket, held-out 6 pairs: select S ~{s_sel:.2f}; fit+select S ~{s_all:.2f} (SE {1/sqrt(11.25):.2f})")
+for k in [1.5, 1.8, 2.16]:
+    s28 = s_all*k; print(f"  scaled to 28 pairs by x{k}: S ~{s28:.2f} -> {8.38/s28**2:.1f} y pooled")

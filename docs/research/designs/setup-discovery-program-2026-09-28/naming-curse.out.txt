@@ -1,0 +1,8 @@
+rho=0.1 true per-market S=0.0: E[S all]=+0.02 E[S named]=+1.07 named=11.1/22  P(S_named>=2.23)=0.001 P(S_all>=2.23)=0.000
+rho=0.1 true per-market S=0.2: E[S all]=+0.54 E[S named]=+1.33 named=14.0/22  P(S_named>=2.23)=0.012 P(S_all>=2.23)=0.003
+rho=0.1 true per-market S=0.4: E[S all]=+1.06 E[S named]=+1.63 named=16.5/22  P(S_named>=2.23)=0.074 P(S_all>=2.23)=0.026
+rho=0.1 true per-market S=0.6: E[S all]=+1.59 E[S named]=+1.97 named=18.5/22  P(S_named>=2.23)=0.272 P(S_all>=2.23)=0.142
+rho=0.3 true per-market S=0.0: E[S all]=+0.00 E[S named]=+0.69 named=11.0/22  P(S_named>=2.23)=0.000 P(S_all>=2.23)=0.000
+rho=0.3 true per-market S=0.2: E[S all]=+0.35 E[S named]=+0.85 named=13.9/22  P(S_named>=2.23)=0.001 P(S_all>=2.23)=0.001
+rho=0.3 true per-market S=0.4: E[S all]=+0.70 E[S named]=+1.05 named=16.5/22  P(S_named>=2.23)=0.007 P(S_all>=2.23)=0.006
+rho=0.3 true per-market S=0.6: E[S all]=+1.04 E[S named]=+1.27 named=18.6/22  P(S_named>=2.23)=0.023 P(S_all>=2.23)=0.022
