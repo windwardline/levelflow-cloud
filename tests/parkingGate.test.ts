@@ -339,13 +339,14 @@ describe("an unpark leaves no E2E test asserting the parking face", () => {
     "getByLabel( argument on its own line": 'await expect(page.getByLabel(\n    "Email",\n  )).toHaveCount(0);',
     "single quotes": "await expect(page.getByLabel('Email')).toHaveCount(0);",
     "locator bound to a name": 'const email = page.getByLabel("Email");\n  await expect(email).toHaveCount(0);',
+    "bound without spaces, on another receiver": 'const field=frame.getByLabel("Email");\n  await expect(field).toHaveCount(0);',
   };
   // The one test of the face, shared by the derivation and the wrap-shape pin, so the pin follows
   // FACE_SIGNALS rather than a copy of it.
   const assertsParkingFace = (block: string) => {
     const code = normalize(block.replace(/^[ \t]*\/\/.*$/gm, ""));
     if (FACE_SIGNALS.some((signal) => code.includes(normalize(signal)))) return true;
-    const aliases = [...code.matchAll(/(?:const|let) (\w+) = (?:page\.)?getByLabel\("Email"\)/g)].map((m) => m[1]);
+    const aliases = [...code.matchAll(/(?:const|let) (\w+) ?= ?(?:\w+\.)?getByLabel\("Email"\)/g)].map((m) => m[1]);
     return aliases.some((alias) => code.includes(`expect(${alias}).toHaveCount(0)`));
   };
   const parkedFaceTests = () =>

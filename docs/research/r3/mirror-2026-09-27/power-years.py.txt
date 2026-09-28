@@ -6,6 +6,9 @@
 # which every forex pool member is contained (fit 2009-09-25..2018-03-11; select 2018-03-11..2021-01-01,
 # since 2021 escapes on all 28 pairs). A rate over the fold's first-to-last day would be diluted by the
 # escaping years' empty days and overstate the years (the error this script corrects, 2026-09-27).
+# One residue: USDJPY is contained in 2022, so its 2022 days enter select's mean and SD but not the
+# rate. Counting only in-window days would print about 1.2, 17.9 and 38.6 years where this prints 1.3,
+# 18.8 and 36.4; the rounded figures in the records hold either way.
 # Needed days = (2.895 * sd / mean)^2 at one-sided 0.02 and 80 % power; years also equal 8.38 / S^2.
 # Usage: python3 this span <span.json> | python3 this mirror <rows.tsv>
 import csv, json, math, statistics as st, sys
