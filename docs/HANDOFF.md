@@ -52,7 +52,7 @@ coverage question closed, and the desk went dark on purpose.
 **The sequence.**
 1. **Owner:** the automatic lock and the arm of record, then Q7, then Q1–Q6 as one batch, then OQ-1 to OQ-3 (items 1–3 below).
 2. **If the lock is available and Q7 is pooled:** specify the 16–21 UTC lock ladder as a family designed from printed results, disclosed as such.
-   - Before registering it, run a zero-byte sensitivity on its one optimistic step: a runner that dips below TP1 inside the TP1 bar and recovers by the close is kept.
+   - Before registering it, run a zero-byte sensitivity on its one unobservable step. A runner that dips below TP1 inside the TP1 bar and recovers by the close is kept, and an automatic stop would have taken it at TP1.
    - Register it once amendment 48 is law, and confirm it on post-frontier calendar. One side is enough, because the side does not matter.
 3. **Otherwise, design round 2 from the screen's three leads.** These are the FX fixing and session reversal on the USD majors; US index momentum into the close; and the FOMC-day dollar. All are five years or more pooled at their published effects.
 4. **Amendment 48 into law** once ruled, then the registry build. The rest of the 2026-09-24 sequence stands.
