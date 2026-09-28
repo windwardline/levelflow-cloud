@@ -186,7 +186,7 @@ because amendment 45 admits no exception.
 
 - §7's years first printed 1.7 (net) and 26 (bound). The traded-day rate was taken over the select
   fold's first-to-last day, and the escaping years' empty days diluted it. Measured inside the window
-  where every pool member is contained, the figures are 1.3 and 19. Fit's figures are unchanged
+  where every pool member is contained, the figures are 1.3 and 19. Fit's in-pool figures are unchanged
   ([power-years](/docs/research/r3/mirror-2026-09-27/power-years.py.txt)).
 
 ## Seal disclosure

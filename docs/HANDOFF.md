@@ -35,10 +35,10 @@ coverage question closed, and the desk went dark on purpose.
 ### 2026-09-27, evening: the mirror control and the published-effects screen — and what the next session picks up
 
 **The answer, sharpened.** No route opens a profitable desk within a year. The fastest conditional route is about 1.3 years of confirm calendar, and its odds are low.
-- **The shipped entry has no direction** ([mirror control](/docs/research/ladder-mirror-control-2026-09-27.md)). Every plan is reflected about the decision close and resolved by the engine's own resolver. The anchor holds on 355,722 rows with 0 mismatches, and four code mutations break it. The mirror earns 92–96 % of the pre-cost edge. S − M spans zero on both folds, and per market it correlates −0.01 from fit to select.
+- **The shipped entry has no direction** ([mirror control](/docs/research/ladder-mirror-control-2026-09-27.md)). Every plan is reflected about the decision close and resolved by the engine's own resolver. The anchor holds on 355,722 rows with 0 mismatches, and four code mutations break it. The mirror earns 81–92 % of what the shipped side earns before costs. S − M spans zero on both folds, and per market it correlates −0.01 from fit to select.
 - **The one positive window, 16–21 UTC, is a lock at TP1.** Its money is the runner stopped at TP1 when the TP1 bar closes back through it, which is what a stop re-armed automatically at the TP1 fill would do. Pooled on select, one side confirms in about 1.3 years with that lock and about 19 with a hand-moved one. Hold, which needs no move, is about 36. Held-out markets do not replicate it on select.
-- **Published effects cannot beat the bar either** ([screen](/docs/research/designs/published-effects-screen-2026-09-27.md)). Years to confirm are about 8.38 ÷ S² at post-cost annual Sharpe S. The literature's best intraday effects run 0.6–1.0 after costs. Nothing published confirms within 2 years even pooled, or per market within a decade.
-- **The window's in-sample Sharpe is itself a warning:** about 2.6 on select and 3.3 on fit, two to five times the literature's, on the folds that found it.
+- **Published effects cannot beat the bar either** ([screen](/docs/research/designs/published-effects-screen-2026-09-27.md)). Years to confirm are about 8.38 ÷ S² at post-cost annual Sharpe S. The literature's best intraday effects run 0.6–1.0 after costs. Nothing published confirms within 2 years even pooled. Per market the best needs about 9 years in-sample, and the rest a decade or more or have decayed.
+- **The window's in-sample Sharpe is itself a warning:** about 2.6 on select and 3.3 on fit, 2.6 to 5.5 times the literature's range, on the folds that found it.
 
 **Landed in this change set.**
 - The mirror-control record and its readers ([`r3/mirror-2026-09-27/`](/docs/research/r3/mirror-2026-09-27/)).
@@ -47,7 +47,7 @@ coverage question closed, and the desk went dark on purpose.
 - The parking-face guard: one face check shared by the derivation and its pin, so the pin follows `FACE_SIGNALS`. It now also sees a locator bound to a name, the E2E file's own idiom. Removing the alias rule, or adding an aliased face test, turns it red.
 - #708's wording minors: AGENTS.md's seal line, the grep pattern named in the seal disclosure, and how the two pooling-gain measures differ.
 
-**Machine state.** No worktrees left; the shared checkout is on `main`. Zero provider bytes. Session artifacts hold the converge scratch and journal, the mirror run (less its 316 MB intermediate extract), and the screen's source PDFs. The PDFs are publishers' copyright and stay out of the repository.
+**Machine state.** This change set's worktree is removed at merge; the shared checkout is on `main`. Zero provider bytes. Session artifacts hold the converge scratch and journal, the mirror run (less its 316 MB intermediate extract), and the screen's source PDFs. The PDFs are publishers' copyright and stay out of the repository.
 
 **The sequence.**
 1. **Owner:** the automatic lock and the arm of record, then Q7, then Q1–Q6 as one batch, then OQ-1 to OQ-3 (items 1–3 below).
@@ -63,7 +63,7 @@ coverage question closed, and the desk went dark on purpose.
 
 **Owner only.**
 1. **The automatic lock, new.** E8's platforms are TradeLocker, MatchTrader, cTrader and MT5; MT5 and cTrader are closed to US clients, and E8 allows EAs on forex, one strategy per user. Can your platform move the stop to TP1 the moment TP1 fills, natively or through a permitted EA? If so, will you rule that the arm of record is the one the desk's instruction achieves (amendment 42)? The one candidate needs both.
-2. **Q7**, now priced against the literature. Ruled per market, nothing published confirms within a decade. Ruled pooled, nothing within 2 years, and within 5 only the FX fixing effect at its optimistic end. The lock window reads 1.3 years pooled and never per market.
+2. **Q7**, now priced against the literature. Ruled per market, the best published effect needs about 9 years in-sample and the rest a decade or more. Ruled pooled, nothing within 2 years, and within 5 only the FX fixing effect at its optimistic end. The lock window reads 1.3 years pooled and never per market.
 3. The 2026-09-27 and 2026-09-24 lists below stand.
 
 ### 2026-09-27: the converge on the route to a profitable open desk — and what the next session picks up

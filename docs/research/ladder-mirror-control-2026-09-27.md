@@ -6,7 +6,7 @@ the random-entry excursion screen finds the entry carries no direction. Is the p
 direction, or the ladder meeting the feed?
 
 **The answer.** It is not direction. A mirrored plan on the opposite side, with the same geometry,
-earns 92–96 % of it. The one window where the edge survives full cost, 16–21 UTC, is worth almost
+earns 81–92 % of what the shipped side earns before costs. The one window where the edge survives full cost, 16–21 UTC, is worth almost
 nothing unless the runner's stop moves to TP1 inside the bar that fills TP1. Whether the desk can
 instruct that is an execution question for the owner.
 
@@ -25,7 +25,8 @@ Under a symmetric random walk S and M have one distribution. So the paired S −
 and (S + M)/2 isolates what any side would earn.
 
 **The anchor held on every row.** S reproduced the row's outcome, realizedR, arming-bound and gross
-fields, legs and exit times to 1e-9, across 16 fields and 355,722 rows with 0 mismatches
+fields, legs and exit times: 15 fields to 1e-9 and one identity check to 1e-4, on 355,722 rows, with 0
+mismatches. The tables below exclude the 278 rows with no bars in their window
 ([anchor](/docs/research/r3/mirror-2026-09-27/anchor.json.txt)). Four deliberate code mutations each
 broke it and stopped the run before any mirror figure printed
 ([A](/docs/research/r3/mirror-2026-09-27/mutation-mA.log.txt),
@@ -51,8 +52,14 @@ arm, where the runner's protection arms one bar after TP1 banks.
 
 - **No direction.** Across all hours, S − M spans zero on both folds and under both lock timings.
   Across markets, fit's S − M correlates with select's at −0.012 (late lock) and −0.005 (lock in the
-  TP1 bar). Of 56 per-market tests, 2 exclude zero on select, about the 2.8 chance would give
+  TP1 bar). Per market, S − M excludes zero in 4 of 28 on fit (AUDJPY, EURAUD, EURJPY, USDJPY, all
+  positive) and 2 of 28 on select (GBPAUD negative, GBPJPY positive), under either lock timing, against
+  1.4 by chance. None of fit's four recurs on select
   ([per market](/docs/research/r3/mirror-2026-09-27/per-market.txt)).
+- **Inside and outside the window, fit shows direction with opposite signs, and select does not repeat
+  it.** At full cost with the late lock, S − M on fit is −0.0116 [−0.0199, −0.0032] at 16–21 UTC, where the
+  mirror wins, and +0.0069 [+0.0012, +0.0126] outside it. On select neither excludes zero
+  ([table](/docs/research/r3/mirror-2026-09-27/table.txt)).
 - **The escaping years are symmetric too.** In 2021–22 select, frictionless with the lock in the TP1
   bar, S reads +0.153 and (S + M)/2 +0.156 per decision, with S − M −0.005 [−0.014, +0.004]. That fits
   the feed defect those years carry.
@@ -70,7 +77,8 @@ per UTC day ([variants](/docs/research/r3/mirror-2026-09-27/span-variants-power.
 | trail_tp1 (shipped) | in TP1 bar | +1,305.2 | +339.2 | +0.2148 | 1.3 |
 | trail_tp1 | late | +450.1 | +85.7 | −0.0639 | 18.8 |
 | hold (no move) | — | +142.9 | +75.0 | −0.1102 | 36.4 |
-| breakeven | either | −213.2 | −125.3 | below zero | never |
+| breakeven | in TP1 bar | −213.2 | −125.3 | below zero | never |
+| breakeven | late | −264.3 | −143.8 | below zero | never |
 | both sides, S + M | in TP1 bar | — | — | +0.4572 | 0.8 |
 
 Hold needs no stop move, and it is worth almost nothing: held-out markets lose on both folds. The
@@ -103,8 +111,9 @@ TP1 bar, fit reads +0.115 R per day (lo95 +0.060) and select +0.019 (lo95 −0.0
   side does not matter.
 - **Its in-sample strength is itself a warning.** Pooled, with the lock in the TP1 bar, the window's
   annual Sharpe is about 2.6 on select and 3.3 on fit (from the per-day mean ÷ SD and the traded days
-  a year, in the same script). The best published intraday FX effects run 0.6–1.0 after costs
-  ([screen](/docs/research/designs/published-effects-screen-2026-09-27.md)). A figure two to five times
-  the literature's, found on the folds that grade it, is more often an artifact than an edge.
+  a year, in the same script). The best published intraday FX effects run 0.6–1.0 after costs, and
+  one session effect 1.3 in-sample
+  ([screen](/docs/research/designs/published-effects-screen-2026-09-27.md)). A figure 2.6 to 5.5 times
+  the literature's range, found on the folds that grade it, is more often an artifact than an edge.
 - **The vintage question applies.** The bank's first copies read about 0.01 R per bracket worse on
   forex than the history this corpus graded.
