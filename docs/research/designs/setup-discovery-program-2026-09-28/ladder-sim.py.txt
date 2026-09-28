@@ -1,0 +1,74 @@
+# setup-discovery-program-2026-09-28: end-to-end pass probabilities of the search track's ladder.
+# Stdlib only, seeded. Every input below is JUDGED unless marked; run: python3 ladder-sim.py.txt
+# Model: an annual-Sharpe read over T years ~ N(S_true, 1/sqrt(T)).
+#   Stage A (fit StepM):   S_hat_fit >= THR_A                 T_FIT 8.45 y (power.out.txt, MEASURED span)
+#   Stage B (select Holm): S_hat_sel >= THR_B, K <= 3 carried T_SEL 2.4 y (48 boundaries 2018-06..2019-05, JUDGED)
+#   Battery: fixed pass rate for a real effect                0.7
+#   Price: prior N(0, TAU^2); select enters by its gate-truncated likelihood, vault by a normal one
+#          (T_V 2.25 y = 27.0 contained months per pair, feed_dose.out.txt, MEASURED)
+#   Freeze: posterior median >= FLOOR = sqrt(8.38 / 4)   (c = 1, maximum confirm length 4 y)
+#   Confirm: L = 8.38 / S_post^2 years (<= 4), power = Phi(S_true * sqrt(L) - 2.054)
+import math, random
+Phi = lambda x: 0.5 * (1 + math.erf(x / math.sqrt(2)))
+phi = lambda x: math.exp(-x * x / 2) / math.sqrt(2 * math.pi)
+T_FIT, T_SEL, T_V = 8.45, 2.4, 2.25
+se = lambda T: 1 / math.sqrt(T)
+THR_A = {"N_eff 1e3": 1.34, "N_eff 1e4": 1.52}
+THR_B = 2.128 * se(T_SEL)
+FLOOR = math.sqrt(8.38 / 4)
+BATTERY = 0.7
+GRID = [i / 100 for i in range(-200, 501)]
+
+def posterior_median(sel, vault, tau):
+    w = []
+    for s in GRID:
+        ls = phi((sel - s) / se(T_SEL)) / max(1e-300, 1 - Phi((THR_B - s) / se(T_SEL)))
+        w.append(phi(s / tau) * ls * phi((vault - s) / se(T_V)))
+    tot, c = sum(w), 0.0
+    for s, x in zip(GRID, w):
+        c += x
+        if c >= tot / 2:
+            return s
+    return GRID[-1]
+
+def run(S, thr_a, tau, reps):
+    p_a = 1 - Phi((thr_a - S) / se(T_FIT))
+    n_b = n_f = 0; conf = 0.0; ls = []
+    for _ in range(reps):
+        sel = random.gauss(S, se(T_SEL))
+        if sel < THR_B:
+            continue
+        n_b += 1
+        m = posterior_median(sel, random.gauss(S, se(T_V)), tau)
+        if m < FLOOR:
+            continue
+        n_f += 1
+        L = min(4.0, 8.38 / m ** 2); ls.append(L)
+        conf += Phi(S * math.sqrt(L) - 2.054)
+    p_b = n_b / reps
+    p_floor = n_f / n_b if n_b else 0.0
+    p_conf = conf / n_f if n_f else 0.0
+    mean_l = sum(ls) / len(ls) if ls else float("nan")
+    p_freeze = p_a * p_b * BATTERY * p_floor
+    return p_a, p_b, p_floor, p_conf, mean_l, p_freeze, p_freeze * p_conf
+
+print(f"floor {FLOOR:.3f} (c = 1, L_max 4 y); select Holm threshold S {THR_B:.2f}; battery {BATTERY}")
+random.seed(11)
+for label, thr_a in THR_A.items():
+    print(f"== Stage A threshold S {thr_a} ({label}); prior N(0, 1.0^2)")
+    print(" S_true   P(A)   P(B)  P(floor|B)  P(conf|frz)  mean L   P(freeze)  P(confirm)")
+    for S in (0.0, 0.5, 1.0, 1.45, 1.67, 2.0, 2.5):
+        a, b, f, c, L, pf, pc = run(S, thr_a, 1.0, 4000)
+        print(f"  {S:4.2f}   {a:5.3f}  {b:5.3f}   {f:5.3f}      {c:5.3f}     {L:4.2f}    {pf:6.4f}    {pc:6.4f}")
+
+# Prior on the best real effect in the grammar (JUDGED; the rigorous-mining design's bins, extended).
+BINS = [(0.03, [2.5, 2.75]), (0.05, [2.0, 2.25, 2.5]), (0.10, [1.5, 1.67, 1.85]),
+        (0.20, [1.0, 1.2, 1.4]), (0.62, [0.0, 0.5])]
+for tau in (1.0, 1.5):
+    random.seed(5)
+    y_f = y_c = 0.0
+    for p, pts in BINS:
+        vals = [run(s, 1.52, tau, 3000) for s in pts]
+        y_f += p * sum(v[5] for v in vals) / len(vals)
+        y_c += p * sum(v[6] for v in vals) / len(vals)
+    print(f"mixture, Stage A S 1.52, prior N(0, {tau}^2): P(freeze) {y_f:.3f}  P(freeze and confirm) {y_c:.3f}")

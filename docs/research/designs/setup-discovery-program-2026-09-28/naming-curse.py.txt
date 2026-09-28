@@ -1,0 +1,24 @@
+# Winner's-curse check on G11 (sufficient-statistic sim, stdlib only).
+# 22 markets, D=897 select days, daily per-market money ~ mu + sqrt(rho) Z_d + sqrt(1-rho) E_dm (unit variance).
+# Name markets with positive select mean; recompute pooled annual S on the SAME days.
+import random, math
+random.seed(7)
+M, D, A = 22, 897, 320
+def run(Sm, rho, reps=8000):
+    mu = Sm/math.sqrt(A); sd = 1/math.sqrt(D)
+    tot_all=tot_named=hit_named=hit_all=0.0; kk=0
+    for _ in range(reps):
+        z = random.gauss(0, sd)*math.sqrt(rho)
+        xb = [mu + z + math.sqrt(1-rho)*random.gauss(0, sd) for _ in range(M)]
+        def S(idx):
+            k=len(idx)
+            if k==0: return 0.0
+            return sum(xb[i] for i in idx)/math.sqrt(k*(1-rho)+k*k*rho)*math.sqrt(A)
+        sa = S(range(M)); named=[i for i in range(M) if xb[i]>0]; sn = S(named)
+        tot_all+=sa; tot_named+=sn; kk+=len(named)
+        hit_named += sn >= 1.67/0.75; hit_all += sa >= 1.67/0.75
+    return tot_all/reps, tot_named/reps, kk/reps, hit_named/reps, hit_all/reps
+for rho in (0.1, 0.3):
+    for Sm in (0.0, 0.2, 0.4, 0.6):
+        a,b,k,pn,pa = run(Sm, rho)
+        print(f"rho={rho} true per-market S={Sm}: E[S all]={a:+.2f} E[S named]={b:+.2f} named={k:.1f}/22  P(S_named>=2.23)={pn:.3f} P(S_all>=2.23)={pa:.3f}")

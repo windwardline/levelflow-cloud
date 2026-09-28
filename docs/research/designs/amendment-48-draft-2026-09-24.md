@@ -1,3 +1,5 @@
+> **Superseded 2026-09-28** by the [eighth pass](/docs/research/designs/amendment-48-draft-2026-09-28.md), which applies the owner's rulings and closed [refute round 3](/docs/research/designs/amendment-48-refute-round-3-2026-09-28.md). This file stays as history.
+
 > **PARKED — not law.** Amendment 48's seventh pass. It closes
 > [refute round 2](/docs/research/designs/amendment-48-refute-round-2-2026-09-24.md) on the fifth
 > pass and the closure check on the sixth (same record). It replaces the section headed
@@ -467,6 +469,11 @@ own maximum confirm length instead of the rule capping it.
    family-count draft.
 
 ## For the owner
+
+> **Ruled 2026-09-28 by delegation:** the owner adopted every recommendation below, Q1 to Q7 (HANDOFF §2).
+> The next pass applies them and takes one refute round with checkers before this draft is recorded as
+> law. Q7's pooled read and Q2's per-market cap interact, and that pass must settle how a pooled read
+> draws on each named market's cap.
 
 Each question carries a recommendation and its price. The recommendations to Q4–Q6 were written after
 round 2, and the next refute round tests them with the rest.

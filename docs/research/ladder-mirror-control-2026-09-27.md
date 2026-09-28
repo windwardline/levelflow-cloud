@@ -117,3 +117,28 @@ TP1 bar, fit reads +0.115 R per day (lo95 +0.060) and select +0.019 (lo95 −0.0
   that 0.6–1.0 post-cost range, found on the folds that grade it, is more often an artifact than an edge.
 - **The vintage question applies.** The bank's first copies read about 0.01 R per bracket worse on
   forex than the history this corpus graded.
+
+## Addendum 2026-09-28: the plain TP1 bracket, and the owner's answer on the lock
+
+**The owner's platforms cannot move the stop when TP1 fills.** TradeLocker and MatchTrader have no such
+feature, and no expert-advisor automation exists. So the lock-at-TP1 candidate above is closed until an
+automatic lock exists.
+
+**One native form needs no stop move: the whole position off at TP1.** That is banked fraction 1:
+entry limit, stop, and take-profit at TP1. TP1 banks before any protection exists, so the result does
+not depend on lock timing. On the same decisions, priced by `banked-fraction`'s own `rFromLegs`, the
+control reproduces every row's realizedR at ½ within 1.1e-4 (62,500 rows, largest deviation 5e-5)
+([output](/docs/research/r3/mirror-2026-09-27/span-fractions.out.txt)). Forex, contained years,
+16–21 UTC, pooled per UTC day:
+
+| pool | fold | R, whole position at TP1 | lo95 per day | annual S | years to confirm, pooled |
+|---|---|---:|---:|---:|---:|
+| in-pool | fit | +993.7 | +0.3008 | 2.53 | 1.3 |
+| in-pool | select | +236.4 | +0.1036 | 1.83 | 2.5 |
+| held-out | fit | +167.2 | +0.0201 | 0.93 | 9.8 |
+| held-out | select | −12.2 | −0.1059 | −0.21 | never |
+
+It clears on both folds in-pool, where the window was found, and fails held-out select. It is the one
+natively executable candidate on record (Q10, if ruled yes, bars it: its target sits inside its stop), and it carries every warning above: found on these folds,
+in-sample strength well beyond the literature, and the vintage. It goes into the discovery program as
+a known candidate to beat, not as a registration.

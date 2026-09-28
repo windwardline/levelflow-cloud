@@ -1,0 +1,16 @@
+# Orchestrator's check, 2026-09-28: pooled per-day power of the in-span forex cells by banked fraction,
+# from span-fractions.json (span-fractions.mts.txt's output; its control row census is printed first).
+# Years use the traded-day rate inside the window where every pool member is contained (power-years.py.txt).
+import json,sys,math,statistics as st
+D=86400000; WINDOW={"fit":(1253836800000//D,1520788950000//D),"select":(1520788950000//D,1609459200000//D)}; Z=2.895
+d=json.load(open(sys.argv[1]))
+print(f"control: {d['controlRows']} rows at f = 0.5 against realizedR, {d['controlMismatch']} beyond 1.1e-4, largest deviation {d['controlMaxDev']:.2e}; sealed rows withheld {d['sealedRows']}")
+print("forex, contained years, 16-21 UTC, per UTC decision day pooled over the pool; R at banked fraction f (f = 1: the plain TP1 bracket, no stop move)")
+print("cell | f | fills | R | mean/day | lo95/day | annual S | years (80% power, one-sided 0.02)")
+for key in sorted(d['cells']):
+    fold=key.split('|')[0]; rows=d['cells'][key]; lo,hi=WINDOW[fold]
+    rate=sum(1 for r in rows if lo<=r[0]<hi)/((hi-lo)/365.25); fills=sum(r[1] for r in rows)
+    for i,f in enumerate((0,0.5,1)):
+        x=[r[2+i] for r in rows]; m=st.mean(x); sd=st.stdev(x); n=len(x); S=m/sd*math.sqrt(rate)
+        yrs=(Z*sd/m)**2/rate if m>0 else float('inf')
+        print(f"{key} | {f} | {fills} | {sum(x):+.1f} | {m:+.4f} | {m-1.96*sd/math.sqrt(n):+.4f} | {S:+.2f} | {yrs:.1f}")

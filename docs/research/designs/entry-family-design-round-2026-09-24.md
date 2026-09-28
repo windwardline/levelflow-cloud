@@ -126,6 +126,10 @@ admitted day is smaller than its headline. Second, the two markets are closer to
   orders only.
 - **OQ-3.** May the desk instruct a timed close at 16:00 ET?
 
+*Ruled 2026-09-28 by delegation (HANDOFF §2):* OQ-1 yes, with amendment 39's ban on a manufactured ratio
+still binding; OQ-2 yes, graded with the full spread and slippage; OQ-3 yes, graded as executed one
+5-minute bar late, because the owner has no automation.
+
 *Recommendation:* register it only if alpha is charged at the freeze (Q3). It is a long shot, an
 unread registration should not draw, and its read would hold every US index market's confirm calendar
 for about four years. The judge also made a point that bears on every family:

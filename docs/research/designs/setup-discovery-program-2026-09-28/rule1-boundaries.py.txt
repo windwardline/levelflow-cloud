@@ -1,0 +1,28 @@
+import json, datetime as dt, sys
+F = dt.datetime(2026,8,26,10,45,tzinfo=dt.timezone.utc).timestamp()*1000
+rows = json.load(open(sys.argv[1]))
+def month_iv(ym):
+    y, m = divmod(ym, 100)
+    s = dt.datetime(y, m, 1, tzinfo=dt.timezone.utc)
+    e = dt.datetime(y + (m==12), 1 if m==12 else m+1, 1, tzinfo=dt.timezone.utc)
+    return s.timestamp()*1000, e.timestamp()*1000
+def iso(ms): return dt.datetime.fromtimestamp(ms/1000, dt.timezone.utc).strftime('%Y-%m-%d')
+for r in rows:
+    H = r['h']
+    holes = sorted(month_iv(m) for m in r['esc'])
+    # usable runs in [H, F)
+    runs=[]; cur=H
+    for s,e in holes:
+        s=max(s,H); e=min(e,F)
+        if e<=s: continue
+        if s>cur: runs.append((cur,s))
+        cur=max(cur,e)
+    if cur<F: runs.append((cur,F))
+    U=sum(e-s for s,e in runs)
+    want=2*U/3  # fit = 50% of U+U/3
+    seen=0; b=None
+    for s,e in runs:
+        if seen+(e-s)>=want: b=s+(want-seen); break
+        seen+=e-s
+    # current (fold-spec) select start 2018-03-11
+    print(f"{r['s']}\tH={iso(H)}\tU={U/86400000/365.25:.2f}y\tfit/select boundary={iso(b)}")

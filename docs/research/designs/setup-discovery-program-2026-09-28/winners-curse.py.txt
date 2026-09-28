@@ -1,0 +1,41 @@
+# Refuter check: does the design's "unselected reads only" pricing survive the gates it is conditioned on?
+# Every read the EB posterior uses (select, held-out, vault) is ALSO a pass/fail gate on the same number.
+# One candidate, true in-pool pooled annual S = mu (22 pairs). SE = 1/sqrt(years) as in the design's
+# power.out.txt. Reads ASSUMED independent (favours the design; same-day cross-pair correlation worsens it).
+import random
+from math import sqrt
+from statistics import NormalDist
+N = NormalDist(); rnd = random.Random(20260928)
+M = 250_000
+HO = sqrt(6/22); VR = sqrt(28/22)
+def run(mu, tau):
+    nA=nR=nF=0; sp=sb=0.0
+    for _ in range(M):
+        xa = rnd.gauss(mu, 1/sqrt(8.45))
+        if xa < 1.52: continue
+        nA += 1
+        xb = rnd.gauss(mu, 1/sqrt(2.8))
+        xc = rnd.gauss(mu*HO, 1/sqrt(11.25))
+        if xb < 1.39 or xc*sqrt(11.25) < 1.645: continue
+        rs = [(xb, 1/2.8), (xc/HO, (1/11.25)/HO**2)]
+        def post(rs):
+            prec = 1/tau**2 + sum(1/v for _, v in rs); return sum(x/v for x, v in rs)/prec
+        if post(rs) < 1.29: continue
+        nR += 1
+        xe = rnd.gauss(mu*VR, 1/sqrt(1.7))
+        if xe <= 0 or xe*sqrt(1.7) < 1.0: continue
+        s = post(rs + [(xe/VR, (1/1.7)/VR**2)])
+        if s < 1.67: continue
+        nF += 1; sp += s; sb += xb
+    return nA/M, nR/M, nF/M, (sp/nF if nF else float('nan')), (sb/nF if nF else float('nan')), N.cdf(mu*VR*sqrt(3)-2.054)
+print("mu = true 22-pair S; S_post as designed (prior N(0,tau^2)); confirm power = true power of the hashed 3-year pooled read")
+print(" mu  tau |  P(A)   P(reg)  P(frz) | E[S_post|frz] E[select read|frz] | true 3y power")
+for tau in (2.0, 1.0):
+    for mu in (0.5, 0.8, 1.0, 1.2, 1.48, 1.8, 2.2):
+        a, r, f, s, b, p = run(mu, tau)
+        print(f"{mu:4.2f} {tau:3.1f} | {a:.3f}  {r:.4f}  {f:.4f} | {s:6.2f}        {b:6.2f}          | {p:.2f}")
+def tbias(mu, se, c):
+    a = (c-mu)/se; return mu + se*N.pdf(a)/(1-N.cdf(a))
+print("\nclosed form E[read | read passed its own gate]:")
+for mu in (0.5, 1.0, 1.5):
+    print(f" mu {mu}: select gate S>=1.39 (se .598) -> {tbias(mu, 1/sqrt(2.8), 1.39):.2f};  vault gate t>=1 (se .767; 28-pair mu {mu*VR:.2f}) -> {tbias(mu*VR, 1/sqrt(1.7), 1/sqrt(1.7)):.2f}")
