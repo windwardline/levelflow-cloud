@@ -468,6 +468,11 @@ own maximum confirm length instead of the rule capping it.
 
 ## For the owner
 
+> **Ruled 2026-09-28 by delegation:** the owner adopted every recommendation below, Q1 to Q7 (HANDOFF §2).
+> The next pass applies them and takes one refute round with checkers before this draft is recorded as
+> law. Q7's pooled read and Q2's per-market cap interact, and that pass must settle how a pooled read
+> draws on each named market's cap.
+
 Each question carries a recommendation and its price. The recommendations to Q4–Q6 were written after
 round 2, and the next refute round tests them with the rest.
 

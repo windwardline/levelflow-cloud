@@ -739,6 +739,32 @@ rather than into that table.
 
 ## 2. Owner rulings now binding — do not re-ask
 
+- **2026-09-28: amendment 48's open questions, by delegation.** The owner ruled Q1–Q7 and OQ-1 to OQ-3
+  "whichever is recommended as the best fit for my stated goals" (the goal: an open desk earning net
+  realized R, as soon as honestly possible). The rulings are the recommendations:
+  - **Q1:** the standing approval settles only what amendment 46 leaves open, and this ruling is the
+    owner's explicit ruling on the draft's five departures.
+  - **Q2:** the alpha cap is per market.
+  - **Q3:** a family is charged at the freeze.
+  - **Q4:** filters, calibration programs and amendment-36 removals register and claim the cap.
+  - **Q5:** the span rule stands.
+  - **Q6:** a family specified before the law may enter at its landing, on rule 12's conditions.
+  - **Q7:** a family confirms pooled across its named markets, as one money test. Each market ships only
+    on its own positive point estimate across fit, select and confirm.
+  - **OQ-1:** a registered family may carry its own exit geometry (timed exit, catastrophe stop, no
+    target) outside the ladder's payoff floors. Amendment 39's ban on a manufactured ratio still binds.
+  - **OQ-2:** the desk may instruct a marketable limit that crosses the book, graded with the full
+    spread and slippage.
+  - **OQ-3:** the desk may instruct a timed close, graded as executed one 5-minute bar late.
+
+  The text as ruled takes one refute round with checkers before it is recorded as law. Until then the
+  confirm fold stays sealed.
+- **2026-09-28: execution is native orders only.** The owner trades E8 on TradeLocker and MatchTrader.
+  Neither moves a stop automatically when TP1 fills, and no expert-advisor automation exists. A family
+  must be executable with native orders, and any instructed action after an event or at a time is
+  graded one 5-minute bar late. The 16–21 UTC lock-at-TP1 candidate is closed on that ground. It reopens
+  if an automatic lock becomes available.
+
 - **Amendment 39 (2026-08-27)** — **profit is the measure; win rate is a result.**
   Nothing publishes, ranks, gates or learns on a frequency where the money is
   knowable. Profit potential must exceed loss potential structurally and may

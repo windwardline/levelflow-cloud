@@ -1,0 +1,53 @@
+/**
+ * Orchestrator's check, 2026-09-28: forex at 16–21 UTC by banked fraction, per UTC decision day.
+ * f = 1 is the plain TP1 bracket (the whole position leaves at TP1; no stop is ever moved), which is
+ * independent of arming: TP1 banks before any protection exists. Priced by banked-fraction's own
+ * rFromLegs on the emitted legs. Control: at f = 0.5 each row must equal its realizedR (1e-9).
+ * SEALED: through the repo door, and any split other than fit or select is dropped before any other field.
+ */
+import { readFileSync, writeFileSync } from "node:fs";
+import { rFromLegs } from "/Users/peacock/Projects/levelflow-cloud/scripts/banked-fraction.ts";
+import { resolveYearMap, yearOf } from "/Users/peacock/Projects/levelflow-cloud/scripts/feedYears.ts";
+import { resolveHeldOut } from "/Users/peacock/Projects/levelflow-cloud/scripts/sweepFolds.ts";
+import { assertManifestedCorpusStreaming, type SweepEmitRow } from "/Users/peacock/Projects/levelflow-cloud/scripts/sweepStats.ts";
+
+const [, , corpus, out] = process.argv;
+const manifest = JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"));
+const forex = new Set<string>(manifest.symbols.filter((e: { assetType: string }) => e.assetType === "forex").map((e: { symbol: string }) => e.symbol));
+const yearMap = resolveYearMap({ manifests: [manifest] });
+const heldOut = new Set(resolveHeldOut([manifest]).markets);
+const DAY = 86_400_000;
+const F = [0, 0.5, 1];
+const cells = new Map<string, Map<number, number[]>>();
+let controlRows = 0, controlMismatch = 0, controlMaxDev = 0;
+const fin = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+const res = await assertManifestedCorpusStreaming(corpus, (row: SweepEmitRow) => {
+  const split = String(row.split);
+  if (split !== "fit" && split !== "select") return;
+  if (row.accepted !== true) return;
+  if ((typeof row.variant === "string" ? row.variant : "baseline") !== "baseline") return;
+  const symbol = String(row.symbol);
+  if (!forex.has(symbol)) return;
+  const rec = row as unknown as Record<string, unknown>;
+  const time = fin(row.time);
+  if (rec.noBarsInReviewWindow === true || row.outcome === "unfilled" || time === null) return;
+  if (yearMap.bucketOf(symbol, yearOf(time)) !== "contained") return;
+  const hour = new Date(time).getUTCHours();
+  if (hour < 16 || hour > 21) return;
+  const legs = rec.legs as Parameters<typeof rFromLegs>[0]["legs"];
+  const riskDistance = fin(rec.riskDistance), realized = fin(rec.realizedR);
+  const side = row.side === "sell" ? "sell" : "buy";
+  const commission = fin(rec.estimatedCommission) ?? 0;
+  if (!Array.isArray(legs) || riskDistance === null || realized === null) throw new Error(`${symbol} ${time}: hole`);
+  const r = F.map((fraction) => rFromLegs({ commission, fraction, legs, riskDistance, side }));
+  if (r.some((x) => x === null)) throw new Error(`${symbol} ${time}: legs describe no resolution`);
+  controlRows++;
+  const dev = Math.abs((r[1] as number) - realized); if (dev > controlMaxDev) controlMaxDev = dev; if (dev > 0.00011) controlMismatch++;
+  const key = `${split}|${heldOut.has(symbol) ? "held-out" : "in-pool"}`;
+  let m = cells.get(key); if (!m) { m = new Map(); cells.set(key, m); }
+  const d = Math.floor(time / DAY);
+  const a = m.get(d) ?? [0, 0, 0, 0]; a[0]++; for (let i = 0; i < 3; i++) a[i + 1] += r[i] as number; m.set(d, a);
+});
+writeFileSync(out, JSON.stringify({ sealedRows: res.sealedRows, controlRows, controlMismatch, controlMaxDev,
+  cells: Object.fromEntries([...cells].map(([k, m]) => [k, [...m].sort((x, y) => x[0] - y[0]).map(([d, a]) => [d, ...a])])) }));
+console.log(JSON.stringify({ sealedRows: res.sealedRows, controlRows, controlMismatch, controlMaxDev }));
