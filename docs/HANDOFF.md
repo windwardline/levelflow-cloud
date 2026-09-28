@@ -32,6 +32,72 @@ coverage question closed, and the desk went dark on purpose.
 
 ## 1. Where things actually stand
 
+### 2026-09-28: the owner's rulings, amendment 48's eighth pass, and the setup discovery program — and what the next session picks up
+
+**Where it stands.** The desk stays parked, and no route opens it within a year. The best honest route is now written down as a [setup discovery program](/docs/research/designs/setup-discovery-program-2026-09-28.md). Its judged chance that anything freezes and confirms this cycle is about 6–8 %. Its earliest confirm read, for a true pooled post-cost Sharpe of 2.5, ends about 2028-04, from a confirm start near 2026-12-07 (JUDGED).
+
+**The owner's answers (§2).**
+- **Execution is native orders only.** TradeLocker and MatchTrader cannot move a stop when TP1 fills, and no expert advisor exists. That closes the 16–21 UTC lock-at-TP1 candidate.
+- **Amendment 48's Q1–Q7 and OQ-1 to OQ-3 are ruled as recommended,** by delegation in the owner's own message (quoted verbatim in §2).
+
+**Landed in this change set.**
+- **Amendment 48's eighth pass** ([draft](/docs/research/designs/amendment-48-draft-2026-09-28.md), [round 3](/docs/research/designs/amendment-48-refute-round-3-2026-09-28.md), [changes](/docs/research/designs/amendment-48-eighth-pass-changes-2026-09-28.md)). It applies the rulings, settles Q7 × Q2 (one draw per opened registration, charged to every named market's cap), pins `H_s`'s depth, and adds a fail-closed feed check on every confirm window.
+  - Refute round 3: four lenses with a checker each, 57 findings, 0 fatal, 18 majors surviving and all closed; 27 minors closed, 5 in part, 6 carried in Open.
+  - The seventh pass carries a superseded banner.
+- **The setup discovery program** (four designs, two refuters each, a judge). Its companion scripts all reproduce their outputs.
+  - Track I: instrument truth.
+  - Track R: a verdict on the 16–21 UTC plain bracket.
+  - Track M: `ldnfix-reversal-v1`, hashed before it computes.
+  - Track S: one counted search of 5,440 native programs, only if Q8a and Q8b are yes.
+- **The plain TP1 bracket** ([addendum](/docs/research/ladder-mirror-control-2026-09-27.md)): the whole position off at TP1, with no stop move, so it does not depend on lock timing. In 16–21 UTC, in-pool, it clears on both folds (select lo95 +0.1036 R per day). Held-out select reads −12.2 R.
+- **Corrections:** the OQ rulings in the design-round record, and the converge's AUDCHF 2025-03 ratio (1.032, not 1.033).
+
+**Machine state.** Zero provider bytes. The worktree is removed at merge, and the shared checkout is on `main`. Session artifacts are in `session-artifacts-2026-09-27/`:
+- the converge, mirror, source-screen, discovery and a48 scratch;
+- the journals `converge-journal.jsonl`, `discovery-journal.jsonl` (sha256 ffca65d6e1f3198b) and `a48-journal.jsonl` (d7307649356ac287).
+
+**The sequence.**
+1. **Amendment 48 into law.** First, a closure check: one refute round with checkers on round 3's additions only. Those are the scheduled registry job, charged lapses, the daily bar record in the locked archive bucket, the calibrated multiplier, the variance-ratio B, the holding floor, the fail-closed feed check and the removal alternatives. Then the owner's answers on the seven readings (owner item 3). Then record it in the rulings spec.
+2. **Entry latency, measured at zero bytes.** The resolver lets an entry fill in the first 5-minute bar after its decision, and a hand-placed order is at least a bar late. `entryLatencyBars` already exists in the resolver's options. Measure it on every shipped cell and on the TP1 bracket with the mirror resolver (`r3/mirror-2026-09-27/resolve.mts.txt`). This is the execution version's size (the draft's Open 9), and it must ship before any registration.
+3. **The discovery program,** in its own order:
+   - S0 and M0 specs land in one PR before anything computes.
+   - The first pass follows, about 15 minutes of compute: Track I's anchors and battery calibration, Track R's ridge verdict, the clock witness, the escaping control and the vintage by hour.
+   - Track M follows Track R.
+   - Track S runs only on Q8a yes, Q8b yes and Q12 declared.
+4. **The registry build,** once 48 is law.
+5. The rest of the 2026-09-24 sequence.
+
+**Carried, advisory.**
+- The parking-face guard misses a chained receiver (`page.frameLocator(...).getByLabel`) and a locator with an options argument.
+- The 82.8 % and 95.9 % structural shares rest on the converge journal.
+- The eighth pass's own tensions:
+  - The feed check may be too strict: bar-range drift alone excludes 22 forex months and every BNBUSD month since 2025-07.
+  - A per-market screen under a pooled confirm; Q8a closes it.
+  - Q7's price per market.
+
+**Owner only.**
+1. **The discovery program's questions, each with its recommendation** ([program](/docs/research/designs/setup-discovery-program-2026-09-28.md), Law and disclosure):
+   - Q8a: a pooled family screens pooled. Recommended yes.
+   - Q8b: a pre-registered search registers as one unit. Recommended yes; if no, Track S never runs.
+   - Q10: amendment 39 binds each trade, so a target must lie beyond its stop. Recommended yes, and it bars the plain TP1 bracket.
+   - Q12: the UTC hours in which you can place an order within 5 minutes of a decision and close by hand at a set time.
+2. **Six E8 facts,** none of which costs FMP bytes:
+   1. Is a GTD expiry native on TradeLocker and MatchTrader?
+   2. Does a pending limit take an attached SL and TP, or OCO?
+   3. Does the account hedge or net?
+   4. Is a timed close allowed?
+   5. One week of E8 spreads by hour on AUDUSD, USDJPY, GBPUSD, EURGBP, GBPJPY and AUDCAD, 16:00–19:00 ET included.
+   6. Eight weeks of exported E8 5-minute bars on those pairs, or a 4-week demo of the orders.
+3. **Amendment 48's seven readings,** each of which the draft takes until you rule:
+   - Tradovate counts as futures' native platform.
+   - One pooled test and draw per class.
+   - The alternatives a removal must survive.
+   - No per-market confirm floor under Q7.
+   - Caps per symbol.
+   - Rule 12's reach.
+   - A lapse is charged even when the job failed.
+4. The 2026-09-27 lists stand.
+
 ### 2026-09-27, evening: the mirror control and the published-effects screen — and what the next session picks up
 
 **The answer, sharpened.** No route opens a profitable desk within a year. The fastest conditional route is about 1.3 years of confirm calendar, and its odds are low.
