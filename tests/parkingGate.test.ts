@@ -307,7 +307,7 @@ describe("the parking screen answers its own Donate", () => {
 // two, then three, by hand; this reads the file, so a fourth fails at the flip rather
 // than in the acceptance deploy. The face is any of its signals: the eyebrow, §17j's canonical
 // line, or the sign-in field's absence, matched after quotes are normalized, whitespace is
-// collapsed as the §17j block above does, whitespace beside "." and ")" is dropped, and so is a
+// collapsed as the §17j block above does, whitespace beside ".", "(" and ")" is dropped, and so is a
 // trailing comma before ")". Whole-line // comments are dropped first, so prose about
 // the face is not a test of it; a trailing or block comment is not dropped, and one naming the face
 // lands in the population and fails the pin below, where the remedy is the comment, not the list.
@@ -324,11 +324,19 @@ describe("an unpark leaves no E2E test asserting the parking face", () => {
     "the gate is up — signed-out visitors land on parking, not sign-in",
   ];
   const gateIsOpen = () => /export const PARKING_GATE = false;/.test(readFileSync("src/lib/parkingGate.ts", "utf8"));
-  // Quotes to one kind, whitespace collapsed, none left beside a "." or ")", and no trailing
-  // comma before a ")", so both wraps read as one line: a chain broken before `.toHaveCount(0)`,
-  // and an argument list broken inside `expect(` with its locator on a line of its own.
+  // Quotes to one kind, whitespace collapsed, none left beside a ".", "(" or ")", and no trailing
+  // comma before a ")", so a chain or any of its argument lists broken across lines reads as one
+  // line. WRAP_SHAPES below pins each shape, so the normalizer cannot narrow unnoticed.
   const normalize = (text: string) =>
-    text.replace(/['`]/g, '"').replace(/\s+/g, " ").replace(/\s*([.)])\s*/g, "$1").replace(/,(?=\))/g, "");
+    text.replace(/['`]/g, '"').replace(/\s+/g, " ").replace(/\s*([.()])\s*/g, "$1").replace(/,(?=\))/g, "");
+  const WRAP_SHAPES = {
+    "one line": 'await expect(page.getByLabel("Email")).toHaveCount(0);',
+    "chain broken before .toHaveCount": 'await expect(page.getByLabel("Email"))\n    .toHaveCount(0);',
+    "expect( argument on its own line": 'await expect(\n    page.getByLabel("Email"),\n  ).toHaveCount(0);',
+    "toHaveCount( argument on its own line": 'await expect(page.getByLabel("Email")).toHaveCount(\n    0,\n  );',
+    "getByLabel( argument on its own line": 'await expect(page.getByLabel(\n    "Email",\n  )).toHaveCount(0);',
+    "single quotes": "await expect(page.getByLabel('Email')).toHaveCount(0);",
+  };
   const parkedFaceTests = () =>
     readFileSync("tests/e2e/public-auth.spec.ts", "utf8")
       .split(/^(?=[ \t]*test\()/m)
@@ -338,6 +346,13 @@ describe("an unpark leaves no E2E test asserting the parking face", () => {
         return FACE_SIGNALS.some((signal) => code.includes(normalize(signal)));
       })
       .map((block) => /test\(\s*["'`](.+?)["'`]/.exec(block)?.[1] ?? "<unnamed test>");
+
+  it("reads the sign-in field's absence in every wrap shape", () => {
+    const signal = normalize('getByLabel("Email")).toHaveCount(0)');
+    for (const [shape, code] of Object.entries(WRAP_SHAPES)) {
+      assert.ok(normalize(code).includes(signal), `${shape}: normalized to ${normalize(code)}`);
+    }
+  });
 
   it("names them while parked, and fails an open gate that keeps any", (t) => {
     const tests = parkedFaceTests();
