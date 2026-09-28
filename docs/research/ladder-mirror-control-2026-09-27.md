@@ -65,13 +65,13 @@ The runner protection decides it. On the same decisions, contained years, in-poo
 per UTC day ([variants](/docs/research/r3/mirror-2026-09-27/span-variants-power.out.txt),
 [two-sided](/docs/research/r3/mirror-2026-09-27/twosided-power.out.txt)):
 
-| runner | lock | fit R | select R | select lo95 per day | years to confirm, pooled |
+| runner | lock | fit R | select R | select lo95 per day | years to confirm, pooled, at select's effect |
 |---|---|---:|---:|---:|---:|
-| trail_tp1 (shipped) | in TP1 bar | +1,305.2 | +339.2 | +0.2148 | 1.7 |
-| trail_tp1 | late | +450.1 | +85.7 | −0.0639 | 25.6 |
-| hold (no move) | — | +142.9 | +75.0 | −0.1102 | 49.4 |
+| trail_tp1 (shipped) | in TP1 bar | +1,305.2 | +339.2 | +0.2148 | 1.3 |
+| trail_tp1 | late | +450.1 | +85.7 | −0.0639 | 18.8 |
+| hold (no move) | — | +142.9 | +75.0 | −0.1102 | 36.4 |
 | breakeven | either | −213.2 | −125.3 | below zero | never |
-| both sides, S + M | in TP1 bar | — | — | +0.4572 | 1.0 |
+| both sides, S + M | in TP1 bar | — | — | +0.4572 | 0.8 |
 
 Hold needs no stop move, and it is worth almost nothing: held-out markets lose on both folds. The
 window's money is the runner stopped at TP1 when the TP1 bar closes back through it. The engine credits
@@ -90,8 +90,9 @@ TP1 bar, fit reads +0.115 R per day (lo95 +0.060) and select +0.019 (lo95 −0.0
 - **The one candidate is the 16–21 UTC ladder with an automatic lock at TP1.** It was found by reading
   both tuning folds (the hour finding of 2026-09-12). So it would register as a family designed from a
   printed result, disclosed, and only the post-frontier confirm calendar can test it.
-- **Pooled (Q7),** one side confirms in about 1.7 years at select's effect, and both sides in about
-  1.0 year.
+- **Pooled (Q7),** one side confirms in about 1.3 years at select's effect, and both sides in about
+  0.8 years. Years are the days needed over the traded days a year inside the window where every
+  pool member is contained ([script](/docs/research/r3/mirror-2026-09-27/power-years.py.txt)).
 - **Per market,** it is 0 of 91 (amendment 45).
 - **It needs an execution the desk does not instruct today.** Amendment 42 has the operator move the
   stop by hand, which is the late-lock row. Two facts would open it:
@@ -101,8 +102,8 @@ TP1 bar, fit reads +0.115 R per day (lo95 +0.060) and select +0.019 (lo95 −0.0
 - **Both sides of one instrument at once** may meet E8's hedging rules; one side is enough, since the
   side does not matter.
 - **Its in-sample strength is itself a warning.** Pooled, with the lock in the TP1 bar, the window's
-  annual Sharpe is about 2.2 on select and 3.2 on fit (JUDGED from the per-day mean ÷ SD and traded
-  days). The best published intraday FX effects run 0.6–1.0 after costs
+  annual Sharpe is about 2.6 on select and 3.3 on fit (from the per-day mean ÷ SD and the traded days
+  a year, in the same script). The best published intraday FX effects run 0.6–1.0 after costs
   ([screen](/docs/research/designs/published-effects-screen-2026-09-27.md)). A figure two to five times
   the literature's, found on the folds that grade it, is more often an artifact than an edge.
 - **The vintage question applies.** The bank's first copies read about 0.01 R per bracket worse on

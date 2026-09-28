@@ -1,0 +1,48 @@
+# Converge/mirror 2026-09-27: pooled per-day power, and the years a confirm read would take.
+# Input: per UTC decision day sums pooled over a pool's markets. Two forms are read:
+#   span   — span-days.json / span-variants.json ({cells: {key: [[day, n, net, bound], ...]}})
+#   mirror — mirror rows.tsv (per-decision S and M, full cost, lock in the TP1 bar "On" or late "Off")
+# Years = days needed / traded days per year, where the rate is measured ONLY inside the fold's window in
+# which every forex pool member is contained (fit 2009-09-25..2018-03-11; select 2018-03-11..2021-01-01,
+# since 2021 escapes on all 28 pairs). A rate over the fold's first-to-last day would be diluted by the
+# escaping years' empty days and overstate the years (the error this script corrects, 2026-09-27).
+# Needed days = (2.895 * sd / mean)^2 at one-sided 0.02 and 80 % power; years also equal 8.38 / S^2.
+# Usage: python3 this span <span.json> | python3 this mirror <rows.tsv>
+import csv, json, math, statistics as st, sys
+from collections import defaultdict
+DAY = 86_400_000
+WINDOW = {"fit": (1253836800000 // DAY, 1520788950000 // DAY), "select": (1520788950000 // DAY, 1609459200000 // DAY)}
+Z = 2.0537 + 0.8416
+
+def line(label, fold, days_values):
+    days = sorted(days_values); x = [days_values[d] for d in days]; n = len(x)
+    lo, hi = WINDOW[fold]
+    per_year = sum(1 for d in days if lo <= d < hi) / ((hi - lo) / 365.25)
+    m = st.mean(x); sd = st.stdev(x); lo95 = m - 1.96 * sd / math.sqrt(n)
+    S = m / sd * math.sqrt(per_year)
+    need = (Z * sd / m) ** 2 if m > 0 else float("inf")
+    years = need / per_year if m > 0 else float("inf")
+    print(f"{label} | {n} | {sum(x):+.1f} | {m:+.4f} | {lo95:+.4f} | {m / sd:+.4f} | {S:+.2f} | {need:,.0f} | {per_year:.0f} | {years:.1f}")
+
+print("cell | days | R | mean/day | lo95/day | mean/sd | annual S | days for 80% power | traded days/yr (contained window) | years")
+mode, path = sys.argv[1], sys.argv[2]
+if mode == "span":
+    cells = json.load(open(path))["cells"]
+    for key in sorted(cells):
+        parts = key.split("|")
+        if parts[-1] != "in": continue
+        fold = parts[-3]
+        for arm, ix in (("net", 2), ("bound", 3)):
+            if parts[0] == "hold" and arm == "bound": continue
+            line(f"{key} {arm}", fold, {r[0]: r[ix] for r in cells[key]})
+else:
+    agg = defaultdict(lambda: defaultdict(float))
+    for r in csv.DictReader(open(path), delimiter="\t"):
+        if r["years"] != "contained" or r["noBars"] == "1" or r["span"] != "in": continue
+        d = int(r["day"])
+        for arm in ("fullOn", "fullOff"):
+            s = float(r["S_" + arm]); m_ = float(r["M_" + arm])
+            agg[(r["split"], r["pool"], arm, "S")][d] += s
+            agg[(r["split"], r["pool"], arm, "S+M")][d] += s + m_
+    for (fold, pool, arm, series), v in sorted(agg.items()):
+        line(f"{fold} {pool} in {arm} {series}", fold, v)

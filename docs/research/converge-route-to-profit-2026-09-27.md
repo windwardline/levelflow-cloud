@@ -112,10 +112,11 @@ missed it, and the orchestrator measured it. Forex decisions at 16–21 UTC, in-
 years, earn on the net arm on both folds: fit +1,305.2 R, select +339.2 R (lo95 +0.0195 R per fill,
 [arming-bound cells](/docs/research/r3/arming-bound-cells-2026-09-24.txt)). Per market this span
 accepts 0 of 91 (amendment 45). Pooled into one per-day money test, the numbers are these
-([power](/docs/research/r3/converge-2026-09-27/verify_span-power.out.txt), from a reader that
+([power](/docs/research/r3/converge-2026-09-27/verify_span-power.out.txt), by
+[power-years](/docs/research/r3/mirror-2026-09-27/power-years.py.txt) over a reader that
 reproduces that table to the fill):
-- **Net arm:** select's effect needs about 366 day-clusters for 80 % power, about 1.7 years.
-- **Bound arm:** 5,446, about 26 years. Amendment 48's draft grades both arms.
+- **Net arm:** select's effect needs about 366 day-clusters for 80 % power, about 1.3 years.
+- **Bound arm:** 5,446, about 19 years. Amendment 48's draft grades both arms.
 - **Held-out markets**, the nearest thing to out-of-sample: they do not replicate it on select. Net is
   +0.019 R per day (lo95 −0.072) and the bound arm is negative.
 
@@ -149,7 +150,7 @@ because amendment 45 admits no exception.
   per-market point floor limits that and does not prevent it. It also departs from 45 and 46 in words,
   though not from 39: pooled money is money, not a count.
 - It does not rescue the shipped ladder, whose sign is negative at every grain. It brings one existing
-  candidate, the in-span forex cell (§7), to about 1.7 years, and only on the net arm.
+  candidate, the in-span forex cell (§7), to about 1.3 years, and only on the net arm.
 - *Recommendation:* rule Q7 before design round 2, pooled with the per-market point floor, if the goal
   is a desk open inside about two years. Kept per market, the goal is a decade.
 
@@ -182,6 +183,11 @@ because amendment 45 admits no exception.
   superseded for fit and select reads. Correct it before anything is hashed.
 - The payoff finder compared a per-fill difference with the vintage line, which is in bracket R. The
   comparison is withdrawn; the vintage record does not convert between the two units.
+
+- §7's years first printed 1.7 (net) and 26 (bound). The traded-day rate was taken over the select
+  fold's first-to-last day, and the escaping years' empty days diluted it. Measured inside the window
+  where every pool member is contained, the figures are 1.3 and 19. Fit's figures are unchanged
+  ([power-years](/docs/research/r3/mirror-2026-09-27/power-years.py.txt)).
 
 ## Seal disclosure
 
