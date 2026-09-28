@@ -48,9 +48,9 @@ coverage question closed, and the desk went dark on purpose.
 - The converge record and its readers ([`r3/converge-2026-09-27/`](/docs/research/r3/converge-2026-09-27/)).
 - Q7 in amendment 48's owner section.
 - Two corrections to the design-round record: the withdrawn judge's point, and the imom screen line naming the superseded 2026-09-14 corpus.
-- #707's two latent minors. The parking-face guard now reads an argument-wrapped locator; a mutation in each wrap shape turns it red, and the real file passes. `mutations.sh.txt` refuses an unknown expectation (a typo'd fourth run exits 2), and its header states the verdict assertions. Run as committed, it reproduces `mutations.out.txt`.
+- #707's two latent minors. The parking-face guard's normalizer now drops whitespace beside any paren and a trailing comma before `)`, and a new test pins six wrap shapes in CI. Removing either rule turns that test red, and the real file still yields the two pinned tests. `mutations.sh.txt` refuses an unknown expectation (a typo'd fourth run exits 2), and its header states the verdict assertions. Run as committed, it reproduces `mutations.out.txt`.
 
-**Seal disclosure.** A refuter's `grep -rn` inside `docs/research/r3` scanned the gitignored corpora and printed one confirm row: `capture-all-ignore-low-edge-classfolds-2026-09-24.jsonl` line 16862, EURUSD (held out), with its R fields. No figure uses it. Briefs must bar recursive text search under `docs/research/r3`.
+**Seal disclosure.** A refuter's `grep -rn` inside `docs/research/r3` scanned the gitignored corpora and printed one confirm row: `capture-all-ignore-low-edge-classfolds-2026-09-24.jsonl` line 16862, EURUSD (held out), with its R fields. No figure uses it. AGENTS.md now carries it as law: search committed files only, and every brief says so.
 
 **Machine state.** No worktrees left; the shared checkout is on `main`. Zero provider bytes this session. Session artifacts, outside the reaped scratchpad, are in `~/Library/Application Support/WindwardLineToolchain/levelflow/session-artifacts-2026-09-27/`: the converge's full scratch, and its journal (`converge-journal.jsonl`, sha256 prefix 49cc57bdbf8d03ca).
 
