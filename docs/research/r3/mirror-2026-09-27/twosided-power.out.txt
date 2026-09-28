@@ -1,0 +1,17 @@
+cell | days | R | mean/day | lo95/day | mean/sd | annual S | days for 80% power | traded days/yr (contained window) | years
+fit held-out in fullOff S | 2307 | +11.5 | +0.0050 | -0.0478 | +0.0039 | +0.06 | 562,014 | 273 | 2060.3
+fit held-out in fullOff S+M | 2307 | +279.5 | +0.1212 | +0.0472 | +0.0669 | +1.10 | 1,875 | 273 | 6.9
+fit held-out in fullOn S | 2307 | +260.9 | +0.1131 | +0.0590 | +0.0853 | +1.41 | 1,151 | 273 | 4.2
+fit held-out in fullOn S+M | 2307 | +774.2 | +0.3356 | +0.2587 | +0.1781 | +2.94 | 264 | 273 | 1.0
+fit in-pool in fullOff S | 2434 | +450.1 | +0.1849 | +0.0770 | +0.0681 | +1.16 | 1,808 | 288 | 6.3
+fit in-pool in fullOff S+M | 2434 | +1434.3 | +0.5893 | +0.4319 | +0.1488 | +2.52 | 379 | 288 | 1.3
+fit in-pool in fullOn S | 2434 | +1305.2 | +0.5362 | +0.4252 | +0.1919 | +3.26 | 228 | 288 | 0.8
+fit in-pool in fullOn S+M | 2434 | +3093.9 | +1.2711 | +1.1064 | +0.3067 | +5.20 | 89 | 288 | 0.3
+select held-out in fullOff S | 760 | -59.6 | -0.0784 | -0.1654 | -0.0641 | -1.05 | inf | 270 | inf
+select held-out in fullOff S+M | 760 | -53.3 | -0.0702 | -0.1900 | -0.0416 | -0.68 | inf | 270 | inf
+select held-out in fullOn S | 760 | +13.9 | +0.0183 | -0.0706 | +0.0146 | +0.24 | 39,301 | 270 | 145.4
+select held-out in fullOn S+M | 760 | +98.7 | +0.1298 | +0.0049 | +0.0739 | +1.21 | 1,535 | 270 | 5.7
+select in-pool in fullOff S | 912 | +85.7 | +0.0940 | -0.0628 | +0.0389 | +0.66 | 5,537 | 292 | 19.0
+select in-pool in fullOff S+M | 912 | +123.3 | +0.1352 | -0.0848 | +0.0399 | +0.68 | 5,273 | 292 | 18.1
+select in-pool in fullOn S | 912 | +339.2 | +0.3720 | +0.2112 | +0.1502 | +2.56 | 372 | 292 | 1.3
+select in-pool in fullOn S+M | 912 | +626.7 | +0.6872 | +0.4572 | +0.1939 | +3.31 | 223 | 292 | 0.8

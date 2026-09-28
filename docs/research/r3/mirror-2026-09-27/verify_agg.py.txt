@@ -1,0 +1,26 @@
+# Independent recomputation of two table cells from rows.tsv (aggregator check).
+import csv, math, collections
+rows=[r for r in csv.DictReader(open('out/rows.tsv'),delimiter='\t') if r['noBars']=='0' and r['split']=='fit' and r['years']=='contained' and r['pool']=='in-pool']
+T95=1.96  # G is in the thousands; the repo table gives ~1.96 there
+def cr1(vals):  # vals: list of (day, value)
+    n=len(vals); m=sum(v for _,v in vals)/n
+    res=collections.defaultdict(float)
+    for d,v in vals: res[d]+=v-m
+    G=len(res); se=math.sqrt(G/(G-1)*sum(x*x for x in res.values()))/n
+    return m, m-T95*se, m+T95*se, G
+for arm in ['fricOn','fullOn']:
+    d=[(r['day'],float(r['S_'+arm])-float(r['M_'+arm])) for r in rows]
+    print(arm,'per-decision S-M',['%.4f'%x for x in cr1(d)[:3]], 'G',cr1(d)[3], 'n',len(d))
+    f=[(r['day'],float(r['S_'+arm])) for r in rows if r['Sf_'+arm]=='1']
+    print(arm,'per-fill S',['%.4f'%x for x in cr1(f)[:3]],'n',len(f))
+    # per-fill diff by linearisation
+    agg=collections.defaultdict(lambda:[0.0,0,0.0,0])
+    for r in rows:
+        a=agg[r['day']]
+        if r['Sf_'+arm]=='1': a[0]+=float(r['S_'+arm]); a[1]+=1
+        if r['Mf_'+arm]=='1': a[2]+=float(r['M_'+arm]); a[3]+=1
+    sS=sum(a[0] for a in agg.values()); nS=sum(a[1] for a in agg.values()); sM=sum(a[2] for a in agg.values()); nM=sum(a[3] for a in agg.values())
+    r1=sS/nS; r2=sM/nM; G=sum(1 for a in agg.values() if a[1]>0 or a[3]>0)
+    u=[(a[0]-r1*a[1])/nS-(a[2]-r2*a[3])/nM for a in agg.values()]
+    se=math.sqrt(G/(G-1)*sum(x*x for x in u))
+    print(arm,'per-fill S-M','%.4f [%.4f, %.4f]'%(r1-r2,r1-r2-T95*se,r1-r2+T95*se))

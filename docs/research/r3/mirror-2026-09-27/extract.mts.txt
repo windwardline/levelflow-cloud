@@ -1,0 +1,99 @@
+/**
+ * Mirror control, phase 1 — the one pass over the corpus.
+ *
+ * SEALED: rows arrive through the repo door (`assertManifestedCorpusStreaming`,
+ * confirm withheld before the callback, the emit's sha256 re-verified over the
+ * bytes). The callback reads `split` FIRST and drops anything but fit/select
+ * before any other field is touched. Kept: accepted === true, variant baseline
+ * (absent or "baseline"), forex by the MANIFEST's symbols[].assetType. Only the
+ * compact fields the resolver and the anchor need are kept, one JSON file per
+ * symbol under <out>/.
+ *
+ * ZERO PROVIDER BYTES: this pass reads one local file; `fetch` is replaced by a
+ * thrower before any row is read (ESM hoists the imports; none fetches at load).
+ *
+ *   npx tsx <scratch>/mirror/extract.mts <corpus.jsonl> <outDir>
+ */
+(globalThis as { fetch: unknown }).fetch = () => {
+  throw new Error("mirror: fetch is disabled — this reader spends zero provider bytes");
+};
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { assertManifestedCorpusStreaming, type SweepEmitRow } from "/Users/peacock/Projects/levelflow-cloud/scripts/sweepStats.ts";
+
+const [, , corpus, outDir] = process.argv;
+if (!corpus || !outDir) throw new Error("usage: extract.mts <corpus.jsonl> <outDir>");
+const manifest = JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8")) as {
+  analyzerVersion: string;
+  anchor: string;
+  symbols: Array<{ symbol: string; assetType: string }>;
+};
+const classOf = new Map(manifest.symbols.map((entry) => [entry.symbol, entry.assetType]));
+mkdirSync(outDir, { recursive: true });
+
+const KEEP = [
+  "time", "side", "entryPrice", "stopLoss", "takeProfit", "takeProfit1", "latestClose", "riskDistance",
+  "atr", "resolutionIntervalMs", "estimatedSpread", "estimatedSlippage", "estimatedCommission",
+  "outcome", "realizedR", "armingBoundOutcome", "armingBoundRealizedR", "grossRealizedR", "grossOutcome",
+  "runnerProtection", "noBarsInReviewWindow", "filledAtMs", "exitAtMs", "armingBoundExitAtMs",
+  "armingBoundExitPrice", "grossEntryPrice", "grossTp1Price", "grossExitPrice", "legs",
+] as const;
+
+const census = {
+  delivered: 0, // rows the door handed over (confirm already withheld)
+  otherSplit: 0,
+  fitSelect: 0,
+  notBaseline: 0,
+  notAccepted: 0,
+  notForex: 0,
+  kept: 0,
+  keptBySplit: { fit: 0, select: 0 } as Record<string, number>,
+};
+const bySymbol = new Map<string, Array<Record<string, unknown>>>();
+const started = Date.now();
+const read = await assertManifestedCorpusStreaming(corpus, (row: SweepEmitRow) => {
+  census.delivered += 1;
+  // FIRST: the split, before any other field.
+  const split = row.split;
+  if (split !== "fit" && split !== "select") {
+    census.otherSplit += 1;
+    return;
+  }
+  census.fitSelect += 1;
+  const variant = row.variant;
+  if (variant !== undefined && variant !== "baseline") {
+    census.notBaseline += 1;
+    return;
+  }
+  if (row.accepted !== true) {
+    census.notAccepted += 1;
+    return;
+  }
+  const symbol = String(row.symbol);
+  if (classOf.get(symbol) !== "forex") {
+    census.notForex += 1;
+    return;
+  }
+  const rec = row as unknown as Record<string, unknown>;
+  const kept: Record<string, unknown> = { split };
+  for (const key of KEEP) if (key in rec) kept[key] = rec[key];
+  let list = bySymbol.get(symbol);
+  if (!list) bySymbol.set(symbol, (list = []));
+  list.push(kept);
+  census.kept += 1;
+  census.keptBySplit[split] += 1;
+});
+for (const [symbol, rows] of bySymbol) {
+  rows.sort((a, b) => (a.time as number) - (b.time as number) || String(a.split).localeCompare(String(b.split)));
+  writeFileSync(`${outDir}/${symbol}.json`, JSON.stringify(rows));
+}
+const meta = {
+  corpus,
+  analyzerVersion: manifest.analyzerVersion,
+  anchor: manifest.anchor,
+  sealedRowsWithheldByDoor: read.sealedRows,
+  census,
+  symbols: Object.fromEntries([...bySymbol].map(([symbol, rows]) => [symbol, rows.length])),
+  seconds: Math.round((Date.now() - started) / 1000),
+};
+writeFileSync(`${outDir}/_meta.json`, JSON.stringify(meta, null, 2));
+console.log(JSON.stringify(meta, null, 2));

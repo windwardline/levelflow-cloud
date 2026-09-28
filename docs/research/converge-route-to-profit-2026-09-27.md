@@ -30,7 +30,9 @@ Verified by hand before anything below was ranked:
   matches the finder and the refuter to the tenth.
 - The pooling gain across the 15 crosses, computed from the refuter's per-day sums: 10.1–10.3× on fit
   and 6.5–7.4× on select, all years ([gain](/docs/research/r3/converge-2026-09-27/verify_pooling-gain.out.txt)). The refuter's split gives 10.3–11.0 on contained folds and 6.6–8.4
-  on escaping select ([a3](/docs/research/r3/converge-2026-09-27/refute-forex-crosses_a3.out.txt)).
+  on escaping select ([a3](/docs/research/r3/converge-2026-09-27/refute-forex-crosses_a3.out.txt)). The two
+  measures differ by construction (the sum of SDs squared over the pooled variance, against the market
+  count over the variance ratio) and agree when the markets' SDs are equal, as the crosses' nearly are.
 - The feed-character witness quoted below, read at its source.
 
 ## What the measurements say
@@ -110,10 +112,11 @@ missed it, and the orchestrator measured it. Forex decisions at 16–21 UTC, in-
 years, earn on the net arm on both folds: fit +1,305.2 R, select +339.2 R (lo95 +0.0195 R per fill,
 [arming-bound cells](/docs/research/r3/arming-bound-cells-2026-09-24.txt)). Per market this span
 accepts 0 of 91 (amendment 45). Pooled into one per-day money test, the numbers are these
-([power](/docs/research/r3/converge-2026-09-27/verify_span-power.out.txt), from a reader that
+([power](/docs/research/r3/converge-2026-09-27/verify_span-power.out.txt), by
+[power-years](/docs/research/r3/mirror-2026-09-27/power-years.py.txt) over a reader that
 reproduces that table to the fill):
-- **Net arm:** select's effect needs about 366 day-clusters for 80 % power, about 1.7 years.
-- **Bound arm:** 5,446, about 26 years. Amendment 48's draft grades both arms.
+- **Net arm:** select's effect needs about 366 day-clusters for 80 % power, about 1.3 years.
+- **Bound arm:** 5,446, about 19 years. Amendment 48's draft grades both arms.
 - **Held-out markets**, the nearest thing to out-of-sample: they do not replicate it on select. Net is
   +0.019 R per day (lo95 −0.072) and the bound arm is negative.
 
@@ -147,7 +150,7 @@ because amendment 45 admits no exception.
   per-market point floor limits that and does not prevent it. It also departs from 45 and 46 in words,
   though not from 39: pooled money is money, not a count.
 - It does not rescue the shipped ladder, whose sign is negative at every grain. It brings one existing
-  candidate, the in-span forex cell (§7), to about 1.7 years, and only on the net arm.
+  candidate, the in-span forex cell (§7), to about 1.3 years, and only on the net arm.
 - *Recommendation:* rule Q7 before design round 2, pooled with the per-market point floor, if the goal
   is a desk open inside about two years. Kept per market, the goal is a decade.
 
@@ -181,10 +184,15 @@ because amendment 45 admits no exception.
 - The payoff finder compared a per-fill difference with the vintage line, which is in bracket R. The
   comparison is withdrawn; the vintage record does not convert between the two units.
 
+- §7's years first printed 1.7 (net) and 26 (bound). The traded-day rate was taken over the select
+  fold's first-to-last day, and the escaping years' empty days diluted it. Measured inside the window
+  where every pool member is contained, the figures are 1.3 and 19. Fit's in-pool figures are unchanged
+  ([power-years](/docs/research/r3/mirror-2026-09-27/power-years.py.txt)).
+
 ## Seal disclosure
 
-One confirm row was exposed. A refuter ran `grep -rn` inside `docs/research/r3`, and it scanned the
-gitignored corpora. It printed raw rows of `capture-all-ignore-low-edge-classfolds-2026-09-24.jsonl`,
+One confirm row was exposed. A refuter ran `grep -rn '6627.3' .` inside `docs/research/r3` to find a
+figure's source, and it scanned the gitignored corpora. It printed raw rows of `capture-all-ignore-low-edge-classfolds-2026-09-24.jsonl`,
 among them line 16862, a confirm row for EURUSD (a held-out market) with its R fields. No figure here
 uses it, and nothing was written. It is recorded against the confirm seal. The hazard is that any
 recursive text search under `docs/research/r3` opens the corpora, and future briefs must bar it.

@@ -1,0 +1,630 @@
+/**
+ * Mirror control, phase 2 — the same-geometry mirror of forex's shipped ladder.
+ *
+ * For each forex fit/select baseline accepted row (extracted by extract.mts
+ * through the repo door), the shipped setup S is rebuilt from the row's own
+ * fields and resolved with the engine's own `evaluateSetupOutcome` and the
+ * engine's own leg accountant `realizedRFromLegs`, over the pinned 5-/15-minute
+ * series at the manifest's anchor, sliced exactly as `simulateSymbol` slices
+ * them (sweep.ts: resolutionSeriesFor; the 5-minute stream from the decision
+ * bar's close, latest.time + 15 min, to latest.time + (defaultReviewHours + 24)
+ * h; the 15-minute stream from the bar after the decision bar), with the cost
+ * options from `resolverCostOptions` and `streamStartsAtMs` = time + 15 min.
+ *
+ * THE ANCHOR comes first and gates everything: S at the manifest's
+ * modeledCostScale with same-bar arming ON must reproduce the row's outcome and
+ * realizedR, arming OFF its armingBoundOutcome and armingBoundRealizedR, and at
+ * the gross scale its grossRealizedR and grossOutcome — on every kept row,
+ * unfilled included, to 1e-9. Any mismatch: the census is written, the mirror
+ * figures are NOT, and the run exits 4.
+ *
+ * THE MIRROR M reflects every price level of S about the decision bar's close
+ * C = row.latestClose (x -> 2C - x: entry, stop, TP1, target), takes the
+ * opposite side, and keeps created_at, the review window, the runner
+ * protection and the row's cost triple. Under a symmetric random walk S and M
+ * are identically distributed.
+ *
+ * ARMS: FRICTIONLESS (resolverCostOptions over a zero triple: no half-spread,
+ * no stop/gap/expiry slippage, and perLegCost 0 in the accountant) and FULL
+ * COST (the row's triple at the manifest's modeledCostScale, commission/2 per
+ * leg — exactly the corpus's realizedR / armingBoundRealizedR for S), each
+ * with same-bar protection arming ON and OFF. Unfilled = 0 R per decision.
+ *
+ * ZERO PROVIDER BYTES: every series comes through q4's `pinnedSeries`, whose
+ * fetchers throw; `fetch` itself is replaced by a thrower; the run refuses a
+ * missing cache directory rather than creating one. Nothing is written under
+ * the repository.
+ *
+ *   npx tsx <scratch>/mirror/resolve.mts <corpus.jsonl> <extractDir> <outDir> <cacheDir>
+ */
+(globalThis as { fetch: unknown }).fetch = () => {
+  throw new Error("mirror: fetch is disabled — this reader spends zero provider bytes");
+};
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { BAR_CLOCK } from "/Users/peacock/Projects/levelflow-cloud/supabase/functions/trade-analyzer/bars.ts";
+import {
+  ANALYZER_VERSION,
+  getCategoryCalibration,
+} from "/Users/peacock/Projects/levelflow-cloud/supabase/functions/trade-analyzer/calibration.ts";
+import { tMultiplier95 } from "/Users/peacock/Projects/levelflow-cloud/supabase/functions/trade-analyzer/confidence.ts";
+import {
+  GROSS_COST_SCALE,
+  resolverCostOptions,
+} from "/Users/peacock/Projects/levelflow-cloud/supabase/functions/trade-analyzer/executionQuality.ts";
+import {
+  evaluateSetupOutcome,
+  type ReplayBar,
+  realizedRFromLegs,
+  type ResolutionLeg,
+  resolutionSeriesFor,
+  type RunnerProtection,
+} from "/Users/peacock/Projects/levelflow-cloud/supabase/functions/trade-analyzer/replay.ts";
+import { clusteredBound } from "/Users/peacock/Projects/levelflow-cloud/scripts/entry-excursion-screen.ts";
+import { resolveYearMap, yearOf } from "/Users/peacock/Projects/levelflow-cloud/scripts/feedYears.ts";
+import { pinnedSeries } from "/Users/peacock/Projects/levelflow-cloud/scripts/q4-daily-structure-stop.ts";
+import { resolveHeldOut } from "/Users/peacock/Projects/levelflow-cloud/scripts/sweepFolds.ts";
+
+const [, , corpus, extractDir, outDir, cacheDir] = process.argv;
+if (!corpus || !extractDir || !outDir || !cacheDir) {
+  throw new Error("usage: resolve.mts <corpus.jsonl> <extractDir> <outDir> <cacheDir>");
+}
+if (!existsSync(cacheDir)) throw new Error(`mirror: cache dir ${cacheDir} does not exist — this reader creates nothing`);
+
+const started = Date.now();
+const manifest = JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"));
+const extractMeta = JSON.parse(readFileSync(`${extractDir}/_meta.json`, "utf8"));
+if (manifest.clock.normalizer !== BAR_CLOCK) {
+  throw new Error(`mirror: corpus clock ${manifest.clock.normalizer} is not this cache's ${BAR_CLOCK}`);
+}
+const MODELED = Number(manifest.modeledCostScale);
+const GROSS = Number(manifest.grossCostScale);
+if (!(MODELED >= 0 && MODELED <= 1) || GROSS !== GROSS_COST_SCALE) {
+  throw new Error(`mirror: manifest scales modeled=${manifest.modeledCostScale} gross=${manifest.grossCostScale}; engine GROSS_COST_SCALE=${GROSS_COST_SCALE}`);
+}
+const yearMap = resolveYearMap({ manifests: [manifest] });
+const holdout = resolveHeldOut([manifest]);
+// MIRROR_SYMBOLS (optional, comma list) restricts a TRIAL run; the full run leaves it unset.
+const only = process.env.MIRROR_SYMBOLS ? new Set(process.env.MIRROR_SYMBOLS.split(",")) : null;
+const forexEntries = (manifest.symbols as Array<Record<string, unknown>>).filter((entry) =>
+  entry.assetType === "forex" && (only === null || only.has(String(entry.symbol)))
+);
+
+// ---------------------------------------------------------------------------
+// Calibration of record: the manifest's per-symbol calibration, checked
+// against the engine's resolver at this main.
+// ---------------------------------------------------------------------------
+const calibrationCheck: Array<Record<string, unknown>> = [];
+const calOf = new Map<string, { reviewHours: number; runnerProtection: RunnerProtection }>();
+for (const entry of forexEntries) {
+  const symbol = String(entry.symbol);
+  const recorded = entry.calibration as Record<string, unknown>;
+  const live = getCategoryCalibration(symbol) as unknown as Record<string, unknown>;
+  const reviewHours = Number(recorded.defaultReviewHours);
+  const runnerProtection = recorded.runnerProtection as RunnerProtection;
+  const keys = [...new Set([...Object.keys(recorded), ...Object.keys(live)])].sort();
+  const differing = keys.filter((key) => JSON.stringify(recorded[key]) !== JSON.stringify(live[key]));
+  calibrationCheck.push({ symbol, reviewHours, runnerProtection, differingKeysVsHead: differing });
+  if (!(reviewHours > 0) || !["breakeven", "hold", "trail_tp1"].includes(runnerProtection)) {
+    throw new Error(`mirror: ${symbol} manifest calibration unusable: ${JSON.stringify({ reviewHours, runnerProtection })}`);
+  }
+  calOf.set(symbol, { reviewHours, runnerProtection });
+}
+
+// ---------------------------------------------------------------------------
+// Resolution, through the engine.
+// ---------------------------------------------------------------------------
+type Side = "buy" | "sell";
+type Setup = { entry: number; side: Side; stop: number; target: number; tp1: number | null };
+type Row = {
+  split: "fit" | "select";
+  time: number;
+  side: Side;
+  entryPrice: number;
+  stopLoss: number;
+  takeProfit: number;
+  takeProfit1: number | null;
+  latestClose: number;
+  riskDistance: number;
+  resolutionIntervalMs: number;
+  estimatedSpread: number;
+  estimatedSlippage: number;
+  estimatedCommission: number;
+  outcome: string;
+  realizedR: number;
+  armingBoundOutcome: string;
+  armingBoundRealizedR: number;
+  grossRealizedR: number;
+  grossOutcome: string;
+  runnerProtection: string;
+  noBarsInReviewWindow?: boolean;
+  filledAtMs: number | null;
+  exitAtMs: number;
+  armingBoundExitAtMs: number;
+  legs: ResolutionLeg[];
+};
+type Arm = { R: number; filled: boolean; outcome: string; legs: ResolutionLeg[]; feedback: Record<string, unknown>; exitAt: string; filledAt?: string };
+
+const FIFTEEN = 15 * 60_000;
+const FIVE = 5 * 60_000;
+const HOUR = 3_600_000;
+const DAY = 86_400_000;
+const ZERO_TRIPLE = { estimatedCommission: 0, estimatedSlippage: 0, estimatedSpread: 0 };
+
+function lowerBound(bars: readonly ReplayBar[], time: number): number {
+  let low = 0;
+  let high = bars.length;
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if (bars[mid].time < time) low = mid + 1;
+    else high = mid;
+  }
+  return low;
+}
+function upperBound(bars: readonly ReplayBar[], time: number): number {
+  let low = 0;
+  let high = bars.length;
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if (bars[mid].time <= time) low = mid + 1;
+    else high = mid;
+  }
+  return low;
+}
+
+function resolveArm(input: {
+  symbol: string;
+  row: Row;
+  setup: Setup;
+  bars: ReplayBar[];
+  intervalMs: number;
+  now: number;
+  charged: boolean; // false = frictionless
+  scale: number;
+  arming: boolean;
+}): Arm {
+  const { symbol, row, setup, bars, intervalMs, now, charged, scale, arming } = input;
+  const cal = calOf.get(symbol)!;
+  const triple = charged
+    ? { estimatedCommission: row.estimatedCommission, estimatedSlippage: row.estimatedSlippage, estimatedSpread: row.estimatedSpread }
+    : ZERO_TRIPLE;
+  const evaluation = evaluateSetupOutcome(
+    {
+      created_at: new Date(row.time).toISOString(),
+      limit_entry: setup.entry,
+      side: setup.side,
+      stop_loss: setup.stop,
+      symbol,
+      take_profit: setup.target,
+      take_profit_1: setup.tp1,
+    },
+    bars,
+    now,
+    {
+      ...resolverCostOptions(triple, charged ? scale : 0),
+      barIntervalMs: intervalMs,
+      reviewHours: cal.reviewHours,
+      runnerProtection: cal.runnerProtection,
+      sameBarProtectionArming: arming,
+      streamStartsAtMs: row.time + FIFTEEN,
+    },
+  );
+  if (evaluation.state !== "resolved") {
+    throw new Error(`mirror: ${symbol} ${row.time} ${setup.side} did not resolve (state ${evaluation.state})`);
+  }
+  const R = realizedRFromLegs({
+    legs: evaluation.legs,
+    perLegCost: charged ? triple.estimatedCommission / 2 : 0,
+    riskDistance: Math.abs(setup.entry - setup.stop),
+    side: setup.side,
+  });
+  return {
+    R,
+    filled: evaluation.outcome !== "unfilled",
+    outcome: evaluation.outcome,
+    legs: evaluation.legs,
+    feedback: evaluation.feedback,
+    exitAt: evaluation.exitAt,
+    filledAt: evaluation.filledAt,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// The anchor census.
+// ---------------------------------------------------------------------------
+const ANCHOR_FIELDS = [
+  "tier(resolutionIntervalMs)",
+  "outcome",
+  "realizedR",
+  "armingBoundOutcome",
+  "armingBoundRealizedR",
+  "grossRealizedR",
+  "grossOutcome",
+  "runnerProtection(feedback)",
+  "noBarsInReviewWindow",
+  "filledAtMs",
+  "exitAtMs",
+  "armingBoundExitAtMs",
+  "legs(net arm)",
+  "latestClose==decisionBar.close",
+  "riskDistance==|entry-stop|",
+  "frictionlessOn==grossRealizedR+commission/risk(<=1e-4 rounding)",
+] as const;
+const mismatch = Object.fromEntries(ANCHOR_FIELDS.map((field) => [field, 0])) as Record<string, number>;
+const examples: Record<string, Array<Record<string, unknown>>> = {};
+function miss(field: string, detail: Record<string, unknown>) {
+  mismatch[field] += 1;
+  const list = (examples[field] ??= []);
+  if (list.length < 5) list.push(detail);
+}
+const TOL = 1e-9;
+const close = (a: number, b: number) => Math.abs(a - b) <= TOL;
+
+// ---------------------------------------------------------------------------
+// Per-row results (held in memory; emitted only if the anchor holds).
+// ---------------------------------------------------------------------------
+type ArmKey = "fricOn" | "fricOff" | "fullOn" | "fullOff";
+const ARMS: ArmKey[] = ["fricOn", "fricOff", "fullOn", "fullOff"];
+type Result = {
+  symbol: string;
+  split: "fit" | "select";
+  years: "contained" | "escaping";
+  pool: "in-pool" | "held-out";
+  span: "in" | "out";
+  day: number;
+  side: Side;
+  noBars: boolean;
+  S: Record<ArmKey, number>;
+  M: Record<ArmKey, number>;
+  Sf: Record<ArmKey, boolean>;
+  Mf: Record<ArmKey, boolean>;
+};
+const results: Result[] = [];
+const perSymbolTiming: Record<string, { rows: number; seconds: number; tier5: number; tier15: number }> = {};
+let rowsChecked = 0;
+let unknownYear = 0;
+
+for (const entry of forexEntries) {
+  const symbol = String(entry.symbol);
+  const path = `${extractDir}/${symbol}.json`;
+  if (!existsSync(path)) {
+    throw new Error(`mirror: ${symbol} has no extract at ${path} — the extract is incomplete`);
+  }
+  const rows = JSON.parse(readFileSync(path, "utf8")) as Row[];
+  const t0 = Date.now();
+  const providerSymbol = String(entry.providerSymbol);
+  const [fifteen, five] = await Promise.all([
+    pinnedSeries({ anchor: manifest.anchor, cacheDir, key: `${providerSymbol}-15min-${manifest.days}` }),
+    pinnedSeries({ anchor: manifest.anchor, cacheDir, key: `${providerSymbol}-5min-${manifest.days}` }),
+  ]) as [ReplayBar[], ReplayBar[]];
+  // The sweep's `resolutionTime`: the primary series' last bar + 14 days. It
+  // only gates `now > expiresAt`, which every fit/select window satisfies.
+  const now = (fifteen.at(-1)?.time ?? 0) + 14 * DAY;
+  const cal = calOf.get(symbol)!;
+  let tier5 = 0;
+  let tier15 = 0;
+
+  for (const row of rows) {
+    rowsChecked += 1;
+    const time = row.time;
+    // Tier: the engine's one rule, as simulateSymbol calls it.
+    const tier = resolutionSeriesFor({ createdAtMs: time, fifteenMinute: fifteen, fiveMinute: five });
+    let bars: ReplayBar[];
+    if (tier.barIntervalMs === FIVE) {
+      tier5 += 1;
+      const start = lowerBound(five, time + FIFTEEN);
+      const end = upperBound(five, time + (cal.reviewHours + 24) * HOUR);
+      bars = five.slice(start, end);
+    } else {
+      tier15 += 1;
+      const start = upperBound(fifteen, time); // primaryBars.slice(index + 1)
+      const end = upperBound(fifteen, time + (cal.reviewHours + 24) * HOUR); // past expiry: filtered by the resolver
+      bars = fifteen.slice(start, end);
+    }
+    const intervalMs = tier.barIntervalMs;
+    if (intervalMs !== row.resolutionIntervalMs) {
+      miss("tier(resolutionIntervalMs)", { symbol, time, row: row.resolutionIntervalMs, reader: intervalMs });
+    }
+    const decisionIndex = lowerBound(fifteen, time);
+    if (decisionIndex >= fifteen.length || fifteen[decisionIndex].time !== time || fifteen[decisionIndex].close !== row.latestClose) {
+      miss("latestClose==decisionBar.close", {
+        symbol, time, latestClose: row.latestClose, barTime: fifteen[decisionIndex]?.time, barClose: fifteen[decisionIndex]?.close,
+      });
+    }
+    if (Math.abs(row.entryPrice - row.stopLoss) !== row.riskDistance) {
+      miss("riskDistance==|entry-stop|", { symbol, time, riskDistance: row.riskDistance, entry: row.entryPrice, stop: row.stopLoss });
+    }
+
+    const S: Setup = {
+      entry: row.entryPrice,
+      side: row.side,
+      stop: row.stopLoss,
+      target: row.takeProfit,
+      tp1: row.takeProfit1 ?? null,
+    };
+    const C = row.latestClose;
+    const reflect = (x: number) => 2 * C - x;
+    const M: Setup = {
+      entry: reflect(S.entry),
+      side: S.side === "buy" ? "sell" : "buy",
+      stop: reflect(S.stop),
+      target: reflect(S.target),
+      tp1: S.tp1 === null ? null : reflect(S.tp1),
+    };
+    const common = { symbol, row, bars, intervalMs, now };
+
+    // --- the anchor arms (S only) ---
+    const net = resolveArm({ ...common, setup: S, charged: true, scale: MODELED, arming: true });
+    const bound = resolveArm({ ...common, setup: S, charged: true, scale: MODELED, arming: false });
+    const gross = resolveArm({ ...common, setup: S, charged: true, scale: GROSS, arming: true });
+    if (net.outcome !== row.outcome) miss("outcome", { symbol, time, row: row.outcome, reader: net.outcome });
+    if (!close(net.R, row.realizedR)) miss("realizedR", { symbol, time, row: row.realizedR, reader: net.R, outcome: row.outcome });
+    if (bound.outcome !== row.armingBoundOutcome) miss("armingBoundOutcome", { symbol, time, row: row.armingBoundOutcome, reader: bound.outcome });
+    if (!close(bound.R, row.armingBoundRealizedR)) {
+      miss("armingBoundRealizedR", { symbol, time, row: row.armingBoundRealizedR, reader: bound.R, outcome: row.armingBoundOutcome });
+    }
+    if (!close(gross.R, row.grossRealizedR)) miss("grossRealizedR", { symbol, time, row: row.grossRealizedR, reader: gross.R, outcome: row.grossOutcome });
+    if (gross.outcome !== row.grossOutcome) miss("grossOutcome", { symbol, time, row: row.grossOutcome, reader: gross.outcome });
+    const protection = typeof net.feedback.runnerProtection === "string" ? net.feedback.runnerProtection : "unrecorded";
+    if (protection !== row.runnerProtection) miss("runnerProtection(feedback)", { symbol, time, row: row.runnerProtection, reader: protection });
+    const noBars = net.feedback.noBarsInReviewWindow === true;
+    if (noBars !== (row.noBarsInReviewWindow === true)) miss("noBarsInReviewWindow", { symbol, time, row: row.noBarsInReviewWindow, reader: noBars });
+    const filledAtMs = net.filledAt ? Date.parse(net.filledAt) : null;
+    if (filledAtMs !== row.filledAtMs) miss("filledAtMs", { symbol, time, row: row.filledAtMs, reader: filledAtMs });
+    if (Date.parse(net.exitAt) !== row.exitAtMs) miss("exitAtMs", { symbol, time, row: row.exitAtMs, reader: Date.parse(net.exitAt) });
+    if (Date.parse(bound.exitAt) !== row.armingBoundExitAtMs) {
+      miss("armingBoundExitAtMs", { symbol, time, row: row.armingBoundExitAtMs, reader: Date.parse(bound.exitAt) });
+    }
+    if (JSON.stringify(net.legs) !== JSON.stringify(row.legs)) miss("legs(net arm)", { symbol, time, row: row.legs, reader: net.legs });
+
+    // --- frictionless and full cost, S and M ---
+    const arms = {
+      fricOn: { charged: false, scale: 0, arming: true },
+      fricOff: { charged: false, scale: 0, arming: false },
+      fullOn: { charged: true, scale: MODELED, arming: true },
+      fullOff: { charged: true, scale: MODELED, arming: false },
+    } as const;
+    const SR = {} as Record<ArmKey, number>;
+    const MR = {} as Record<ArmKey, number>;
+    const Sf = {} as Record<ArmKey, boolean>;
+    const Mf = {} as Record<ArmKey, boolean>;
+    for (const key of ARMS) {
+      const spec = arms[key];
+      const s = key === "fullOn" ? net : key === "fullOff" ? bound : resolveArm({ ...common, setup: S, ...spec });
+      const m = resolveArm({ ...common, setup: M, ...spec });
+      SR[key] = s.R;
+      MR[key] = m.R;
+      Sf[key] = s.filled;
+      Mf[key] = m.filled;
+    }
+    if (Sf.fricOn !== Sf.fricOff || Sf.fullOn !== Sf.fullOff || Mf.fricOn !== Mf.fricOff || Mf.fullOn !== Mf.fullOff) {
+      throw new Error(`mirror: ${symbol} ${time}: arming changed a FILL — arming must act only after TP1`);
+    }
+    // Cross-check: frictionless-on = gross arm + commission added back, to the
+    // accountant's 4-dp rounding (both arms print the same legs at scale 0).
+    if (row.riskDistance > 0 && Sf.fricOn) {
+      const addBack = row.grossRealizedR + row.estimatedCommission / row.riskDistance;
+      if (Math.abs(SR.fricOn - addBack) > 1.0001e-4) {
+        miss("frictionlessOn==grossRealizedR+commission/risk(<=1e-4 rounding)", { symbol, time, fricOn: SR.fricOn, addBack });
+      }
+    }
+    const bucket = yearMap.bucketOf(symbol, yearOf(time));
+    if (bucket === "unknown") {
+      unknownYear += 1;
+      continue;
+    }
+    const hour = new Date(time).getUTCHours();
+    results.push({
+      symbol,
+      split: row.split,
+      years: bucket,
+      pool: holdout.held.has(symbol) ? "held-out" : "in-pool",
+      span: hour >= 16 && hour <= 21 ? "in" : "out",
+      day: Math.floor(time / DAY),
+      side: row.side,
+      noBars,
+      S: SR,
+      M: MR,
+      Sf,
+      Mf,
+    });
+  }
+  perSymbolTiming[symbol] = { rows: rows.length, seconds: (Date.now() - t0) / 1000, tier5, tier15 };
+  console.error(`${symbol}\t${rows.length} rows\t5min ${tier5} / 15min ${tier15}\t${((Date.now() - t0) / 1000).toFixed(1)}s`);
+}
+
+const totalMismatches = Object.values(mismatch).reduce((a, b) => a + b, 0);
+const anchor = {
+  corpus,
+  manifestHash: manifest.manifestHash,
+  anchor: manifest.anchor,
+  analyzerVersionManifest: manifest.analyzerVersion,
+  analyzerVersionHead: ANALYZER_VERSION,
+  analyzerVersionMatches: manifest.analyzerVersion === ANALYZER_VERSION,
+  modeledCostScale: MODELED,
+  grossCostScale: GROSS,
+  heldOut: { markets: holdout.markets, pinState: holdout.pinState, pinned: holdout.pinned },
+  yearMapSource: yearMap.source,
+  calibrationCheck,
+  extractCensus: extractMeta.census,
+  sealedRowsWithheldByDoor: extractMeta.sealedRowsWithheldByDoor,
+  rowsChecked,
+  unknownYearRows: unknownYear,
+  mismatchesPerField: mismatch,
+  totalMismatches,
+  examples,
+  perSymbol: perSymbolTiming,
+};
+writeFileSync(`${outDir}/anchor.json`, JSON.stringify(anchor, null, 2));
+console.log(`ANCHOR (MEASURED, ${outDir}/anchor.json): rows checked ${rowsChecked}; mismatches per field ${JSON.stringify(mismatch)}`);
+if (totalMismatches > 0 || unknownYear > 0) {
+  console.log("ANCHOR FAILED — no mirror figure is printed from an unanchored reader.");
+  process.exit(4);
+}
+
+// ---------------------------------------------------------------------------
+// Aggregation — only reached by an anchored reader.
+// ---------------------------------------------------------------------------
+type Bound = { mean: number; lo: number | null; hi: number | null; clusters: number; n: number };
+function plainMean(values: Array<{ cluster: number; value: number }>): Bound {
+  const b = clusteredBound(values);
+  return { mean: b.mean, lo: b.lower, hi: b.upper, clusters: b.clusters, n: b.n };
+}
+/**
+ * Per-fill figures as ratios of sums, CR1 day-clustered by linearisation:
+ * r1 = ΣS/nS, r2 = ΣM/nM; `kind` "S" | "M" | "diff" (r1 - r2) | "half" ((r1 + r2)/2).
+ * Influence per day: u = a·(S_d - r1·nS_d)/nS + b·(M_d - r2·nM_d)/nM, SE² = G/(G-1)·Σu².
+ */
+function perFill(rows: Result[], arm: ArmKey, kind: "S" | "M" | "diff" | "half"): Bound {
+  const days = new Map<number, [number, number, number, number]>();
+  let sS = 0, nS = 0, sM = 0, nM = 0;
+  for (const r of rows) {
+    const d = days.get(r.day) ?? [0, 0, 0, 0];
+    if (r.Sf[arm]) { d[0] += r.S[arm]; d[1] += 1; sS += r.S[arm]; nS += 1; }
+    if (r.Mf[arm]) { d[2] += r.M[arm]; d[3] += 1; sM += r.M[arm]; nM += 1; }
+    days.set(r.day, d);
+  }
+  const [a, b] = kind === "S" ? [1, 0] : kind === "M" ? [0, 1] : kind === "diff" ? [1, -1] : [0.5, 0.5];
+  if ((a !== 0 && nS === 0) || (b !== 0 && nM === 0)) return { mean: Number.NaN, lo: null, hi: null, clusters: 0, n: 0 };
+  const r1 = nS > 0 ? sS / nS : 0;
+  const r2 = nM > 0 ? sM / nM : 0;
+  const mean = a * r1 + b * r2;
+  // Clusters: days holding a fill on a side the statistic reads.
+  let G = 0;
+  let squares = 0;
+  for (const d of days.values()) {
+    if ((a !== 0 && d[1] > 0) || (b !== 0 && d[3] > 0)) G += 1;
+    const u = (a !== 0 ? (a * (d[0] - r1 * d[1])) / nS : 0) + (b !== 0 ? (b * (d[2] - r2 * d[3])) / nM : 0);
+    squares += u * u;
+  }
+  if (G < 2) return { mean, lo: null, hi: null, clusters: G, n: a !== 0 && b !== 0 ? nS + nM : a !== 0 ? nS : nM };
+  const se = Math.sqrt((G / (G - 1)) * squares);
+  const margin = tMultiplier95(G - 1) * se;
+  return { mean, lo: mean - margin, hi: mean + margin, clusters: G, n: a !== 0 && b !== 0 ? nS + nM : a !== 0 ? nS : nM };
+}
+function perDecision(rows: Result[], arm: ArmKey, kind: "S" | "M" | "diff" | "half"): Bound {
+  return plainMean(rows.map((r) => ({
+    cluster: r.day,
+    value: kind === "S" ? r.S[arm] : kind === "M" ? r.M[arm] : kind === "diff" ? r.S[arm] - r.M[arm] : (r.S[arm] + r.M[arm]) / 2,
+  })));
+}
+const f = (v: number | null, w = 8) => (v === null || !Number.isFinite(v) ? "-" : (v >= 0 ? "+" : "") + v.toFixed(4)).padStart(w);
+const cell = (b: Bound) => `${f(b.mean)} [${f(b.lo, 0)}, ${f(b.hi, 0)}]`;
+
+const decisionsAll = results.filter((r) => !r.noBars);
+const noBarsCount = results.length - decisionsAll.length;
+type CellKey = { split: string; years: string; pool: string; span: string };
+function select(key: CellKey, pool: Result[] = decisionsAll): Result[] {
+  return pool.filter((r) =>
+    r.split === key.split && r.years === key.years && (key.pool === "all" || r.pool === key.pool) &&
+    (key.span === "all" || r.span === key.span)
+  );
+}
+const STATS = ["S", "M", "diff", "half"] as const;
+const LABEL: Record<(typeof STATS)[number], string> = { S: "S", M: "M", diff: "S-M", half: "(S+M)/2" };
+const ARM_LABEL: Record<ArmKey, string> = {
+  fricOn: "frictionless · arming ON",
+  fricOff: "frictionless · arming OFF",
+  fullOn: "full cost · arming ON",
+  fullOff: "full cost · arming OFF",
+};
+
+const tsv: string[] = [
+  ["split", "years", "pool", "span", "arm", "basis", "stat", "decisions", "S_fills", "M_fills", "n", "day_clusters", "mean", "lo95", "hi95"].join("\t"),
+];
+const text: string[] = [];
+text.push(
+  `MIRROR CONTROL — forex shipped ladder vs its same-geometry mirror (MEASURED: ${outDir}/table.tsv, from resolve.mts)`,
+  `corpus ${corpus} · manifest ${String(manifest.manifestHash).slice(0, 12)} · anchor ${manifest.anchor} · analyzer ${manifest.analyzerVersion} (HEAD ${ANALYZER_VERSION})`,
+  `population: forex (manifest assetType) · fit/select · accepted · variant baseline · data-absent rows (noBarsInReviewWindow) excluded: ${noBarsCount}`,
+  `unfilled decisions count 0 R per decision; per fill = ratio of sums (S−M per fill = ΣS/nS − ΣM/nM; (S+M)/2 per fill = half their sum)`,
+  `95% intervals: CR1 clustered by UTC decision day at tMultiplier95(G−1); per-fill ratios by linearisation`,
+  "",
+);
+for (const split of ["fit", "select"]) {
+  for (const years of ["contained", "escaping"]) {
+    for (const pool of ["in-pool", "held-out", "all"]) {
+      for (const span of ["all", "in", "out"]) {
+        const rows = select({ split, years, pool, span });
+        if (rows.length === 0) continue;
+        const spanLabel = span === "all" ? "all hours" : span === "in" ? "16-21 UTC" : "outside 16-21";
+        text.push(`== ${split} · ${years} · ${pool} · ${spanLabel} · decisions ${rows.length}`);
+        for (const arm of ARMS) {
+          const sF = rows.filter((r) => r.Sf[arm]).length;
+          const mF = rows.filter((r) => r.Mf[arm]).length;
+          const pd = STATS.map((s) => perDecision(rows, arm, s));
+          const pf = STATS.map((s) => perFill(rows, arm, s));
+          text.push(`  ${ARM_LABEL[arm].padEnd(26)} fills S ${sF} M ${mF}`);
+          text.push(`    per decision  ` + STATS.map((s, i) => `${LABEL[s]} ${cell(pd[i])}`).join("   "));
+          text.push(`    per fill      ` + STATS.map((s, i) => `${LABEL[s]} ${cell(pf[i])}`).join("   "));
+          STATS.forEach((s, i) => {
+            for (const [basis, b] of [["decision", pd[i]], ["fill", pf[i]]] as const) {
+              tsv.push([split, years, pool, span, arm, basis, LABEL[s], rows.length, sF, mF, b.n, b.clusters, b.mean, b.lo ?? "", b.hi ?? ""].join("\t"));
+            }
+          });
+        }
+      }
+    }
+  }
+}
+// By S's side, for the contained in-pool all-hours cells: S−M that flips sign
+// with side is drift meeting a side imbalance, not per-decision information.
+text.push("", "== BY SHIPPED SIDE — contained · in-pool · all hours · frictionless, per decision (S−M and (S+M)/2)");
+for (const split of ["fit", "select"]) {
+  for (const side of ["buy", "sell"] as const) {
+    const rows = select({ split, years: "contained", pool: "in-pool", span: "all" }).filter((r) => r.side === side);
+    const parts = (["fricOff", "fricOn"] as ArmKey[]).map((arm) =>
+      `${arm === "fricOn" ? "ON " : "OFF"}: S ${cell(perDecision(rows, arm, "S"))} M ${cell(perDecision(rows, arm, "M"))} S-M ${cell(perDecision(rows, arm, "diff"))}`
+    );
+    text.push(`  ${split} ${side.padEnd(4)} n ${String(rows.length).padStart(6)}  ${parts.join("  |  ")}`);
+    for (const arm of ARMS) {
+      for (const s of STATS) {
+        const b = perDecision(rows, arm, s);
+        tsv.push([split, "contained", "in-pool", `all/side=${side}`, arm, "decision", LABEL[s], rows.length, rows.filter((r) => r.Sf[arm]).length, rows.filter((r) => r.Mf[arm]).length, b.n, b.clusters, b.mean, b.lo ?? "", b.hi ?? ""].join("\t"));
+      }
+    }
+  }
+}
+writeFileSync(`${outDir}/table.tsv`, tsv.join("\n") + "\n");
+writeFileSync(`${outDir}/table.txt`, text.join("\n") + "\n");
+
+// Per market: contained fit and contained select, frictionless S, M, S−M, per
+// decision (and per fill beside it), arming OFF and ON.
+const pm: string[] = [
+  `PER MARKET — contained years, frictionless, per decision [CR1 day-clustered 95%] (MEASURED: ${outDir}/per-market.tsv)`,
+  `pool: * = held-out`,
+];
+const pmTsv: string[] = [["split", "symbol", "pool", "arm", "basis", "stat", "decisions", "S_fills", "M_fills", "n", "day_clusters", "mean", "lo95", "hi95"].join("\t")];
+for (const split of ["fit", "select"]) {
+  pm.push("", `== ${split} · contained`);
+  pm.push(`${"market".padEnd(8)} ${"n".padStart(6)}  ${"arming OFF: S".padEnd(30)} ${"M".padEnd(30)} ${"S-M".padEnd(30)} | ${"arming ON: S".padEnd(30)} ${"M".padEnd(30)} ${"S-M".padEnd(30)}`);
+  const symbols = [...new Set(decisionsAll.map((r) => r.symbol))].sort();
+  for (const symbol of symbols) {
+    const rows = decisionsAll.filter((r) => r.symbol === symbol && r.split === split && r.years === "contained");
+    if (rows.length === 0) continue;
+    const pool = holdout.held.has(symbol) ? "held-out" : "in-pool";
+    const cols: string[] = [];
+    for (const arm of ["fricOff", "fricOn"] as ArmKey[]) {
+      for (const s of ["S", "M", "diff"] as const) cols.push(cell(perDecision(rows, arm, s)).padEnd(30));
+    }
+    pm.push(`${(symbol + (pool === "held-out" ? "*" : "")).padEnd(8)} ${String(rows.length).padStart(6)}  ${cols.slice(0, 3).join(" ")} | ${cols.slice(3).join(" ")}`);
+    for (const arm of ARMS) {
+      for (const s of STATS) {
+        for (const [basis, b] of [["decision", perDecision(rows, arm, s)], ["fill", perFill(rows, arm, s)]] as const) {
+          pmTsv.push([split, symbol, pool, arm, basis, LABEL[s], rows.length, rows.filter((r) => r.Sf[arm]).length, rows.filter((r) => r.Mf[arm]).length, b.n, b.clusters, b.mean, b.lo ?? "", b.hi ?? ""].join("\t"));
+        }
+      }
+    }
+  }
+}
+writeFileSync(`${outDir}/per-market.tsv`, pmTsv.join("\n") + "\n");
+writeFileSync(`${outDir}/per-market.txt`, pm.join("\n") + "\n");
+
+// Per-row results, for re-aggregation without re-resolving (fit/select only).
+const rowTsv: string[] = [
+  ["symbol", "split", "years", "pool", "span", "day", "side", "noBars", ...ARMS.flatMap((a) => [`S_${a}`, `M_${a}`, `Sf_${a}`, `Mf_${a}`])].join("\t"),
+];
+for (const r of results) {
+  rowTsv.push([r.symbol, r.split, r.years, r.pool, r.span, r.day, r.side, r.noBars ? 1 : 0, ...ARMS.flatMap((a) => [r.S[a], r.M[a], r.Sf[a] ? 1 : 0, r.Mf[a] ? 1 : 0])].join("\t"));
+}
+writeFileSync(`${outDir}/rows.tsv`, rowTsv.join("\n") + "\n");
+console.log(`done in ${((Date.now() - started) / 1000).toFixed(0)}s; ${results.length} rows (${noBarsCount} data-absent excluded from the table)`);

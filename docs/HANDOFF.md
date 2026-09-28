@@ -32,6 +32,40 @@ coverage question closed, and the desk went dark on purpose.
 
 ## 1. Where things actually stand
 
+### 2026-09-27, evening: the mirror control and the published-effects screen — and what the next session picks up
+
+**The answer, sharpened.** No route opens a profitable desk within a year. The fastest conditional route is about 1.3 years of confirm calendar, and its odds are low.
+- **The shipped entry has no direction** ([mirror control](/docs/research/ladder-mirror-control-2026-09-27.md)). Every plan is reflected about the decision close and resolved by the engine's own resolver. The anchor holds on 355,722 rows with 0 mismatches, and four code mutations break it. The mirror earns 81–92 % of what the shipped side earns before costs. S − M spans zero on both folds, and per market it correlates −0.01 from fit to select.
+- **The one positive window, 16–21 UTC, is a lock at TP1.** Its money is the runner stopped at TP1 when the TP1 bar closes back through it, which is what a stop re-armed automatically at the TP1 fill would do. Pooled on select, one side confirms in about 1.3 years with that lock and about 19 with a hand-moved one. Hold, which needs no move, is about 36. Held-out markets do not replicate it on select.
+- **Published effects cannot beat the bar either** ([screen](/docs/research/designs/published-effects-screen-2026-09-27.md)). Years to confirm are about 8.38 ÷ S² at post-cost annual Sharpe S. The literature's best intraday effects run 0.6–1.0 after costs. Nothing published confirms within 2 years even pooled. Per market, nothing live reads under about 8 years: #1's pre-ECB EURUSD leg at 8.6 and US index momentum at about 8 at its published net. The faster in-sample figures (#2 at 5.0, #5 at 4.7, and #6, #9 and #10) have decayed or leak into the folds.
+- **The window's in-sample Sharpe is itself a warning:** about 2.6 on select and 3.3 on fit, 2.6 to 5.5 times the literature's 0.6–1.0 post-cost range, on the folds that found it.
+
+**Landed in this change set.**
+- The mirror-control record and its readers ([`r3/mirror-2026-09-27/`](/docs/research/r3/mirror-2026-09-27/)).
+- The published-effects screen.
+- A correction to the converge record: §7's 1.7 and 26 years are 1.3 and 19. The first figures took the traded-day rate over the select fold's first-to-last day, which the escaping years diluted.
+- The parking-face guard: one face check shared by the derivation and its pin, so the pin follows `FACE_SIGNALS`. It now also sees a locator bound to a name, the E2E file's own idiom. Removing the alias rule, or adding an aliased face test, turns it red.
+- #708's wording minors: AGENTS.md's seal line, the grep pattern named in the seal disclosure, and how the two pooling-gain measures differ.
+
+**Machine state.** This change set's worktree is removed at merge; the shared checkout is on `main`. Zero provider bytes. Session artifacts hold the converge scratch and journal, the mirror run (less its 316 MB intermediate extract), and the screen's source PDFs. The PDFs are publishers' copyright and stay out of the repository.
+
+**The sequence.**
+1. **Owner:** the automatic lock and the arm of record, then Q7, then Q1–Q6 as one batch, then OQ-1 to OQ-3 (items 1–3 below).
+2. **If the lock is available and Q7 is pooled:** specify the 16–21 UTC lock ladder as a family designed from printed results, disclosed as such.
+   - Before registering it, run a zero-byte sensitivity on its one unobservable step. A runner that dips below TP1 inside the TP1 bar and recovers by the close is kept, and an automatic stop would have taken it at TP1.
+   - Register it once amendment 48 is law, and confirm it on post-frontier calendar. One side is enough, because the side does not matter.
+3. **Otherwise, design round 2 from the screen's three leads.** These are the FX fixing and session reversal on the USD majors; US index momentum into the close; and the FOMC-day dollar. All are five years or more pooled at their published effects.
+4. **Amendment 48 into law** once ruled, then the registry build. The rest of the 2026-09-24 sequence stands.
+
+**Carried, advisory.**
+- The guard still reads `getByLabel("Email", { exact: true })` as a different locator; a face test written with an options argument would be missed.
+- Figures rest on the journal, not the repo, for the 82.8 % and 95.9 % structural shares.
+
+**Owner only.**
+1. **The automatic lock, new.** E8's platforms are TradeLocker, MatchTrader, cTrader and MT5; MT5 and cTrader are closed to US clients, and E8 allows EAs on forex, one strategy per user. Can your platform move the stop to TP1 the moment TP1 fills, natively or through a permitted EA? If so, will you rule that the arm of record is the one the desk's instruction achieves (amendment 42)? The one candidate needs both.
+2. **Q7**, now priced against the literature. Ruled per market, nothing live reads under about 8 years, and the faster published figures have decayed or leak into the folds. Ruled pooled, nothing within 2 years, and within 5 only the FX fixing effect at its optimistic end. The lock window reads 1.3 years pooled and never per market.
+3. The 2026-09-27 and 2026-09-24 lists below stand.
+
 ### 2026-09-27: the converge on the route to a profitable open desk — and what the next session picks up
 
 **The goal.** Unchanged: reopen the desk with setups that earn net realized R (amendment 39).
@@ -40,7 +74,7 @@ coverage question closed, and the desk went dark on purpose.
 - **The 15 forex crosses are not a route.** Their select money is 2021-01 to 2022-05, the months the 5-minute feed breaks its own daily bars (a data defect). On contained select they lose −560.5 R net and −1,287.9 R bound; the repo's sealed reader gives the 11 in-pool crosses −398.4 R, ten losing and GBPJPY +3.1 R.
 - **The payoff gap is not a route on its own.** The judge's "fastest route" rating is withdrawn. Runner protection moves bound expectancy by at most 0.008 R per fill, and TP1-at-structure is a family to screen.
 - **Costs do not make it earn.** Removing all modelled spread and slippage lifts contained select forex only to +0.0065 R per fill.
-- **The one positive at class grain fails the bound arm.** That is forex at 16–21 UTC. Pooled, its select effect confirms in about 1.7 years on the net arm and about 26 on the bound arm, and held-out markets do not replicate it on select.
+- **The one positive at class grain fails the bound arm.** That is forex at 16–21 UTC. Pooled, its select effect confirms in about 1.3 years on the net arm and about 19 on the bound arm, and held-out markets do not replicate it on select.
 
 **Where the desk stands.** Parked, and it stays parked. No amendment states a reopen criterion; the park is the owner's 2026-08-07 instruction. Reopening on the shipped engine is lawful and fails amendment 39.
 
