@@ -339,8 +339,9 @@ Years assume the published effect at full size.
      - It holds through the rollover.
    - It is third only because every alternative is dead or slower.
 
-**For Q7.** Ruled per market, the best published effect on this roster needs about 9 years on its
-in-sample figure (#1's pre-ECB EURUSD leg, 8.6), and every other needs a decade or more or has decayed. Ruled
+**For Q7.** Ruled per market, nothing live on this roster reads under about 8 years: #1's pre-ECB
+EURUSD leg at 8.6 and US index momentum at about 8 at its published net. The faster in-sample figures
+(#2 at 5.0, #5 at 4.7, and #6, #9 and #10) have decayed or leak into the folds. Ruled
 pooled, none confirms within two years on post-cost, post-publication evidence. Within five years
 only #1 does, and only at the optimistic end of its own figures. The published literature supports
 effects of roughly S ≈ 0.6–1.0 after costs. The bar needs 2.05 for a two-year read and 1.29 for

@@ -114,6 +114,6 @@ TP1 bar, fit reads +0.115 R per day (lo95 +0.060) and select +0.019 (lo95 −0.0
   a year, in the same script). The best published intraday FX effects run 0.6–1.0 after costs, and
   one session effect 1.3 in-sample
   ([screen](/docs/research/designs/published-effects-screen-2026-09-27.md)). A figure 2.6 to 5.5 times
-  the literature's range, found on the folds that grade it, is more often an artifact than an edge.
+  that 0.6–1.0 post-cost range, found on the folds that grade it, is more often an artifact than an edge.
 - **The vintage question applies.** The bank's first copies read about 0.01 R per bracket worse on
   forex than the history this corpus graded.
