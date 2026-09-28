@@ -30,7 +30,9 @@ Verified by hand before anything below was ranked:
   matches the finder and the refuter to the tenth.
 - The pooling gain across the 15 crosses, computed from the refuter's per-day sums: 10.1–10.3× on fit
   and 6.5–7.4× on select, all years ([gain](/docs/research/r3/converge-2026-09-27/verify_pooling-gain.out.txt)). The refuter's split gives 10.3–11.0 on contained folds and 6.6–8.4
-  on escaping select ([a3](/docs/research/r3/converge-2026-09-27/refute-forex-crosses_a3.out.txt)).
+  on escaping select ([a3](/docs/research/r3/converge-2026-09-27/refute-forex-crosses_a3.out.txt)). The two
+  measures differ by construction (the sum of SDs squared over the pooled variance, against the market
+  count over the variance ratio) and agree when the markets' SDs are equal, as the crosses' nearly are.
 - The feed-character witness quoted below, read at its source.
 
 ## What the measurements say
@@ -183,8 +185,8 @@ because amendment 45 admits no exception.
 
 ## Seal disclosure
 
-One confirm row was exposed. A refuter ran `grep -rn` inside `docs/research/r3`, and it scanned the
-gitignored corpora. It printed raw rows of `capture-all-ignore-low-edge-classfolds-2026-09-24.jsonl`,
+One confirm row was exposed. A refuter ran `grep -rn '6627.3' .` inside `docs/research/r3` to find a
+figure's source, and it scanned the gitignored corpora. It printed raw rows of `capture-all-ignore-low-edge-classfolds-2026-09-24.jsonl`,
 among them line 16862, a confirm row for EURUSD (a held-out market) with its R fields. No figure here
 uses it, and nothing was written. It is recorded against the confirm seal. The hazard is that any
 recursive text search under `docs/research/r3` opens the corpora, and future briefs must bar it.
