@@ -100,5 +100,10 @@ TP1 bar, fit reads +0.115 R per day (lo95 +0.060) and select +0.019 (lo95 −0.0
   2. The owner rules that the arm of record is the one the instruction achieves.
 - **Both sides of one instrument at once** may meet E8's hedging rules; one side is enough, since the
   side does not matter.
+- **Its in-sample strength is itself a warning.** Pooled, with the lock in the TP1 bar, the window's
+  annual Sharpe is about 2.2 on select and 3.2 on fit (JUDGED from the per-day mean ÷ SD and traded
+  days). The best published intraday FX effects run 0.6–1.0 after costs
+  ([screen](/docs/research/designs/published-effects-screen-2026-09-27.md)). A figure two to five times
+  the literature's, found on the folds that grade it, is more often an artifact than an edge.
 - **The vintage question applies.** The bank's first copies read about 0.01 R per bracket worse on
   forex than the history this corpus graded.
