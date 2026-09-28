@@ -1,0 +1,47 @@
+z_alpha (one-sided 0.02) = 2.0537; z_beta (80%) = 0.8416
+| market | density (wkday clusters/wkday, fit+select) | Sunday-cluster share | basis | net mean | net SD | n net | bound mean | bound SD | n bound | n = max | weekdays | calendar years |
+| AUDCAD | 0.802 | 0.076 | select all years | +0.1929 | 1.214 | 332 | +0.0704 | 1.157 | 2,265 | 2,265 | 2,823 | 10.82 |
+| AUDCAD | 0.802 | 0.076 | select contained | -0.0803 | 1.237 | inf | -0.1507 | 1.217 | inf | inf | inf | inf |
+| AUDCAD | 0.802 | 0.076 | fit (contained) | +0.0310 | 1.245 | 13,505 | -0.0686 | 1.221 | inf | inf | inf | inf |
+| AUDCHF | 0.825 | 0.072 | select all years | +0.2320 | 1.288 | 259 | +0.1026 | 1.233 | 1,211 | 1,211 | 1,467 | 5.62 |
+| AUDCHF | 0.825 | 0.072 | select contained | -0.0988 | 1.326 | inf | -0.1724 | 1.309 | inf | inf | inf | inf |
+| AUDCHF | 0.825 | 0.072 | fit (contained) | -0.0020 | 1.296 | inf | -0.0968 | 1.273 | inf | inf | inf | inf |
+| AUDNZD | 0.791 | 0.058 | select all years | +0.3245 | 1.025 | 84 | +0.2011 | 0.959 | 191 | 191 | 241 | 0.92 |
+| AUDNZD | 0.791 | 0.058 | select contained | -0.0162 | 0.956 | inf | -0.0776 | 0.934 | inf | inf | inf | inf |
+| AUDNZD | 0.791 | 0.058 | fit (contained) | +0.1797 | 1.249 | 405 | +0.0574 | 1.215 | 3,757 | 3,757 | 4,750 | 18.21 |
+| CADCHF | 0.820 | 0.065 | select all years | +0.2097 | 1.190 | 270 | +0.0913 | 1.141 | 1,309 | 1,309 | 1,597 | 6.12 |
+| CADCHF | 0.820 | 0.065 | select contained | -0.0998 | 1.215 | inf | -0.1683 | 1.194 | inf | inf | inf | inf |
+| CADCHF | 0.820 | 0.065 | fit (contained) | +0.0103 | 1.222 | 118,881 | -0.0830 | 1.202 | inf | inf | inf | inf |
+| EURAUD | 0.828 | 0.079 | select all years | +0.1015 | 1.234 | 1,239 | -0.0136 | 1.202 | inf | inf | inf | inf |
+| EURAUD | 0.828 | 0.079 | select contained | -0.0184 | 1.234 | inf | -0.1047 | 1.210 | inf | inf | inf | inf |
+| EURAUD | 0.828 | 0.079 | fit (contained) | +0.0701 | 1.284 | 2,817 | -0.0280 | 1.254 | inf | inf | inf | inf |
+| EURCAD | 0.826 | 0.079 | select all years | +0.1737 | 1.175 | 384 | +0.0509 | 1.126 | 4,105 | 4,105 | 4,972 | 19.06 |
+| EURCAD | 0.826 | 0.079 | select contained | -0.0572 | 1.204 | inf | -0.1331 | 1.176 | inf | inf | inf | inf |
+| EURCAD | 0.826 | 0.079 | fit (contained) | +0.1027 | 1.248 | 1,237 | +0.0092 | 1.225 | 148,474 | 148,474 | 179,834 | 689.32 |
+| EURCHF | 0.652 | 0.065 | select all years | +0.1393 | 1.030 | 458 | +0.0404 | 0.983 | 4,977 | 4,977 | 7,628 | 29.24 |
+| EURCHF | 0.652 | 0.065 | select contained | -0.0805 | 1.015 | inf | -0.1379 | 0.998 | inf | inf | inf | inf |
+| EURCHF | 0.652 | 0.065 | fit (contained) | -0.0122 | 1.092 | inf | -0.0932 | 1.065 | inf | inf | inf | inf |
+| EURGBP | 0.798 | 0.072 | select all years | +0.1053 | 1.181 | 1,053 | +0.0005 | 1.151 | 39,325,238 | 39,325,238 | 49,294,596 | 188949.63 |
+| EURGBP | 0.798 | 0.072 | select contained | -0.0091 | 1.168 | inf | -0.0857 | 1.148 | inf | inf | inf | inf |
+| EURGBP | 0.798 | 0.072 | fit (contained) | -0.0095 | 1.245 | inf | -0.0972 | 1.225 | inf | inf | inf | inf |
+| EURNZD | 0.836 | 0.073 | select all years | +0.2027 | 1.221 | 304 | +0.0740 | 1.173 | 2,109 | 2,109 | 2,524 | 9.68 |
+| EURNZD | 0.836 | 0.073 | select contained | -0.0788 | 1.253 | inf | -0.1616 | 1.235 | inf | inf | inf | inf |
+| EURNZD | 0.836 | 0.073 | fit (contained) | +0.0979 | 1.301 | 1,482 | -0.0096 | 1.266 | inf | inf | inf | inf |
+| GBPCAD | 0.805 | 0.072 | select all years | +0.0906 | 1.208 | 1,489 | -0.0311 | 1.178 | inf | inf | inf | inf |
+| GBPCAD | 0.805 | 0.072 | select contained | -0.0613 | 1.192 | inf | -0.1546 | 1.173 | inf | inf | inf | inf |
+| GBPCAD | 0.805 | 0.072 | fit (contained) | +0.0734 | 1.290 | 2,593 | -0.0194 | 1.267 | inf | inf | inf | inf |
+| GBPCHF | 0.807 | 0.073 | select all years | +0.1301 | 1.224 | 743 | +0.0171 | 1.192 | 40,980 | 40,980 | 50,771 | 194.61 |
+| GBPCHF | 0.807 | 0.073 | select contained | -0.0308 | 1.266 | inf | -0.1138 | 1.248 | inf | inf | inf | inf |
+| GBPCHF | 0.807 | 0.073 | fit (contained) | +0.0560 | 1.252 | 4,188 | -0.0423 | 1.225 | inf | inf | inf | inf |
+| GBPJPY | 0.820 | 0.071 | select all years | +0.1220 | 1.268 | 906 | +0.0205 | 1.235 | 30,437 | 30,437 | 37,111 | 142.25 |
+| GBPJPY | 0.820 | 0.071 | select contained | +0.0049 | 1.282 | 573,208 | -0.0774 | 1.257 | inf | inf | inf | inf |
+| GBPJPY | 0.820 | 0.071 | fit (contained) | +0.0677 | 1.311 | 3,142 | -0.0148 | 1.294 | inf | inf | inf | inf |
+| GBPNZD | 0.824 | 0.079 | select all years | +0.1855 | 1.287 | 404 | +0.0532 | 1.249 | 4,626 | 4,626 | 5,614 | 21.52 |
+| GBPNZD | 0.824 | 0.079 | select contained | -0.0219 | 1.336 | inf | -0.1286 | 1.312 | inf | inf | inf | inf |
+| GBPNZD | 0.824 | 0.079 | fit (contained) | +0.1345 | 1.300 | 783 | +0.0307 | 1.271 | 14,353 | 14,353 | 17,417 | 66.76 |
+| NZDCAD | 0.807 | 0.077 | select all years | +0.1318 | 1.207 | 703 | +0.0026 | 1.152 | 1,669,062 | 1,669,062 | 2,068,634 | 7929.22 |
+| NZDCAD | 0.807 | 0.077 | select contained | -0.1723 | 1.231 | inf | -0.2476 | 1.209 | inf | inf | inf | inf |
+| NZDCAD | 0.807 | 0.077 | fit (contained) | +0.0704 | 1.273 | 2,742 | -0.0386 | 1.244 | inf | inf | inf | inf |
+| NZDCHF | 0.795 | 0.065 | select all years | +0.2490 | 1.270 | 218 | +0.1159 | 1.213 | 919 | 919 | 1,155 | 4.43 |
+| NZDCHF | 0.795 | 0.065 | select contained | -0.0763 | 1.314 | inf | -0.1562 | 1.291 | inf | inf | inf | inf |
+| NZDCHF | 0.795 | 0.065 | fit (contained) | +0.0227 | 1.302 | 27,550 | -0.0847 | 1.271 | inf | inf | inf | inf |

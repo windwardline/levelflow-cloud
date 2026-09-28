@@ -1,0 +1,87 @@
+// Refuter's second reader. FIT and SELECT only; forex only; all variants.
+// Door: a line containing neither '"split":"fit"' nor '"split":"select"' is
+// dropped BEFORE JSON.parse; after parse, split must be fit or select or the
+// run throws before any R field is read. Confirm rows are never parsed.
+// Q1: on IDENTICAL decisions, does the exit geometry (runnerProtection) change
+//     the frictionless (gross arm + commission added back) expectancy?
+// Q2: the finder's ATR-width bands, restated in ATR units, with composition.
+import { createReadStream, readFileSync } from "node:fs";
+import { createInterface } from "node:readline";
+import { resolveYearMap, yearOf } from "/Users/peacock/Projects/levelflow-cloud/scripts/feedYears.ts";
+
+const CORPUS = "/Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-24.jsonl";
+const manifest = JSON.parse(readFileSync(CORPUS + ".manifest.json", "utf8"));
+const holdout = new Set<string>(JSON.parse(readFileSync("/Users/peacock/Projects/levelflow-cloud/docs/research/r4/holdout-2026-08-26.json", "utf8")).markets);
+const classOf = new Map<string, string>(manifest.symbols.map((s: { symbol: string; assetType: string }) => [s.symbol, s.assetType]));
+const yearMap = resolveYearMap({ manifests: [manifest] });
+const short = (v: string) => v === "baseline" ? "baseline" : v.replace("runnerProtection=", "rp=").replace("stopStructureSource=", "src=");
+
+// per decision: variant -> [net, bound, fric, day]
+const dec = new Map<string, Map<string, [number, number, number, number]>>();
+const decMeta = new Map<string, string>(); // key -> split|years
+type W = { n: number; preB: number; preBw: number; costW: number; fricNetW: number; netW: number; w: number; sym: Map<string, number> };
+const wb = new Map<string, W>();
+const band = (w: number) => w < 1.2499 ? "<1.25" : w < 1.5 ? "1.25-1.5" : w < 2 ? "1.5-2" : w < 2.5 ? "2-2.5" : w < 3 ? "2.5-3" : w < 4.0001 ? "3-4" : ">4";
+let lines = 0, skipped = 0, parsed = 0;
+const rl = createInterface({ input: createReadStream(CORPUS, { highWaterMark: 1 << 22 }), crlfDelay: Infinity });
+for await (const line of rl) {
+  lines++;
+  if (!line.includes('"split":"fit"') && !line.includes('"split":"select"')) { skipped++; continue; }
+  if (!line.includes('"accepted":true')) continue;
+  const r = JSON.parse(line);
+  if (r.split !== "fit" && r.split !== "select") throw new Error("door breach");
+  parsed++;
+  if (r.accepted !== true) continue;
+  const sym = String(r.symbol);
+  if (classOf.get(sym) !== "forex" || holdout.has(sym)) continue;
+  if (r.noBarsInReviewWindow === true || r.outcome === "unfilled" || typeof r.time !== "number") continue;
+  const risk = Number(r.riskDistance), atr = Number(r.atr);
+  const net = Number(r.realizedR), bound = Number(r.armingBoundRealizedR), gross = Number(r.grossRealizedR);
+  if (![risk, atr, net, bound, gross].every(Number.isFinite) || risk <= 0) throw new Error(`non-finite ${sym} ${r.time}`);
+  const comm = Number(r.estimatedCommission) / risk;
+  const fric = gross + comm; // gross arm (spread and slippage at scale 0) with the commission added back
+  const yb = yearMap.bucketOf(sym, yearOf(r.time));
+  const key = `${r.split}|${sym}|${r.time}`;
+  let m = dec.get(key); if (!m) { m = new Map(); dec.set(key, m); decMeta.set(key, `${r.split}|${yb}`); }
+  m.set(short(String(r.variant)), [net, bound, fric, Math.floor(r.time / 86400000)]);
+  if (r.variant === "baseline" && r.split === "fit") {
+    const w = risk / atr; const b = band(w);
+    const x = wb.get(b) ?? { n: 0, preB: 0, preBw: 0, costW: 0, fricNetW: 0, netW: 0, w: 0, sym: new Map() };
+    const preB = bound + (gross - net) + comm;
+    x.n++; x.preB += preB; x.preBw += preB * w; x.costW += ((gross - net) + comm) * w; x.fricNetW += fric * w; x.netW += net * w; x.w += w;
+    x.sym.set(sym, (x.sym.get(sym) ?? 0) + 1); wb.set(b, x);
+  }
+}
+console.log(`FIT+SELECT only (confirm never parsed) · forex in-pool · lines ${lines} · skipped unparsed ${skipped} · accepted parsed ${parsed}`);
+// Q1: paired on decisions filled under ALL variants in a group
+const groups = new Map<string, Map<string, { n: number; net: number; bound: number; fric: number; days: Map<number, [number, number]> }>>();
+const variantsAll = new Set<string>();
+for (const m of dec.values()) for (const v of m.keys()) variantsAll.add(v);
+const intradaySet = ["baseline", "rp=breakeven,src=intraday", "rp=hold,src=intraday", "rp=trail_tp1,src=intraday"];
+let pairedN = 0;
+for (const [key, m] of dec) {
+  if (!intradaySet.every((v) => m.has(v))) continue;
+  pairedN++;
+  const g = decMeta.get(key)!;
+  const bucket = groups.get(g) ?? new Map(); groups.set(g, bucket);
+  const base = m.get("baseline")!;
+  for (const v of intradaySet) {
+    const [net, bound, fric, day] = m.get(v)!;
+    const c = bucket.get(v) ?? { n: 0, net: 0, bound: 0, fric: 0, days: new Map() };
+    c.n++; c.net += net; c.bound += bound; c.fric += fric;
+    const d = c.days.get(day) ?? [0, 0]; d[0]++; d[1] += fric - base[2]; c.days.set(day, d); // paired frictionless difference vs baseline
+    bucket.set(v, c);
+  }
+}
+console.log(`paired decisions (filled under baseline and all three intraday runner protections): ${pairedN}`);
+console.log(`group | variant | n | E net | E bound | E frictionless | Δfrictionless vs baseline [day-cluster 95%]`);
+for (const [g, bucket] of [...groups.entries()].sort()) for (const v of intradaySet) {
+  const c = bucket.get(v)!; const ds = [...c.days.values()]; const N = c.n; const Y = ds.reduce((s, d) => s + d[1], 0); const mm = Y / N; const D = ds.length;
+  const se = Math.sqrt(ds.reduce((s, d) => s + (d[1] - mm * d[0]) ** 2, 0) * D / (D - 1)) / N;
+  console.log(`${g} | ${v} | ${N} | ${(c.net / N).toFixed(4)} | ${(c.bound / N).toFixed(4)} | ${(c.fric / N).toFixed(4)} | ${mm >= 0 ? "+" : ""}${mm.toFixed(4)} [${(mm - 1.96 * se).toFixed(4)}, ${(mm + 1.96 * se).toFixed(4)}]`);
+}
+console.log(`\nQ2 fit baseline forex in-pool by width band (risk/ATR): n | mean w | pre-cost bound R | pre-cost bound in ATR | modelled cost in ATR | net in ATR | markets | top market share`);
+for (const [b, x] of [...wb.entries()].sort()) {
+  const top = Math.max(...x.sym.values());
+  console.log(`${b} | ${x.n} | ${(x.w / x.n).toFixed(2)} | ${(x.preB / x.n).toFixed(4)} | ${(x.preBw / x.n).toFixed(4)} | ${(x.costW / x.n).toFixed(4)} | ${(x.netW / x.n).toFixed(4)} | ${x.sym.size} | ${(100 * top / x.n).toFixed(1)}%`);
+}

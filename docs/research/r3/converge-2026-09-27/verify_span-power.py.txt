@@ -1,0 +1,17 @@
+# Converge 2026-09-27, orchestrator's check: pooled per-day power of the in-span forex cells from
+# span-days.json (verify_span-days.mts.txt's output). Usage: python3 this span-days.json
+import json,sys,math,statistics as st
+d=json.load(open(sys.argv[1]))
+Z=2.0537+0.8416
+print("forex, contained years, decision hour 16-21 UTC, per UTC decision day (traded days only); pooled over the pool's markets")
+print("cell | days | arm | R | mean/day | sd/day | lo95/day | mean/sd | days for 80% power at one-sided 0.02 | years at 261 weekdays x days/weekday")
+for key in ("fit|in-pool|in","select|in-pool|in","fit|held-out|in","select|held-out|in"):
+    rows=d['cells'][key]; n=len(rows)
+    first,last=rows[0][0],rows[-1][0]
+    wk=sum(1 for x in range(first,last+1) if (x+4)%7<5)  # epoch day 0 = Thursday
+    dens=n/wk
+    for arm,ix in (("net",2),("bound",3)):
+        v=[r[ix] for r in rows]; m=st.mean(v); s=st.stdev(v); lo=m-1.96*s/math.sqrt(n)
+        need=(Z*s/m)**2 if m>0 else float('inf')
+        yrs=need/(261*dens) if m>0 else float('inf')
+        print(f"{key} | {n} | {arm} | {sum(v):+.1f} | {m:+.4f} | {s:.3f} | {lo:+.4f} | {m/s:+.4f} | {need:,.0f} | {yrs:.1f} (density {dens:.3f}/weekday)")

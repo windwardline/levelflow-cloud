@@ -1,0 +1,11 @@
+import json, math
+from collections import defaultdict
+D=json.load(open('agg.json'))
+hold=set(json.load(open('/Users/peacock/Projects/levelflow-cloud/docs/research/r4/holdout-2026-08-26.json'))['markets'])
+T=defaultdict(lambda:[0.0]*4)
+for sp,ys,sym,e,n,net,bd,n2 in D['wid']:
+    if sym in hold: continue
+    t=T[(sp,ys,e)]; t[0]+=n; t[1]+=net; t[2]+=bd; t[3]+=n2
+for k in sorted(T):
+    n,net,bd,n2=T[k]; m=net/n; sd=math.sqrt(max(n2/n-m*m,0)); l=m-1.96*sd/math.sqrt(n)
+    print(k, f"n={n:.0f} net={net:.1f} E={m:+.4f} lo={l:+.4f} bound={bd:.1f}")

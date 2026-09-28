@@ -1,0 +1,36 @@
+gross nulls 0
+=== (a) 2009-10 calendar contrast in fit: AUDNZD (escaping years) vs every other forex pair (contained years), same calendar span
+  AUDNZD            net   2009-10: k=277 mean/cluster +0.5901 (se 0.0675)   2011-18: k=1632 mean +0.1100
+  AUDNZD            bound 2009-10: k=277 mean/cluster +0.4162 (se 0.0642)   2011-18: k=1632 mean -0.0035
+  14 other crosses  net   2009-10: k=4274 mean/cluster +0.2190 (se 0.0189)   2011-18: k=22995 mean +0.0215
+  14 other crosses  bound 2009-10: k=4274 mean/cluster +0.1067 (se 0.0184)   2011-18: k=22995 mean -0.0722
+  27 other pairs    net   2009-10: k=8264 mean/cluster +0.1069 (se 0.0140)   2011-18: k=45357 mean -0.0245
+  27 other pairs    bound 2009-10: k=8264 mean/cluster +0.0086 (se 0.0137)   2011-18: k=45357 mean -0.1106
+
+=== (b) month-matched contrast: escaping pair-months vs contained pair-months in the SAME calendar month (month-grain escape map)
+  fit    28 forex   net   mixed months  26 esc clusters  1172 con clusters  13618 | weighted esc +0.3961 con +0.1025 diff +0.2935 se~0.0367 z~+8.01
+  fit    28 forex   bound mixed months  26 esc clusters  1172 con clusters  13618 | weighted esc +0.2469 con +0.0048 diff +0.2421 se~0.0352 z~+6.87
+  fit    15 crosses net   mixed months  23 esc clusters  1044 con clusters   5928 | weighted esc +0.4087 con +0.2264 diff +0.1823 se~0.0414 z~+4.40
+  fit    15 crosses bound mixed months  23 esc clusters  1044 con clusters   5928 | weighted esc +0.2552 con +0.1102 diff +0.1450 se~0.0398 z~+3.64
+  select 28 forex   net   mixed months  13 esc clusters  3925 con clusters   1986 | weighted esc +0.3146 con +0.1269 diff +0.1877 se~0.0783 z~+2.40
+  select 28 forex   bound mixed months  13 esc clusters  3925 con clusters   1986 | weighted esc +0.1627 con +0.0301 diff +0.1326 se~0.0766 z~+1.73
+  select 15 crosses net   mixed months   3 esc clusters   261 con clusters    465 | weighted esc +0.2804 con +0.0152 diff +0.2651 se~0.1921 z~+1.38
+  select 15 crosses bound mixed months   3 esc clusters   261 con clusters    465 | weighted esc +0.1513 con -0.0920 diff +0.2434 se~0.1928 z~+1.26
+
+=== (c) select 2021-01..2022-05: pair-months the month map calls CONTAINED vs escaping, same months
+  net   escaping pair-months k=8010 mean +0.4798 (se 0.0121) | contained pair-months k=153 mean +0.2103 (se 0.0921)
+  bound escaping pair-months k=8010 mean +0.3000 (se 0.0116) | contained pair-months k=153 mean +0.1028 (se 0.0900)
+  pre-2021 net   escaping pair-months k=66 mean +0.0018 (se 0.1344) | contained k=17445 mean -0.0947
+  pre-2021 bound escaping pair-months k=66 mean -0.0952 (se 0.1320) | contained k=17445 mean -0.1694
+
+=== (d) select by calendar year, 15 crosses and 13 others (mean per cluster, net/bound)
+  15 crosses 2018 k= 2763 fills   9952 net    -76.9 (-0.0278/cl) bound   -304.5 (-0.1102/cl)
+  15 crosses 2019 k= 3352 fills  11501 net   -334.2 (-0.0997/cl) bound   -582.8 (-0.1739/cl)
+  15 crosses 2020 k= 3174 fills  11626 net   -149.4 (-0.0471/cl) bound   -400.6 (-0.1262/cl)
+  15 crosses 2021 k= 3215 fills  11678 net  +2223.6 (+0.6916/cl) bound  +1541.4 (+0.4794/cl)
+  15 crosses 2022 k= 1153 fills   4260 net   +703.3 (+0.6100/cl) bound   +473.2 (+0.4104/cl)
+  13 others  2018 k= 2517 fills   9408 net   -435.3 (-0.1730/cl) bound   -631.6 (-0.2509/cl)
+  13 others  2019 k= 2917 fills   9602 net   -327.4 (-0.1123/cl) bound   -517.7 (-0.1775/cl)
+  13 others  2020 k= 2788 fills  10376 net   -328.6 (-0.1179/cl) bound   -523.5 (-0.1878/cl)
+  13 others  2021 k= 2784 fills  10171 net   +773.2 (+0.2777/cl) bound   +364.4 (+0.1309/cl)
+  13 others  2022 k= 1011 fills   3805 net   +175.0 (+0.1731/cl) bound    +40.2 (+0.0397/cl)

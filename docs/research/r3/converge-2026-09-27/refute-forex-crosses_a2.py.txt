@@ -1,0 +1,50 @@
+import json, math, datetime as dt
+from statistics import mean, stdev
+from collections import defaultdict
+exec(open('a1.py').read().split("def agg(")[0])  # shared loaders only
+def cl(s,sp): return rows(s,sp)
+print('=== (a) 2009-10 calendar contrast in fit: AUDNZD (escaping years) vs every other forex pair (contained years), same calendar span')
+for grp,pop in (('AUDNZD',['AUDNZD']),('14 other crosses',[s for s in X15 if s!='AUDNZD']),('27 other pairs',[s for s in ALL if s!='AUDNZD'])):
+    for i,arm in ((2,'net'),(3,'bound')):
+        xs=[r[i] for s in pop for r in cl(s,'fit') if ymd(r[0])[0] in (2009,2010)]
+        ys=[r[i] for s in pop for r in cl(s,'fit') if ymd(r[0])[0] not in (2009,2010)]
+        print(f'  {grp:17} {arm:5} 2009-10: k={len(xs)} mean/cluster {mean(xs):+.4f} (se {stdev(xs)/math.sqrt(len(xs)):.4f})   2011-18: k={len(ys)} mean {mean(ys):+.4f}')
+print('\n=== (b) month-matched contrast: escaping pair-months vs contained pair-months in the SAME calendar month (month-grain escape map)')
+for sp in ('fit','select'):
+    for popn,pop in (('28 forex',ALL),('15 crosses',X15)):
+        by=defaultdict(lambda: {'esc':[], 'con':[]})
+        for s in pop:
+            for r in cl(s,sp):
+                by[ymd(r[0])[1]][bucket_m(s,r[0])].append(r)
+        for i,arm in ((2,'net'),(3,'bound')):
+            num=den=var=0; me=[];mc=[]; months=0; ke=kc=0
+            for M,g in by.items():
+                if not g['esc'] or not g['con'] or len(g['esc'])<2 or len(g['con'])<2: continue
+                e=[r[i] for r in g['esc']]; c=[r[i] for r in g['con']]
+                w=len(e)*len(c)/(len(e)+len(c)); d=mean(e)-mean(c)
+                num+=w*d; den+=w; var+=w*w*(stdev(e)**2/len(e)+stdev(c)**2/len(c)); months+=1; ke+=len(e); kc+=len(c)
+                me.append((w,mean(e))); mc.append((w,mean(c)))
+            if den==0: print(f'  {sp} {popn} {arm}: no mixed months'); continue
+            est=num/den; se=math.sqrt(var)/den
+            wm=lambda L: sum(w*x for w,x in L)/sum(w for w,_ in L)
+            print(f'  {sp:6} {popn:10} {arm:5} mixed months {months:3d} esc clusters {ke:5d} con clusters {kc:6d} | weighted esc {wm(me):+.4f} con {wm(mc):+.4f} diff {est:+.4f} se~{se:.4f} z~{est/se:+.2f}')
+print('\n=== (c) select 2021-01..2022-05: pair-months the month map calls CONTAINED vs escaping, same months')
+for i,arm in ((2,'net'),(3,'bound')):
+    e=[];c=[]
+    for s in ALL:
+        for r in cl(s,'select'):
+            y,M,_=ymd(r[0])
+            if M>=202101: (e if bucket_m(s,r[0])=='esc' else c).append(r[i])
+    print(f'  {arm:5} escaping pair-months k={len(e)} mean {mean(e):+.4f} (se {stdev(e)/math.sqrt(len(e)):.4f}) | contained pair-months k={len(c)} mean {mean(c):+.4f} (se {stdev(c)/math.sqrt(len(c)):.4f})')
+for i,arm in ((2,'net'),(3,'bound')):
+    e=[];c=[]
+    for s in ALL:
+        for r in cl(s,'select'):
+            y,M,_=ymd(r[0])
+            if M<202101: (e if bucket_m(s,r[0])=='esc' else c).append(r[i])
+    print(f'  pre-2021 {arm:5} escaping pair-months k={len(e)} mean {mean(e):+.4f} (se {stdev(e)/math.sqrt(len(e)):.4f}) | contained k={len(c)} mean {mean(c):+.4f}')
+print('\n=== (d) select by calendar year, 15 crosses and 13 others (mean per cluster, net/bound)')
+for popn,pop in (('15 crosses',X15),('13 others',[s for s in ALL if s not in X15])):
+    for y in range(2018,2023):
+        v=[r for s in pop for r in cl(s,'select') if ymd(r[0])[0]==y]
+        print(f'  {popn:10} {y} k={len(v):5d} fills {sum(r[1] for r in v):6d} net {sum(r[2] for r in v):+8.1f} ({mean([r[2] for r in v]):+.4f}/cl) bound {sum(r[3] for r in v):+8.1f} ({mean([r[3] for r in v]):+.4f}/cl)')

@@ -1,0 +1,50 @@
+import json, re, sys
+R='/Users/peacock/Projects/levelflow-cloud/docs'
+d=json.load(open(sys.argv[1]))
+cells=d['cells']
+hold=set(json.load(open(R+'/research/r4/per-market-grading-net-2026-09-24.json'))['heldOut'])
+def agg(sym=None, split=None, bucket=None, pool=None):
+    n=0; net=0.0; bound=0.0
+    for k,days in cells.items():
+        s,sp,b=k.split('|')
+        if sym and s!=sym: continue
+        if split and sp!=split: continue
+        if bucket and b!=bucket: continue
+        if pool=='in' and s in hold: continue
+        for day,cn,cnet,cb in days:
+            n+=cn; net+=cnet; bound+=cb
+    return n,net,bound
+# control 3: class
+for sp in ('fit','select'):
+    for b in (None,'contained','escaping'):
+        print('class in-pool',sp,b, [round(x,1) for x in agg(split=sp,bucket=b,pool='in')])
+# control 1: banked-fraction market file, per-market filled and R(1/2), fit and select
+txt=open(R+'/research/r3/banked-fraction-capture-all-classfolds-2026-09-24-market.txt').read()
+sections=re.split(r'--- (fit|select) · per market', txt)
+bad=0; checked=0
+for i in range(1,len(sections),2):
+    sp=sections[i]; body=sections[i+1]
+    for line in body.split('\n'):
+        m=re.match(r'\| forex \| (\w+) \| (yes|no) \| (\d+) \| (\d+) \| ([-\d.]+) \|',line)
+        if not m: continue
+        sym=m.group(1); filled=int(m.group(3)); r=float(m.group(5))
+        n,net,_=agg(sym=sym,split=sp)
+        checked+=1
+        if n!=filled or abs(net-r)>0.051:
+            bad+=1; print('MISMATCH banked',sp,sym,n,filled,round(net,2),r)
+print('banked-fraction market control: checked',checked,'mismatches',bad)
+# control 2: grid-totalr shipped select net/bound n and expectancy
+bad=0; checked=0
+for arm,path in (('net','per-market-grading-net-2026-09-24.json'),('bound','per-market-grading-bound-2026-09-24.json')):
+    g=json.load(open(R+'/research/r4/'+path))
+    for sym,m in g['markets'].items():
+        sh=m.get('shipped')
+        if not sh or sym not in {k.split('|')[0] for k in cells}: continue
+        sel=sh['select']['net']  # in the bound file, the arm graded is the bound column under key net? check
+        n,net,bound=agg(sym=sym,split='select')
+        val = net if arm=='net' else bound
+        checked+=1
+        if sel['n']!=n or abs(sel['expectancy']-val/n)>1e-9:
+            bad+=1
+            if bad<6: print('MISMATCH grid',arm,sym,sel['n'],n,sel['expectancy'],val/n)
+    print('grid control',arm,'checked',checked,'mismatches',bad); bad=0; checked=0

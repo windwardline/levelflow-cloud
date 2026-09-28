@@ -32,6 +32,44 @@ coverage question closed, and the desk went dark on purpose.
 
 ## 1. Where things actually stand
 
+### 2026-09-27: the converge on the route to a profitable open desk — and what the next session picks up
+
+**The goal.** Unchanged: reopen the desk with setups that earn net realized R (amendment 39).
+
+**The answer** ([record](/docs/research/converge-route-to-profit-2026-09-27.md)). No route opens a profitable desk within about a year on current evidence. The binding constraint is evidence, not law. On contained years, no market in any class clears zero at lo95 on both tuning folds under the net arm, the bound arm or f = 0 (65 markets assessed; GBPJPY, LEUSX and SIUSD are point-positive on both under net). Every class loses on contained select, pooled −6,907.3 R. The only route whose expected sign is not negative is new entry information. At the per-market grain, a one-year confirm needs about +0.25 R per market-day, and no cell measured holds near it on both tuning folds, nor does any published daily effect the design round found. Four findings drive this:
+- **The 15 forex crosses are not a route.** Their select money is 2021-01 to 2022-05, the months the 5-minute feed breaks its own daily bars (a data defect). On contained select they lose −560.5 R net and −1,287.9 R bound; the repo's sealed reader gives the 11 in-pool crosses −398.4 R, ten losing and GBPJPY +3.1 R.
+- **The payoff gap is not a route on its own.** The judge's "fastest route" rating is withdrawn. Runner protection moves bound expectancy by at most 0.008 R per fill, and TP1-at-structure is a family to screen.
+- **Costs do not make it earn.** Removing all modelled spread and slippage lifts contained select forex only to +0.0065 R per fill.
+- **The one positive at class grain fails the bound arm.** That is forex at 16–21 UTC. Pooled, its select effect confirms in about 1.7 years on the net arm and about 26 on the bound arm, and held-out markets do not replicate it on select.
+
+**Where the desk stands.** Parked, and it stays parked. No amendment states a reopen criterion; the park is the owner's 2026-08-07 instruction. Reopening on the shipped engine is lawful and fails amendment 39.
+
+**Landed in this change set.**
+- The converge record and its readers ([`r3/converge-2026-09-27/`](/docs/research/r3/converge-2026-09-27/)).
+- Q7 in amendment 48's owner section.
+- Two corrections to the design-round record: the withdrawn judge's point, and the imom screen line naming the superseded 2026-09-14 corpus.
+- #707's two latent minors. The parking-face guard's normalizer now drops whitespace beside any paren and a trailing comma before `)`, and a new test pins six wrap shapes in CI. Removing either rule turns that test red, and the real file still yields the two pinned tests. `mutations.sh.txt` refuses an unknown expectation (a typo'd fourth run exits 2), and its header states the verdict assertions. Run as committed, it reproduces `mutations.out.txt`.
+
+**Seal disclosure.** A refuter's `grep -rn` inside `docs/research/r3` scanned the gitignored corpora and printed one confirm row: `capture-all-ignore-low-edge-classfolds-2026-09-24.jsonl` line 16862, EURUSD (held out), with its R fields. No figure uses it. AGENTS.md now carries it as law: search committed files only, and every brief says so.
+
+**Machine state.** No worktrees left; the shared checkout is on `main`. Zero provider bytes this session. Session artifacts, outside the reaped scratchpad, are in `~/Library/Application Support/WindwardLineToolchain/levelflow/session-artifacts-2026-09-27/`: the converge's full scratch, and its journal (`converge-journal.jsonl`, sha256 prefix 49cc57bdbf8d03ca).
+
+**The sequence, re-ranked by the converge.**
+1. **Owner: Q7, then Q1–Q6 as one batch, then OQ-1 to OQ-3.** Q7 sets the effect size any family must reach. Each day Q1–Q6 wait costs a day of confirm calendar on every market; 32 are gone since the frontier. Only Q2, Q3, Q5 and Q6 move a date.
+2. **A same-geometry random-entry control, at zero bytes.** Run coin-flip entries through the shipped ladder in a re-simulate. Contained forex carries a positive pre-cost edge under every exit (+0.013 to +0.050 R per fill) of unexplained origin, and this says whether it is entry information or the bracket meeting the feed. It points design round 2.
+3. **Design round 2, held to the power bar Q7 sets,** screening sources against the bar before any design effort.
+4. **Amendment 48 into law** once ruled: one refute round with checkers on the text as ruled. Fold in #702's `H_s` depth pin, Q7's ruling, and a feed-character check on every confirm window. The manifest flags NZDCHF 2025-05 and AUDCHF 2025-03 as breaking daily containment.
+5. **The registry build,** after Q7, because its read statistic depends on the grain.
+6. **`imom-close-hedging-v1`:** correct its screen line, then register per OQ-1 to OQ-3 and Q3.
+7. The rest of the 2026-09-24 sequence, items 4–7, unchanged.
+
+**Carried, advisory.** The 2026-09-24 carried list stands, less #707's two, closed here.
+
+**Owner only.**
+1. **Q7**, new: at which grain does a family confirm? Per market means years for any realistic family; pooled with a per-market point floor means about two. Recommendation and price are in the record.
+2. **Execution truth on your own E8 account:** lock latency, spreads, and whether stops slip. The net and bound arms differ by 0.0199–0.0245 R per fill in every forex cell. That is the size of every edge on record, and the one class-grain positive hinges on it.
+3. The 2026-09-24 list below stands. Items 1 (swap) and 5 (commission in sizing) do not move the earliest date.
+
 ### 2026-09-24: amendment 48 at its seventh pass, the first family designed and held, the re-simulate re-graded, the vintage priced — and what the next session picks up
 
 **The goal.** Reopen the desk with setups that earn net realized R (amendment 39). The next session opens with a fresh CONVERGE on one question: what is the fastest honest route from here to a desk that is open and profitable?
@@ -40,9 +78,9 @@ coverage question closed, and the desk went dark on purpose.
 
 **What the evidence says about routes to profit (for the converge; none of it is a finding to act on alone).**
 - **Forex is the only class near money, and its money is in suspect years.** On the current-engine corpus, the shipped ladder at ½ earns +1,452.7 R on select forex. That is +2,788.7 R in the escaping years, whose 5-minute feed escapes its baseline (2021 on all 28 pairs, 2022–23 on 27), and −1,336.0 R in the contained years. Fit forex is −235.2 R.
-- **Fifteen forex crosses' shipped cells clear zero on select at lo95** (`grid-totalr` per market, net; every year pooled, so the escaping-years caveat applies): AUDCAD, AUDCHF, AUDNZD, CADCHF, EURAUD, EURCAD, EURCHF, EURGBP, EURNZD, GBPCAD, GBPCHF, GBPJPY, GBPNZD, NZDCAD, NZDCHF. It is 6 under the bound arm. How a shipped cell could be confirmed is Q4's question.
+- *(Restated 2026-09-27: only in pooled years; on contained years 0 of 15 clear lo95 under either arm.)* **Fifteen forex crosses' shipped cells clear zero on select at lo95** (`grid-totalr` per market, net; every year pooled, so the escaping-years caveat applies): AUDCAD, AUDCHF, AUDNZD, CADCHF, EURAUD, EURCAD, EURCHF, EURGBP, EURNZD, GBPCAD, GBPCHF, GBPJPY, GBPNZD, NZDCAD, NZDCHF. It is 6 under the bound arm. How a shipped cell could be confirmed is Q4's question.
 - **Banking nothing at TP1 (f = 0) beats ½ in all 22 in-pool forex markets on both folds**, and it still leaves contained select forex at −606.1 R: the 2026-09-06 verdict again.
-- **The payoff gap** (amendment 39): the gate asks 1.6:1 and the ladder ships about 1:1 before costs. The design round's judge rated closing it from real structure the fastest route of any. It registers under Q4.
+- **The payoff gap** (amendment 39): the gate asks 1.6:1 and the ladder ships about 1:1 before costs. The design round's judge rated closing it from real structure the fastest route of any. It registers under Q4. *(Withdrawn 2026-09-27: the rating carried no measurement; see the converge record.)*
 - **The vintage question sizes what can be trusted:** a forex figure that moves by less than about 0.02 R per bracket is a vintage question, not a finding.
 
 **Landed, merged, deployed where that applies (deploy green through `e15a000`; production `/?donate` checked in a browser at 375×460).**

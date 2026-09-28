@@ -1,0 +1,44 @@
+/**
+ * Converge 2026-09-27, orchestrator's check: forex in-span (decision hour 16–21 UTC) per UTC decision
+ * day, contained years, by fold and pool — the arming-bound-cells.ts row path exactly, summed per day.
+ * SEALED: rows arrive through the repo door (confirm withheld before the callback), and the callback
+ * drops any split other than fit or select before any R field is read. Zero provider bytes.
+ */
+import { readFileSync, writeFileSync } from "node:fs";
+import { getAssetType } from "/Users/peacock/Projects/levelflow-cloud/supabase/functions/trade-analyzer/calibration.ts";
+import { resolveYearMap, yearOf } from "/Users/peacock/Projects/levelflow-cloud/scripts/feedYears.ts";
+import { resolveHeldOut } from "/Users/peacock/Projects/levelflow-cloud/scripts/sweepFolds.ts";
+import { assertManifestedCorpusStreaming, type SweepEmitRow } from "/Users/peacock/Projects/levelflow-cloud/scripts/sweepStats.ts";
+
+const [, , corpus, out] = process.argv;
+const manifest = JSON.parse(readFileSync(`${corpus}.manifest.json`, "utf8"));
+const yearMap = resolveYearMap({ manifests: [manifest] });
+const heldOut = new Set(resolveHeldOut([manifest]).markets);
+const DAY = 86_400_000;
+const cells = new Map<string, Map<number, number[]>>();
+const tot = new Map<string, number[]>();
+const fin = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+const res = await assertManifestedCorpusStreaming(corpus, (row: SweepEmitRow) => {
+  const split = String(row.split);
+  if (split !== "fit" && split !== "select") return;
+  if (row.accepted !== true) return;
+  if ((typeof row.variant === "string" ? row.variant : "baseline") !== "baseline") return;
+  const symbol = String(row.symbol);
+  if (getAssetType(symbol) !== "forex") return;
+  const rec = row as unknown as Record<string, unknown>;
+  const time = fin(row.time);
+  if (rec.noBarsInReviewWindow === true || row.outcome === "unfilled" || time === null) return;
+  const net = fin(rec.realizedR), bound = fin(rec.armingBoundRealizedR);
+  if (net === null || bound === null) throw new Error(`${symbol} ${time}: missing arm`);
+  if (yearMap.bucketOf(symbol, yearOf(time)) !== "contained") return;
+  const hour = new Date(time).getUTCHours();
+  const span = hour >= 16 && hour <= 21 ? "in" : "out";
+  const key = `${split}|${heldOut.has(symbol) ? "held-out" : "in-pool"}|${span}`;
+  const t = tot.get(key) ?? [0, 0, 0]; t[0]++; t[1] += net; t[2] += bound; tot.set(key, t);
+  let m = cells.get(key); if (!m) { m = new Map(); cells.set(key, m); }
+  const d = Math.floor(time / DAY);
+  const a = m.get(d) ?? [0, 0, 0]; a[0]++; a[1] += net; a[2] += bound; m.set(d, a);
+});
+writeFileSync(out, JSON.stringify({ sealedRows: res.sealedRows, totals: Object.fromEntries(tot),
+  cells: Object.fromEntries([...cells].map(([k, m]) => [k, [...m].sort((x, y) => x[0] - y[0]).map(([d, a]) => [d, ...a])])) }));
+console.log(JSON.stringify({ sealedRows: res.sealedRows, totals: Object.fromEntries(tot) }));

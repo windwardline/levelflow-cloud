@@ -1,0 +1,21 @@
+import json, math
+from collections import defaultdict
+D=json.load(open('agg.json'))
+M=json.load(open('/Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-24.jsonl.manifest.json'))
+cls={s['symbol']:s['assetType'] for s in M['symbols']}
+hold=set(json.load(open('/Users/peacock/Projects/levelflow-cloud/docs/research/r4/holdout-2026-08-26.json'))['markets'])
+# fields: sym,split,variant,ys,ms, n,net,net2,bd,bd2,comm,r0,r02,n0,nG,g,g2,nc,nc2
+def S(filt):
+    t=[0.0]*14
+    for row in D['agg']:
+        if filt(*row[:5]):
+            for i in range(14): t[i]+=row[5+i]
+    return t
+def lo(s,s2,n):
+    if n<2: return float('nan'),float('nan'),float('nan')
+    m=s/n; v=max(s2/n-m*m,0)*n/(n-1); return m, m-1.96*math.sqrt(v/n), math.sqrt(v)
+print('CONTROLS (baseline, forex, in-pool):')
+for sp,ys in [('fit',None),('select',None),('select','con'),('select','esc')]:
+    t=S(lambda s,f,v,y,mm: v=='baseline' and cls[s]=='forex' and s not in hold and f==sp and (ys is None or y==ys))
+    n=t[0]
+    print(f" {sp:6} {ys or 'all':4} n={n:.0f} net={t[1]:.1f} E={t[1]/n:+.4f} lo={lo(t[1],t[2],n)[1]:+.4f} sd={lo(t[1],t[2],n)[2]:.3f} bound={t[3]:.1f} comm={t[5]:.1f} net+comm={t[12]:.1f} (E {t[12]/n:+.4f} lo {lo(t[12],t[13],n)[1]:+.4f}) R0={t[6]:.1f} (n0 {t[8]:.0f}, E {t[6]/max(t[8],1):+.4f}) gross nG={t[9]:.0f} g={t[10]:.1f} E={t[10]/max(t[9],1):+.4f} lo={lo(t[10],t[11],t[9])[1]:+.4f}")

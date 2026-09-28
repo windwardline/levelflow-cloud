@@ -1,0 +1,115 @@
+| market | x15 | fold | years | fills | clusters | net R | net/cluster | lo95 | bound R | bound/cluster | lo95 |
+| AUDCAD | Y | fit | contained | 7425 | 1942 | +60.3 | +0.0310 | -0.0244 | -133.3 | -0.0686 | -0.1229 |
+| AUDCAD | Y | select | contained | 2155 | 652 | -52.4 | -0.0803 | -0.1753 | -98.3 | -0.1507 | -0.2441 |
+| AUDCAD | Y | select | escaping | 958 | 275 | +231.2 | +0.8408 | +0.7388 | +163.5 | +0.5945 | +0.5020 |
+| AUDCHF | Y | fit | contained | 7726 | 1938 | -3.9 | -0.0020 | -0.0598 | -187.5 | -0.0968 | -0.1535 |
+| AUDCHF | Y | select | contained | 2618 | 703 | -69.4 | -0.0988 | -0.1968 | -121.2 | -0.1724 | -0.2692 |
+| AUDCHF | Y | select | escaping | 1010 | 298 | +301.7 | +1.0123 | +0.9270 | +223.9 | +0.7512 | +0.6737 |
+| AUDJPY |  | fit | contained | 7776 | 2022 | +45.2 | +0.0224 | -0.0336 | -120.4 | -0.0595 | -0.1145 |
+| AUDJPY |  | select | contained | 2622 | 694 | -92.3 | -0.1331 | -0.2289 | -145.5 | -0.2097 | -0.3043 |
+| AUDJPY |  | select | escaping | 1089 | 284 | +37.8 | +0.1329 | -0.0036 | -1.6 | -0.0056 | -0.1376 |
+| AUDNZD | Y | fit | contained | 6201 | 1632 | +179.5 | +0.1100 | +0.0491 | -5.8 | -0.0035 | -0.0631 |
+| AUDNZD | Y | select | contained | 1511 | 575 | -9.3 | -0.0162 | -0.0943 | -44.6 | -0.0776 | -0.1539 |
+| AUDNZD | Y | select | escaping | 969 | 290 | +290.0 | +1.0001 | +0.9083 | +218.6 | +0.7537 | +0.6680 |
+| AUDUSD |  | fit | contained | 8220 | 2098 | -259.0 | -0.1234 | -0.1781 | -414.1 | -0.1974 | -0.2514 |
+| AUDUSD |  | select | contained | 2501 | 687 | -94.6 | -0.1377 | -0.2300 | -142.8 | -0.2079 | -0.2992 |
+| AUDUSD |  | select | escaping | 1063 | 284 | +109.4 | +0.3851 | +0.2662 | +63.6 | +0.2239 | +0.1099 |
+| CADCHF | Y | fit | contained | 7834 | 1981 | +20.3 | +0.0103 | -0.0436 | -164.4 | -0.0830 | -0.1359 |
+| CADCHF | Y | select | contained | 2107 | 608 | -60.7 | -0.0998 | -0.1964 | -102.3 | -0.1683 | -0.2632 |
+| CADCHF | Y | select | escaping | 1101 | 306 | +252.3 | +0.8246 | +0.7290 | +185.8 | +0.6072 | +0.5162 |
+| CADJPY |  | fit | contained | 7900 | 2033 | -49.6 | -0.0244 | -0.0802 | -215.1 | -0.1058 | -0.1608 |
+| CADJPY |  | select | contained | 2367 | 643 | -139.4 | -0.2169 | -0.3119 | -181.4 | -0.2821 | -0.3759 |
+| CADJPY |  | select | escaping | 1218 | 305 | +51.8 | +0.1699 | +0.0302 | +7.4 | +0.0243 | -0.1119 |
+| CHFJPY |  | fit | contained | 7906 | 2015 | +18.3 | +0.0091 | -0.0468 | -163.5 | -0.0812 | -0.1360 |
+| CHFJPY |  | select | contained | 2229 | 635 | -43.1 | -0.0678 | -0.1627 | -93.4 | -0.1471 | -0.2403 |
+| CHFJPY |  | select | escaping | 1093 | 287 | +110.1 | +0.3836 | +0.2427 | +57.4 | +0.1999 | +0.0625 |
+| EURAUD | Y | fit | contained | 7941 | 2018 | +141.4 | +0.0701 | +0.0140 | -56.5 | -0.0280 | -0.0827 |
+| EURAUD | Y | select | contained | 2399 | 644 | -11.8 | -0.0184 | -0.1137 | -67.4 | -0.1047 | -0.1982 |
+| EURAUD | Y | select | escaping | 1194 | 307 | +108.4 | +0.3530 | +0.2191 | +54.5 | +0.1776 | +0.0474 |
+| EURCAD | Y | fit | contained | 7817 | 2005 | +206.0 | +0.1027 | +0.0481 | +18.5 | +0.0092 | -0.0444 |
+| EURCAD | Y | select | contained | 2308 | 661 | -37.8 | -0.0572 | -0.1490 | -88.0 | -0.1331 | -0.2228 |
+| EURCAD | Y | select | escaping | 1132 | 295 | +203.8 | +0.6909 | +0.5861 | +136.7 | +0.4633 | +0.3634 |
+| EURCHF | Y | fit | contained | 4795 | 1545 | -18.9 | -0.0122 | -0.0667 | -143.9 | -0.0932 | -0.1462 |
+| EURCHF | Y | select | contained | 1389 | 550 | -44.3 | -0.0805 | -0.1653 | -75.9 | -0.1379 | -0.2213 |
+| EURCHF | Y | select | escaping | 728 | 210 | +150.2 | +0.7150 | +0.6029 | +106.5 | +0.5073 | +0.4031 |
+| EURGBP | Y | fit | contained | 7572 | 1984 | -18.9 | -0.0095 | -0.0643 | -192.9 | -0.0972 | -0.1511 |
+| EURGBP | Y | select | contained | 2066 | 583 | -5.3 | -0.0091 | -0.1039 | -49.9 | -0.0857 | -0.1789 |
+| EURGBP | Y | select | escaping | 990 | 272 | +95.4 | +0.3507 | +0.2113 | +50.4 | +0.1853 | +0.0502 |
+| EURJPY |  | fit | contained | 7897 | 2045 | -78.1 | -0.0382 | -0.0928 | -233.8 | -0.1143 | -0.1682 |
+| EURJPY |  | select | contained | 2466 | 670 | -78.0 | -0.1165 | -0.2131 | -130.6 | -0.1950 | -0.2899 |
+| EURJPY |  | select | escaping | 982 | 256 | +76.9 | +0.3006 | +0.1557 | +36.5 | +0.1426 | +0.0041 |
+| EURNZD | Y | fit | contained | 8044 | 2033 | +199.0 | +0.0979 | +0.0413 | -19.6 | -0.0096 | -0.0647 |
+| EURNZD | Y | select | contained | 2363 | 624 | -49.2 | -0.0788 | -0.1772 | -100.8 | -0.1616 | -0.2584 |
+| EURNZD | Y | select | escaping | 1168 | 319 | +240.4 | +0.7535 | +0.6504 | +170.6 | +0.5346 | +0.4385 |
+| EURUSD |  | fit | contained | 7907 | 2075 | -236.1 | -0.1138 | -0.1689 | -380.0 | -0.1831 | -0.2375 |
+| EURUSD |  | select | contained | 2166 | 643 | -101.5 | -0.1579 | -0.2489 | -140.1 | -0.2179 | -0.3079 |
+| EURUSD |  | select | escaping | 1070 | 312 | +14.4 | +0.0463 | -0.0863 | -18.8 | -0.0603 | -0.1885 |
+| GBPAUD |  | fit | contained | 8187 | 2048 | +40.1 | +0.0196 | -0.0371 | -150.7 | -0.0736 | -0.1293 |
+| GBPAUD |  | select | contained | 2345 | 595 | -62.1 | -0.1044 | -0.2067 | -117.9 | -0.1982 | -0.2988 |
+| GBPAUD |  | select | escaping | 1153 | 293 | +47.0 | +0.1605 | +0.0234 | +5.8 | +0.0200 | -0.1144 |
+| GBPCAD | Y | fit | contained | 7827 | 1982 | +145.4 | +0.0734 | +0.0166 | -38.5 | -0.0194 | -0.0752 |
+| GBPCAD | Y | select | contained | 2227 | 574 | -35.2 | -0.0613 | -0.1589 | -88.7 | -0.1546 | -0.2505 |
+| GBPCAD | Y | select | escaping | 1177 | 309 | +115.2 | +0.3729 | +0.2405 | +61.3 | +0.1984 | +0.0697 |
+| GBPCHF | Y | fit | contained | 7649 | 1956 | +109.6 | +0.0560 | +0.0005 | -82.6 | -0.0423 | -0.0966 |
+| GBPCHF | Y | select | contained | 2437 | 619 | -19.1 | -0.0308 | -0.1306 | -70.4 | -0.1138 | -0.2121 |
+| GBPCHF | Y | select | escaping | 1121 | 301 | +138.7 | +0.4609 | +0.3410 | +86.1 | +0.2861 | +0.1709 |
+| GBPJPY | Y | fit | contained | 7946 | 2015 | +136.5 | +0.0677 | +0.0105 | -29.8 | -0.0148 | -0.0713 |
+| GBPJPY | Y | select | contained | 2461 | 631 | +3.1 | +0.0049 | -0.0951 | -48.8 | -0.0774 | -0.1754 |
+| GBPJPY | Y | select | escaping | 1095 | 271 | +107.0 | +0.3947 | +0.2524 | +67.3 | +0.2484 | +0.1111 |
+| GBPNZD | Y | fit | contained | 8157 | 2026 | +272.6 | +0.1345 | +0.0779 | +62.2 | +0.0307 | -0.0246 |
+| GBPNZD | Y | select | contained | 2397 | 609 | -13.4 | -0.0219 | -0.1281 | -78.3 | -0.1286 | -0.2328 |
+| GBPNZD | Y | select | escaping | 1212 | 319 | +185.5 | +0.5816 | +0.4625 | +127.7 | +0.4002 | +0.2865 |
+| GBPUSD |  | fit | contained | 7759 | 2028 | -191.9 | -0.0946 | -0.1508 | -348.0 | -0.1716 | -0.2271 |
+| GBPUSD |  | select | contained | 2256 | 593 | -53.9 | -0.0908 | -0.1926 | -99.0 | -0.1670 | -0.2675 |
+| GBPUSD |  | select | escaping | 1282 | 333 | +77.5 | +0.2328 | +0.1151 | +37.9 | +0.1138 | -0.0009 |
+| NZDCAD | Y | fit | contained | 7590 | 1950 | +137.3 | +0.0704 | +0.0139 | -75.4 | -0.0386 | -0.0939 |
+| NZDCAD | Y | select | contained | 2229 | 624 | -107.5 | -0.1723 | -0.2688 | -154.5 | -0.2476 | -0.3424 |
+| NZDCAD | Y | select | escaping | 1115 | 312 | +230.9 | +0.7399 | +0.6412 | +156.9 | +0.5029 | +0.4107 |
+| NZDCHF | Y | fit | contained | 7486 | 1894 | +43.0 | +0.0227 | -0.0359 | -160.3 | -0.0847 | -0.1419 |
+| NZDCHF | Y | select | contained | 2412 | 632 | -48.2 | -0.0763 | -0.1787 | -98.7 | -0.1562 | -0.2568 |
+| NZDCHF | Y | select | escaping | 968 | 284 | +276.3 | +0.9729 | +0.8822 | +204.9 | +0.7213 | +0.6384 |
+| NZDJPY |  | fit | contained | 7905 | 2000 | +59.9 | +0.0300 | -0.0255 | -125.0 | -0.0625 | -0.1169 |
+| NZDJPY |  | select | contained | 2419 | 633 | -63.9 | -0.1009 | -0.2020 | -110.4 | -0.1744 | -0.2737 |
+| NZDJPY |  | select | escaping | 1133 | 295 | +100.5 | +0.3407 | +0.2034 | +52.8 | +0.1790 | +0.0457 |
+| NZDUSD |  | fit | contained | 7980 | 2010 | -202.7 | -0.1008 | -0.1590 | -367.0 | -0.1826 | -0.2397 |
+| NZDUSD |  | select | contained | 2433 | 641 | -125.3 | -0.1954 | -0.2952 | -170.0 | -0.2652 | -0.3639 |
+| NZDUSD |  | select | escaping | 1213 | 320 | +118.6 | +0.3705 | +0.2568 | +59.3 | +0.1852 | +0.0774 |
+| USDCAD |  | fit | contained | 6669 | 1931 | -386.4 | -0.2001 | -0.2558 | -519.0 | -0.2688 | -0.3236 |
+| USDCAD |  | select | contained | 1904 | 623 | -66.0 | -0.1059 | -0.1944 | -99.8 | -0.1601 | -0.2475 |
+| USDCAD |  | select | escaping | 842 | 262 | +85.6 | +0.3267 | +0.2035 | +51.7 | +0.1972 | +0.0783 |
+| USDCHF |  | fit | contained | 7561 | 2015 | -190.2 | -0.0944 | -0.1490 | -343.2 | -0.1703 | -0.2241 |
+| USDCHF |  | select | contained | 2048 | 622 | -77.2 | -0.1241 | -0.2165 | -118.7 | -0.1909 | -0.2818 |
+| USDCHF |  | select | escaping | 808 | 242 | +86.5 | +0.3574 | +0.2366 | +48.7 | +0.2013 | +0.0871 |
+| USDJPY |  | fit | contained | 7615 | 2032 | -226.0 | -0.1112 | -0.1684 | -361.2 | -0.1778 | -0.2342 |
+| USDJPY |  | select | contained | 2033 | 658 | -105.8 | -0.1609 | -0.2469 | -144.6 | -0.2198 | -0.3048 |
+| USDJPY |  | select | escaping | 627 | 207 | +43.8 | +0.2116 | +0.0673 | +25.4 | +0.1229 | -0.0195 |
+
+AUDCAD X15 net fit&selC>0: False  both arms: False
+AUDCHF X15 net fit&selC>0: False  both arms: False
+AUDJPY     net fit&selC>0: False  both arms: False
+AUDNZD X15 net fit&selC>0: False  both arms: False
+AUDUSD     net fit&selC>0: False  both arms: False
+CADCHF X15 net fit&selC>0: False  both arms: False
+CADJPY     net fit&selC>0: False  both arms: False
+CHFJPY     net fit&selC>0: False  both arms: False
+EURAUD X15 net fit&selC>0: False  both arms: False
+EURCAD X15 net fit&selC>0: False  both arms: False
+EURCHF X15 net fit&selC>0: False  both arms: False
+EURGBP X15 net fit&selC>0: False  both arms: False
+EURJPY     net fit&selC>0: False  both arms: False
+EURNZD X15 net fit&selC>0: False  both arms: False
+EURUSD     net fit&selC>0: False  both arms: False
+GBPAUD     net fit&selC>0: False  both arms: False
+GBPCAD X15 net fit&selC>0: False  both arms: False
+GBPCHF X15 net fit&selC>0: False  both arms: False
+GBPJPY X15 net fit&selC>0: True  both arms: False
+GBPNZD X15 net fit&selC>0: False  both arms: False
+GBPUSD     net fit&selC>0: False  both arms: False
+NZDCAD X15 net fit&selC>0: False  both arms: False
+NZDCHF X15 net fit&selC>0: False  both arms: False
+NZDJPY     net fit&selC>0: False  both arms: False
+NZDUSD     net fit&selC>0: False  both arms: False
+USDCAD     net fit&selC>0: False  both arms: False
+USDCHF     net fit&selC>0: False  both arms: False
+USDJPY     net fit&selC>0: False  both arms: False
+SURVIVORS (fit & select-contained > 0, net and bound): []

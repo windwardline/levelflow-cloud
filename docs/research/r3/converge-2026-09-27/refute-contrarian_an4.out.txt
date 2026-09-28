@@ -1,0 +1,24 @@
+Forex in-pool baseline select: year-stratum x month-flag (month rule = manifest escapeMonths)
+ con mcon n= 49127 net= -1329.7 E=-0.0271 [-0.0327, -0.0214] bound E=-0.0481 gross E=+0.0064
+ con mesc n=   388 net=    -6.3 E=-0.0163 [-0.0773, +0.0446] bound E=-0.0440 gross E=+0.0116
+ esc mcon n=   292 net=    37.5 E=+0.1284 [+0.0693, +0.1875] bound E=+0.0908 gross E=+0.1481
+ esc mesc n= 22892 net=  2751.2 E=+0.1202 [+0.1132, +0.1272] bound E=+0.0730 gross E=+0.1471
+Same, fit fold (all contained for in-pool):
+ fit mcon n=165600 net=  -459.7 E=-0.0028 [-0.0059]
+ fit mesc n=  2640 net=   224.6 E=+0.0851 [+0.0632]
+confirm forex 2022-06-03 2026-08-21 days 1541
+ AUDCAD escDays(year rule) 943/1541 = 61%; contained days 598; escMonths in confirm 29/51
+ AUDCHF escDays(year rule) 943/1541 = 61%; contained days 598; escMonths in confirm 30/51
+ AUDNZD escDays(year rule) 943/1541 = 61%; contained days 598; escMonths in confirm 27/51
+ CADCHF escDays(year rule) 943/1541 = 61%; contained days 598; escMonths in confirm 27/51
+ EURAUD escDays(year rule) 943/1541 = 61%; contained days 598; escMonths in confirm 26/51
+ EURCAD escDays(year rule) 577/1541 = 37%; contained days 964; escMonths in confirm 26/51
+ EURCHF escDays(year rule) 577/1541 = 37%; contained days 964; escMonths in confirm 25/51
+ EURGBP escDays(year rule) 943/1541 = 61%; contained days 598; escMonths in confirm 30/51
+ EURNZD escDays(year rule) 577/1541 = 37%; contained days 964; escMonths in confirm 25/51
+ GBPCAD escDays(year rule) 943/1541 = 61%; contained days 598; escMonths in confirm 26/51
+ GBPCHF escDays(year rule) 577/1541 = 37%; contained days 964; escMonths in confirm 25/51
+ GBPJPY escDays(year rule) 577/1541 = 37%; contained days 964; escMonths in confirm 15/51
+ GBPNZD escDays(year rule) 577/1541 = 37%; contained days 964; escMonths in confirm 25/51
+ NZDCAD escDays(year rule) 943/1541 = 61%; contained days 598; escMonths in confirm 25/51
+ NZDCHF escDays(year rule) 943/1541 = 61%; contained days 598; escMonths in confirm 27/51

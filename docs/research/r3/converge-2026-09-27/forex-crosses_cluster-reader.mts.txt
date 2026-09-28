@@ -1,0 +1,77 @@
+/**
+ * Scratch reader (converge, forex lens, 2026-09-27). SEALED: rows are read through the repo's
+ * door (assertManifestedCorpusStreaming withholds every confirm row before the callback), and the
+ * callback drops every row whose split is not fit or select BEFORE any R field is read.
+ *
+ * Population per market: accepted, variant baseline (the shipped cell), forex by getAssetType,
+ * filled (FILLED_OUTCOMES as banked-fraction.ts:72, noBarsInReviewWindow excluded), every market
+ * (held-out included; the held-out flag is recorded for the class control only).
+ * Year bucket: the manifest's feedCharacter 5min escapeYears (resolveYearMap), by the decision's UTC year.
+ * Cluster: Math.floor(time / DAY_MS), the UTC decision day (amendment 48 draft, Terms: Cluster).
+ * Arms: net = realizedR, bound = armingBoundRealizedR (ARM_COLUMNS).
+ * Output: JSON of per (symbol, split, bucket) day-cluster sums, to argv[3].
+ */
+import { writeFileSync } from "node:fs";
+import { getAssetType } from "/Users/peacock/Projects/levelflow-cloud/supabase/functions/trade-analyzer/calibration.ts";
+import { resolveYearMap, yearOf } from "/Users/peacock/Projects/levelflow-cloud/scripts/feedYears.ts";
+import {
+  ARM_COLUMNS,
+  assertManifest,
+  assertManifestedCorpusStreaming,
+  type SweepEmitRow,
+} from "/Users/peacock/Projects/levelflow-cloud/scripts/sweepStats.ts";
+
+const FILLED_OUTCOMES = new Set(["take_profit", "tp1_partial", "stop_loss", "expired_at_loss", "expired_in_profit", "ambiguous"]);
+const WANTED = new Set(["fit", "select"]);
+const DAY_MS = 86_400_000;
+
+const [, , corpus, out] = process.argv;
+if (!corpus || !out) throw new Error("usage: cluster-reader.ts <corpus.jsonl> <out.json>");
+
+const manifest = assertManifest(corpus) as unknown as Parameters<typeof resolveYearMap>[0]["manifests"][number];
+const yearMap = resolveYearMap({ manifests: [manifest] });
+if (yearMap.source !== "manifest") throw new Error(`year map source ${yearMap.source}, expected manifest`);
+
+type Day = { n: number; net: number; bound: number };
+const cells = new Map<string, Map<number, Day>>();
+const counts = { total: 0, otherSplit: 0, notAccepted: 0, otherVariant: 0, notForex: 0, dataAbsent: 0, unfilled: 0, unknownBucket: 0, priced: 0 };
+
+const finite = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+const result = await assertManifestedCorpusStreaming(corpus, (row: SweepEmitRow) => {
+  counts.total += 1;
+  // Fold first, before any other field and before any R field.
+  if (!WANTED.has(String(row.split))) { counts.otherSplit += 1; return; }
+  if (row.accepted !== true) { counts.notAccepted += 1; return; }
+  const variant = typeof row.variant === "string" ? row.variant : "baseline";
+  if (variant !== "baseline") { counts.otherVariant += 1; return; }
+  const symbol = String(row.symbol);
+  if (getAssetType(symbol) !== "forex") { counts.notForex += 1; return; }
+  const record = row as unknown as Record<string, unknown>;
+  if (record.noBarsInReviewWindow === true) { counts.dataAbsent += 1; return; }
+  if (!FILLED_OUTCOMES.has(String(row.outcome))) { counts.unfilled += 1; return; }
+  const time = finite(row.time);
+  if (time === null) throw new Error(`${symbol}: filled row without finite time`);
+  const bucket = yearMap.bucketOf(symbol, yearOf(time));
+  if (bucket === "unknown") { counts.unknownBucket += 1; return; }
+  const net = finite(record[ARM_COLUMNS.net.r]);
+  const bound = finite(record[ARM_COLUMNS.bound.r]);
+  if (net === null || bound === null) throw new Error(`${symbol} at ${time}: missing net or bound R`);
+  counts.priced += 1;
+  const key = `${symbol}|${String(row.split)}|${bucket}`;
+  let days = cells.get(key);
+  if (!days) { days = new Map(); cells.set(key, days); }
+  const day = Math.floor(time / DAY_MS);
+  const d = days.get(day) ?? { n: 0, net: 0, bound: 0 };
+  d.n += 1; d.net += net; d.bound += bound;
+  days.set(day, d);
+});
+
+const payload = {
+  corpus,
+  sealedRows: result.sealedRows,
+  counts,
+  cells: Object.fromEntries([...cells.entries()].sort().map(([k, days]) => [k, [...days.entries()].sort((a, b) => a[0] - b[0]).map(([day, d]) => [day, d.n, d.net, d.bound])])),
+};
+writeFileSync(out, JSON.stringify(payload));
+console.log(JSON.stringify({ sealedRows: result.sealedRows, counts }));

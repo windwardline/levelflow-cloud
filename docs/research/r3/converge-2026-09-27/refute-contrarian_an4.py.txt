@@ -1,0 +1,27 @@
+import json, math, datetime
+exec(open('an1.py').read().split("print('CONTROLS")[0])
+print('Forex in-pool baseline select: year-stratum x month-flag (month rule = manifest escapeMonths)')
+for ys in ('con','esc'):
+    for ms in ('mcon','mesc'):
+        t=S(lambda s,f,v,y,mm: v=='baseline' and cls[s]=='forex' and s not in hold and f=='select' and y==ys and mm==ms)
+        n=t[0]
+        if n<2: print(ys,ms,'n',n); continue
+        e,l,sd=lo(t[1],t[2],n); b,bl,_=lo(t[3],t[4],n); g,gl,_=lo(t[10],t[11],t[9])
+        print(f" {ys} {ms} n={n:6.0f} net={t[1]:8.1f} E={e:+.4f} [{l:+.4f}, {e+(e-l):+.4f}] bound E={b:+.4f} gross E={g:+.4f}")
+print('Same, fit fold (all contained for in-pool):')
+for ms in ('mcon','mesc'):
+    t=S(lambda s,f,v,y,mm: v=='baseline' and cls[s]=='forex' and s not in hold and f=='fit' and mm==ms)
+    n=t[0]; e,l,sd=lo(t[1],t[2],n)
+    print(f" fit {ms} n={n:6.0f} net={t[1]:8.1f} E={e:+.4f} [{l:+.4f}]")
+# confirm-fold calendar (data property only; no confirm row read)
+fx=[f for f in M['foldsByClass']['forex'] if f['name']=='confirm'][0]
+d0=datetime.datetime.utcfromtimestamp(fx['startMs']/1000).date(); d1=datetime.datetime.utcfromtimestamp(fx['decisionEndMs']/1000).date()
+days=[d0+datetime.timedelta(i) for i in range((d1-d0).days+1)]
+print('confirm forex',d0,d1,'days',len(days))
+f5={s['symbol']:((s.get('feedCharacter') or {}).get('5min') or {}) for s in M['symbols']}
+X=['AUDCAD','AUDCHF','AUDNZD','CADCHF','EURAUD','EURCAD','EURCHF','EURGBP','EURNZD','GBPCAD','GBPCHF','GBPJPY','GBPNZD','NZDCAD','NZDCHF']
+mons=sorted(set(d.year*100+d.month for d in days))
+for s in X:
+    ey=set(f5[s].get('escapeYears') or []); em=set(f5[s].get('escapeMonths') or [])
+    ed=sum(1 for d in days if d.year in ey)
+    print(f" {s} escDays(year rule) {ed}/{len(days)} = {ed/len(days):.0%}; contained days {len(days)-ed}; escMonths in confirm {sum(1 for m in mons if m in em)}/{len(mons)}")

@@ -1,0 +1,32 @@
+import json, math, sys
+from statistics import mean, stdev
+d=json.load(open(sys.argv[1]))
+cells=d['cells']
+X15="AUDCAD AUDCHF AUDNZD CADCHF EURAUD EURCAD EURCHF EURGBP EURNZD GBPCAD GBPCHF GBPJPY GBPNZD NZDCAD NZDCHF".split()
+syms=sorted({k.split('|')[0] for k in cells})
+def st(sym,sp,b):
+    days=cells.get(f'{sym}|{sp}|{b}',[])
+    if not days: return None
+    fills=sum(x[1] for x in days)
+    net=[x[2] for x in days]; bnd=[x[3] for x in days]
+    k=len(days)
+    def ci(v):
+        m=mean(v); s=stdev(v) if len(v)>1 else float('nan')
+        return m,s,m-1.96*s/math.sqrt(len(v))
+    return dict(fills=fills,k=k,netR=sum(net),boundR=sum(bnd),net=ci(net),bound=ci(bnd))
+rows=[]
+print('| market | x15 | fold | years | fills | clusters | net R | net/cluster | lo95 | bound R | bound/cluster | lo95 |')
+for s in syms:
+    for sp,b in (('fit','contained'),('select','contained'),('select','escaping')):
+        r=st(s,sp,b)
+        if not r: print(f'| {s} | {"Y" if s in X15 else ""} | {sp} | {b} | 0 |'); continue
+        print(f"| {s} | {'Y' if s in X15 else ''} | {sp} | {b} | {r['fills']} | {r['k']} | {r['netR']:+.1f} | {r['net'][0]:+.4f} | {r['net'][2]:+.4f} | {r['boundR']:+.1f} | {r['bound'][0]:+.4f} | {r['bound'][2]:+.4f} |")
+print()
+surv=[]
+for s in syms:
+    f=st(s,'fit','contained'); c=st(s,'select','contained')
+    ok = f and c and f['netR']>0 and c['netR']>0 and f['boundR']>0 and c['boundR']>0
+    okn = f and c and f['netR']>0 and c['netR']>0
+    print(s, 'X15' if s in X15 else '   ', 'net fit&selC>0:',bool(okn),' both arms:',bool(ok))
+    if ok: surv.append(s)
+print('SURVIVORS (fit & select-contained > 0, net and bound):',surv)

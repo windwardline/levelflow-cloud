@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""Analyze day-cluster sums from daycluster.json (fit/select only; confirm never parsed)."""
+import json, math, statistics, collections, sys
+D = json.load(open(sys.argv[1]))
+HOLD = set(json.load(open('/Users/peacock/Projects/levelflow-cloud/docs/research/r4/holdout-2026-08-26.json'))['markets']) if isinstance(json.load(open('/Users/peacock/Projects/levelflow-cloud/docs/research/r4/holdout-2026-08-26.json')), dict) else set()
+atype = D['atype']
+cells = D['cells']
+
+def tq(p, df):
+    # Student t quantile by bisection on a numerically integrated CDF (no scipy).
+    def cdf(x):
+        # regularized incomplete beta via continued fraction
+        if x == 0: return 0.5
+        a, b = df / 2.0, 0.5
+        xx = df / (df + x * x)
+        def betacf(a, b, x):
+            MAXIT, EPS, FPMIN = 300, 3e-14, 1e-300
+            qab, qap, qam = a + b, a + 1, a - 1
+            c, d = 1.0, 1 - qab * x / qap
+            d = 1 / (d if abs(d) > FPMIN else FPMIN); h = d
+            for m in range(1, MAXIT + 1):
+                m2 = 2 * m
+                aa = m * (b - m) * x / ((qam + m2) * (a + m2))
+                d = 1 + aa * d; d = 1 / (d if abs(d) > FPMIN else FPMIN)
+                c = 1 + aa / c; c = c if abs(c) > FPMIN else FPMIN
+                h *= d * c
+                aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))
+                d = 1 + aa * d; d = 1 / (d if abs(d) > FPMIN else FPMIN)
+                c = 1 + aa / c; c = c if abs(c) > FPMIN else FPMIN
+                de = d * c; h *= de
+                if abs(de - 1) < EPS: break
+            return h
+        lb = math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b) + a * math.log(xx) + b * math.log(1 - xx)
+        ib = math.exp(lb) * betacf(a, b, xx) / a if xx < (a + 1) / (a + b + 2) else 1 - math.exp(lb) * betacf(b, a, 1 - xx) / b
+        return 1 - 0.5 * ib if x >= 0 else 0.5 * ib
+    lo, hi = -50.0, 50.0
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        if cdf(mid) < p: lo = mid
+        else: hi = mid
+    return (lo + hi) / 2
+
+def stats(days, idx=1):
+    vals = [v[idx] for v in days.values()]
+    n = len(vals)
+    if n < 2: return None
+    mean = sum(vals) / n
+    sd = statistics.stdev(vals)
+    keys = sorted(int(k) for k in days)
+    # lag-1 autocorrelation of consecutive-traded-day sums
+    series = [days[str(k)][idx] for k in keys]
+    if n > 2:
+        m = mean
+        num = sum((series[i] - m) * (series[i + 1] - m) for i in range(n - 1))
+        den = sum((x - m) ** 2 for x in series)
+        ac = num / den if den else 0.0
+    else:
+        ac = 0.0
+    span = keys[-1] - keys[0] + 1
+    fills = sum(v[0] for v in days.values())
+    return dict(n=n, fills=fills, total=sum(vals), mean=mean, sd=sd, lo95=mean - tq(0.975, n - 1) * sd / math.sqrt(n), ac1=ac, span_days=span, density=n / span)
+
+def merge(keys):
+    out = collections.defaultdict(lambda: [0, 0.0, 0.0, 0])
+    for k in keys:
+        for d, v in cells.get(k, {}).items():
+            o = out[d]; o[0] += v[0]; o[1] += v[1]; o[2] += v[2]; o[3] += v[3]
+    return out
+
+syms = sorted({k.split('|')[0] for k in cells})
+fx = [s for s in syms if atype.get(s) == 'forex']
+CROSSES15 = ['AUDCAD','AUDCHF','AUDNZD','CADCHF','EURAUD','EURCAD','EURCHF','EURGBP','EURNZD','GBPCAD','GBPCHF','GBPJPY','GBPNZD','NZDCAD','NZDCHF']
+t98_29 = tq(0.98, 29)
+print(f"t(0.98, df29) = {t98_29:.3f}; t(0.975, df29) = {tq(0.975,29):.3f}")
+# control: class totals excluding held-out vs banked-fraction
+for split in ('fit', 'select'):
+    for bucket in ('contained', 'escaping', None):
+        ks = [f'{s}|{split}|{b}' for s in fx if s not in HOLD for b in (['contained', 'escaping'] if bucket is None else [bucket])]
+        m = merge(ks)
+        st = stats(m)
+        if st: print(f"CONTROL forex {split} {bucket or 'all'} (excl holdout pin): fills {st['fills']} total {st['total']:.1f} R | day clusters {st['n']} mean/day {st['mean']:+.3f} sd {st['sd']:.3f} lo95 {st['lo95']:+.3f} ac1 {st['ac1']:+.3f}")
+print()
+print("PER-MARKET shipped cell, net arm, day clusters (15 crosses):")
+print("sym | hold | split | bucket | fills | clusters | total R | mean/cluster | sd | lo95 | clusters/cal-day | n for lo>0 @t2.15 (sample mean=truth) | n80 (80% power)")
+rows = []
+for s in CROSSES15:
+    for split in ('select', 'fit'):
+        for bucket in ('contained', 'escaping', 'all'):
+            ks = [f'{s}|{split}|{b}' for b in (['contained', 'escaping'] if bucket == 'all' else [bucket])]
+            st = stats(merge(ks))
+            if not st: continue
+            eff = st['mean'] / st['sd'] if st['sd'] else 0
+            n_need = (2.15 / eff) ** 2 if eff > 0 else float('inf')
+            n80 = ((2.15 + 0.842) / eff) ** 2 if eff > 0 else float('inf')
+            print(f"{s} | {'H' if s in HOLD else '-'} | {split} | {bucket} | {st['fills']} | {st['n']} | {st['total']:+.1f} | {st['mean']:+.4f} | {st['sd']:.3f} | {st['lo95']:+.4f} | {st['density']:.3f} | {n_need:.0f} | {n80:.0f}")
+            rows.append((s, split, bucket, st))
+print()
+# pooled portfolio of the 15 crosses and of all forex, per UTC day
+for label, group in (('15 crosses', CROSSES15), ('all forex (28)', fx), ('forex excl holdout pin', [s for s in fx if s not in HOLD])):
+    for split in ('fit', 'select'):
+        for bucket in ('contained', 'escaping', 'all'):
+            ks = [f'{s}|{split}|{b}' for s in group for b in (['contained', 'escaping'] if bucket == 'all' else [bucket])]
+            st = stats(merge(ks))
+            if not st: continue
+            eff = st['mean'] / st['sd']
+            n_need = (1.96 / eff) ** 2 if eff > 0 else float('inf')
+            n80 = ((1.96 + 0.842) / eff) ** 2 if eff > 0 else float('inf')
+            # bound arm
+            stb = stats(merge(ks), idx=2)
+            print(f"POOLED {label} {split} {bucket}: fills {st['fills']} days {st['n']} total {st['total']:+.1f} R mean/day {st['mean']:+.3f} sd {st['sd']:.3f} lo95 {st['lo95']:+.3f} ac1 {st['ac1']:+.3f} density {st['density']:.3f} | n(lo>0 @1.96) {n_need:.0f} n80 {n80:.0f} | bound arm total {stb['total']:+.1f} mean/day {stb['mean']:+.3f} lo95 {stb['lo95']:+.3f}")

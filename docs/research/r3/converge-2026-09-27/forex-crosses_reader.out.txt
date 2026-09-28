@@ -1,0 +1,1 @@
+{"sealedRows":2141527,"counts":{"total":4493205,"otherSplit":0,"notAccepted":992808,"otherVariant":3001884,"notForex":142791,"dataAbsent":278,"unfilled":48680,"unknownBucket":0,"priced":306764}}

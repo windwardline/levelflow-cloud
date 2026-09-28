@@ -1,0 +1,37 @@
+gross nulls 0
+15 crosses fit    con fills  112010 net   +1609.0 bound   -1209.8  >0 net 12/15 bound 2/15
+15 crosses fit    esc fills    1093 net    +163.5 bound    +115.3  >0 net 1/1 bound 1/1
+15 crosses select con fills   33079 net    -560.5 bound   -1287.9  >0 net 1/15 bound 0/15
+15 crosses select esc fills   15938 net   +2926.9 bound   +2014.6  >0 net 15/15 bound 15/15
+28 forex   fit    con fills  213292 net     -47.4 bound   -4950.9  >0 net 16/28 bound 2/28
+28 forex   fit    esc fills    1093 net    +163.5 bound    +115.3  >0 net 1/1 bound 1/1
+28 forex   select con fills   62868 net   -1663.6 bound   -2982.3  >0 net 1/28 bound 0/28
+28 forex   select esc fills   29511 net   +3886.8 bound   +2440.7  >0 net 28/28 bound 26/28
+13 others  fit    con fills  101282 net   -1656.4 bound   -3741.1  >0 net 4/13 bound 0/13
+13 others  fit    esc fills       0 net      +0.0 bound      +0.0  >0 net 0/0 bound 0/0
+13 others  select con fills   29789 net   -1103.1 bound   -1694.3  >0 net 0/13 bound 0/13
+13 others  select esc fills   13573 net    +959.9 bound    +426.1  >0 net 13/13 bound 11/13
+
+FX-1 conjunction per symbol (year grain): fitC net,bound | selC net,bound
+net-only survivors [('GBPJPY', 136.5, 3.1, -29.8, -48.8)]
+both-arm survivors []
+month-grain net survivors (fitC>0 & selC>0) [('GBPJPY', 136.5, 5.9, -29.8, -47.8)]
+select contained bound <0: 28 of 28
+
+contained fit+select pooled day clusters, per cross: mean, lo95, hi95 (net | bound)
+AUDCAD k=2594 fills/cluster 3.693 net +0.0030 [-0.0448,+0.0509] bound -0.0893 [-0.1362,-0.0423]
+AUDCHF k=2641 fills/cluster 3.917 net -0.0278 [-0.0776,+0.0220] bound -0.1169 [-0.1658,-0.0680]
+AUDNZD k=2207 fills/cluster 3.494 net +0.0771 [+0.0276,+0.1266] bound -0.0228 [-0.0712,+0.0255]
+CADCHF k=2589 fills/cluster 3.840 net -0.0156 [-0.0626,+0.0314] bound -0.1030 [-0.1492,-0.0568]
+EURAUD k=2662 fills/cluster 3.884 net +0.0487 [+0.0003,+0.0970] bound -0.0465 [-0.0938,+0.0007]
+EURCAD k=2666 fills/cluster 3.798 net +0.0631 [+0.0160,+0.1101] bound -0.0261 [-0.0722,+0.0200]
+EURCHF k=2095 fills/cluster 2.952 net -0.0301 [-0.0761,+0.0158] bound -0.1049 [-0.1498,-0.0600]
+EURGBP k=2567 fills/cluster 3.755 net -0.0094 [-0.0569,+0.0380] bound -0.0946 [-0.1413,-0.0479]
+EURNZD k=2657 fills/cluster 3.917 net +0.0564 [+0.0072,+0.1055] bound -0.0453 [-0.0932,+0.0026]
+GBPCAD k=2556 fills/cluster 3.933 net +0.0431 [-0.0061,+0.0923] bound -0.0498 [-0.0982,-0.0014]
+GBPCHF k=2575 fills/cluster 3.917 net +0.0352 [-0.0134,+0.0837] bound -0.0595 [-0.1070,-0.0119]
+GBPJPY k=2646 fills/cluster 3.933 net +0.0528 [+0.0031,+0.1025] bound -0.0297 [-0.0787,+0.0192]
+GBPNZD k=2635 fills/cluster 4.005 net +0.0984 [+0.0484,+0.1484] bound -0.0061 [-0.0551,+0.0428]
+NZDCAD k=2574 fills/cluster 3.815 net +0.0116 [-0.0374,+0.0605] bound -0.0893 [-0.1371,-0.0415]
+NZDCHF k=2526 fills/cluster 3.918 net -0.0021 [-0.0530,+0.0488] bound -0.1025 [-0.1523,-0.0528]
+bound hi95>0: 6 ['AUDNZD', 'EURAUD', 'EURCAD', 'EURNZD', 'GBPJPY', 'GBPNZD']

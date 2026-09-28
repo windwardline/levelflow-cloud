@@ -1,0 +1,103 @@
+t(0.98, df29) = 2.150; t(0.975, df29) = 2.045
+CONTROL forex fit contained (excl holdout pin): fills 168240 total -235.2 R | day clusters 2621 mean/day -0.090 sd 6.392 lo95 -0.335 ac1 +0.053
+CONTROL forex fit all (excl holdout pin): fills 168240 total -235.2 R | day clusters 2621 mean/day -0.090 sd 6.392 lo95 -0.335 ac1 +0.053
+CONTROL forex select contained (excl holdout pin): fills 49515 total -1336.0 R | day clusters 986 mean/day -1.355 sd 5.405 lo95 -1.693 ac1 -0.040
+CONTROL forex select escaping (excl holdout pin): fills 23184 total 2788.7 R | day clusters 432 mean/day +6.455 sd 5.949 lo95 +5.893 ac1 +0.246
+CONTROL forex select all (excl holdout pin): fills 72699 total 1452.7 R | day clusters 1303 mean/day +1.115 sd 6.909 lo95 +0.739 ac1 +0.332
+
+PER-MARKET shipped cell, net arm, day clusters (15 crosses):
+sym | hold | split | bucket | fills | clusters | total R | mean/cluster | sd | lo95 | clusters/cal-day | n for lo>0 @t2.15 (sample mean=truth) | n80 (80% power)
+AUDCAD | - | select | contained | 2155 | 652 | -52.4 | -0.0803 | 1.237 | -0.1754 | 0.637 | inf | inf
+AUDCAD | - | select | escaping | 958 | 275 | +231.2 | +0.8408 | 0.863 | +0.7383 | 0.540 | 5 | 9
+AUDCAD | - | select | all | 3113 | 927 | +178.9 | +0.1929 | 1.214 | +0.1147 | 0.604 | 183 | 354
+AUDCAD | - | fit | contained | 7425 | 1942 | +60.3 | +0.0310 | 1.245 | -0.0244 | 0.630 | 7447 | 14422
+AUDCAD | - | fit | all | 7425 | 1942 | +60.3 | +0.0310 | 1.245 | -0.0244 | 0.630 | 7447 | 14422
+AUDCHF | H | select | contained | 2618 | 703 | -69.4 | -0.0988 | 1.326 | -0.1970 | 0.685 | inf | inf
+AUDCHF | H | select | escaping | 1010 | 298 | +301.7 | +1.0123 | 0.751 | +0.9266 | 0.620 | 3 | 5
+AUDCHF | H | select | all | 3628 | 1001 | +232.2 | +0.2320 | 1.288 | +0.1521 | 0.663 | 143 | 276
+AUDCHF | H | fit | contained | 7726 | 1938 | -3.9 | -0.0020 | 1.296 | -0.0598 | 0.629 | inf | inf
+AUDCHF | H | fit | all | 7726 | 1938 | -3.9 | -0.0020 | 1.296 | -0.0598 | 0.629 | inf | inf
+AUDNZD | H | select | contained | 1511 | 575 | -9.3 | -0.0162 | 0.956 | -0.0945 | 0.589 | inf | inf
+AUDNZD | H | select | escaping | 969 | 290 | +290.0 | +1.0001 | 0.797 | +0.9079 | 0.589 | 3 | 6
+AUDNZD | H | select | all | 2480 | 865 | +280.7 | +0.3245 | 1.025 | +0.2561 | 0.562 | 46 | 89
+AUDNZD | H | fit | contained | 6201 | 1632 | +179.5 | +0.1100 | 1.256 | +0.0490 | 0.623 | 603 | 1167
+AUDNZD | H | fit | escaping | 1093 | 277 | +163.5 | +0.5901 | 1.124 | +0.4572 | 0.603 | 17 | 32
+AUDNZD | H | fit | all | 7294 | 1909 | +343.0 | +0.1797 | 1.249 | +0.1236 | 0.620 | 223 | 433
+CADCHF | - | select | contained | 2107 | 608 | -60.7 | -0.0998 | 1.215 | -0.1966 | 0.626 | inf | inf
+CADCHF | - | select | escaping | 1101 | 306 | +252.3 | +0.8246 | 0.854 | +0.7286 | 0.616 | 5 | 10
+CADCHF | - | select | all | 3208 | 914 | +191.6 | +0.2097 | 1.190 | +0.1324 | 0.595 | 149 | 288
+CADCHF | - | fit | contained | 7834 | 1981 | +20.3 | +0.0103 | 1.222 | -0.0436 | 0.643 | 65551 | 126948
+CADCHF | - | fit | all | 7834 | 1981 | +20.3 | +0.0103 | 1.222 | -0.0436 | 0.643 | 65551 | 126948
+EURAUD | - | select | contained | 2399 | 644 | -11.8 | -0.0184 | 1.234 | -0.1139 | 0.627 | inf | inf
+EURAUD | - | select | escaping | 1194 | 307 | +108.4 | +0.3530 | 1.197 | +0.2186 | 0.603 | 53 | 103
+EURAUD | - | select | all | 3593 | 951 | +96.5 | +0.1015 | 1.234 | +0.0230 | 0.618 | 683 | 1323
+EURAUD | - | fit | contained | 7941 | 2018 | +141.4 | +0.0701 | 1.284 | +0.0140 | 0.655 | 1553 | 3008
+EURAUD | - | fit | all | 7941 | 2018 | +141.4 | +0.0701 | 1.284 | +0.0140 | 0.655 | 1553 | 3008
+EURCAD | - | select | contained | 2308 | 661 | -37.8 | -0.0572 | 1.204 | -0.1491 | 0.644 | inf | inf
+EURCAD | - | select | escaping | 1132 | 295 | +203.8 | +0.6909 | 0.918 | +0.5857 | 0.605 | 8 | 16
+EURCAD | - | select | all | 3440 | 956 | +166.0 | +0.1737 | 1.175 | +0.0991 | 0.621 | 212 | 410
+EURCAD | - | fit | contained | 7817 | 2005 | +206.0 | +0.1027 | 1.248 | +0.0481 | 0.651 | 682 | 1321
+EURCAD | - | fit | all | 7817 | 2005 | +206.0 | +0.1027 | 1.248 | +0.0481 | 0.651 | 682 | 1321
+EURCHF | - | select | contained | 1389 | 550 | -44.3 | -0.0805 | 1.015 | -0.1655 | 0.540 | inf | inf
+EURCHF | - | select | escaping | 728 | 210 | +150.2 | +0.7150 | 0.829 | +0.6022 | 0.467 | 6 | 12
+EURCHF | - | select | all | 2117 | 760 | +105.9 | +0.1393 | 1.030 | +0.0660 | 0.494 | 253 | 489
+EURCHF | - | fit | contained | 4795 | 1545 | -18.9 | -0.0122 | 1.092 | -0.0667 | 0.502 | inf | inf
+EURCHF | - | fit | all | 4795 | 1545 | -18.9 | -0.0122 | 1.092 | -0.0667 | 0.502 | inf | inf
+EURGBP | - | select | contained | 2066 | 583 | -5.3 | -0.0091 | 1.168 | -0.1041 | 0.580 | inf | inf
+EURGBP | - | select | escaping | 990 | 272 | +95.4 | +0.3507 | 1.173 | +0.2107 | 0.567 | 52 | 100
+EURGBP | - | select | all | 3056 | 855 | +90.1 | +0.1053 | 1.181 | +0.0261 | 0.563 | 581 | 1125
+EURGBP | - | fit | contained | 7572 | 1984 | -18.9 | -0.0095 | 1.245 | -0.0643 | 0.644 | inf | inf
+EURGBP | - | fit | all | 7572 | 1984 | -18.9 | -0.0095 | 1.245 | -0.0643 | 0.644 | inf | inf
+EURNZD | - | select | contained | 2363 | 624 | -49.2 | -0.0788 | 1.253 | -0.1774 | 0.608 | inf | inf
+EURNZD | - | select | escaping | 1168 | 319 | +240.4 | +0.7535 | 0.939 | +0.6500 | 0.628 | 7 | 14
+EURNZD | - | select | all | 3531 | 943 | +191.2 | +0.2027 | 1.221 | +0.1247 | 0.613 | 168 | 325
+EURNZD | - | fit | contained | 8044 | 2033 | +199.0 | +0.0979 | 1.301 | +0.0413 | 0.660 | 817 | 1582
+EURNZD | - | fit | all | 8044 | 2033 | +199.0 | +0.0979 | 1.301 | +0.0413 | 0.660 | 817 | 1582
+GBPCAD | H | select | contained | 2227 | 574 | -35.2 | -0.0613 | 1.192 | -0.1591 | 0.571 | inf | inf
+GBPCAD | H | select | escaping | 1177 | 309 | +115.2 | +0.3729 | 1.187 | +0.2400 | 0.611 | 47 | 91
+GBPCAD | H | select | all | 3404 | 883 | +80.0 | +0.0906 | 1.208 | +0.0109 | 0.574 | 821 | 1590
+GBPCAD | H | fit | contained | 7827 | 1982 | +145.4 | +0.0734 | 1.290 | +0.0165 | 0.644 | 1430 | 2769
+GBPCAD | H | fit | all | 7827 | 1982 | +145.4 | +0.0734 | 1.290 | +0.0165 | 0.644 | 1430 | 2769
+GBPCHF | - | select | contained | 2437 | 619 | -19.1 | -0.0308 | 1.266 | -0.1307 | 0.615 | inf | inf
+GBPCHF | - | select | escaping | 1121 | 301 | +138.7 | +0.4609 | 1.061 | +0.3406 | 0.640 | 24 | 47
+GBPCHF | - | select | all | 3558 | 920 | +119.7 | +0.1301 | 1.224 | +0.0509 | 0.609 | 410 | 793
+GBPCHF | - | fit | contained | 7649 | 1956 | +109.6 | +0.0560 | 1.252 | +0.0005 | 0.635 | 2309 | 4472
+GBPCHF | - | fit | all | 7649 | 1956 | +109.6 | +0.0560 | 1.252 | +0.0005 | 0.635 | 2309 | 4472
+GBPJPY | - | select | contained | 2461 | 631 | +3.1 | +0.0049 | 1.282 | -0.0953 | 0.620 | 316068 | 612106
+GBPJPY | - | select | escaping | 1095 | 271 | +107.0 | +0.3947 | 1.195 | +0.2518 | 0.569 | 42 | 82
+GBPJPY | - | select | all | 3556 | 902 | +110.1 | +0.1220 | 1.268 | +0.0391 | 0.595 | 500 | 967
+GBPJPY | - | fit | contained | 7946 | 2015 | +136.5 | +0.0677 | 1.311 | +0.0104 | 0.654 | 1733 | 3355
+GBPJPY | - | fit | all | 7946 | 2015 | +136.5 | +0.0677 | 1.311 | +0.0104 | 0.654 | 1733 | 3355
+GBPNZD | - | select | contained | 2397 | 609 | -13.4 | -0.0219 | 1.336 | -0.1283 | 0.593 | inf | inf
+GBPNZD | - | select | escaping | 1212 | 319 | +185.5 | +0.5816 | 1.085 | +0.4621 | 0.625 | 16 | 31
+GBPNZD | - | select | all | 3609 | 928 | +172.2 | +0.1855 | 1.287 | +0.1026 | 0.603 | 223 | 431
+GBPNZD | - | fit | contained | 8157 | 2026 | +272.6 | +0.1345 | 1.300 | +0.0779 | 0.658 | 431 | 836
+GBPNZD | - | fit | all | 8157 | 2026 | +272.6 | +0.1345 | 1.300 | +0.0779 | 0.658 | 431 | 836
+NZDCAD | - | select | contained | 2229 | 624 | -107.5 | -0.1723 | 1.231 | -0.2690 | 0.651 | inf | inf
+NZDCAD | - | select | escaping | 1115 | 312 | +230.9 | +0.7399 | 0.889 | +0.6409 | 0.613 | 7 | 13
+NZDCAD | - | select | all | 3344 | 936 | +123.4 | +0.1318 | 1.207 | +0.0544 | 0.608 | 388 | 751
+NZDCAD | - | fit | contained | 7590 | 1950 | +137.3 | +0.0704 | 1.273 | +0.0138 | 0.633 | 1512 | 2928
+NZDCAD | - | fit | all | 7590 | 1950 | +137.3 | +0.0704 | 1.273 | +0.0138 | 0.633 | 1512 | 2928
+NZDCHF | H | select | contained | 2412 | 632 | -48.2 | -0.0763 | 1.314 | -0.1789 | 0.660 | inf | inf
+NZDCHF | H | select | escaping | 968 | 284 | +276.3 | +0.9729 | 0.780 | +0.8818 | 0.582 | 3 | 6
+NZDCHF | H | select | all | 3380 | 916 | +228.1 | +0.2490 | 1.270 | +0.1666 | 0.599 | 120 | 233
+NZDCHF | H | fit | contained | 7486 | 1894 | +43.0 | +0.0227 | 1.302 | -0.0360 | 0.615 | 15191 | 29419
+NZDCHF | H | fit | all | 7486 | 1894 | +43.0 | +0.0227 | 1.302 | -0.0360 | 0.615 | 15191 | 29419
+
+POOLED 15 crosses fit contained: fills 112010 days 2610 total +1609.0 R mean/day +0.616 sd 5.092 lo95 +0.421 ac1 +0.093 density 0.847 | n(lo>0 @1.96) 262 n80 536 | bound arm total -1209.8 mean/day -0.464 lo95 -0.653
+POOLED 15 crosses fit escaping: fills 1093 days 277 total +163.5 R mean/day +0.590 sd 1.124 lo95 +0.457 ac1 -0.026 density 0.603 | n(lo>0 @1.96) 14 n80 28 | bound arm total +115.3 mean/day +0.416 lo95 +0.290
+POOLED 15 crosses fit all: fills 113103 days 2611 total +1772.5 R mean/day +0.679 sd 5.147 lo95 +0.481 ac1 +0.100 density 0.847 | n(lo>0 @1.96) 221 n80 451 | bound arm total -1094.5 mean/day -0.419 lo95 -0.610
+POOLED 15 crosses select contained: fills 33079 days 868 total -560.5 R mean/day -0.646 sd 4.669 lo95 -0.957 ac1 -0.003 density 0.845 | n(lo>0 @1.96) inf n80 inf | bound arm total -1287.9 mean/day -1.484 lo95 -1.792
+POOLED 15 crosses select escaping: fills 15938 days 429 total +2926.9 R mean/day +6.823 sd 5.093 lo95 +6.339 ac1 +0.243 density 0.841 | n(lo>0 @1.96) 2 n80 4 | bound arm total +2014.6 mean/day +4.696 lo95 +4.301
+POOLED 15 crosses select all: fills 49017 days 1297 total +2366.4 R mean/day +1.825 sd 5.959 lo95 +1.500 ac1 +0.406 density 0.843 | n(lo>0 @1.96) 41 n80 84 | bound arm total +726.6 mean/day +0.560 lo95 +0.270
+POOLED all forex (28) fit contained: fills 213292 days 2622 total -47.4 R mean/day -0.018 sd 7.606 lo95 -0.309 ac1 +0.056 density 0.851 | n(lo>0 @1.96) inf n80 inf | bound arm total -4950.9 mean/day -1.888 lo95 -2.173
+POOLED all forex (28) fit escaping: fills 1093 days 277 total +163.5 R mean/day +0.590 sd 1.124 lo95 +0.457 ac1 -0.026 density 0.603 | n(lo>0 @1.96) 14 n80 28 | bound arm total +115.3 mean/day +0.416 lo95 +0.290
+POOLED all forex (28) fit all: fills 214385 days 2622 total +116.0 R mean/day +0.044 sd 7.644 lo95 -0.248 ac1 +0.058 density 0.851 | n(lo>0 @1.96) 114590 n80 234192 | bound arm total -4835.6 mean/day -1.844 lo95 -2.130
+POOLED all forex (28) select contained: fills 62868 days 987 total -1663.6 R mean/day -1.686 sd 6.324 lo95 -2.081 ac1 -0.028 density 0.641 | n(lo>0 @1.96) inf n80 inf | bound arm total -2982.3 mean/day -3.022 lo95 -3.420
+POOLED all forex (28) select escaping: fills 29511 days 432 total +3886.8 R mean/day +8.997 sd 7.623 lo95 +8.276 ac1 +0.230 density 0.847 | n(lo>0 @1.96) 3 n80 6 | bound arm total +2440.7 mean/day +5.650 lo95 +5.052
+POOLED all forex (28) select all: fills 92379 days 1304 total +2223.2 R mean/day +1.705 sd 8.688 lo95 +1.233 ac1 +0.391 density 0.847 | n(lo>0 @1.96) 100 n80 204 | bound arm total -541.6 mean/day -0.415 lo95 -0.840
+POOLED forex excl holdout pin fit contained: fills 168240 days 2621 total -235.2 R mean/day -0.090 sd 6.392 lo95 -0.335 ac1 +0.053 density 0.851 | n(lo>0 @1.96) inf n80 inf | bound arm total -4053.7 mean/day -1.547 lo95 -1.786
+POOLED forex excl holdout pin fit all: fills 168240 days 2621 total -235.2 R mean/day -0.090 sd 6.392 lo95 -0.335 ac1 +0.053 density 0.851 | n(lo>0 @1.96) inf n80 inf | bound arm total -4053.7 mean/day -1.547 lo95 -1.786
+POOLED forex excl holdout pin select contained: fills 49515 days 986 total -1336.0 R mean/day -1.355 sd 5.405 lo95 -1.693 ac1 -0.040 density 0.641 | n(lo>0 @1.96) inf n80 inf | bound arm total -2378.6 mean/day -2.412 lo95 -2.752
+POOLED forex excl holdout pin select escaping: fills 23184 days 432 total +2788.7 R mean/day +6.455 sd 5.949 lo95 +5.893 ac1 +0.246 density 0.847 | n(lo>0 @1.96) 3 n80 7 | bound arm total +1698.1 mean/day +3.931 lo95 +3.458
+POOLED forex excl holdout pin select all: fills 72699 days 1303 total +1452.7 R mean/day +1.115 sd 6.909 lo95 +0.739 ac1 +0.332 density 0.847 | n(lo>0 @1.96) 148 n80 302 | bound arm total -680.5 mean/day -0.522 lo95 -0.865

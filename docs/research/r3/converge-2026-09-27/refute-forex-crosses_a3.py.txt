@@ -1,0 +1,37 @@
+import json, math, datetime as dt
+from statistics import mean, stdev
+from collections import defaultdict
+exec(open('a1.py').read().split("def agg(")[0])
+print('=== fit by calendar year, 15 crosses (R and mean per cluster; net | bound)')
+for y in range(2009,2019):
+    v=[r for s in X15 for r in rows(s,'fit') if ymd(r[0])[0]==y]
+    if not v: continue
+    npos=sum(1 for s in X15 if sum(r[2] for r in rows(s,'fit') if ymd(r[0])[0]==y)>0)
+    print(f'  {y} k={len(v):5d} net {sum(r[2] for r in v):+8.1f} ({mean([r[2] for r in v]):+.4f}/cl, {npos}/15 >0) bound {sum(r[3] for r in v):+8.1f} ({mean([r[3] for r in v]):+.4f}/cl)')
+# fit contained excluding 2009-10 (calendar) for the 6 net lo95 crosses
+print('\n=== contained fit+select pooled, EXCLUDING calendar 2009-2010 for every pair (net | bound mean, lo95)')
+for s in X15:
+    v=[r for sp in ('fit','select') for r in rows(s,sp) if bucket_y(s,r[0])=='con' and ymd(r[0])[0]>2010]
+    o=[]
+    for i in (2,3):
+        xs=[r[i] for r in v]; m=mean(xs); se=stdev(xs)/math.sqrt(len(xs)); o.append(f'{m:+.4f} [{m-1.96*se:+.4f},{m+1.96*se:+.4f}]')
+    print(f'  {s} k={len(v)} net {o[0]} bound {o[1]}')
+print('\n=== cross-pair correlation of daily cluster R (same UTC day), 15 crosses')
+for lab,sp,bf in (('select contained','select','con'),('select escaping','select','esc'),('fit contained','fit','con')):
+    for i,arm in ((2,'net'),(3,'bound')):
+        ser={s:{r[0]:r[i] for r in rows(s,sp) if bucket_y(s,r[0])==bf} for s in X15}
+        cors=[]
+        for a in range(len(X15)):
+            for b in range(a+1,len(X15)):
+                A,B=ser[X15[a]],ser[X15[b]]; days=sorted(set(A)&set(B))
+                if len(days)<50: continue
+                xa=[A[d] for d in days]; xb=[B[d] for d in days]
+                ma,mb=mean(xa),mean(xb); sa,sb=stdev(xa),stdev(xb)
+                cors.append(sum((x-ma)*(y-mb) for x,y in zip(xa,xb))/((len(days)-1)*sa*sb))
+        rb=mean(cors); neff=15/(1+14*rb)
+        # variance-ratio N_eff: var(sum over pairs per day) vs sum of vars
+        allD=sorted(set().union(*[set(v) for v in ser.values()]))
+        tot=[sum(ser[s].get(d,0.0) for s in X15) for d in allD]
+        vs=sum(stdev([ser[s].get(d,0.0) for d in allD])**2 for s in X15)
+        vr=stdev(tot)**2/vs
+        print(f'  {lab:17} {arm:5} pairs {len(cors)} mean rho {rb:+.3f} (min {min(cors):+.3f} max {max(cors):+.3f}) N_eff(rho)={neff:.1f}  var(sum)/sum(var)={vr:.2f} -> N_eff(var)={15/vr:.1f}')

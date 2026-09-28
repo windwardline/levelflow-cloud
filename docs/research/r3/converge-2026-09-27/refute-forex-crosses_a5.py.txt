@@ -1,0 +1,19 @@
+import json, math, datetime as dt
+from statistics import mean, stdev, NormalDist
+exec(open('a1.py').read().split("def agg(")[0])
+v=C.get('AUDCHF|select|holdIAD',[]); n=sum(r[1] for r in v); print('AUDCHF holdIAD select fills',n,'E/fill net',sum(r[2] for r in v)/n,'bound',sum(r[3] for r in v)/n)
+for sp in ('fit','select'):
+    for b in ('con','esc'):
+        vv=[r for r in C.get(f'AUDCHF|{sp}|holdIAD',[]) if bucket_y('AUDCHF',r[0])==b]
+        print(' AUDCHF holdIAD',sp,b,'fills',sum(r[1] for r in vv),'net',round(sum(r[2] for r in vv),1),'bound',round(sum(r[3] for r in vv),1))
+print('forex pairs with escape MONTHS in 2025-26:',{s:sorted(x for x in EM[s] if x>=202501) for s in ALL if any(x>=202501 for x in EM[s])})
+# FX-1 at the upper 95 bound of contained bound-arm mean: n80 and years at density
+N=NormalDist(); za=N.inv_cdf(0.98); zb=N.inv_cdf(0.8)
+for s in "AUDNZD EURAUD EURCAD EURNZD GBPJPY GBPNZD".split():
+    vv=[r[3] for sp in ('fit','select') for r in rows(s,sp) if bucket_y(s,r[0])=='con']
+    m=mean(vv); sd=stdev(vv); hi=m+1.96*sd/math.sqrt(len(vv)); nn=((za+zb)*sd/hi)**2
+    print(f' {s} bound contained mean {m:+.4f} hi95 {hi:+.4f} sd {sd:.3f} n80 at hi95 {nn:,.0f} clusters ~ {nn/0.8/260.9:.1f} years of weekdays at 0.8/weekday')
+# vintage per fill: GBPNZD bound per fill
+for s in ('GBPNZD','AUDNZD'):
+    vv=[r for sp in ('fit','select') for r in rows(s,sp) if bucket_y(s,r[0])=='con']
+    print(' per fill', s, 'net', sum(r[2] for r in vv)/sum(r[1] for r in vv), 'bound', sum(r[3] for r in vv)/sum(r[1] for r in vv))

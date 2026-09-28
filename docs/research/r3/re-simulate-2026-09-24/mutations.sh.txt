@@ -2,7 +2,9 @@
 # The two mutation proofs of attribute.py.txt (#706 review): each of its checks must fire on rows that
 # hold crosses. The corpora do not open on a cross, so the slice is the first 100,000 rows from the first
 # cross row, found in each corpus from the manifest's own forex roster. Each mutated copy is refused
-# unless the edit changed it, and a run that prints no VIOLATIONS line is refused as no verdict.
+# unless the edit changed it. Each run must print a rows-compared line and a VIOLATIONS line, the
+# instrument as committed must find none, each mutation must find cross violations, and an
+# expectation the script does not know refuses.
 # Read-only against the corpora; writes only to a temporary directory it removes.
 # Usage: bash docs/research/r3/re-simulate-2026-09-24/mutations.sh.txt <directory holding both corpora>
 set -euo pipefail
@@ -46,6 +48,7 @@ run() {
   case $want in
     clean) [[ "$verdict" == "VIOLATIONS: non-cross 0, cross 0" ]] || { echo "$label: expected no violations"; exit 1; } ;;
     fires) [ "$cross" -gt 0 ] || { echo "$label: the check did not fire"; exit 1; } ;;
+    *) echo "$label: unknown expectation $want"; exit 2 ;;
   esac
 }
 run "instrument as committed" "$A" clean

@@ -1,0 +1,74 @@
+// Refuter's own reader. FIT and SELECT only.
+// Door: a line containing neither '"split":"fit"' nor '"split":"select"' is
+// dropped BEFORE JSON.parse. After parse, split must be fit or select, or the
+// run throws before any R field is read. Confirm rows are never parsed.
+// Class comes from the manifest's assetType, years from the manifest's
+// feedCharacter (5min tier) via the repo's resolveYearMap. Read-only.
+import { createReadStream, readFileSync } from "node:fs";
+import { createInterface } from "node:readline";
+import { resolveYearMap, yearOf } from "/Users/peacock/Projects/levelflow-cloud/scripts/feedYears.ts";
+
+const R3 = "/Users/peacock/Projects/levelflow-cloud/docs/research/r3/";
+const CORPUS = R3 + "capture-all-classfolds-2026-09-24.jsonl";
+const manifest = JSON.parse(readFileSync(CORPUS + ".manifest.json", "utf8"));
+const holdout = new Set<string>(JSON.parse(readFileSync("/Users/peacock/Projects/levelflow-cloud/docs/research/r4/holdout-2026-08-26.json", "utf8")).markets);
+const classOf = new Map<string, string>(manifest.symbols.map((s: { symbol: string; assetType: string }) => [s.symbol, s.assetType]));
+const yearMap = resolveYearMap({ manifests: [manifest] });
+
+type Cell = { n: number; net: number; bound: number; gross: number; comm: number; tp1: number; stop: number; days: Map<number, [number, number, number, number, number]> };
+// day tuple: n, net, bound, preNet(gross+comm), preBound(bound+(gross-net)+comm)
+const cells = new Map<string, Cell>();
+const add = (key: string, day: number, net: number, bound: number, gross: number, comm: number, outcome: string) => {
+  let c = cells.get(key);
+  if (!c) { c = { n: 0, net: 0, bound: 0, gross: 0, comm: 0, tp1: 0, stop: 0, days: new Map() }; cells.set(key, c); }
+  c.n++; c.net += net; c.bound += bound; c.gross += gross; c.comm += comm;
+  if (outcome === "tp1_partial" || outcome === "take_profit") c.tp1++;
+  if (outcome === "stop_loss") c.stop++;
+  const d = c.days.get(day) ?? [0, 0, 0, 0, 0];
+  d[0]++; d[1] += net; d[2] += bound; d[3] += gross + comm; d[4] += bound + (gross - net) + comm;
+  c.days.set(day, d);
+};
+const rtBand = (rt: number) => rt < 0.05 ? "a<0.05" : rt < 0.075 ? "b.05-.075" : rt < 0.10 ? "c.075-.10" : rt < 0.15 ? "d.10-.15" : "e>=.15";
+let lines = 0, skipped = 0, parsed = 0, unfilled = 0, noClass = 0;
+const rl = createInterface({ input: createReadStream(CORPUS, { highWaterMark: 1 << 22 }), crlfDelay: Infinity });
+for await (const line of rl) {
+  lines++;
+  const isFit = line.includes('"split":"fit"');
+  const isSel = line.includes('"split":"select"');
+  if (!isFit && !isSel) { skipped++; continue; }
+  if (!line.includes('"accepted":true') || !line.includes('"variant":"baseline"')) continue;
+  const r = JSON.parse(line);
+  if (r.split !== "fit" && r.split !== "select") throw new Error("door breach: a non-fit/select row was parsed");
+  parsed++;
+  if (r.accepted !== true || r.variant !== "baseline") continue;
+  if (r.noBarsInReviewWindow === true || r.outcome === "unfilled" || typeof r.time !== "number") { unfilled++; continue; }
+  const cls = classOf.get(String(r.symbol));
+  if (!cls) { noClass++; continue; }
+  const risk = Number(r.riskDistance);
+  const net = Number(r.realizedR), bound = Number(r.armingBoundRealizedR), gross = Number(r.grossRealizedR);
+  if (![risk, net, bound, gross].every(Number.isFinite) || risk <= 0) throw new Error(`non-finite ${r.symbol} ${r.time}`);
+  const comm = Number(r.estimatedCommission) / risk, rt = Number(r.estimatedRoundTripCost) / risk;
+  const pool = holdout.has(String(r.symbol)) ? "held" : "inpool";
+  const yb = yearMap.bucketOf(String(r.symbol), yearOf(r.time));
+  const day = Math.floor(r.time / 86400000);
+  const band = rtBand(rt);
+  for (const p of [pool, "all"]) for (const y of [yb, "allyears"]) {
+    add(`${r.split}|${cls}|${p}|${y}|${band}`, day, net, bound, gross, comm, String(r.outcome));
+    add(`${r.split}|${cls}|${p}|${y}|allbands`, day, net, bound, gross, comm, String(r.outcome));
+  }
+}
+// ratio estimator with day-cluster-robust SE: mean = Σy/Σn
+const ratio = (c: Cell, idx: 1 | 2 | 3 | 4) => {
+  const ds = [...c.days.values()]; const N = c.n; const Y = ds.reduce((s, d) => s + d[idx], 0); const m = Y / N; const D = ds.length;
+  const v = ds.reduce((s, d) => s + (d[idx] - m * d[0]) ** 2, 0) * D / (D - 1);
+  const se = Math.sqrt(v) / N; return { m, lo: m - 1.96 * se, hi: m + 1.96 * se };
+};
+console.log(`corpus capture-all-classfolds-2026-09-24.jsonl · FIT+SELECT only (confirm never parsed) · baseline accepted filled`);
+console.log(`lines ${lines} · skipped unparsed (neither fit nor select) ${skipped} · parsed ${parsed} · unfilled/no-bars ${unfilled} · no class ${noClass} · year map ${yearMap.source}, unmapped ${yearMap.symbolsWithoutMap.length}`);
+console.log(`key | n | E net [lo95] | E bound [lo95] | pre-cost net-arm (gross+comm) [lo95] | pre-cost bound (approx) [lo95] | comm R | spread+slip R (gross-net) | tp1-first share of tp1+stop | total net R | total bound R`);
+const f = (x: number) => (x >= 0 ? "+" : "") + x.toFixed(4);
+for (const [k, c] of [...cells.entries()].sort()) {
+  if (c.n < 200) continue;
+  const a = ratio(c, 1), b = ratio(c, 2), p = ratio(c, 3), q = ratio(c, 4);
+  console.log(`${k} | ${c.n} | ${f(a.m)} [${f(a.lo)}] | ${f(b.m)} [${f(b.lo)}] | ${f(p.m)} [${f(p.lo)}] | ${f(q.m)} [${f(q.lo)}] | ${(c.comm / c.n).toFixed(4)} | ${((c.gross - c.net) / c.n).toFixed(4)} | ${(100 * c.tp1 / (c.tp1 + c.stop)).toFixed(1)}% | ${c.net.toFixed(1)} | ${c.bound.toFixed(1)}`);
+}

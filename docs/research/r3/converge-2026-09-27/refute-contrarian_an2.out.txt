@@ -1,0 +1,23 @@
+variants: ['baseline', 'runnerProtection=breakeven,stopStructureSource=intraday', 'runnerProtection=breakeven,stopStructureSource=intraday_and_daily', 'runnerProtection=hold,stopStructureSource=intraday', 'runnerProtection=hold,stopStructureSource=intraday_and_daily', 'runnerProtection=trail_tp1,stopStructureSource=intraday', 'runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily']
+Grid variants, forex in-pool, per fold/stratum: n, net, E, lo95, bound E, R0 E, gross E (lo)
+ fit    all  baseline                                 n= 168240 net=   -235.2 E=-0.0014 lo=-0.0044 | bound E=-0.0241 lo=-0.0271 | R0 E=+0.0144 lo=+0.0111 | gross E=+0.0257 lo=+0.0227
+ fit    all  runnerProtection=breakeven,stopStructureSource=intraday n= 168240 net=  -5191.3 E=-0.0309 lo=-0.0341 | bound E=-0.0321 lo=-0.0354 | R0 E=-0.0445 lo=-0.0485 | gross E=-0.0042 lo=-0.0074
+ fit    all  runnerProtection=breakeven,stopStructureSource=intraday_and_daily n= 169025 net=  -5483.1 E=-0.0324 lo=-0.0357 | bound E=-0.0338 lo=-0.0371 | R0 E=-0.0475 lo=-0.0515 | gross E=-0.0046 lo=-0.0078
+ fit    all  runnerProtection=hold,stopStructureSource=intraday n= 168240 net=  -4522.0 E=-0.0269 lo=-0.0306 | bound E=-0.0269 lo=-0.0306 | R0 E=-0.0366 lo=-0.0420 | gross E=-0.0006 lo=-0.0042
+ fit    all  runnerProtection=hold,stopStructureSource=intraday_and_daily n= 169025 net=  -4785.7 E=-0.0283 lo=-0.0321 | bound E=-0.0283 lo=-0.0321 | R0 E=-0.0393 lo=-0.0448 | gross E=-0.0009 lo=-0.0046
+ fit    all  runnerProtection=trail_tp1,stopStructureSource=intraday n= 168240 net=   -235.2 E=-0.0014 lo=-0.0044 | bound E=-0.0241 lo=-0.0271 | R0 E=+0.0144 lo=+0.0111 | gross E=+0.0257 lo=+0.0227
+ fit    all  runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily n= 169025 net=   -237.2 E=-0.0014 lo=-0.0045 | bound E=-0.0251 lo=-0.0282 | R0 E=+0.0145 lo=+0.0113 | gross E=+0.0270 lo=+0.0240
+ select con  baseline                                 n=  49515 net=  -1336.0 E=-0.0270 lo=-0.0326 | bound E=-0.0480 lo=-0.0536 | R0 E=-0.0122 lo=-0.0182 | gross E=+0.0065 lo=+0.0010
+ select con  runnerProtection=breakeven,stopStructureSource=intraday n=  49515 net=  -2591.1 E=-0.0523 lo=-0.0582 | bound E=-0.0536 lo=-0.0595 | R0 E=-0.0629 lo=-0.0702 | gross E=-0.0192 lo=-0.0250
+ select con  runnerProtection=breakeven,stopStructureSource=intraday_and_daily n=  48658 net=  -2808.9 E=-0.0577 lo=-0.0638 | bound E=-0.0591 lo=-0.0652 | R0 E=-0.0695 lo=-0.0770 | gross E=-0.0219 lo=-0.0279
+ select con  runnerProtection=hold,stopStructureSource=intraday n=  49515 net=  -2382.0 E=-0.0481 lo=-0.0548 | bound E=-0.0481 lo=-0.0548 | R0 E=-0.0545 lo=-0.0642 | gross E=-0.0162 lo=-0.0228
+ select con  runnerProtection=hold,stopStructureSource=intraday_and_daily n=  48658 net=  -2602.4 E=-0.0535 lo=-0.0605 | bound E=-0.0535 lo=-0.0605 | R0 E=-0.0610 lo=-0.0712 | gross E=-0.0185 lo=-0.0254
+ select con  runnerProtection=trail_tp1,stopStructureSource=intraday n=  49515 net=  -1336.0 E=-0.0270 lo=-0.0326 | bound E=-0.0480 lo=-0.0536 | R0 E=-0.0122 lo=-0.0182 | gross E=+0.0065 lo=+0.0010
+ select con  runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily n=  48658 net=  -1464.1 E=-0.0301 lo=-0.0359 | bound E=-0.0532 lo=-0.0589 | R0 E=-0.0142 lo=-0.0204 | gross E=+0.0059 lo=+0.0003
+ select esc  baseline                                 n=  23184 net=   2788.7 E=+0.1203 lo=+0.1133 | bound E=+0.0732 lo=+0.0665 | R0 E=+0.1189 lo=+0.1117 | gross E=+0.1471 lo=+0.1404
+ select esc  runnerProtection=breakeven,stopStructureSource=intraday n=  23184 net=   1082.1 E=+0.0467 lo=+0.0395 | bound E=+0.0442 lo=+0.0370 | R0 E=-0.0284 lo=-0.0370 | gross E=+0.0728 lo=+0.0658
+ select esc  runnerProtection=breakeven,stopStructureSource=intraday_and_daily n=  23974 net=   1259.6 E=+0.0525 lo=+0.0455 | bound E=+0.0496 lo=+0.0425 | R0 E=-0.0312 lo=-0.0398 | gross E=+0.0817 lo=+0.0749
+ select esc  runnerProtection=hold,stopStructureSource=intraday n=  23184 net=   1633.5 E=+0.0705 lo=+0.0615 | bound E=+0.0705 lo=+0.0615 | R0 E=+0.0192 lo=+0.0054 | gross E=+0.0980 lo=+0.0891
+ select esc  runnerProtection=hold,stopStructureSource=intraday_and_daily n=  23974 net=   1912.4 E=+0.0798 lo=+0.0706 | bound E=+0.0798 lo=+0.0706 | R0 E=+0.0233 lo=+0.0089 | gross E=+0.1098 lo=+0.1008
+ select esc  runnerProtection=trail_tp1,stopStructureSource=intraday n=  23184 net=   2788.7 E=+0.1203 lo=+0.1133 | bound E=+0.0732 lo=+0.0665 | R0 E=+0.1189 lo=+0.1117 | gross E=+0.1471 lo=+0.1404
+ select esc  runnerProtection=trail_tp1,stopStructureSource=intraday_and_daily n=  23974 net=   3190.7 E=+0.1331 lo=+0.1262 | bound E=+0.0820 lo=+0.0754 | R0 E=+0.1299 lo=+0.1229 | gross E=+0.1632 lo=+0.1566

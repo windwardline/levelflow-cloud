@@ -1,0 +1,11 @@
+import json
+M=json.load(open('/Users/peacock/Projects/levelflow-cloud/docs/research/r3/capture-all-classfolds-2026-09-24.jsonl.manifest.json'))
+print('foldsByClass:',json.dumps(M['foldsByClass'])[:3000])
+hold=set(json.load(open('/Users/peacock/Projects/levelflow-cloud/docs/research/r4/holdout-2026-08-26.json'))['markets'])
+for s in sorted(M['symbols'],key=lambda s:(s['assetType'],s['symbol'])):
+    fc=s.get('feedCharacter') or {}
+    f5=fc.get('5min')
+    if f5 is None:
+        print(s['symbol'],s['assetType'],'NO-5min', list(fc.keys()))
+    else:
+        print(s['symbol'],s['assetType'],'H' if s['symbol'] in hold else ' ', f5.get('verdict'), f5.get('escapeYears'), 'judgedDays',f5.get('judgedDays'), 'nEscMonths',len(f5.get('escapeMonths') or []), 'yearsKeys', sorted((f5.get('years') or {}).keys())[:1], sorted((f5.get('years') or {}).keys())[-1:])
