@@ -62,7 +62,7 @@ jobs:
     # reads the advisory database, which changes with no commit at all:
     # nanoid GHSA-2v37-7h3g-55p8 widened on 2026-08-13 and the weekly scan
     # did not look again until the 17th. So it runs on every trigger.
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
     with:
       scan-args: |-
         --lockfile=package-lock.json
