@@ -659,8 +659,9 @@ calls a day, and the invoices show the move on 2026-09-12. Every Ultimate and
 250 GB figure below is history. The minute bank alone draws about 2 GB a month,
 so it cannot run on this plan: every run since 2026-10-14 21:12Z has stood down
 on `HTTP 429 Bandwidth Limit Reach` at the first symbol, and no window will
-drain far enough to change that. The newest banked bar is 2026-10-13 15:51;
-everything after it is past FMP's three-day serving window. The top-up stands
+drain far enough to change that. The newest banked bar is 2026-10-13 15:51. The gap is
+not lost: dated requests serve minute history at least five years back, and a
+dated backfill filled the last hole (#676, #681), so a paid plan recovers it. The top-up stands
 down green behind its breaker and spends nothing. The minute-bank LaunchAgent is
 to be parked (`launchctl disable` then `bootout`, plist kept) so its daily red
 stops masking real failures; reverse with `launchctl enable` and `bootstrap`
