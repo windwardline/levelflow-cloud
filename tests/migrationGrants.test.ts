@@ -75,6 +75,13 @@ describe("migration grants (Supabase Data API change, 2026-10-30)", () => {
     assert.equal(result.status, 1, result.stdout + result.stderr);
   });
 
+  it("does not count a grant that was commented out", () => {
+    const sql = CREATE + ALL_ROLES.replace("revoke all on public.widgets from anon;", "-- revoke all on public.widgets from anon;");
+    const result = run({ "20261021000000_widgets.sql": sql });
+    assert.equal(result.status, 1, result.stdout + result.stderr);
+    assert.match(result.stderr, /anon/);
+  });
+
   it("ignores tables outside public and migrations before the rule began", () => {
     const result = run({
       "20260901000000_legacy.sql": CREATE,

@@ -17,8 +17,14 @@ const migrationsDir = process.env.LEVELFLOW_MIGRATIONS_DIR
 // were given; the rule starts at the email that announced the change.
 const explicitGrantsFrom = "20261020000000";
 const apiRoles = ["anon", "authenticated", "service_role"];
-// An unqualified name lands in public through the default search_path.
-const identifier = String.raw`(?:"([a-z0-9_]+)"|([a-z0-9_]+))`;
+// Literal patterns only: a table name is captured and compared as a string,
+// never spliced into a RegExp. Line comments are stripped first, so a GRANT
+// that was commented out does not count as a decision.
+const createTablePattern =
+  /\bcreate\s+(?:unlogged\s+)?table\s+(?:if\s+not\s+exists\s+)?(?:(?:"([a-z0-9_]+)"|([a-z0-9_]+))\s*\.\s*)?(?:"([a-z0-9_]+)"|([a-z0-9_]+))/gi;
+const grantTargetPattern =
+  /\bon\s+(?:table\s+)?(?:(?:"([a-z0-9_]+)"|([a-z0-9_]+))\s*\.\s*)?(?:"([a-z0-9_]+)"|([a-z0-9_]+))(?![a-z0-9_])/i;
+const granteePattern = /\b(?:to|from)\s+([^;]*)$/i;
 const migrationNamePattern = /^\d{14}_[a-z0-9_]+\.sql$/;
 // A SECURITY DEFINER function runs as its owner, so RLS does not constrain it —
 // every entry here is a deliberate decision that the function scopes itself.
@@ -101,13 +107,13 @@ for (const file of files) {
 
 console.log(`Verified ${files.length} Supabase migration files.`);
 
+function withoutLineComments(sql) {
+  return sql.replace(/--[^\n]*/g, "");
+}
+
 function publicTablesCreated(sql) {
-  const pattern = new RegExp(
-    String.raw`\bcreate\s+(?:unlogged\s+)?table\s+(?:if\s+not\s+exists\s+)?(?:${identifier}\s*\.\s*)?${identifier}`,
-    "gi",
-  );
   const tables = [];
-  for (const match of sql.matchAll(pattern)) {
+  for (const match of withoutLineComments(sql).matchAll(createTablePattern)) {
     const schema = (match[1] ?? match[2] ?? "public").toLowerCase();
     const table = (match[3] ?? match[4]).toLowerCase();
     if (schema === "public") tables.push(table);
@@ -116,15 +122,16 @@ function publicTablesCreated(sql) {
 }
 
 function decidesRole(sql, table, role) {
-  const statements = sql.split(";");
-  const target = new RegExp(
-    String.raw`\bon\s+(?:table\s+)?(?:(?:"public"|public)\s*\.\s*)?(?:"${table}"|${table})(?![a-z0-9_])`,
-    "i",
-  );
-  const grantee = new RegExp(String.raw`\b(?:to|from)\b[^;]*\b${role}\b`, "i");
-  return statements.some(
-    (statement) => /^\s*(?:grant|revoke)\b/i.test(statement) && target.test(statement) && grantee.test(statement),
-  );
+  return withoutLineComments(sql).split(";").some((statement) => {
+    if (!/^\s*(?:grant|revoke)\b/i.test(statement)) return false;
+    const target = statement.match(grantTargetPattern);
+    if (!target) return false;
+    const schema = (target[1] ?? target[2] ?? "public").toLowerCase();
+    if (schema !== "public" || (target[3] ?? target[4]).toLowerCase() !== table) return false;
+    const grantees = statement.match(granteePattern);
+    return Boolean(grantees) &&
+      grantees[1].toLowerCase().split(/[\s,"]+/).includes(role);
+  });
 }
 
 function fail(message) {
