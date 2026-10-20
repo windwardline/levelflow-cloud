@@ -160,11 +160,11 @@ the date the script's restore passed, or a later monthly stream-back matched the
 
 | Archive | Archive bytes | MD5 | Files | Source bytes | Last proven (UTC) |
 | --- | ---: | --- | ---: | ---: | --- |
-| `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-condemned-2026-08-11.tar.zst` | 531361803 | 1c67c6747c2b2076333af605c028b895 | 313 | 4159601762 | 2026-09-22 |
-| `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-v3-preDateFix-20260824.tar.zst` | 1025065828 | 5c2da51d92d26bed3e7a2986e2b07636 | 311 | 8213923007 | 2026-09-22 |
-| `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-v4-20260922.tar.zst` | 1034173076 | ba069959b977bbacd8e155071e3925c0 | 310 | 8291450783 | 2026-09-22 |
-| `windwardline-archives/levelflow-cloud/minute-bank/levelflow-minute-bank-snapshot-20260823.tar.zst` | 14194704 | d777df47dc62d26c09e21e8d84d88493 | 200 | 190643620 | 2026-09-22 |
-| `windwardline-archives/levelflow-cloud/rebuild-logs/levelflow-rebuild-logs-20260824.tar.zst` | 6391 | e62d4ac82faee7760604ce4dd959a794 | 4 | 79567 | 2026-09-25 |
+| `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-condemned-2026-08-11.tar.zst` | 531361803 | 1c67c6747c2b2076333af605c028b895 | 313 | 4159601762 | 2026-10-20 |
+| `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-v3-preDateFix-20260824.tar.zst` | 1025065828 | 5c2da51d92d26bed3e7a2986e2b07636 | 311 | 8213923007 | 2026-10-20 |
+| `windwardline-archives/levelflow-cloud/calibration-cache/levelflow-cache-v4-20260922.tar.zst` | 1034173076 | ba069959b977bbacd8e155071e3925c0 | 310 | 8291450783 | 2026-10-20 |
+| `windwardline-archives/levelflow-cloud/minute-bank/levelflow-minute-bank-snapshot-20260823.tar.zst` | 14194704 | d777df47dc62d26c09e21e8d84d88493 | 200 | 190643620 | 2026-10-20 |
+| `windwardline-archives/levelflow-cloud/rebuild-logs/levelflow-rebuild-logs-20260824.tar.zst` | 6391 | e62d4ac82faee7760604ce4dd959a794 | 4 | 79567 | 2026-10-20 |
 
 Bucket lock on `windwardline-archives`: rule `lock-archives-indefinitely`, prefix `""`,
 condition `Indefinite`, set 2026-09-22 after the first three pushes (the condemned
