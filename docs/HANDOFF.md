@@ -653,8 +653,23 @@ refuses those visits' provider spend; the logout is still what ends them.
 > recoverable tail. The R0 cache rebuild is UNBLOCKED and waits only on
 > the studio machine's operator.
 
-**THE CEILING IS 250 GB, NOT 150 — and usage stood at 259 on 2026-08-31
-(owner).** Ultimate plus a purchased 100 GB block. Every budget in the §21
+**THE ACCOUNT IS ON FMP'S FREE PLAN, SINCE 2026-09-12 (owner, confirmed
+2026-10-20).** The dashboard reads Free: 512 MB per trailing 30 days and 250
+calls a day, and the invoices show the move on 2026-09-12. Every Ultimate and
+250 GB figure below is history. The minute bank alone draws about 2 GB a month,
+so it cannot run on this plan: every run since 2026-10-14 21:12Z has stood down
+on `HTTP 429 Bandwidth Limit Reach` at the first symbol, and no window will
+drain far enough to change that. The newest banked bar is 2026-10-13 15:51. The gap is
+not lost: dated requests serve minute history at least five years back, and a
+dated backfill filled the last hole (#676, #681), so a paid plan recovers it. The top-up stands
+down green behind its breaker and spends nothing. The minute-bank LaunchAgent is
+to be parked (`launchctl disable` then `bootout`, plist kept) so its daily red
+stops masking real failures; reverse with `launchctl enable` and `bootstrap`
+when a paid plan returns. The weekly minute-bank restore proof still passes,
+because the daily backup keeps pushing the frozen bank.
+
+~~**THE CEILING IS 250 GB, NOT 150 — and usage stood at 259 on 2026-08-31
+(owner).**~~ *Superseded 2026-10-20: the account is on Free (above).* Ultimate plus a purchased 100 GB block. Every budget in the §21
 governor design is a share of 150 and is understated by a third; the
 reservations and the precedence order are unaffected, since both are about who
 yields to whom. The next block is another 100 GB, not a tier change.
@@ -729,7 +744,8 @@ exhausted allowance, and one whole-roster attempt burns ~485 requests. Recovery
 needs no catch-up: any single successful run re-pulls each symbol's full window
 and dedupes.
 
-**The tier is never to be reduced** (owner, 2026-08-16). Ultimate buys more data
+~~**The tier is never to be reduced** (owner, 2026-08-16).~~ *Superseded by the
+owner's own move to Free on 2026-09-12.* Ultimate buys more data
 and faster data, not merely a bigger ceiling. Steady-state use near 2% is not
 slack and is not a downgrade signal.
 
