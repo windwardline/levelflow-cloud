@@ -51,8 +51,8 @@ Run `supabase/init.sql` in the Supabase SQL editor for a fresh project, then app
 Apply migrations before deploying Edge Functions that depend on new database objects. The functions require a Supabase-authenticated user session, allow the production origin `https://levelflow.windwardline.com`, and keep provider credentials off the static frontend.
 
 ```bash
-npx supabase db push --linked
-npx supabase functions deploy market-data trade-analyzer news-calendar outcome-sync --project-ref your-project-ref
+npx supabase@2.122.1 db push --linked
+npx supabase@2.122.1 functions deploy market-data trade-analyzer news-calendar outcome-sync --project-ref your-project-ref
 # Gate credentials (FMP_API_KEY, NEWS_SYNC_TOKEN + its Vault caller copy):
 # Keychain → Supabase, the one conduit — AFTER the functions deploy, because
 # it ends with a token-gated GET to the live news-calendar that fetches
@@ -90,7 +90,7 @@ this file and every workflow against regressions.
 machine's (`security find-generic-password -a peacock -s …`). Elsewhere,
 apply the same discipline by hand from your own secret store: write
 `FMP_API_KEY=…` and `NEWS_SYNC_TOKEN=…` to a 600-mode file and
-`npx supabase secrets set --project-ref your-project-ref --env-file` it
+`npx supabase@2.122.1 secrets set --project-ref your-project-ref --env-file` it
 (never argv), then set Vault's `news_sync_token` to the same token value
 via the dashboard SQL editor with the script's own upsert form —
 `vault.secrets.name` is unique, so a bare `create_secret` errors on the

@@ -154,6 +154,11 @@ jobs:
       # this file.
       - name: Configure Supabase function secrets
         run: |
+          # The Supabase CLI is pinned, never `npx supabase` bare: npx takes the
+          # newest release, and CLI 3.0.0 (2026-11-02) refuses `secrets set` with
+          # no terminal unless --yes is passed, which failed every deploy from
+          # 2026-11-05 21:20Z. --yes is set on every mutating call so a deliberate
+          # bump to 3.x needs only the version changed.
           # FMP_API_BASE_URL is inline, not a secret lookup (#361 round-2
           # doc note): the secrets.FMP_API_BASE_URL it once read never
           # existed, so the expression rendered empty and only the ||
@@ -167,7 +172,7 @@ jobs:
           ECONOMIC_CALENDAR_PROVIDER=${{ vars.ECONOMIC_CALENDAR_PROVIDER || 'fmp' }}
           FMP_API_BASE_URL=https://financialmodelingprep.com/stable
           EOF
-          npx supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --env-file /tmp/levelflow-function-secrets.env
+          npx supabase@2.122.1 secrets set --project-ref "$SUPABASE_PROJECT_REF" --env-file /tmp/levelflow-function-secrets.env --yes
           rm -f /tmp/levelflow-function-secrets.env
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -182,14 +187,14 @@ jobs:
           # SUPABASE_DB_PASSWORD env fallback is unverifiable short of a
           # live production deploy, and a wrong guess severs the migrations
           # step mid-deploy.
-          npx supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --yes
-          npx supabase db push --linked --password "$SUPABASE_DB_PASSWORD" --include-all --yes
+          npx supabase@2.122.1 link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --yes
+          npx supabase@2.122.1 db push --linked --password "$SUPABASE_DB_PASSWORD" --include-all --yes
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
       - name: Deploy Supabase functions
-        run: npx supabase functions deploy market-data trade-analyzer news-calendar outcome-sync --project-ref "$SUPABASE_PROJECT_REF" --use-api
+        run: npx supabase@2.122.1 functions deploy market-data trade-analyzer news-calendar outcome-sync --project-ref "$SUPABASE_PROJECT_REF" --use-api --yes
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 

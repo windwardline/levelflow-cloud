@@ -4713,7 +4713,8 @@ work:
   from R3's emit with **no new fields** — concurrent open positions reconstruct
   from `time` and `exitAtMs` across symbols within one variant and split.
 - **Item 6 is not one block.** Six of its ten clauses were checked. Still live:
-  `npx supabase` is unpinned and deploys production migrations; Edge Functions
+  ~~`npx supabase` is unpinned~~ (closed 2026-11-05: pinned to 2.122.1 after
+  CLI 3.0.0 failed every deploy on a missing --yes); Edge Functions
   deploy BEFORE E2E runs; `engines.node` says `>=24` while this machine runs
   v26.7.0 and `@types/node` is ^26; CSP `connect-src` trusts every Supabase
   tenant; `init.sql` is referenced by no workflow. Already CLOSED: the CSP style
