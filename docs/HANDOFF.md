@@ -661,10 +661,11 @@ so it cannot run on this plan: every run since 2026-10-14 21:12Z has stood down
 on `HTTP 429 Bandwidth Limit Reach` at the first symbol, and no window will
 drain far enough to change that. The newest banked bar is 2026-10-13 15:51. The gap is
 not lost: dated requests serve minute history at least five years back, and a
-dated backfill filled the last hole (#676, #681), so a paid plan recovers it. The top-up stands
-down green behind its breaker and spends nothing. The minute-bank LaunchAgent is
-to be parked (`launchctl disable` then `bootout`, plist kept) so its daily red
-stops masking real failures; reverse with `launchctl enable` and `bootstrap`
+dated backfill filled the last hole (#676, #681), so a paid plan recovers it. Both FMP LaunchAgents are parked (`launchctl disable`
+then `bootout`, plist kept) so a daily red that no fix can clear stops masking real
+failures: the minute bank, and since 2026-11-05 the cache top-up, which last ran
+clean 2026-10-13 and has failed every run since on a 402 for `economic-calendar`,
+an endpoint Free does not serve. Reverse each with `launchctl enable` and `bootstrap`
 when a paid plan returns. The weekly minute-bank restore proof still passes,
 because the daily backup keeps pushing the frozen bank.
 
