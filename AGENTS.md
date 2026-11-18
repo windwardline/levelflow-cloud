@@ -54,7 +54,10 @@ above the ceiling in `tests/e2e/coverageReporter.ts`.
 `security.yml` runs on pull requests, pushes, `workflow_dispatch`, a weekly full
 sweep, and a daily dependency-and-headers sweep. Semgrep and secret scanning run on
 every non-daily trigger. The unguarded dependency scan runs on every trigger because
-its advisory database can change without a commit. Headers live runs on every
+its advisory database can change without a commit. An advisory with no patched
+release is accepted only through an entry in `osv-scanner.toml` that states why and
+expires; `npm run audit:high` honours the same entries, so an acceptance lapses in both
+scanners on one day. Headers live runs on every
 non-pull-request trigger and asserts the seven production headers. The required
 Secret scan check also carries the SHA-pinned fleet `verify-action-pins` action as a
 step. Every third-party `uses:` in a GitHub Actions workflow is pinned to a full

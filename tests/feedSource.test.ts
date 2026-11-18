@@ -201,6 +201,9 @@ const EXTERNAL_HOST_ALLOWLIST: string[] = [
   "github.com",
   "openapi.vercel.sh",
   "opencollective.com",
+  // Advisory links in osv-scanner.toml, the dependency gates' acceptance
+  // policy; cited for the reviewer, never fetched.
+  "osv.dev",
   "registry.npmjs.org",
   "tidelift.com",
   "www.apple.com",
