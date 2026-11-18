@@ -131,3 +131,90 @@ describe("the audit gate tells an outage from a vulnerability", () => {
     }
   });
 });
+
+/**
+ * An advisory with no patched release cannot be fixed by upgrading, so without
+ * an exception path this gate stays red until upstream ships — and every push
+ * and deploy with it. On 2026-11-17 GHSA-fc5q-39xc-vjpf (picomatch, every
+ * release through 4.0.7) did exactly that. The exception path is the one the
+ * fleet already sanctions for the OSV gate: an `osv-scanner.toml` entry with a
+ * reason and an `ignoreUntil`. One policy file governs both scanners, so an
+ * acceptance expires in both on the same day.
+ */
+describe("the audit gate honours the expiring osv-scanner.toml policy", () => {
+  // The real shape of `npm audit --json`: one root advisory (a `via` object)
+  // fanned out through its dependents (`via` strings).
+  const auditJson = (ghsa: string, severity = "high") =>
+    JSON.stringify({
+      vulnerabilities: {
+        picomatch: {
+          name: "picomatch",
+          severity,
+          via: [{ source: 1, name: "picomatch", severity, url: `https://github.com/advisories/${ghsa}`, range: "<=4.0.7" }],
+        },
+        vite: { name: "vite", severity, via: ["picomatch"] },
+      },
+      metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: severity === "high" ? 2 : 0, critical: severity === "critical" ? 2 : 0, total: 2 } },
+    });
+
+  function withPolicyAndAudit(policy: string | null, audit: string, today = "2026-11-18") {
+    const { dir, result } = withStubNpm(`cat "$(dirname "$0")/../audit.json"\nexit 1`, (d) => {
+      writeFileSync(join(d, "audit.json"), audit);
+      if (policy !== null) writeFileSync(join(d, "osv-scanner.toml"), policy);
+      return runWith(d, { AUDIT_POLICY_PATH: join(d, "osv-scanner.toml"), AUDIT_TODAY: today });
+    });
+    return { dir, result };
+  }
+
+  const entry = (id: string, until: string, reason = "No patched release; dev tooling only.") =>
+    `[[IgnoredVulns]]\nid = "${id}"\nignoreUntil = ${until}\nreason = "${reason}"\n`;
+
+  const cases: Array<[string, string | null, string, string, number, RegExp]> = [
+    ["passes when every root advisory is accepted and unexpired", entry("GHSA-fc5q-39xc-vjpf", "2026-12-17"), auditJson("GHSA-fc5q-39xc-vjpf"), "2026-11-18", 0, /accepted GHSA-fc5q-39xc-vjpf until 2026-12-17/],
+    ["fails an advisory the policy does not name", entry("GHSA-aaaa-bbbb-cccc", "2026-12-17"), auditJson("GHSA-fc5q-39xc-vjpf"), "2026-11-18", 1, /not accepted: GHSA-fc5q-39xc-vjpf/],
+    ["fails once the acceptance has expired, on the expiry day itself", entry("GHSA-fc5q-39xc-vjpf", "2026-12-17"), auditJson("GHSA-fc5q-39xc-vjpf"), "2026-12-17", 1, /not accepted: GHSA-fc5q-39xc-vjpf/],
+    ["fails when there is no policy file", null, auditJson("GHSA-fc5q-39xc-vjpf"), "2026-11-18", 1, /not accepted: GHSA-fc5q-39xc-vjpf/],
+    ["fails closed on an entry without a reason", `[[IgnoredVulns]]\nid = "GHSA-fc5q-39xc-vjpf"\nignoreUntil = 2026-12-17\n`, auditJson("GHSA-fc5q-39xc-vjpf"), "2026-11-18", 1, /policy.*reason/i],
+    ["fails closed on an impossible date", entry("GHSA-fc5q-39xc-vjpf", "2026-02-30"), auditJson("GHSA-fc5q-39xc-vjpf"), "2026-11-18", 1, /policy.*ignoreUntil/i],
+    ["fails closed when findings are counted but no root advisory is found", entry("GHSA-fc5q-39xc-vjpf", "2026-12-17"), JSON.stringify({ vulnerabilities: { vite: { severity: "high", via: ["picomatch"] } }, metadata: { vulnerabilities: { high: 1, critical: 0 } } }), "2026-11-18", 1, /no root advisory/i],
+    ["fails closed on output that is not an audit report", entry("GHSA-fc5q-39xc-vjpf", "2026-12-17"), "not json", "2026-11-18", 1, /could not be read/i],
+  ];
+
+  for (const [name, policy, audit, today, status, message] of cases) {
+    it(name, () => {
+      const { dir, result } = withPolicyAndAudit(policy, audit, today);
+      try {
+        assert.equal(result.status, status, `${String(result.stdout)}\n${String(result.stderr)}`);
+        assert.match(`${String(result.stdout)}${String(result.stderr)}`, message);
+        assert.equal(calls(dir).length, 1, "a finding is read once, never retried");
+        assert.match(calls(dir)[0] ?? "", /--json/, "the gate must read the machine-readable report");
+      } finally {
+        rmSync(dir, { force: true, recursive: true });
+      }
+    });
+  }
+});
+
+describe("the audit report is read from stdout alone", () => {
+  it("parses the report when npm also writes warnings to stderr", () => {
+    // Measured 2026-11-17: npm warns about allowScripts on stderr beside the
+    // JSON on stdout, and a combined read could not parse the report.
+    const audit = JSON.stringify({
+      vulnerabilities: { picomatch: { severity: "high", via: [{ source: 1, name: "picomatch", severity: "high", url: "https://github.com/advisories/GHSA-fc5q-39xc-vjpf" }] } },
+      metadata: { vulnerabilities: { high: 1, critical: 0 } },
+    });
+    const { dir, result } = withStubNpm(
+      `echo "npm warn install-scripts allow-scripts setting is being ignored" 1>&2\ncat "$(dirname "$0")/../audit.json"\nexit 1`,
+      (d) => {
+        writeFileSync(join(d, "audit.json"), audit);
+        writeFileSync(join(d, "osv-scanner.toml"), `[[IgnoredVulns]]\nid = "GHSA-fc5q-39xc-vjpf"\nignoreUntil = 2026-12-17\nreason = "No patched release."\n`);
+        return runWith(d, { AUDIT_POLICY_PATH: join(d, "osv-scanner.toml"), AUDIT_TODAY: "2026-11-18" });
+      },
+    );
+    try {
+      assert.equal(result.status, 0, `${String(result.stdout)}\n${String(result.stderr)}`);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+});

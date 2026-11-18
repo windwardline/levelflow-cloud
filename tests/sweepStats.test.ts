@@ -1954,6 +1954,11 @@ describe("every emit reader passes the one-clock door (R0) — the population, n
       "and supabase/functions/ with the TypeScript AST to find declarations " +
       "that hard-code roster symbols. There is no manifest on a .ts file and " +
       "no clock to assert; the one-clock door would have nothing to judge",
+    "audit-high.mjs":
+      "its only line split is readPolicy reading osv-scanner.toml — the " +
+      "tracked advisory-acceptance policy, an id, reason and expiry per " +
+      "entry, never a corpus emit, with no manifest and no clock for the " +
+      "door to judge; it reads no bar, no decision and no outcome column",
   };
 
   it("every line-reading script under scripts/ has the door or a named exemption", () => {
