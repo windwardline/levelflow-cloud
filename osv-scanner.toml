@@ -1,0 +1,31 @@
+# OSV-Scanner policy for the dependency-scan gate in
+# .github/workflows/security.yml, which passes --config to point here.
+#
+# An entry here suppresses a finding; it does not fix one. Every entry states
+# why the risk is accepted and carries an expiry, because an accepted risk that
+# cannot expire is an unreviewed one. When ignoreUntil passes, the gate fails
+# again and the decision has to be made a second time on that day's facts.
+
+# picomatch <= 4.0.7 -- a single-branch repeated extglob such as +(*) or +(*a)
+# backtracks exponentially, so an attacker who controls a glob pattern can
+# block the event loop. https://osv.dev/GHSA-fc5q-39xc-vjpf (CVE-2026-112366;
+# published 2026-10-19, range widened to every version on 2026-11-17)
+#
+# There is nothing to upgrade to. 4.0.7 is the newest picomatch on npm, the
+# advisory covers every release through it, and the scanner reports no fixed
+# version. The upstream fix is micromatch/picomatch#194, unreleased.
+#
+# It is a devDependency and reaches no deployed surface. It enters only through
+# vite (directly and through tinyglobby -> fdir) and
+# @typescript-eslint/typescript-estree (through tinyglobby).
+# Those tools match globs written in this repository's own config files, at
+# build, lint and test time, locally and in CI. No request, upload or other
+# outside input ever becomes a glob pattern there, and none of it is bundled
+# into what Vercel serves.
+#
+# Reconsider before the expiry if any of these change: a patched picomatch
+# ships, or picomatch appears under a production dependency.
+[[IgnoredVulns]]
+id = "GHSA-fc5q-39xc-vjpf"
+ignoreUntil = 2026-12-17
+reason = "picomatch has published no version above 4.0.7 and the advisory covers every release through it, so there is no patched release to move to. devDependency only: it enters through build, lint and test tooling that globs this repository's own config. No attacker-controlled pattern reaches it and none of it ships in the production build. Expires 2026-12-17 for re-decision."
