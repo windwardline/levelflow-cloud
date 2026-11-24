@@ -45,9 +45,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: windwardline/windwardline/actions/secret-scan@942a00bd88baffc68a218020260ded794ae5c3d6 # v1.2.0
 
       # A step, not a job: the gate rides an already-required check, so no
       # ruleset change. Pinned by SHA like every other action — the gate that
