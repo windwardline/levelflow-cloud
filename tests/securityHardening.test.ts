@@ -251,7 +251,11 @@ describe("security hardening", () => {
 
     assert.match(workflow, /permissions:\s*\n\s*contents: read/);
     assert.match(workflow, /concurrency:\s*\n\s*group: deploy-\$\{\{ github\.ref \}\}/);
-    assert.match(workflow, /timeout-minutes: 20/);
+    // 30, not 20, since 2026-11-24: the browser install and the function deploy
+    // each get three capped attempts, and the worst case must fit the job.
+    assert.match(workflow, /timeout-minutes: 30/);
+    assert.match(workflow, /retry-with-timeout\.sh 3 180\s+--between "sudo dpkg --configure -a"\s+-- npx playwright install --with-deps chromium/);
+    assert.match(workflow, /retry-with-timeout\.sh 3 120 --between "sleep 15"\s+-- npx supabase@[0-9.]+ functions deploy/);
     assert.match(workflow, /Verify production security headers/);
     assert.match(workflow, /content-security-policy/);
     assert.match(workflow, /x-frame-options/);

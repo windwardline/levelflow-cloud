@@ -42,11 +42,13 @@ Every workflow this repository runs is named here by filename: `ci.yml`, `deploy
 
 `ci.yml` runs `npm ci`, then every `gate:` line in the fleet-gates block below, in
 order: check → lint → check:migrations → `npm run audit:high` → test → build →
-check:bundle → the two shell harnesses, `scripts/vercel-ignore-build-test.sh` and
-`scripts/deploy-e2e-scope-test.sh`. It runs on pushes and pull
+check:bundle → the three shell harnesses, `scripts/vercel-ignore-build-test.sh`,
+`scripts/deploy-e2e-scope-test.sh` and `scripts/retry-with-timeout-test.sh`. It runs on pushes and pull
 requests against `main`, plus `workflow_dispatch`, in one 15-minute Node 24 job with
 npm caching. Its job id `build` is the required-check name, and a new commit cancels
-the run in flight. E2E runs only at deploy time in `deploy.yml`. That workflow also
+the run in flight. E2E runs only at deploy time in `deploy.yml`. Its browser install and its Supabase function deploy run
+through `scripts/retry-with-timeout.sh`: three capped attempts each, inside a 30-minute job,
+because a slow apt mirror and a one-off Supabase 500 each failed a run with no fault here. That workflow also
 polls production security headers and refuses `unsafe-inline`; its E2E coverage block
 names every test that stood down and why, and refuses an unexplained stand-down or one
 above the ceiling in `tests/e2e/coverageReporter.ts`.
@@ -143,5 +145,6 @@ gate: npm run build
 gate: npm run check:bundle
 gate: bash scripts/vercel-ignore-build-test.sh
 gate: bash scripts/deploy-e2e-scope-test.sh
+gate: bash scripts/retry-with-timeout-test.sh
 release: npm run test:e2e
 ```
