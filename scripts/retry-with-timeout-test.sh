@@ -11,7 +11,7 @@
 set -uo pipefail
 
 WRAP=$(cd "$(dirname "$0")" && pwd)/retry-with-timeout.sh
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/retry-test.XXXXXX")
+TMP=$(mktemp -d -t retry-test.XXXXXX)
 trap 'rm -rf "$TMP"' EXIT HUP INT TERM
 pass=0; fail=0
 
