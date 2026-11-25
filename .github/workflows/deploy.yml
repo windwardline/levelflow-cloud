@@ -49,7 +49,7 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.superseded != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       GIT_CONFIG_COUNT: 1
       GIT_CONFIG_KEY_0: init.defaultBranch
@@ -120,8 +120,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Normally 15-30s. A slow apt mirror held pathfinder's copy of this step for
+      # a whole job on 2026-11-23, so each attempt is capped and the next starts a
+      # fresh download. scripts/retry-with-timeout-test.sh
       - name: Install browser test runtime
-        run: npx playwright install --with-deps chromium
+        run: >-
+          bash scripts/retry-with-timeout.sh 3 180
+          --between "sudo dpkg --configure -a"
+          -- npx playwright install --with-deps chromium
 
       - name: Run checks
         run: |
@@ -193,8 +199,13 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
+      # Normally 3-7s. On 2026-11-23 one deploy failed on a Supabase 500 ("Failed
+      # to check user auth status") with no fault here; redeploying the same code
+      # is idempotent, so a transient provider error gets two more tries.
       - name: Deploy Supabase functions
-        run: npx supabase@2.122.1 functions deploy market-data trade-analyzer news-calendar outcome-sync --project-ref "$SUPABASE_PROJECT_REF" --use-api --yes
+        run: >-
+          bash scripts/retry-with-timeout.sh 3 120 --between "sleep 15"
+          -- npx supabase@2.122.1 functions deploy market-data trade-analyzer news-calendar outcome-sync --project-ref "$SUPABASE_PROJECT_REF" --use-api --yes
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
